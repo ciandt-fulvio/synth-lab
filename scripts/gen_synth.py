@@ -22,12 +22,15 @@ from pathlib import Path
 from typing import Any
 
 from faker import Faker
+import jsonschema
+from jsonschema import Draft202012Validator
 
 # Configuration paths
 DATA_DIR = Path(__file__).parent.parent / "data"
 CONFIG_DIR = DATA_DIR / "config"
 SCHEMAS_DIR = DATA_DIR / "schemas"
 SYNTHS_DIR = DATA_DIR / "synths"
+SCHEMA_PATH = SCHEMAS_DIR / "synth-schema.json"
 
 # Initialize Faker with Brazilian locale
 fake = Faker("pt_BR")
@@ -660,7 +663,7 @@ def derive_archetype(demographics: dict[str, Any], big_five: dict[str, int]) -> 
         "Empático": big_five["amabilidade"],
         "Ansioso": big_five["neuroticismo"],
     }
-    perfil = max(tracos, key=tracos.get)
+    perfil = max(tracos, key=tracos.get)   # type: ignore
 
     return f"{faixa} {regiao} {perfil}"
 
@@ -684,7 +687,7 @@ def derive_lifestyle(big_five: dict[str, int]) -> str:
 
 
 def derive_description(synth_data: dict[str, Any]) -> str:
-    """Gera descrição textual do Synth."""
+    """Gera descrição textual do Synth (mínimo 50 caracteres)."""
     demo = synth_data["demografia"]
     psico = synth_data["psicografia"]
 
@@ -698,12 +701,16 @@ def derive_description(synth_data: dict[str, Any]) -> str:
         genero_artigo = "Pessoa"
 
     desc = f"{genero_artigo} de {demo['idade']} anos, {demo['ocupacao'].lower()}, "
-    desc += f"mora em {demo['localizacao']['cidade']}. "
+    desc += f"mora em {demo['localizacao']['cidade']}, {demo['localizacao']['estado']}. "
 
     big_five = psico["personalidade_big_five"]
     tracos_altos = [k.capitalize() for k, v in big_five.items() if v > 60]
     if tracos_altos:
-        desc += f"Traços marcantes: {', '.join(tracos_altos[:2])}."
+        desc += f"Possui traços marcantes de {', '.join(tracos_altos[:2])}. "
+
+    # Adicionar informação sobre interesses se descrição ainda curta
+    if len(desc) < 50 and psico["interesses"]:
+        desc += f"Interesses: {', '.join(psico['interesses'][:3])}."
 
     return desc
 
@@ -764,12 +771,189 @@ def save_synth(synth_dict: dict[str, Any], output_dir: Path = SYNTHS_DIR) -> Non
     print(f"Synth salvo: {output_path}")
 
 
-def main(quantidade: int = 1) -> list[dict[str, Any]]:
+def validate_synth(
+    synth_dict: dict[str, Any], schema_path: Path = SCHEMA_PATH
+) -> tuple[bool, list[str]]:
+    """
+    Valida Synth contra JSON Schema e retorna status e lista de erros.
+
+    Args:
+        synth_dict: Dicionário do Synth a validar
+        schema_path: Caminho para o arquivo de schema JSON
+
+    Returns:
+        tuple[bool, list[str]]: (is_valid, error_messages)
+    """
+    try:
+        with open(schema_path, "r", encoding="utf-8") as f:
+            schema = json.load(f)
+
+        validator = Draft202012Validator(schema)
+        errors = []
+
+        for error in validator.iter_errors(synth_dict):
+            path = " -> ".join(str(p) for p in error.path) if error.path else "root"
+            errors.append(f"{path}: {error.message}")
+
+        return (len(errors) == 0, errors)
+
+    except FileNotFoundError:
+        return (False, [f"Schema não encontrado: {schema_path}"])
+    except json.JSONDecodeError as e:
+        return (False, [f"Erro ao parsear schema: {str(e)}"])
+
+
+def validate_single_file(file_path: Path, schema_path: Path = SCHEMA_PATH) -> None:
+    """
+    Valida um único arquivo JSON de Synth contra o schema.
+
+    Args:
+        file_path: Caminho para o arquivo JSON do Synth
+        schema_path: Caminho para o schema JSON
+    """
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            synth_data = json.load(f)
+
+        is_valid, errors = validate_synth(synth_data, schema_path)
+
+        if is_valid:
+            print(f"✓ {file_path.name}: VÁLIDO")
+        else:
+            print(f"✗ {file_path.name}: FALHOU")
+            for error in errors:
+                print(f"  - {error}")
+
+    except FileNotFoundError:
+        print(f"✗ {file_path.name}: Arquivo não encontrado")
+    except json.JSONDecodeError as e:
+        print(f"✗ {file_path.name}: JSON inválido - {str(e)}")
+
+
+def validate_batch(
+    synths_dir: Path = SYNTHS_DIR, schema_path: Path = SCHEMA_PATH
+) -> dict[str, Any]:
+    """
+    Valida todos os arquivos JSON em um diretório contra o schema.
+
+    Returns:
+        dict: Estatísticas de validação (total, valid, invalid, errors)
+    """
+    json_files = list(synths_dir.glob("*.json"))
+
+    if not json_files:
+        print(f"Nenhum arquivo JSON encontrado em {synths_dir}")
+        return {"total": 0, "valid": 0, "invalid": 0, "errors": []}
+
+    stats = {"total": len(json_files), "valid": 0, "invalid": 0, "errors": []}
+
+    for file_path in json_files:
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                synth_data = json.load(f)
+
+            is_valid, errors = validate_synth(synth_data, schema_path)
+
+            if is_valid:
+                stats["valid"] += 1
+                print(f"✓ {file_path.name}")
+            else:
+                stats["invalid"] += 1
+                print(f"✗ {file_path.name}")
+                for error in errors:
+                    print(f"  - {error}")
+                stats["errors"].append({"file": file_path.name, "errors": errors})
+
+        except Exception as e:
+            stats["invalid"] += 1
+            error_msg = f"Erro ao processar {file_path.name}: {str(e)}"
+            print(f"✗ {error_msg}")
+            stats["errors"].append({"file": file_path.name, "errors": [error_msg]})
+
+    return stats
+
+
+def analyze_regional_distribution(synths_dir: Path = SYNTHS_DIR) -> dict[str, Any]:
+    """Analisa distribuição regional dos Synths gerados vs IBGE."""
+    config = load_config_data()
+    ibge_dist = config["ibge"]["regioes"]
+
+    json_files = list(synths_dir.glob("*.json"))
+    if not json_files:
+        return {"error": "Nenhum Synth encontrado"}
+
+    region_counts = {}
+    for file_path in json_files:
+        with open(file_path, "r", encoding="utf-8") as f:
+            synth = json.load(f)
+            regiao = synth["demografia"]["localizacao"]["regiao"]
+            region_counts[regiao] = region_counts.get(regiao, 0) + 1
+
+    total = len(json_files)
+    analysis = {}
+    for regiao, ibge_pct in ibge_dist.items():
+        actual_count = region_counts.get(regiao, 0)
+        actual_pct = (actual_count / total) * 100
+        error = abs(actual_pct - (ibge_pct * 100))
+        analysis[regiao] = {
+            "ibge": ibge_pct * 100,
+            "actual": actual_pct,
+            "count": actual_count,
+            "error": error,
+        }
+
+    return {"total": total, "regions": analysis}
+
+
+def analyze_age_distribution(synths_dir: Path = SYNTHS_DIR) -> dict[str, Any]:
+    """Analisa distribuição etária dos Synths gerados vs IBGE."""
+    config = load_config_data()
+    ibge_dist = config["ibge"]["faixas_etarias"]
+
+    json_files = list(synths_dir.glob("*.json"))
+    if not json_files:
+        return {"error": "Nenhum Synth encontrado"}
+
+    age_counts = {}
+    for file_path in json_files:
+        with open(file_path, "r", encoding="utf-8") as f:
+            synth = json.load(f)
+            idade = synth["demografia"]["idade"]
+            if idade < 15:
+                faixa = "0-14"
+            elif idade < 30:
+                faixa = "15-29"
+            elif idade < 45:
+                faixa = "30-44"
+            elif idade < 60:
+                faixa = "45-59"
+            else:
+                faixa = "60+"
+            age_counts[faixa] = age_counts.get(faixa, 0) + 1
+
+    total = len(json_files)
+    analysis = {}
+    for faixa, ibge_pct in ibge_dist.items():
+        actual_count = age_counts.get(faixa, 0)
+        actual_pct = (actual_count / total) * 100
+        error = abs(actual_pct - (ibge_pct * 100))
+        analysis[faixa] = {
+            "ibge": ibge_pct * 100,
+            "actual": actual_pct,
+            "count": actual_count,
+            "error": error,
+        }
+
+    return {"total": total, "age_groups": analysis}
+
+
+def main(quantidade: int = 1, show_progress: bool = True) -> list[dict[str, Any]]:
     """
     Função principal: carrega config e gera Synths.
 
     Args:
         quantidade: Número de synths a gerar (padrão: 1)
+        show_progress: Mostrar progresso durante geração
 
     Returns:
         list[dict]: Lista de synths gerados
@@ -777,12 +961,33 @@ def main(quantidade: int = 1) -> list[dict[str, Any]]:
     print(f"=== Gerando {quantidade} Synth(s) ===")
     config = load_config_data()
 
+    # Track IDs to prevent duplicates
+    existing_ids = set()
+    synths_dir_files = list(SYNTHS_DIR.glob("*.json"))
+    for file_path in synths_dir_files:
+        existing_ids.add(file_path.stem)
+
     synths_gerados = []
     for i in range(quantidade):
-        synth = assemble_synth(config)
+        # Generate with unique ID check
+        max_attempts = 10
+        for attempt in range(max_attempts):
+            synth = assemble_synth(config)
+            if synth["id"] not in existing_ids:
+                existing_ids.add(synth["id"])
+                break
+            if attempt == max_attempts - 1:
+                # Force new ID on last attempt
+                synth["id"] = gerar_id(8)  # Use longer ID
+
         save_synth(synth)
         synths_gerados.append(synth)
-        print(f"  [{i+1}/{quantidade}] {synth['nome']} ({synth['id']})")
+
+        if show_progress:
+            if quantidade > 10 and (i + 1) % 10 == 0:
+                print(f"  [{i+1}/{quantidade}] Gerados...")
+            elif quantidade <= 10:
+                print(f"  [{i+1}/{quantidade}] {synth['nome']} ({synth['id']})")
 
     print(f"\n{quantidade} synth(s) gerado(s) com sucesso!")
     return synths_gerados
@@ -804,8 +1009,83 @@ if __name__ == "__main__":
         action="store_true",
         help="Executar testes de validação em vez de gerar synths"
     )
+    parser.add_argument(
+        "--validate-file",
+        type=str,
+        metavar="FILE",
+        help="Validar um único arquivo JSON de Synth contra o schema"
+    )
+    parser.add_argument(
+        "--validate-all",
+        action="store_true",
+        help="Validar todos os Synths em data/synths/ contra o schema"
+    )
+    parser.add_argument(
+        "--analyze",
+        type=str,
+        choices=["region", "age", "all"],
+        help="Analisar distribuição demográfica dos Synths gerados vs IBGE"
+    )
 
     args = parser.parse_args()
+
+    # Modo validação de arquivo único
+    if args.validate_file:
+        file_path = Path(args.validate_file)
+        print(f"=== Validando arquivo: {file_path} ===\n")
+        validate_single_file(file_path)
+        sys.exit(0)
+
+    # Modo validação de todos os arquivos
+    if args.validate_all:
+        print(f"=== Validando todos os Synths em {SYNTHS_DIR} ===\n")
+        stats = validate_batch(SYNTHS_DIR)
+        print(f"\n{'='*60}")
+        print(f"Total: {stats['total']} arquivo(s)")
+        print(f"Válidos: {stats['valid']}")
+        print(f"Inválidos: {stats['invalid']}")
+        if stats['invalid'] > 0:
+            print(f"\n{stats['invalid']} arquivo(s) com erros de validação")
+            sys.exit(1)
+        else:
+            print(f"\n✓ Todos os arquivos passaram na validação!")
+            sys.exit(0)
+
+    # Modo análise de distribuição
+    if args.analyze:
+        print(f"=== Análise de Distribuição Demográfica ===\n")
+
+        if args.analyze in ["region", "all"]:
+            print("--- Distribuição Regional ---")
+            result = analyze_regional_distribution()
+            if "error" in result:
+                print(f"Erro: {result['error']}")
+            else:
+                print(f"Total de Synths: {result['total']}\n")
+                print(f"{'Região':<15} {'IBGE %':<10} {'Real %':<10} {'Count':<8} {'Erro %':<10}")
+                print("-" * 60)
+                for regiao, data in result["regions"].items():
+                    print(
+                        f"{regiao:<15} {data['ibge']:>7.2f}%  {data['actual']:>7.2f}%  "
+                        f"{data['count']:>5}    {data['error']:>7.2f}%"
+                    )
+                print()
+
+        if args.analyze in ["age", "all"]:
+            print("--- Distribuição Etária ---")
+            result = analyze_age_distribution()
+            if "error" in result:
+                print(f"Erro: {result['error']}")
+            else:
+                print(f"Total de Synths: {result['total']}\n")
+                print(f"{'Faixa':<10} {'IBGE %':<10} {'Real %':<10} {'Count':<8} {'Erro %':<10}")
+                print("-" * 60)
+                for faixa, data in result["age_groups"].items():
+                    print(
+                        f"{faixa:<10} {data['ibge']:>7.2f}%  {data['actual']:>7.2f}%  "
+                        f"{data['count']:>5}    {data['error']:>7.2f}%"
+                    )
+        sys.exit(0)
 
     if not args.validar:
         # Modo normal: gerar synths

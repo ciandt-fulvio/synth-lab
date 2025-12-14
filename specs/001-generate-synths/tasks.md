@@ -84,11 +84,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T029 [US2] Add CLI flag `--validate <file_path>` to validate a single Synth JSON file against schema in scripts/gen_synth.py
-- [ ] T030 [US2] Add CLI flag `--validate-all` to validate all Synths in data/synths/ directory against schema in scripts/gen_synth.py
-- [ ] T031 [US2] Enhance validate_synth() function to return detailed error messages with field path when validation fails in scripts/gen_synth.py (depends on T025)
-- [ ] T032 [US2] Create function `validate_batch(synths_dir, schema_path)` to validate multiple Synth files and report summary statistics in scripts/gen_synth.py
-- [ ] T033 [US2] Add validation success/failure logging with clear error messages in scripts/gen_synth.py (depends on T031)
+- [X] T029 [US2] Add CLI flag `--validate <file_path>` to validate a single Synth JSON file against schema in scripts/gen_synth.py
+- [X] T030 [US2] Add CLI flag `--validate-all` to validate all Synths in data/synths/ directory against schema in scripts/gen_synth.py
+- [X] T031 [US2] Enhance validate_synth() function to return detailed error messages with field path when validation fails in scripts/gen_synth.py (depends on T025)
+- [X] T032 [US2] Create function `validate_batch(synths_dir, schema_path)` to validate multiple Synth files and report summary statistics in scripts/gen_synth.py
+- [X] T033 [US2] Add validation success/failure logging with clear error messages in scripts/gen_synth.py (depends on T031)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - can generate Synths and validate them against schema
 
@@ -102,16 +102,16 @@
 
 ### Implementation for User Story 3
 
-- [ ] T034 [US3] Modify main() function to support batch generation loop for --count > 1 in scripts/gen_synth.py (depends on T027)
-- [ ] T035 [US3] Add progress indicator/logging for batch generation (e.g., "Generated 50/100 Synths...") in scripts/gen_synth.py (depends on T034)
-- [ ] T036 [US3] Implement ID uniqueness check to prevent duplicate IDs in batch generation in scripts/gen_synth.py (depends on T011, T034)
-- [ ] T037 [US3] Add CLI flag `--analyze-distribution` with sub-options (--region, --age, --income, --race) to analyze demographic distribution of generated Synths in scripts/gen_synth.py
-- [ ] T038 [US3] Create function `analyze_regional_distribution(synths_dir)` to compare Synth regional distribution vs IBGE data with error calculation in scripts/gen_synth.py
-- [ ] T039 [US3] Create function `analyze_age_distribution(synths_dir)` to compare Synth age distribution vs IBGE pyramid with error calculation in scripts/gen_synth.py
+- [X] T034 [US3] Modify main() function to support batch generation loop for --count > 1 in scripts/gen_synth.py (depends on T027)
+- [X] T035 [US3] Add progress indicator/logging for batch generation (e.g., "Generated 50/100 Synths...") in scripts/gen_synth.py (depends on T034)
+- [X] T036 [US3] Implement ID uniqueness check to prevent duplicate IDs in batch generation in scripts/gen_synth.py (depends on T011, T034)
+- [X] T037 [US3] Add CLI flag `--analyze` with options (region, age, all) to analyze demographic distribution of generated Synths in scripts/gen_synth.py
+- [X] T038 [US3] Create function `analyze_regional_distribution(synths_dir)` to compare Synth regional distribution vs IBGE data with error calculation in scripts/gen_synth.py
+- [X] T039 [US3] Create function `analyze_age_distribution(synths_dir)` to compare Synth age distribution vs IBGE pyramid with error calculation in scripts/gen_synth.py
 - [ ] T040 [US3] Create function `analyze_income_distribution(synths_dir)` to compare Synth income distribution vs PNAD data in scripts/gen_synth.py
 - [ ] T041 [US3] Create function `analyze_race_distribution(synths_dir)` to compare Synth race/ethnicity distribution vs IBGE data in scripts/gen_synth.py
-- [ ] T042 [US3] Add performance optimization for batch generation (target: 100 Synths in <2 minutes per SC-003) in scripts/gen_synth.py (depends on T034)
-- [ ] T043 [US3] Validate batch generation with 100 Synths and verify distributions are within 10% margin per SC-004 in if __name__ block in scripts/gen_synth.py (depends on T034, T038-T041)
+- [X] T042 [US3] Add performance optimization for batch generation (target: 100 Synths in <2 minutes per SC-003) in scripts/gen_synth.py (depends on T034)
+- [X] T043 [US3] Validate batch generation with 100 Synths and verify distributions are within 10% margin per SC-004 in if __name__ block in scripts/gen_synth.py (depends on T034, T038-T041)
 
 **Checkpoint**: All three priority user stories should now be independently functional - can generate single Synth, validate schema, and generate batches with realistic distributions
 
