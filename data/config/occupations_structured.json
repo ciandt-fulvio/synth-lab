@@ -1,0 +1,1284 @@
+{
+  "$comment": "Ocupações estruturadas com escolaridade mínima e faixas salariais baseadas em dados do mercado brasileiro 2024",
+  "ocupacoes": [
+    {
+      "nome": "Vendedor de comércio varejista",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 1500,
+        "max": 7000
+      },
+      "categoria": "comercio"
+    },
+    {
+      "nome": "Assistente administrativo",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 1800,
+        "max": 7000
+      },
+      "categoria": "administrativo"
+    },
+    {
+      "nome": "Motorista de caminhão",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 2500,
+        "max": 12000
+      },
+      "categoria": "transporte"
+    },
+    {
+      "nome": "Faxineiro",
+      "escolaridade_minima": "Sem instrução",
+      "faixa_salarial": {
+        "min": 1412,
+        "max": 4000
+      },
+      "categoria": "servicos_gerais"
+    },
+    {
+      "nome": "Auxiliar de escritório",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 1500,
+        "max": 5600
+      },
+      "categoria": "administrativo"
+    },
+    {
+      "nome": "Cozinheiro geral",
+      "escolaridade_minima": "Fundamental incompleto",
+      "faixa_salarial": {
+        "min": 1600,
+        "max": 7000
+      },
+      "categoria": "alimentacao"
+    },
+    {
+      "nome": "Porteiro de edifícios",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 1600,
+        "max": 5000
+      },
+      "categoria": "servicos_gerais"
+    },
+    {
+      "nome": "Pedreiro",
+      "escolaridade_minima": "Fundamental incompleto",
+      "faixa_salarial": {
+        "min": 2000,
+        "max": 9000
+      },
+      "categoria": "construcao"
+    },
+    {
+      "nome": "Vigilante",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 1800,
+        "max": 6000
+      },
+      "categoria": "seguranca"
+    },
+    {
+      "nome": "Atendente de lojas e mercados",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 1412,
+        "max": 5000
+      },
+      "categoria": "comercio"
+    },
+    {
+      "nome": "Manicure e pedicure",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 1500,
+        "max": 8000
+      },
+      "categoria": "estetica"
+    },
+    {
+      "nome": "Cabeleireiro",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 1800,
+        "max": 12000
+      },
+      "categoria": "estetica"
+    },
+    {
+      "nome": "Garçom",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 1500,
+        "max": 7000
+      },
+      "categoria": "alimentacao"
+    },
+    {
+      "nome": "Servente de obras",
+      "escolaridade_minima": "Sem instrução",
+      "faixa_salarial": {
+        "min": 1412,
+        "max": 4400
+      },
+      "categoria": "construcao"
+    },
+    {
+      "nome": "Mecânico de veículos automotores",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 2000,
+        "max": 10000
+      },
+      "categoria": "mecanica"
+    },
+    {
+      "nome": "Eletricista de instalações",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2200,
+        "max": 11000
+      },
+      "categoria": "construcao"
+    },
+    {
+      "nome": "Recepcionista",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 1600,
+        "max": 5600
+      },
+      "categoria": "administrativo"
+    },
+    {
+      "nome": "Operador de caixa",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 1412,
+        "max": 4400
+      },
+      "categoria": "comercio"
+    },
+    {
+      "nome": "Costureiro",
+      "escolaridade_minima": "Fundamental incompleto",
+      "faixa_salarial": {
+        "min": 1500,
+        "max": 7000
+      },
+      "categoria": "industria"
+    },
+    {
+      "nome": "Técnico de enfermagem",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2200,
+        "max": 9000
+      },
+      "categoria": "saude"
+    },
+    {
+      "nome": "Enfermeiro",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 3500,
+        "max": 16000
+      },
+      "categoria": "saude"
+    },
+    {
+      "nome": "Médico clínico geral",
+      "escolaridade_minima": "Pós-graduação",
+      "faixa_salarial": {
+        "min": 8000,
+        "max": 50000
+      },
+      "categoria": "saude"
+    },
+    {
+      "nome": "Dentista",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 5000,
+        "max": 36000
+      },
+      "categoria": "saude"
+    },
+    {
+      "nome": "Fisioterapeuta",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 3000,
+        "max": 16000
+      },
+      "categoria": "saude"
+    },
+    {
+      "nome": "Nutricionista",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 3000,
+        "max": 14000
+      },
+      "categoria": "saude"
+    },
+    {
+      "nome": "Psicólogo",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 3500,
+        "max": 20000
+      },
+      "categoria": "saude"
+    },
+    {
+      "nome": "Farmacêutico",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 4000,
+        "max": 18000
+      },
+      "categoria": "saude"
+    },
+    {
+      "nome": "Professor de ensino fundamental",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 2800,
+        "max": 12000
+      },
+      "categoria": "educacao"
+    },
+    {
+      "nome": "Professor de ensino médio",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 3000,
+        "max": 14000
+      },
+      "categoria": "educacao"
+    },
+    {
+      "nome": "Professor universitário",
+      "escolaridade_minima": "Pós-graduação",
+      "faixa_salarial": {
+        "min": 6000,
+        "max": 40000
+      },
+      "categoria": "educacao"
+    },
+    {
+      "nome": "Pedagogo",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 2500,
+        "max": 11000
+      },
+      "categoria": "educacao"
+    },
+    {
+      "nome": "Advogado",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 4000,
+        "max": 50000
+      },
+      "categoria": "juridico"
+    },
+    {
+      "nome": "Contador",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 4000,
+        "max": 24000
+      },
+      "categoria": "financeiro"
+    },
+    {
+      "nome": "Administrador",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 4000,
+        "max": 30000
+      },
+      "categoria": "administrativo"
+    },
+    {
+      "nome": "Economista",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 5000,
+        "max": 36000
+      },
+      "categoria": "financeiro"
+    },
+    {
+      "nome": "Engenheiro civil",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 6000,
+        "max": 40000
+      },
+      "categoria": "engenharia"
+    },
+    {
+      "nome": "Arquiteto",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 5000,
+        "max": 30000
+      },
+      "categoria": "engenharia"
+    },
+    {
+      "nome": "Designer gráfico",
+      "escolaridade_minima": "Superior incompleto",
+      "faixa_salarial": {
+        "min": 2500,
+        "max": 16000
+      },
+      "categoria": "criativo"
+    },
+    {
+      "nome": "Publicitário",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 3500,
+        "max": 24000
+      },
+      "categoria": "criativo"
+    },
+    {
+      "nome": "Jornalista",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 3000,
+        "max": 20000
+      },
+      "categoria": "comunicacao"
+    },
+    {
+      "nome": "Fotógrafo",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2000,
+        "max": 16000
+      },
+      "categoria": "criativo"
+    },
+    {
+      "nome": "Programador de sistemas de informação",
+      "escolaridade_minima": "Superior incompleto",
+      "faixa_salarial": {
+        "min": 3500,
+        "max": 24000
+      },
+      "categoria": "tecnologia"
+    },
+    {
+      "nome": "Analista de sistemas",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 5000,
+        "max": 30000
+      },
+      "categoria": "tecnologia"
+    },
+    {
+      "nome": "Desenvolvedor de software",
+      "escolaridade_minima": "Superior incompleto",
+      "faixa_salarial": {
+        "min": 4000,
+        "max": 40000
+      },
+      "categoria": "tecnologia"
+    },
+    {
+      "nome": "Administrador de redes",
+      "escolaridade_minima": "Superior incompleto",
+      "faixa_salarial": {
+        "min": 4000,
+        "max": 20000
+      },
+      "categoria": "tecnologia"
+    },
+    {
+      "nome": "Técnico em informática",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2000,
+        "max": 9000
+      },
+      "categoria": "tecnologia"
+    },
+    {
+      "nome": "Analista de suporte técnico",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2500,
+        "max": 10000
+      },
+      "categoria": "tecnologia"
+    },
+    {
+      "nome": "Gerente de vendas",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 5000,
+        "max": 30000
+      },
+      "categoria": "comercio"
+    },
+    {
+      "nome": "Gerente administrativo",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 6000,
+        "max": 36000
+      },
+      "categoria": "administrativo"
+    },
+    {
+      "nome": "Gerente financeiro",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 8000,
+        "max": 50000
+      },
+      "categoria": "financeiro"
+    },
+    {
+      "nome": "Gerente de recursos humanos",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 6000,
+        "max": 36000
+      },
+      "categoria": "administrativo"
+    },
+    {
+      "nome": "Analista de recursos humanos",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 3500,
+        "max": 16000
+      },
+      "categoria": "administrativo"
+    },
+    {
+      "nome": "Auxiliar de cozinha",
+      "escolaridade_minima": "Fundamental incompleto",
+      "faixa_salarial": {
+        "min": 1412,
+        "max": 4000
+      },
+      "categoria": "alimentacao"
+    },
+    {
+      "nome": "Padeiro",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 1800,
+        "max": 7000
+      },
+      "categoria": "alimentacao"
+    },
+    {
+      "nome": "Confeiteiro",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 2000,
+        "max": 10000
+      },
+      "categoria": "alimentacao"
+    },
+    {
+      "nome": "Açougueiro",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 1800,
+        "max": 7000
+      },
+      "categoria": "comercio"
+    },
+    {
+      "nome": "Repositor de mercadorias",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 1412,
+        "max": 4000
+      },
+      "categoria": "comercio"
+    },
+    {
+      "nome": "Estoquista",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 1600,
+        "max": 5600
+      },
+      "categoria": "logistica"
+    },
+    {
+      "nome": "Auxiliar de logística",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 1800,
+        "max": 6000
+      },
+      "categoria": "logistica"
+    },
+    {
+      "nome": "Motorista de táxi",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 2500,
+        "max": 10000
+      },
+      "categoria": "transporte"
+    },
+    {
+      "nome": "Motorista de aplicativo",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 2000,
+        "max": 12000
+      },
+      "categoria": "transporte"
+    },
+    {
+      "nome": "Entregador",
+      "escolaridade_minima": "Fundamental incompleto",
+      "faixa_salarial": {
+        "min": 1500,
+        "max": 8000
+      },
+      "categoria": "transporte"
+    },
+    {
+      "nome": "Motoboy",
+      "escolaridade_minima": "Fundamental incompleto",
+      "faixa_salarial": {
+        "min": 1800,
+        "max": 9000
+      },
+      "categoria": "transporte"
+    },
+    {
+      "nome": "Agente de segurança",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2000,
+        "max": 8000
+      },
+      "categoria": "seguranca"
+    },
+    {
+      "nome": "Policial militar",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 4000,
+        "max": 20000
+      },
+      "categoria": "seguranca"
+    },
+    {
+      "nome": "Bombeiro",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 4000,
+        "max": 20000
+      },
+      "categoria": "seguranca"
+    },
+    {
+      "nome": "Agricultor",
+      "escolaridade_minima": "Fundamental incompleto",
+      "faixa_salarial": {
+        "min": 1412,
+        "max": 8000
+      },
+      "categoria": "rural"
+    },
+    {
+      "nome": "Pescador",
+      "escolaridade_minima": "Fundamental incompleto",
+      "faixa_salarial": {
+        "min": 1412,
+        "max": 7000
+      },
+      "categoria": "rural"
+    },
+    {
+      "nome": "Veterinário",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 4000,
+        "max": 24000
+      },
+      "categoria": "saude"
+    },
+    {
+      "nome": "Agrônomo",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 5000,
+        "max": 30000
+      },
+      "categoria": "rural"
+    },
+    {
+      "nome": "Operador de máquinas",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 2200,
+        "max": 9000
+      },
+      "categoria": "industria"
+    },
+    {
+      "nome": "Soldador",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 2500,
+        "max": 11000
+      },
+      "categoria": "industria"
+    },
+    {
+      "nome": "Torneiro mecânico",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2800,
+        "max": 12000
+      },
+      "categoria": "industria"
+    },
+    {
+      "nome": "Técnico em eletrônica",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2500,
+        "max": 11000
+      },
+      "categoria": "tecnologia"
+    },
+    {
+      "nome": "Bombeiro hidráulico",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 2200,
+        "max": 10000
+      },
+      "categoria": "construcao"
+    },
+    {
+      "nome": "Marceneiro",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 2000,
+        "max": 10000
+      },
+      "categoria": "construcao"
+    },
+    {
+      "nome": "Jardineiro",
+      "escolaridade_minima": "Fundamental incompleto",
+      "faixa_salarial": {
+        "min": 1500,
+        "max": 6000
+      },
+      "categoria": "servicos_gerais"
+    },
+    {
+      "nome": "Auxiliar de limpeza",
+      "escolaridade_minima": "Fundamental incompleto",
+      "faixa_salarial": {
+        "min": 1412,
+        "max": 4000
+      },
+      "categoria": "servicos_gerais"
+    },
+    {
+      "nome": "Motorista de ônibus",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 2500,
+        "max": 9000
+      },
+      "categoria": "transporte"
+    },
+    {
+      "nome": "Auxiliar de produção",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 1500,
+        "max": 5000
+      },
+      "categoria": "industria"
+    },
+    {
+      "nome": "Operador de produção",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 1800,
+        "max": 7000
+      },
+      "categoria": "industria"
+    },
+    {
+      "nome": "Técnico de segurança do trabalho",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 3000,
+        "max": 12000
+      },
+      "categoria": "seguranca"
+    },
+    {
+      "nome": "Assistente social",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 3000,
+        "max": 13000
+      },
+      "categoria": "social"
+    },
+    {
+      "nome": "Cuidador de idosos",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 1600,
+        "max": 6000
+      },
+      "categoria": "social"
+    },
+    {
+      "nome": "Babá",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 1500,
+        "max": 7000
+      },
+      "categoria": "social"
+    },
+    {
+      "nome": "Empregado doméstico",
+      "escolaridade_minima": "Fundamental incompleto",
+      "faixa_salarial": {
+        "min": 1412,
+        "max": 5000
+      },
+      "categoria": "servicos_gerais"
+    },
+    {
+      "nome": "Barbeiro",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 1800,
+        "max": 10000
+      },
+      "categoria": "estetica"
+    },
+    {
+      "nome": "Esteticista",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2000,
+        "max": 10000
+      },
+      "categoria": "estetica"
+    },
+    {
+      "nome": "Personal trainer",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 2500,
+        "max": 16000
+      },
+      "categoria": "saude"
+    },
+    {
+      "nome": "Técnico de radiologia",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2500,
+        "max": 10000
+      },
+      "categoria": "saude"
+    },
+    {
+      "nome": "Técnico de laboratório",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2200,
+        "max": 9000
+      },
+      "categoria": "saude"
+    },
+    {
+      "nome": "Biomédico",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 3500,
+        "max": 16000
+      },
+      "categoria": "saude"
+    },
+    {
+      "nome": "Fonoaudiólogo",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 3000,
+        "max": 14000
+      },
+      "categoria": "saude"
+    },
+    {
+      "nome": "Assistente financeiro",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2000,
+        "max": 8000
+      },
+      "categoria": "financeiro"
+    },
+    {
+      "nome": "Auxiliar contábil",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 1800,
+        "max": 7000
+      },
+      "categoria": "financeiro"
+    },
+    {
+      "nome": "Analista contábil",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 4000,
+        "max": 16000
+      },
+      "categoria": "financeiro"
+    },
+    {
+      "nome": "Auditor",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 5000,
+        "max": 30000
+      },
+      "categoria": "financeiro"
+    },
+    {
+      "nome": "Corretor de imóveis",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2000,
+        "max": 30000
+      },
+      "categoria": "comercio"
+    },
+    {
+      "nome": "Corretor de seguros",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2500,
+        "max": 20000
+      },
+      "categoria": "comercio"
+    },
+    {
+      "nome": "Agente de viagens",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 1800,
+        "max": 8000
+      },
+      "categoria": "turismo"
+    },
+    {
+      "nome": "Guia de turismo",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2000,
+        "max": 10000
+      },
+      "categoria": "turismo"
+    },
+    {
+      "nome": "Recepcionista de hotel",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 1600,
+        "max": 6000
+      },
+      "categoria": "turismo"
+    },
+    {
+      "nome": "Camareira",
+      "escolaridade_minima": "Fundamental completo",
+      "faixa_salarial": {
+        "min": 1500,
+        "max": 5000
+      },
+      "categoria": "turismo"
+    },
+    {
+      "nome": "Chef de cozinha",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 3500,
+        "max": 24000
+      },
+      "categoria": "alimentacao"
+    },
+    {
+      "nome": "Músico",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 1500,
+        "max": 20000
+      },
+      "categoria": "arte"
+    },
+    {
+      "nome": "Ator",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 1500,
+        "max": 30000
+      },
+      "categoria": "arte"
+    },
+    {
+      "nome": "Professor de música",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 2500,
+        "max": 12000
+      },
+      "categoria": "educacao"
+    },
+    {
+      "nome": "Bibliotecário",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 3000,
+        "max": 13000
+      },
+      "categoria": "educacao"
+    },
+    {
+      "nome": "Produtor de eventos",
+      "escolaridade_minima": "Superior incompleto",
+      "faixa_salarial": {
+        "min": 3000,
+        "max": 20000
+      },
+      "categoria": "criativo"
+    },
+    {
+      "nome": "Relações públicas",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 4000,
+        "max": 24000
+      },
+      "categoria": "comunicacao"
+    },
+    {
+      "nome": "Redator publicitário",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 3500,
+        "max": 20000
+      },
+      "categoria": "criativo"
+    },
+    {
+      "nome": "Editor de vídeo",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2500,
+        "max": 16000
+      },
+      "categoria": "criativo"
+    },
+    {
+      "nome": "Tradutor",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 3000,
+        "max": 20000
+      },
+      "categoria": "comunicacao"
+    },
+    {
+      "nome": "Engenheiro mecânico",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 6000,
+        "max": 36000
+      },
+      "categoria": "engenharia"
+    },
+    {
+      "nome": "Engenheiro elétrico",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 6000,
+        "max": 36000
+      },
+      "categoria": "engenharia"
+    },
+    {
+      "nome": "Engenheiro de produção",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 6000,
+        "max": 36000
+      },
+      "categoria": "engenharia"
+    },
+    {
+      "nome": "Técnico agrícola",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2200,
+        "max": 9000
+      },
+      "categoria": "rural"
+    },
+    {
+      "nome": "Analista ambiental",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 4000,
+        "max": 20000
+      },
+      "categoria": "engenharia"
+    },
+    {
+      "nome": "Piloto de avião",
+      "escolaridade_minima": "Superior incompleto",
+      "faixa_salarial": {
+        "min": 8000,
+        "max": 70000
+      },
+      "categoria": "transporte"
+    },
+    {
+      "nome": "Comissário de bordo",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 4000,
+        "max": 20000
+      },
+      "categoria": "transporte"
+    },
+    {
+      "nome": "Carteiro",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2500,
+        "max": 8000
+      },
+      "categoria": "servicos_gerais"
+    },
+    {
+      "nome": "Atendente de call center",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 1412,
+        "max": 5000
+      },
+      "categoria": "comercio"
+    },
+    {
+      "nome": "Operador de telemarketing",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 1412,
+        "max": 5000
+      },
+      "categoria": "comercio"
+    },
+    {
+      "nome": "Consultor de vendas",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2000,
+        "max": 16000
+      },
+      "categoria": "comercio"
+    },
+    {
+      "nome": "Representante comercial",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 2500,
+        "max": 24000
+      },
+      "categoria": "comercio"
+    },
+    {
+      "nome": "Coordenador de logística",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 5000,
+        "max": 24000
+      },
+      "categoria": "logistica"
+    },
+    {
+      "nome": "Gerente de operações",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 7000,
+        "max": 40000
+      },
+      "categoria": "administrativo"
+    },
+    {
+      "nome": "Estudante",
+      "escolaridade_minima": "Fundamental incompleto",
+      "faixa_salarial": {
+        "min": 0,
+        "max": 3000
+      },
+      "categoria": "estudante"
+    },
+    {
+      "nome": "Aposentado",
+      "escolaridade_minima": "Sem instrução",
+      "faixa_salarial": {
+        "min": 1412,
+        "max": 16000
+      },
+      "categoria": "aposentado"
+    },
+    {
+      "nome": "Desempregado",
+      "escolaridade_minima": "Sem instrução",
+      "faixa_salarial": {
+        "min": 0,
+        "max": 1000
+      },
+      "categoria": "desempregado"
+    },
+    {
+      "nome": "Autônomo",
+      "escolaridade_minima": "Fundamental incompleto",
+      "faixa_salarial": {
+        "min": 1000,
+        "max": 20000
+      },
+      "categoria": "autonomo"
+    },
+    {
+      "nome": "Dona de casa",
+      "escolaridade_minima": "Sem instrução",
+      "faixa_salarial": {
+        "min": 0,
+        "max": 0
+      },
+      "categoria": "domestico"
+    },
+    {
+      "nome": "Cientista de dados",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 8000,
+        "max": 50000
+      },
+      "categoria": "tecnologia"
+    },
+    {
+      "nome": "Engenheiro de software",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 8000,
+        "max": 60000
+      },
+      "categoria": "tecnologia"
+    },
+    {
+      "nome": "Product manager",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 10000,
+        "max": 60000
+      },
+      "categoria": "tecnologia"
+    },
+    {
+      "nome": "UX Designer",
+      "escolaridade_minima": "Superior incompleto",
+      "faixa_salarial": {
+        "min": 5000,
+        "max": 30000
+      },
+      "categoria": "tecnologia"
+    },
+    {
+      "nome": "DevOps Engineer",
+      "escolaridade_minima": "Superior incompleto",
+      "faixa_salarial": {
+        "min": 7000,
+        "max": 40000
+      },
+      "categoria": "tecnologia"
+    },
+    {
+      "nome": "Data Engineer",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 8000,
+        "max": 44000
+      },
+      "categoria": "tecnologia"
+    },
+    {
+      "nome": "Analista de marketing digital",
+      "escolaridade_minima": "Superior completo",
+      "faixa_salarial": {
+        "min": 3500,
+        "max": 20000
+      },
+      "categoria": "criativo"
+    },
+    {
+      "nome": "Social media manager",
+      "escolaridade_minima": "Superior incompleto",
+      "faixa_salarial": {
+        "min": 2500,
+        "max": 16000
+      },
+      "categoria": "criativo"
+    },
+    {
+      "nome": "Influenciador digital",
+      "escolaridade_minima": "Médio completo",
+      "faixa_salarial": {
+        "min": 1000,
+        "max": 100000
+      },
+      "categoria": "criativo"
+    }
+  ],
+  "escolaridade_ordem": [
+    "Sem instrução",
+    "Fundamental incompleto",
+    "Fundamental completo",
+    "Médio incompleto",
+    "Médio completo",
+    "Superior incompleto",
+    "Superior completo",
+    "Pós-graduação"
+  ]
+}
