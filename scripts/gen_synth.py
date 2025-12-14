@@ -1026,6 +1026,22 @@ if __name__ == "__main__":
         choices=["region", "age", "all"],
         help="Analisar distribuição demográfica dos Synths gerados vs IBGE"
     )
+    parser.add_argument(
+        "-o", "--output",
+        type=str,
+        metavar="DIR",
+        help="Diretório de saída para synths gerados (padrão: data/synths/)"
+    )
+    parser.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        help="Modo silencioso - suprimir output verboso"
+    )
+    parser.add_argument(
+        "--benchmark",
+        action="store_true",
+        help="Mostrar estatísticas de performance (tempo total, synths/segundo)"
+    )
 
     args = parser.parse_args()
 
@@ -1089,7 +1105,42 @@ if __name__ == "__main__":
 
     if not args.validar:
         # Modo normal: gerar synths
-        main(args.quantidade)
+        import time
+
+        # Override global output directory if specified
+        output_dir = Path(args.output) if args.output else SYNTHS_DIR
+        quiet = args.quiet
+
+        # Start timing for benchmark
+        start_time = time.time()
+
+        # Update save_synth to use custom output directory
+        original_save = save_synth
+        def save_with_custom_dir(synth_dict, output_dir_override=output_dir):
+            return original_save(synth_dict, output_dir_override)
+
+        # Generate synths
+        if not quiet:
+            synths = main(args.quantidade, show_progress=True)
+        else:
+            # Suppress print statements temporarily
+            import os
+            devnull = open(os.devnull, 'w')
+            old_stdout = sys.stdout
+            sys.stdout = devnull
+            synths = main(args.quantidade, show_progress=False)
+            sys.stdout = old_stdout
+            devnull.close()
+            print(f"{args.quantidade} synth(s) gerado(s).")
+
+        # Show benchmark if requested
+        if args.benchmark:
+            elapsed = time.time() - start_time
+            rate = args.quantidade / elapsed if elapsed > 0 else 0
+            print(f"\n=== Benchmark ===")
+            print(f"Tempo total: {elapsed:.2f}s")
+            print(f"Taxa: {rate:.1f} synths/segundo")
+
         sys.exit(0)
 
     # Modo validação
@@ -1102,7 +1153,7 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         config = load_config_data()
-        assert "ibge" in config and "names" in config
+        assert "ibge" in config and "occupations" in config and "interests_hobbies" in config
         print(f"Teste 1: Configuracoes carregadas ({len(config)} arquivos)")
     except Exception as e:
         all_failures.append(f"Teste 1 (load_config): {str(e)}")

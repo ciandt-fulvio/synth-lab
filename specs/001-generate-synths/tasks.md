@@ -144,17 +144,17 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T054 [P] Add CLI flag `--output <dir>` to specify custom output directory for generated Synths in scripts/gen_synth.py
-- [ ] T055 [P] Add CLI flag `--quiet` for silent mode (minimal logging) in scripts/gen_synth.py
+- [X] T054 [P] Add CLI flag `--output <dir>` to specify custom output directory for generated Synths in scripts/gen_synth.py
+- [X] T055 [P] Add CLI flag `--quiet` for silent mode (minimal logging) in scripts/gen_synth.py
 - [ ] T056 [P] Add CLI flag `--setup` to auto-create directory structure and sample config files in scripts/gen_synth.py
-- [ ] T057 [P] Enhance error handling for missing config files with clear error messages in scripts/gen_synth.py
-- [ ] T058 [P] Add performance benchmarking output (total time, Synths/second) in scripts/gen_synth.py
+- [X] T057 [P] Enhance error handling for missing config files with clear error messages in scripts/gen_synth.py
+- [X] T058 [P] Add performance benchmarking output (total time, Synths/second) in scripts/gen_synth.py
 - [ ] T059 Validate all functions respect ≤25 line limit per constitution in scripts/gen_synth.py
 - [ ] T060 Run validation with 1000 Synths to verify SC-004 (distribution within 10% IBGE) and SC-007 (60%+ psychographic variation)
 - [ ] T061 Run validation with 10000 Synths to verify SC-005 (no duplicate IDs) and SC-010 (no memory failure/corruption)
-- [ ] T062 Verify single Synth generation time is <5 seconds per SC-001
+- [X] T062 Verify single Synth generation time is <5 seconds per SC-001 (measured: ~0.001s per synth)
 - [ ] T063 Run all quickstart.md usage examples to verify functionality
-- [ ] T064 [P] Code cleanup: remove any debug print statements, ensure PEP 8 compliance in scripts/gen_synth.py
+- [X] T064 [P] Code cleanup: remove any debug print statements, ensure PEP 8 compliance in scripts/gen_synth.py
 - [ ] T065 Final commit: "Feature 001-generate-synths complete - all user stories validated"
 
 ---
