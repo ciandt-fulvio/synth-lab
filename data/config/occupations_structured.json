@@ -6,7 +6,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 1500,
-        "max": 7000
+        "max": 14000
       },
       "categoria": "comercio"
     },
@@ -15,7 +15,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 1800,
-        "max": 7000
+        "max": 14000
       },
       "categoria": "administrativo"
     },
@@ -24,7 +24,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 2500,
-        "max": 12000
+        "max": 24000
       },
       "categoria": "transporte"
     },
@@ -33,7 +33,7 @@
       "escolaridade_minima": "Sem instrução",
       "faixa_salarial": {
         "min": 1412,
-        "max": 4000
+        "max": 8000
       },
       "categoria": "servicos_gerais"
     },
@@ -42,7 +42,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 1500,
-        "max": 5600
+        "max": 11200
       },
       "categoria": "administrativo"
     },
@@ -51,7 +51,7 @@
       "escolaridade_minima": "Fundamental incompleto",
       "faixa_salarial": {
         "min": 1600,
-        "max": 7000
+        "max": 14000
       },
       "categoria": "alimentacao"
     },
@@ -60,7 +60,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 1600,
-        "max": 5000
+        "max": 10000
       },
       "categoria": "servicos_gerais"
     },
@@ -69,7 +69,7 @@
       "escolaridade_minima": "Fundamental incompleto",
       "faixa_salarial": {
         "min": 2000,
-        "max": 9000
+        "max": 18000
       },
       "categoria": "construcao"
     },
@@ -78,7 +78,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 1800,
-        "max": 6000
+        "max": 12000
       },
       "categoria": "seguranca"
     },
@@ -87,7 +87,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 1412,
-        "max": 5000
+        "max": 10000
       },
       "categoria": "comercio"
     },
@@ -96,7 +96,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 1500,
-        "max": 8000
+        "max": 16000
       },
       "categoria": "estetica"
     },
@@ -105,7 +105,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 1800,
-        "max": 12000
+        "max": 24000
       },
       "categoria": "estetica"
     },
@@ -114,7 +114,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 1500,
-        "max": 7000
+        "max": 14000
       },
       "categoria": "alimentacao"
     },
@@ -123,7 +123,7 @@
       "escolaridade_minima": "Sem instrução",
       "faixa_salarial": {
         "min": 1412,
-        "max": 4400
+        "max": 8800
       },
       "categoria": "construcao"
     },
@@ -132,7 +132,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 2000,
-        "max": 10000
+        "max": 20000
       },
       "categoria": "mecanica"
     },
@@ -141,7 +141,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2200,
-        "max": 11000
+        "max": 22000
       },
       "categoria": "construcao"
     },
@@ -150,7 +150,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 1600,
-        "max": 5600
+        "max": 11200
       },
       "categoria": "administrativo"
     },
@@ -159,7 +159,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 1412,
-        "max": 4400
+        "max": 8800
       },
       "categoria": "comercio"
     },
@@ -168,7 +168,7 @@
       "escolaridade_minima": "Fundamental incompleto",
       "faixa_salarial": {
         "min": 1500,
-        "max": 7000
+        "max": 14000
       },
       "categoria": "industria"
     },
@@ -177,7 +177,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2200,
-        "max": 9000
+        "max": 18000
       },
       "categoria": "saude"
     },
@@ -186,7 +186,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 3500,
-        "max": 16000
+        "max": 32000
       },
       "categoria": "saude"
     },
@@ -195,7 +195,7 @@
       "escolaridade_minima": "Pós-graduação",
       "faixa_salarial": {
         "min": 8000,
-        "max": 50000
+        "max": 100000
       },
       "categoria": "saude"
     },
@@ -204,7 +204,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 5000,
-        "max": 36000
+        "max": 72000
       },
       "categoria": "saude"
     },
@@ -213,7 +213,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 3000,
-        "max": 16000
+        "max": 32000
       },
       "categoria": "saude"
     },
@@ -222,7 +222,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 3000,
-        "max": 14000
+        "max": 28000
       },
       "categoria": "saude"
     },
@@ -231,7 +231,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 3500,
-        "max": 20000
+        "max": 40000
       },
       "categoria": "saude"
     },
@@ -240,7 +240,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 4000,
-        "max": 18000
+        "max": 36000
       },
       "categoria": "saude"
     },
@@ -249,7 +249,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 2800,
-        "max": 12000
+        "max": 24000
       },
       "categoria": "educacao"
     },
@@ -258,7 +258,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 3000,
-        "max": 14000
+        "max": 28000
       },
       "categoria": "educacao"
     },
@@ -267,7 +267,7 @@
       "escolaridade_minima": "Pós-graduação",
       "faixa_salarial": {
         "min": 6000,
-        "max": 40000
+        "max": 80000
       },
       "categoria": "educacao"
     },
@@ -276,7 +276,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 2500,
-        "max": 11000
+        "max": 22000
       },
       "categoria": "educacao"
     },
@@ -285,7 +285,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 4000,
-        "max": 50000
+        "max": 100000
       },
       "categoria": "juridico"
     },
@@ -294,7 +294,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 4000,
-        "max": 24000
+        "max": 48000
       },
       "categoria": "financeiro"
     },
@@ -303,7 +303,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 4000,
-        "max": 30000
+        "max": 60000
       },
       "categoria": "administrativo"
     },
@@ -312,7 +312,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 5000,
-        "max": 36000
+        "max": 72000
       },
       "categoria": "financeiro"
     },
@@ -321,7 +321,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 6000,
-        "max": 40000
+        "max": 80000
       },
       "categoria": "engenharia"
     },
@@ -330,7 +330,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 5000,
-        "max": 30000
+        "max": 60000
       },
       "categoria": "engenharia"
     },
@@ -339,7 +339,7 @@
       "escolaridade_minima": "Superior incompleto",
       "faixa_salarial": {
         "min": 2500,
-        "max": 16000
+        "max": 32000
       },
       "categoria": "criativo"
     },
@@ -348,7 +348,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 3500,
-        "max": 24000
+        "max": 48000
       },
       "categoria": "criativo"
     },
@@ -357,7 +357,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 3000,
-        "max": 20000
+        "max": 40000
       },
       "categoria": "comunicacao"
     },
@@ -366,7 +366,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2000,
-        "max": 16000
+        "max": 32000
       },
       "categoria": "criativo"
     },
@@ -375,7 +375,7 @@
       "escolaridade_minima": "Superior incompleto",
       "faixa_salarial": {
         "min": 3500,
-        "max": 24000
+        "max": 48000
       },
       "categoria": "tecnologia"
     },
@@ -384,7 +384,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 5000,
-        "max": 30000
+        "max": 60000
       },
       "categoria": "tecnologia"
     },
@@ -393,7 +393,7 @@
       "escolaridade_minima": "Superior incompleto",
       "faixa_salarial": {
         "min": 4000,
-        "max": 40000
+        "max": 80000
       },
       "categoria": "tecnologia"
     },
@@ -402,7 +402,7 @@
       "escolaridade_minima": "Superior incompleto",
       "faixa_salarial": {
         "min": 4000,
-        "max": 20000
+        "max": 40000
       },
       "categoria": "tecnologia"
     },
@@ -411,7 +411,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2000,
-        "max": 9000
+        "max": 18000
       },
       "categoria": "tecnologia"
     },
@@ -420,7 +420,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2500,
-        "max": 10000
+        "max": 20000
       },
       "categoria": "tecnologia"
     },
@@ -429,7 +429,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 5000,
-        "max": 30000
+        "max": 60000
       },
       "categoria": "comercio"
     },
@@ -438,7 +438,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 6000,
-        "max": 36000
+        "max": 72000
       },
       "categoria": "administrativo"
     },
@@ -447,7 +447,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 8000,
-        "max": 50000
+        "max": 100000
       },
       "categoria": "financeiro"
     },
@@ -456,7 +456,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 6000,
-        "max": 36000
+        "max": 72000
       },
       "categoria": "administrativo"
     },
@@ -465,7 +465,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 3500,
-        "max": 16000
+        "max": 32000
       },
       "categoria": "administrativo"
     },
@@ -474,7 +474,7 @@
       "escolaridade_minima": "Fundamental incompleto",
       "faixa_salarial": {
         "min": 1412,
-        "max": 4000
+        "max": 8000
       },
       "categoria": "alimentacao"
     },
@@ -483,7 +483,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 1800,
-        "max": 7000
+        "max": 14000
       },
       "categoria": "alimentacao"
     },
@@ -492,7 +492,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 2000,
-        "max": 10000
+        "max": 20000
       },
       "categoria": "alimentacao"
     },
@@ -501,7 +501,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 1800,
-        "max": 7000
+        "max": 14000
       },
       "categoria": "comercio"
     },
@@ -510,7 +510,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 1412,
-        "max": 4000
+        "max": 8000
       },
       "categoria": "comercio"
     },
@@ -519,7 +519,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 1600,
-        "max": 5600
+        "max": 11200
       },
       "categoria": "logistica"
     },
@@ -528,7 +528,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 1800,
-        "max": 6000
+        "max": 12000
       },
       "categoria": "logistica"
     },
@@ -537,7 +537,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 2500,
-        "max": 10000
+        "max": 20000
       },
       "categoria": "transporte"
     },
@@ -546,7 +546,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 2000,
-        "max": 12000
+        "max": 24000
       },
       "categoria": "transporte"
     },
@@ -555,7 +555,7 @@
       "escolaridade_minima": "Fundamental incompleto",
       "faixa_salarial": {
         "min": 1500,
-        "max": 8000
+        "max": 16000
       },
       "categoria": "transporte"
     },
@@ -564,7 +564,7 @@
       "escolaridade_minima": "Fundamental incompleto",
       "faixa_salarial": {
         "min": 1800,
-        "max": 9000
+        "max": 18000
       },
       "categoria": "transporte"
     },
@@ -573,7 +573,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2000,
-        "max": 8000
+        "max": 16000
       },
       "categoria": "seguranca"
     },
@@ -582,7 +582,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 4000,
-        "max": 20000
+        "max": 40000
       },
       "categoria": "seguranca"
     },
@@ -591,7 +591,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 4000,
-        "max": 20000
+        "max": 40000
       },
       "categoria": "seguranca"
     },
@@ -600,7 +600,7 @@
       "escolaridade_minima": "Fundamental incompleto",
       "faixa_salarial": {
         "min": 1412,
-        "max": 8000
+        "max": 16000
       },
       "categoria": "rural"
     },
@@ -609,7 +609,7 @@
       "escolaridade_minima": "Fundamental incompleto",
       "faixa_salarial": {
         "min": 1412,
-        "max": 7000
+        "max": 14000
       },
       "categoria": "rural"
     },
@@ -618,7 +618,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 4000,
-        "max": 24000
+        "max": 48000
       },
       "categoria": "saude"
     },
@@ -627,7 +627,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 5000,
-        "max": 30000
+        "max": 60000
       },
       "categoria": "rural"
     },
@@ -636,7 +636,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 2200,
-        "max": 9000
+        "max": 18000
       },
       "categoria": "industria"
     },
@@ -645,7 +645,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 2500,
-        "max": 11000
+        "max": 22000
       },
       "categoria": "industria"
     },
@@ -654,7 +654,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2800,
-        "max": 12000
+        "max": 24000
       },
       "categoria": "industria"
     },
@@ -663,7 +663,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2500,
-        "max": 11000
+        "max": 22000
       },
       "categoria": "tecnologia"
     },
@@ -672,7 +672,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 2200,
-        "max": 10000
+        "max": 20000
       },
       "categoria": "construcao"
     },
@@ -681,7 +681,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 2000,
-        "max": 10000
+        "max": 20000
       },
       "categoria": "construcao"
     },
@@ -690,7 +690,7 @@
       "escolaridade_minima": "Fundamental incompleto",
       "faixa_salarial": {
         "min": 1500,
-        "max": 6000
+        "max": 12000
       },
       "categoria": "servicos_gerais"
     },
@@ -699,7 +699,7 @@
       "escolaridade_minima": "Fundamental incompleto",
       "faixa_salarial": {
         "min": 1412,
-        "max": 4000
+        "max": 8000
       },
       "categoria": "servicos_gerais"
     },
@@ -708,7 +708,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 2500,
-        "max": 9000
+        "max": 18000
       },
       "categoria": "transporte"
     },
@@ -717,7 +717,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 1500,
-        "max": 5000
+        "max": 10000
       },
       "categoria": "industria"
     },
@@ -726,7 +726,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 1800,
-        "max": 7000
+        "max": 14000
       },
       "categoria": "industria"
     },
@@ -735,7 +735,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 3000,
-        "max": 12000
+        "max": 24000
       },
       "categoria": "seguranca"
     },
@@ -744,7 +744,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 3000,
-        "max": 13000
+        "max": 26000
       },
       "categoria": "social"
     },
@@ -753,7 +753,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 1600,
-        "max": 6000
+        "max": 12000
       },
       "categoria": "social"
     },
@@ -762,7 +762,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 1500,
-        "max": 7000
+        "max": 14000
       },
       "categoria": "social"
     },
@@ -771,7 +771,7 @@
       "escolaridade_minima": "Fundamental incompleto",
       "faixa_salarial": {
         "min": 1412,
-        "max": 5000
+        "max": 10000
       },
       "categoria": "servicos_gerais"
     },
@@ -780,7 +780,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 1800,
-        "max": 10000
+        "max": 20000
       },
       "categoria": "estetica"
     },
@@ -789,7 +789,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2000,
-        "max": 10000
+        "max": 20000
       },
       "categoria": "estetica"
     },
@@ -798,7 +798,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 2500,
-        "max": 16000
+        "max": 32000
       },
       "categoria": "saude"
     },
@@ -807,7 +807,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2500,
-        "max": 10000
+        "max": 20000
       },
       "categoria": "saude"
     },
@@ -816,7 +816,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2200,
-        "max": 9000
+        "max": 18000
       },
       "categoria": "saude"
     },
@@ -825,7 +825,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 3500,
-        "max": 16000
+        "max": 32000
       },
       "categoria": "saude"
     },
@@ -834,7 +834,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 3000,
-        "max": 14000
+        "max": 28000
       },
       "categoria": "saude"
     },
@@ -843,7 +843,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2000,
-        "max": 8000
+        "max": 16000
       },
       "categoria": "financeiro"
     },
@@ -852,7 +852,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 1800,
-        "max": 7000
+        "max": 14000
       },
       "categoria": "financeiro"
     },
@@ -861,7 +861,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 4000,
-        "max": 16000
+        "max": 32000
       },
       "categoria": "financeiro"
     },
@@ -870,7 +870,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 5000,
-        "max": 30000
+        "max": 60000
       },
       "categoria": "financeiro"
     },
@@ -879,7 +879,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2000,
-        "max": 30000
+        "max": 60000
       },
       "categoria": "comercio"
     },
@@ -888,7 +888,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2500,
-        "max": 20000
+        "max": 40000
       },
       "categoria": "comercio"
     },
@@ -897,7 +897,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 1800,
-        "max": 8000
+        "max": 16000
       },
       "categoria": "turismo"
     },
@@ -906,7 +906,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2000,
-        "max": 10000
+        "max": 20000
       },
       "categoria": "turismo"
     },
@@ -915,7 +915,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 1600,
-        "max": 6000
+        "max": 12000
       },
       "categoria": "turismo"
     },
@@ -924,7 +924,7 @@
       "escolaridade_minima": "Fundamental completo",
       "faixa_salarial": {
         "min": 1500,
-        "max": 5000
+        "max": 10000
       },
       "categoria": "turismo"
     },
@@ -933,7 +933,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 3500,
-        "max": 24000
+        "max": 48000
       },
       "categoria": "alimentacao"
     },
@@ -942,7 +942,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 1500,
-        "max": 20000
+        "max": 40000
       },
       "categoria": "arte"
     },
@@ -951,7 +951,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 1500,
-        "max": 30000
+        "max": 60000
       },
       "categoria": "arte"
     },
@@ -960,7 +960,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 2500,
-        "max": 12000
+        "max": 24000
       },
       "categoria": "educacao"
     },
@@ -969,7 +969,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 3000,
-        "max": 13000
+        "max": 26000
       },
       "categoria": "educacao"
     },
@@ -978,7 +978,7 @@
       "escolaridade_minima": "Superior incompleto",
       "faixa_salarial": {
         "min": 3000,
-        "max": 20000
+        "max": 40000
       },
       "categoria": "criativo"
     },
@@ -987,7 +987,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 4000,
-        "max": 24000
+        "max": 48000
       },
       "categoria": "comunicacao"
     },
@@ -996,7 +996,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 3500,
-        "max": 20000
+        "max": 40000
       },
       "categoria": "criativo"
     },
@@ -1005,7 +1005,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2500,
-        "max": 16000
+        "max": 32000
       },
       "categoria": "criativo"
     },
@@ -1014,7 +1014,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 3000,
-        "max": 20000
+        "max": 40000
       },
       "categoria": "comunicacao"
     },
@@ -1023,7 +1023,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 6000,
-        "max": 36000
+        "max": 72000
       },
       "categoria": "engenharia"
     },
@@ -1032,7 +1032,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 6000,
-        "max": 36000
+        "max": 72000
       },
       "categoria": "engenharia"
     },
@@ -1041,7 +1041,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 6000,
-        "max": 36000
+        "max": 72000
       },
       "categoria": "engenharia"
     },
@@ -1050,7 +1050,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2200,
-        "max": 9000
+        "max": 18000
       },
       "categoria": "rural"
     },
@@ -1059,7 +1059,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 4000,
-        "max": 20000
+        "max": 40000
       },
       "categoria": "engenharia"
     },
@@ -1068,7 +1068,7 @@
       "escolaridade_minima": "Superior incompleto",
       "faixa_salarial": {
         "min": 8000,
-        "max": 70000
+        "max": 140000
       },
       "categoria": "transporte"
     },
@@ -1077,7 +1077,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 4000,
-        "max": 20000
+        "max": 40000
       },
       "categoria": "transporte"
     },
@@ -1086,7 +1086,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2500,
-        "max": 8000
+        "max": 16000
       },
       "categoria": "servicos_gerais"
     },
@@ -1095,7 +1095,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 1412,
-        "max": 5000
+        "max": 10000
       },
       "categoria": "comercio"
     },
@@ -1104,7 +1104,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 1412,
-        "max": 5000
+        "max": 10000
       },
       "categoria": "comercio"
     },
@@ -1113,7 +1113,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2000,
-        "max": 16000
+        "max": 32000
       },
       "categoria": "comercio"
     },
@@ -1122,7 +1122,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 2500,
-        "max": 24000
+        "max": 48000
       },
       "categoria": "comercio"
     },
@@ -1131,7 +1131,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 5000,
-        "max": 24000
+        "max": 48000
       },
       "categoria": "logistica"
     },
@@ -1140,7 +1140,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 7000,
-        "max": 40000
+        "max": 80000
       },
       "categoria": "administrativo"
     },
@@ -1149,7 +1149,7 @@
       "escolaridade_minima": "Fundamental incompleto",
       "faixa_salarial": {
         "min": 0,
-        "max": 3000
+        "max": 6000
       },
       "categoria": "estudante"
     },
@@ -1158,7 +1158,7 @@
       "escolaridade_minima": "Sem instrução",
       "faixa_salarial": {
         "min": 1412,
-        "max": 16000
+        "max": 32000
       },
       "categoria": "aposentado"
     },
@@ -1167,7 +1167,7 @@
       "escolaridade_minima": "Sem instrução",
       "faixa_salarial": {
         "min": 0,
-        "max": 1000
+        "max": 2000
       },
       "categoria": "desempregado"
     },
@@ -1176,7 +1176,7 @@
       "escolaridade_minima": "Fundamental incompleto",
       "faixa_salarial": {
         "min": 1000,
-        "max": 20000
+        "max": 40000
       },
       "categoria": "autonomo"
     },
@@ -1194,7 +1194,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 8000,
-        "max": 50000
+        "max": 100000
       },
       "categoria": "tecnologia"
     },
@@ -1203,7 +1203,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 8000,
-        "max": 60000
+        "max": 120000
       },
       "categoria": "tecnologia"
     },
@@ -1212,7 +1212,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 10000,
-        "max": 60000
+        "max": 120000
       },
       "categoria": "tecnologia"
     },
@@ -1221,7 +1221,7 @@
       "escolaridade_minima": "Superior incompleto",
       "faixa_salarial": {
         "min": 5000,
-        "max": 30000
+        "max": 60000
       },
       "categoria": "tecnologia"
     },
@@ -1230,7 +1230,7 @@
       "escolaridade_minima": "Superior incompleto",
       "faixa_salarial": {
         "min": 7000,
-        "max": 40000
+        "max": 80000
       },
       "categoria": "tecnologia"
     },
@@ -1239,7 +1239,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 8000,
-        "max": 44000
+        "max": 88000
       },
       "categoria": "tecnologia"
     },
@@ -1248,7 +1248,7 @@
       "escolaridade_minima": "Superior completo",
       "faixa_salarial": {
         "min": 3500,
-        "max": 20000
+        "max": 40000
       },
       "categoria": "criativo"
     },
@@ -1257,7 +1257,7 @@
       "escolaridade_minima": "Superior incompleto",
       "faixa_salarial": {
         "min": 2500,
-        "max": 16000
+        "max": 32000
       },
       "categoria": "criativo"
     },
@@ -1266,7 +1266,7 @@
       "escolaridade_minima": "Médio completo",
       "faixa_salarial": {
         "min": 1000,
-        "max": 100000
+        "max": 200000
       },
       "categoria": "criativo"
     }
