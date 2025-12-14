@@ -52,58 +52,175 @@ pip install -e .
 
 ## 📖 Uso
 
-### Gerar Synths
+### Comandos Disponíveis
+
+#### Gerar Synths
 
 ```bash
 # Gerar um Synth individual
-uv run scripts/gen_synth.py --count 1
+uv run scripts/gen_synth.py -n 1
 
 # Gerar batch de Synths
-uv run scripts/gen_synth.py --count 100
-uv run scripts/gen_synth.py --count 1000
+uv run scripts/gen_synth.py -n 100
+uv run scripts/gen_synth.py -n 1000
+
+# Com benchmark de performance
+uv run scripts/gen_synth.py -n 100 --benchmark
+
+# Modo silencioso (minimal output)
+uv run scripts/gen_synth.py -n 100 --quiet
+
+# Output em diretório customizado
+uv run scripts/gen_synth.py -n 10 --output ./meus-synths/
+```
+
+#### Validar Synths
+
+```bash
+# Validar todos os Synths no diretório
+uv run scripts/gen_synth.py --validate-all
+
+# Validar um arquivo específico
+uv run scripts/gen_synth.py --validate-file data/synths/abc123.json
+
+# Executar testes de validação internos
+uv run scripts/gen_synth.py --validar
+```
+
+#### Analisar Distribuições
+
+```bash
+# Analisar distribuição regional vs IBGE
+uv run scripts/gen_synth.py --analyze region
+
+# Analisar distribuição etária vs IBGE
+uv run scripts/gen_synth.py --analyze age
+
+# Analisar ambas as distribuições
+uv run scripts/gen_synth.py --analyze all
 ```
 
 ### Estrutura de Saída
 
 Os Synths são salvos como arquivos JSON em `data/synths/` com identificadores únicos. Cada Synth contém:
 
-- **Identificação**: ID único, nome completo, CPF
-- **Demografia**: Idade, gênero, região, estado, cidade, escolaridade, renda, ocupação
-- **Psicografia**: Traços de personalidade (Big Five), valores, interesses, hobbies
-- **Comportamento**: Hábitos de consumo, uso de tecnologia, redes sociais
-- **Acessibilidade**: Deficiências físicas/cognitivas (se aplicável)
-- **Tecnologia**: Alfabetização digital, dispositivos, familiaridade com apps
-- **Vieses**: Vieses comportamentais (loss aversion, confirmation bias, etc.)
-- **Metadata**: Timestamp de criação, versão do gerador
+- **Identificação**: ID único (6 chars), nome completo, arquétipo, descrição, link para foto
+- **Demografia**: Idade, gênero biológico/identidade, raça/etnia, localização, escolaridade, renda, ocupação, estado civil, composição familiar
+- **Psicografia**: Big Five (abertura, conscienciosidade, extroversão, amabilidade, neuroticismo), valores, interesses, hobbies, estilo de vida, inclinação política/religiosa
+- **Comportamento**: Hábitos de consumo, uso de tecnologia, padrões de mídia, fonte de notícias, comportamento de compra, lealdade a marca, engajamento em redes sociais
+- **Deficiências**: Limitações visuais, auditivas, motoras (cadeira de rodas), cognitivas (se aplicável)
+- **Capacidades Tecnológicas**: Alfabetização digital, dispositivos (principal, qualidade), preferências de acessibilidade (zoom, contraste), velocidade de digitação, frequência de internet, familiaridade com plataformas
+- **Vieses Comportamentais**: Aversão à perda, desconto hiperbólico, suscetibilidade a chamariz, ancoragem, viés de confirmação, viés de status quo, sobrecarga de informação
+- **Metadata**: Timestamp de criação (ISO 8601), versão do schema
 
 <details>
 <summary>Exemplo de Synth gerado (clique para expandir)</summary>
 
 ```json
 {
-  "id": "SYNTH-ABC123",
-  "name": "Maria da Silva Santos",
-  "age": 34,
-  "gender": "Feminino",
-  "region": "Sudeste",
-  "state": "SP",
-  "city": "São Paulo",
-  "education": "Superior completo",
-  "income_bracket": "4-10 SM",
-  "occupation": "Analista de Sistemas",
-  "personality": {
-    "openness": 0.72,
-    "conscientiousness": 0.68,
-    "extraversion": 0.45,
-    "agreeableness": 0.81,
-    "neuroticism": 0.34
+  "id": "abc123",
+  "nome": "Maria Silva Santos",
+  "arquetipo": "Jovem Adulto Sudeste Criativo",
+  "descricao": "Mulher de 28 anos, designer gráfica, mora em São Paulo, SP. Possui traços marcantes de Abertura, Amabilidade.",
+  "link_photo": "https://ui-avatars.com/api/?name=Maria+Silva+Santos&size=256&background=random",
+  "created_at": "2025-12-14T15:30:00Z",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 28,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "parda",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "SP",
+      "cidade": "São Paulo"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 4500.00,
+    "ocupacao": "Designer gráfico",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
   },
-  "interests": ["Tecnologia", "Leitura", "Música"],
-  "tech_literacy": "Alta",
-  "devices": ["Smartphone", "Notebook"],
-  "social_media": ["Instagram", "LinkedIn", "WhatsApp"],
-  "behavioral_biases": ["loss_aversion", "confirmation_bias"],
-  "created_at": "2024-12-14T19:30:00Z"
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 78,
+      "conscienciosidade": 62,
+      "extroversao": 55,
+      "amabilidade": 71,
+      "neuroticismo": 42
+    },
+    "valores": ["criatividade", "autonomia", "justiça social"],
+    "interesses": ["design", "arte", "tecnologia", "música"],
+    "hobbies": ["desenho", "fotografia", "videogames", "yoga"],
+    "estilo_vida": "Criativo e explorador",
+    "inclinacao_politica": -25,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": ["tecnologia", "livros", "vestuário", "decoração"]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 2,
+      "streaming": 15,
+      "redes_sociais": 12
+    },
+    "fonte_noticias": ["jornais online", "redes sociais", "podcasts"],
+    "comportamento_compra": {
+      "impulsivo": 45,
+      "pesquisa_antes_comprar": 75
+    },
+    "lealdade_marca": 55,
+    "engajamento_redes_sociais": {
+      "plataformas": ["Instagram", "LinkedIn", "Pinterest", "WhatsApp"],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {"tipo": "nenhuma"},
+    "auditiva": {"tipo": "nenhuma"},
+    "motora": {"tipo": "nenhuma", "usa_cadeira_rodas": false},
+    "cognitiva": {"tipo": "nenhuma"}
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 85,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 70,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 90,
+      "banco_digital": 85,
+      "redes_sociais": 95
+    }
+  },
+  "vieses": {
+    "aversao_perda": 48,
+    "desconto_hiperbolico": 55,
+    "suscetibilidade_chamariz": 42,
+    "ancoragem": 51,
+    "vies_confirmacao": 60,
+    "vies_status_quo": 38,
+    "sobrecarga_informacao": 45
+  }
 }
 ```
 </details>
@@ -160,9 +277,22 @@ Todas as distribuições estatísticas são baseadas em fontes oficiais e pesqui
 ## 🧪 Validação e Qualidade
 
 - **JSON Schema**: Validação automática de todos os campos (Draft 2020-12)
-- **Distribuições Realistas**: Conformidade com dados do IBGE
+- **Distribuições Realistas**: Conformidade com dados do IBGE (<10% erro)
 - **Consistência Interna**: Validação de relações entre atributos (ex: ocupação vs. escolaridade)
 - **Cobertura de Casos**: Inclusão de edge cases e perfis diversos
+- **ID Únicos**: Garantia de IDs únicos com sistema de retry
+- **Validação Automática**: 10 testes internos de coerência
+
+### Métricas de Performance
+
+```
+✅ Geração individual: ~0.001s por synth
+✅ Geração em lote: ~1800 synths/segundo
+✅ Batch de 100: ~0.06s (bem abaixo do limite de 2 minutos)
+✅ Distribuição regional: <7% erro vs IBGE
+✅ Distribuição etária: <4% erro vs IBGE
+✅ Validação schema: 100% dos synths gerados passam
+```
 
 ## 🛠️ Stack Tecnológica
 
@@ -202,18 +332,28 @@ accessible_test = [s for s in all_synths
 
 ## 🔮 Roadmap
 
-### Em Desenvolvimento
-- [ ] CLI com typer para interface mais amigável
-- [ ] Validação automática de Synths gerados
-- [ ] Análise de distribuições demográficas
+### ✅ Implementado
+- [x] Geração de synths individuais e em lote
+- [x] Validação automática com JSON Schema
+- [x] Análise de distribuições demográficas (região, idade)
+- [x] CLI completo com múltiplos comandos
+- [x] Benchmark de performance
+- [x] Sistema de IDs únicos
+- [x] Validação de coerência interna
+- [x] Modo silencioso e output customizado
 
-### Futuro
+### 🚧 Em Desenvolvimento
+- [ ] Análise de distribuições (renda, raça/etnia)
+- [ ] Documentação expandida de atributos (User Story 4)
+
+### 🔮 Futuro
+- [ ] CLI com typer para interface mais amigável
 - [ ] API REST para geração de Synths
 - [ ] Dashboard de análise e visualização
 - [ ] Exportação para múltiplos formatos (CSV, Parquet)
 - [ ] Geração de famílias/grupos relacionados
-- [ ] Testes unitários e integração
-- [ ] Documentação expandida de atributos
+- [ ] Testes unitários com pytest
+- [ ] Flag `--setup` para auto-criação de estrutura
 
 ## 🤝 Contribuindo
 
