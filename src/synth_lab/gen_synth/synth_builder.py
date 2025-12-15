@@ -106,6 +106,7 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
         "id": synth_id,
         "nome": nome,
         "arquetipo": arquetipo,
+        "descricao": "",  # Placeholder, will be filled after
         "link_photo": link_photo,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "version": "1.0.0",
