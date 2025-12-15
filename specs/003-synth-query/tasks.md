@@ -83,7 +83,7 @@
 - [x] T030 [US1] Add logging statements for database operations and query execution
 - [x] T031 [US1] Run all User Story 1 tests and verify they pass
 - [x] T032 [US1] Manual test: Generate synth data and run `synthlab listsynth` to verify output
-- [ ] T033 [US1] Git commit for User Story 1 completion
+- [x] T033 [US1] Git commit for User Story 1 completion
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - users can list all synth data
 
