@@ -8,6 +8,9 @@ dependencies = [
     "faker>=21.0.0",
     "jsonschema>=4.20.0",
     "rich>=13.0.0",
+    "duckdb>=0.9.0",
+    "typer>=0.9.0",
+    "loguru>=0.7.0",
 ]
 
 [project.optional-dependencies]
