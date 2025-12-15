@@ -1,0 +1,150 @@
+{
+  "id": "unq5b6",
+  "nome": "Luan Machado",
+  "arquetipo": "Meia-Idade Sudeste Ansioso",
+  "descricao": "Homem de 52 anos, ux designer, mora em Belo Horizonte, MG. Possui traços marcantes de Abertura, Conscienciosidade. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Luan+Machado&size=256&background=random",
+  "created_at": "2025-12-15T04:14:41.873217+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 52,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "MG",
+      "cidade": "Belo Horizonte"
+    },
+    "escolaridade": "Pós-graduação",
+    "renda_mensal": 25597.09,
+    "ocupacao": "UX Designer",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 63,
+      "conscienciosidade": 69,
+      "extroversao": 55,
+      "amabilidade": 22,
+      "neuroticismo": 79
+    },
+    "valores": [
+      "inclusão",
+      "igualdade",
+      "conforto",
+      "sucesso"
+    ],
+    "interesses": [
+      "basquete",
+      "dança",
+      "poesia",
+      "café especial",
+      "arquitetura",
+      "patins"
+    ],
+    "hobbies": [
+      "decoração",
+      "trilhas",
+      "podcasting",
+      "videogames"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 75,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "jogos e brinquedos",
+        "beleza e perfumaria",
+        "esporte e lazer",
+        "vestuário e acessórios",
+        "saúde e bem-estar"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 24,
+      "streaming": 7,
+      "redes_sociais": 25
+    },
+    "fonte_noticias": [
+      "podcasts",
+      "TV aberta",
+      "aplicativos de notícias",
+      "redes sociais",
+      "newsletters"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 35,
+      "pesquisa_antes_comprar": 34
+    },
+    "lealdade_marca": 39,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "WhatsApp",
+        "TikTok",
+        "Snapchat",
+        "Threads",
+        "Discord",
+        "Pinterest"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 89,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 44,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 35,
+      "banco_digital": 27,
+      "redes_sociais": 67
+    }
+  },
+  "vieses": {
+    "aversao_perda": 38,
+    "desconto_hiperbolico": 100,
+    "suscetibilidade_chamariz": 33,
+    "ancoragem": 62,
+    "vies_confirmacao": 45,
+    "vies_status_quo": 100,
+    "sobrecarga_informacao": 35
+  }
+}

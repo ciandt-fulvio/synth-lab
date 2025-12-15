@@ -1,0 +1,144 @@
+{
+  "id": "qaa8nx",
+  "nome": "Alexandre Rodrigues",
+  "arquetipo": "Adulto Nordeste Social",
+  "descricao": "Homem de 31 anos, padeiro, mora em Salvador, BA. Possui traços marcantes de Extroversao, Amabilidade. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Alexandre+Rodrigues&size=256&background=random",
+  "created_at": "2025-12-14T22:29:55.974281+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 31,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "preto",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "BA",
+      "cidade": "Salvador"
+    },
+    "escolaridade": "Fundamental completo",
+    "renda_mensal": 1835.69,
+    "ocupacao": "Padeiro",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 38,
+      "conscienciosidade": 59,
+      "extroversao": 98,
+      "amabilidade": 65,
+      "neuroticismo": 58
+    },
+    "valores": [
+      "prazer",
+      "religião",
+      "poder",
+      "independência"
+    ],
+    "interesses": [
+      "cachorros",
+      "poesia",
+      "camping",
+      "corrida"
+    ],
+    "hobbies": [
+      "bordado",
+      "fazer doces",
+      "escrita",
+      "streaming de filmes e séries"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 0,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "saúde e bem-estar",
+        "eletrodomésticos",
+        "jardinagem",
+        "beleza e perfumaria",
+        "vestuário e acessórios"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 14,
+      "streaming": 31,
+      "redes_sociais": 45
+    },
+    "fonte_noticias": [
+      "podcasts",
+      "YouTube",
+      "portais de notícias"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 26,
+      "pesquisa_antes_comprar": 65
+    },
+    "lealdade_marca": 84,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Threads",
+        "Twitter/X",
+        "Twitch",
+        "Reddit"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 74,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 55,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 42,
+      "banco_digital": 63,
+      "redes_sociais": 48
+    }
+  },
+  "vieses": {
+    "aversao_perda": 48,
+    "desconto_hiperbolico": 63,
+    "suscetibilidade_chamariz": 53,
+    "ancoragem": 41,
+    "vies_confirmacao": 77,
+    "vies_status_quo": 67,
+    "sobrecarga_informacao": 29
+  }
+}

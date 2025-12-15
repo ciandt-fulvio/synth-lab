@@ -1,0 +1,143 @@
+{
+  "id": "7kyyg1",
+  "nome": "Lorena da Mata",
+  "arquetipo": "Adulto Nordeste Criativo",
+  "descricao": "Mulher de 42 anos, faxineiro, mora em Natal, RN. Possui traços marcantes de Abertura, Extroversao. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Lorena+da+Mata&size=256&background=random",
+  "created_at": "2025-12-15T04:14:41.873691+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 42,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "RN",
+      "cidade": "Natal"
+    },
+    "escolaridade": "Sem instrução",
+    "renda_mensal": 5844.37,
+    "ocupacao": "Faxineiro",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "monoparental",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 83,
+      "conscienciosidade": 24,
+      "extroversao": 83,
+      "amabilidade": 65,
+      "neuroticismo": 65
+    },
+    "valores": [
+      "respeito",
+      "inovação",
+      "liberdade",
+      "inclusão",
+      "bem-estar"
+    ],
+    "interesses": [
+      "vinhos",
+      "engenharia",
+      "psicologia",
+      "MMA",
+      "medicina",
+      "beleza",
+      "nutrição"
+    ],
+    "hobbies": [
+      "ilustração digital",
+      "trabalho social",
+      "turismo"
+    ],
+    "estilo_vida": "Criativo e explorador",
+    "inclinacao_politica": 1,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "ferramentas",
+        "jardinagem",
+        "saúde e bem-estar"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 6,
+      "streaming": 50,
+      "redes_sociais": 41
+    },
+    "fonte_noticias": [
+      "TV por assinatura",
+      "newsletters",
+      "TV aberta"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 60,
+      "pesquisa_antes_comprar": 57
+    },
+    "lealdade_marca": 23,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Threads",
+        "Twitch"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 59,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 49,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 53,
+      "banco_digital": 87,
+      "redes_sociais": 98
+    }
+  },
+  "vieses": {
+    "aversao_perda": 72,
+    "desconto_hiperbolico": 38,
+    "suscetibilidade_chamariz": 27,
+    "ancoragem": 25,
+    "vies_confirmacao": 23,
+    "vies_status_quo": 30,
+    "sobrecarga_informacao": 71
+  }
+}

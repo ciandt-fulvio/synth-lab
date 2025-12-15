@@ -1,0 +1,147 @@
+{
+  "id": "qohvch",
+  "nome": "Bianca Pereira",
+  "arquetipo": "Adulto Nordeste Criativo.",
+  "descricao": "Mulher de 38 anos, operador de máquinas, mora em São Luís, MA. Possui traços marcantes de Abertura, Amabilidade. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Bianca+Pereira&size=256&background=random",
+  "created_at": "2025-12-15T04:50:40.607244+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 38,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "MA",
+      "cidade": "São Luís"
+    },
+    "escolaridade": "Fundamental completo",
+    "renda_mensal": 8586.99,
+    "ocupacao": "Operador de máquinas",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 72,
+      "conscienciosidade": 49,
+      "extroversao": 59,
+      "amabilidade": 62,
+      "neuroticismo": 61
+    },
+    "valores": [
+      "verdade",
+      "beleza",
+      "justiça",
+      "família"
+    ],
+    "interesses": [
+      "criptomoedas",
+      "viagens",
+      "cuidados pessoais",
+      "causas sociais",
+      "répteis",
+      "tênis"
+    ],
+    "hobbies": [
+      "ciclismo",
+      "dançar",
+      "observação de estrelas",
+      "fotografia",
+      "observação de aves",
+      "voluntariado"
+    ],
+    "estilo_vida": "Criativo e explorador",
+    "inclinacao_politica": 2,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "artigos religiosos",
+        "móveis",
+        "pet shop",
+        "automotivo",
+        "alimentos e bebidas"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 5,
+      "streaming": 15,
+      "redes_sociais": 28
+    },
+    "fonte_noticias": [
+      "jornais online",
+      "jornais impressos"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 45,
+      "pesquisa_antes_comprar": 76
+    },
+    "lealdade_marca": 56,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "TikTok",
+        "Threads",
+        "Facebook",
+        "Twitter/X"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 71,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 51,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 69,
+      "banco_digital": 56,
+      "redes_sociais": 49
+    }
+  },
+  "vieses": {
+    "aversao_perda": 31,
+    "desconto_hiperbolico": 25,
+    "suscetibilidade_chamariz": 24,
+    "ancoragem": 47,
+    "vies_confirmacao": 73,
+    "vies_status_quo": 11,
+    "sobrecarga_informacao": 60
+  }
+}

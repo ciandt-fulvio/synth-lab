@@ -1,0 +1,152 @@
+{
+  "id": "v80vkp",
+  "nome": "Catarina Duarte",
+  "arquetipo": "Jovem Adulto Sudeste Empático",
+  "link_photo": "https://ui-avatars.com/api/?name=Catarina+Duarte&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.140508+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 25,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "preto",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "ES",
+      "cidade": "Vitória"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 10749.98,
+    "ocupacao": "Soldador",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 6
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 62,
+      "conscienciosidade": 31,
+      "extroversao": 46,
+      "amabilidade": 64,
+      "neuroticismo": 49
+    },
+    "valores": [
+      "honestidade",
+      "igualdade",
+      "sabedoria",
+      "coragem",
+      "responsabilidade"
+    ],
+    "interesses": [
+      "saúde",
+      "culinária",
+      "crossfit",
+      "boxe",
+      "direito",
+      "café especial"
+    ],
+    "hobbies": [
+      "turismo",
+      "decoração",
+      "colecionar",
+      "xadrez",
+      "modelagem",
+      "videogames"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -6,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "quinzenal",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "celulares e smartphones",
+        "saúde e bem-estar",
+        "móveis",
+        "beleza e perfumaria"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 21,
+      "streaming": 43,
+      "redes_sociais": 36
+    },
+    "fonte_noticias": [
+      "blogs especializados",
+      "aplicativos de notícias",
+      "jornais impressos",
+      "YouTube",
+      "TV aberta"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 80,
+      "pesquisa_antes_comprar": 19
+    },
+    "lealdade_marca": 84,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Discord",
+        "Snapchat",
+        "Twitter/X",
+        "Facebook",
+        "WhatsApp",
+        "Threads"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 87,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 58,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 27,
+      "banco_digital": 21,
+      "redes_sociais": 100
+    }
+  },
+  "vieses": {
+    "aversao_perda": 68,
+    "desconto_hiperbolico": 59,
+    "suscetibilidade_chamariz": 16,
+    "ancoragem": 37,
+    "vies_confirmacao": 91,
+    "vies_status_quo": 39,
+    "sobrecarga_informacao": 42
+  },
+  "descricao": "Mulher de 25 anos, soldador, mora em Vitória, ES. Possui traços marcantes de Abertura, Amabilidade. "
+}

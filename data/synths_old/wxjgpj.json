@@ -1,0 +1,147 @@
+{
+  "id": "wxjgpj",
+  "nome": "Agatha Gonçalves",
+  "arquetipo": "Jovem Adulto Sudeste Organizado",
+  "descricao": "Mulher de 25 anos, empregado doméstico, mora em Campinas, SP. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Agatha+Gonçalves&size=256&background=random",
+  "created_at": "2025-12-15T04:22:42.411354+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 25,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "SP",
+      "cidade": "Campinas"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 3531.5,
+    "ocupacao": "Empregado doméstico",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "multigeracional",
+      "numero_pessoas": 6
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 45,
+      "conscienciosidade": 53,
+      "extroversao": 46,
+      "amabilidade": 51,
+      "neuroticismo": 51
+    },
+    "valores": [
+      "religião",
+      "família",
+      "prazer",
+      "inovação",
+      "conhecimento"
+    ],
+    "interesses": [
+      "economia",
+      "pesca",
+      "gatos",
+      "nutrição",
+      "natação"
+    ],
+    "hobbies": [
+      "investimentos",
+      "caminhada",
+      "aeromodelismo",
+      "coleção de vinhos",
+      "fazer doces",
+      "colecionar",
+      "redes sociais"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -61,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "quinzenal",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "alimentos e bebidas",
+        "informática",
+        "móveis"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 16,
+      "streaming": 3,
+      "redes_sociais": 58
+    },
+    "fonte_noticias": [
+      "rádio",
+      "blogs especializados",
+      "redes sociais",
+      "TV aberta",
+      "TV por assinatura"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 31,
+      "pesquisa_antes_comprar": 65
+    },
+    "lealdade_marca": 47,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "YouTube",
+        "Reddit"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "cegueira"
+    },
+    "auditiva": {
+      "tipo": "surdez"
+    },
+    "motora": {
+      "tipo": "moderada",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "moderada"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 72,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 139,
+      "alto_contraste": true
+    },
+    "velocidade_digitacao": 58,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 16,
+      "banco_digital": 54,
+      "redes_sociais": 53
+    }
+  },
+  "vieses": {
+    "aversao_perda": 73,
+    "desconto_hiperbolico": 24,
+    "suscetibilidade_chamariz": 40,
+    "ancoragem": 48,
+    "vies_confirmacao": 63,
+    "vies_status_quo": 90,
+    "sobrecarga_informacao": 58
+  }
+}

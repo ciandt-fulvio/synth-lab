@@ -1,0 +1,141 @@
+{
+  "id": "qykjwr",
+  "nome": "Fernando Moraes",
+  "arquetipo": "Idoso Nordeste Empático.",
+  "descricao": "Homem de 97 anos, aposentado, mora em Aracaju, SE. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Fernando+Moraes&size=256&background=random",
+  "created_at": "2025-12-15T04:54:09.008140+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 97,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "SE",
+      "cidade": "Aracaju"
+    },
+    "escolaridade": "Sem instrução",
+    "renda_mensal": 1909.28,
+    "ocupacao": "Aposentado",
+    "estado_civil": "união estável",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 53,
+      "conscienciosidade": 50,
+      "extroversao": 51,
+      "amabilidade": 54,
+      "neuroticismo": 33
+    },
+    "valores": [
+      "autoconhecimento",
+      "justiça",
+      "paz"
+    ],
+    "interesses": [
+      "meditação",
+      "tarô",
+      "futebol",
+      "basquete",
+      "beleza"
+    ],
+    "hobbies": [
+      "pesca",
+      "natação",
+      "aeromodelismo"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 99,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "jardinagem",
+        "artigos religiosos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": false,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 32,
+      "streaming": 10,
+      "redes_sociais": 25
+    },
+    "fonte_noticias": [
+      "rádio",
+      "redes sociais",
+      "TV aberta",
+      "jornais impressos",
+      "podcasts"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 23,
+      "pesquisa_antes_comprar": 43
+    },
+    "lealdade_marca": 45,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Snapchat",
+        "LinkedIn",
+        "Facebook"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 31,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 22,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 26,
+      "banco_digital": 71,
+      "redes_sociais": 47
+    }
+  },
+  "vieses": {
+    "aversao_perda": 27,
+    "desconto_hiperbolico": 29,
+    "suscetibilidade_chamariz": 34,
+    "ancoragem": 54,
+    "vies_confirmacao": 71,
+    "vies_status_quo": 38,
+    "sobrecarga_informacao": 23
+  }
+}

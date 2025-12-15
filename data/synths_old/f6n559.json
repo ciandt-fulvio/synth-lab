@@ -1,0 +1,147 @@
+{
+  "id": "f6n559",
+  "nome": "Kevin Vieira",
+  "arquetipo": "Adulto Sudeste Ansioso",
+  "descricao": "Homem de 43 anos, estoquista, mora em Uberlândia, MG. Possui traços marcantes de Neuroticismo. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Kevin+Vieira&size=256&background=random",
+  "created_at": "2025-12-15T04:04:35.615891+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 43,
+    "genero_biologico": "feminino",
+    "identidade_genero": "homem trans",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "MG",
+      "cidade": "Uberlândia"
+    },
+    "escolaridade": "Pós-graduação",
+    "renda_mensal": 7468.2,
+    "ocupacao": "Estoquista",
+    "estado_civil": "união estável",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 35,
+      "conscienciosidade": 60,
+      "extroversao": 52,
+      "amabilidade": 54,
+      "neuroticismo": 83
+    },
+    "valores": [
+      "igualdade",
+      "amizade",
+      "religião",
+      "saúde",
+      "status"
+    ],
+    "interesses": [
+      "e-sports",
+      "psicologia",
+      "esportes",
+      "finanças pessoais"
+    ],
+    "hobbies": [
+      "produção musical",
+      "ciclismo",
+      "corrida",
+      "degustação de cervejas",
+      "trilhas",
+      "edição de vídeo",
+      "yoga"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 76,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "esporte e lazer",
+        "artigos religiosos",
+        "jardinagem"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 32,
+      "streaming": 18,
+      "redes_sociais": 36
+    },
+    "fonte_noticias": [
+      "portais de notícias",
+      "TV por assinatura",
+      "rádio",
+      "jornais impressos"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 88,
+      "pesquisa_antes_comprar": 62
+    },
+    "lealdade_marca": 88,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Threads",
+        "Twitter/X",
+        "Reddit",
+        "TikTok"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "leve"
+    },
+    "auditiva": {
+      "tipo": "leve"
+    },
+    "motora": {
+      "tipo": "leve",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "severa"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 93,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 140,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 49,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 53,
+      "banco_digital": 60,
+      "redes_sociais": 18
+    }
+  },
+  "vieses": {
+    "aversao_perda": 32,
+    "desconto_hiperbolico": 54,
+    "suscetibilidade_chamariz": 60,
+    "ancoragem": 55,
+    "vies_confirmacao": 42,
+    "vies_status_quo": 74,
+    "sobrecarga_informacao": 21
+  }
+}

@@ -1,0 +1,147 @@
+{
+  "id": "65l2t5",
+  "nome": "Brenda Caldeira",
+  "arquetipo": "Jovem Adulto Sudeste Criativo.",
+  "descricao": "Mulher de 28 anos, jardineiro, mora em Uberlândia, MG. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Brenda+Caldeira&size=256&background=random",
+  "created_at": "2025-12-15T04:54:09.009750+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 28,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "MG",
+      "cidade": "Uberlândia"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 3319.8,
+    "ocupacao": "Jardineiro",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 53,
+      "conscienciosidade": 35,
+      "extroversao": 32,
+      "amabilidade": 48,
+      "neuroticismo": 51
+    },
+    "valores": [
+      "inclusão",
+      "sabedoria",
+      "diversidade",
+      "reconhecimento"
+    ],
+    "interesses": [
+      "ambientalismo",
+      "corrida",
+      "voluntariado",
+      "saúde",
+      "campo"
+    ],
+    "hobbies": [
+      "RPG",
+      "tocar instrumento musical",
+      "assistir documentários",
+      "tricô"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -64,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "móveis",
+        "livros",
+        "pet shop",
+        "celulares e smartphones",
+        "vestuário e acessórios"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 3,
+      "streaming": 37,
+      "redes_sociais": 31
+    },
+    "fonte_noticias": [
+      "rádio",
+      "redes sociais",
+      "TV aberta"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 57,
+      "pesquisa_antes_comprar": 93
+    },
+    "lealdade_marca": 58,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitch",
+        "Discord",
+        "Telegram",
+        "Twitter/X",
+        "Facebook",
+        "Reddit"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 71,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 56,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 89,
+      "banco_digital": 15,
+      "redes_sociais": 53
+    }
+  },
+  "vieses": {
+    "aversao_perda": 69,
+    "desconto_hiperbolico": 39,
+    "suscetibilidade_chamariz": 75,
+    "ancoragem": 57,
+    "vies_confirmacao": 74,
+    "vies_status_quo": 62,
+    "sobrecarga_informacao": 64
+  }
+}

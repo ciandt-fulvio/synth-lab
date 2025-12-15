@@ -1,0 +1,148 @@
+{
+  "id": "9lr0cx",
+  "nome": "Vinícius Cassiano",
+  "arquetipo": "Idoso Nordeste Organizado",
+  "descricao": "Homem de 78 anos, aposentado, mora em Feira de Santana, BA. Possui traços marcantes de Conscienciosidade. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Vinícius+Cassiano&size=256&background=random",
+  "created_at": "2025-12-15T04:10:49.527917+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 78,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "BA",
+      "cidade": "Feira de Santana"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 8275.05,
+    "ocupacao": "Aposentado",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 40,
+      "conscienciosidade": 74,
+      "extroversao": 44,
+      "amabilidade": 39,
+      "neuroticismo": 47
+    },
+    "valores": [
+      "perseverança",
+      "sustentabilidade",
+      "inovação"
+    ],
+    "interesses": [
+      "ciências",
+      "mindfulness",
+      "trilha",
+      "artes visuais",
+      "skate"
+    ],
+    "hobbies": [
+      "escrita",
+      "colecionar",
+      "vlogging",
+      "modelagem",
+      "ouvir música",
+      "cantar"
+    ],
+    "estilo_vida": "Disciplinado e focado",
+    "inclinacao_politica": -6,
+    "inclinacao_religiosa": "espírita"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "eletrônicos",
+        "pet shop",
+        "informática",
+        "papelaria"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 24,
+      "streaming": 38,
+      "redes_sociais": 23
+    },
+    "fonte_noticias": [
+      "newsletters",
+      "redes sociais",
+      "YouTube",
+      "portais de notícias"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 55,
+      "pesquisa_antes_comprar": 65
+    },
+    "lealdade_marca": 25,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "LinkedIn",
+        "Reddit",
+        "Discord",
+        "Facebook",
+        "TikTok",
+        "Snapchat"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 46,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 31,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 38,
+      "banco_digital": 55,
+      "redes_sociais": 23
+    }
+  },
+  "vieses": {
+    "aversao_perda": 35,
+    "desconto_hiperbolico": 85,
+    "suscetibilidade_chamariz": 60,
+    "ancoragem": 36,
+    "vies_confirmacao": 72,
+    "vies_status_quo": 19,
+    "sobrecarga_informacao": 100
+  }
+}

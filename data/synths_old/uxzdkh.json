@@ -1,0 +1,149 @@
+{
+  "id": "uxzdkh",
+  "nome": "Elisa Monteiro",
+  "arquetipo": "Jovem Adulto Sudeste Ansioso",
+  "descricao": "Mulher de 22 anos, estudante, mora em Vila Velha, ES. Possui traços marcantes de Abertura, Extroversao. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Elisa+Monteiro&size=256&background=random",
+  "created_at": "2025-12-14T22:33:48.165117+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 22,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "preto",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "ES",
+      "cidade": "Vila Velha"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 2700.33,
+    "ocupacao": "Estudante",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "multigeracional",
+      "numero_pessoas": 5
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 62,
+      "conscienciosidade": 60,
+      "extroversao": 64,
+      "amabilidade": 50,
+      "neuroticismo": 71
+    },
+    "valores": [
+      "paz",
+      "diversidade",
+      "poder",
+      "cultura"
+    ],
+    "interesses": [
+      "cervejas artesanais",
+      "trilha",
+      "causas sociais",
+      "arquitetura",
+      "empreendedorismo",
+      "futebol"
+    ],
+    "hobbies": [
+      "crochê",
+      "culinária",
+      "cantar",
+      "poker"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -1,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "saúde e bem-estar",
+        "celulares e smartphones",
+        "decoração",
+        "calçados"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 19,
+      "streaming": 19,
+      "redes_sociais": 40
+    },
+    "fonte_noticias": [
+      "TV por assinatura",
+      "podcasts",
+      "newsletters",
+      "jornais impressos",
+      "redes sociais"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 73,
+      "pesquisa_antes_comprar": 73
+    },
+    "lealdade_marca": 40,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitch",
+        "Facebook",
+        "Snapchat",
+        "Discord",
+        "Telegram",
+        "Reddit"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 89,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 59,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 28,
+      "banco_digital": 38,
+      "redes_sociais": 52
+    }
+  },
+  "vieses": {
+    "aversao_perda": 65,
+    "desconto_hiperbolico": 12,
+    "suscetibilidade_chamariz": 60,
+    "ancoragem": 33,
+    "vies_confirmacao": 69,
+    "vies_status_quo": 33,
+    "sobrecarga_informacao": 40
+  }
+}

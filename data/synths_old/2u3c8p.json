@@ -1,0 +1,142 @@
+{
+  "id": "2u3c8p",
+  "nome": "Bruna Araújo",
+  "arquetipo": "Jovem Adulto Norte Social",
+  "descricao": "Mulher de 19 anos, estudante, mora em Palmas, TO. Possui traços marcantes de Extroversao, Amabilidade. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Bruna+Araújo&size=256&background=random",
+  "created_at": "2025-12-14T22:33:48.162424+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 19,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "preto",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Norte",
+      "estado": "TO",
+      "cidade": "Palmas"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 4842.55,
+    "ocupacao": "Estudante",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 36,
+      "conscienciosidade": 57,
+      "extroversao": 64,
+      "amabilidade": 62,
+      "neuroticismo": 41
+    },
+    "valores": [
+      "solidariedade",
+      "conhecimento",
+      "justiça",
+      "autonomia",
+      "reconhecimento"
+    ],
+    "interesses": [
+      "astrologia",
+      "aventura",
+      "cervejas artesanais",
+      "tênis"
+    ],
+    "hobbies": [
+      "modelagem",
+      "design gráfico",
+      "desenvolvimento de apps",
+      "meditação"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 93,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "beleza e perfumaria",
+        "vestuário e acessórios"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 12,
+      "streaming": 18,
+      "redes_sociais": 39
+    },
+    "fonte_noticias": [
+      "blogs especializados",
+      "TV por assinatura",
+      "redes sociais"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 61,
+      "pesquisa_antes_comprar": 33
+    },
+    "lealdade_marca": 22,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Facebook",
+        "LinkedIn",
+        "Instagram",
+        "Snapchat"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 100,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 61,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 35,
+      "banco_digital": 46,
+      "redes_sociais": 68
+    }
+  },
+  "vieses": {
+    "aversao_perda": 32,
+    "desconto_hiperbolico": 31,
+    "suscetibilidade_chamariz": 21,
+    "ancoragem": 76,
+    "vies_confirmacao": 69,
+    "vies_status_quo": 62,
+    "sobrecarga_informacao": 30
+  }
+}

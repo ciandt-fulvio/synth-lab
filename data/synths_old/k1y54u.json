@@ -1,0 +1,143 @@
+{
+  "id": "k1y54u",
+  "nome": "Rafael Araújo",
+  "arquetipo": "Jovem Adulto Sudeste Ansioso",
+  "link_photo": "https://ui-avatars.com/api/?name=Rafael+Araújo&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.091051+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 27,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "RJ",
+      "cidade": "Rio de Janeiro"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 6904.3,
+    "ocupacao": "Ator",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "multigeracional",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 54,
+      "conscienciosidade": 17,
+      "extroversao": 41,
+      "amabilidade": 63,
+      "neuroticismo": 67
+    },
+    "valores": [
+      "liberdade",
+      "autoconhecimento",
+      "cultura",
+      "espiritualidade"
+    ],
+    "interesses": [
+      "ciclismo",
+      "ecoturismo",
+      "biologia",
+      "poesia",
+      "plantas"
+    ],
+    "hobbies": [
+      "tricô",
+      "pintura",
+      "trabalho social",
+      "vlogging",
+      "dançar",
+      "autodesenvolvimento"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 7,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "eletrodomésticos",
+        "saúde e bem-estar"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 12,
+      "streaming": 8,
+      "redes_sociais": 55
+    },
+    "fonte_noticias": [
+      "aplicativos de notícias",
+      "blogs especializados"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 55,
+      "pesquisa_antes_comprar": 21
+    },
+    "lealdade_marca": 64,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "YouTube",
+        "Reddit",
+        "Threads",
+        "Discord"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 96,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 57,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 13,
+      "banco_digital": 49,
+      "redes_sociais": 39
+    }
+  },
+  "vieses": {
+    "aversao_perda": 46,
+    "desconto_hiperbolico": 59,
+    "suscetibilidade_chamariz": 72,
+    "ancoragem": 67,
+    "vies_confirmacao": 77,
+    "vies_status_quo": 67,
+    "sobrecarga_informacao": 43
+  },
+  "descricao": "Homem de 27 anos, ator, mora em Rio de Janeiro, RJ. Possui traços marcantes de Amabilidade, Neuroticismo. "
+}

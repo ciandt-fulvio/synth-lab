@@ -1,0 +1,145 @@
+{
+  "id": "3hcabr",
+  "nome": "Gabriela Gonçalves",
+  "arquetipo": "Jovem Adulto Sudeste Ansioso.",
+  "descricao": "Mulher de 22 anos, motorista de aplicativo, mora em Rio de Janeiro, RJ. Possui traços marcantes de Neuroticismo. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Gabriela+Gonçalves&size=256&background=random",
+  "created_at": "2025-12-15T04:54:09.002244+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 22,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "preto",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "RJ",
+      "cidade": "Rio de Janeiro"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 9842.55,
+    "ocupacao": "Motorista de aplicativo",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "multigeracional",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 52,
+      "conscienciosidade": 44,
+      "extroversao": 42,
+      "amabilidade": 38,
+      "neuroticismo": 62
+    },
+    "valores": [
+      "sustentabilidade",
+      "solidariedade",
+      "conhecimento",
+      "religião",
+      "espiritualidade"
+    ],
+    "interesses": [
+      "jardinagem",
+      "crossfit",
+      "ciências",
+      "bem-estar",
+      "artes visuais"
+    ],
+    "hobbies": [
+      "videogames",
+      "escultura",
+      "culinária"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -74,
+    "inclinacao_religiosa": "espírita"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "saúde e bem-estar",
+        "automotivo",
+        "pet shop",
+        "beleza e perfumaria"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 13,
+      "streaming": 18,
+      "redes_sociais": 58
+    },
+    "fonte_noticias": [
+      "TV aberta",
+      "podcasts"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 48,
+      "pesquisa_antes_comprar": 53
+    },
+    "lealdade_marca": 57,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitch",
+        "WhatsApp",
+        "TikTok",
+        "Snapchat",
+        "LinkedIn",
+        "Discord"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 99,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 59,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 41,
+      "banco_digital": 64,
+      "redes_sociais": 53
+    }
+  },
+  "vieses": {
+    "aversao_perda": 16,
+    "desconto_hiperbolico": 39,
+    "suscetibilidade_chamariz": 37,
+    "ancoragem": 54,
+    "vies_confirmacao": 58,
+    "vies_status_quo": 62,
+    "sobrecarga_informacao": 68
+  }
+}

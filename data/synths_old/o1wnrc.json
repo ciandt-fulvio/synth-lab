@@ -1,0 +1,144 @@
+{
+  "id": "o1wnrc",
+  "nome": "Kevin Sousa",
+  "arquetipo": "Jovem Adulto Sudeste Criativo",
+  "link_photo": "https://ui-avatars.com/api/?name=Kevin+Sousa&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.102601+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 26,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "RJ",
+      "cidade": "Rio de Janeiro"
+    },
+    "escolaridade": "Fundamental completo",
+    "renda_mensal": 1994.84,
+    "ocupacao": "Barbeiro",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 65,
+      "conscienciosidade": 59,
+      "extroversao": 33,
+      "amabilidade": 25,
+      "neuroticismo": 42
+    },
+    "valores": [
+      "amizade",
+      "família",
+      "educação",
+      "reconhecimento",
+      "coragem"
+    ],
+    "interesses": [
+      "camping",
+      "astrologia",
+      "praia",
+      "fotografia",
+      "aquários",
+      "startups"
+    ],
+    "hobbies": [
+      "culinária",
+      "coleção de vinhos",
+      "blogging",
+      "poker"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 40,
+    "inclinacao_religiosa": "ateu/agnóstico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "esporte e lazer",
+        "vestuário e acessórios"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 30,
+      "streaming": 5,
+      "redes_sociais": 55
+    },
+    "fonte_noticias": [
+      "podcasts",
+      "newsletters",
+      "YouTube",
+      "TV aberta"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 48,
+      "pesquisa_antes_comprar": 44
+    },
+    "lealdade_marca": 91,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitter/X",
+        "LinkedIn",
+        "Instagram"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 77,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 57,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 66,
+      "banco_digital": 2,
+      "redes_sociais": 22
+    }
+  },
+  "vieses": {
+    "aversao_perda": 80,
+    "desconto_hiperbolico": 52,
+    "suscetibilidade_chamariz": 35,
+    "ancoragem": 84,
+    "vies_confirmacao": 55,
+    "vies_status_quo": 62,
+    "sobrecarga_informacao": 49
+  },
+  "descricao": "Homem de 26 anos, barbeiro, mora em Rio de Janeiro, RJ. Possui traços marcantes de Abertura. "
+}

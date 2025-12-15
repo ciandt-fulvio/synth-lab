@@ -1,0 +1,147 @@
+{
+  "id": "uhyoat",
+  "nome": "Giovanna da Costa",
+  "arquetipo": "Jovem Adulto Sul Empático",
+  "descricao": "Mulher de 18 anos, corretor de seguros, mora em Florianópolis, SC. Possui traços marcantes de Abertura, Conscienciosidade. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Giovanna+da+Costa&size=256&background=random",
+  "created_at": "2025-12-15T04:05:02.254505+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 18,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sul",
+      "estado": "SC",
+      "cidade": "Florianópolis"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 27399.73,
+    "ocupacao": "Corretor de seguros",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 69,
+      "conscienciosidade": 67,
+      "extroversao": 72,
+      "amabilidade": 73,
+      "neuroticismo": 44
+    },
+    "valores": [
+      "conhecimento",
+      "natureza",
+      "bem-estar",
+      "igualdade",
+      "justiça social"
+    ],
+    "interesses": [
+      "meditação",
+      "montanha",
+      "gatos",
+      "chás",
+      "luta",
+      "yoga"
+    ],
+    "hobbies": [
+      "coleção de vinhos",
+      "ilustração digital",
+      "assistir documentários",
+      "cantar",
+      "desenvolvimento de apps",
+      "design gráfico"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -46,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "alimentos e bebidas",
+        "automotivo"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 13,
+      "streaming": 33,
+      "redes_sociais": 57
+    },
+    "fonte_noticias": [
+      "TV aberta",
+      "portais de notícias",
+      "jornais online"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 96,
+      "pesquisa_antes_comprar": 44
+    },
+    "lealdade_marca": 64,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitch",
+        "Snapchat",
+        "YouTube",
+        "Twitter/X",
+        "Facebook"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 91,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 61,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 49,
+      "banco_digital": 6,
+      "redes_sociais": 100
+    }
+  },
+  "vieses": {
+    "aversao_perda": 56,
+    "desconto_hiperbolico": 46,
+    "suscetibilidade_chamariz": 30,
+    "ancoragem": 95,
+    "vies_confirmacao": 21,
+    "vies_status_quo": 72,
+    "sobrecarga_informacao": 50
+  }
+}

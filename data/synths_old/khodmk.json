@@ -1,0 +1,142 @@
+{
+  "id": "khodmk",
+  "nome": "Eloah da Mota",
+  "arquetipo": "Jovem Adulto Sudeste Social",
+  "link_photo": "https://ui-avatars.com/api/?name=Eloah+da+Mota&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.146687+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 20,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "ES",
+      "cidade": "Vila Velha"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 11.77,
+    "ocupacao": "Estudante",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 43,
+      "conscienciosidade": 45,
+      "extroversao": 70,
+      "amabilidade": 30,
+      "neuroticismo": 69
+    },
+    "valores": [
+      "religião",
+      "espiritualidade",
+      "verdade"
+    ],
+    "interesses": [
+      "caça",
+      "bem-estar",
+      "tênis",
+      "ecoturismo",
+      "dança"
+    ],
+    "hobbies": [
+      "pesca",
+      "yoga",
+      "criar conteúdo digital",
+      "podcasting",
+      "aprender idiomas"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -1,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "livros",
+        "celulares e smartphones",
+        "jogos e brinquedos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": false,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 34,
+      "streaming": 32,
+      "redes_sociais": 44
+    },
+    "fonte_noticias": [
+      "TV por assinatura",
+      "portais de notícias",
+      "newsletters"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 64,
+      "pesquisa_antes_comprar": 88
+    },
+    "lealdade_marca": 36,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "WhatsApp",
+        "Facebook",
+        "LinkedIn"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 100,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 60,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 63,
+      "banco_digital": 76,
+      "redes_sociais": 19
+    }
+  },
+  "vieses": {
+    "aversao_perda": 9,
+    "desconto_hiperbolico": 44,
+    "suscetibilidade_chamariz": 36,
+    "ancoragem": 74,
+    "vies_confirmacao": 64,
+    "vies_status_quo": 47,
+    "sobrecarga_informacao": 36
+  },
+  "descricao": "Mulher de 20 anos, estudante, mora em Vila Velha, ES. Possui traços marcantes de Extroversao, Neuroticismo. "
+}

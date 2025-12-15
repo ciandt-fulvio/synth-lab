@@ -3,7 +3,7 @@
 Gerador de Synths (Personas Sintéticas Brasileiras).
 
 Este script gera personas sintéticas com atributos demográficos, psicográficos,
-comportamentais e cognitivos realistas baseados em dados do IBGE e pesquisas verificadas.
+comportamentais e cognitivos, realistas baseados em dados do IBGE e pesquisas verificadas.
 
 Fontes:
 - IBGE Censo 2022, PNAD 2022/2023, PNS 2019

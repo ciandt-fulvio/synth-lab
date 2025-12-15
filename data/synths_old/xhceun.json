@@ -1,0 +1,146 @@
+{
+  "id": "xhceun",
+  "nome": "João Felipe Sousa",
+  "arquetipo": "Meia-Idade Sudeste Empático.",
+  "descricao": "Homem de 50 anos, jardineiro, mora em Vila Velha, ES. Possui traços marcantes de Amabilidade. ",
+  "link_photo": "https://ui-avatars.com/api/?name=João+Felipe+Sousa&size=256&background=random",
+  "created_at": "2025-12-15T04:50:13.604174+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 50,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "ES",
+      "cidade": "Vila Velha"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 4646.8,
+    "ocupacao": "Jardineiro",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "monoparental",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 33,
+      "conscienciosidade": 49,
+      "extroversao": 55,
+      "amabilidade": 77,
+      "neuroticismo": 59
+    },
+    "valores": [
+      "responsabilidade",
+      "cultura",
+      "reconhecimento"
+    ],
+    "interesses": [
+      "ciclismo",
+      "ciências",
+      "cinema",
+      "e-sports"
+    ],
+    "hobbies": [
+      "pintura",
+      "xadrez",
+      "ciclismo",
+      "crochê",
+      "tocar instrumento musical",
+      "poker",
+      "coleção de vinhos"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 0,
+    "inclinacao_religiosa": "umbanda/candomblé"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "pet shop",
+        "papelaria",
+        "decoração"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 0,
+      "streaming": 2,
+      "redes_sociais": 25
+    },
+    "fonte_noticias": [
+      "YouTube",
+      "TV aberta",
+      "TV por assinatura"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 35,
+      "pesquisa_antes_comprar": 57
+    },
+    "lealdade_marca": 78,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Instagram",
+        "YouTube",
+        "Snapchat",
+        "Discord",
+        "Pinterest",
+        "LinkedIn"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 60,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 45,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 9,
+      "banco_digital": 34,
+      "redes_sociais": 50
+    }
+  },
+  "vieses": {
+    "aversao_perda": 0,
+    "desconto_hiperbolico": 15,
+    "suscetibilidade_chamariz": 82,
+    "ancoragem": 82,
+    "vies_confirmacao": 39,
+    "vies_status_quo": 62,
+    "sobrecarga_informacao": 54
+  }
+}

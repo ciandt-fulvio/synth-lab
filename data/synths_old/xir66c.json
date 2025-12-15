@@ -1,0 +1,144 @@
+{
+  "id": "xir66c",
+  "nome": "Yuri Costela",
+  "arquetipo": "Adulto Centro-Oeste Ansioso",
+  "link_photo": "https://ui-avatars.com/api/?name=Yuri+Costela&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.142766+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 43,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Centro-Oeste",
+      "estado": "DF",
+      "cidade": "Brasília"
+    },
+    "escolaridade": "Pós-graduação",
+    "renda_mensal": 18852.6,
+    "ocupacao": "Arquiteto",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "outros",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 47,
+      "conscienciosidade": 27,
+      "extroversao": 55,
+      "amabilidade": 50,
+      "neuroticismo": 66
+    },
+    "valores": [
+      "respeito",
+      "reconhecimento",
+      "segurança",
+      "perseverança"
+    ],
+    "interesses": [
+      "dança",
+      "design de interiores",
+      "ativismo",
+      "investimentos",
+      "pesca"
+    ],
+    "hobbies": [
+      "redes sociais",
+      "autodesenvolvimento",
+      "camping",
+      "podcasting"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 4,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "eletrodomésticos",
+        "livros",
+        "saúde e bem-estar"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 20,
+      "streaming": 38,
+      "redes_sociais": 31
+    },
+    "fonte_noticias": [
+      "redes sociais",
+      "blogs especializados"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 65,
+      "pesquisa_antes_comprar": 25
+    },
+    "lealdade_marca": 74,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Reddit",
+        "Twitch",
+        "Telegram",
+        "LinkedIn",
+        "YouTube",
+        "Instagram"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "severa"
+    },
+    "auditiva": {
+      "tipo": "moderada"
+    },
+    "motora": {
+      "tipo": "moderada",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 93,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 156,
+      "alto_contraste": true
+    },
+    "velocidade_digitacao": 49,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 33,
+      "banco_digital": 41,
+      "redes_sociais": 99
+    }
+  },
+  "vieses": {
+    "aversao_perda": 24,
+    "desconto_hiperbolico": 45,
+    "suscetibilidade_chamariz": 26,
+    "ancoragem": 34,
+    "vies_confirmacao": 45,
+    "vies_status_quo": 79,
+    "sobrecarga_informacao": 42
+  },
+  "descricao": "Homem de 43 anos, arquiteto, mora em Brasília, DF. Possui traços marcantes de Neuroticismo. "
+}

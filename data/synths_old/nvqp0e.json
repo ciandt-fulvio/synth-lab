@@ -1,0 +1,143 @@
+{
+  "id": "nvqp0e",
+  "nome": "Cecilia Barros",
+  "arquetipo": "Adulto Nordeste Organizado.",
+  "descricao": "Mulher de 31 anos, desempregado, mora em Recife, PE. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Cecilia+Barros&size=256&background=random",
+  "created_at": "2025-12-15T04:54:09.003289+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 31,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "PE",
+      "cidade": "Recife"
+    },
+    "escolaridade": "Sem instrução",
+    "renda_mensal": 117.38,
+    "ocupacao": "Desempregado",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "monoparental",
+      "numero_pessoas": 2
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 52,
+      "conscienciosidade": 56,
+      "extroversao": 37,
+      "amabilidade": 42,
+      "neuroticismo": 51
+    },
+    "valores": [
+      "paz",
+      "reconhecimento",
+      "status"
+    ],
+    "interesses": [
+      "campo",
+      "startups",
+      "música",
+      "poesia",
+      "praia"
+    ],
+    "hobbies": [
+      "baralho",
+      "decoração",
+      "natação",
+      "ouvir música"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -61,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "pet shop",
+        "jogos e brinquedos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": false,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 10,
+      "streaming": 26,
+      "redes_sociais": 40
+    },
+    "fonte_noticias": [
+      "redes sociais",
+      "podcasts",
+      "TV aberta"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 61,
+      "pesquisa_antes_comprar": 56
+    },
+    "lealdade_marca": 84,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "WhatsApp",
+        "Reddit",
+        "Snapchat",
+        "Pinterest",
+        "Instagram",
+        "TikTok"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 64,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 55,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 52,
+      "banco_digital": 60,
+      "redes_sociais": 37
+    }
+  },
+  "vieses": {
+    "aversao_perda": 58,
+    "desconto_hiperbolico": 63,
+    "suscetibilidade_chamariz": 58,
+    "ancoragem": 42,
+    "vies_confirmacao": 47,
+    "vies_status_quo": 29,
+    "sobrecarga_informacao": 46
+  }
+}

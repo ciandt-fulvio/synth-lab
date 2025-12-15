@@ -1,0 +1,146 @@
+{
+  "id": "4ky55g",
+  "nome": "Luna Ferreira",
+  "arquetipo": "Adulto Sudeste Criativo",
+  "descricao": "Mulher de 31 anos, dona de casa, mora em Campinas, SP. Possui traços marcantes de Abertura. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Luna+Ferreira&size=256&background=random",
+  "created_at": "2025-12-15T04:14:27.752952+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 31,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "SP",
+      "cidade": "Campinas"
+    },
+    "escolaridade": "Sem instrução",
+    "renda_mensal": 0.0,
+    "ocupacao": "Dona de casa",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "monoparental",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 61,
+      "conscienciosidade": 51,
+      "extroversao": 55,
+      "amabilidade": 46,
+      "neuroticismo": 47
+    },
+    "valores": [
+      "conhecimento",
+      "espiritualidade",
+      "igualdade",
+      "harmonia"
+    ],
+    "interesses": [
+      "montanha",
+      "moda",
+      "plantas",
+      "pesca",
+      "skate",
+      "causas sociais"
+    ],
+    "hobbies": [
+      "desenho",
+      "RPG",
+      "miniaturismo",
+      "3D modeling",
+      "pesca",
+      "camping"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 1,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "jogos e brinquedos",
+        "livros"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": false,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 11,
+      "streaming": 32,
+      "redes_sociais": 50
+    },
+    "fonte_noticias": [
+      "TV aberta",
+      "podcasts",
+      "blogs especializados",
+      "portais de notícias",
+      "redes sociais"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 47,
+      "pesquisa_antes_comprar": 83
+    },
+    "lealdade_marca": 50,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Facebook",
+        "WhatsApp",
+        "Pinterest"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 64,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 55,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 62,
+      "banco_digital": 100,
+      "redes_sociais": 44
+    }
+  },
+  "vieses": {
+    "aversao_perda": 38,
+    "desconto_hiperbolico": 42,
+    "suscetibilidade_chamariz": 62,
+    "ancoragem": 55,
+    "vies_confirmacao": 52,
+    "vies_status_quo": 93,
+    "sobrecarga_informacao": 71
+  }
+}

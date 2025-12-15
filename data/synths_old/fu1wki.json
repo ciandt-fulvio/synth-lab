@@ -1,0 +1,143 @@
+{
+  "id": "fu1wki",
+  "nome": "Hadassa Cavalcante",
+  "arquetipo": "Jovem Adulto Centro-Oeste Empático",
+  "link_photo": "https://ui-avatars.com/api/?name=Hadassa+Cavalcante&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.085469+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 20,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Centro-Oeste",
+      "estado": "DF",
+      "cidade": "Brasília"
+    },
+    "escolaridade": "Superior incompleto",
+    "renda_mensal": 2049.01,
+    "ocupacao": "Servente de obras",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 55,
+      "conscienciosidade": 40,
+      "extroversao": 47,
+      "amabilidade": 58,
+      "neuroticismo": 36
+    },
+    "valores": [
+      "sucesso",
+      "paz",
+      "equilíbrio"
+    ],
+    "interesses": [
+      "meditação",
+      "empreendedorismo",
+      "investimentos",
+      "tênis",
+      "dança"
+    ],
+    "hobbies": [
+      "podcasting",
+      "meditação",
+      "RPG",
+      "academia"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -1,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "papelaria",
+        "saúde e bem-estar",
+        "decoração"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 11,
+      "streaming": 2,
+      "redes_sociais": 52
+    },
+    "fonte_noticias": [
+      "podcasts",
+      "YouTube",
+      "portais de notícias",
+      "newsletters"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 57,
+      "pesquisa_antes_comprar": 62
+    },
+    "lealdade_marca": 55,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Reddit",
+        "Twitter/X",
+        "WhatsApp",
+        "Instagram"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 95,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 60,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 45,
+      "banco_digital": 28,
+      "redes_sociais": 62
+    }
+  },
+  "vieses": {
+    "aversao_perda": 31,
+    "desconto_hiperbolico": 34,
+    "suscetibilidade_chamariz": 73,
+    "ancoragem": 33,
+    "vies_confirmacao": 48,
+    "vies_status_quo": 82,
+    "sobrecarga_informacao": 40
+  },
+  "descricao": "Mulher de 20 anos, servente de obras, mora em Brasília, DF. "
+}

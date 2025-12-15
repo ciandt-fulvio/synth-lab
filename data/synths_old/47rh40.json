@@ -1,0 +1,142 @@
+{
+  "id": "47rh40",
+  "nome": "Ana Lívia Melo",
+  "arquetipo": "Adulto Nordeste Empático",
+  "link_photo": "https://ui-avatars.com/api/?name=Ana+Lívia+Melo&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.108980+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 30,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "SE",
+      "cidade": "Aracaju"
+    },
+    "escolaridade": "Médio incompleto",
+    "renda_mensal": 4452.86,
+    "ocupacao": "Pedreiro",
+    "estado_civil": "divorciado",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 49,
+      "conscienciosidade": 29,
+      "extroversao": 66,
+      "amabilidade": 84,
+      "neuroticismo": 36
+    },
+    "valores": [
+      "equilíbrio",
+      "educação",
+      "disciplina",
+      "inovação"
+    ],
+    "interesses": [
+      "economia",
+      "matemática",
+      "basquete",
+      "pedagogia",
+      "plantas"
+    ],
+    "hobbies": [
+      "marcenaria",
+      "modelismo",
+      "pesca",
+      "quebra-cabeças",
+      "trabalho social",
+      "leitura",
+      "tocar instrumento musical"
+    ],
+    "estilo_vida": "Ativo e social",
+    "inclinacao_politica": 4,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "papelaria",
+        "saúde e bem-estar"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 6,
+      "streaming": 3,
+      "redes_sociais": 58
+    },
+    "fonte_noticias": [
+      "redes sociais",
+      "aplicativos de notícias"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 57,
+      "pesquisa_antes_comprar": 70
+    },
+    "lealdade_marca": 61,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Threads",
+        "Discord"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "cegueira"
+    },
+    "auditiva": {
+      "tipo": "moderada"
+    },
+    "motora": {
+      "tipo": "moderada",
+      "usa_cadeira_rodas": true
+    },
+    "cognitiva": {
+      "tipo": "moderada"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 80,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 144,
+      "alto_contraste": true
+    },
+    "velocidade_digitacao": 55,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 59,
+      "banco_digital": 85,
+      "redes_sociais": 35
+    }
+  },
+  "vieses": {
+    "aversao_perda": 90,
+    "desconto_hiperbolico": 47,
+    "suscetibilidade_chamariz": 11,
+    "ancoragem": 38,
+    "vies_confirmacao": 47,
+    "vies_status_quo": 78,
+    "sobrecarga_informacao": 46
+  },
+  "descricao": "Mulher de 30 anos, pedreiro, mora em Aracaju, SE. Possui traços marcantes de Extroversao, Amabilidade. "
+}

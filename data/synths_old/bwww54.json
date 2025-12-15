@@ -1,0 +1,144 @@
+{
+  "id": "bwww54",
+  "nome": "Ana Laura Sales",
+  "arquetipo": "Jovem Adulto Sul Ansioso.",
+  "descricao": "Mulher de 28 anos, jardineiro, mora em Florianópolis, SC. Possui traços marcantes de Neuroticismo. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Ana+Laura+Sales&size=256&background=random",
+  "created_at": "2025-12-15T04:54:08.998745+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 28,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sul",
+      "estado": "SC",
+      "cidade": "Florianópolis"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 5077.62,
+    "ocupacao": "Jardineiro",
+    "estado_civil": "viúvo",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 54,
+      "conscienciosidade": 30,
+      "extroversao": 50,
+      "amabilidade": 48,
+      "neuroticismo": 82
+    },
+    "valores": [
+      "meio ambiente",
+      "verdade",
+      "saúde"
+    ],
+    "interesses": [
+      "MMA",
+      "política",
+      "plantas",
+      "blockchain",
+      "engenharia"
+    ],
+    "hobbies": [
+      "dançar",
+      "crochê",
+      "ilustração digital",
+      "vlogging"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 5,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "quinzenal",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "jardinagem",
+        "eletrodomésticos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 1,
+      "streaming": 41,
+      "redes_sociais": 56
+    },
+    "fonte_noticias": [
+      "jornais online",
+      "YouTube",
+      "newsletters",
+      "jornais impressos"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 17,
+      "pesquisa_antes_comprar": 44
+    },
+    "lealdade_marca": 66,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Snapchat",
+        "Discord",
+        "Twitch",
+        "WhatsApp",
+        "Twitter/X",
+        "Reddit"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 71,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 56,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 60,
+      "banco_digital": 57,
+      "redes_sociais": 89
+    }
+  },
+  "vieses": {
+    "aversao_perda": 43,
+    "desconto_hiperbolico": 19,
+    "suscetibilidade_chamariz": 18,
+    "ancoragem": 51,
+    "vies_confirmacao": 51,
+    "vies_status_quo": 62,
+    "sobrecarga_informacao": 45
+  }
+}

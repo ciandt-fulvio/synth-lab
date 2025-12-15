@@ -1,0 +1,142 @@
+{
+  "id": "51no9v",
+  "nome": "Helena Marques",
+  "arquetipo": "Meia-Idade Norte Social",
+  "descricao": "Mulher de 54 anos, técnico em informática, mora em Manaus, AM. Possui traços marcantes de Abertura, Extroversao. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Helena+Marques&size=256&background=random",
+  "created_at": "2025-12-14T22:29:16.276244+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 54,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Norte",
+      "estado": "AM",
+      "cidade": "Manaus"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 2422.02,
+    "ocupacao": "Técnico em informática",
+    "estado_civil": "divorciado",
+    "composicao_familiar": {
+      "tipo": "multigeracional",
+      "numero_pessoas": 6
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 71,
+      "conscienciosidade": 51,
+      "extroversao": 76,
+      "amabilidade": 76,
+      "neuroticismo": 71
+    },
+    "valores": [
+      "natureza",
+      "responsabilidade",
+      "bem-estar"
+    ],
+    "interesses": [
+      "trilha",
+      "decoração",
+      "sociologia",
+      "boxe",
+      "cachorros",
+      "aves"
+    ],
+    "hobbies": [
+      "crochê",
+      "modelismo",
+      "observação de aves",
+      "videogames",
+      "bordado",
+      "miniaturismo",
+      "DJ"
+    ],
+    "estilo_vida": "Criativo e explorador",
+    "inclinacao_politica": 58,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "papelaria",
+        "livros"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 15,
+      "streaming": 11,
+      "redes_sociais": 20
+    },
+    "fonte_noticias": [
+      "jornais online",
+      "podcasts"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 78,
+      "pesquisa_antes_comprar": 55
+    },
+    "lealdade_marca": 39,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "LinkedIn",
+        "Discord"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 73,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 43,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 20,
+      "banco_digital": 33,
+      "redes_sociais": 72
+    }
+  },
+  "vieses": {
+    "aversao_perda": 58,
+    "desconto_hiperbolico": 55,
+    "suscetibilidade_chamariz": 23,
+    "ancoragem": 19,
+    "vies_confirmacao": 50,
+    "vies_status_quo": 72,
+    "sobrecarga_informacao": 36
+  }
+}

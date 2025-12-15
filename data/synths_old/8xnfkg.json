@@ -1,0 +1,143 @@
+{
+  "id": "8xnfkg",
+  "nome": "Kevin Teixeira",
+  "arquetipo": "Jovem Adulto Nordeste Criativo",
+  "descricao": "Homem de 29 anos, recepcionista de hotel, mora em João Pessoa, PB. Possui traços marcantes de Abertura, Amabilidade. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Kevin+Teixeira&size=256&background=random",
+  "created_at": "2025-12-14T22:29:16.289587+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 29,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "PB",
+      "cidade": "João Pessoa"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 7462.55,
+    "ocupacao": "Recepcionista de hotel",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 75,
+      "conscienciosidade": 45,
+      "extroversao": 42,
+      "amabilidade": 62,
+      "neuroticismo": 34
+    },
+    "valores": [
+      "cultura",
+      "liberdade",
+      "meio ambiente",
+      "conhecimento"
+    ],
+    "interesses": [
+      "aquários",
+      "tarô",
+      "ecoturismo",
+      "luta",
+      "e-sports",
+      "gatos"
+    ],
+    "hobbies": [
+      "viagens",
+      "desenvolvimento de apps",
+      "culinária"
+    ],
+    "estilo_vida": "Criativo e explorador",
+    "inclinacao_politica": -8,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "alimentos e bebidas",
+        "celulares e smartphones",
+        "artigos religiosos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 9,
+      "streaming": 50,
+      "redes_sociais": 55
+    },
+    "fonte_noticias": [
+      "TV aberta",
+      "redes sociais"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 41,
+      "pesquisa_antes_comprar": 26
+    },
+    "lealdade_marca": 56,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Pinterest",
+        "Discord",
+        "Snapchat",
+        "YouTube",
+        "WhatsApp"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 95,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 56,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 47,
+      "banco_digital": 76,
+      "redes_sociais": 36
+    }
+  },
+  "vieses": {
+    "aversao_perda": 56,
+    "desconto_hiperbolico": 35,
+    "suscetibilidade_chamariz": 51,
+    "ancoragem": 47,
+    "vies_confirmacao": 41,
+    "vies_status_quo": 91,
+    "sobrecarga_informacao": 55
+  }
+}

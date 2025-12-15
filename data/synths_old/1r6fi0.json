@@ -1,0 +1,142 @@
+{
+  "id": "1r6fi0",
+  "nome": "João Guilherme Câmara",
+  "arquetipo": "Idoso Sudeste Social",
+  "link_photo": "https://ui-avatars.com/api/?name=João+Guilherme+Câmara&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.061372+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 63,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "RJ",
+      "cidade": "Rio de Janeiro"
+    },
+    "escolaridade": "Sem instrução",
+    "renda_mensal": 180.82,
+    "ocupacao": "Desempregado",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 38,
+      "conscienciosidade": 58,
+      "extroversao": 84,
+      "amabilidade": 76,
+      "neuroticismo": 67
+    },
+    "valores": [
+      "independência",
+      "equilíbrio",
+      "responsabilidade"
+    ],
+    "interesses": [
+      "artes visuais",
+      "ciclismo",
+      "ativismo",
+      "turismo"
+    ],
+    "hobbies": [
+      "observação de aves",
+      "meditação",
+      "artesanato",
+      "leitura",
+      "cultivo de plantas",
+      "desenvolvimento de apps"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 6,
+    "inclinacao_religiosa": "ateu/agnóstico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "beleza e perfumaria",
+        "automotivo"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": false,
+      "computador": false,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 12,
+      "streaming": 17,
+      "redes_sociais": 31
+    },
+    "fonte_noticias": [
+      "podcasts",
+      "blogs especializados",
+      "rádio",
+      "portais de notícias",
+      "redes sociais"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 23,
+      "pesquisa_antes_comprar": 34
+    },
+    "lealdade_marca": 67,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Instagram",
+        "Twitch"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "leve"
+    },
+    "motora": {
+      "tipo": "leve",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "leve"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 48,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 39,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 39,
+      "banco_digital": 18,
+      "redes_sociais": 79
+    }
+  },
+  "vieses": {
+    "aversao_perda": 57,
+    "desconto_hiperbolico": 43,
+    "suscetibilidade_chamariz": 16,
+    "ancoragem": 31,
+    "vies_confirmacao": 17,
+    "vies_status_quo": 54,
+    "sobrecarga_informacao": 49
+  },
+  "descricao": "Homem de 63 anos, desempregado, mora em Rio de Janeiro, RJ. Possui traços marcantes de Extroversao, Amabilidade. "
+}

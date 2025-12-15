@@ -1,0 +1,144 @@
+{
+  "id": "fxu1vb",
+  "nome": "Liam Cunha",
+  "arquetipo": "Jovem Adulto Sudeste Organizado",
+  "link_photo": "https://ui-avatars.com/api/?name=Liam+Cunha&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.066283+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 19,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "RJ",
+      "cidade": "Rio de Janeiro"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 2037.95,
+    "ocupacao": "Estudante",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "multigeracional",
+      "numero_pessoas": 6
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 53,
+      "conscienciosidade": 58,
+      "extroversao": 26,
+      "amabilidade": 51,
+      "neuroticismo": 37
+    },
+    "valores": [
+      "espiritualidade",
+      "poder",
+      "liberdade"
+    ],
+    "interesses": [
+      "musculação",
+      "aventura",
+      "sociologia",
+      "astronomia",
+      "cachorros"
+    ],
+    "hobbies": [
+      "animação",
+      "cursos online",
+      "edição de vídeo"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 5,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "vestuário e acessórios",
+        "eletrônicos",
+        "beleza e perfumaria",
+        "jardinagem",
+        "eletrodomésticos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 23,
+      "streaming": 33,
+      "redes_sociais": 55
+    },
+    "fonte_noticias": [
+      "YouTube",
+      "newsletters"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 27,
+      "pesquisa_antes_comprar": 57
+    },
+    "lealdade_marca": 63,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Telegram",
+        "Reddit",
+        "Facebook",
+        "WhatsApp",
+        "Snapchat",
+        "Discord"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 75,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 61,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 68,
+      "banco_digital": 48,
+      "redes_sociais": 51
+    }
+  },
+  "vieses": {
+    "aversao_perda": 86,
+    "desconto_hiperbolico": 80,
+    "suscetibilidade_chamariz": 74,
+    "ancoragem": 55,
+    "vies_confirmacao": 7,
+    "vies_status_quo": 54,
+    "sobrecarga_informacao": 50
+  },
+  "descricao": "Homem de 19 anos, estudante, mora em Rio de Janeiro, RJ. "
+}

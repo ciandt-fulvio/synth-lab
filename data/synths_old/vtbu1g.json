@@ -1,0 +1,147 @@
+{
+  "id": "vtbu1g",
+  "nome": "Isabel Cassiano",
+  "arquetipo": "Meia-Idade Sudeste Criativo.",
+  "descricao": "Mulher de 58 anos, servente de obras, mora em Campinas, SP. Possui traços marcantes de Abertura. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Isabel+Cassiano&size=256&background=random",
+  "created_at": "2025-12-15T04:53:25.395002+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 58,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "preto",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "SP",
+      "cidade": "Campinas"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 2148.33,
+    "ocupacao": "Servente de obras",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "multigeracional",
+      "numero_pessoas": 5
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 66,
+      "conscienciosidade": 53,
+      "extroversao": 52,
+      "amabilidade": 34,
+      "neuroticismo": 51
+    },
+    "valores": [
+      "paz",
+      "família",
+      "educação",
+      "sustentabilidade",
+      "saúde"
+    ],
+    "interesses": [
+      "química",
+      "esoterismo",
+      "escalada",
+      "montanha",
+      "bem-estar",
+      "voluntariado"
+    ],
+    "hobbies": [
+      "observação de aves",
+      "praticar esportes",
+      "bordado",
+      "criar conteúdo digital"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 52,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "saúde e bem-estar",
+        "móveis",
+        "alimentos e bebidas",
+        "esporte e lazer",
+        "eletrônicos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 34,
+      "streaming": 40,
+      "redes_sociais": 24
+    },
+    "fonte_noticias": [
+      "rádio",
+      "aplicativos de notícias",
+      "YouTube"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 81,
+      "pesquisa_antes_comprar": 65
+    },
+    "lealdade_marca": 69,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "LinkedIn",
+        "Instagram",
+        "Discord",
+        "Reddit"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 56,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 41,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 46,
+      "banco_digital": 86,
+      "redes_sociais": 82
+    }
+  },
+  "vieses": {
+    "aversao_perda": 72,
+    "desconto_hiperbolico": 64,
+    "suscetibilidade_chamariz": 51,
+    "ancoragem": 55,
+    "vies_confirmacao": 57,
+    "vies_status_quo": 28,
+    "sobrecarga_informacao": 51
+  }
+}

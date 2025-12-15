@@ -1,0 +1,147 @@
+{
+  "id": "2yruh8",
+  "nome": "Aurora Nascimento",
+  "arquetipo": "Adulto Nordeste Criativo",
+  "link_photo": "https://ui-avatars.com/api/?name=Aurora+Nascimento&size=256&background=random",
+  "created_at": "2025-12-15T04:44:28.331402+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 38,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "preto",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "PI",
+      "cidade": "Teresina"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 13954.51,
+    "ocupacao": "Fotógrafo",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 82,
+      "conscienciosidade": 73,
+      "extroversao": 76,
+      "amabilidade": 49,
+      "neuroticismo": 54
+    },
+    "valores": [
+      "reconhecimento",
+      "perseverança",
+      "religião",
+      "família"
+    ],
+    "interesses": [
+      "meditação",
+      "videogames",
+      "tarô",
+      "gastronomia",
+      "musculação",
+      "e-sports",
+      "direito"
+    ],
+    "hobbies": [
+      "coleção de vinhos",
+      "miniaturismo",
+      "animação",
+      "cantar",
+      "desenvolvimento de apps"
+    ],
+    "estilo_vida": "Criativo e explorador",
+    "inclinacao_politica": -4,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "quinzenal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "livros",
+        "beleza e perfumaria",
+        "alimentos e bebidas",
+        "celulares e smartphones",
+        "esporte e lazer"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 31,
+      "streaming": 18,
+      "redes_sociais": 33
+    },
+    "fonte_noticias": [
+      "jornais impressos",
+      "YouTube",
+      "podcasts",
+      "TV aberta"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 81,
+      "pesquisa_antes_comprar": 40
+    },
+    "lealdade_marca": 31,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitter/X",
+        "Telegram"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "surdez"
+    },
+    "motora": {
+      "tipo": "leve",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "severa"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 81,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 51,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 57,
+      "banco_digital": 43,
+      "redes_sociais": 36
+    }
+  },
+  "vieses": {
+    "aversao_perda": 53,
+    "desconto_hiperbolico": 30,
+    "suscetibilidade_chamariz": 52,
+    "ancoragem": 46,
+    "vies_confirmacao": 58,
+    "vies_status_quo": 14,
+    "sobrecarga_informacao": 45
+  },
+  "descricao": "Mulher de 38 anos, fotógrafo, mora em Teresina, PI. Possui traços marcantes de Abertura, Conscienciosidade. "
+}

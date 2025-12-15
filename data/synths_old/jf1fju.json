@@ -1,0 +1,151 @@
+{
+  "id": "jf1fju",
+  "nome": "Levi Pires",
+  "arquetipo": "Idoso Nordeste Ansioso",
+  "link_photo": "https://ui-avatars.com/api/?name=Levi+Pires&size=256&background=random",
+  "created_at": "2025-12-15T04:44:28.333790+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 86,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "RN",
+      "cidade": "Natal"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 7835.12,
+    "ocupacao": "Aposentado",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "monoparental",
+      "numero_pessoas": 2
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 59,
+      "conscienciosidade": 28,
+      "extroversao": 58,
+      "amabilidade": 27,
+      "neuroticismo": 64
+    },
+    "valores": [
+      "harmonia",
+      "bem-estar",
+      "criatividade",
+      "poder",
+      "justiça"
+    ],
+    "interesses": [
+      "boxe",
+      "aquários",
+      "psicologia",
+      "e-sports",
+      "química"
+    ],
+    "hobbies": [
+      "programação",
+      "dançar",
+      "streaming de filmes e séries",
+      "cerâmica",
+      "desenvolvimento de apps",
+      "jardinagem",
+      "pintura"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 45,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "quinzenal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "automotivo",
+        "saúde e bem-estar",
+        "ferramentas",
+        "jogos e brinquedos",
+        "esporte e lazer"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 35,
+      "streaming": 12,
+      "redes_sociais": 22
+    },
+    "fonte_noticias": [
+      "TV por assinatura",
+      "aplicativos de notícias",
+      "TV aberta",
+      "jornais impressos"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 44,
+      "pesquisa_antes_comprar": 56
+    },
+    "lealdade_marca": 32,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Telegram",
+        "Discord",
+        "TikTok",
+        "Reddit",
+        "Twitter/X"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 57,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 27,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 16,
+      "banco_digital": 72,
+      "redes_sociais": 34
+    }
+  },
+  "vieses": {
+    "aversao_perda": 80,
+    "desconto_hiperbolico": 57,
+    "suscetibilidade_chamariz": 39,
+    "ancoragem": 41,
+    "vies_confirmacao": 31,
+    "vies_status_quo": 61,
+    "sobrecarga_informacao": 52
+  },
+  "descricao": "Homem de 86 anos, aposentado, mora em Natal, RN. Possui traços marcantes de Neuroticismo. "
+}

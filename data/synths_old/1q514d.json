@@ -1,0 +1,146 @@
+{
+  "id": "1q514d",
+  "nome": "Isaque Novais",
+  "arquetipo": "Jovem Adulto Nordeste Organizado",
+  "link_photo": "https://ui-avatars.com/api/?name=Isaque+Novais&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.098366+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 21,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "preto",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "MA",
+      "cidade": "São Luís"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 649.71,
+    "ocupacao": "Estudante",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal sem filhos",
+      "numero_pessoas": 2
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 48,
+      "conscienciosidade": 56,
+      "extroversao": 54,
+      "amabilidade": 49,
+      "neuroticismo": 37
+    },
+    "valores": [
+      "inovação",
+      "equilíbrio",
+      "generosidade",
+      "beleza",
+      "diversidade"
+    ],
+    "interesses": [
+      "montanha",
+      "MMA",
+      "idiomas",
+      "engenharia",
+      "filosofia"
+    ],
+    "hobbies": [
+      "cursos online",
+      "camping",
+      "praticar esportes",
+      "investimentos"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -4,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "vestuário e acessórios",
+        "calçados",
+        "beleza e perfumaria",
+        "celulares e smartphones"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": false,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 14,
+      "streaming": 19,
+      "redes_sociais": 59
+    },
+    "fonte_noticias": [
+      "aplicativos de notícias",
+      "TV aberta",
+      "blogs especializados",
+      "jornais online"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 49,
+      "pesquisa_antes_comprar": 35
+    },
+    "lealdade_marca": 71,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitter/X",
+        "Twitch",
+        "Discord",
+        "Snapchat"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "cegueira"
+    },
+    "auditiva": {
+      "tipo": "surdez"
+    },
+    "motora": {
+      "tipo": "leve",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 74,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 143,
+      "alto_contraste": true
+    },
+    "velocidade_digitacao": 60,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 41,
+      "banco_digital": 78,
+      "redes_sociais": 72
+    }
+  },
+  "vieses": {
+    "aversao_perda": 21,
+    "desconto_hiperbolico": 13,
+    "suscetibilidade_chamariz": 18,
+    "ancoragem": 49,
+    "vies_confirmacao": 50,
+    "vies_status_quo": 32,
+    "sobrecarga_informacao": 80
+  },
+  "descricao": "Homem de 21 anos, estudante, mora em São Luís, MA. "
+}

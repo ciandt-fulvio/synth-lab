@@ -1,0 +1,143 @@
+{
+  "id": "hf8wu9",
+  "nome": "Vicente Moreira",
+  "arquetipo": "Jovem Adulto Sudeste Ansioso",
+  "descricao": "Homem de 23 anos, estudante, mora em Campinas, SP. Possui traços marcantes de Neuroticismo. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Vicente+Moreira&size=256&background=random",
+  "created_at": "2025-12-15T04:10:28.154560+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 23,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "SP",
+      "cidade": "Campinas"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 2928.96,
+    "ocupacao": "Estudante",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 37,
+      "conscienciosidade": 48,
+      "extroversao": 49,
+      "amabilidade": 31,
+      "neuroticismo": 84
+    },
+    "valores": [
+      "verdade",
+      "honestidade",
+      "criatividade",
+      "religião",
+      "disciplina"
+    ],
+    "interesses": [
+      "campo",
+      "boxe",
+      "pets",
+      "literatura"
+    ],
+    "hobbies": [
+      "investimentos",
+      "natação",
+      "baralho",
+      "programação",
+      "coleção de vinhos",
+      "caminhada"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 0,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "ferramentas",
+        "informática",
+        "jogos e brinquedos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 27,
+      "streaming": 8,
+      "redes_sociais": 41
+    },
+    "fonte_noticias": [
+      "TV por assinatura",
+      "YouTube"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 88,
+      "pesquisa_antes_comprar": 40
+    },
+    "lealdade_marca": 66,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitter/X",
+        "Telegram",
+        "Twitch"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 73,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 59,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 13,
+      "banco_digital": 3,
+      "redes_sociais": 93
+    }
+  },
+  "vieses": {
+    "aversao_perda": 57,
+    "desconto_hiperbolico": 45,
+    "suscetibilidade_chamariz": 0,
+    "ancoragem": 61,
+    "vies_confirmacao": 31,
+    "vies_status_quo": 11,
+    "sobrecarga_informacao": 70
+  }
+}

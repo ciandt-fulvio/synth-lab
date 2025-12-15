@@ -1,0 +1,149 @@
+{
+  "id": "is1f1x",
+  "nome": "João Miguel Barbosa",
+  "arquetipo": "Idoso Sudeste Social",
+  "link_photo": "https://ui-avatars.com/api/?name=João+Miguel+Barbosa&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.149487+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 61,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "preto",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "RJ",
+      "cidade": "Niterói"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 15857.05,
+    "ocupacao": "Product manager",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 6
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 65,
+      "conscienciosidade": 45,
+      "extroversao": 77,
+      "amabilidade": 41,
+      "neuroticismo": 42
+    },
+    "valores": [
+      "amizade",
+      "poder",
+      "liberdade",
+      "segurança"
+    ],
+    "interesses": [
+      "skate",
+      "ativismo",
+      "poesia",
+      "praia",
+      "esportes",
+      "moda"
+    ],
+    "hobbies": [
+      "fazer doces",
+      "modelismo",
+      "turismo",
+      "animação",
+      "natação",
+      "aeromodelismo"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 5,
+    "inclinacao_religiosa": "outras"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "saúde e bem-estar",
+        "vestuário e acessórios",
+        "jardinagem",
+        "celulares e smartphones"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 35,
+      "streaming": 39,
+      "redes_sociais": 29
+    },
+    "fonte_noticias": [
+      "TV por assinatura",
+      "YouTube",
+      "jornais online",
+      "jornais impressos"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 41,
+      "pesquisa_antes_comprar": 69
+    },
+    "lealdade_marca": 46,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Discord",
+        "Twitch",
+        "TikTok",
+        "YouTube",
+        "Instagram"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "severa"
+    },
+    "auditiva": {
+      "tipo": "severa"
+    },
+    "motora": {
+      "tipo": "leve",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "leve"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 79,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 179,
+      "alto_contraste": true
+    },
+    "velocidade_digitacao": 40,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 52,
+      "banco_digital": 0,
+      "redes_sociais": 92
+    }
+  },
+  "vieses": {
+    "aversao_perda": 1,
+    "desconto_hiperbolico": 13,
+    "suscetibilidade_chamariz": 55,
+    "ancoragem": 75,
+    "vies_confirmacao": 32,
+    "vies_status_quo": 52,
+    "sobrecarga_informacao": 100
+  },
+  "descricao": "Homem de 61 anos, product manager, mora em Niterói, RJ. Possui traços marcantes de Abertura, Extroversao. "
+}

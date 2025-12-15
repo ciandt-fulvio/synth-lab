@@ -1,0 +1,146 @@
+{
+  "id": "m1jqd0",
+  "nome": "Cecília Novais",
+  "arquetipo": "Jovem Adulto Nordeste Empático",
+  "descricao": "Mulher de 18 anos, autônomo, mora em Fortaleza, CE. Possui traços marcantes de Abertura, Amabilidade. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Cecília+Novais&size=256&background=random",
+  "created_at": "2025-12-14T22:33:48.168579+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 18,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "CE",
+      "cidade": "Fortaleza"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 10166.9,
+    "ocupacao": "Autônomo",
+    "estado_civil": "união estável",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 6
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 63,
+      "conscienciosidade": 38,
+      "extroversao": 43,
+      "amabilidade": 69,
+      "neuroticismo": 47
+    },
+    "valores": [
+      "poder",
+      "beleza",
+      "justiça"
+    ],
+    "interesses": [
+      "skate",
+      "aquários",
+      "cinema",
+      "musculação",
+      "causas sociais",
+      "turismo"
+    ],
+    "hobbies": [
+      "animação",
+      "RPG",
+      "modelagem",
+      "redes sociais",
+      "ciclismo"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -97,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "beleza e perfumaria",
+        "informática",
+        "jardinagem",
+        "vestuário e acessórios",
+        "livros"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 7,
+      "streaming": 14,
+      "redes_sociais": 66
+    },
+    "fonte_noticias": [
+      "newsletters",
+      "portais de notícias",
+      "redes sociais",
+      "rádio",
+      "podcasts"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 98,
+      "pesquisa_antes_comprar": 46
+    },
+    "lealdade_marca": 48,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitter/X",
+        "Discord"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 76,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 61,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 64,
+      "banco_digital": 14,
+      "redes_sociais": 47
+    }
+  },
+  "vieses": {
+    "aversao_perda": 32,
+    "desconto_hiperbolico": 56,
+    "suscetibilidade_chamariz": 64,
+    "ancoragem": 40,
+    "vies_confirmacao": 71,
+    "vies_status_quo": 41,
+    "sobrecarga_informacao": 36
+  }
+}

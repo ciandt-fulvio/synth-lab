@@ -1,0 +1,143 @@
+{
+  "id": "zw2dme",
+  "nome": "Raquel Vieira",
+  "arquetipo": "Adulto Sudeste Ansioso.",
+  "descricao": "Mulher de 40 anos, agente de segurança, mora em Santos, SP. Possui traços marcantes de Amabilidade, Neuroticismo. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Raquel+Vieira&size=256&background=random",
+  "created_at": "2025-12-15T04:54:08.999631+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 40,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "SP",
+      "cidade": "Santos"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 5688.24,
+    "ocupacao": "Agente de segurança",
+    "estado_civil": "união estável",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 60,
+      "conscienciosidade": 20,
+      "extroversao": 33,
+      "amabilidade": 65,
+      "neuroticismo": 85
+    },
+    "valores": [
+      "natureza",
+      "solidariedade",
+      "sustentabilidade",
+      "humildade"
+    ],
+    "interesses": [
+      "idiomas",
+      "observação de aves",
+      "caça",
+      "cachorros",
+      "investimentos",
+      "astrologia"
+    ],
+    "hobbies": [
+      "ciclismo",
+      "cantar",
+      "escultura"
+    ],
+    "estilo_vida": "Reservado e cauteloso",
+    "inclinacao_politica": 82,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "artigos religiosos",
+        "decoração",
+        "eletrodomésticos",
+        "ferramentas"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 30,
+      "streaming": 11,
+      "redes_sociais": 43
+    },
+    "fonte_noticias": [
+      "podcasts",
+      "rádio"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 65,
+      "pesquisa_antes_comprar": 70
+    },
+    "lealdade_marca": 61,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Reddit",
+        "Discord",
+        "Facebook",
+        "TikTok"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 80,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 50,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 37,
+      "banco_digital": 67,
+      "redes_sociais": 87
+    }
+  },
+  "vieses": {
+    "aversao_perda": 50,
+    "desconto_hiperbolico": 57,
+    "suscetibilidade_chamariz": 57,
+    "ancoragem": 79,
+    "vies_confirmacao": 50,
+    "vies_status_quo": 51,
+    "sobrecarga_informacao": 43
+  }
+}

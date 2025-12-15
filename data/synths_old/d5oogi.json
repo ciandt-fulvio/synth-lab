@@ -1,0 +1,147 @@
+{
+  "id": "d5oogi",
+  "nome": "Luiz Felipe Pastor",
+  "arquetipo": "Meia-Idade Sudeste Criativo",
+  "link_photo": "https://ui-avatars.com/api/?name=Luiz+Felipe+Pastor&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.078091+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 47,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "RJ",
+      "cidade": "Rio de Janeiro"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 865.84,
+    "ocupacao": "Desempregado",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 76,
+      "conscienciosidade": 51,
+      "extroversao": 49,
+      "amabilidade": 72,
+      "neuroticismo": 49
+    },
+    "valores": [
+      "inclusão",
+      "conhecimento",
+      "igualdade"
+    ],
+    "interesses": [
+      "viagens",
+      "engenharia",
+      "tecnologia",
+      "montanha",
+      "artes visuais",
+      "literatura"
+    ],
+    "hobbies": [
+      "podcasting",
+      "fotografia",
+      "estudos religiosos",
+      "voluntariado",
+      "artesanato",
+      "DJ"
+    ],
+    "estilo_vida": "Criativo e explorador",
+    "inclinacao_politica": -76,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "artigos religiosos",
+        "eletrônicos",
+        "decoração",
+        "calçados"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": false,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 4,
+      "streaming": 26,
+      "redes_sociais": 25
+    },
+    "fonte_noticias": [
+      "portais de notícias",
+      "rádio",
+      "TV aberta"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 36,
+      "pesquisa_antes_comprar": 31
+    },
+    "lealdade_marca": 76,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitter/X",
+        "Telegram",
+        "Pinterest",
+        "Discord",
+        "YouTube"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 61,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 47,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 43,
+      "banco_digital": 54,
+      "redes_sociais": 42
+    }
+  },
+  "vieses": {
+    "aversao_perda": 42,
+    "desconto_hiperbolico": 33,
+    "suscetibilidade_chamariz": 52,
+    "ancoragem": 29,
+    "vies_confirmacao": 57,
+    "vies_status_quo": 20,
+    "sobrecarga_informacao": 56
+  },
+  "descricao": "Homem de 47 anos, desempregado, mora em Rio de Janeiro, RJ. Possui traços marcantes de Abertura, Amabilidade. "
+}

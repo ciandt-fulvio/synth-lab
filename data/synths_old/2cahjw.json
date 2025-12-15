@@ -1,0 +1,147 @@
+{
+  "id": "2cahjw",
+  "nome": "Gabriel Alves",
+  "arquetipo": "Meia-Idade Norte Organizado.",
+  "descricao": "Homem de 52 anos, servente de obras, mora em Manaus, AM. Possui traços marcantes de Conscienciosidade. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Gabriel+Alves&size=256&background=random",
+  "created_at": "2025-12-14T22:29:16.275314+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 52,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Norte",
+      "estado": "AM",
+      "cidade": "Manaus"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 6322.07,
+    "ocupacao": "Servente de obras",
+    "estado_civil": "união estável",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 6
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 47,
+      "conscienciosidade": 66,
+      "extroversao": 19,
+      "amabilidade": 58,
+      "neuroticismo": 57
+    },
+    "valores": [
+      "inclusão",
+      "amor",
+      "justiça",
+      "prazer"
+    ],
+    "interesses": [
+      "aves",
+      "fitness",
+      "cinema",
+      "cuidados pessoais",
+      "trilha"
+    ],
+    "hobbies": [
+      "baralho",
+      "colecionar",
+      "poker"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -92,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "papelaria",
+        "ferramentas",
+        "eletrodomésticos",
+        "saúde e bem-estar"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 13,
+      "streaming": 46,
+      "redes_sociais": 36
+    },
+    "fonte_noticias": [
+      "YouTube",
+      "portais de notícias",
+      "aplicativos de notícias",
+      "newsletters",
+      "TV por assinatura"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 29,
+      "pesquisa_antes_comprar": 60
+    },
+    "lealdade_marca": 65,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitch",
+        "Telegram",
+        "Threads",
+        "Facebook",
+        "Pinterest",
+        "TikTok"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 59,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 44,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 66,
+      "banco_digital": 72,
+      "redes_sociais": 67
+    }
+  },
+  "vieses": {
+    "aversao_perda": 41,
+    "desconto_hiperbolico": 35,
+    "suscetibilidade_chamariz": 57,
+    "ancoragem": 67,
+    "vies_confirmacao": 41,
+    "vies_status_quo": 54,
+    "sobrecarga_informacao": 29
+  }
+}

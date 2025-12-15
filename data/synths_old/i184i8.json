@@ -1,0 +1,148 @@
+{
+  "id": "i184i8",
+  "nome": "Sophia Sá",
+  "arquetipo": "Idoso Sudeste Criativo",
+  "descricao": "Mulher de 99 anos, aposentado, mora em São Paulo, SP. Possui traços marcantes de Abertura, Extroversao. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Sophia+Sá&size=256&background=random",
+  "created_at": "2025-12-14T23:04:07.533501+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 99,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "preto",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "SP",
+      "cidade": "São Paulo"
+    },
+    "escolaridade": "Sem instrução",
+    "renda_mensal": 9792.0,
+    "ocupacao": "Aposentado",
+    "estado_civil": "divorciado",
+    "composicao_familiar": {
+      "tipo": "monoparental",
+      "numero_pessoas": 2
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 64,
+      "conscienciosidade": 55,
+      "extroversao": 61,
+      "amabilidade": 46,
+      "neuroticismo": 35
+    },
+    "valores": [
+      "religião",
+      "família",
+      "harmonia"
+    ],
+    "interesses": [
+      "cervejas artesanais",
+      "astronomia",
+      "nutrição",
+      "moda",
+      "fotografia",
+      "tarô"
+    ],
+    "hobbies": [
+      "bordado",
+      "streaming de filmes e séries",
+      "meditação",
+      "cultivo de plantas",
+      "decoração",
+      "criação de sites",
+      "pintura"
+    ],
+    "estilo_vida": "Ativo e social",
+    "inclinacao_politica": -10,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "esporte e lazer",
+        "calçados"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 1,
+      "streaming": 50,
+      "redes_sociais": 5
+    },
+    "fonte_noticias": [
+      "TV por assinatura",
+      "podcasts",
+      "TV aberta",
+      "YouTube",
+      "aplicativos de notícias"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 20,
+      "pesquisa_antes_comprar": 60
+    },
+    "lealdade_marca": 62,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "WhatsApp",
+        "YouTube",
+        "Snapchat",
+        "Twitch",
+        "Facebook"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 30,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 21,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 52,
+      "banco_digital": 20,
+      "redes_sociais": 67
+    }
+  },
+  "vieses": {
+    "aversao_perda": 49,
+    "desconto_hiperbolico": 30,
+    "suscetibilidade_chamariz": 42,
+    "ancoragem": 62,
+    "vies_confirmacao": 86,
+    "vies_status_quo": 6,
+    "sobrecarga_informacao": 74
+  }
+}

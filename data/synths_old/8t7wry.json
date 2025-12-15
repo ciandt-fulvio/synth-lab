@@ -1,0 +1,143 @@
+{
+  "id": "8t7wry",
+  "nome": "Isabelly Garcia",
+  "arquetipo": "Jovem Adulto Nordeste Organizado.",
+  "descricao": "Mulher de 28 anos, veterinário, mora em João Pessoa, PB. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Isabelly+Garcia&size=256&background=random",
+  "created_at": "2025-12-15T04:54:09.005826+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 28,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "preto",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "PB",
+      "cidade": "João Pessoa"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 23828.6,
+    "ocupacao": "Veterinário",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 47,
+      "conscienciosidade": 54,
+      "extroversao": 31,
+      "amabilidade": 45,
+      "neuroticismo": 46
+    },
+    "valores": [
+      "criatividade",
+      "segurança",
+      "diversidade"
+    ],
+    "interesses": [
+      "bem-estar",
+      "vôlei",
+      "patins",
+      "cinema",
+      "café especial"
+    ],
+    "hobbies": [
+      "redes sociais",
+      "vlogging",
+      "assar pães e bolos",
+      "caminhada"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -5,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "quinzenal",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "automotivo",
+        "saúde e bem-estar",
+        "jogos e brinquedos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 5,
+      "streaming": 1,
+      "redes_sociais": 50
+    },
+    "fonte_noticias": [
+      "podcasts",
+      "rádio",
+      "redes sociais",
+      "TV aberta"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 44,
+      "pesquisa_antes_comprar": 75
+    },
+    "lealdade_marca": 50,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Reddit",
+        "Snapchat",
+        "TikTok",
+        "LinkedIn"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 96,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 56,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 91,
+      "banco_digital": 67,
+      "redes_sociais": 18
+    }
+  },
+  "vieses": {
+    "aversao_perda": 51,
+    "desconto_hiperbolico": 75,
+    "suscetibilidade_chamariz": 50,
+    "ancoragem": 80,
+    "vies_confirmacao": 79,
+    "vies_status_quo": 41,
+    "sobrecarga_informacao": 60
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "id": "7k866o",
+  "nome": "Isabelly Rezende",
+  "arquetipo": "Adulto Nordeste Criativo.",
+  "descricao": "Mulher de 43 anos, gerente financeiro, mora em São Luís, MA. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Isabelly+Rezende&size=256&background=random",
+  "created_at": "2025-12-15T04:54:08.997652+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 43,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "MA",
+      "cidade": "São Luís"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 8440.58,
+    "ocupacao": "Gerente financeiro",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 59,
+      "conscienciosidade": 35,
+      "extroversao": 38,
+      "amabilidade": 55,
+      "neuroticismo": 54
+    },
+    "valores": [
+      "sabedoria",
+      "autonomia",
+      "diversidade",
+      "trabalho"
+    ],
+    "interesses": [
+      "futebol",
+      "decoração",
+      "gatos",
+      "matemática",
+      "escalada"
+    ],
+    "hobbies": [
+      "corrida",
+      "modelagem",
+      "dançar"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 6,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "quinzenal",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "decoração",
+        "vestuário e acessórios",
+        "móveis"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 17,
+      "streaming": 4,
+      "redes_sociais": 29
+    },
+    "fonte_noticias": [
+      "redes sociais",
+      "rádio"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 28,
+      "pesquisa_antes_comprar": 61
+    },
+    "lealdade_marca": 76,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Reddit",
+        "Snapchat",
+        "Twitter/X",
+        "LinkedIn",
+        "Pinterest",
+        "TikTok"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 88,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 49,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 64,
+      "banco_digital": 84,
+      "redes_sociais": 74
+    }
+  },
+  "vieses": {
+    "aversao_perda": 55,
+    "desconto_hiperbolico": 54,
+    "suscetibilidade_chamariz": 42,
+    "ancoragem": 29,
+    "vies_confirmacao": 60,
+    "vies_status_quo": 43,
+    "sobrecarga_informacao": 36
+  }
+}

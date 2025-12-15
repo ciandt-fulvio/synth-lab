@@ -1,0 +1,146 @@
+{
+  "id": "81iyqg",
+  "nome": "Melina Sampaio",
+  "arquetipo": "Jovem Adulto Nordeste Criativo",
+  "descricao": "Mulher de 22 anos, estudante, mora em São Luís, MA. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Melina+Sampaio&size=256&background=random",
+  "created_at": "2025-12-15T03:11:28.467999+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 22,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "preto",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "MA",
+      "cidade": "São Luís"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 2589.98,
+    "ocupacao": "Estudante",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "outros",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 50,
+      "conscienciosidade": 45,
+      "extroversao": 37,
+      "amabilidade": 47,
+      "neuroticismo": 43
+    },
+    "valores": [
+      "liberdade",
+      "sabedoria",
+      "trabalho",
+      "independência",
+      "responsabilidade"
+    ],
+    "interesses": [
+      "direito",
+      "trilha",
+      "MMA",
+      "artes marciais",
+      "videogames"
+    ],
+    "hobbies": [
+      "colecionar",
+      "fotografia",
+      "culinária",
+      "vlogging",
+      "modelagem",
+      "caminhada"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -87,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "jogos e brinquedos",
+        "vestuário e acessórios",
+        "beleza e perfumaria"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 15,
+      "streaming": 43,
+      "redes_sociais": 34
+    },
+    "fonte_noticias": [
+      "newsletters",
+      "aplicativos de notícias"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 19,
+      "pesquisa_antes_comprar": 60
+    },
+    "lealdade_marca": 56,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Reddit",
+        "Snapchat",
+        "Telegram",
+        "Twitch",
+        "Facebook"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 74,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 59,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 18,
+      "banco_digital": 0,
+      "redes_sociais": 84
+    }
+  },
+  "vieses": {
+    "aversao_perda": 77,
+    "desconto_hiperbolico": 24,
+    "suscetibilidade_chamariz": 47,
+    "ancoragem": 57,
+    "vies_confirmacao": 44,
+    "vies_status_quo": 41,
+    "sobrecarga_informacao": 57
+  }
+}

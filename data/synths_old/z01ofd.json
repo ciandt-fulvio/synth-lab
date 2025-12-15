@@ -1,0 +1,149 @@
+{
+  "id": "z01ofd",
+  "nome": "Clarice Fernandes",
+  "arquetipo": "Jovem Adulto Sudeste Organizado",
+  "link_photo": "https://ui-avatars.com/api/?name=Clarice+Fernandes&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.104503+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 29,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "SP",
+      "cidade": "São Paulo"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 6833.12,
+    "ocupacao": "Agente de viagens",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "multigeracional",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 60,
+      "conscienciosidade": 66,
+      "extroversao": 65,
+      "amabilidade": 52,
+      "neuroticismo": 19
+    },
+    "valores": [
+      "inovação",
+      "igualdade",
+      "responsabilidade",
+      "segurança",
+      "arte"
+    ],
+    "interesses": [
+      "turismo",
+      "MMA",
+      "vôlei",
+      "literatura",
+      "videogames",
+      "ambientalismo"
+    ],
+    "hobbies": [
+      "game design",
+      "crochê",
+      "baralho",
+      "cursos online"
+    ],
+    "estilo_vida": "Ativo e social",
+    "inclinacao_politica": -1,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "informática",
+        "celulares e smartphones",
+        "ferramentas"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 33,
+      "streaming": 10,
+      "redes_sociais": 31
+    },
+    "fonte_noticias": [
+      "newsletters",
+      "portais de notícias",
+      "jornais impressos",
+      "redes sociais",
+      "TV por assinatura"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 54,
+      "pesquisa_antes_comprar": 15
+    },
+    "lealdade_marca": 49,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Reddit",
+        "Twitch",
+        "Snapchat",
+        "Telegram",
+        "Discord",
+        "Instagram"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 85,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 56,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 36,
+      "banco_digital": 81,
+      "redes_sociais": 100
+    }
+  },
+  "vieses": {
+    "aversao_perda": 44,
+    "desconto_hiperbolico": 61,
+    "suscetibilidade_chamariz": 61,
+    "ancoragem": 46,
+    "vies_confirmacao": 42,
+    "vies_status_quo": 99,
+    "sobrecarga_informacao": 84
+  },
+  "descricao": "Mulher de 29 anos, agente de viagens, mora em São Paulo, SP. Possui traços marcantes de Conscienciosidade, Extroversao. "
+}

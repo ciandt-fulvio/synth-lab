@@ -1,0 +1,143 @@
+{
+  "id": "lri36r",
+  "nome": "Marina Correia",
+  "arquetipo": "Idoso Nordeste Ansioso",
+  "link_photo": "https://ui-avatars.com/api/?name=Marina+Correia&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.117665+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 94,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "PE",
+      "cidade": "Recife"
+    },
+    "escolaridade": "Fundamental completo",
+    "renda_mensal": 14625.78,
+    "ocupacao": "Aposentado",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 5
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 53,
+      "conscienciosidade": 11,
+      "extroversao": 56,
+      "amabilidade": 61,
+      "neuroticismo": 69
+    },
+    "valores": [
+      "sabedoria",
+      "cultura",
+      "respeito",
+      "diversidade"
+    ],
+    "interesses": [
+      "esoterismo",
+      "causas sociais",
+      "educação",
+      "gastronomia",
+      "psicologia"
+    ],
+    "hobbies": [
+      "podcasting",
+      "aeromodelismo",
+      "ciclismo",
+      "bordado"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 10,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "decoração",
+        "móveis",
+        "pet shop"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 35,
+      "streaming": 31,
+      "redes_sociais": 5
+    },
+    "fonte_noticias": [
+      "TV por assinatura",
+      "portais de notícias"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 35,
+      "pesquisa_antes_comprar": 63
+    },
+    "lealdade_marca": 52,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Telegram",
+        "LinkedIn",
+        "Snapchat",
+        "Reddit",
+        "WhatsApp"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 43,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 23,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 59,
+      "banco_digital": 42,
+      "redes_sociais": 100
+    }
+  },
+  "vieses": {
+    "aversao_perda": 82,
+    "desconto_hiperbolico": 50,
+    "suscetibilidade_chamariz": 55,
+    "ancoragem": 27,
+    "vies_confirmacao": 77,
+    "vies_status_quo": 37,
+    "sobrecarga_informacao": 72
+  },
+  "descricao": "Mulher de 94 anos, aposentado, mora em Recife, PE. Possui traços marcantes de Amabilidade, Neuroticismo. "
+}

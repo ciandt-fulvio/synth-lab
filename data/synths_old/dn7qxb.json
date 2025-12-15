@@ -1,0 +1,147 @@
+{
+  "id": "dn7qxb",
+  "nome": "Henry Gabriel Camargo",
+  "arquetipo": "Jovem Adulto Sudeste Social",
+  "descricao": "Homem de 21 anos, estudante, mora em Vitória, ES. Possui traços marcantes de Extroversao. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Henry+Gabriel+Camargo&size=256&background=random",
+  "created_at": "2025-12-14T22:29:16.270008+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 21,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "ES",
+      "cidade": "Vitória"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 663.9,
+    "ocupacao": "Estudante",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "multigeracional",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 55,
+      "conscienciosidade": 21,
+      "extroversao": 64,
+      "amabilidade": 49,
+      "neuroticismo": 42
+    },
+    "valores": [
+      "tradição",
+      "sustentabilidade",
+      "trabalho",
+      "humildade",
+      "perseverança"
+    ],
+    "interesses": [
+      "química",
+      "criptomoedas",
+      "viagens",
+      "aquários",
+      "ambientalismo"
+    ],
+    "hobbies": [
+      "3D modeling",
+      "praticar esportes",
+      "colecionar",
+      "observação de aves",
+      "miniaturismo"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 61,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "informática",
+        "celulares e smartphones",
+        "jogos e brinquedos",
+        "decoração"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": false,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 11,
+      "streaming": 29,
+      "redes_sociais": 39
+    },
+    "fonte_noticias": [
+      "aplicativos de notícias",
+      "YouTube",
+      "jornais impressos"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 54,
+      "pesquisa_antes_comprar": 97
+    },
+    "lealdade_marca": 69,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Telegram",
+        "Reddit",
+        "Twitter/X",
+        "Snapchat",
+        "Instagram"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 74,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 60,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 0,
+      "banco_digital": 61,
+      "redes_sociais": 35
+    }
+  },
+  "vieses": {
+    "aversao_perda": 60,
+    "desconto_hiperbolico": 33,
+    "suscetibilidade_chamariz": 48,
+    "ancoragem": 29,
+    "vies_confirmacao": 52,
+    "vies_status_quo": 57,
+    "sobrecarga_informacao": 51
+  }
+}

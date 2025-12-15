@@ -1,0 +1,141 @@
+{
+  "id": "bbg68m",
+  "nome": "Isabela Silva",
+  "arquetipo": "Idoso Sudeste Empático",
+  "link_photo": "https://ui-avatars.com/api/?name=Isabela+Silva&size=256&background=random",
+  "created_at": "2025-12-15T04:41:34.635830+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 99,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "ES",
+      "cidade": "Vila Velha"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 4911.22,
+    "ocupacao": "Costureiro",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "monoparental",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 59,
+      "conscienciosidade": 73,
+      "extroversao": 29,
+      "amabilidade": 82,
+      "neuroticismo": 62
+    },
+    "valores": [
+      "cultura",
+      "espiritualidade",
+      "autonomia"
+    ],
+    "interesses": [
+      "literatura",
+      "filosofia",
+      "ecoturismo",
+      "artes visuais",
+      "plantas"
+    ],
+    "hobbies": [
+      "observação de estrelas",
+      "jogos de tabuleiro",
+      "meditação"
+    ],
+    "estilo_vida": "Reservado e cauteloso",
+    "inclinacao_politica": 20,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "jogos e brinquedos",
+        "vestuário e acessórios",
+        "eletrodomésticos",
+        "móveis",
+        "saúde e bem-estar"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 28,
+      "streaming": 49,
+      "redes_sociais": 14
+    },
+    "fonte_noticias": [
+      "TV aberta",
+      "blogs especializados",
+      "YouTube"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 74,
+      "pesquisa_antes_comprar": 81
+    },
+    "lealdade_marca": 17,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitch",
+        "Telegram"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 35,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 21,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 85,
+      "banco_digital": 58,
+      "redes_sociais": 93
+    }
+  },
+  "vieses": {
+    "aversao_perda": 48,
+    "desconto_hiperbolico": 69,
+    "suscetibilidade_chamariz": 65,
+    "ancoragem": 36,
+    "vies_confirmacao": 44,
+    "vies_status_quo": 63,
+    "sobrecarga_informacao": 88
+  },
+  "descricao": "Mulher de 99 anos, costureiro, mora em Vila Velha, ES. Possui traços marcantes de Conscienciosidade, Amabilidade. "
+}

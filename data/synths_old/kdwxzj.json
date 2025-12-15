@@ -1,0 +1,147 @@
+{
+  "id": "kdwxzj",
+  "nome": "Luiz Henrique Costela",
+  "arquetipo": "Adulto Norte Empático",
+  "descricao": "Homem de 37 anos, motorista de táxi, mora em Macapá, AP. Possui traços marcantes de Extroversao, Amabilidade. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Luiz+Henrique+Costela&size=256&background=random",
+  "created_at": "2025-12-14T22:57:45.895228+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 37,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Norte",
+      "estado": "AP",
+      "cidade": "Macapá"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 4585.66,
+    "ocupacao": "Motorista de táxi",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "multigeracional",
+      "numero_pessoas": 7
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 31,
+      "conscienciosidade": 54,
+      "extroversao": 64,
+      "amabilidade": 78,
+      "neuroticismo": 48
+    },
+    "valores": [
+      "natureza",
+      "honestidade",
+      "bem-estar",
+      "inovação",
+      "conforto"
+    ],
+    "interesses": [
+      "ciclismo",
+      "gastronomia",
+      "astrologia",
+      "finanças pessoais"
+    ],
+    "hobbies": [
+      "yoga",
+      "ouvir música",
+      "praticar esportes",
+      "cerâmica",
+      "tricô",
+      "decoração",
+      "fotografia"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 9,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "papelaria",
+        "calçados",
+        "eletrônicos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 17,
+      "streaming": 29,
+      "redes_sociais": 54
+    },
+    "fonte_noticias": [
+      "jornais impressos",
+      "portais de notícias",
+      "redes sociais",
+      "newsletters",
+      "YouTube"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 42,
+      "pesquisa_antes_comprar": 61
+    },
+    "lealdade_marca": 98,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "WhatsApp",
+        "YouTube",
+        "Reddit"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 91,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 52,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 69,
+      "banco_digital": 56,
+      "redes_sociais": 61
+    }
+  },
+  "vieses": {
+    "aversao_perda": 85,
+    "desconto_hiperbolico": 30,
+    "suscetibilidade_chamariz": 63,
+    "ancoragem": 65,
+    "vies_confirmacao": 46,
+    "vies_status_quo": 28,
+    "sobrecarga_informacao": 42
+  }
+}

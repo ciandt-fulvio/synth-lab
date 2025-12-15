@@ -1,0 +1,145 @@
+{
+  "id": "57flsq",
+  "nome": "Isabel Viana",
+  "arquetipo": "Jovem Adulto Centro-Oeste Ansioso",
+  "descricao": "Mulher de 28 anos, consultor de vendas, mora em Goiânia, GO. Possui traços marcantes de Neuroticismo. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Isabel+Viana&size=256&background=random",
+  "created_at": "2025-12-14T23:20:09.723413+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 28,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "preto",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Centro-Oeste",
+      "estado": "GO",
+      "cidade": "Goiânia"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 25339.9,
+    "ocupacao": "Consultor de vendas",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 6
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 33,
+      "conscienciosidade": 21,
+      "extroversao": 35,
+      "amabilidade": 53,
+      "neuroticismo": 80
+    },
+    "valores": [
+      "verdade",
+      "disciplina",
+      "justiça social",
+      "conforto",
+      "reconhecimento"
+    ],
+    "interesses": [
+      "patins",
+      "surf",
+      "praia",
+      "nutrição"
+    ],
+    "hobbies": [
+      "game design",
+      "dançar",
+      "cantar",
+      "miniaturismo"
+    ],
+    "estilo_vida": "Reservado e cauteloso",
+    "inclinacao_politica": -43,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "informática",
+        "jogos e brinquedos",
+        "livros"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 33,
+      "streaming": 27,
+      "redes_sociais": 60
+    },
+    "fonte_noticias": [
+      "TV por assinatura",
+      "aplicativos de notícias",
+      "podcasts",
+      "jornais online"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 40,
+      "pesquisa_antes_comprar": 46
+    },
+    "lealdade_marca": 42,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Threads",
+        "TikTok",
+        "Snapchat",
+        "Facebook",
+        "Twitch"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 96,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 56,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 76,
+      "banco_digital": 70,
+      "redes_sociais": 61
+    }
+  },
+  "vieses": {
+    "aversao_perda": 49,
+    "desconto_hiperbolico": 62,
+    "suscetibilidade_chamariz": 50,
+    "ancoragem": 62,
+    "vies_confirmacao": 43,
+    "vies_status_quo": 16,
+    "sobrecarga_informacao": 77
+  }
+}

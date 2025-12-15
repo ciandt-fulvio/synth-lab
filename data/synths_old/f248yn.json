@@ -1,0 +1,146 @@
+{
+  "id": "f248yn",
+  "nome": "Heloísa Correia",
+  "arquetipo": "Adulto Sul Ansioso",
+  "link_photo": "https://ui-avatars.com/api/?name=Heloísa+Correia&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.141353+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 43,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sul",
+      "estado": "SC",
+      "cidade": "Florianópolis"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 4665.96,
+    "ocupacao": "Entregador",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "monoparental",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 62,
+      "conscienciosidade": 29,
+      "extroversao": 71,
+      "amabilidade": 63,
+      "neuroticismo": 76
+    },
+    "valores": [
+      "família",
+      "status",
+      "inclusão",
+      "meio ambiente",
+      "cultura"
+    ],
+    "interesses": [
+      "arquitetura",
+      "artes marciais",
+      "decoração",
+      "gatos",
+      "ambientalismo",
+      "aves"
+    ],
+    "hobbies": [
+      "trabalho social",
+      "culinária",
+      "crochê"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 49,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "eletrônicos",
+        "esporte e lazer"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 22,
+      "streaming": 38,
+      "redes_sociais": 24
+    },
+    "fonte_noticias": [
+      "jornais online",
+      "TV por assinatura",
+      "redes sociais",
+      "YouTube",
+      "jornais impressos"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 47,
+      "pesquisa_antes_comprar": 73
+    },
+    "lealdade_marca": 42,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Threads",
+        "Telegram",
+        "Snapchat",
+        "TikTok",
+        "Reddit"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 63,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 49,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 73,
+      "banco_digital": 68,
+      "redes_sociais": 62
+    }
+  },
+  "vieses": {
+    "aversao_perda": 36,
+    "desconto_hiperbolico": 78,
+    "suscetibilidade_chamariz": 65,
+    "ancoragem": 43,
+    "vies_confirmacao": 36,
+    "vies_status_quo": 32,
+    "sobrecarga_informacao": 61
+  },
+  "descricao": "Mulher de 43 anos, entregador, mora em Florianópolis, SC. Possui traços marcantes de Abertura, Extroversao. "
+}

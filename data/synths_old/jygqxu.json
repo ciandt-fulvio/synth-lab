@@ -1,0 +1,152 @@
+{
+  "id": "jygqxu",
+  "nome": "Thales Lima",
+  "arquetipo": "Adulto Sudeste Criativo",
+  "descricao": "Homem de 42 anos, barbeiro, mora em Rio de Janeiro, RJ. Possui traços marcantes de Abertura, Conscienciosidade. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Thales+Lima&size=256&background=random",
+  "created_at": "2025-12-14T22:29:16.286920+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 42,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "RJ",
+      "cidade": "Rio de Janeiro"
+    },
+    "escolaridade": "Pós-graduação",
+    "renda_mensal": 12571.15,
+    "ocupacao": "Barbeiro",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "multigeracional",
+      "numero_pessoas": 5
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 69,
+      "conscienciosidade": 66,
+      "extroversao": 60,
+      "amabilidade": 67,
+      "neuroticismo": 58
+    },
+    "valores": [
+      "arte",
+      "segurança",
+      "criatividade",
+      "autoconhecimento",
+      "conhecimento"
+    ],
+    "interesses": [
+      "mindfulness",
+      "direito",
+      "aquários",
+      "corrida",
+      "blockchain",
+      "vôlei"
+    ],
+    "hobbies": [
+      "trabalho social",
+      "videogames",
+      "turismo",
+      "pintura",
+      "corrida",
+      "miniaturismo"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 36,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "esporte e lazer",
+        "saúde e bem-estar",
+        "vestuário e acessórios",
+        "decoração",
+        "beleza e perfumaria"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 1,
+      "streaming": 11,
+      "redes_sociais": 47
+    },
+    "fonte_noticias": [
+      "redes sociais",
+      "TV aberta",
+      "YouTube",
+      "rádio",
+      "portais de notícias"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 9,
+      "pesquisa_antes_comprar": 59
+    },
+    "lealdade_marca": 46,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "TikTok",
+        "Discord",
+        "LinkedIn",
+        "Twitch",
+        "Twitter/X"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 94,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 49,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 70,
+      "banco_digital": 0,
+      "redes_sociais": 44
+    }
+  },
+  "vieses": {
+    "aversao_perda": 26,
+    "desconto_hiperbolico": 46,
+    "suscetibilidade_chamariz": 60,
+    "ancoragem": 35,
+    "vies_confirmacao": 54,
+    "vies_status_quo": 86,
+    "sobrecarga_informacao": 39
+  }
+}
