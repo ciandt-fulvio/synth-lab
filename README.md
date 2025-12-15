@@ -16,6 +16,14 @@ Criar Synths representativos da população brasileira para:
 
 ## ✨ Características
 
+### Interface CLI Moderna
+- 🎨 **Saída colorida e formatada** com biblioteca Rich
+- ⚡ **Comandos intuitivos**: `synthlab gensynth -n 100`
+- 📊 **Benchmark integrado** para análise de performance
+- 🔇 **Modo silencioso** para integração em pipelines
+- ✅ **Validação e análise** de distribuições demográficas
+
+### Dados Realistas
 - **Atributos Demográficos**: Idade, gênero, localização, escolaridade, renda, ocupação (IBGE Censo 2022, PNAD 2022/2023)
 - **Atributos Psicográficos**: Personalidade Big Five, valores, interesses, hobbies, inclinação política/religiosa
 - **Atributos Comportamentais**: Hábitos de consumo, uso de tecnologia, padrões de mídia social
@@ -28,7 +36,7 @@ Criar Synths representativos da população brasileira para:
 ### Pré-requisitos
 
 - Python 3.13 ou superior
-- `uv` (gerenciador de pacotes recomendado)
+- `uv` (gerenciador de pacotes)
 
 ### Setup
 
@@ -37,20 +45,33 @@ Criar Synths representativos da população brasileira para:
 git clone <repo-url>
 cd synth-lab
 
-# Criar virtual environment
-python3.13 -m venv .venv
-source .venv/bin/activate  # macOS/Linux
-# ou
-.venv\Scripts\activate  # Windows
+# Instalar dependências (uv cria automaticamente o .venv)
+uv sync
 
-# Instalar dependências com uv (recomendado)
-uv pip install -e .
-
-# Ou com pip
-pip install -e .
+# Pronto! Use uv run para executar comandos
+uv run synthlab --help
 ```
 
+> **Nota**: Não é necessário ativar o ambiente virtual ou instalar o pacote. O `uv run` gerencia tudo automaticamente, executando comandos diretamente no ambiente isolado.
+
 ## 📖 Uso
+
+### Interface de Linha de Comando
+
+O SynthLab oferece uma CLI intuitiva com saída colorida para melhor experiência do usuário.
+
+**Todos os comandos usam `uv run` para execução automática no ambiente virtual**:
+
+```bash
+# Ver ajuda geral
+uv run synthlab --help
+
+# Ver versão
+uv run synthlab --version
+
+# Ver ajuda do comando gensynth
+uv run synthlab gensynth --help
+```
 
 ### Comandos Disponíveis
 
@@ -58,46 +79,46 @@ pip install -e .
 
 ```bash
 # Gerar um Synth individual
-uv run scripts/gen_synth.py -n 1
+uv run synthlab gensynth -n 1
 
 # Gerar batch de Synths
-uv run scripts/gen_synth.py -n 100
-uv run scripts/gen_synth.py -n 1000
+uv run synthlab gensynth -n 100
+uv run synthlab gensynth -n 1000
 
 # Com benchmark de performance
-uv run scripts/gen_synth.py -n 100 --benchmark
+uv run synthlab gensynth -n 100 --benchmark
 
 # Modo silencioso (minimal output)
-uv run scripts/gen_synth.py -n 100 --quiet
+uv run synthlab gensynth -n 100 --quiet
 
 # Output em diretório customizado
-uv run scripts/gen_synth.py -n 10 --output ./meus-synths/
+uv run synthlab gensynth -n 10 --output ./meus-synths/
 ```
 
 #### Validar Synths
 
 ```bash
 # Validar todos os Synths no diretório
-uv run scripts/gen_synth.py --validate-all
+uv run synthlab gensynth --validate-all
 
 # Validar um arquivo específico
-uv run scripts/gen_synth.py --validate-file data/synths/abc123.json
+uv run synthlab gensynth --validate-file data/synths/abc123.json
 
 # Executar testes de validação internos
-uv run scripts/gen_synth.py --validar
+uv run synthlab gensynth --validar
 ```
 
 #### Analisar Distribuições
 
 ```bash
 # Analisar distribuição regional vs IBGE
-uv run scripts/gen_synth.py --analyze region
+uv run synthlab gensynth --analyze region
 
 # Analisar distribuição etária vs IBGE
-uv run scripts/gen_synth.py --analyze age
+uv run synthlab gensynth --analyze age
 
 # Analisar ambas as distribuições
-uv run scripts/gen_synth.py --analyze all
+uv run synthlab gensynth --analyze all
 ```
 
 ### Estrutura de Saída
@@ -229,8 +250,19 @@ Os Synths são salvos como arquivos JSON em `data/synths/` com identificadores �
 
 ```
 synth-lab/
-├── scripts/
-│   └── gen_synth.py              # Script principal de geração
+├── src/
+│   └── synth_lab/                # Pacote principal
+│       ├── __init__.py
+│       ├── __main__.py           # Entry point CLI
+│       └── gen_synth/            # Módulo de geração
+│           ├── __init__.py
+│           ├── gen_synth.py      # Orquestrador principal
+│           ├── config.py         # Configurações e paths
+│           └── utils.py          # Funções utilitárias
+├── tests/
+│   └── unit/
+│       └── synth_lab/
+│           └── gen_synth/        # Testes unitários
 ├── data/
 │   ├── synths/                   # Synths gerados (JSON)
 │   ├── config/                   # Configurações demográficas
@@ -238,15 +270,15 @@ synth-lab/
 │   │   ├── interests_hobbies.json
 │   │   └── occupations_structured.json
 │   └── schemas/                  # JSON Schema para validação
+│       └── synth-schema.json
 ├── specs/
-│   └── 001-generate-synths/      # Especificações técnicas
-│       ├── spec.md               # Requisitos e escopo
-│       ├── data-model.md         # Modelo de dados detalhado
-│       ├── research.md           # Pesquisa e fontes
+│   ├── 001-generate-synths/      # Feature 1: Geração de Synths
+│   └── 002-synthlab-cli/         # Feature 2: CLI SynthLab
+│       ├── spec.md               # Especificação da feature
 │       ├── plan.md               # Plano de implementação
-│       ├── tasks.md              # Tarefas e progresso
-│       └── quickstart.md         # Guia rápido
+│       └── tasks.md              # Tarefas e progresso
 ├── pyproject.toml                # Configuração do projeto
+├── pytest.ini                    # Configuração pytest
 └── README.md                     # Este arquivo
 ```
 
@@ -299,6 +331,8 @@ Todas as distribuições estatísticas são baseadas em fontes oficiais e pesqui
 - **Python 3.13+**: Linguagem base
 - **Faker (pt_BR)**: Geração de dados sintéticos brasileiros
 - **jsonschema**: Validação de estrutura de dados
+- **rich**: Interface CLI com saída colorida e formatada
+- **pytest**: Framework de testes unitários
 - **uv**: Gerenciamento rápido de dependências
 
 ## 💡 Exemplos de Uso
@@ -329,41 +363,6 @@ segment = [s for s in all_synths
 accessible_test = [s for s in all_synths
                    if s.get('disabilities')]
 ```
-
-## 🔮 Roadmap
-
-### ✅ Implementado
-- [x] Geração de synths individuais e em lote
-- [x] Validação automática com JSON Schema
-- [x] Análise de distribuições demográficas (região, idade)
-- [x] CLI completo com múltiplos comandos
-- [x] Benchmark de performance
-- [x] Sistema de IDs únicos
-- [x] Validação de coerência interna
-- [x] Modo silencioso e output customizado
-
-### 🚧 Em Desenvolvimento
-- [ ] Análise de distribuições (renda, raça/etnia)
-- [ ] Documentação expandida de atributos (User Story 4)
-
-### 🔮 Futuro
-- [ ] CLI com typer para interface mais amigável
-- [ ] API REST para geração de Synths
-- [ ] Dashboard de análise e visualização
-- [ ] Exportação para múltiplos formatos (CSV, Parquet)
-- [ ] Geração de famílias/grupos relacionados
-- [ ] Testes unitários com pytest
-- [ ] Flag `--setup` para auto-criação de estrutura
-
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Para contribuir:
-
-1. Consulte as especificações em `specs/001-generate-synths/`
-2. Verifique as issues abertas
-3. Siga os padrões de código do projeto (Black, ruff)
-4. Adicione testes para novas funcionalidades
-5. Atualize a documentação conforme necessário
 
 ## 📝 Licença
 
