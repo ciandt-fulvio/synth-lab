@@ -36,6 +36,11 @@ It's not just about lines of code; duplication of logic, algorithms, or data str
 - Tests MUST be fast (<1s each)
 - Minimum 80% code coverage required
 - Use pytest markers: `@pytest.mark.unit` for isolated tests, `@pytest.mark.integration` for database tests
+- Complete unit test suite MUST run in under 5 seconds
+- Unit tests MUST be executed before every commit
+- One commit per completed implementation phase
+- Full test suite (unit, integration, and any other tests) MUST run at completion of final MVP phase task or final task overall (excluding tasks that will not be completed)
+
 
 ### III. Type Safety and Explicit Contracts
 

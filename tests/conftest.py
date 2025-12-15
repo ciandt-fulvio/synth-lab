@@ -45,7 +45,7 @@ def sample_synth() -> dict[str, Any]:
             "idade": 25,
             "genero_biologico": "masculino",
             "identidade_genero": "homem cis",
-            "raca_etnia": "parda",
+            "raca_etnia": "pardo",
             "localizacao": {
                 "pais": "Brasil",
                 "regiao": "Sudeste",
@@ -74,7 +74,7 @@ def sample_synth() -> dict[str, Any]:
             "hobbies": ["Programação", "Jogos", "Filmes"],
             "estilo_vida": "Criativo e explorador",
             "inclinacao_politica": 10,
-            "inclinacao_religiosa": "sem religião"
+            "inclinacao_religiosa": "ateu/agnóstico"
         },
         "comportamento": {
             "habitos_consumo": {
