@@ -27,6 +27,21 @@ def create_parser() -> argparse.ArgumentParser:
         dest="command", help="Comandos disponíveis", required=False
     )
 
+    # listsynth subcommand
+    listsynth_parser = subparsers.add_parser(
+        "listsynth", help="Consultar dados sintéticos"
+    )
+    listsynth_parser.add_argument(
+        "--where",
+        type=str,
+        help="Condição SQL WHERE (sem a palavra WHERE)",
+    )
+    listsynth_parser.add_argument(
+        "--full-query",
+        type=str,
+        help="Consulta SQL SELECT completa",
+    )
+
     # gensynth subcommand
     gensynth_parser = subparsers.add_parser(
         "gensynth", help="Gerar personas sintéticas"
@@ -88,6 +103,22 @@ def main():
     if not args.command:
         parser.print_help()
         sys.exit(0)
+
+    # Handle listsynth command
+    if args.command == "listsynth":
+        from synth_lab.query.cli import listsynth
+
+        # Call listsynth with parsed arguments
+        sys.argv = ["synthlab listsynth"]
+        if args.where:
+            sys.argv.extend(["--where", args.where])
+        if args.full_query:
+            sys.argv.extend(["--full-query", args.full_query])
+
+        # Import and run Typer app
+        from synth_lab.query.cli import app as query_app
+        query_app()
+        return
 
     # Handle gensynth command
     if args.command == "gensynth":

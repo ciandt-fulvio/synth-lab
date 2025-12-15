@@ -1,0 +1,11 @@
+[
+  {
+    "id": "invalid-001",
+    "name": "Test",
+    "age": 25
+  },
+  {
+    "id": "invalid-002"
+    "name": "Missing comma"
+  }
+]

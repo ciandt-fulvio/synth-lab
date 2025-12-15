@@ -62,4 +62,6 @@ coverage.xml
 # Project specific
 *.log
 data/synths/*.json
+data/synths/*.duckdb
+data/synths/*.duckdb.wal
 !data/synths/.gitkeep
