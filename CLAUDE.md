@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2025-12-15
 
 ## Active Technologies
+- Python 3.13+ + duckdb>=0.9.0, rich>=13.0.0 (already installed), typer>=0.9.0 (for CLI) (003-synth-query)
+- DuckDB database file (`synths.duckdb`) created from JSON source (`data/synths/synths.json`) (003-synth-query)
 
 - Python 3.13+ + faker>=21.0.0, jsonschema>=4.20.0, rich (para output colorido) (002-synthlab-cli)
 
@@ -22,6 +24,7 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.13+: Follow standard conventions
 
 ## Recent Changes
+- 003-synth-query: Added Python 3.13+ + duckdb>=0.9.0, rich>=13.0.0 (already installed), typer>=0.9.0 (for CLI)
 
 - 002-synthlab-cli: Added Python 3.13+ + faker>=21.0.0, jsonschema>=4.20.0, rich (para output colorido)
 

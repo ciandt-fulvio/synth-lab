@@ -109,8 +109,6 @@ def listsynth(
         con.close()
         logger.info("Query completed successfully")
 
-        raise typer.Exit(code=EXIT_SUCCESS)
-
     except (QuerySyntaxError, QueryExecutionError) as e:
         # User errors (invalid SQL, etc.)
         console_err.print(f"[red]Error:[/red] {e}")
