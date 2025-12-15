@@ -18,10 +18,11 @@ Criar Synths representativos da população brasileira para:
 
 ### Interface CLI Moderna
 - 🎨 **Saída colorida e formatada** com biblioteca Rich
-- ⚡ **Comandos intuitivos**: `synthlab gensynth -n 100`
+- ⚡ **Comandos intuitivos**: `synthlab gensynth -n 100`, `synthlab listsynth`
 - 📊 **Benchmark integrado** para análise de performance
 - 🔇 **Modo silencioso** para integração em pipelines
 - ✅ **Validação e análise** de distribuições demográficas
+- 🔍 **Consultas SQL** com DuckDB para análise de dados
 
 ### Dados Realistas
 - **Atributos Demográficos**: Idade, gênero, localização, escolaridade, renda, ocupação (IBGE Censo 2022, PNAD 2022/2023)
@@ -69,8 +70,9 @@ uv run synthlab --help
 # Ver versão
 uv run synthlab --version
 
-# Ver ajuda do comando gensynth
+# Ver ajuda de um comando específico
 uv run synthlab gensynth --help
+uv run synthlab listsynth --help
 ```
 
 ### Comandos Disponíveis
@@ -120,6 +122,24 @@ uv run synthlab gensynth --analyze age
 # Analisar ambas as distribuições
 uv run synthlab gensynth --analyze all
 ```
+
+#### Consultar Synths (Query)
+
+```bash
+# Listar todos os Synths gerados
+uv run synthlab listsynth
+
+# Filtrar com condição WHERE (use notação de ponto para campos aninhados)
+uv run synthlab listsynth --where "demografia.idade > 30"
+uv run synthlab listsynth --where "demografia.localizacao.cidade = 'São Paulo'"
+
+# Query SQL personalizada
+uv run synthlab listsynth --full-query "SELECT id, nome, demografia.idade FROM synths LIMIT 10"
+uv run synthlab listsynth --full-query "SELECT demografia.localizacao.cidade as cidade, COUNT(*) FROM synths GROUP BY cidade"
+uv run synthlab listsynth --full-query "SELECT nome, demografia.renda_mensal FROM synths WHERE demografia.renda_mensal > 5000"
+```
+
+> **Nota**: Use a notação de ponto (`.`) para acessar campos aninhados. Por exemplo: `demografia.idade`, `demografia.localizacao.regiao`, `capacidades_tecnologicas.alfabetizacao_digital`.
 
 ### Estrutura de Saída
 
@@ -254,15 +274,27 @@ synth-lab/
 │   └── synth_lab/                # Pacote principal
 │       ├── __init__.py
 │       ├── __main__.py           # Entry point CLI
-│       └── gen_synth/            # Módulo de geração
-│           ├── __init__.py
-│           ├── gen_synth.py      # Orquestrador principal
-│           ├── config.py         # Configurações e paths
-│           └── utils.py          # Funções utilitárias
+│       ├── gen_synth/            # Módulo de geração
+│       │   ├── __init__.py
+│       │   ├── gen_synth.py      # Orquestrador principal
+│       │   ├── config.py         # Configurações e paths
+│       │   └── utils.py          # Funções utilitárias
+│       └── query/                # Módulo de consulta
+│           ├── __init__.py       # Enums e exceções
+│           ├── validator.py      # Validação de queries
+│           ├── database.py       # Operações DuckDB
+│           ├── formatter.py      # Formatação Rich tables
+│           └── cli.py            # Comando listsynth
 ├── tests/
-│   └── unit/
-│       └── synth_lab/
-│           └── gen_synth/        # Testes unitários
+│   ├── unit/
+│   │   └── synth_lab/
+│   │       ├── gen_synth/        # Testes unitários de geração
+│   │       └── query/            # Testes unitários de query
+│   ├── integration/
+│   │   └── synth_lab/
+│   │       └── query/            # Testes de integração
+│   └── fixtures/
+│       └── query/                # Fixtures para testes
 ├── data/
 │   ├── synths/                   # Synths gerados (JSON)
 │   ├── config/                   # Configurações demográficas
@@ -273,7 +305,8 @@ synth-lab/
 │       └── synth-schema.json
 ├── specs/
 │   ├── 001-generate-synths/      # Feature 1: Geração de Synths
-│   └── 002-synthlab-cli/         # Feature 2: CLI SynthLab
+│   ├── 002-synthlab-cli/         # Feature 2: CLI SynthLab
+│   └── 003-synth-query/          # Feature 3: Query de Synths
 │       ├── spec.md               # Especificação da feature
 │       ├── plan.md               # Plano de implementação
 │       └── tasks.md              # Tarefas e progresso
@@ -332,7 +365,10 @@ Todas as distribuições estatísticas são baseadas em fontes oficiais e pesqui
 - **Faker (pt_BR)**: Geração de dados sintéticos brasileiros
 - **jsonschema**: Validação de estrutura de dados
 - **rich**: Interface CLI com saída colorida e formatada
-- **pytest**: Framework de testes unitários
+- **DuckDB**: Motor SQL para consultas rápidas em JSON
+- **Typer**: Framework CLI moderno com type hints
+- **Loguru**: Sistema de logging estruturado
+- **pytest**: Framework de testes unitários e integração
 - **uv**: Gerenciamento rápido de dependências
 
 ## 💡 Exemplos de Uso
@@ -342,26 +378,42 @@ Veja o notebook `first-lab.ipynb` para exemplos de análise exploratória dos Sy
 
 ### Casos de Uso
 
-**1. Testes de UX/UI**
-```python
+**1. Análise Demográfica com SQL**
+```bash
+# Distribuição por região
+uv run synthlab listsynth --full-query "SELECT demografia.localizacao.regiao as regiao, COUNT(*) as total FROM synths GROUP BY regiao ORDER BY total DESC"
+
+# Média de renda por escolaridade
+uv run synthlab listsynth --full-query "SELECT demografia.escolaridade, AVG(demografia.renda_mensal) as media_renda FROM synths GROUP BY demografia.escolaridade"
+
+# Perfis de alto poder aquisitivo
+uv run synthlab listsynth --where "demografia.renda_mensal > 10000 AND demografia.escolaridade = 'Superior completo'"
+```
+
+**2. Testes de UX/UI**
+```bash
 # Selecionar Synths com baixa alfabetização digital
-synths = [s for s in all_synths if s['tech_literacy'] == 'Baixa']
-# Usar para testar simplicidade da interface
+uv run synthlab listsynth --where "capacidades_tecnologicas.alfabetizacao_digital < 40"
+
+# Usuários com deficiências visuais
+uv run synthlab listsynth --full-query "SELECT nome, demografia.idade, demografia.localizacao.cidade FROM synths WHERE deficiencias.visual.tipo != 'nenhuma'"
 ```
 
-**2. Segmentação de Mercado**
-```python
-# Segmentar por renda e região
-segment = [s for s in all_synths
-           if s['income_bracket'] == '4-10 SM'
-           and s['region'] == 'Sudeste']
+**3. Segmentação de Mercado**
+```bash
+# Jovens da região Sudeste
+uv run synthlab listsynth --where "demografia.idade BETWEEN 18 AND 35 AND demografia.localizacao.regiao = 'Sudeste'"
+
+# Perfil tecnológico e renda média-alta
+uv run synthlab listsynth --where "capacidades_tecnologicas.alfabetizacao_digital > 70 AND demografia.renda_mensal > 5000"
 ```
 
-**3. Validação de Acessibilidade**
+**4. Análise Comportamental**
 ```python
-# Testar com Synths que possuem deficiências
-accessible_test = [s for s in all_synths
-                   if s.get('disabilities')]
+# Usar Python para análise mais complexa
+import json
+synths = json.load(open('data/synths/synths.json'))
+high_openness = [s for s in synths if s['psicografia']['personalidade_big_five']['abertura'] > 70]
 ```
 
 ## 📝 Licença
