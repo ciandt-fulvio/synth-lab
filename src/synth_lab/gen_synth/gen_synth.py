@@ -24,7 +24,7 @@ from synth_lab.gen_synth.config import SYNTHS_DIR, load_config_data
 console = Console()
 
 
-def main(quantidade: int = 1, show_progress: bool = True, quiet: bool = False) -> list[dict[str, Any]]:
+def main(quantidade: int = 1, show_progress: bool = True, quiet: bool = False, individual_files: bool = False, output_dir: Path | None = None) -> list[dict[str, Any]]:
     """
     Generate synths with colored output.
 
@@ -32,12 +32,17 @@ def main(quantidade: int = 1, show_progress: bool = True, quiet: bool = False) -
         quantidade: Number of synths to generate
         show_progress: Show progress during generation
         quiet: Suppress verbose output
+        individual_files: If True, also save to individual files
+        output_dir: Output directory (defaults to SYNTHS_DIR)
 
     Returns:
         list[dict]: List of generated synths
     """
     # Load configuration
     config = load_config_data()
+
+    # Determine output directory
+    target_dir = output_dir or SYNTHS_DIR
 
     # Print header
     if not quiet and show_progress:
@@ -50,7 +55,7 @@ def main(quantidade: int = 1, show_progress: bool = True, quiet: bool = False) -
         synths.append(synth)
 
         # Save synth
-        storage.save_synth(synth, SYNTHS_DIR)
+        storage.save_synth(synth, target_dir, save_individual=individual_files)
 
         # Show progress
         if show_progress and not quiet:
@@ -99,6 +104,10 @@ def cli_main():
     parser.add_argument(
         "--analyze", type=str, choices=["region", "age", "all"],
         help="Analisar distribuição"
+    )
+    parser.add_argument(
+        "--individual-files", action="store_true",
+        help="Salvar também em arquivos individuais"
     )
 
     args = parser.parse_args()
@@ -167,15 +176,17 @@ def cli_main():
     start_time = time.time()
 
     # Override output directory if specified
-    output_dir = SYNTHS_DIR
-    if args.output:
-        output_dir = Path(args.output)
+    output_dir = Path(args.output) if args.output else None
+    if output_dir:
         output_dir.mkdir(parents=True, exist_ok=True)
-        # Temporarily override for this session
-        import synth_lab.gen_synth.storage as storage_module
-        storage_module.SYNTHS_DIR = output_dir
 
-    synths = main(args.quantidade, show_progress=not args.quiet, quiet=args.quiet)
+    synths = main(
+        args.quantidade,
+        show_progress=not args.quiet,
+        quiet=args.quiet,
+        individual_files=args.individual_files,
+        output_dir=output_dir
+    )
 
     if args.benchmark:
         elapsed = time.time() - start_time
