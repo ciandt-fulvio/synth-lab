@@ -82,8 +82,9 @@ def generate_psychographics(
     num_interesses = 3 + (big_five["abertura"] // 20)
     interesses_list = random.sample(interests["interesses"], k=min(num_interesses, 10))
 
-    # Hobbies (3-7 itens)
-    hobbies = random.sample(interests["hobbies"], k=random.randint(3, 7))
+    # Hobbies (3-4 itens, garantindo unicidade conforme schema minItems: 3)
+    num_hobbies = random.randint(3, 4)
+    hobbies = list(set(random.sample(interests["hobbies"], k=num_hobbies)))
 
     # Inclinação política (DataSenado 2024)
     distribuicao = ibge["inclinacao_politica_distribuicao"]
@@ -283,9 +284,14 @@ if __name__ == "__main__":
                 batch_errors.append(
                     f"Batch {i}: valores count out of range: {len(psycho['valores'])}"
                 )
-            if len(psycho["hobbies"]) < 3 or len(psycho["hobbies"]) > 7:
+            if len(psycho["hobbies"]) < 3 or len(psycho["hobbies"]) > 4:
                 batch_errors.append(
                     f"Batch {i}: hobbies count out of range: {len(psycho['hobbies'])}"
+                )
+            # Verify hobbies are unique
+            if len(psycho["hobbies"]) != len(set(psycho["hobbies"])):
+                batch_errors.append(
+                    f"Batch {i}: hobbies has duplicates: {psycho['hobbies']}"
                 )
             if not (-100 <= psycho["inclinacao_politica"] <= 100):
                 batch_errors.append(
