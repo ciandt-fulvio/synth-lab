@@ -1,0 +1,145 @@
+{
+  "id": "nbls22",
+  "nome": "Eloah Cunha",
+  "arquetipo": "Adulto Sudeste Organizado",
+  "descricao": "Mulher de 31 anos, cuidador de idosos, mora em Campinas, SP. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Eloah+Cunha&size=256&background=random",
+  "created_at": "2025-12-14T22:33:48.169471+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 31,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "preto",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "SP",
+      "cidade": "Campinas"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 4413.1,
+    "ocupacao": "Cuidador de idosos",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 28,
+      "conscienciosidade": 57,
+      "extroversao": 43,
+      "amabilidade": 41,
+      "neuroticismo": 44
+    },
+    "valores": [
+      "saúde",
+      "reconhecimento",
+      "conhecimento",
+      "honestidade"
+    ],
+    "interesses": [
+      "musculação",
+      "luta",
+      "MMA",
+      "natação"
+    ],
+    "hobbies": [
+      "pesca",
+      "fotografia",
+      "3D modeling",
+      "estudos religiosos",
+      "meditação",
+      "academia",
+      "aprender idiomas"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -5,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "ferramentas",
+        "pet shop",
+        "eletrodomésticos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 28,
+      "streaming": 44,
+      "redes_sociais": 31
+    },
+    "fonte_noticias": [
+      "TV por assinatura",
+      "podcasts"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 53,
+      "pesquisa_antes_comprar": 25
+    },
+    "lealdade_marca": 100,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitch",
+        "WhatsApp",
+        "Instagram",
+        "Telegram",
+        "LinkedIn"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 94,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 55,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 29,
+      "banco_digital": 44,
+      "redes_sociais": 75
+    }
+  },
+  "vieses": {
+    "aversao_perda": 40,
+    "desconto_hiperbolico": 16,
+    "suscetibilidade_chamariz": 33,
+    "ancoragem": 24,
+    "vies_confirmacao": 39,
+    "vies_status_quo": 33,
+    "sobrecarga_informacao": 42
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "id": "aascsm",
+  "nome": "Vinicius Souza",
+  "arquetipo": "Jovem Adulto Sudeste Organizado",
+  "link_photo": "https://ui-avatars.com/api/?name=Vinicius+Souza&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.105150+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 29,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "preto",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "ES",
+      "cidade": "Vitória"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 3363.92,
+    "ocupacao": "Motoboy",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 48,
+      "conscienciosidade": 60,
+      "extroversao": 40,
+      "amabilidade": 46,
+      "neuroticismo": 11
+    },
+    "valores": [
+      "igualdade",
+      "diversidade",
+      "inclusão",
+      "família"
+    ],
+    "interesses": [
+      "política",
+      "jardinagem",
+      "escalada",
+      "música",
+      "patins"
+    ],
+    "hobbies": [
+      "marcenaria",
+      "ouvir música",
+      "game design",
+      "colecionar",
+      "turismo",
+      "natação"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 0,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "quinzenal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "jogos e brinquedos",
+        "automotivo",
+        "ferramentas"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 30,
+      "streaming": 45,
+      "redes_sociais": 35
+    },
+    "fonte_noticias": [
+      "blogs especializados",
+      "newsletters"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 74,
+      "pesquisa_antes_comprar": 63
+    },
+    "lealdade_marca": 50,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Pinterest",
+        "Facebook",
+        "Telegram",
+        "Discord"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 70,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 56,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 32,
+      "banco_digital": 49,
+      "redes_sociais": 68
+    }
+  },
+  "vieses": {
+    "aversao_perda": 58,
+    "desconto_hiperbolico": 28,
+    "suscetibilidade_chamariz": 60,
+    "ancoragem": 90,
+    "vies_confirmacao": 26,
+    "vies_status_quo": 19,
+    "sobrecarga_informacao": 36
+  },
+  "descricao": "Homem de 29 anos, motoboy, mora em Vitória, ES. Interesses: política, jardinagem, escalada."
+}

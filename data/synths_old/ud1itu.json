@@ -1,0 +1,148 @@
+{
+  "id": "ud1itu",
+  "nome": "Maria Eduarda Campos",
+  "arquetipo": "Jovem Adulto Sudeste Empático",
+  "descricao": "Mulher de 25 anos, gerente de vendas, mora em Uberlândia, MG. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Maria+Eduarda+Campos&size=256&background=random",
+  "created_at": "2025-12-15T04:05:00.779257+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 25,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "MG",
+      "cidade": "Uberlândia"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 6990.61,
+    "ocupacao": "Gerente de vendas",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 49,
+      "conscienciosidade": 49,
+      "extroversao": 20,
+      "amabilidade": 60,
+      "neuroticismo": 58
+    },
+    "valores": [
+      "generosidade",
+      "amor",
+      "religião",
+      "perseverança",
+      "reconhecimento"
+    ],
+    "interesses": [
+      "pedagogia",
+      "engenharia",
+      "trilha",
+      "aquários",
+      "mindfulness"
+    ],
+    "hobbies": [
+      "bordado",
+      "estudos religiosos",
+      "desenho",
+      "podcasting",
+      "fotografia"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 10,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "quinzenal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "eletrônicos",
+        "eletrodomésticos",
+        "ferramentas",
+        "jogos e brinquedos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 13,
+      "streaming": 44,
+      "redes_sociais": 42
+    },
+    "fonte_noticias": [
+      "TV por assinatura",
+      "redes sociais",
+      "aplicativos de notícias",
+      "jornais online",
+      "newsletters"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 54,
+      "pesquisa_antes_comprar": 59
+    },
+    "lealdade_marca": 52,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Threads",
+        "TikTok",
+        "YouTube",
+        "Twitter/X"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 97,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 58,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 46,
+      "banco_digital": 91,
+      "redes_sociais": 75
+    }
+  },
+  "vieses": {
+    "aversao_perda": 54,
+    "desconto_hiperbolico": 39,
+    "suscetibilidade_chamariz": 32,
+    "ancoragem": 15,
+    "vies_confirmacao": 56,
+    "vies_status_quo": 61,
+    "sobrecarga_informacao": 69
+  }
+}

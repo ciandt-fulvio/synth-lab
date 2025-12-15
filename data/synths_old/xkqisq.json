@@ -1,0 +1,149 @@
+{
+  "id": "xkqisq",
+  "nome": "Ana Clara Mendonça",
+  "arquetipo": "Jovem Adulto Norte Ansioso",
+  "descricao": "Mulher de 23 anos, estudante, mora em Manaus, AM. Possui traços marcantes de Neuroticismo. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Ana+Clara+Mendonça&size=256&background=random",
+  "created_at": "2025-12-15T04:14:41.870683+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 23,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Norte",
+      "estado": "AM",
+      "cidade": "Manaus"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 1092.85,
+    "ocupacao": "Estudante",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "multigeracional",
+      "numero_pessoas": 7
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 44,
+      "conscienciosidade": 40,
+      "extroversao": 41,
+      "amabilidade": 16,
+      "neuroticismo": 64
+    },
+    "valores": [
+      "sucesso",
+      "inovação",
+      "criatividade",
+      "status",
+      "arte"
+    ],
+    "interesses": [
+      "campo",
+      "répteis",
+      "crossfit",
+      "tênis",
+      "empreendedorismo"
+    ],
+    "hobbies": [
+      "escultura",
+      "praticar esportes",
+      "autodesenvolvimento",
+      "cultivo de plantas",
+      "investimentos",
+      "colecionar",
+      "criação de sites"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 2,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "ferramentas",
+        "livros",
+        "eletrônicos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": false,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 3,
+      "streaming": 44,
+      "redes_sociais": 46
+    },
+    "fonte_noticias": [
+      "redes sociais",
+      "TV aberta",
+      "YouTube",
+      "TV por assinatura",
+      "podcasts"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 28,
+      "pesquisa_antes_comprar": 54
+    },
+    "lealdade_marca": 100,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitch",
+        "Reddit",
+        "LinkedIn",
+        "Twitter/X"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 73,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 59,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 56,
+      "banco_digital": 49,
+      "redes_sociais": 61
+    }
+  },
+  "vieses": {
+    "aversao_perda": 76,
+    "desconto_hiperbolico": 64,
+    "suscetibilidade_chamariz": 46,
+    "ancoragem": 69,
+    "vies_confirmacao": 45,
+    "vies_status_quo": 11,
+    "sobrecarga_informacao": 43
+  }
+}

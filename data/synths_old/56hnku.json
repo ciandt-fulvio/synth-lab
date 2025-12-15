@@ -1,0 +1,146 @@
+{
+  "id": "56hnku",
+  "nome": "Nicole Porto",
+  "arquetipo": "Jovem Adulto Sul Empático",
+  "descricao": "Mulher de 29 anos, vendedor de comércio varejista, mora em Porto Alegre, RS. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Nicole+Porto&size=256&background=random",
+  "created_at": "2025-12-15T04:14:27.753521+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 29,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sul",
+      "estado": "RS",
+      "cidade": "Porto Alegre"
+    },
+    "escolaridade": "Superior incompleto",
+    "renda_mensal": 4813.93,
+    "ocupacao": "Vendedor de comércio varejista",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 5
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 40,
+      "conscienciosidade": 46,
+      "extroversao": 24,
+      "amabilidade": 56,
+      "neuroticismo": 49
+    },
+    "valores": [
+      "sucesso",
+      "coragem",
+      "harmonia",
+      "prazer",
+      "meio ambiente"
+    ],
+    "interesses": [
+      "natação",
+      "yoga",
+      "empreendedorismo",
+      "finanças pessoais",
+      "causas sociais"
+    ],
+    "hobbies": [
+      "aprender idiomas",
+      "cursos online",
+      "pintura"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 0,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "saúde e bem-estar",
+        "informática",
+        "jogos e brinquedos",
+        "artigos religiosos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 28,
+      "streaming": 16,
+      "redes_sociais": 52
+    },
+    "fonte_noticias": [
+      "redes sociais",
+      "blogs especializados",
+      "jornais impressos",
+      "aplicativos de notícias",
+      "podcasts"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 100,
+      "pesquisa_antes_comprar": 44
+    },
+    "lealdade_marca": 34,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "TikTok",
+        "Instagram",
+        "WhatsApp",
+        "LinkedIn"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 90,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 56,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 33,
+      "banco_digital": 37,
+      "redes_sociais": 66
+    }
+  },
+  "vieses": {
+    "aversao_perda": 14,
+    "desconto_hiperbolico": 57,
+    "suscetibilidade_chamariz": 93,
+    "ancoragem": 12,
+    "vies_confirmacao": 43,
+    "vies_status_quo": 42,
+    "sobrecarga_informacao": 66
+  }
+}

@@ -43,13 +43,18 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
 
     This function generates a coherent synthetic persona by:
     1. Generating demographics (age, gender, location, education, income, occupation)
-    2. Generating psychographics (personality, values, interests, hobbies)
-    3. Generating behavior (consumption, technology, media)
-    4. Generating disabilities (if applicable)
-    5. Generating tech capabilities (digital literacy, devices)
-    6. Generating behavioral biases (cognitive biases)
-    7. Deriving archetype, lifestyle, description, photo link
-    8. Adding metadata (id, timestamp, version)
+    2. Generating name based on demographics
+    3. Generating Big Five personality traits
+    4. Generating psychographics (values, interests, hobbies)
+    5. Generating behavior (consumption, technology, media)
+    6. Generating disabilities (if applicable)
+    7. Generating tech capabilities (digital literacy, devices)
+    8. Generating behavioral biases (cognitive biases)
+    9. Deriving archetype from demographics and personality
+    10. Deriving lifestyle from personality
+    11. Generating photo link from name
+    12. Assembling complete synth
+    13. Deriving description from complete synth
 
     Args:
         config: Configuration dict with 'ibge', 'occupations', 'interests_hobbies'
@@ -66,42 +71,37 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
     # 2. Generate name based on demographics
     nome = demographics.generate_name(demografia)
 
-    # Extract key demographic attributes for correlation
-    idade = demografia["idade"]
-    renda_mensal = demografia["renda_mensal"]
-    escolaridade = demografia["escolaridade"]
-
-    # 2. Generate Big Five personality traits first
+    # 3. Generate Big Five personality traits first
     big_five = psychographics.generate_big_five()
 
-    # 3. Generate full psychographics profile
+    # 4. Generate full psychographics profile
     psicografia = psychographics.generate_psychographics(big_five, config)
 
-    # 4. Generate behavior (correlated with age and income)
+    # 5. Generate behavior (correlated with age and income)
     comportamento = behavior.generate_behavior(demografia, config)
 
-    # 5. Generate disabilities
+    # 6. Generate disabilities
     deficiencias = disabilities.generate_disabilities(config["ibge"])
 
-    # 6. Generate tech capabilities (correlated with age and disabilities)
+    # 7. Generate tech capabilities (correlated with age and disabilities)
     capacidades_tecnologicas = tech_capabilities.generate_tech_capabilities(
         demografia,
         deficiencias
     )
 
-    # 6. Generate behavioral biases
+    # 8. Generate behavioral biases
     vieses = biases.generate_behavioral_biases()
 
-    # 7. Derive archetype
+    # 9. Derive archetype
     arquetipo = derivations.derive_archetype(demografia, big_five)
 
-    # 8. Derive lifestyle
+    # 10. Derive lifestyle
     estilo_vida = derivations.derive_lifestyle(big_five)
 
-    # 9. Generate photo link
+    # 11. Generate photo link
     link_photo = derivations.generate_photo_link(nome)
 
-    # 10. Assemble complete synth (needed for description)
+    # 12. Assemble complete synth (needed for description)
     synth = {
         "id": synth_id,
         "nome": nome,
@@ -121,7 +121,7 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
         "vieses": vieses,
     }
 
-    # 11. Derive description (needs complete synth)
+    # 13. Derive description (needs complete synth)
     descricao = derivations.derive_description(synth)
     synth["descricao"] = descricao
 

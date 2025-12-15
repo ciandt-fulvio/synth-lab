@@ -1,0 +1,147 @@
+{
+  "id": "tihukf",
+  "nome": "Davi Lucas Cassiano",
+  "arquetipo": "Adulto Sul Social",
+  "link_photo": "https://ui-avatars.com/api/?name=Davi+Lucas+Cassiano&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.150318+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 42,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sul",
+      "estado": "SC",
+      "cidade": "Florianópolis"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 2783.4,
+    "ocupacao": "Padeiro",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 61,
+      "conscienciosidade": 57,
+      "extroversao": 67,
+      "amabilidade": 38,
+      "neuroticismo": 25
+    },
+    "valores": [
+      "segurança",
+      "responsabilidade",
+      "trabalho"
+    ],
+    "interesses": [
+      "fitness",
+      "luta",
+      "praia",
+      "plantas",
+      "cosméticos",
+      "startups"
+    ],
+    "hobbies": [
+      "leitura",
+      "blogging",
+      "investimentos",
+      "cantar",
+      "estudos religiosos",
+      "xadrez"
+    ],
+    "estilo_vida": "Ativo e social",
+    "inclinacao_politica": 1,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "informática",
+        "eletrodomésticos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 13,
+      "streaming": 12,
+      "redes_sociais": 39
+    },
+    "fonte_noticias": [
+      "TV por assinatura",
+      "YouTube",
+      "TV aberta",
+      "podcasts",
+      "redes sociais"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 17,
+      "pesquisa_antes_comprar": 61
+    },
+    "lealdade_marca": 66,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Pinterest",
+        "Reddit",
+        "YouTube",
+        "Threads",
+        "LinkedIn"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 79,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 49,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 22,
+      "banco_digital": 46,
+      "redes_sociais": 12
+    }
+  },
+  "vieses": {
+    "aversao_perda": 35,
+    "desconto_hiperbolico": 48,
+    "suscetibilidade_chamariz": 78,
+    "ancoragem": 0,
+    "vies_confirmacao": 77,
+    "vies_status_quo": 24,
+    "sobrecarga_informacao": 61
+  },
+  "descricao": "Homem de 42 anos, padeiro, mora em Florianópolis, SC. Possui traços marcantes de Abertura, Extroversao. "
+}

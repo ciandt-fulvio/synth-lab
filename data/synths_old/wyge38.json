@@ -1,0 +1,142 @@
+{
+  "id": "wyge38",
+  "nome": "Ísis Nunes",
+  "arquetipo": "Idoso Sudeste Criativo",
+  "descricao": "Mulher de 60 anos, motorista de aplicativo, mora em Vitória, ES. Possui traços marcantes de Abertura, Conscienciosidade. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Ísis+Nunes&size=256&background=random",
+  "created_at": "2025-12-15T04:14:27.750980+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 60,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "ES",
+      "cidade": "Vitória"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 18228.25,
+    "ocupacao": "Motorista de aplicativo",
+    "estado_civil": "união estável",
+    "composicao_familiar": {
+      "tipo": "casal sem filhos",
+      "numero_pessoas": 2
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 75,
+      "conscienciosidade": 65,
+      "extroversao": 72,
+      "amabilidade": 67,
+      "neuroticismo": 56
+    },
+    "valores": [
+      "humildade",
+      "trabalho",
+      "justiça social",
+      "justiça"
+    ],
+    "interesses": [
+      "gatos",
+      "animais",
+      "praia",
+      "tênis",
+      "caça",
+      "natação"
+    ],
+    "hobbies": [
+      "artesanato",
+      "escrita",
+      "observação de aves"
+    ],
+    "estilo_vida": "Criativo e explorador",
+    "inclinacao_politica": -1,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "esporte e lazer",
+        "celulares e smartphones",
+        "papelaria",
+        "saúde e bem-estar",
+        "jogos e brinquedos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 25,
+      "streaming": 20,
+      "redes_sociais": 20
+    },
+    "fonte_noticias": [
+      "redes sociais",
+      "portais de notícias"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 56,
+      "pesquisa_antes_comprar": 71
+    },
+    "lealdade_marca": 75,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Reddit",
+        "Snapchat"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 70,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 40,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 35,
+      "banco_digital": 0,
+      "redes_sociais": 100
+    }
+  },
+  "vieses": {
+    "aversao_perda": 55,
+    "desconto_hiperbolico": 57,
+    "suscetibilidade_chamariz": 14,
+    "ancoragem": 8,
+    "vies_confirmacao": 39,
+    "vies_status_quo": 42,
+    "sobrecarga_informacao": 53
+  }
+}

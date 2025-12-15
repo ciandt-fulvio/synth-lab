@@ -1,0 +1,145 @@
+{
+  "id": "0oe3xk",
+  "nome": "Jade Cardoso",
+  "arquetipo": "Adulto Sudeste Organizado",
+  "link_photo": "https://ui-avatars.com/api/?name=Jade+Cardoso&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.078838+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 37,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "SP",
+      "cidade": "Campinas"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 4770.72,
+    "ocupacao": "Técnico de laboratório",
+    "estado_civil": "viúvo",
+    "composicao_familiar": {
+      "tipo": "multigeracional",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 33,
+      "conscienciosidade": 62,
+      "extroversao": 18,
+      "amabilidade": 26,
+      "neuroticismo": 26
+    },
+    "valores": [
+      "autoconhecimento",
+      "perseverança",
+      "independência",
+      "status",
+      "coragem"
+    ],
+    "interesses": [
+      "química",
+      "montanha",
+      "criptomoedas",
+      "surf"
+    ],
+    "hobbies": [
+      "fotografia",
+      "criação de sites",
+      "estudos religiosos",
+      "redes sociais",
+      "baralho"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 6,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "saúde e bem-estar",
+        "jardinagem",
+        "pet shop",
+        "calçados",
+        "esporte e lazer"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 25,
+      "streaming": 23,
+      "redes_sociais": 54
+    },
+    "fonte_noticias": [
+      "redes sociais",
+      "blogs especializados",
+      "jornais online",
+      "TV aberta"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 44,
+      "pesquisa_antes_comprar": 32
+    },
+    "lealdade_marca": 36,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "WhatsApp",
+        "TikTok"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 81,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 52,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 60,
+      "banco_digital": 70,
+      "redes_sociais": 62
+    }
+  },
+  "vieses": {
+    "aversao_perda": 54,
+    "desconto_hiperbolico": 100,
+    "suscetibilidade_chamariz": 49,
+    "ancoragem": 87,
+    "vies_confirmacao": 46,
+    "vies_status_quo": 65,
+    "sobrecarga_informacao": 13
+  },
+  "descricao": "Mulher de 37 anos, técnico de laboratório, mora em Campinas, SP. Possui traços marcantes de Conscienciosidade. "
+}

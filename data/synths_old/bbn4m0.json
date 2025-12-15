@@ -1,0 +1,148 @@
+{
+  "id": "bbn4m0",
+  "nome": "Heitor Sousa",
+  "arquetipo": "Adulto Norte Criativo",
+  "descricao": "Homem de 43 anos, carteiro, mora em Belém, PA. Possui traços marcantes de Abertura, Extroversao. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Heitor+Sousa&size=256&background=random",
+  "created_at": "2025-12-15T04:14:27.750182+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 43,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Norte",
+      "estado": "PA",
+      "cidade": "Belém"
+    },
+    "escolaridade": "Superior incompleto",
+    "renda_mensal": 9868.17,
+    "ocupacao": "Carteiro",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 6
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 77,
+      "conscienciosidade": 27,
+      "extroversao": 62,
+      "amabilidade": 48,
+      "neuroticismo": 70
+    },
+    "valores": [
+      "perseverança",
+      "criatividade",
+      "respeito",
+      "arte",
+      "solidariedade"
+    ],
+    "interesses": [
+      "direito",
+      "chás",
+      "aventura",
+      "beleza",
+      "futebol",
+      "educação"
+    ],
+    "hobbies": [
+      "jogos de tabuleiro",
+      "praticar esportes",
+      "jardinagem",
+      "miniaturismo",
+      "trading"
+    ],
+    "estilo_vida": "Criativo e explorador",
+    "inclinacao_politica": 1,
+    "inclinacao_religiosa": "outras"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "quinzenal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "saúde e bem-estar",
+        "eletrodomésticos",
+        "informática",
+        "móveis"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 27,
+      "streaming": 11,
+      "redes_sociais": 53
+    },
+    "fonte_noticias": [
+      "blogs especializados",
+      "TV aberta"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 53,
+      "pesquisa_antes_comprar": 82
+    },
+    "lealdade_marca": 7,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "TikTok",
+        "Twitter/X",
+        "Instagram",
+        "Discord",
+        "Reddit",
+        "LinkedIn"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 83,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 49,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 27,
+      "banco_digital": 64,
+      "redes_sociais": 53
+    }
+  },
+  "vieses": {
+    "aversao_perda": 50,
+    "desconto_hiperbolico": 44,
+    "suscetibilidade_chamariz": 53,
+    "ancoragem": 67,
+    "vies_confirmacao": 70,
+    "vies_status_quo": 54,
+    "sobrecarga_informacao": 32
+  }
+}

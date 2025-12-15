@@ -1,0 +1,143 @@
+{
+  "id": "pj101g",
+  "nome": "Luiz Felipe Vasconcelos",
+  "arquetipo": "Jovem Adulto Sudeste Organizado",
+  "link_photo": "https://ui-avatars.com/api/?name=Luiz+Felipe+Vasconcelos&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.095814+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 28,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "RJ",
+      "cidade": "Rio de Janeiro"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 2587.95,
+    "ocupacao": "Atendente de lojas e mercados",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "outros",
+      "numero_pessoas": 5
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 57,
+      "conscienciosidade": 74,
+      "extroversao": 71,
+      "amabilidade": 15,
+      "neuroticismo": 65
+    },
+    "valores": [
+      "poder",
+      "sustentabilidade",
+      "prazer"
+    ],
+    "interesses": [
+      "luta",
+      "esoterismo",
+      "MMA",
+      "finanças pessoais",
+      "trilha"
+    ],
+    "hobbies": [
+      "programação",
+      "cantar",
+      "3D modeling",
+      "decoração",
+      "artesanato"
+    ],
+    "estilo_vida": "Disciplinado e focado",
+    "inclinacao_politica": 41,
+    "inclinacao_religiosa": "outras"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "alimentos e bebidas",
+        "celulares e smartphones",
+        "livros",
+        "artigos religiosos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 2,
+      "streaming": 45,
+      "redes_sociais": 54
+    },
+    "fonte_noticias": [
+      "podcasts",
+      "jornais impressos"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 22,
+      "pesquisa_antes_comprar": 63
+    },
+    "lealdade_marca": 38,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Pinterest",
+        "LinkedIn",
+        "Twitch",
+        "Instagram"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 86,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 56,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 20,
+      "banco_digital": 67,
+      "redes_sociais": 84
+    }
+  },
+  "vieses": {
+    "aversao_perda": 58,
+    "desconto_hiperbolico": 54,
+    "suscetibilidade_chamariz": 42,
+    "ancoragem": 60,
+    "vies_confirmacao": 60,
+    "vies_status_quo": 53,
+    "sobrecarga_informacao": 18
+  },
+  "descricao": "Homem de 28 anos, atendente de lojas e mercados, mora em Rio de Janeiro, RJ. Possui traços marcantes de Conscienciosidade, Extroversao. "
+}

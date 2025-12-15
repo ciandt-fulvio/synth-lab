@@ -1,0 +1,147 @@
+{
+  "id": "fsvd96",
+  "nome": "Hellena Sá",
+  "arquetipo": "Jovem Adulto Sudeste Ansioso",
+  "descricao": "Mulher de 26 anos, dona de casa, mora em Rio de Janeiro, RJ. Possui traços marcantes de Abertura, Extroversao. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Hellena+Sá&size=256&background=random",
+  "created_at": "2025-12-14T22:29:16.269175+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 26,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher trans",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "RJ",
+      "cidade": "Rio de Janeiro"
+    },
+    "escolaridade": "Sem instrução",
+    "renda_mensal": 0.0,
+    "ocupacao": "Dona de casa",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "monoparental",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 70,
+      "conscienciosidade": 48,
+      "extroversao": 71,
+      "amabilidade": 36,
+      "neuroticismo": 73
+    },
+    "valores": [
+      "criatividade",
+      "religião",
+      "saúde"
+    ],
+    "interesses": [
+      "surf",
+      "turismo",
+      "biologia",
+      "ciências",
+      "inovação",
+      "química"
+    ],
+    "hobbies": [
+      "redes sociais",
+      "blogging",
+      "coleção de vinhos",
+      "dançar",
+      "miniaturismo"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 63,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "pet shop",
+        "ferramentas",
+        "beleza e perfumaria"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": false,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 3,
+      "streaming": 49,
+      "redes_sociais": 42
+    },
+    "fonte_noticias": [
+      "YouTube",
+      "podcasts",
+      "TV por assinatura",
+      "newsletters",
+      "redes sociais"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 51,
+      "pesquisa_antes_comprar": 52
+    },
+    "lealdade_marca": 24,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Discord",
+        "Facebook",
+        "Twitter/X",
+        "LinkedIn",
+        "Reddit"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 67,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 57,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 87,
+      "banco_digital": 60,
+      "redes_sociais": 96
+    }
+  },
+  "vieses": {
+    "aversao_perda": 52,
+    "desconto_hiperbolico": 78,
+    "suscetibilidade_chamariz": 45,
+    "ancoragem": 46,
+    "vies_confirmacao": 71,
+    "vies_status_quo": 61,
+    "sobrecarga_informacao": 16
+  }
+}

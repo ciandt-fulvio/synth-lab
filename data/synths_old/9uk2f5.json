@@ -1,0 +1,148 @@
+{
+  "id": "9uk2f5",
+  "nome": "Paulo Cirino",
+  "arquetipo": "Meia-Idade Norte Criativo",
+  "link_photo": "https://ui-avatars.com/api/?name=Paulo+Cirino&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.129051+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 53,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Norte",
+      "estado": "RR",
+      "cidade": "Boa Vista"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 0.0,
+    "ocupacao": "Dona de casa",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "outros",
+      "numero_pessoas": 2
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 60,
+      "conscienciosidade": 42,
+      "extroversao": 57,
+      "amabilidade": 27,
+      "neuroticismo": 25
+    },
+    "valores": [
+      "conforto",
+      "respeito",
+      "solidariedade"
+    ],
+    "interesses": [
+      "tecnologia",
+      "finanças pessoais",
+      "ciências",
+      "decoração",
+      "campo",
+      "cuidados pessoais"
+    ],
+    "hobbies": [
+      "cursos online",
+      "jardinagem",
+      "tricô",
+      "crochê",
+      "game design",
+      "videogames",
+      "xadrez"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -7,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "eletrodomésticos",
+        "vestuário e acessórios",
+        "pet shop",
+        "livros"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": false,
+      "computador": false,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 26,
+      "streaming": 10,
+      "redes_sociais": 27
+    },
+    "fonte_noticias": [
+      "blogs especializados",
+      "rádio",
+      "jornais online"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 6,
+      "pesquisa_antes_comprar": 80
+    },
+    "lealdade_marca": 55,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Reddit",
+        "Facebook",
+        "Twitter/X",
+        "Threads",
+        "YouTube"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 73,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 44,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 68,
+      "banco_digital": 14,
+      "redes_sociais": 79
+    }
+  },
+  "vieses": {
+    "aversao_perda": 65,
+    "desconto_hiperbolico": 75,
+    "suscetibilidade_chamariz": 100,
+    "ancoragem": 56,
+    "vies_confirmacao": 27,
+    "vies_status_quo": 25,
+    "sobrecarga_informacao": 65
+  },
+  "descricao": "Homem de 53 anos, dona de casa, mora em Boa Vista, RR. "
+}

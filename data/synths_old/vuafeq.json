@@ -1,0 +1,144 @@
+{
+  "id": "vuafeq",
+  "nome": "Dom Barbosa",
+  "arquetipo": "Adulto Nordeste Criativo",
+  "descricao": "Homem de 37 anos, fonoaudiólogo, mora em Aracaju, SE. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Dom+Barbosa&size=256&background=random",
+  "created_at": "2025-12-15T04:22:42.412332+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 37,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "SE",
+      "cidade": "Aracaju"
+    },
+    "escolaridade": "Pós-graduação",
+    "renda_mensal": 22876.24,
+    "ocupacao": "Fonoaudiólogo",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 6
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 59,
+      "conscienciosidade": 38,
+      "extroversao": 50,
+      "amabilidade": 49,
+      "neuroticismo": 18
+    },
+    "valores": [
+      "harmonia",
+      "diversidade",
+      "coragem"
+    ],
+    "interesses": [
+      "política",
+      "cachorros",
+      "empreendedorismo",
+      "aquários",
+      "luta"
+    ],
+    "hobbies": [
+      "modelismo",
+      "investimentos",
+      "leitura",
+      "vlogging"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 72,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "quinzenal",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "jogos e brinquedos",
+        "calçados",
+        "saúde e bem-estar",
+        "vestuário e acessórios"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 21,
+      "streaming": 41,
+      "redes_sociais": 50
+    },
+    "fonte_noticias": [
+      "portais de notícias",
+      "aplicativos de notícias",
+      "jornais impressos",
+      "newsletters"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 51,
+      "pesquisa_antes_comprar": 46
+    },
+    "lealdade_marca": 31,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Instagram",
+        "Threads",
+        "Telegram",
+        "Twitch"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 96,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 52,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 63,
+      "banco_digital": 30,
+      "redes_sociais": 29
+    }
+  },
+  "vieses": {
+    "aversao_perda": 64,
+    "desconto_hiperbolico": 29,
+    "suscetibilidade_chamariz": 75,
+    "ancoragem": 76,
+    "vies_confirmacao": 5,
+    "vies_status_quo": 78,
+    "sobrecarga_informacao": 42
+  }
+}

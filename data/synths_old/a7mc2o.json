@@ -1,0 +1,146 @@
+{
+  "id": "a7mc2o",
+  "nome": "Hellena Camargo",
+  "arquetipo": "Jovem Adulto Sul Social",
+  "link_photo": "https://ui-avatars.com/api/?name=Hellena+Camargo&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.081154+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 28,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sul",
+      "estado": "RS",
+      "cidade": "Porto Alegre"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 1846.67,
+    "ocupacao": "Auxiliar de limpeza",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 49,
+      "conscienciosidade": 40,
+      "extroversao": 60,
+      "amabilidade": 41,
+      "neuroticismo": 40
+    },
+    "valores": [
+      "perseverança",
+      "poder",
+      "justiça social",
+      "autoconhecimento"
+    ],
+    "interesses": [
+      "finanças pessoais",
+      "chás",
+      "inovação",
+      "ambientalismo",
+      "animais"
+    ],
+    "hobbies": [
+      "tocar instrumento musical",
+      "modelismo",
+      "voluntariado"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -4,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "saúde e bem-estar",
+        "eletrodomésticos",
+        "informática"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 23,
+      "streaming": 6,
+      "redes_sociais": 45
+    },
+    "fonte_noticias": [
+      "aplicativos de notícias",
+      "YouTube",
+      "jornais online",
+      "TV por assinatura",
+      "podcasts"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 28,
+      "pesquisa_antes_comprar": 63
+    },
+    "lealdade_marca": 66,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "WhatsApp",
+        "Threads",
+        "YouTube",
+        "Reddit",
+        "Instagram",
+        "Twitter/X"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 71,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 56,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 63,
+      "banco_digital": 0,
+      "redes_sociais": 89
+    }
+  },
+  "vieses": {
+    "aversao_perda": 44,
+    "desconto_hiperbolico": 72,
+    "suscetibilidade_chamariz": 35,
+    "ancoragem": 54,
+    "vies_confirmacao": 45,
+    "vies_status_quo": 67,
+    "sobrecarga_informacao": 86
+  },
+  "descricao": "Mulher de 28 anos, auxiliar de limpeza, mora em Porto Alegre, RS. "
+}

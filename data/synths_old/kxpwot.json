@@ -1,0 +1,144 @@
+{
+  "id": "kxpwot",
+  "nome": "Erick Rezende",
+  "arquetipo": "Meia-Idade Sul Criativo",
+  "link_photo": "https://ui-avatars.com/api/?name=Erick+Rezende&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.129906+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 57,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sul",
+      "estado": "RS",
+      "cidade": "Porto Alegre"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 2570.9,
+    "ocupacao": "Atendente de call center",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "monoparental",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 49,
+      "conscienciosidade": 42,
+      "extroversao": 43,
+      "amabilidade": 26,
+      "neuroticismo": 38
+    },
+    "valores": [
+      "disciplina",
+      "educação",
+      "coragem",
+      "responsabilidade",
+      "justiça social"
+    ],
+    "interesses": [
+      "biologia",
+      "literatura",
+      "vinhos",
+      "ciências",
+      "aquários"
+    ],
+    "hobbies": [
+      "observação de estrelas",
+      "xadrez",
+      "modelagem",
+      "academia",
+      "yoga"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 0,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "quinzenal",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "decoração",
+        "calçados"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 22,
+      "streaming": 42,
+      "redes_sociais": 20
+    },
+    "fonte_noticias": [
+      "jornais impressos",
+      "rádio"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 49,
+      "pesquisa_antes_comprar": 62
+    },
+    "lealdade_marca": 55,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Telegram",
+        "Facebook",
+        "Discord",
+        "LinkedIn",
+        "Twitter/X"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 71,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 42,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 55,
+      "banco_digital": 16,
+      "redes_sociais": 92
+    }
+  },
+  "vieses": {
+    "aversao_perda": 45,
+    "desconto_hiperbolico": 6,
+    "suscetibilidade_chamariz": 33,
+    "ancoragem": 55,
+    "vies_confirmacao": 60,
+    "vies_status_quo": 40,
+    "sobrecarga_informacao": 33
+  },
+  "descricao": "Homem de 57 anos, atendente de call center, mora em Porto Alegre, RS. "
+}

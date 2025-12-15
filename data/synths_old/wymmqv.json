@@ -1,0 +1,149 @@
+{
+  "id": "wymmqv",
+  "nome": "Ana Lívia Ramos",
+  "arquetipo": "Idoso Sudeste Social",
+  "link_photo": "https://ui-avatars.com/api/?name=Ana+Lívia+Ramos&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.110865+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 88,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "ES",
+      "cidade": "Vila Velha"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 12984.3,
+    "ocupacao": "Aposentado",
+    "estado_civil": "viúvo",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 66,
+      "conscienciosidade": 55,
+      "extroversao": 98,
+      "amabilidade": 37,
+      "neuroticismo": 33
+    },
+    "valores": [
+      "igualdade",
+      "reconhecimento",
+      "bem-estar"
+    ],
+    "interesses": [
+      "teatro",
+      "cachorros",
+      "inovação",
+      "empreendedorismo",
+      "MMA",
+      "gastronomia"
+    ],
+    "hobbies": [
+      "culinária",
+      "streaming de filmes e séries",
+      "RPG",
+      "cursos online",
+      "viagens",
+      "baralho"
+    ],
+    "estilo_vida": "Ativo e social",
+    "inclinacao_politica": 88,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "jogos e brinquedos",
+        "calçados",
+        "móveis",
+        "beleza e perfumaria",
+        "livros"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 10,
+      "streaming": 19,
+      "redes_sociais": 6
+    },
+    "fonte_noticias": [
+      "TV por assinatura",
+      "jornais impressos",
+      "portais de notícias",
+      "newsletters",
+      "blogs especializados"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 42,
+      "pesquisa_antes_comprar": 64
+    },
+    "lealdade_marca": 78,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Threads",
+        "Reddit",
+        "Facebook",
+        "Twitch"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 56,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 26,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 24,
+      "banco_digital": 63,
+      "redes_sociais": 36
+    }
+  },
+  "vieses": {
+    "aversao_perda": 47,
+    "desconto_hiperbolico": 86,
+    "suscetibilidade_chamariz": 43,
+    "ancoragem": 92,
+    "vies_confirmacao": 34,
+    "vies_status_quo": 51,
+    "sobrecarga_informacao": 41
+  },
+  "descricao": "Mulher de 88 anos, aposentado, mora em Vila Velha, ES. Possui traços marcantes de Abertura, Extroversao. "
+}

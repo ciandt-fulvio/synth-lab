@@ -1,0 +1,150 @@
+{
+  "id": "lqu53v",
+  "nome": "Yasmin Camargo",
+  "arquetipo": "Adulto Norte Organizado",
+  "descricao": "Mulher de 41 anos, motorista de táxi, mora em Boa Vista, RR. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Yasmin+Camargo&size=256&background=random",
+  "created_at": "2025-12-14T22:29:16.288291+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 41,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Norte",
+      "estado": "RR",
+      "cidade": "Boa Vista"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 7822.77,
+    "ocupacao": "Motorista de táxi",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "multigeracional",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 38,
+      "conscienciosidade": 54,
+      "extroversao": 46,
+      "amabilidade": 52,
+      "neuroticismo": 27
+    },
+    "valores": [
+      "inovação",
+      "respeito",
+      "beleza",
+      "honestidade",
+      "natureza"
+    ],
+    "interesses": [
+      "skate",
+      "surf",
+      "nutrição",
+      "vôlei"
+    ],
+    "hobbies": [
+      "modelagem",
+      "game design",
+      "desenvolvimento de apps",
+      "assistir documentários",
+      "investimentos"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 44,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "papelaria",
+        "artigos religiosos",
+        "calçados",
+        "decoração",
+        "beleza e perfumaria"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 4,
+      "streaming": 22,
+      "redes_sociais": 40
+    },
+    "fonte_noticias": [
+      "redes sociais",
+      "jornais online",
+      "jornais impressos",
+      "rádio",
+      "blogs especializados"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 68,
+      "pesquisa_antes_comprar": 99
+    },
+    "lealdade_marca": 56,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitter/X",
+        "WhatsApp",
+        "Instagram",
+        "TikTok",
+        "Telegram",
+        "Pinterest"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 89,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 50,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 43,
+      "banco_digital": 42,
+      "redes_sociais": 98
+    }
+  },
+  "vieses": {
+    "aversao_perda": 29,
+    "desconto_hiperbolico": 64,
+    "suscetibilidade_chamariz": 49,
+    "ancoragem": 42,
+    "vies_confirmacao": 55,
+    "vies_status_quo": 26,
+    "sobrecarga_informacao": 64
+  }
+}

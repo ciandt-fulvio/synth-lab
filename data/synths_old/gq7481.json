@@ -1,0 +1,141 @@
+{
+  "id": "gq7481",
+  "nome": "Isaac da Costa",
+  "arquetipo": "Idoso Nordeste Empático",
+  "link_photo": "https://ui-avatars.com/api/?name=Isaac+da+Costa&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.077507+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 73,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "BA",
+      "cidade": "Salvador"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 6790.24,
+    "ocupacao": "Técnico de laboratório",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 51,
+      "conscienciosidade": 35,
+      "extroversao": 49,
+      "amabilidade": 53,
+      "neuroticismo": 32
+    },
+    "valores": [
+      "autoconhecimento",
+      "tradição",
+      "religião",
+      "diversidade"
+    ],
+    "interesses": [
+      "praia",
+      "café especial",
+      "culinária",
+      "bem-estar",
+      "vinhos"
+    ],
+    "hobbies": [
+      "aeromodelismo",
+      "estudos religiosos",
+      "pintura",
+      "game design"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -1,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "vestuário e acessórios",
+        "decoração",
+        "móveis"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 4,
+      "streaming": 22,
+      "redes_sociais": 8
+    },
+    "fonte_noticias": [
+      "aplicativos de notícias",
+      "redes sociais"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 47,
+      "pesquisa_antes_comprar": 92
+    },
+    "lealdade_marca": 69,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Instagram",
+        "YouTube",
+        "Twitter/X"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 73,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 34,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 46,
+      "banco_digital": 50,
+      "redes_sociais": 70
+    }
+  },
+  "vieses": {
+    "aversao_perda": 56,
+    "desconto_hiperbolico": 63,
+    "suscetibilidade_chamariz": 19,
+    "ancoragem": 51,
+    "vies_confirmacao": 40,
+    "vies_status_quo": 65,
+    "sobrecarga_informacao": 63
+  },
+  "descricao": "Homem de 73 anos, técnico de laboratório, mora em Salvador, BA. "
+}

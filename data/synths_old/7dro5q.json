@@ -1,0 +1,148 @@
+{
+  "id": "7dro5q",
+  "nome": "Theodoro Lopes",
+  "arquetipo": "Adulto Sudeste Empático",
+  "link_photo": "https://ui-avatars.com/api/?name=Theodoro+Lopes&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.086249+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 32,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "RJ",
+      "cidade": "Rio de Janeiro"
+    },
+    "escolaridade": "Fundamental completo",
+    "renda_mensal": 2856.24,
+    "ocupacao": "Garçom",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal sem filhos",
+      "numero_pessoas": 2
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 42,
+      "conscienciosidade": 62,
+      "extroversao": 53,
+      "amabilidade": 82,
+      "neuroticismo": 30
+    },
+    "valores": [
+      "harmonia",
+      "liberdade",
+      "diversidade"
+    ],
+    "interesses": [
+      "MMA",
+      "jardinagem",
+      "bem-estar",
+      "escalada",
+      "mindfulness"
+    ],
+    "hobbies": [
+      "marcenaria",
+      "viagens",
+      "culinária",
+      "observação de estrelas",
+      "artesanato",
+      "escultura",
+      "cerâmica"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 4,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "ferramentas",
+        "móveis",
+        "papelaria",
+        "saúde e bem-estar",
+        "beleza e perfumaria"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 34,
+      "streaming": 21,
+      "redes_sociais": 52
+    },
+    "fonte_noticias": [
+      "redes sociais",
+      "TV por assinatura"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 45,
+      "pesquisa_antes_comprar": 88
+    },
+    "lealdade_marca": 95,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Pinterest",
+        "Threads",
+        "WhatsApp",
+        "Twitter/X",
+        "Facebook",
+        "TikTok"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 74,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 54,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 58,
+      "banco_digital": 26,
+      "redes_sociais": 58
+    }
+  },
+  "vieses": {
+    "aversao_perda": 71,
+    "desconto_hiperbolico": 53,
+    "suscetibilidade_chamariz": 51,
+    "ancoragem": 29,
+    "vies_confirmacao": 45,
+    "vies_status_quo": 35,
+    "sobrecarga_informacao": 33
+  },
+  "descricao": "Homem de 32 anos, garçom, mora em Rio de Janeiro, RJ. Possui traços marcantes de Conscienciosidade, Amabilidade. "
+}

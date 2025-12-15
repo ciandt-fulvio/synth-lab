@@ -1,0 +1,145 @@
+{
+  "id": "8g891d",
+  "nome": "Davi Luiz Aragão",
+  "arquetipo": "Meia-Idade Sudeste Social.",
+  "descricao": "Homem de 51 anos, cozinheiro geral, mora em Rio de Janeiro, RJ. Possui traços marcantes de Extroversao. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Davi+Luiz+Aragão&size=256&background=random",
+  "created_at": "2025-12-15T04:50:40.606276+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 51,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "RJ",
+      "cidade": "Rio de Janeiro"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 4950.07,
+    "ocupacao": "Cozinheiro geral",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "outros",
+      "numero_pessoas": 5
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 55,
+      "conscienciosidade": 54,
+      "extroversao": 79,
+      "amabilidade": 52,
+      "neuroticismo": 52
+    },
+    "valores": [
+      "bem-estar",
+      "paz",
+      "sucesso",
+      "sustentabilidade"
+    ],
+    "interesses": [
+      "caça",
+      "astronomia",
+      "animais",
+      "cuidados pessoais",
+      "skate"
+    ],
+    "hobbies": [
+      "xadrez",
+      "animação",
+      "fotografia",
+      "pesca"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 59,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "livros",
+        "pet shop"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 14,
+      "streaming": 7,
+      "redes_sociais": 29
+    },
+    "fonte_noticias": [
+      "rádio",
+      "jornais impressos",
+      "aplicativos de notícias",
+      "newsletters"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 68,
+      "pesquisa_antes_comprar": 38
+    },
+    "lealdade_marca": 50,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "YouTube",
+        "Telegram",
+        "Threads",
+        "TikTok",
+        "Snapchat",
+        "Discord"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 84,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 45,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 14,
+      "banco_digital": 48,
+      "redes_sociais": 57
+    }
+  },
+  "vieses": {
+    "aversao_perda": 83,
+    "desconto_hiperbolico": 45,
+    "suscetibilidade_chamariz": 60,
+    "ancoragem": 38,
+    "vies_confirmacao": 38,
+    "vies_status_quo": 48,
+    "sobrecarga_informacao": 27
+  }
+}

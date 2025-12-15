@@ -1,0 +1,146 @@
+{
+  "id": "s99ny7",
+  "nome": "Gael Henrique Pires",
+  "arquetipo": "Meia-Idade Sudeste Social.",
+  "descricao": "Homem de 53 anos, representante comercial, mora em São Paulo, SP. Possui traços marcantes de Extroversao. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Gael+Henrique+Pires&size=256&background=random",
+  "created_at": "2025-12-15T04:54:09.008734+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 53,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "SP",
+      "cidade": "São Paulo"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 21204.75,
+    "ocupacao": "Representante comercial",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 30,
+      "conscienciosidade": 39,
+      "extroversao": 73,
+      "amabilidade": 44,
+      "neuroticismo": 37
+    },
+    "valores": [
+      "paz",
+      "humildade",
+      "amor",
+      "bem-estar",
+      "justiça social"
+    ],
+    "interesses": [
+      "filosofia",
+      "boxe",
+      "observação de aves",
+      "musculação"
+    ],
+    "hobbies": [
+      "praticar esportes",
+      "fazer doces",
+      "coleção de vinhos",
+      "caminhada"
+    ],
+    "estilo_vida": "Ativo e social",
+    "inclinacao_politica": 43,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "móveis",
+        "vestuário e acessórios",
+        "beleza e perfumaria"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 21,
+      "streaming": 35,
+      "redes_sociais": 39
+    },
+    "fonte_noticias": [
+      "portais de notícias",
+      "jornais online",
+      "blogs especializados",
+      "jornais impressos"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 65,
+      "pesquisa_antes_comprar": 91
+    },
+    "lealdade_marca": 37,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "LinkedIn",
+        "Reddit",
+        "Twitch",
+        "TikTok",
+        "Telegram",
+        "Threads"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 73,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 44,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 30,
+      "banco_digital": 53,
+      "redes_sociais": 72
+    }
+  },
+  "vieses": {
+    "aversao_perda": 48,
+    "desconto_hiperbolico": 31,
+    "suscetibilidade_chamariz": 54,
+    "ancoragem": 37,
+    "vies_confirmacao": 42,
+    "vies_status_quo": 57,
+    "sobrecarga_informacao": 67
+  }
+}

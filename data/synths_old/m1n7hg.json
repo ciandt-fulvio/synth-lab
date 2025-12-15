@@ -1,0 +1,144 @@
+{
+  "id": "m1n7hg",
+  "nome": "Levi Farias",
+  "arquetipo": "Jovem Adulto Sudeste Criativo",
+  "link_photo": "https://ui-avatars.com/api/?name=Levi+Farias&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.075485+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 27,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "RJ",
+      "cidade": "Niterói"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 2711.05,
+    "ocupacao": "Empregado doméstico",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 75,
+      "conscienciosidade": 17,
+      "extroversao": 41,
+      "amabilidade": 26,
+      "neuroticismo": 47
+    },
+    "valores": [
+      "honestidade",
+      "prazer",
+      "beleza",
+      "humildade"
+    ],
+    "interesses": [
+      "investimentos",
+      "empreendedorismo",
+      "sociologia",
+      "inovação",
+      "biologia",
+      "chás"
+    ],
+    "hobbies": [
+      "xadrez",
+      "fotografia",
+      "dançar"
+    ],
+    "estilo_vida": "Criativo e explorador",
+    "inclinacao_politica": 7,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "beleza e perfumaria",
+        "jardinagem",
+        "móveis"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 21,
+      "streaming": 8,
+      "redes_sociais": 54
+    },
+    "fonte_noticias": [
+      "jornais online",
+      "TV por assinatura"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 47,
+      "pesquisa_antes_comprar": 48
+    },
+    "lealdade_marca": 61,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Threads",
+        "LinkedIn",
+        "YouTube",
+        "Reddit",
+        "Instagram",
+        "Pinterest"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 86,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 57,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 67,
+      "banco_digital": 47,
+      "redes_sociais": 50
+    }
+  },
+  "vieses": {
+    "aversao_perda": 35,
+    "desconto_hiperbolico": 39,
+    "suscetibilidade_chamariz": 60,
+    "ancoragem": 64,
+    "vies_confirmacao": 79,
+    "vies_status_quo": 29,
+    "sobrecarga_informacao": 44
+  },
+  "descricao": "Homem de 27 anos, empregado doméstico, mora em Niterói, RJ. Possui traços marcantes de Abertura. "
+}

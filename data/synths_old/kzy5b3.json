@@ -1,0 +1,143 @@
+{
+  "id": "kzy5b3",
+  "nome": "Maria Helena da Rosa",
+  "arquetipo": "Jovem Adulto Sul Social",
+  "descricao": "Mulher de 25 anos, agente de segurança, mora em Curitiba, PR. Possui traços marcantes de Extroversao. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Maria+Helena+da+Rosa&size=256&background=random",
+  "created_at": "2025-12-14T22:29:16.285147+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 25,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sul",
+      "estado": "PR",
+      "cidade": "Curitiba"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 12795.46,
+    "ocupacao": "Agente de segurança",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "monoparental",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 46,
+      "conscienciosidade": 53,
+      "extroversao": 61,
+      "amabilidade": 47,
+      "neuroticismo": 51
+    },
+    "valores": [
+      "sucesso",
+      "família",
+      "bem-estar"
+    ],
+    "interesses": [
+      "voluntariado",
+      "direito",
+      "basquete",
+      "gatos",
+      "vôlei"
+    ],
+    "hobbies": [
+      "poker",
+      "baralho",
+      "pesca",
+      "dançar"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 0,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "papelaria",
+        "esporte e lazer",
+        "jogos e brinquedos",
+        "livros",
+        "saúde e bem-estar"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 27,
+      "streaming": 30,
+      "redes_sociais": 55
+    },
+    "fonte_noticias": [
+      "rádio",
+      "TV aberta",
+      "jornais impressos",
+      "redes sociais"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 42,
+      "pesquisa_antes_comprar": 20
+    },
+    "lealdade_marca": 92,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitter/X",
+        "WhatsApp"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 97,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 58,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 64,
+      "banco_digital": 56,
+      "redes_sociais": 29
+    }
+  },
+  "vieses": {
+    "aversao_perda": 54,
+    "desconto_hiperbolico": 44,
+    "suscetibilidade_chamariz": 32,
+    "ancoragem": 43,
+    "vies_confirmacao": 59,
+    "vies_status_quo": 25,
+    "sobrecarga_informacao": 43
+  }
+}

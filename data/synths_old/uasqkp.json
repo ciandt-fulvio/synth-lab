@@ -1,0 +1,144 @@
+{
+  "id": "uasqkp",
+  "nome": "Ravi Lucca Mendes",
+  "arquetipo": "Idoso Nordeste Ansioso.",
+  "descricao": "Homem de 76 anos, aposentado, mora em Teresina, PI. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Ravi+Lucca+Mendes&size=256&background=random",
+  "created_at": "2025-12-15T04:53:25.398362+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 76,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "PI",
+      "cidade": "Teresina"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 3117.91,
+    "ocupacao": "Aposentado",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "monoparental",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 40,
+      "conscienciosidade": 37,
+      "extroversao": 39,
+      "amabilidade": 40,
+      "neuroticismo": 57
+    },
+    "valores": [
+      "espiritualidade",
+      "conforto",
+      "autoconhecimento",
+      "status",
+      "harmonia"
+    ],
+    "interesses": [
+      "jardinagem",
+      "nutrição",
+      "escalada",
+      "esoterismo",
+      "dança"
+    ],
+    "hobbies": [
+      "RPG",
+      "trilhas",
+      "ouvir música"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 53,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "beleza e perfumaria",
+        "calçados",
+        "eletrônicos",
+        "artigos religiosos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 30,
+      "streaming": 37,
+      "redes_sociais": 7
+    },
+    "fonte_noticias": [
+      "TV aberta",
+      "aplicativos de notícias"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 43,
+      "pesquisa_antes_comprar": 70
+    },
+    "lealdade_marca": 66,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Instagram",
+        "Telegram",
+        "Reddit",
+        "YouTube",
+        "Twitch"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 62,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 32,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 69,
+      "banco_digital": 51,
+      "redes_sociais": 34
+    }
+  },
+  "vieses": {
+    "aversao_perda": 31,
+    "desconto_hiperbolico": 72,
+    "suscetibilidade_chamariz": 86,
+    "ancoragem": 62,
+    "vies_confirmacao": 50,
+    "vies_status_quo": 31,
+    "sobrecarga_informacao": 20
+  }
+}

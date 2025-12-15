@@ -1,0 +1,144 @@
+{
+  "id": "6wf6pp",
+  "nome": "Raquel da Cunha",
+  "arquetipo": "Idoso Nordeste Empático",
+  "descricao": "Mulher de 90 anos, aposentado, mora em Maceió, AL. Possui traços marcantes de Amabilidade. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Raquel+da+Cunha&size=256&background=random",
+  "created_at": "2025-12-15T04:14:27.751982+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 90,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "AL",
+      "cidade": "Maceió"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 14396.74,
+    "ocupacao": "Aposentado",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal sem filhos",
+      "numero_pessoas": 2
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 34,
+      "conscienciosidade": 30,
+      "extroversao": 31,
+      "amabilidade": 63,
+      "neuroticismo": 52
+    },
+    "valores": [
+      "inovação",
+      "status",
+      "humildade",
+      "liberdade"
+    ],
+    "interesses": [
+      "escalada",
+      "ciclismo",
+      "praia",
+      "finanças pessoais"
+    ],
+    "hobbies": [
+      "escrita",
+      "jogos de tabuleiro",
+      "cartas colecionáveis",
+      "cultivo de plantas",
+      "assistir documentários",
+      "coleção de vinhos",
+      "cursos online"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 6,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "beleza e perfumaria",
+        "artigos religiosos",
+        "jardinagem"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 28,
+      "streaming": 27,
+      "redes_sociais": 18
+    },
+    "fonte_noticias": [
+      "blogs especializados",
+      "podcasts",
+      "jornais impressos",
+      "rádio"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 35,
+      "pesquisa_antes_comprar": 75
+    },
+    "lealdade_marca": 60,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitter/X",
+        "YouTube"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "cegueira"
+    },
+    "auditiva": {
+      "tipo": "moderada"
+    },
+    "motora": {
+      "tipo": "moderada",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "moderada"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 40,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 127,
+      "alto_contraste": true
+    },
+    "velocidade_digitacao": 25,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 63,
+      "banco_digital": 37,
+      "redes_sociais": 8
+    }
+  },
+  "vieses": {
+    "aversao_perda": 65,
+    "desconto_hiperbolico": 52,
+    "suscetibilidade_chamariz": 49,
+    "ancoragem": 53,
+    "vies_confirmacao": 66,
+    "vies_status_quo": 73,
+    "sobrecarga_informacao": 28
+  }
+}

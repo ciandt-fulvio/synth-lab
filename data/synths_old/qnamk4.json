@@ -1,0 +1,145 @@
+{
+  "id": "qnamk4",
+  "nome": "Joaquim Costela",
+  "arquetipo": "Jovem Adulto Sudeste Ansioso",
+  "link_photo": "https://ui-avatars.com/api/?name=Joaquim+Costela&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.071143+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 29,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "MG",
+      "cidade": "Uberlândia"
+    },
+    "escolaridade": "Sem instrução",
+    "renda_mensal": 2988.79,
+    "ocupacao": "Faxineiro",
+    "estado_civil": "união estável",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 50,
+      "conscienciosidade": 46,
+      "extroversao": 61,
+      "amabilidade": 47,
+      "neuroticismo": 68
+    },
+    "valores": [
+      "status",
+      "autoconhecimento",
+      "igualdade",
+      "beleza",
+      "harmonia"
+    ],
+    "interesses": [
+      "turismo",
+      "química",
+      "vôlei",
+      "cinema",
+      "yoga"
+    ],
+    "hobbies": [
+      "observação de aves",
+      "edição de vídeo",
+      "fazer doces",
+      "degustação de cervejas",
+      "modelismo"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 100,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "jardinagem",
+        "móveis",
+        "jogos e brinquedos",
+        "esporte e lazer"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 4,
+      "streaming": 3,
+      "redes_sociais": 51
+    },
+    "fonte_noticias": [
+      "podcasts",
+      "newsletters",
+      "portais de notícias"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 29,
+      "pesquisa_antes_comprar": 47
+    },
+    "lealdade_marca": 46,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Facebook",
+        "Discord",
+        "WhatsApp"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 65,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 56,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 49,
+      "banco_digital": 4,
+      "redes_sociais": 18
+    }
+  },
+  "vieses": {
+    "aversao_perda": 67,
+    "desconto_hiperbolico": 21,
+    "suscetibilidade_chamariz": 77,
+    "ancoragem": 31,
+    "vies_confirmacao": 36,
+    "vies_status_quo": 33,
+    "sobrecarga_informacao": 58
+  },
+  "descricao": "Homem de 29 anos, faxineiro, mora em Uberlândia, MG. Possui traços marcantes de Extroversao, Neuroticismo. "
+}

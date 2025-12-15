@@ -1,0 +1,142 @@
+{
+  "id": "yw7v49",
+  "nome": "Fernanda Costa",
+  "arquetipo": "Meia-Idade Sudeste Empático",
+  "descricao": "Mulher de 50 anos, pedreiro, mora em Vitória, ES. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Fernanda+Costa&size=256&background=random",
+  "created_at": "2025-12-15T03:11:41.965340+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 50,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "ES",
+      "cidade": "Vitória"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 3772.14,
+    "ocupacao": "Pedreiro",
+    "estado_civil": "união estável",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 40,
+      "conscienciosidade": 41,
+      "extroversao": 31,
+      "amabilidade": 58,
+      "neuroticismo": 39
+    },
+    "valores": [
+      "conforto",
+      "natureza",
+      "reconhecimento",
+      "harmonia",
+      "justiça social"
+    ],
+    "interesses": [
+      "empreendedorismo",
+      "skate",
+      "cervejas artesanais",
+      "gatos",
+      "patins"
+    ],
+    "hobbies": [
+      "fotografia",
+      "coleção de vinhos",
+      "ciclismo"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -66,
+    "inclinacao_religiosa": "outras"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "decoração",
+        "ferramentas",
+        "saúde e bem-estar"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 4,
+      "streaming": 37,
+      "redes_sociais": 22
+    },
+    "fonte_noticias": [
+      "jornais impressos",
+      "YouTube",
+      "blogs especializados"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 99,
+      "pesquisa_antes_comprar": 44
+    },
+    "lealdade_marca": 31,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "WhatsApp",
+        "YouTube",
+        "Twitter/X"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 60,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 45,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 34,
+      "banco_digital": 48,
+      "redes_sociais": 20
+    }
+  },
+  "vieses": {
+    "aversao_perda": 22,
+    "desconto_hiperbolico": 45,
+    "suscetibilidade_chamariz": 62,
+    "ancoragem": 65,
+    "vies_confirmacao": 32,
+    "vies_status_quo": 50,
+    "sobrecarga_informacao": 25
+  }
+}

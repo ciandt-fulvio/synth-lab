@@ -1,0 +1,147 @@
+{
+  "id": "366ttx",
+  "nome": "Sofia Albuquerque",
+  "arquetipo": "Adulto Nordeste Ansioso.",
+  "descricao": "Mulher de 30 anos, auxiliar de limpeza, mora em São Luís, MA. Possui traços marcantes de Conscienciosidade, Neuroticismo. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Sofia+Albuquerque&size=256&background=random",
+  "created_at": "2025-12-15T04:53:25.396495+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 30,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "MA",
+      "cidade": "São Luís"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 1936.41,
+    "ocupacao": "Auxiliar de limpeza",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 55,
+      "conscienciosidade": 62,
+      "extroversao": 38,
+      "amabilidade": 50,
+      "neuroticismo": 71
+    },
+    "valores": [
+      "harmonia",
+      "poder",
+      "saúde",
+      "conhecimento",
+      "prazer"
+    ],
+    "interesses": [
+      "pedagogia",
+      "nutrição",
+      "boxe",
+      "gastronomia",
+      "escalada"
+    ],
+    "hobbies": [
+      "camping",
+      "modelismo",
+      "ouvir música"
+    ],
+    "estilo_vida": "Reservado e cauteloso",
+    "inclinacao_politica": 86,
+    "inclinacao_religiosa": "outras"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "jogos e brinquedos",
+        "eletrodomésticos",
+        "alimentos e bebidas",
+        "informática"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 30,
+      "streaming": 12,
+      "redes_sociais": 37
+    },
+    "fonte_noticias": [
+      "TV por assinatura",
+      "rádio",
+      "aplicativos de notícias",
+      "blogs especializados",
+      "podcasts"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 81,
+      "pesquisa_antes_comprar": 34
+    },
+    "lealdade_marca": 25,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Facebook",
+        "LinkedIn",
+        "Discord",
+        "Pinterest",
+        "Reddit"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 70,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 55,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 4,
+      "banco_digital": 75,
+      "redes_sociais": 0
+    }
+  },
+  "vieses": {
+    "aversao_perda": 60,
+    "desconto_hiperbolico": 44,
+    "suscetibilidade_chamariz": 29,
+    "ancoragem": 40,
+    "vies_confirmacao": 60,
+    "vies_status_quo": 76,
+    "sobrecarga_informacao": 34
+  }
+}

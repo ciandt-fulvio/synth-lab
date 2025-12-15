@@ -1,0 +1,147 @@
+{
+  "id": "s7p1z8",
+  "nome": "Maria Luiza Camargo",
+  "arquetipo": "Adulto Sudeste Empático",
+  "link_photo": "https://ui-avatars.com/api/?name=Maria+Luiza+Camargo&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.096404+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 32,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "SP",
+      "cidade": "Santos"
+    },
+    "escolaridade": "Superior incompleto",
+    "renda_mensal": 4503.39,
+    "ocupacao": "Açougueiro",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 64,
+      "conscienciosidade": 26,
+      "extroversao": 41,
+      "amabilidade": 85,
+      "neuroticismo": 32
+    },
+    "valores": [
+      "segurança",
+      "justiça social",
+      "coragem"
+    ],
+    "interesses": [
+      "medicina",
+      "nutrição",
+      "educação",
+      "praia",
+      "natação",
+      "astronomia"
+    ],
+    "hobbies": [
+      "pintura",
+      "yoga",
+      "pesca",
+      "academia",
+      "costura",
+      "fotografia",
+      "bordado"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 95,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "jardinagem",
+        "beleza e perfumaria",
+        "artigos religiosos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 14,
+      "streaming": 49,
+      "redes_sociais": 42
+    },
+    "fonte_noticias": [
+      "redes sociais",
+      "newsletters",
+      "jornais online",
+      "TV aberta",
+      "aplicativos de notícias"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 19,
+      "pesquisa_antes_comprar": 67
+    },
+    "lealdade_marca": 50,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Snapchat",
+        "Twitch",
+        "Instagram"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 89,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 54,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 92,
+      "banco_digital": 12,
+      "redes_sociais": 49
+    }
+  },
+  "vieses": {
+    "aversao_perda": 56,
+    "desconto_hiperbolico": 19,
+    "suscetibilidade_chamariz": 59,
+    "ancoragem": 61,
+    "vies_confirmacao": 63,
+    "vies_status_quo": 60,
+    "sobrecarga_informacao": 56
+  },
+  "descricao": "Mulher de 32 anos, açougueiro, mora em Santos, SP. Possui traços marcantes de Abertura, Amabilidade. "
+}

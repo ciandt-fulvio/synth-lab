@@ -1,0 +1,149 @@
+{
+  "id": "jrb95w",
+  "nome": "Pietra Cunha",
+  "arquetipo": "Idoso Nordeste Criativo",
+  "link_photo": "https://ui-avatars.com/api/?name=Pietra+Cunha&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.128416+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 81,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "CE",
+      "cidade": "Fortaleza"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 12473.27,
+    "ocupacao": "Aposentado",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "outros",
+      "numero_pessoas": 2
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 74,
+      "conscienciosidade": 40,
+      "extroversao": 22,
+      "amabilidade": 61,
+      "neuroticismo": 69
+    },
+    "valores": [
+      "verdade",
+      "respeito",
+      "cultura",
+      "independência",
+      "sustentabilidade"
+    ],
+    "interesses": [
+      "inovação",
+      "gastronomia",
+      "cachorros",
+      "filosofia",
+      "causas sociais",
+      "tecnologia"
+    ],
+    "hobbies": [
+      "3D modeling",
+      "pintura",
+      "ilustração digital",
+      "programação",
+      "degustação de cervejas"
+    ],
+    "estilo_vida": "Reservado e cauteloso",
+    "inclinacao_politica": -9,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "celulares e smartphones",
+        "artigos religiosos",
+        "jardinagem"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 32,
+      "streaming": 42,
+      "redes_sociais": 31
+    },
+    "fonte_noticias": [
+      "TV aberta",
+      "jornais impressos",
+      "redes sociais",
+      "YouTube"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 29,
+      "pesquisa_antes_comprar": 58
+    },
+    "lealdade_marca": 79,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "TikTok",
+        "Threads",
+        "Snapchat",
+        "LinkedIn",
+        "Twitch",
+        "Instagram"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 59,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 30,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 53,
+      "banco_digital": 49,
+      "redes_sociais": 83
+    }
+  },
+  "vieses": {
+    "aversao_perda": 86,
+    "desconto_hiperbolico": 35,
+    "suscetibilidade_chamariz": 63,
+    "ancoragem": 61,
+    "vies_confirmacao": 45,
+    "vies_status_quo": 36,
+    "sobrecarga_informacao": 64
+  },
+  "descricao": "Mulher de 81 anos, aposentado, mora em Fortaleza, CE. Possui traços marcantes de Abertura, Amabilidade. "
+}

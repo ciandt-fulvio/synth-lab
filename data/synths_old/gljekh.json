@@ -1,0 +1,144 @@
+{
+  "id": "gljekh",
+  "nome": "Isis Castro",
+  "arquetipo": "Adulto Sul Social",
+  "descricao": "Mulher de 38 anos, auxiliar de cozinha, mora em Porto Alegre, RS. Possui traços marcantes de Extroversao, Amabilidade. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Isis+Castro&size=256&background=random",
+  "created_at": "2025-12-14T22:29:16.286474+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 38,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sul",
+      "estado": "RS",
+      "cidade": "Porto Alegre"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 7527.67,
+    "ocupacao": "Auxiliar de cozinha",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 5
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 54,
+      "conscienciosidade": 33,
+      "extroversao": 67,
+      "amabilidade": 64,
+      "neuroticismo": 47
+    },
+    "valores": [
+      "equilíbrio",
+      "saúde",
+      "sustentabilidade"
+    ],
+    "interesses": [
+      "astronomia",
+      "inovação",
+      "arquitetura",
+      "observação de aves",
+      "luta"
+    ],
+    "hobbies": [
+      "escrita",
+      "fotografia",
+      "meditação",
+      "desenvolvimento de apps",
+      "bordado"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 49,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "livros",
+        "artigos religiosos",
+        "automotivo",
+        "saúde e bem-estar",
+        "eletrônicos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 15,
+      "streaming": 7,
+      "redes_sociais": 54
+    },
+    "fonte_noticias": [
+      "redes sociais",
+      "TV por assinatura",
+      "blogs especializados"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 46,
+      "pesquisa_antes_comprar": 43
+    },
+    "lealdade_marca": 14,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "LinkedIn",
+        "Threads",
+        "Twitter/X"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 66,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 51,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 11,
+      "banco_digital": 38,
+      "redes_sociais": 50
+    }
+  },
+  "vieses": {
+    "aversao_perda": 11,
+    "desconto_hiperbolico": 28,
+    "suscetibilidade_chamariz": 51,
+    "ancoragem": 35,
+    "vies_confirmacao": 43,
+    "vies_status_quo": 39,
+    "sobrecarga_informacao": 47
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "id": "q9017u",
+  "nome": "Clara Pastor",
+  "arquetipo": "Adulto Sudeste Criativo",
+  "descricao": "Mulher de 38 anos, produtor de eventos, mora em Uberlândia, MG. Possui traços marcantes de Abertura, Conscienciosidade. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Clara+Pastor&size=256&background=random",
+  "created_at": "2025-12-15T04:04:35.616772+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 38,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "MG",
+      "cidade": "Uberlândia"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 7118.06,
+    "ocupacao": "Produtor de eventos",
+    "estado_civil": "divorciado",
+    "composicao_familiar": {
+      "tipo": "monoparental",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 77,
+      "conscienciosidade": 63,
+      "extroversao": 33,
+      "amabilidade": 62,
+      "neuroticismo": 53
+    },
+    "valores": [
+      "liberdade",
+      "religião",
+      "diversidade",
+      "prazer"
+    ],
+    "interesses": [
+      "filosofia",
+      "investimentos",
+      "plantas",
+      "finanças pessoais",
+      "tarô",
+      "moda"
+    ],
+    "hobbies": [
+      "modelismo",
+      "marcenaria",
+      "cursos online",
+      "poker"
+    ],
+    "estilo_vida": "Criativo e explorador",
+    "inclinacao_politica": 6,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "móveis",
+        "informática"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 16,
+      "streaming": 22,
+      "redes_sociais": 55
+    },
+    "fonte_noticias": [
+      "rádio",
+      "TV aberta"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 77,
+      "pesquisa_antes_comprar": 55
+    },
+    "lealdade_marca": 77,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Discord",
+        "Twitter/X",
+        "LinkedIn",
+        "Threads",
+        "Telegram",
+        "Facebook"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 91,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 51,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 34,
+      "banco_digital": 85,
+      "redes_sociais": 62
+    }
+  },
+  "vieses": {
+    "aversao_perda": 21,
+    "desconto_hiperbolico": 43,
+    "suscetibilidade_chamariz": 53,
+    "ancoragem": 14,
+    "vies_confirmacao": 22,
+    "vies_status_quo": 38,
+    "sobrecarga_informacao": 31
+  }
+}

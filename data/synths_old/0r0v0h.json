@@ -1,0 +1,145 @@
+{
+  "id": "0r0v0h",
+  "nome": "Carlos Eduardo Fernandes",
+  "arquetipo": "Idoso Sudeste Ansioso",
+  "link_photo": "https://ui-avatars.com/api/?name=Carlos+Eduardo+Fernandes&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.126749+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 76,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "MG",
+      "cidade": "Uberlândia"
+    },
+    "escolaridade": "Fundamental completo",
+    "renda_mensal": 8621.52,
+    "ocupacao": "Aposentado",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "monoparental",
+      "numero_pessoas": 2
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 48,
+      "conscienciosidade": 78,
+      "extroversao": 68,
+      "amabilidade": 35,
+      "neuroticismo": 86
+    },
+    "valores": [
+      "arte",
+      "educação",
+      "coragem"
+    ],
+    "interesses": [
+      "e-sports",
+      "corrida",
+      "boxe",
+      "tarô",
+      "aventura"
+    ],
+    "hobbies": [
+      "voluntariado",
+      "degustação de cervejas",
+      "escrita",
+      "vlogging",
+      "trading"
+    ],
+    "estilo_vida": "Disciplinado e focado",
+    "inclinacao_politica": -6,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "jardinagem",
+        "vestuário e acessórios",
+        "saúde e bem-estar"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 6,
+      "streaming": 17,
+      "redes_sociais": 31
+    },
+    "fonte_noticias": [
+      "newsletters",
+      "TV por assinatura",
+      "rádio"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 31,
+      "pesquisa_antes_comprar": 43
+    },
+    "lealdade_marca": 32,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Discord",
+        "WhatsApp",
+        "Threads",
+        "LinkedIn",
+        "Twitch",
+        "Facebook"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 52,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 32,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 21,
+      "banco_digital": 12,
+      "redes_sociais": 64
+    }
+  },
+  "vieses": {
+    "aversao_perda": 69,
+    "desconto_hiperbolico": 39,
+    "suscetibilidade_chamariz": 71,
+    "ancoragem": 83,
+    "vies_confirmacao": 57,
+    "vies_status_quo": 50,
+    "sobrecarga_informacao": 42
+  },
+  "descricao": "Homem de 76 anos, aposentado, mora em Uberlândia, MG. Possui traços marcantes de Conscienciosidade, Extroversao. "
+}

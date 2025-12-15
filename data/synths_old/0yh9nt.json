@@ -1,0 +1,145 @@
+{
+  "id": "0yh9nt",
+  "nome": "Mariah Montenegro",
+  "arquetipo": "Adulto Nordeste Organizado",
+  "link_photo": "https://ui-avatars.com/api/?name=Mariah+Montenegro&size=256&background=random",
+  "created_at": "2025-12-15T04:41:34.634361+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 31,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "BA",
+      "cidade": "Feira de Santana"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 2797.03,
+    "ocupacao": "Estoquista",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "monoparental",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 48,
+      "conscienciosidade": 61,
+      "extroversao": 47,
+      "amabilidade": 36,
+      "neuroticismo": 34
+    },
+    "valores": [
+      "conforto",
+      "saúde",
+      "sabedoria",
+      "criatividade"
+    ],
+    "interesses": [
+      "trilha",
+      "aquários",
+      "chás",
+      "arquitetura",
+      "blockchain"
+    ],
+    "hobbies": [
+      "pesca",
+      "caminhada",
+      "trading"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -10,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "quinzenal",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "automotivo",
+        "papelaria",
+        "jardinagem",
+        "artigos religiosos",
+        "saúde e bem-estar"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 32,
+      "streaming": 31,
+      "redes_sociais": 39
+    },
+    "fonte_noticias": [
+      "jornais online",
+      "TV aberta",
+      "newsletters",
+      "YouTube",
+      "jornais impressos"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 78,
+      "pesquisa_antes_comprar": 31
+    },
+    "lealdade_marca": 55,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Instagram",
+        "TikTok",
+        "Threads"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 84,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 55,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 68,
+      "banco_digital": 34,
+      "redes_sociais": 5
+    }
+  },
+  "vieses": {
+    "aversao_perda": 25,
+    "desconto_hiperbolico": 36,
+    "suscetibilidade_chamariz": 50,
+    "ancoragem": 67,
+    "vies_confirmacao": 16,
+    "vies_status_quo": 35,
+    "sobrecarga_informacao": 38
+  },
+  "descricao": "Mulher de 31 anos, estoquista, mora em Feira de Santana, BA. Possui traços marcantes de Conscienciosidade. "
+}

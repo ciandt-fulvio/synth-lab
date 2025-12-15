@@ -1,0 +1,140 @@
+{
+  "id": "7znss3",
+  "nome": "Isabel da Costa",
+  "arquetipo": "Meia-Idade Norte Ansioso",
+  "descricao": "Mulher de 50 anos, repositor de mercadorias, mora em Belém, PA. Possui traços marcantes de Conscienciosidade, Neuroticismo. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Isabel+da+Costa&size=256&background=random",
+  "created_at": "2025-12-15T04:04:12.644120+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 50,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Norte",
+      "estado": "PA",
+      "cidade": "Belém"
+    },
+    "escolaridade": "Pós-graduação",
+    "renda_mensal": 5290.63,
+    "ocupacao": "Repositor de mercadorias",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal sem filhos",
+      "numero_pessoas": 2
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 47,
+      "conscienciosidade": 64,
+      "extroversao": 30,
+      "amabilidade": 53,
+      "neuroticismo": 67
+    },
+    "valores": [
+      "liberdade",
+      "verdade",
+      "amor",
+      "perseverança"
+    ],
+    "interesses": [
+      "psicologia",
+      "luta",
+      "tecnologia",
+      "artes visuais",
+      "meditação"
+    ],
+    "hobbies": [
+      "miniaturismo",
+      "design gráfico",
+      "praticar esportes"
+    ],
+    "estilo_vida": "Reservado e cauteloso",
+    "inclinacao_politica": -54,
+    "inclinacao_religiosa": "ateu/agnóstico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "jogos e brinquedos",
+        "automotivo"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 13,
+      "streaming": 16,
+      "redes_sociais": 30
+    },
+    "fonte_noticias": [
+      "TV por assinatura",
+      "TV aberta",
+      "jornais impressos",
+      "aplicativos de notícias"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 54,
+      "pesquisa_antes_comprar": 47
+    },
+    "lealdade_marca": 67,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Telegram",
+        "Pinterest"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 90,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 45,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 5,
+      "banco_digital": 48,
+      "redes_sociais": 57
+    }
+  },
+  "vieses": {
+    "aversao_perda": 69,
+    "desconto_hiperbolico": 71,
+    "suscetibilidade_chamariz": 59,
+    "ancoragem": 13,
+    "vies_confirmacao": 41,
+    "vies_status_quo": 66,
+    "sobrecarga_informacao": 89
+  }
+}

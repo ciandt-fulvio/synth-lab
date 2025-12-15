@@ -1,0 +1,141 @@
+{
+  "id": "5v4r61",
+  "nome": "Isabelly Aragão",
+  "arquetipo": "Adulto Sudeste Ansioso",
+  "link_photo": "https://ui-avatars.com/api/?name=Isabelly+Aragão&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.142096+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 32,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "ES",
+      "cidade": "Vitória"
+    },
+    "escolaridade": "Pós-graduação",
+    "renda_mensal": 5652.61,
+    "ocupacao": "Pedreiro",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 30,
+      "conscienciosidade": 64,
+      "extroversao": 59,
+      "amabilidade": 70,
+      "neuroticismo": 71
+    },
+    "valores": [
+      "inclusão",
+      "verdade",
+      "saúde",
+      "responsabilidade",
+      "status"
+    ],
+    "interesses": [
+      "fitness",
+      "luta",
+      "teatro",
+      "ciclismo"
+    ],
+    "hobbies": [
+      "poker",
+      "ouvir música",
+      "criar conteúdo digital"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 87,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "ferramentas",
+        "calçados"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 27,
+      "streaming": 8,
+      "redes_sociais": 49
+    },
+    "fonte_noticias": [
+      "newsletters",
+      "podcasts",
+      "TV aberta",
+      "jornais impressos"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 77,
+      "pesquisa_antes_comprar": 53
+    },
+    "lealdade_marca": 44,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Pinterest",
+        "Facebook",
+        "Twitch"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 99,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 54,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 3,
+      "banco_digital": 72,
+      "redes_sociais": 72
+    }
+  },
+  "vieses": {
+    "aversao_perda": 67,
+    "desconto_hiperbolico": 83,
+    "suscetibilidade_chamariz": 19,
+    "ancoragem": 100,
+    "vies_confirmacao": 79,
+    "vies_status_quo": 65,
+    "sobrecarga_informacao": 65
+  },
+  "descricao": "Mulher de 32 anos, pedreiro, mora em Vitória, ES. Possui traços marcantes de Conscienciosidade, Amabilidade. "
+}

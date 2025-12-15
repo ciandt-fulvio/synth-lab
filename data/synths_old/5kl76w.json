@@ -1,0 +1,145 @@
+{
+  "id": "5kl76w",
+  "nome": "Vinícius Silveira",
+  "arquetipo": "Idoso Norte Ansioso",
+  "link_photo": "https://ui-avatars.com/api/?name=Vinícius+Silveira&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.138454+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 90,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Norte",
+      "estado": "RO",
+      "cidade": "Porto Velho"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 4184.93,
+    "ocupacao": "Aposentado",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 64,
+      "conscienciosidade": 54,
+      "extroversao": 61,
+      "amabilidade": 47,
+      "neuroticismo": 71
+    },
+    "valores": [
+      "saúde",
+      "autonomia",
+      "verdade",
+      "harmonia"
+    ],
+    "interesses": [
+      "caça",
+      "biologia",
+      "trilha",
+      "cinema",
+      "política",
+      "vinhos"
+    ],
+    "hobbies": [
+      "fotografia",
+      "produção musical",
+      "decoração",
+      "videogames",
+      "turismo",
+      "pesca",
+      "ciclismo"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -28,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "ferramentas",
+        "informática",
+        "jogos e brinquedos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 21,
+      "streaming": 22,
+      "redes_sociais": 6
+    },
+    "fonte_noticias": [
+      "aplicativos de notícias",
+      "rádio",
+      "podcasts"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 54,
+      "pesquisa_antes_comprar": 70
+    },
+    "lealdade_marca": 59,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitch",
+        "LinkedIn"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 55,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 25,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 95,
+      "banco_digital": 41,
+      "redes_sociais": 80
+    }
+  },
+  "vieses": {
+    "aversao_perda": 46,
+    "desconto_hiperbolico": 40,
+    "suscetibilidade_chamariz": 68,
+    "ancoragem": 27,
+    "vies_confirmacao": 46,
+    "vies_status_quo": 29,
+    "sobrecarga_informacao": 40
+  },
+  "descricao": "Homem de 90 anos, aposentado, mora em Porto Velho, RO. Possui traços marcantes de Abertura, Extroversao. "
+}

@@ -1,0 +1,142 @@
+{
+  "id": "odwdbg",
+  "nome": "Ana Lívia Pastor",
+  "arquetipo": "Jovem Adulto Nordeste Empático.",
+  "descricao": "Mulher de 20 anos, entregador, mora em Recife, PE. Possui traços marcantes de Abertura, Amabilidade. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Ana+Lívia+Pastor&size=256&background=random",
+  "created_at": "2025-12-15T04:50:40.605273+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 20,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "PE",
+      "cidade": "Recife"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 4756.43,
+    "ocupacao": "Entregador",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal sem filhos",
+      "numero_pessoas": 2
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 62,
+      "conscienciosidade": 58,
+      "extroversao": 48,
+      "amabilidade": 68,
+      "neuroticismo": 29
+    },
+    "valores": [
+      "respeito",
+      "generosidade",
+      "cultura",
+      "justiça",
+      "educação"
+    ],
+    "interesses": [
+      "decoração",
+      "surf",
+      "gatos",
+      "meditação",
+      "ativismo",
+      "causas sociais"
+    ],
+    "hobbies": [
+      "fazer doces",
+      "crochê",
+      "streaming de filmes e séries",
+      "animação"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 20,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "pet shop",
+        "vestuário e acessórios"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 29,
+      "streaming": 42,
+      "redes_sociais": 58
+    },
+    "fonte_noticias": [
+      "rádio",
+      "jornais online"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 39,
+      "pesquisa_antes_comprar": 67
+    },
+    "lealdade_marca": 40,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "TikTok",
+        "WhatsApp",
+        "Twitch"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 75,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 60,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 43,
+      "banco_digital": 100,
+      "redes_sociais": 61
+    }
+  },
+  "vieses": {
+    "aversao_perda": 90,
+    "desconto_hiperbolico": 75,
+    "suscetibilidade_chamariz": 41,
+    "ancoragem": 70,
+    "vies_confirmacao": 50,
+    "vies_status_quo": 47,
+    "sobrecarga_informacao": 82
+  }
+}

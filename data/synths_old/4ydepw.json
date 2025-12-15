@@ -1,0 +1,142 @@
+{
+  "id": "4ydepw",
+  "nome": "Marcos Vinicius Ferreira",
+  "arquetipo": "Meia-Idade Norte Organizado",
+  "link_photo": "https://ui-avatars.com/api/?name=Marcos+Vinicius+Ferreira&size=256&background=random",
+  "created_at": "2025-12-15T04:41:39.784459+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 57,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Norte",
+      "estado": "PA",
+      "cidade": "Belém"
+    },
+    "escolaridade": "Fundamental completo",
+    "renda_mensal": 6545.33,
+    "ocupacao": "Motorista de caminhão",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 5
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 60,
+      "conscienciosidade": 68,
+      "extroversao": 43,
+      "amabilidade": 47,
+      "neuroticismo": 60
+    },
+    "valores": [
+      "coragem",
+      "sucesso",
+      "respeito"
+    ],
+    "interesses": [
+      "plantas",
+      "sociologia",
+      "vôlei",
+      "yoga",
+      "skate",
+      "aventura"
+    ],
+    "hobbies": [
+      "3D modeling",
+      "poker",
+      "trabalho social"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 12,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "automotivo",
+        "alimentos e bebidas",
+        "celulares e smartphones"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 20,
+      "streaming": 6,
+      "redes_sociais": 31
+    },
+    "fonte_noticias": [
+      "TV aberta",
+      "TV por assinatura",
+      "blogs especializados"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 54,
+      "pesquisa_antes_comprar": 56
+    },
+    "lealdade_marca": 68,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Discord",
+        "YouTube",
+        "Instagram",
+        "Reddit"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 61,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 42,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 77,
+      "banco_digital": 12,
+      "redes_sociais": 80
+    }
+  },
+  "vieses": {
+    "aversao_perda": 41,
+    "desconto_hiperbolico": 41,
+    "suscetibilidade_chamariz": 41,
+    "ancoragem": 42,
+    "vies_confirmacao": 54,
+    "vies_status_quo": 39,
+    "sobrecarga_informacao": 62
+  },
+  "descricao": "Homem de 57 anos, motorista de caminhão, mora em Belém, PA. Possui traços marcantes de Conscienciosidade. "
+}

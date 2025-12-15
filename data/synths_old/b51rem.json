@@ -1,0 +1,148 @@
+{
+  "id": "b51rem",
+  "nome": "Heitor Azevedo",
+  "arquetipo": "Adulto Sudeste Social",
+  "descricao": "Homem de 41 anos, barbeiro, mora em Santos, SP. Possui traços marcantes de Conscienciosidade, Extroversao. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Heitor+Azevedo&size=256&background=random",
+  "created_at": "2025-12-14T22:29:16.292308+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 41,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "SP",
+      "cidade": "Santos"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 4492.56,
+    "ocupacao": "Barbeiro",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal sem filhos",
+      "numero_pessoas": 2
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 43,
+      "conscienciosidade": 72,
+      "extroversao": 79,
+      "amabilidade": 44,
+      "neuroticismo": 67
+    },
+    "valores": [
+      "generosidade",
+      "coragem",
+      "humildade"
+    ],
+    "interesses": [
+      "yoga",
+      "esportes",
+      "turismo",
+      "gastronomia",
+      "saúde"
+    ],
+    "hobbies": [
+      "jardinagem",
+      "RPG",
+      "fotografia",
+      "coleção de vinhos"
+    ],
+    "estilo_vida": "Disciplinado e focado",
+    "inclinacao_politica": 35,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "livros",
+        "móveis",
+        "jogos e brinquedos",
+        "calçados",
+        "automotivo"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 10,
+      "streaming": 11,
+      "redes_sociais": 48
+    },
+    "fonte_noticias": [
+      "aplicativos de notícias",
+      "TV por assinatura",
+      "jornais impressos",
+      "TV aberta",
+      "portais de notícias"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 51,
+      "pesquisa_antes_comprar": 32
+    },
+    "lealdade_marca": 59,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Instagram",
+        "Discord",
+        "Threads",
+        "YouTube",
+        "Telegram",
+        "Pinterest"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "severa"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "severa"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 79,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "antigo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 50,
+    "frequencia_internet": "mensal",
+    "familiaridade_plataformas": {
+      "e_commerce": 100,
+      "banco_digital": 53,
+      "redes_sociais": 33
+    }
+  },
+  "vieses": {
+    "aversao_perda": 36,
+    "desconto_hiperbolico": 50,
+    "suscetibilidade_chamariz": 33,
+    "ancoragem": 38,
+    "vies_confirmacao": 40,
+    "vies_status_quo": 92,
+    "sobrecarga_informacao": 34
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "id": "s3pdz9",
+  "nome": "Antony Ferreira",
+  "arquetipo": "Adulto Sudeste Empático",
+  "link_photo": "https://ui-avatars.com/api/?name=Antony+Ferreira&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.145441+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 43,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "ES",
+      "cidade": "Vila Velha"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 2634.74,
+    "ocupacao": "Jardineiro",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 4
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 21,
+      "conscienciosidade": 58,
+      "extroversao": 32,
+      "amabilidade": 66,
+      "neuroticismo": 50
+    },
+    "valores": [
+      "responsabilidade",
+      "segurança",
+      "amor"
+    ],
+    "interesses": [
+      "culinária",
+      "escalada",
+      "vinhos",
+      "crossfit"
+    ],
+    "hobbies": [
+      "trading",
+      "assar pães e bolos",
+      "criar conteúdo digital",
+      "edição de vídeo",
+      "cartas colecionáveis"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -3,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "pet shop",
+        "móveis",
+        "jogos e brinquedos",
+        "celulares e smartphones",
+        "beleza e perfumaria"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 4,
+      "streaming": 32,
+      "redes_sociais": 38
+    },
+    "fonte_noticias": [
+      "redes sociais",
+      "newsletters",
+      "rádio"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 60,
+      "pesquisa_antes_comprar": 95
+    },
+    "lealdade_marca": 61,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "WhatsApp",
+        "Telegram",
+        "Twitter/X",
+        "Facebook",
+        "LinkedIn",
+        "Threads"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 63,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 49,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 37,
+      "banco_digital": 39,
+      "redes_sociais": 78
+    }
+  },
+  "vieses": {
+    "aversao_perda": 54,
+    "desconto_hiperbolico": 33,
+    "suscetibilidade_chamariz": 82,
+    "ancoragem": 42,
+    "vies_confirmacao": 68,
+    "vies_status_quo": 28,
+    "sobrecarga_informacao": 82
+  },
+  "descricao": "Homem de 43 anos, jardineiro, mora em Vila Velha, ES. Possui traços marcantes de Amabilidade. "
+}

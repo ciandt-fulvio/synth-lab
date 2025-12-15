@@ -1,0 +1,143 @@
+{
+  "id": "3ilvkk",
+  "nome": "Valentim da Cruz",
+  "arquetipo": "Meia-Idade Sudeste Criativo",
+  "link_photo": "https://ui-avatars.com/api/?name=Valentim+da+Cruz&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.125431+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 54,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "ES",
+      "cidade": "Vila Velha"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 11201.78,
+    "ocupacao": "Corretor de seguros",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal sem filhos",
+      "numero_pessoas": 2
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 90,
+      "conscienciosidade": 63,
+      "extroversao": 46,
+      "amabilidade": 45,
+      "neuroticismo": 36
+    },
+    "valores": [
+      "liberdade",
+      "sucesso",
+      "criatividade"
+    ],
+    "interesses": [
+      "trilha",
+      "matemática",
+      "patins",
+      "medicina",
+      "pets",
+      "fotografia",
+      "inovação"
+    ],
+    "hobbies": [
+      "estudos religiosos",
+      "cartas colecionáveis",
+      "investimentos",
+      "animação"
+    ],
+    "estilo_vida": "Criativo e explorador",
+    "inclinacao_politica": -2,
+    "inclinacao_religiosa": "outras"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "quinzenal",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "saúde e bem-estar",
+        "pet shop"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 33,
+      "streaming": 48,
+      "redes_sociais": 43
+    },
+    "fonte_noticias": [
+      "newsletters",
+      "TV aberta"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 39,
+      "pesquisa_antes_comprar": 55
+    },
+    "lealdade_marca": 34,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Instagram",
+        "Discord",
+        "TikTok",
+        "Twitch",
+        "Threads"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 73,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 43,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 6,
+      "banco_digital": 40,
+      "redes_sociais": 48
+    }
+  },
+  "vieses": {
+    "aversao_perda": 25,
+    "desconto_hiperbolico": 0,
+    "suscetibilidade_chamariz": 40,
+    "ancoragem": 64,
+    "vies_confirmacao": 76,
+    "vies_status_quo": 82,
+    "sobrecarga_informacao": 36
+  },
+  "descricao": "Homem de 54 anos, corretor de seguros, mora em Vila Velha, ES. Possui traços marcantes de Abertura, Conscienciosidade. "
+}

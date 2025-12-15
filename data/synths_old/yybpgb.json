@@ -1,0 +1,145 @@
+{
+  "id": "yybpgb",
+  "nome": "Lara Cavalcanti",
+  "arquetipo": "Jovem Adulto Norte Social",
+  "descricao": "Mulher de 19 anos, cozinheiro geral, mora em Belém, PA. Possui traços marcantes de Extroversao. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Lara+Cavalcanti&size=256&background=random",
+  "created_at": "2025-12-14T22:29:16.277239+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 19,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Norte",
+      "estado": "PA",
+      "cidade": "Belém"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 12077.39,
+    "ocupacao": "Cozinheiro geral",
+    "estado_civil": "união estável",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 5
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 59,
+      "conscienciosidade": 31,
+      "extroversao": 70,
+      "amabilidade": 44,
+      "neuroticismo": 41
+    },
+    "valores": [
+      "natureza",
+      "sustentabilidade",
+      "equilíbrio",
+      "respeito"
+    ],
+    "interesses": [
+      "blockchain",
+      "chás",
+      "cachorros",
+      "trilha",
+      "economia"
+    ],
+    "hobbies": [
+      "baralho",
+      "degustação de cervejas",
+      "criação de sites",
+      "jardinagem"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 7,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "esporádica",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "decoração",
+        "móveis",
+        "esporte e lazer",
+        "informática",
+        "beleza e perfumaria"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 31,
+      "streaming": 0,
+      "redes_sociais": 35
+    },
+    "fonte_noticias": [
+      "aplicativos de notícias",
+      "blogs especializados"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 38,
+      "pesquisa_antes_comprar": 56
+    },
+    "lealdade_marca": 35,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Discord",
+        "Reddit",
+        "LinkedIn",
+        "YouTube",
+        "Threads"
+      ],
+      "frequencia_posts": "ocasional"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 75,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 61,
+    "frequencia_internet": "rara",
+    "familiaridade_plataformas": {
+      "e_commerce": 34,
+      "banco_digital": 23,
+      "redes_sociais": 100
+    }
+  },
+  "vieses": {
+    "aversao_perda": 75,
+    "desconto_hiperbolico": 34,
+    "suscetibilidade_chamariz": 64,
+    "ancoragem": 76,
+    "vies_confirmacao": 51,
+    "vies_status_quo": 53,
+    "sobrecarga_informacao": 36
+  }
+}

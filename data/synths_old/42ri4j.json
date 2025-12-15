@@ -1,0 +1,145 @@
+{
+  "id": "42ri4j",
+  "nome": "Allana Sousa",
+  "arquetipo": "Adulto Nordeste Ansioso",
+  "link_photo": "https://ui-avatars.com/api/?name=Allana+Sousa&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.065200+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 39,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Nordeste",
+      "estado": "SE",
+      "cidade": "Aracaju"
+    },
+    "escolaridade": "Sem instrução",
+    "renda_mensal": 0.0,
+    "ocupacao": "Dona de casa",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "monoparental",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 43,
+      "conscienciosidade": 51,
+      "extroversao": 41,
+      "amabilidade": 55,
+      "neuroticismo": 61
+    },
+    "valores": [
+      "harmonia",
+      "poder",
+      "inovação",
+      "generosidade"
+    ],
+    "interesses": [
+      "répteis",
+      "fotografia",
+      "ambientalismo",
+      "patins",
+      "viagens"
+    ],
+    "hobbies": [
+      "DJ",
+      "design gráfico",
+      "ouvir música",
+      "escrita"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 77,
+    "inclinacao_religiosa": "outras"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "quinzenal",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "móveis",
+        "celulares e smartphones",
+        "jogos e brinquedos",
+        "livros"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": false,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 4,
+      "streaming": 18,
+      "redes_sociais": 43
+    },
+    "fonte_noticias": [
+      "YouTube",
+      "newsletters"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 40,
+      "pesquisa_antes_comprar": 82
+    },
+    "lealdade_marca": 74,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "TikTok",
+        "LinkedIn",
+        "Instagram",
+        "Threads",
+        "Discord",
+        "Twitch"
+      ],
+      "frequencia_posts": "frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 60,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 51,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 57,
+      "banco_digital": 16,
+      "redes_sociais": 97
+    }
+  },
+  "vieses": {
+    "aversao_perda": 66,
+    "desconto_hiperbolico": 68,
+    "suscetibilidade_chamariz": 20,
+    "ancoragem": 51,
+    "vies_confirmacao": 57,
+    "vies_status_quo": 42,
+    "sobrecarga_informacao": 64
+  },
+  "descricao": "Mulher de 39 anos, dona de casa, mora em Aracaju, SE. Possui traços marcantes de Neuroticismo. "
+}

@@ -1,0 +1,144 @@
+{
+  "id": "od3p8h",
+  "nome": "Rodrigo Leão",
+  "arquetipo": "Adulto Sudeste Ansioso",
+  "descricao": "Homem de 36 anos, cozinheiro geral, mora em Vitória, ES. Possui traços marcantes de Extroversao, Neuroticismo. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Rodrigo+Leão&size=256&background=random",
+  "created_at": "2025-12-14T22:29:16.290023+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 36,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "branco",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "ES",
+      "cidade": "Vitória"
+    },
+    "escolaridade": "Fundamental incompleto",
+    "renda_mensal": 10605.14,
+    "ocupacao": "Cozinheiro geral",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "multigeracional",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 56,
+      "conscienciosidade": 37,
+      "extroversao": 67,
+      "amabilidade": 36,
+      "neuroticismo": 88
+    },
+    "valores": [
+      "coragem",
+      "criatividade",
+      "solidariedade"
+    ],
+    "interesses": [
+      "poesia",
+      "crossfit",
+      "biologia",
+      "campo",
+      "dança"
+    ],
+    "hobbies": [
+      "yoga",
+      "ouvir música",
+      "blogging",
+      "miniaturismo",
+      "tricô",
+      "escrita"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": 0,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "diária",
+      "preferencia_canal": "loja física",
+      "categorias_preferidas": [
+        "papelaria",
+        "livros",
+        "informática"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 30,
+      "streaming": 36,
+      "redes_sociais": 37
+    },
+    "fonte_noticias": [
+      "TV por assinatura",
+      "rádio",
+      "portais de notícias"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 57,
+      "pesquisa_antes_comprar": 54
+    },
+    "lealdade_marca": 18,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitch",
+        "Discord",
+        "YouTube",
+        "Reddit"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 67,
+    "dispositivos": {
+      "principal": "smartphone",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 52,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 62,
+      "banco_digital": 32,
+      "redes_sociais": 63
+    }
+  },
+  "vieses": {
+    "aversao_perda": 49,
+    "desconto_hiperbolico": 28,
+    "suscetibilidade_chamariz": 56,
+    "ancoragem": 64,
+    "vies_confirmacao": 87,
+    "vies_status_quo": 44,
+    "sobrecarga_informacao": 20
+  }
+}

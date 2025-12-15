@@ -1,0 +1,144 @@
+{
+  "id": "5yiwln",
+  "nome": "Dante Novais",
+  "arquetipo": "Idoso Sul Criativo",
+  "link_photo": "https://ui-avatars.com/api/?name=Dante+Novais&size=256&background=random",
+  "created_at": "2025-12-15T04:44:32.072996+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 76,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "preto",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sul",
+      "estado": "PR",
+      "cidade": "Curitiba"
+    },
+    "escolaridade": "Fundamental completo",
+    "renda_mensal": 3795.57,
+    "ocupacao": "Cuidador de idosos",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "monoparental",
+      "numero_pessoas": 3
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 65,
+      "conscienciosidade": 39,
+      "extroversao": 27,
+      "amabilidade": 52,
+      "neuroticismo": 43
+    },
+    "valores": [
+      "espiritualidade",
+      "coragem",
+      "cultura"
+    ],
+    "interesses": [
+      "caça",
+      "ecoturismo",
+      "sociologia",
+      "campo",
+      "ativismo",
+      "vôlei"
+    ],
+    "hobbies": [
+      "corrida",
+      "decoração",
+      "fazer doces",
+      "degustação de cervejas",
+      "animação"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -85,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "e-commerce",
+      "categorias_preferidas": [
+        "informática",
+        "artigos religiosos",
+        "eletrônicos",
+        "alimentos e bebidas",
+        "jogos e brinquedos"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": false,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 9,
+      "streaming": 28,
+      "redes_sociais": 16
+    },
+    "fonte_noticias": [
+      "portais de notícias",
+      "rádio"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 21,
+      "pesquisa_antes_comprar": 93
+    },
+    "lealdade_marca": 59,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "WhatsApp",
+        "Threads",
+        "Twitch"
+      ],
+      "frequencia_posts": "muito frequente"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 52,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 32,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 62,
+      "banco_digital": 22,
+      "redes_sociais": 58
+    }
+  },
+  "vieses": {
+    "aversao_perda": 59,
+    "desconto_hiperbolico": 36,
+    "suscetibilidade_chamariz": 10,
+    "ancoragem": 58,
+    "vies_confirmacao": 23,
+    "vies_status_quo": 34,
+    "sobrecarga_informacao": 14
+  },
+  "descricao": "Homem de 76 anos, cuidador de idosos, mora em Curitiba, PR. Possui traços marcantes de Abertura. "
+}

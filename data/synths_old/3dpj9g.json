@@ -1,0 +1,148 @@
+{
+  "id": "3dpj9g",
+  "nome": "Matteo Moreira",
+  "arquetipo": "Jovem Adulto Sudeste Organizado",
+  "descricao": "Homem de 18 anos, agente de segurança, mora em Belo Horizonte, MG. Possui traços marcantes de Conscienciosidade, Neuroticismo. ",
+  "link_photo": "https://ui-avatars.com/api/?name=Matteo+Moreira&size=256&background=random",
+  "created_at": "2025-12-14T22:33:48.165550+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 18,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "MG",
+      "cidade": "Belo Horizonte"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 13611.14,
+    "ocupacao": "Agente de segurança",
+    "estado_civil": "casado",
+    "composicao_familiar": {
+      "tipo": "casal com filhos",
+      "numero_pessoas": 6
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 43,
+      "conscienciosidade": 75,
+      "extroversao": 45,
+      "amabilidade": 38,
+      "neuroticismo": 63
+    },
+    "valores": [
+      "meio ambiente",
+      "paz",
+      "criatividade"
+    ],
+    "interesses": [
+      "sociologia",
+      "design de interiores",
+      "répteis",
+      "e-sports",
+      "montanha"
+    ],
+    "hobbies": [
+      "redes sociais",
+      "fotografia",
+      "jardinagem",
+      "praticar esportes"
+    ],
+    "estilo_vida": "Disciplinado e focado",
+    "inclinacao_politica": -5,
+    "inclinacao_religiosa": "católico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "mensal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "artigos religiosos",
+        "automotivo",
+        "decoração",
+        "celulares e smartphones",
+        "papelaria"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": true
+    },
+    "padroes_midia": {
+      "tv_aberta": 3,
+      "streaming": 34,
+      "redes_sociais": 47
+    },
+    "fonte_noticias": [
+      "jornais online",
+      "blogs especializados",
+      "jornais impressos",
+      "TV aberta",
+      "portais de notícias"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 0,
+      "pesquisa_antes_comprar": 53
+    },
+    "lealdade_marca": 38,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "LinkedIn",
+        "WhatsApp",
+        "Discord",
+        "Reddit",
+        "Threads",
+        "Snapchat"
+      ],
+      "frequencia_posts": "raro"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 100,
+    "dispositivos": {
+      "principal": "tablet",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 61,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 48,
+      "banco_digital": 46,
+      "redes_sociais": 89
+    }
+  },
+  "vieses": {
+    "aversao_perda": 44,
+    "desconto_hiperbolico": 32,
+    "suscetibilidade_chamariz": 58,
+    "ancoragem": 53,
+    "vies_confirmacao": 35,
+    "vies_status_quo": 80,
+    "sobrecarga_informacao": 16
+  }
+}

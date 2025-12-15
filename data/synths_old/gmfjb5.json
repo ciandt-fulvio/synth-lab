@@ -1,0 +1,142 @@
+{
+  "id": "gmfjb5",
+  "nome": "Liam Pacheco",
+  "arquetipo": "Jovem Adulto Sudeste Criativo",
+  "descricao": "Homem de 21 anos, músico, mora em Vitória, ES. Interesses: fitness, MMA, gastronomia.",
+  "link_photo": "https://ui-avatars.com/api/?name=Liam+Pacheco&size=256&background=random",
+  "created_at": "2025-12-15T04:14:41.874580+00:00",
+  "version": "1.0.0",
+  "demografia": {
+    "idade": 21,
+    "genero_biologico": "masculino",
+    "identidade_genero": "homem cis",
+    "raca_etnia": "pardo",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "ES",
+      "cidade": "Vitória"
+    },
+    "escolaridade": "Médio completo",
+    "renda_mensal": 31114.17,
+    "ocupacao": "Músico",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
+  },
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 54,
+      "conscienciosidade": 16,
+      "extroversao": 48,
+      "amabilidade": 41,
+      "neuroticismo": 51
+    },
+    "valores": [
+      "justiça",
+      "independência",
+      "meio ambiente",
+      "amor"
+    ],
+    "interesses": [
+      "fitness",
+      "MMA",
+      "gastronomia",
+      "finanças pessoais",
+      "poesia"
+    ],
+    "hobbies": [
+      "edição de vídeo",
+      "assar pães e bolos",
+      "videogames",
+      "trading"
+    ],
+    "estilo_vida": "Equilibrado e moderado",
+    "inclinacao_politica": -8,
+    "inclinacao_religiosa": "evangélico"
+  },
+  "comportamento": {
+    "habitos_consumo": {
+      "frequencia_compras": "semanal",
+      "preferencia_canal": "híbrido",
+      "categorias_preferidas": [
+        "artigos religiosos",
+        "livros",
+        "celulares e smartphones",
+        "móveis",
+        "calçados"
+      ]
+    },
+    "uso_tecnologia": {
+      "smartphone": true,
+      "computador": true,
+      "tablet": true,
+      "smartwatch": false
+    },
+    "padroes_midia": {
+      "tv_aberta": 19,
+      "streaming": 2,
+      "redes_sociais": 35
+    },
+    "fonte_noticias": [
+      "portais de notícias",
+      "jornais online"
+    ],
+    "comportamento_compra": {
+      "impulsivo": 56,
+      "pesquisa_antes_comprar": 39
+    },
+    "lealdade_marca": 28,
+    "engajamento_redes_sociais": {
+      "plataformas": [
+        "Twitch",
+        "Instagram"
+      ],
+      "frequencia_posts": "nunca"
+    }
+  },
+  "deficiencias": {
+    "visual": {
+      "tipo": "nenhuma"
+    },
+    "auditiva": {
+      "tipo": "nenhuma"
+    },
+    "motora": {
+      "tipo": "nenhuma",
+      "usa_cadeira_rodas": false
+    },
+    "cognitiva": {
+      "tipo": "nenhuma"
+    }
+  },
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 89,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "intermediário"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 60,
+    "frequencia_internet": "semanal",
+    "familiaridade_plataformas": {
+      "e_commerce": 87,
+      "banco_digital": 100,
+      "redes_sociais": 42
+    }
+  },
+  "vieses": {
+    "aversao_perda": 57,
+    "desconto_hiperbolico": 50,
+    "suscetibilidade_chamariz": 46,
+    "ancoragem": 48,
+    "vies_confirmacao": 59,
+    "vies_status_quo": 17,
+    "sobrecarga_informacao": 73
+  }
+}
