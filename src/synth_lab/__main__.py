@@ -70,6 +70,11 @@ def create_parser() -> argparse.ArgumentParser:
         choices=["region", "age", "all"],
         help="Analisar distribuição demográfica (region|age|all)",
     )
+    gensynth_parser.add_argument(
+        "--individual-files",
+        action="store_true",
+        help="Salvar também em arquivos individuais (além do arquivo consolidado)",
+    )
 
     return parser
 
@@ -107,6 +112,8 @@ def main():
             sys.argv.append("--validar")
         if args.analyze:
             sys.argv.extend(["--analyze", args.analyze])
+        if args.individual_files:
+            sys.argv.append("--individual-files")
 
         gensynth_cli_main()
 
