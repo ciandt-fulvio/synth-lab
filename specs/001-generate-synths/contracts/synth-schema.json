@@ -244,17 +244,17 @@
           "type": "array",
           "items": {"type": "string"},
           "minItems": 3,
-          "maxItems": 5,
+          "maxItems": 3,
           "uniqueItems": true,
-          "description": "Valores pessoais importantes (baseado em Schwartz Theory of Basic Values - lista curada de ~30-50 valores universais)"
+          "description": "Valores pessoais importantes - exatamente 3 valores (baseado em Schwartz Theory of Basic Values - lista curada de ~30-50 valores universais)"
         },
         "interesses": {
           "type": "array",
           "items": {"type": "string"},
           "minItems": 1,
-          "maxItems": 10,
+          "maxItems": 4,
           "uniqueItems": true,
-          "description": "Áreas de interesse"
+          "description": "Áreas de interesse (1-4 itens, correlacionado com trait de abertura: baixa=1-2, média=2-3, alta=3-4)"
         },
         "hobbies": {
           "type": "array",
@@ -274,7 +274,7 @@
           "type": "integer",
           "minimum": -100,
           "maximum": 100,
-          "description": "Espectro político (-100=esquerda, 0=centro, +100=direita). Fonte: DataSenado/Nexus Panorama Político 2024 - 29% direita, 15% esquerda, 11% centro, 40% neutro"
+          "description": "Espectro político (-100=esquerda, 0=centro, +100=direita). CORRELACIONADO com religião: católicos/evangélicos tendem à direita (60%). Fonte: DataSenado/Nexus Panorama Político 2024 - 29% direita, 15% esquerda, 11% centro, 40% neutro"
         },
         "inclinacao_religiosa": {
           "type": "string",
