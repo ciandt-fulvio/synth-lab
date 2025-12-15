@@ -69,7 +69,7 @@ def derive_archetype(demographics: dict[str, Any], big_five: dict[str, int]) -> 
     }
     perfil = max(tracos, key=tracos.get)  # type: ignore
 
-    return f"{faixa} {regiao} {perfil}"
+    return f"{faixa} {regiao} {perfil}."
 
 
 def derive_lifestyle(big_five: dict[str, int]) -> str:
