@@ -1,0 +1,67 @@
+[
+  {
+    "id": "test-001",
+    "name": "João Silva",
+    "age": 34,
+    "gender": "M",
+    "city": "São Paulo",
+    "state": "SP",
+    "openness": 0.75,
+    "conscientiousness": 0.62,
+    "extraversion": 0.58,
+    "agreeableness": 0.71,
+    "neuroticism": 0.42
+  },
+  {
+    "id": "test-002",
+    "name": "Maria Santos",
+    "age": 28,
+    "gender": "F",
+    "city": "Rio de Janeiro",
+    "state": "RJ",
+    "openness": 0.82,
+    "conscientiousness": 0.71,
+    "extraversion": 0.65,
+    "agreeableness": 0.78,
+    "neuroticism": 0.35
+  },
+  {
+    "id": "test-003",
+    "name": "Carlos Lima",
+    "age": 45,
+    "gender": "M",
+    "city": "Belo Horizonte",
+    "state": "MG",
+    "openness": 0.55,
+    "conscientiousness": 0.81,
+    "extraversion": 0.42,
+    "agreeableness": 0.65,
+    "neuroticism": 0.48
+  },
+  {
+    "id": "test-004",
+    "name": "Ana Costa",
+    "age": 31,
+    "gender": "F",
+    "city": "São Paulo",
+    "state": "SP",
+    "openness": 0.68,
+    "conscientiousness": 0.74,
+    "extraversion": 0.72,
+    "agreeableness": 0.69,
+    "neuroticism": 0.39
+  },
+  {
+    "id": "test-005",
+    "name": "Pedro Oliveira",
+    "age": 52,
+    "gender": "M",
+    "city": "Brasília",
+    "state": "DF",
+    "openness": 0.61,
+    "conscientiousness": 0.78,
+    "extraversion": 0.51,
+    "agreeableness": 0.73,
+    "neuroticism": 0.44
+  }
+]
