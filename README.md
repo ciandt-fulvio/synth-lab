@@ -129,16 +129,20 @@ uv run synthlab gensynth --analyze all
 # Listar todos os Synths gerados
 uv run synthlab listsynth
 
-# Filtrar com condição WHERE
-uv run synthlab listsynth --where "idade > 30"
-uv run synthlab listsynth --where "cidade = 'São Paulo' AND idade BETWEEN 25 AND 40"
+# Filtrar com condição WHERE (campos aninhados usam -> e ->>)
+uv run synthlab listsynth --where "CAST(demografia->>'idade' AS INTEGER) > 30"
+uv run synthlab listsynth --where "demografia->'localizacao'->>'cidade' = 'São Paulo'"
 
-# Query SQL personalizada
-uv run synthlab listsynth --full-query "SELECT cidade, COUNT(*) FROM synths GROUP BY cidade"
-uv run synthlab listsynth --full-query "SELECT nome, idade FROM synths WHERE renda_mensal > 5000 LIMIT 10"
+# Query SQL personalizada com campos aninhados
+uv run synthlab listsynth --full-query "SELECT id, nome, demografia->>'idade' as idade FROM synths LIMIT 10"
+uv run synthlab listsynth --full-query "SELECT demografia->'localizacao'->>'cidade' as cidade, COUNT(*) FROM synths GROUP BY cidade"
+uv run synthlab listsynth --full-query "SELECT nome, CAST(demografia->>'renda_mensal' AS FLOAT) as renda FROM synths WHERE CAST(demografia->>'renda_mensal' AS FLOAT) > 5000"
 ```
 
-> **Nota**: O comando `listsynth` usa DuckDB para consultas SQL rápidas sobre os dados JSON gerados. Suporta qualquer query SELECT válida.
+> **Nota**: O comando `listsynth` usa DuckDB para consultas SQL. Os Synths têm estrutura JSON aninhada. Use `->` para navegar objetos e `->>` para extrair valores:
+> - Campo simples: `demografia->>'idade'`
+> - Campo aninhado: `demografia->'localizacao'->>'regiao'`
+> - Use `CAST()` para converter tipos numéricos.
 
 ### Estrutura de Saída
 
@@ -380,31 +384,31 @@ Veja o notebook `first-lab.ipynb` para exemplos de análise exploratória dos Sy
 **1. Análise Demográfica com SQL**
 ```bash
 # Distribuição por região
-uv run synthlab listsynth --full-query "SELECT regiao, COUNT(*) as total FROM synths GROUP BY regiao ORDER BY total DESC"
+uv run synthlab listsynth --full-query "SELECT demografia->'localizacao'->>'regiao' as regiao, COUNT(*) as total FROM synths GROUP BY regiao ORDER BY total DESC"
 
 # Média de renda por escolaridade
-uv run synthlab listsynth --full-query "SELECT escolaridade, AVG(renda_mensal) as media_renda FROM synths GROUP BY escolaridade"
+uv run synthlab listsynth --full-query "SELECT demografia->>'escolaridade' as escolaridade, AVG(CAST(demografia->>'renda_mensal' AS FLOAT)) as media_renda FROM synths GROUP BY escolaridade"
 
 # Perfis de alto poder aquisitivo
-uv run synthlab listsynth --where "renda_mensal > 10000 AND escolaridade = 'Superior completo'"
+uv run synthlab listsynth --where "CAST(demografia->>'renda_mensal' AS FLOAT) > 10000 AND demografia->>'escolaridade' = 'Superior completo'"
 ```
 
 **2. Testes de UX/UI**
 ```bash
 # Selecionar Synths com baixa alfabetização digital
-uv run synthlab listsynth --where "alfabetizacao_digital < 40"
+uv run synthlab listsynth --where "CAST(capacidades_tecnologicas->>'alfabetizacao_digital' AS INTEGER) < 40"
 
-# Usuários com deficiências visuais
-uv run synthlab listsynth --full-query "SELECT nome, idade, cidade FROM synths WHERE visual_tipo != 'nenhuma'"
+# Usuários com deficiências
+uv run synthlab listsynth --full-query "SELECT nome, demografia->>'idade' as idade, demografia->'localizacao'->>'cidade' as cidade FROM synths WHERE deficiencias->'visual'->>'tipo' != 'nenhuma'"
 ```
 
 **3. Segmentação de Mercado**
 ```bash
 # Jovens da região Sudeste
-uv run synthlab listsynth --where "idade BETWEEN 18 AND 35 AND regiao = 'Sudeste'"
+uv run synthlab listsynth --where "CAST(demografia->>'idade' AS INTEGER) BETWEEN 18 AND 35 AND demografia->'localizacao'->>'regiao' = 'Sudeste'"
 
 # Perfil tecnológico e renda média-alta
-uv run synthlab listsynth --where "alfabetizacao_digital > 70 AND renda_mensal > 5000"
+uv run synthlab listsynth --where "CAST(capacidades_tecnologicas->>'alfabetizacao_digital' AS INTEGER) > 70 AND CAST(demografia->>'renda_mensal' AS FLOAT) > 5000"
 ```
 
 **4. Análise Comportamental**
