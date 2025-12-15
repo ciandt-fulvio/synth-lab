@@ -300,6 +300,7 @@ def generate_name(demographics: dict[str, Any]) -> str:
         "Profª",
         "Eng.",
         "Arq.",
+        ".",
     }
     nome_partes = nome.split()
     if nome_partes[0] in prefixos:

@@ -21,12 +21,12 @@ Expected Output:
             "amabilidade": 58,
             "neuroticismo": 42
         },
-        "valores": ["honestidade", "família", "liberdade"],
-        "interesses": ["tecnologia", "esportes", "música"],
-        "hobbies": ["leitura", "corrida", "violão"],
-        "estilo_vida": "Ativo e social",
-        "inclinacao_politica": -35,
-        "inclinacao_religiosa": "católica"
+        "valores": ["honestidade", "família", "liberdade"],  # Exatamente 3
+        "interesses": ["tecnologia", "esportes"],  # 1-4 itens, correlacionado com abertura
+        "hobbies": ["leitura", "corrida", "violão"],  # 3-4 itens
+        "estilo_vida": "",  # Derivado posteriormente
+        "inclinacao_politica": 45,  # Correlacionado com religião
+        "inclinacao_religiosa": "católico"  # Católicos/evangélicos tendem à direita
     }
 
 Third-party packages:
@@ -65,6 +65,10 @@ def generate_psychographics(
     """
     Gera atributos psicográficos (valores, interesses, hobbies, política, religião).
 
+    Correlações implementadas:
+    - Católicos e evangélicos têm maior probabilidade de serem de direita
+    - Interesses correlacionados com abertura (1-4 itens)
+
     Args:
         big_five: Dictionary with Big Five personality traits
         config_data: Configuration data including IBGE and interests/hobbies
@@ -75,21 +79,47 @@ def generate_psychographics(
     ibge = config_data["ibge"]
     interests = config_data["interests_hobbies"]
 
-    # Valores (3-5 itens)
-    valores = random.sample(interests["valores"], k=random.randint(3, 5))
+    # Valores (exatamente 3 itens)
+    valores = random.sample(interests["valores"], k=3)
 
-    # Interesses (3-10 itens, correlacionados com abertura)
-    num_interesses = 3 + (big_five["abertura"] // 20)
-    interesses_list = random.sample(interests["interesses"], k=min(num_interesses, 10))
+    # Interesses (1-4 itens, correlacionados com abertura)
+    # Abertura baixa (0-40): 1-2 interesses
+    # Abertura média (41-70): 2-3 interesses
+    # Abertura alta (71-100): 3-4 interesses
+    if big_five["abertura"] <= 40:
+        num_interesses = random.randint(1, 2)
+    elif big_five["abertura"] <= 70:
+        num_interesses = random.randint(2, 3)
+    else:
+        num_interesses = random.randint(3, 4)
+
+    interesses_list = random.sample(interests["interesses"], k=num_interesses)
 
     # Hobbies (3-4 itens, garantindo unicidade conforme schema minItems: 3)
     num_hobbies = random.randint(3, 4)
     hobbies = list(set(random.sample(interests["hobbies"], k=num_hobbies)))
 
-    # Inclinação política (DataSenado 2024)
-    distribuicao = ibge["inclinacao_politica_distribuicao"]
-    categoria = weighted_choice(distribuicao)
+    # Inclinação religiosa primeiro (afeta política)
+    inclinacao_religiosa = weighted_choice(ibge["religiao"])
 
+    # Inclinação política correlacionada com religião
+    # Católicos e evangélicos têm maior probabilidade de serem de direita
+    if inclinacao_religiosa in ["católico", "evangélico"]:
+        # 60% direita, 20% centro, 10% esquerda, 10% outros
+        categoria_weights = {
+            "direita": 0.60,
+            "centro": 0.20,
+            "esquerda": 0.10,
+            "neutro": 0.05,
+            "nao_sabe": 0.05,
+        }
+        categoria = weighted_choice(categoria_weights)
+    else:
+        # Usa distribuição normal do IBGE para outras religiões
+        distribuicao = ibge["inclinacao_politica_distribuicao"]
+        categoria = weighted_choice(distribuicao)
+
+    # Gera valor numérico baseado na categoria
     if categoria == "esquerda":
         inclinacao_politica = random.randint(-100, -20)
     elif categoria == "direita":
@@ -108,7 +138,7 @@ def generate_psychographics(
         "hobbies": hobbies,
         "estilo_vida": "",  # Será derivado depois
         "inclinacao_politica": inclinacao_politica,
-        "inclinacao_religiosa": weighted_choice(ibge["religiao"]),
+        "inclinacao_religiosa": inclinacao_religiosa,
     }
 
 
@@ -164,11 +194,11 @@ if __name__ == "__main__":
 
         if "personalidade_big_five" not in psycho:
             all_validation_failures.append("Psychographics missing personalidade_big_five")
-        if "valores" not in psycho or len(psycho["valores"]) < 3:
-            all_validation_failures.append(f"Psychographics valores invalid: {psycho.get('valores')}")
-        if "interesses" not in psycho or len(psycho["interesses"]) < 3:
+        if "valores" not in psycho or len(psycho["valores"]) != 3:
+            all_validation_failures.append(f"Psychographics valores should be exactly 3: {psycho.get('valores')}")
+        if "interesses" not in psycho or len(psycho["interesses"]) < 1 or len(psycho["interesses"]) > 4:
             all_validation_failures.append(
-                f"Psychographics interesses invalid: {psycho.get('interesses')}"
+                f"Psychographics interesses should be 1-4: {psycho.get('interesses')}"
             )
         if "hobbies" not in psycho or len(psycho["hobbies"]) < 3:
             all_validation_failures.append(f"Psychographics hobbies invalid: {psycho.get('hobbies')}")
@@ -201,16 +231,16 @@ if __name__ == "__main__":
         }
         psycho = generate_psychographics(high_openness, config)
 
-        # High openness should correlate with more interests
+        # High openness should correlate with more interests (3-4 range)
         num_interests = len(psycho["interesses"])
-        if num_interests < 5:
+        if num_interests < 3:
             all_validation_failures.append(
-                f"High openness should have more interests, got {num_interests}"
+                f"High openness should have 3-4 interests, got {num_interests}"
             )
         else:
             print(
                 f"Test 3: generate_psychographics(high openness) -> "
-                f"{num_interests} interesses (expected >= 5)"
+                f"{num_interests} interesses (expected 3-4)"
             )
     except Exception as e:
         all_validation_failures.append(f"Test 3 (psychographics high openness): {str(e)}")
@@ -280,9 +310,13 @@ if __name__ == "__main__":
             psycho = generate_psychographics(big_five, config)
 
             # Verify all required fields
-            if len(psycho["valores"]) < 3 or len(psycho["valores"]) > 5:
+            if len(psycho["valores"]) != 3:
                 batch_errors.append(
-                    f"Batch {i}: valores count out of range: {len(psycho['valores'])}"
+                    f"Batch {i}: valores should be exactly 3: {len(psycho['valores'])}"
+                )
+            if len(psycho["interesses"]) < 1 or len(psycho["interesses"]) > 4:
+                batch_errors.append(
+                    f"Batch {i}: interesses should be 1-4: {len(psycho['interesses'])}"
                 )
             if len(psycho["hobbies"]) < 3 or len(psycho["hobbies"]) > 4:
                 batch_errors.append(
