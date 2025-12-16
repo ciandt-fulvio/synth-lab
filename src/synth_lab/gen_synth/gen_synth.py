@@ -74,8 +74,8 @@ def cli_main():
     """CLI entry point with rich colors and all features."""
     parser = argparse.ArgumentParser(description="Gerador de Synths com Rich output")
     parser.add_argument(
-        "-n", "--quantidade", type=int, default=1,
-        help="Número de synths a gerar (padrão: 1)"
+        "-n", "--quantidade", type=int, default=0,
+        help="Número de synths NOVOS a gerar (0 = usar existentes com --avatar)"
     )
     parser.add_argument(
         "-o", "--output", type=str, metavar="DIR",
@@ -108,6 +108,18 @@ def cli_main():
     parser.add_argument(
         "--individual-files", action="store_true",
         help="Salvar também em arquivos individuais"
+    )
+    parser.add_argument(
+        "--avatar", action="store_true",
+        help="Gerar avatares para os synths (requer API OpenAI)"
+    )
+    parser.add_argument(
+        "-b", "--blocks", type=int, default=None, metavar="N",
+        help="Número de blocos de avatares a gerar (1 bloco = 9 avatares)"
+    )
+    parser.add_argument(
+        "--synth-ids", type=str, default=None, metavar="ID1,ID2,...",
+        help="Gerar avatares para synths existentes (lista de IDs separados por vírgula)"
     )
 
     args = parser.parse_args()
@@ -180,13 +192,66 @@ def cli_main():
     if output_dir:
         output_dir.mkdir(parents=True, exist_ok=True)
 
-    synths = main(
-        args.quantidade,
-        show_progress=not args.quiet,
-        quiet=args.quiet,
-        individual_files=args.individual_files,
-        output_dir=output_dir
-    )
+    # Handle special case: gensynth without any specific action
+    if args.quantidade == 0 and not args.avatar and not args.synth_ids:
+        # User ran 'gensynth' without arguments - default to generating 1 synth
+        args.quantidade = 1
+
+    # Check if user wants to generate avatars for existing synths without specifying IDs
+    auto_detect_missing = args.avatar and args.quantidade == 0 and not args.synth_ids
+
+    if auto_detect_missing:
+        # Auto-detect mode: find all synths without avatars
+        from synth_lab.gen_synth.avatar_generator import find_synths_without_avatars
+        synths = find_synths_without_avatars()
+
+        if not synths:
+            console.print("[yellow]Todos os synths já possuem avatares![/yellow]")
+            return
+
+        if not args.quiet:
+            console.print(f"\n[bold blue]═══ Modo Auto-Detect: Synths Existentes ═══[/bold blue]")
+            console.print(f"[blue]Encontrados {len(synths)} synth(s) sem avatar:[/blue]")
+            for i, s in enumerate(synths[:5], 1):
+                console.print(f"  {i}. [cyan]{s.get('id')}[/cyan]: {s.get('descricao', 'sem descrição')[:60]}...")
+            if len(synths) > 5:
+                console.print(f"  ... e mais {len(synths) - 5} synth(s)")
+            console.print("")
+    else:
+        # Normal mode: generate new synths
+        if not args.quiet and args.avatar:
+            console.print(f"\n[yellow]Nota: Gerando {args.quantidade} synth(s) NOVO(S) + avatares[/yellow]")
+            console.print("[dim]Para gerar avatares para synths EXISTENTES, use: synthlab gensynth --avatar (sem -n)[/dim]\n")
+
+        synths = main(
+            args.quantidade,
+            show_progress=not args.quiet,
+            quiet=args.quiet,
+            individual_files=args.individual_files,
+            output_dir=output_dir
+        )
+
+    # Generate avatars if requested (User Stories 1, 2, & 3)
+    if args.avatar:
+        from synth_lab.gen_synth.avatar_generator import generate_avatars
+        try:
+            # User Story 3: Support generating for existing synths via --synth-ids
+            if args.synth_ids:
+                # Parse comma-separated IDs
+                synth_ids = [sid.strip() for sid in args.synth_ids.split(",")]
+                avatar_paths = generate_avatars(synth_ids=synth_ids, blocks=args.blocks)
+            else:
+                # User Stories 1 & 2: Generate for new synths OR auto-detected missing
+                avatar_paths = generate_avatars(synths, blocks=args.blocks)
+
+            if not args.quiet:
+                console.print(f"[green]✓ {len(avatar_paths)} avatares gerados![/green]")
+        except ValueError as e:
+            console.print(f"[red]Erro ao gerar avatares: {e}[/red]")
+            sys.exit(1)
+        except Exception as e:
+            console.print(f"[red]Erro inesperado ao gerar avatares: {e}[/red]")
+            sys.exit(1)
 
     if args.benchmark:
         elapsed = time.time() - start_time
