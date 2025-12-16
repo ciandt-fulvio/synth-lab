@@ -91,6 +91,43 @@ def create_parser() -> argparse.ArgumentParser:
         help="Salvar também em arquivos individuais (além do arquivo consolidado)",
     )
 
+    # research subcommand
+    research_parser = subparsers.add_parser(
+        "research", help="Realizar entrevistas de pesquisa UX com synths"
+    )
+    research_parser.add_argument(
+        "synth_id",
+        type=str,
+        help="ID do synth a ser entrevistado (6 caracteres)",
+    )
+    research_parser.add_argument(
+        "-t",
+        "--topic-guide",
+        type=str,
+        help="Caminho para arquivo de guia de tópicos",
+    )
+    research_parser.add_argument(
+        "-r",
+        "--max-rounds",
+        type=int,
+        default=10,
+        help="Número máximo de rodadas de conversa (padrão: 10)",
+    )
+    research_parser.add_argument(
+        "-m",
+        "--model",
+        type=str,
+        default="gpt-4o",
+        help="Modelo de LLM a usar (padrão: gpt-4o)",
+    )
+    research_parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        default="data/transcripts",
+        help="Diretório para salvar transcrição (padrão: data/transcripts)",
+    )
+
     return parser
 
 
@@ -147,6 +184,24 @@ def main():
             sys.argv.append("--individual-files")
 
         gensynth_cli_main()
+
+    # Handle research command
+    if args.command == "research":
+        # Import here to avoid circular imports and speed up --help
+        from synth_lab.research.cli import app as research_app
+
+        # Convert args to match Typer interface
+        sys.argv = ["synthlab research", args.synth_id]
+        if args.topic_guide:
+            sys.argv.extend(["--topic-guide", args.topic_guide])
+        if args.max_rounds:
+            sys.argv.extend(["--max-rounds", str(args.max_rounds)])
+        if args.model:
+            sys.argv.extend(["--model", args.model])
+        if args.output:
+            sys.argv.extend(["--output", args.output])
+
+        research_app()
 
 
 if __name__ == "__main__":

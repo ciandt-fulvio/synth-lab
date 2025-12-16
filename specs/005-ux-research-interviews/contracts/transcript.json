@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://synthlab.com/schemas/transcript/v1.0.0",
+  "title": "Interview Transcript",
+  "description": "Schema para transcrição completa de uma entrevista de pesquisa UX com synth.",
+  "type": "object",
+  "properties": {
+    "session": {
+      "type": "object",
+      "description": "Metadados da sessão de entrevista",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Identificador único da sessão (UUID v4)"
+        },
+        "synth_id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9]{6}$",
+          "description": "ID do synth entrevistado"
+        },
+        "topic_guide_path": {
+          "type": ["string", "null"],
+          "description": "Caminho para o arquivo de guia de tópicos usado"
+        },
+        "max_rounds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 10,
+          "description": "Número máximo de turnos de conversa configurado"
+        },
+        "actual_rounds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Número real de turnos executados"
+        },
+        "start_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp de início da entrevista (ISO 8601 com timezone)"
+        },
+        "end_time": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "Timestamp de fim da entrevista (ISO 8601 com timezone)"
+        },
+        "duration_seconds": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "Duração total da entrevista em segundos"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["created", "in_progress", "completed", "interrupted", "error"],
+          "description": "Estado final da sessão"
+        },
+        "model_used": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Modelo LLM utilizado (ex: gpt-4.1)"
+        },
+        "termination_reason": {
+          "type": ["string", "null"],
+          "enum": ["interviewer_signal", "max_rounds", "user_interrupt", "api_error", "context_limit", null],
+          "description": "Motivo do encerramento da entrevista"
+        }
+      },
+      "required": ["id", "synth_id", "max_rounds", "start_time", "status", "model_used"]
+    },
+    "synth_snapshot": {
+      "type": "object",
+      "description": "Cópia completa dos dados do synth no momento da entrevista (schema v2.0.0)"
+    },
+    "topic_guide_content": {
+      "type": ["string", "null"],
+      "description": "Conteúdo do guia de tópicos usado (se fornecido)"
+    },
+    "messages": {
+      "type": "array",
+      "description": "Lista ordenada de mensagens da entrevista",
+      "items": {
+        "type": "object",
+        "properties": {
+          "speaker": {
+            "type": "string",
+            "enum": ["interviewer", "synth"],
+            "description": "Quem falou esta mensagem"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Texto da mensagem"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Momento em que a mensagem foi gerada"
+          },
+          "internal_notes": {
+            "type": ["string", "null"],
+            "description": "Notas internas do participante (não mostradas ao outro)"
+          },
+          "round_number": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Número do turno (1-based)"
+          }
+        },
+        "required": ["speaker", "content", "timestamp", "round_number"]
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Metadados adicionais da transcrição",
+      "properties": {
+        "version": {
+          "type": "string",
+          "const": "1.0.0",
+          "description": "Versão do schema de transcrição"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp de criação do arquivo"
+        },
+        "synthlab_version": {
+          "type": "string",
+          "description": "Versão do SynthLab que gerou a transcrição"
+        }
+      },
+      "required": ["version", "created_at"]
+    }
+  },
+  "required": ["session", "synth_snapshot", "messages", "metadata"]
+}

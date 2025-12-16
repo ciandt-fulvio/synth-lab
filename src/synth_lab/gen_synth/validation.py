@@ -2,16 +2,22 @@
 Validation module for Synth Lab.
 
 This module validates synth data against JSON Schema and validates
-individual files or batches of synth files.
+individual files or batches of synth files. Also includes personality-bias
+coherence validation (User Story 3).
 
 Functions:
 - validate_synth(): Validate synth dict against JSON Schema
+- validate_coherence(): Validate personality-bias coherence
+- validate_synth_full(): Validate both schema and coherence
 - validate_single_file(): Validate a single JSON file
 - validate_batch(): Validate all JSON files in a directory
 
 Sample Input:
     synth_dict = {"id": "abc123", "nome": "Maria", ...}
     is_valid, errors = validate_synth(synth_dict)
+
+    # With coherence validation:
+    is_valid, errors = validate_synth_full(synth_dict, strict=False)
 
 Expected Output:
     (True, []) if valid
@@ -28,6 +34,243 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 from .config import SCHEMA_PATH, SYNTHS_DIR
+
+
+# Custom exception for coherence validation errors (User Story 3)
+class CoherenceError(Exception):
+    """
+    Exception raised when synth fails personality-bias coherence validation.
+
+    This exception is raised when strict=True and the synth has biases
+    that are psychologically inconsistent with the personality traits.
+    """
+    pass
+
+
+def validate_coherence(
+    synth_dict: dict[str, Any], strict: bool = False
+) -> tuple[bool, list[str]] | bool:
+    """
+    Valida coerência entre personalidade Big Five e vieses cognitivos.
+
+    Verifica se os valores dos vieses estão coerentes com os traços de
+    personalidade usando as regras de coerência definidas no módulo de vieses.
+
+    Args:
+        synth_dict: Dicionário do Synth a validar
+        strict: Se True, lança CoherenceError em caso de violação.
+                Se False, retorna (False, errors) em caso de violação.
+
+    Returns:
+        bool | tuple[bool, list[str]]:
+            - Se strict=True e válido: retorna True
+            - Se strict=False: retorna (is_valid, error_messages)
+
+    Raises:
+        CoherenceError: Se strict=True e há violações de coerência
+
+    Example:
+        >>> synth = {"psicografia": {...}, "vieses": {...}}
+        >>> is_valid, errors = validate_coherence(synth, strict=False)
+        >>> if not is_valid:
+        ...     print(f"Violations: {errors}")
+    """
+    from .biases import get_coherence_expectations
+
+    errors = []
+
+    # Extract personality and biases
+    try:
+        personality = synth_dict["psicografia"]["personalidade_big_five"]
+        biases = synth_dict["vieses"]
+    except KeyError as e:
+        error_msg = f"Missing required field for coherence validation: {e}"
+        if strict:
+            raise CoherenceError(error_msg)
+        return (False, [error_msg])
+
+    # Get expected ranges for this personality
+    expectations = get_coherence_expectations(personality)
+
+    # Check each bias against expected range
+    for bias_name, bias_value in biases.items():
+        if bias_name not in expectations:
+            continue  # Skip biases not affected by coherence rules
+
+        expected = expectations[bias_name]
+        expected_min = expected["min"]
+        expected_max = expected["max"]
+
+        # Check if bias value is within expected range
+        if not (expected_min <= bias_value <= expected_max):
+            # Find which personality traits are affecting this bias
+            affecting_traits = _get_affecting_traits(personality, bias_name)
+
+            error_msg = (
+                f"Inconsistent personality-bias relationship: "
+                f"bias '{bias_name}' has value {bias_value}, but personality traits "
+                f"{affecting_traits} expect range [{expected_min}-{expected_max}]"
+            )
+            errors.append(error_msg)
+
+    # Return results based on strict mode
+    if errors:
+        if strict:
+            raise CoherenceError(
+                f"Coherence validation failed with {len(errors)} violation(s): " +
+                "; ".join(errors[:3])  # Show first 3 errors
+            )
+        return (False, errors)
+
+    if strict:
+        return True
+    return (True, [])
+
+
+def _get_affecting_traits(personality: dict[str, int], bias_name: str) -> str:
+    """
+    Identifica quais traços de personalidade afetam um determinado viés.
+
+    Helper function para mensagens de erro mais descritivas.
+
+    Args:
+        personality: Dictionary com traços Big Five
+        bias_name: Nome do viés
+
+    Returns:
+        str: Descrição dos traços que afetam esse viés
+    """
+    from .biases import COHERENCE_RULES
+
+    affecting = []
+    for trait_name, trait_range, rule_bias_name, _ in COHERENCE_RULES:
+        if rule_bias_name != bias_name:
+            continue
+
+        trait_value = personality.get(trait_name, 50)
+        trait_min, trait_max = trait_range
+
+        if trait_min <= trait_value <= trait_max:
+            if trait_max >= 70:
+                level = "high"
+            elif trait_min <= 30:
+                level = "low"
+            else:
+                level = "moderate"
+
+            affecting.append(f"{level} {trait_name} ({trait_value})")
+
+    return ", ".join(affecting) if affecting else "personality"
+
+
+def validate_synth_full(
+    synth_dict: dict[str, Any],
+    strict: bool = False,
+    schema_path: Path = SCHEMA_PATH
+) -> tuple[bool, list[str]]:
+    """
+    Valida Synth contra JSON Schema E regras de coerência personalidade-viés.
+
+    Esta função combina validação de schema (estrutural) com validação de
+    coerência (semântica) para garantir que synths sejam válidos E psicologicamente
+    realistas.
+
+    Args:
+        synth_dict: Dicionário do Synth a validar
+        strict: Se True, lança exceções em caso de violação de coerência
+        schema_path: Caminho para o arquivo de schema JSON
+
+    Returns:
+        tuple[bool, list[str]]: (is_valid, error_messages)
+            - Retorna (True, []) se passar ambas validações
+            - Retorna (False, errors) se falhar em qualquer validação
+
+    Example:
+        >>> synth = {"id": "123", "nome": "Maria", ...}
+        >>> is_valid, errors = validate_synth_full(synth, strict=False)
+        >>> if not is_valid:
+        ...     for error in errors:
+        ...         print(f"  - {error}")
+    """
+    all_errors = []
+
+    # Step 1: Validate against JSON Schema
+    schema_valid, schema_errors = validate_synth(synth_dict, schema_path)
+    if not schema_valid:
+        all_errors.extend([f"[Schema] {err}" for err in schema_errors])
+
+    # Step 2: Validate coherence (only if schema is valid)
+    # Note: We validate coherence even if schema fails, to provide complete feedback
+    try:
+        coherence_result = validate_coherence(synth_dict, strict=False)
+
+        # Handle both return formats (bool or tuple)
+        if isinstance(coherence_result, tuple):
+            coherence_valid, coherence_errors = coherence_result
+        else:
+            coherence_valid = coherence_result
+            coherence_errors = []
+
+        if not coherence_valid:
+            all_errors.extend([f"[Coherence] {err}" for err in coherence_errors])
+    except CoherenceError as e:
+        # This shouldn't happen since strict=False, but handle it anyway
+        all_errors.append(f"[Coherence] {str(e)}")
+
+    # Step 3: Check for removed fields (backward compatibility - T049)
+    compat_errors = _check_removed_fields(synth_dict)
+    if compat_errors:
+        all_errors.extend([f"[Compatibility] {err}" for err in compat_errors])
+
+    return (len(all_errors) == 0, all_errors)
+
+
+def _check_removed_fields(synth_dict: dict[str, Any]) -> list[str]:
+    """
+    Verifica se synth contém campos removidos no schema v2.0.0.
+
+    Esta função detecta campos que foram removidos na migração de v1.0.0 para
+    v2.0.0 e retorna avisos (não erros) para ajudar na migração.
+
+    Args:
+        synth_dict: Dicionário do Synth a verificar
+
+    Returns:
+        list[str]: Lista de avisos sobre campos removidos (pode estar vazia)
+
+    Example:
+        >>> v1_synth = {"version": "1.0.0", "psicografia": {"valores": [...]}}
+        >>> warnings = _check_removed_fields(v1_synth)
+        >>> # warnings: ["Field 'psicografia.valores' was removed in v2.0.0"]
+    """
+    warnings = []
+
+    # Only check if this is an old version synth
+    version = synth_dict.get("version", "1.0.0")
+    if version != "1.0.0":
+        return warnings  # No need to check v2.0.0 synths
+
+    # Check for removed fields in psicografia
+    psicografia = synth_dict.get("psicografia", {})
+    removed_psico_fields = ["valores", "hobbies", "estilo_vida"]
+    for field in removed_psico_fields:
+        if field in psicografia:
+            warnings.append(
+                f"Field 'psicografia.{field}' was removed in v2.0.0. "
+                f"Consider migrating to new schema."
+            )
+
+    # Check for removed fields in comportamento
+    comportamento = synth_dict.get("comportamento", {})
+    removed_comp_fields = ["uso_tecnologia", "comportamento_compra"]
+    for field in removed_comp_fields:
+        if field in comportamento:
+            warnings.append(
+                f"Field 'comportamento.{field}' was removed in v2.0.0. "
+                f"Consider migrating to new schema."
+            )
+
+    return warnings
 
 
 def validate_synth(
