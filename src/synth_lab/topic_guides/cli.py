@@ -347,14 +347,69 @@ def update_command(
 
 
 @app.command("list")
-def list_command() -> None:
+def list_command(
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed information"),
+) -> None:
     """
-    List all topic guides (Phase 6 - Not yet implemented).
+    List all topic guides.
 
-    Shows all topic guides in the data directory.
+    Shows all topic guides in the data directory with optional details.
+
+    Examples:
+        synthlab topic-guide list
+        synthlab topic-guide list --verbose
     """
-    console.print("⚠ Command 'list' will be implemented in Phase 6", style="yellow")
-    sys.exit(0)
+    from synth_lab.topic_guides.summary_manager import parse_summary
+
+    try:
+        base_dir = get_base_dir()
+
+        if not base_dir.exists():
+            console.print("No topic guides found.\n")
+            console.print("Create your first topic guide:")
+            console.print("  [bold]synthlab topic-guide create --name my-first-guide[/bold]")
+            sys.exit(0)
+
+        # Scan for topic guide directories
+        guides = [d for d in base_dir.iterdir() if d.is_dir()]
+
+        if not guides:
+            console.print("No topic guides found.\n")
+            console.print("Create your first topic guide:")
+            console.print("  [bold]synthlab topic-guide create --name my-first-guide[/bold]")
+            sys.exit(0)
+
+        console.print("[bold]Topic Guides:[/bold]\n")
+
+        for guide_dir in sorted(guides):
+            guide_name = guide_dir.name
+
+            if verbose:
+                # Show detailed information
+                summary_path = guide_dir / "summary.md"
+                if summary_path.exists():
+                    try:
+                        summary = parse_summary(summary_path)
+                        file_count = len(summary.file_descriptions)
+                        console.print(f"[cyan]{guide_name}[/cyan]")
+                        console.print(f"  Path: {guide_dir}")
+                        console.print(f"  Files documented: {file_count}")
+                        console.print()
+                    except Exception:
+                        console.print(f"  - [cyan]{guide_name}[/cyan] (error reading summary)")
+                else:
+                    console.print(f"  - [cyan]{guide_name}[/cyan] (no summary.md)")
+            else:
+                # Simple list
+                console.print(f"  - {guide_name}")
+
+        console.print(f"\nTotal: {len(guides)} topic guide(s)")
+        sys.exit(0)
+
+    except Exception as e:
+        logger.error(f"List command failed: {e}")
+        console.print(f"✗ Error: {e}", style="red")
+        sys.exit(1)
 
 
 @app.command("show")
@@ -362,12 +417,69 @@ def show_command(
     name: str = typer.Option(..., "--name", help="Name of the topic guide to display"),
 ) -> None:
     """
-    Show topic guide details (Phase 6 - Not yet implemented).
+    Show topic guide details.
 
-    Displays detailed information about a specific topic guide.
+    Displays detailed information about a specific topic guide including
+    context description and all file descriptions.
+
+    Examples:
+        synthlab topic-guide show --name amazon-ecommerce
     """
-    console.print("⚠ Command 'show' will be implemented in Phase 6", style="yellow")
-    sys.exit(0)
+    from synth_lab.topic_guides.summary_manager import parse_summary
+
+    try:
+        base_dir = get_base_dir()
+        guide_path = base_dir / name
+
+        if not guide_path.exists():
+            console.print(
+                f"✗ Error: Topic guide '[cyan]{name}[/cyan]' not found", style="red"
+            )
+            console.print(
+                f"  Create it: [bold]synthlab topic-guide create --name {name}[/bold]"
+            )
+            sys.exit(1)
+
+        summary_path = guide_path / "summary.md"
+        if not summary_path.exists():
+            console.print(f"✗ Error: summary.md not found in '{name}'", style="red")
+            sys.exit(1)
+
+        summary = parse_summary(summary_path)
+
+        # Display header
+        console.print(f"[bold]Topic Guide:[/bold] [cyan]{name}[/cyan]")
+        console.print(f"Path: {guide_path}\n")
+
+        # Display context description
+        if summary.context_description:
+            console.print("[bold]Context Description:[/bold]")
+            console.print(f"  {summary.context_description}\n")
+
+        # Display file count
+        file_count = len(summary.file_descriptions)
+        console.print(f"[bold]Files ({file_count}):[/bold]")
+
+        if file_count == 0:
+            console.print("  No files documented yet.")
+            console.print(
+                f"\n  Add files and run: [bold]synthlab topic-guide update --name {name}[/bold]"
+            )
+        else:
+            console.print()
+            for desc in summary.file_descriptions:
+                console.print(f"[cyan]{desc.filename}[/cyan] (hash: {desc.content_hash[:8]}...):")
+                console.print(f"  {desc.description}")
+                if desc.is_placeholder:
+                    console.print("  [yellow]⚠ Placeholder - needs manual documentation[/yellow]")
+                console.print()
+
+        sys.exit(0)
+
+    except Exception as e:
+        logger.error(f"Show command failed: {e}")
+        console.print(f"✗ Error: {e}", style="red")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
