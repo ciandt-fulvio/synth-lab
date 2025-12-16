@@ -40,7 +40,7 @@ def sample_synth() -> dict[str, Any]:
         "descricao": "Pessoa de 25 anos para testes automatizados do sistema",
         "link_photo": "https://ui-avatars.com/api/?name=Test+User&size=256&background=random",
         "created_at": "2025-12-15T10:00:00Z",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "demografia": {
             "idade": 25,
             "genero_biologico": "masculino",
@@ -69,10 +69,7 @@ def sample_synth() -> dict[str, Any]:
                 "amabilidade": 65,
                 "neuroticismo": 40
             },
-            "valores": ["Liberdade", "Conhecimento", "Inovação"],
             "interesses": ["Tecnologia", "Leitura", "Música"],
-            "hobbies": ["Programação", "Jogos", "Filmes"],
-            "estilo_vida": "Criativo e explorador",
             "inclinacao_politica": 10,
             "inclinacao_religiosa": "ateu/agnóstico"
         },
@@ -82,22 +79,12 @@ def sample_synth() -> dict[str, Any]:
                 "preferencia_canal": "e-commerce",
                 "categorias_preferidas": ["Eletrônicos", "Livros"]
             },
-            "uso_tecnologia": {
-                "smartphone": True,
-                "computador": True,
-                "tablet": False,
-                "smartwatch": True
-            },
             "padroes_midia": {
                 "tv_aberta": 5,
                 "streaming": 20,
                 "redes_sociais": 15
             },
             "fonte_noticias": ["Portais online", "Redes sociais"],
-            "comportamento_compra": {
-                "impulsivo": 40,
-                "pesquisa_antes_comprar": 80
-            },
             "lealdade_marca": 60,
             "engajamento_redes_sociais": {
                 "plataformas": ["Instagram", "Twitter", "LinkedIn"],

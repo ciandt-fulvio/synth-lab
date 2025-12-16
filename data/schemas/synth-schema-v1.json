@@ -1,73 +1,58 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://synthlab.com/schemas/synth/v2.0.0",
+  "$id": "https://synthlab.com/schemas/synth/v1.0.0",
   "title": "Synth (Synthetic Persona)",
-  "description": "Schema simplificado v2.0.0 para persona sintética brasileira com atributos demográficos, psicográficos, comportamentais e cognitivos baseados em distribuições reais do IBGE Censo 2022, PNAD 2023, PNS 2019 e pesquisas verificadas",
-  "type": "object",
-  "required": [
-    "id",
-    "nome",
-    "arquetipo",
-    "descricao",
-    "link_photo",
-    "created_at",
-    "version",
-    "demografia",
-    "psicografia",
-    "comportamento",
-    "deficiencias",
-    "capacidades_tecnologicas",
-    "vieses"
-  ],
+  "description": "Schema completo para persona sintética brasileira com atributos demográficos, psicográficos, comportamentais e cognitivos baseados em distribuições reais do IBGE Censo 2022, PNAD 2023, PNS 2019 e pesquisas verificadas",
+  "tipo": "object",
   "properties": {
     "id": {
-      "type": "string",
+      "tipo": "string",
       "pattern": "^[a-zA-Z0-9]{6}$",
       "description": "Identificador único de 6 caracteres alfanuméricos"
     },
     "nome": {
-      "type": "string",
+      "tipo": "string",
       "description": "Nome completo brasileiro"
     },
     "arquetipo": {
-      "type": "string",
+      "tipo": "string",
       "description": "Resumo do perfil: {Faixa Etária} {Região} {Perfil Psicográfico}"
     },
     "descricao": {
-      "type": "string",
+      "tipo": "string",
       "description": "Descrição textual resumida do Synth"
     },
     "link_photo": {
-      "type": "string",
+      "tipo": "string",
       "format": "uri",
       "description": "URL para foto de perfil (avatar)"
     },
     "created_at": {
-      "type": "string",
+      "tipo": "string",
       "format": "date-time",
       "description": "Timestamp de criação em ISO 8601 com timezone"
     },
     "version": {
-      "type": "string",
-      "pattern": "^2\\.0\\.0$",
-      "description": "Versão do schema (v2.0.0)"
+      "tipo": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Versão do schema (semantic versioning)"
     },
     "demografia": {
-      "type": "object",
+      "tipo": "object",
       "properties": {
         "idade": {
-          "type": "integer",
+          "tipo": "integer",
           "minimum": 0,
           "maximum": 120,
           "description": "Idade em anos completos"
         },
         "genero_biologico": {
-          "type": "string",
+          "tipo": "string",
           "enum": ["masculino", "feminino", "intersexo"],
           "description": "Gênero biológico"
         },
         "identidade_genero": {
-          "type": "string",
+          "tipo": "string",
           "enum": [
             "homem cis",
             "mulher cis",
@@ -79,25 +64,25 @@
           "description": "Identidade de gênero autodeclarada"
         },
         "raca_etnia": {
-          "type": "string",
+          "tipo": "string",
           "enum": ["branco", "pardo", "preto", "amarelo", "indígena"],
           "description": "Raça/etnia conforme categorização IBGE"
         },
         "localizacao": {
-          "type": "object",
+          "tipo": "object",
           "properties": {
             "pais": {
-              "type": "string",
+              "tipo": "string",
               "const": "Brasil",
               "description": "País (sempre Brasil nesta versão)"
             },
             "regiao": {
-              "type": "string",
+              "tipo": "string",
               "enum": ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul"],
               "description": "Região brasileira"
             },
             "estado": {
-              "type": "string",
+              "tipo": "string",
               "enum": [
                 "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
                 "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
@@ -106,13 +91,13 @@
               "description": "Unidade Federativa (UF)"
             },
             "cidade": {
-              "type": "string",
+              "tipo": "string",
               "description": "Nome da cidade"
             }
           }
         },
         "escolaridade": {
-          "type": "string",
+          "tipo": "string",
           "enum": [
             "Sem instrução",
             "Fundamental incompleto",
@@ -126,24 +111,24 @@
           "description": "Nível de escolaridade conforme IBGE"
         },
         "renda_mensal": {
-          "type": "number",
+          "tipo": "number",
           "minimum": 0,
           "description": "Renda mensal individual em BRL"
         },
         "ocupacao": {
-          "type": "string",
+          "tipo": "string",
           "description": "Profissão/ocupação conforme CBO"
         },
         "estado_civil": {
-          "type": "string",
+          "tipo": "string",
           "enum": ["solteiro", "casado", "união estável", "divorciado", "viúvo"],
           "description": "Estado civil"
         },
         "composicao_familiar": {
-          "type": "object",
+          "tipo": "object",
           "properties": {
-            "type": {
-              "type": "string",
+            "tipo": {
+              "tipo": "string",
               "enum": [
                 "unipessoal",
                 "casal sem filhos",
@@ -155,7 +140,7 @@
               "description": "Tipo de composição familiar"
             },
             "numero_pessoas": {
-              "type": "integer",
+              "tipo": "integer",
               "minimum": 1,
               "maximum": 15,
               "description": "Número de pessoas no domicílio"
@@ -165,57 +150,73 @@
       }
     },
     "psicografia": {
-      "type": "object",
+      "tipo": "object",
       "properties": {
         "personalidade_big_five": {
-          "type": "object",
+          "tipo": "object",
           "properties": {
             "abertura": {
-              "type": "integer",
+              "tipo": "integer",
               "minimum": 0,
               "maximum": 100,
               "description": "Abertura a experiências (0=baixa, 100=alta)"
             },
             "conscienciosidade": {
-              "type": "integer",
+              "tipo": "integer",
               "minimum": 0,
               "maximum": 100,
               "description": "Conscienciosidade (0=baixa, 100=alta)"
             },
             "extroversao": {
-              "type": "integer",
+              "tipo": "integer",
               "minimum": 0,
               "maximum": 100,
               "description": "Extroversão (0=introvertido, 100=extrovertido)"
             },
             "amabilidade": {
-              "type": "integer",
+              "tipo": "integer",
               "minimum": 0,
               "maximum": 100,
               "description": "Amabilidade (0=baixa, 100=alta)"
             },
             "neuroticismo": {
-              "type": "integer",
+              "tipo": "integer",
               "minimum": 0,
               "maximum": 100,
               "description": "Neuroticismo (0=estável, 100=neurótico)"
             }
           }
         },
+        "valores": {
+          "type": "array",
+          "items": {"tipo": "string"},
+          "uniqueItems": true,
+          "description": "Valores pessoais importantes - exatamente 3 valores (baseado em Schwartz Theory of Basic Values - lista curada de ~30-50 valores universais)"
+        },
         "interesses": {
           "type": "array",
-          "items": {"type": "string"},
+          "items": {"tipo": "string"},
           "uniqueItems": true,
           "description": "Áreas de interesse (1-4 itens, correlacionado com trait de abertura: baixa=1-2, média=2-3, alta=3-4)"
         },
+        "hobbies": {
+          "type": "array",
+          "items": {"tipo": "string"},
+          "uniqueItems": true,
+          "description": "Hobbies praticados (fonte: Pesquisa TIM + USP sobre atividades de lazer - lista curada de ~50-80 hobbies)"
+        },
+        "estilo_vida": {
+          "tipo": "string",
+          "description": "Descrição do estilo de vida (CAMPO DERIVADO automaticamente dos traços Big Five)"
+        },
         "inclinacao_politica": {
-          "type": "integer",
+          "tipo": "integer",
           "minimum": -100,
           "maximum": 100,
           "description": "Espectro político (-100=esquerda, 0=centro, +100=direita). CORRELACIONADO com religião: católicos/evangélicos tendem à direita (60%). Fonte: DataSenado/Nexus Panorama Político 2024 - 29% direita, 15% esquerda, 11% centro, 40% neutro"
         },
         "inclinacao_religiosa": {
-          "type": "string",
+          "tipo": "string",
           "enum": [
             "católico",
             "evangélico",
@@ -226,50 +227,58 @@
           ],
           "description": "Religião ou crença (Fonte: IBGE Censo 2022 - 56.7% católicos, 26.9% evangélicos, 9.3% sem religião)"
         }
-      },
-      "additionalProperties": false
+      }
     },
     "comportamento": {
-      "type": "object",
+      "tipo": "object",
       "properties": {
         "habitos_consumo": {
-          "type": "object",
+          "tipo": "object",
           "properties": {
             "frequencia_compras": {
-              "type": "string",
+              "tipo": "string",
               "enum": ["diária", "semanal", "quinzenal", "mensal", "esporádica"],
               "description": "Frequência de compras"
             },
             "preferencia_canal": {
-              "type": "string",
+              "tipo": "string",
               "enum": ["loja física", "e-commerce", "híbrido"],
               "description": "Canal de compra preferido"
             },
             "categorias_preferidas": {
               "type": "array",
-              "items": {"type": "string"},
+              "items": {"tipo": "string"},
               "uniqueItems": true,
               "description": "Categorias de produtos preferidas"
             }
           }
         },
+        "uso_tecnologia": {
+          "tipo": "object",
+          "properties": {
+            "smartphone": {"tipo": "boolean"},
+            "computador": {"tipo": "boolean"},
+            "tablet": {"tipo": "boolean"},
+            "smartwatch": {"tipo": "boolean"}
+          }
+        },
         "padroes_midia": {
-          "type": "object",
+          "tipo": "object",
           "properties": {
             "tv_aberta": {
-              "type": "integer",
+              "tipo": "integer",
               "minimum": 0,
               "maximum": 70,
               "description": "Horas/semana de TV aberta"
             },
             "streaming": {
-              "type": "integer",
+              "tipo": "integer",
               "minimum": 0,
               "maximum": 70,
               "description": "Horas/semana de streaming"
             },
             "redes_sociais": {
-              "type": "integer",
+              "tipo": "integer",
               "minimum": 0,
               "maximum": 70,
               "description": "Horas/semana em redes sociais"
@@ -278,77 +287,93 @@
         },
         "fonte_noticias": {
           "type": "array",
-          "items": {"type": "string"},
+          "items": {"tipo": "string"},
           "uniqueItems": true,
           "description": "Fontes de notícias utilizadas"
         },
+        "comportamento_compra": {
+          "tipo": "object",
+          "properties": {
+            "impulsivo": {
+              "tipo": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Tendência a compras impulsivas"
+            },
+            "pesquisa_antes_comprar": {
+              "tipo": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Pesquisa antes de comprar"
+            }
+          }
+        },
         "lealdade_marca": {
-          "type": "integer",
+          "tipo": "integer",
           "minimum": 0,
           "maximum": 100,
           "description": "Lealdade a marcas (0=troca fácil, 100=muito fiel)"
         },
         "engajamento_redes_sociais": {
-          "type": "object",
+          "tipo": "object",
           "properties": {
             "plataformas": {
               "type": "array",
-              "items": {"type": "string"},
+              "items": {"tipo": "string"},
               "uniqueItems": true,
               "description": "Plataformas de redes sociais usadas"
             },
             "frequencia_posts": {
-              "type": "string",
+              "tipo": "string",
               "enum": ["nunca", "raro", "ocasional", "frequente", "muito frequente"],
               "description": "Frequência de posts"
             }
           }
         }
-      },
-      "additionalProperties": false
+      }
     },
     "deficiencias": {
-      "type": "object",
+      "tipo": "object",
       "properties": {
         "visual": {
-          "type": "object",
+          "tipo": "object",
           "properties": {
-            "type": {
-              "type": "string",
+            "tipo": {
+              "tipo": "string",
               "enum": ["nenhuma", "leve", "moderada", "severa", "cegueira"],
               "description": "Tipo de deficiência visual (Prevalência: 3.4% da população - IBGE PNS 2019)"
             }
           }
         },
         "auditiva": {
-          "type": "object",
+          "tipo": "object",
           "properties": {
-            "type": {
-              "type": "string",
+            "tipo": {
+              "tipo": "string",
               "enum": ["nenhuma", "leve", "moderada", "severa", "surdez"],
               "description": "Tipo de deficiência auditiva (Prevalência: 1.1% da população - IBGE PNS 2019)"
             }
           }
         },
         "motora": {
-          "type": "object",
+          "tipo": "object",
           "properties": {
-            "type": {
-              "type": "string",
+            "tipo": {
+              "tipo": "string",
               "enum": ["nenhuma", "leve", "moderada", "severa"],
               "description": "Tipo de deficiência motora de membros inferiores (Prevalência: 3.8% da população - IBGE PNS 2019)"
             },
             "usa_cadeira_rodas": {
-              "type": "boolean",
+              "tipo": "boolean",
               "description": "Usa cadeira de rodas (tipicamente quando deficiência motora é severa)"
             }
           }
         },
         "cognitiva": {
-          "type": "object",
+          "tipo": "object",
           "properties": {
-            "type": {
-              "type": "string",
+            "tipo": {
+              "tipo": "string",
               "enum": ["nenhuma", "leve", "moderada", "severa"],
               "description": "Tipo de limitação cognitiva/mental (Prevalência: 1.2% da população - IBGE PNS 2019)"
             }
@@ -357,72 +382,72 @@
       }
     },
     "capacidades_tecnologicas": {
-      "type": "object",
+      "tipo": "object",
       "properties": {
         "alfabetizacao_digital": {
-          "type": "integer",
+          "tipo": "integer",
           "minimum": 0,
           "maximum": 100,
           "description": "Nível de alfabetização digital"
         },
         "dispositivos": {
-          "type": "object",
+          "tipo": "object",
           "properties": {
             "principal": {
-              "type": "string",
+              "tipo": "string",
               "enum": ["smartphone", "computador", "tablet", "nenhum"],
               "description": "Dispositivo principal"
             },
             "qualidade": {
-              "type": "string",
+              "tipo": "string",
               "enum": ["novo", "intermediário", "antigo"],
               "description": "Qualidade do dispositivo"
             }
           }
         },
         "preferencias_acessibilidade": {
-          "type": "object",
+          "tipo": "object",
           "properties": {
             "zoom_fonte": {
-              "type": "integer",
+              "tipo": "integer",
               "minimum": 100,
               "maximum": 300,
               "description": "Nível de zoom/fonte em porcentagem"
             },
             "alto_contraste": {
-              "type": "boolean",
+              "tipo": "boolean",
               "description": "Usa modo de alto contraste"
             }
           }
         },
         "velocidade_digitacao": {
-          "type": "integer",
+          "tipo": "integer",
           "minimum": 10,
           "maximum": 120,
           "description": "Velocidade de digitação em palavras por minuto"
         },
         "frequencia_internet": {
-          "type": "string",
+          "tipo": "string",
           "enum": ["diária", "semanal", "mensal", "rara"],
           "description": "Frequência de acesso à internet"
         },
         "familiaridade_plataformas": {
-          "type": "object",
+          "tipo": "object",
           "properties": {
             "e_commerce": {
-              "type": "integer",
+              "tipo": "integer",
               "minimum": 0,
               "maximum": 100,
               "description": "Familiaridade com e-commerce"
             },
             "banco_digital": {
-              "type": "integer",
+              "tipo": "integer",
               "minimum": 0,
               "maximum": 100,
               "description": "Familiaridade com banco digital"
             },
             "redes_sociais": {
-              "type": "integer",
+              "tipo": "integer",
               "minimum": 0,
               "maximum": 100,
               "description": "Familiaridade com redes sociais"
@@ -432,46 +457,46 @@
       }
     },
     "vieses": {
-      "type": "object",
+      "tipo": "object",
       "properties": {
         "aversao_perda": {
-          "type": "integer",
+          "tipo": "integer",
           "minimum": 0,
           "maximum": 100,
           "description": "Intensidade de aversão à perda"
         },
         "desconto_hiperbolico": {
-          "type": "integer",
+          "tipo": "integer",
           "minimum": 0,
           "maximum": 100,
           "description": "Intensidade de desconto hiperbólico (preferência por recompensas imediatas)"
         },
         "suscetibilidade_chamariz": {
-          "type": "integer",
+          "tipo": "integer",
           "minimum": 0,
           "maximum": 100,
           "description": "Suscetibilidade ao efeito chamariz (decoy effect)"
         },
         "ancoragem": {
-          "type": "integer",
+          "tipo": "integer",
           "minimum": 0,
           "maximum": 100,
           "description": "Intensidade de ancoragem (influência do primeiro valor apresentado)"
         },
         "vies_confirmacao": {
-          "type": "integer",
+          "tipo": "integer",
           "minimum": 0,
           "maximum": 100,
           "description": "Intensidade do viés de confirmação"
         },
         "vies_status_quo": {
-          "type": "integer",
+          "tipo": "integer",
           "minimum": 0,
           "maximum": 100,
           "description": "Intensidade do viés de status quo (preferência por manter escolhas atuais)"
         },
         "sobrecarga_informacao": {
-          "type": "integer",
+          "tipo": "integer",
           "minimum": 0,
           "maximum": 100,
           "description": "Suscetibilidade à sobrecarga de informação (paralisia por excesso de opções)"

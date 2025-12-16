@@ -24,13 +24,13 @@ Criar Synths representativos da população brasileira para:
 - ✅ **Validação e análise** de distribuições demográficas
 - 🔍 **Consultas SQL** com DuckDB para análise de dados
 
-### Dados Realistas
+### Dados Realistas (Schema v2.0.0)
 - **Atributos Demográficos**: Idade, gênero, localização, escolaridade, renda, ocupação (IBGE Censo 2022, PNAD 2022/2023)
-- **Atributos Psicográficos**: Personalidade Big Five, valores, interesses, hobbies, inclinação política/religiosa
-- **Atributos Comportamentais**: Hábitos de consumo, uso de tecnologia, padrões de mídia social
+- **Atributos Psicográficos**: Personalidade Big Five, interesses, inclinação política/religiosa
+- **Atributos Comportamentais**: Hábitos de consumo, padrões de mídia social
 - **Limitações Físicas/Cognitivas**: Deficiências visuais, auditivas, motoras, cognitivas (IBGE PNS 2019)
 - **Capacidades Tecnológicas**: Alfabetização digital, dispositivos, familiaridade com plataformas (TIC Domicílios 2023)
-- **Vieses Comportamentais**: 7 vieses de economia comportamental (literatura acadêmica)
+- **Vieses Comportamentais**: 7 vieses cognitivos alinhados com traços de personalidade (literatura acadêmica)
 
 ## 🚀 Instalação
 
@@ -147,12 +147,12 @@ Os Synths são salvos como arquivos JSON em `data/synths/` com identificadores �
 
 - **Identificação**: ID único (6 chars), nome completo, arquétipo, descrição, link para foto
 - **Demografia**: Idade, gênero biológico/identidade, raça/etnia, localização, escolaridade, renda, ocupação, estado civil, composição familiar
-- **Psicografia**: Big Five (abertura, conscienciosidade, extroversão, amabilidade, neuroticismo), valores, interesses, hobbies, estilo de vida, inclinação política/religiosa
-- **Comportamento**: Hábitos de consumo, uso de tecnologia, padrões de mídia, fonte de notícias, comportamento de compra, lealdade a marca, engajamento em redes sociais
+- **Psicografia**: Big Five (abertura, conscienciosidade, extroversão, amabilidade, neuroticismo), interesses, inclinação política/religiosa
+- **Comportamento**: Hábitos de consumo, padrões de mídia, fonte de notícias, lealdade a marca, engajamento em redes sociais
 - **Deficiências**: Limitações visuais, auditivas, motoras (cadeira de rodas), cognitivas (se aplicável)
 - **Capacidades Tecnológicas**: Alfabetização digital, dispositivos (principal, qualidade), preferências de acessibilidade (zoom, contraste), velocidade de digitação, frequência de internet, familiaridade com plataformas
-- **Vieses Comportamentais**: Aversão à perda, desconto hiperbólico, suscetibilidade a chamariz, ancoragem, viés de confirmação, viés de status quo, sobrecarga de informação
-- **Metadata**: Timestamp de criação (ISO 8601), versão do schema
+- **Vieses Comportamentais**: Aversão à perda, desconto hiperbólico, suscetibilidade a chamariz, ancoragem, viés de confirmação, viés de status quo, sobrecarga de informação (alinhados com traços de personalidade)
+- **Metadata**: Timestamp de criação (ISO 8601), versão do schema (2.0.0)
 
 <details>
 <summary>Exemplo de Synth gerado (clique para expandir)</summary>
@@ -165,7 +165,7 @@ Os Synths são salvos como arquivos JSON em `data/synths/` com identificadores �
   "descricao": "Mulher de 28 anos, designer gráfica, mora em São Paulo, SP. Possui traços marcantes de Abertura, Amabilidade.",
   "link_photo": "https://ui-avatars.com/api/?name=Maria+Silva+Santos&size=256&background=random",
   "created_at": "2025-12-14T15:30:00Z",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "demografia": {
     "idade": 28,
     "genero_biologico": "feminino",
