@@ -188,18 +188,11 @@ uv run synthlab topic-guide show --name amazon-ecommerce
 #### Entrevistas de Pesquisa UX
 
 ```bash
-# Realizar entrevista com um synth
-uv run synthlab research abc123
-
-# Entrevista com topic guide (materiais de contexto COM descrições IA)
-uv run synthlab research abc123 --topic-guide compra-amazon
-
-# Ou usar arquivo .md tradicional (sem descrições automáticas)
-uv run synthlab research abc123 --topic-guide data/topic_guides/custom-guide.md
+# Realizar entrevista com um synth usando topic guide
+uv run synthlab research abc123 compra-amazon
 
 # Personalizar configurações
-uv run synthlab research abc123 \
-  --topic-guide compra-amazon \
+uv run synthlab research abc123 compra-amazon \
   --max-rounds 15 \
   --model gpt-4o \
   --output data/minhas-entrevistas
@@ -210,7 +203,16 @@ cat data/transcripts/abc123_20251216_143052.json
 
 > **Nota**: Requer `OPENAI_API_KEY` configurada. As entrevistas usam dois LLMs em conversa - um como entrevistador UX e outro como o synth (persona), com comportamento baseado no Big Five personality. Transcrições são salvas automaticamente em JSON.
 >
-> **Topic Guides**: Quando você passa `--topic-guide compra-amazon`, o sistema carrega automaticamente as descrições IA de todas as imagens/PDFs/documentos do topic guide. O entrevistador terá acesso ao contexto visual através das descrições geradas.
+> **Topic Guide Obrigatório**: Cada entrevista requer um topic guide que deve conter:
+> - **script.json**: Roteiro de perguntas estruturado (array com `id` e `ask`)
+> - **summary.md**: Contexto geral e descrições IA dos materiais
+> - **Arquivos de contexto**: Imagens, PDFs, documentos referenciados
+>
+> **Function Calling Integrado**: O sistema automaticamente:
+> - Carrega o **resumo contextual** e as **descrições IA** de todas as imagens/PDFs/documentos
+> - Disponibiliza uma **ferramenta de function calling** para o LLM carregar imagens dinamicamente durante a entrevista
+> - O entrevistador pode "ver" as imagens reais (via Vision API) quando necessário, não apenas as descrições de texto
+> - Isso permite que o LLM faça perguntas mais específicas sobre elementos visuais durante a entrevista
 
 ### Estrutura de Saída
 
