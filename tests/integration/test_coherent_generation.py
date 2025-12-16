@@ -205,8 +205,8 @@ def test_extreme_personalities_produce_extreme_biases():
     config = load_config_data()
 
     # Generate multiple synths and look for extreme cases
-    # Use 50 samples to increase probability of finding extremes
-    synths = [synth_builder.assemble_synth(config) for _ in range(50)]
+    # Use 100 samples to increase probability of finding extremes with tighter distribution
+    synths = [synth_builder.assemble_synth(config) for _ in range(100)]
 
     found_high_conscientiousness = False
     found_high_neuroticism = False
@@ -242,9 +242,9 @@ def test_extreme_personalities_produce_extreme_biases():
             )
 
     # Verify we found at least some extreme cases
-    # (With 50 samples and normal distribution at 75+ threshold, very likely to find one)
+    # (With 100 samples and normal distribution at 75+ threshold, very likely to find one)
     assert found_high_conscientiousness or found_high_neuroticism or found_high_openness, (
-        "Should find at least one extreme personality case (75+) in 50 samples"
+        "Should find at least one extreme personality case (75+) in 100 samples"
     )
 
 
