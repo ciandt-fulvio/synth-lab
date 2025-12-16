@@ -41,16 +41,13 @@ def test_generate_big_five_distribution():
 
 
 def test_generate_psychographics_structure(config_data):
-    """Test that psychographics have correct structure."""
+    """Test that psychographics have correct structure (v2.0.0)."""
     big_five = psychographics.generate_big_five()
     psycho = psychographics.generate_psychographics(big_five, config_data)
 
     required_fields = [
         "personalidade_big_five",
-        "valores",
         "interesses",
-        "hobbies",
-        "estilo_vida",
         "inclinacao_politica",
         "inclinacao_religiosa",
     ]
@@ -58,16 +55,10 @@ def test_generate_psychographics_structure(config_data):
     for field in required_fields:
         assert field in psycho
 
-
-def test_generate_psychographics_valores(config_data):
-    """Test valores generation."""
-    big_five = psychographics.generate_big_five()
-    psycho = psychographics.generate_psychographics(big_five, config_data)
-
-    assert isinstance(psycho["valores"], list)
-    assert len(psycho["valores"]) == 3  # Exactly 3 values
-    # Should be unique values
-    assert len(psycho["valores"]) == len(set(psycho["valores"]))
+    # Verify removed fields are NOT present in v2.0.0
+    removed_fields = ["valores", "hobbies", "estilo_vida"]
+    for field in removed_fields:
+        assert field not in psycho, f"Field {field} should not be in v2.0.0 schema"
 
 
 def test_generate_psychographics_interesses(config_data):
@@ -79,30 +70,6 @@ def test_generate_psychographics_interesses(config_data):
     assert 1 <= len(psycho["interesses"]) <= 4  # 1-4 items based on openness
     # Should be unique
     assert len(psycho["interesses"]) == len(set(psycho["interesses"]))
-
-
-def test_generate_psychographics_hobbies(config_data):
-    """Test hobbies generation."""
-    big_five = psychographics.generate_big_five()
-    psycho = psychographics.generate_psychographics(big_five, config_data)
-
-    assert isinstance(psycho["hobbies"], list)
-    assert 3 <= len(psycho["hobbies"]) <= 5
-    # Should be unique
-    assert len(psycho["hobbies"]) == len(set(psycho["hobbies"]))
-
-
-def test_generate_psychographics_no_overlap(config_data):
-    """Test that hobbies and interesses are valid lists."""
-    big_five = psychographics.generate_big_five()
-    psycho = psychographics.generate_psychographics(big_five, config_data)
-
-    # Both should be lists with items
-    assert isinstance(psycho["hobbies"], list)
-    assert isinstance(psycho["interesses"], list)
-    assert len(psycho["hobbies"]) > 0
-    assert len(psycho["interesses"]) > 0
-    # Note: overlap is possible due to how the data is structured
 
 
 def test_generate_psychographics_inclinacao_politica(config_data):
@@ -123,16 +90,6 @@ def test_generate_psychographics_inclinacao_religiosa(config_data):
     # Should be one of the valid options from IBGE data
     valid_options = list(config_data["ibge"]["religiao"].keys())
     assert psycho["inclinacao_religiosa"] in valid_options
-
-
-def test_generate_psychographics_estilo_vida(config_data):
-    """Test lifestyle field exists (even if empty initially)."""
-    big_five = psychographics.generate_big_five()
-    psycho = psychographics.generate_psychographics(big_five, config_data)
-
-    assert isinstance(psycho["estilo_vida"], str)
-    # Note: estilo_vida may be empty string initially, derived later
-    assert "estilo_vida" in psycho
 
 
 def test_generate_psychographics_religion_politics_correlation(config_data):

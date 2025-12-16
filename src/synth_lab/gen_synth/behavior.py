@@ -18,22 +18,12 @@ Expected Output:
             "preferencia_canal": "híbrido",
             "categorias_preferidas": ["eletrônicos", "livros"]
         },
-        "uso_tecnologia": {
-            "smartphone": True,
-            "computador": True,
-            "tablet": False,
-            "smartwatch": True
-        },
         "padroes_midia": {
             "tv_aberta": 15,
             "streaming": 35,
             "redes_sociais": 45
         },
         "fonte_noticias": ["portais online", "redes sociais"],
-        "comportamento_compra": {
-            "impulsivo": 45,
-            "pesquisa_antes_comprar": 72
-        },
         "lealdade_marca": 58,
         "engajamento_redes_sociais": {
             "plataformas": ["Instagram", "WhatsApp", "YouTube"],
@@ -55,11 +45,11 @@ def generate_behavior(
     demographics: dict[str, Any], config_data: dict[str, Any]
 ) -> dict[str, Any]:
     """
-    Gera atributos comportamentais (consumo, tecnologia, mídia).
+    Gera atributos comportamentais (consumo, mídia).
 
     Behavioral patterns are correlated with age and income:
-    - Younger people use more technology and social media
-    - Higher income correlates with more devices and online shopping
+    - Younger people use more social media
+    - Higher income correlates with more online shopping
 
     Args:
         demographics: Dictionary with demographic data (idade, renda_mensal)
@@ -71,12 +61,6 @@ def generate_behavior(
     interests = config_data["interests_hobbies"]
     idade = demographics["idade"]
     renda = demographics["renda_mensal"]
-
-    # Ajustar uso de tecnologia por idade e renda
-    tem_smartphone = renda > 800 or idade < 50
-    tem_computador = renda > 2000 or (idade < 40 and renda > 1500)
-    tem_tablet = random.random() < (0.4 if renda > 5000 else 0.15)
-    tem_smartwatch = random.random() < (0.3 if renda > 8000 else 0.1)
 
     # Tempo em redes sociais inversamente correlacionado com idade
     base_redes = 60 - (idade * 0.5)
@@ -94,12 +78,6 @@ def generate_behavior(
                 interests["categorias_compras"], k=random.randint(2, 5)
             ),
         },
-        "uso_tecnologia": {
-            "smartphone": tem_smartphone,
-            "computador": tem_computador,
-            "tablet": tem_tablet,
-            "smartwatch": tem_smartwatch,
-        },
         "padroes_midia": {
             "tv_aberta": random.randint(0, 35),
             "streaming": random.randint(0, 50),
@@ -108,10 +86,6 @@ def generate_behavior(
         "fonte_noticias": random.sample(
             interests["fontes_noticias"], k=random.randint(2, 5)
         ),
-        "comportamento_compra": {
-            "impulsivo": normal_distribution(50, 20, 0, 100),
-            "pesquisa_antes_comprar": normal_distribution(60, 20, 0, 100),
-        },
         "lealdade_marca": normal_distribution(50, 20, 0, 100),
         "engajamento_redes_sociais": {
             "plataformas": random.sample(
@@ -151,22 +125,14 @@ if __name__ == "__main__":
         # Verify structure
         required_fields = [
             "habitos_consumo",
-            "uso_tecnologia",
             "padroes_midia",
             "fonte_noticias",
-            "comportamento_compra",
             "lealdade_marca",
             "engajamento_redes_sociais",
         ]
         for field in required_fields:
             if field not in behavior:
                 all_validation_failures.append(f"Missing field: {field}")
-
-        # Verify technology usage (should have high tech adoption)
-        if not behavior["uso_tecnologia"]["smartphone"]:
-            all_validation_failures.append("Young rich person should have smartphone")
-        if not behavior["uso_tecnologia"]["computador"]:
-            all_validation_failures.append("Young rich person should have computer")
 
         # Verify social media time (should be high for young person)
         if behavior["padroes_midia"]["redes_sociais"] < 20:
@@ -177,7 +143,6 @@ if __name__ == "__main__":
         if not any(f.startswith("Test 1") for f in all_validation_failures):
             print(
                 f"Test 1: generate_behavior(young/rich) -> "
-                f"smartphone={behavior['uso_tecnologia']['smartphone']}, "
                 f"redes_sociais={behavior['padroes_midia']['redes_sociais']}"
             )
     except Exception as e:
@@ -189,9 +154,7 @@ if __name__ == "__main__":
         old_poor = {"idade": 70, "renda_mensal": 1500}
         behavior = generate_behavior(old_poor, config)
 
-        # Verify technology usage (should have low tech adoption)
-        # May not have smartphone or computer
-        # Social media time should be lower
+        # Social media time should be lower for older person
         if behavior["padroes_midia"]["redes_sociais"] > 50:
             all_validation_failures.append(
                 f"Old person social media time too high: {behavior['padroes_midia']['redes_sociais']}"
@@ -199,7 +162,6 @@ if __name__ == "__main__":
 
         print(
             f"Test 2: generate_behavior(old/poor) -> "
-            f"smartphone={behavior['uso_tecnologia']['smartphone']}, "
             f"redes_sociais={behavior['padroes_midia']['redes_sociais']}"
         )
     except Exception as e:
@@ -314,15 +276,6 @@ if __name__ == "__main__":
             behavior = generate_behavior(test_demo, config)
 
             # Verify behavioral scores are in range
-            if not (0 <= behavior["comportamento_compra"]["impulsivo"] <= 100):
-                batch_errors.append(
-                    f"Batch {i}: impulsivo out of range: {behavior['comportamento_compra']['impulsivo']}"
-                )
-            if not (0 <= behavior["comportamento_compra"]["pesquisa_antes_comprar"] <= 100):
-                batch_errors.append(
-                    f"Batch {i}: pesquisa_antes_comprar out of range: "
-                    f"{behavior['comportamento_compra']['pesquisa_antes_comprar']}"
-                )
             if not (0 <= behavior["lealdade_marca"] <= 100):
                 batch_errors.append(
                     f"Batch {i}: lealdade_marca out of range: {behavior['lealdade_marca']}"

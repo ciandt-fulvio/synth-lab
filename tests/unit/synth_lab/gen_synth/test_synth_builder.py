@@ -52,16 +52,13 @@ def test_assemble_synth_demographics(config_data):
 
 
 def test_assemble_synth_psychographics(config_data):
-    """Test psychographics section is complete."""
+    """Test psychographics section is complete (v2.0.0)."""
     synth = synth_builder.assemble_synth(config_data)
 
     psycho = synth["psicografia"]
     required_psycho_fields = [
         "personalidade_big_five",
-        "valores",
         "interesses",
-        "hobbies",
-        "estilo_vida",
         "inclinacao_politica",
         "inclinacao_religiosa",
     ]
@@ -69,24 +66,32 @@ def test_assemble_synth_psychographics(config_data):
     for field in required_psycho_fields:
         assert field in psycho
 
+    # Verify removed fields are NOT present in v2.0.0
+    removed_fields = ["valores", "hobbies", "estilo_vida"]
+    for field in removed_fields:
+        assert field not in psycho, f"Field {field} should not be in v2.0.0 schema"
+
 
 def test_assemble_synth_behavior(config_data):
-    """Test behavior section is complete."""
+    """Test behavior section is complete (v2.0.0)."""
     synth = synth_builder.assemble_synth(config_data)
 
     behavior = synth["comportamento"]
     required_behavior_fields = [
         "habitos_consumo",
-        "uso_tecnologia",
         "padroes_midia",
         "fonte_noticias",
-        "comportamento_compra",
         "lealdade_marca",
         "engajamento_redes_sociais",
     ]
 
     for field in required_behavior_fields:
         assert field in behavior
+
+    # Verify removed fields are NOT present in v2.0.0
+    removed_fields = ["uso_tecnologia", "comportamento_compra"]
+    for field in removed_fields:
+        assert field not in behavior, f"Field {field} should not be in v2.0.0 schema"
 
 
 def test_assemble_synth_disabilities(config_data):
@@ -162,13 +167,13 @@ def test_assemble_synth_timestamps(config_data):
 
 
 def test_assemble_synth_version(config_data):
-    """Test that version is set correctly."""
+    """Test that version is set correctly to v2.0.0."""
     synth = synth_builder.assemble_synth(config_data)
 
     assert "version" in synth
     assert isinstance(synth["version"], str)
-    # Version should be semantic versioning format
-    assert synth["version"].count(".") >= 1
+    # Version should be v2.0.0 for simplified schema
+    assert synth["version"] == "2.0.0", f"Expected version 2.0.0, got {synth['version']}"
 
 
 def test_assemble_synth_link_photo(config_data):

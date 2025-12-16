@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://synthlab.com/schemas/interview-response/v1.0.0",
+  "title": "Interview Response",
+  "description": "Schema para resposta estruturada retornada por LLMs durante entrevistas de pesquisa UX. Usado tanto pelo entrevistador quanto pelo synth.",
+  "type": "object",
+  "properties": {
+    "message": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Texto da fala na entrevista. Deve ser natural e conversacional."
+    },
+    "should_end": {
+      "type": "boolean",
+      "default": false,
+      "description": "Flag para sinalizar fim da entrevista. Apenas o entrevistador deve definir como true quando determinar que os objetivos foram atingidos ou que é hora de encerrar."
+    },
+    "internal_notes": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "Anotações internas opcionais. Para o entrevistador: insights de pesquisa, observações sobre o entrevistado. Para o synth: estado emocional, pensamentos internos. Não são exibidas ao outro participante."
+    }
+  },
+  "required": ["message", "should_end"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "message": "Olá! Obrigado por participar desta pesquisa. Podemos começar falando um pouco sobre seus hábitos de compra online?",
+      "should_end": false,
+      "internal_notes": "Começando com pergunta aberta para estabelecer rapport"
+    },
+    {
+      "message": "Bom, eu costumo fazer compras pelo celular quando estou no ônibus voltando do trabalho. É mais prático assim.",
+      "should_end": false,
+      "internal_notes": "Demonstrando preferência por mobile e compras durante transporte"
+    },
+    {
+      "message": "Muito obrigado pelas suas respostas! Foram insights muito valiosos para nossa pesquisa. Agradeço sua participação.",
+      "should_end": true,
+      "internal_notes": "Objetivos da pesquisa atingidos. Encerrando com agradecimento."
+    }
+  ]
+}
