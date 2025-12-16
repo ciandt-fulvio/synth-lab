@@ -70,10 +70,10 @@ Context description here.
 
 ## FILE DESCRIPTION
 
-- **image.png** (hash: a3b5c7d9...)
+- **image.png** (hash: a3b5c7d9e1f2a3b5c7d9e1f2a3b5c7d9)
   Screenshot of the homepage showing navigation
 
-- **doc.pdf** (hash: f1e2d3c4...)
+- **doc.pdf** (hash: f1e2d3c4b5a6f1e2d3c4b5a6f1e2d3c4)
   Technical documentation for the API
 """
         )
@@ -85,13 +85,13 @@ Context description here.
         # Check first file
         desc1 = summary_file.file_descriptions[0]
         assert desc1.filename == "image.png"
-        assert desc1.content_hash.startswith("a3b5c7d9")
+        assert desc1.content_hash == "a3b5c7d9e1f2a3b5c7d9e1f2a3b5c7d9"
         assert "Screenshot" in desc1.description
 
         # Check second file
         desc2 = summary_file.file_descriptions[1]
         assert desc2.filename == "doc.pdf"
-        assert desc2.content_hash.startswith("f1e2d3c4")
+        assert desc2.content_hash == "f1e2d3c4b5a6f1e2d3c4b5a6f1e2d3c4"
         assert "Technical documentation" in desc2.description
 
     def test_write_summary_to_disk(self, tmp_path):
