@@ -45,16 +45,15 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
     1. Generating demographics (age, gender, location, education, income, occupation)
     2. Generating name based on demographics
     3. Generating Big Five personality traits
-    4. Generating psychographics (values, interests, hobbies)
-    5. Generating behavior (consumption, technology, media)
+    4. Generating psychographics (interests, political/religious inclinations)
+    5. Generating behavior (consumption, media patterns)
     6. Generating disabilities (if applicable)
     7. Generating tech capabilities (digital literacy, devices)
     8. Generating behavioral biases (cognitive biases)
     9. Deriving archetype from demographics and personality
-    10. Deriving lifestyle from personality
-    11. Generating photo link from name
-    12. Assembling complete synth
-    13. Deriving description from complete synth
+    10. Generating photo link from name
+    11. Assembling complete synth
+    12. Deriving description from complete synth
 
     Args:
         config: Configuration dict with 'ibge', 'occupations', 'interests_hobbies'
@@ -95,13 +94,10 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
     # 9. Derive archetype
     arquetipo = derivations.derive_archetype(demografia, big_five)
 
-    # 10. Derive lifestyle
-    estilo_vida = derivations.derive_lifestyle(big_five)
-
-    # 11. Generate photo link
+    # 10. Generate photo link
     link_photo = derivations.generate_photo_link(nome)
 
-    # 12. Assemble complete synth (needed for description)
+    # 11. Assemble complete synth (needed for description)
     synth = {
         "id": synth_id,
         "nome": nome,
@@ -109,19 +105,16 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
         "descricao": "",  # Placeholder, will be filled after
         "link_photo": link_photo,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "version": "1.0.0",
+        "version": "2.0.0",
         "demografia": demografia,
-        "psicografia": {
-            **psicografia,
-            "estilo_vida": estilo_vida,
-        },
+        "psicografia": psicografia,
         "comportamento": comportamento,
         "deficiencias": deficiencias,
         "capacidades_tecnologicas": capacidades_tecnologicas,
         "vieses": vieses,
     }
 
-    # 13. Derive description (needs complete synth)
+    # 12. Derive description (needs complete synth)
     descricao = derivations.derive_description(synth)
     synth["descricao"] = descricao
 
@@ -210,8 +203,8 @@ if __name__ == "__main__":
         psico = synth["psicografia"]
 
         required_psico_fields = [
-            "personalidade_big_five", "valores", "interesses",
-            "hobbies", "estilo_vida", "inclinacao_politica", "inclinacao_religiosa"
+            "personalidade_big_five", "interesses",
+            "inclinacao_politica", "inclinacao_religiosa"
         ]
 
         missing_psico = [f for f in required_psico_fields if f not in psico]
@@ -236,8 +229,8 @@ if __name__ == "__main__":
         comp = synth["comportamento"]
 
         required_comp_fields = [
-            "habitos_consumo", "uso_tecnologia", "padroes_midia",
-            "fonte_noticias", "comportamento_compra", "lealdade_marca",
+            "habitos_consumo", "padroes_midia",
+            "fonte_noticias", "lealdade_marca",
             "engajamento_redes_sociais"
         ]
 
