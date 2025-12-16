@@ -88,31 +88,32 @@
 
 ### Tests for User Story 2
 
-- [ ] T025 [P] [US2] Create test_cli_update in tests/topic_guides/contract/test_cli_interface.py for update command contract
-- [ ] T026 [P] [US2] Create test_file_scanning in tests/topic_guides/unit/test_file_processor.py for directory scanning and filtering logic
-- [ ] T027 [P] [US2] Create test_hash_detection in tests/topic_guides/unit/test_file_processor.py for hash-based change detection
-- [ ] T028 [P] [US2] Create test_llm_integration in tests/topic_guides/integration/test_llm_descriptions.py for OpenAI API calls (with mocked responses)
-- [ ] T029 [P] [US2] Create test_error_handling in tests/topic_guides/integration/test_error_scenarios.py for API failures, unsupported files, corrupted files
+- [x] T025 [P] [US2] Create test_cli_update in tests/topic_guides/contract/test_cli_interface.py for update command contract
+- [x] T026 [P] [US2] Create test_file_scanning in tests/topic_guides/unit/test_file_processor.py for directory scanning and filtering logic
+- [x] T027 [P] [US2] Create test_hash_detection in tests/topic_guides/unit/test_file_processor.py for hash-based change detection
+- [x] T028 [P] [US2] Create test_llm_integration in tests/topic_guides/integration/test_llm_descriptions.py for OpenAI API calls (with mocked responses)
+- [x] T029 [P] [US2] Create test_error_handling in tests/topic_guides/integration/test_error_scenarios.py for API failures, unsupported files, corrupted files
 
 ### Implementation for User Story 2
 
-- [ ] T030 [P] [US2] Implement scan_directory function in src/synth_lab/topic_guides/file_processor.py to list all files excluding summary.md
-- [ ] T031 [P] [US2] Implement is_supported_type function in src/synth_lab/topic_guides/file_processor.py to check if file type is in supported list
-- [ ] T032 [P] [US2] Implement extract_pdf_text function in src/synth_lab/topic_guides/file_processor.py using pdfplumber for PDF preview extraction
-- [ ] T033 [P] [US2] Implement encode_image_for_vision function in src/synth_lab/topic_guides/file_processor.py for base64 encoding PNG/JPEG files
-- [ ] T034 [US2] Implement call_openai_api function in src/synth_lab/topic_guides/file_processor.py with tenacity retry logic and exponential backoff
-- [ ] T035 [US2] Implement generate_file_description function in src/synth_lab/topic_guides/file_processor.py that routes to appropriate LLM prompt based on file type
-- [ ] T036 [US2] Implement add_file_description function in src/synth_lab/topic_guides/summary_manager.py to append new descriptions to ## FILE DESCRIPTION section
-- [ ] T037 [US2] Implement has_file function in src/synth_lab/topic_guides/summary_manager.py to check if file with matching hash exists
-- [ ] T038 [US2] Create update_topic_guide command in src/synth_lab/topic_guides/cli.py with --name and --force parameters
-- [ ] T039 [US2] Implement file processing loop in cli.py update command: scan directory, filter unsupported, compute hashes, skip unchanged
-- [ ] T040 [US2] Implement LLM description generation in cli.py update command: call generate_file_description, handle API failures
-- [ ] T041 [US2] Implement error handling for unsupported files: log warning with list of skipped files
-- [ ] T042 [US2] Implement error handling for corrupted files: skip silently and continue processing
-- [ ] T043 [US2] Implement error handling for LLM API failures: add placeholder entry with "API failure - manual documentation needed"
-- [ ] T044 [US2] Implement missing FILE DESCRIPTION section handling: auto-append section if missing
-- [ ] T045 [US2] Add progress indicators and summary output (X files documented, Y skipped, Z failed)
-- [ ] T046 [US2] Add logging with loguru for all update operations
+- [x] T030 [P] [US2] Implement scan_directory function in src/synth_lab/topic_guides/file_processor.py to list all files excluding summary.md
+- [x] T031 [P] [US2] Implement is_supported_type function in src/synth_lab/topic_guides/file_processor.py to check if file type is in supported list
+- [x] T032 [P] [US2] Implement extract_pdf_text function in src/synth_lab/topic_guides/file_processor.py using pdfplumber for PDF preview extraction
+- [x] T033 [P] [US2] Implement encode_image_for_vision function in src/synth_lab/topic_guides/file_processor.py for base64 encoding PNG/JPEG files
+- [x] T034 [US2] Implement call_openai_api function in src/synth_lab/topic_guides/file_processor.py with tenacity retry logic and exponential backoff
+- [x] T035 [US2] Implement generate_file_description function in src/synth_lab/topic_guides/file_processor.py that routes to appropriate LLM prompt based on file type
+- [x] T036 [US2] Implement add_file_description function in src/synth_lab/topic_guides/summary_manager.py to append new descriptions to ## FILE DESCRIPTION section
+- [x] T037 [US2] Implement has_file function in src/synth_lab/topic_guides/summary_manager.py to check if file with matching hash exists
+- [x] T038 [US2] Create update_topic_guide command in src/synth_lab/topic_guides/cli.py with --name and --force parameters
+- [x] T039 [US2] Implement file processing loop in cli.py update command: scan directory, filter unsupported, compute hashes, skip unchanged
+- [x] T040 [US2] Implement LLM description generation in cli.py update command: call generate_file_description, handle API failures
+- [x] T041 [US2] Implement error handling for unsupported files: log warning with list of skipped files
+- [x] T042 [US2] Implement error handling for corrupted files: skip silently and continue processing
+- [x] T043 [US2] Implement error handling for LLM API failures: add placeholder entry with "API failure - manual documentation needed"
+- [x] T044 [US2] Implement missing FILE DESCRIPTION section handling: auto-append section if missing
+- [x] T045 [US2] Add progress indicators and summary output (X files documented, Y skipped, Z failed)
+- [x] T046 [US2] Add logging with loguru for all update operations
+- [x] T046b [EXTRA] Implement generate_context_overview function to auto-generate contextual description of topic guide materials
 
 **Checkpoint**: User Story 2 complete - users can auto-generate file descriptions
 
@@ -126,19 +127,19 @@
 
 ### Tests for User Story 3
 
-- [ ] T047 [P] [US3] Create test_topic_guide_loading in tests/research/integration/test_interview_with_context.py for loading topic guide in interview
-- [ ] T048 [P] [US3] Create test_context_integration in tests/research/integration/test_interview_with_context.py for verifying materials in LLM context
-- [ ] T049 [P] [US3] Create test_interview_cli_with_topic_guide in tests/topic_guides/contract/test_cli_interface.py for --topic-guide parameter
+- [x] T047 [P] [US3] Create test_topic_guide_loading in tests/research/integration/test_interview_with_context.py for loading topic guide in interview (ALREADY EXISTED from Phase 5)
+- [x] T048 [P] [US3] Create test_context_integration in tests/research/integration/test_interview_with_context.py for verifying materials in LLM context (ALREADY EXISTED from Phase 5)
+- [x] T049 [P] [US3] Create test_interview_cli_with_topic_guide in tests/topic_guides/contract/test_cli_interface.py for --topic-guide parameter (ALREADY EXISTED from Phase 5)
 
 ### Implementation for User Story 3
 
-- [ ] T050 [P] [US3] Implement load_topic_guide_context function in src/synth_lab/topic_guides/summary_manager.py to parse summary.md and return file descriptions list
-- [ ] T051 [US3] Add topic_guide optional parameter to conduct_interview function in src/synth_lab/research/interview.py
-- [ ] T052 [US3] Implement topic guide loading logic in src/synth_lab/research/interview.py: check if parameter provided, load context
-- [ ] T053 [US3] Implement context integration in src/synth_lab/research/interview.py: add "Available Context Materials" section to LLM prompt with file descriptions
-- [ ] T054 [US3] Add --topic-guide parameter to research interview CLI command in src/synth_lab/research/cli.py
-- [ ] T055 [US3] Add error handling for missing topic guides: log warning if guide not found, continue interview without context
-- [ ] T056 [US3] Add logging for topic guide integration in interview initialization
+- [x] T050 [P] [US3] Implement load_topic_guide_context function in src/synth_lab/topic_guides/summary_manager.py to parse summary.md and return file descriptions list
+- [x] T051 [US3] Add topic_guide optional parameter to conduct_interview function in src/synth_lab/research/interview.py (ALREADY EXISTED from Phase 5)
+- [x] T052 [US3] Implement topic guide loading logic in src/synth_lab/research/interview.py: check if parameter provided, load context (ALREADY EXISTED from Phase 5)
+- [x] T053 [US3] Implement context integration in src/synth_lab/research/interview.py: add "Available Context Materials" section to LLM prompt with file descriptions (ALREADY EXISTED from Phase 5)
+- [x] T054 [US3] Add --topic-guide parameter to research interview CLI command in src/synth_lab/research/cli.py (ALREADY EXISTED from Phase 5)
+- [x] T055 [US3] Add error handling for missing topic guides: log warning if guide not found, continue interview without context (ALREADY EXISTED from Phase 5)
+- [x] T056 [US3] Add logging for topic guide integration in interview initialization (ALREADY EXISTED from Phase 5)
 
 **Checkpoint**: All user stories complete - full feature functional
 
@@ -148,15 +149,15 @@
 
 **Purpose**: Complete CLI interface and cross-cutting improvements
 
-- [ ] T057 [P] Create list_topic_guides command in src/synth_lab/topic_guides/cli.py with --verbose option
-- [ ] T058 [P] Create show_topic_guide command in src/synth_lab/topic_guides/cli.py with --name parameter to display guide details
-- [ ] T059 [P] Implement list logic in cli.py: scan data/topic_guides/, display names, optionally show file counts
-- [ ] T060 [P] Implement show logic in cli.py: load summary.md, display context and file descriptions with formatting
-- [ ] T061 [P] Add comprehensive unit tests for all utility functions in tests/topic_guides/unit/
+- [x] T057 [P] Create list_topic_guides command in src/synth_lab/topic_guides/cli.py with --verbose option
+- [x] T058 [P] Create show_topic_guide command in src/synth_lab/topic_guides/cli.py with --name parameter to display guide details
+- [x] T059 [P] Implement list logic in cli.py: scan data/topic_guides/, display names, optionally show file counts
+- [x] T060 [P] Implement show logic in cli.py: load summary.md, display context and file descriptions with formatting
+- [x] T061 [P] Add comprehensive unit tests for all utility functions in tests/topic_guides/unit/
 - [ ] T062 [P] Create example topic guide for testing and quickstart validation in data/topic_guides/example-guide/
 - [ ] T063 [P] Validate quickstart.md examples work correctly with implemented CLI commands
-- [ ] T064 [P] Add rich console formatting for CLI output (success ✓, warning ⚠, error ✗ symbols)
-- [ ] T065 [P] Add environment variable check for OPENAI_API_KEY in cli.py with helpful error message
+- [x] T064 [P] Add rich console formatting for CLI output (success ✓, warning ⚠, error ✗ symbols)
+- [x] T065 [P] Add environment variable check for OPENAI_API_KEY in cli.py with helpful error message
 - [ ] T066 Code review and refactoring: ensure functions are <30 lines, files <500 lines
 - [ ] T067 Performance optimization: profile hash computation and LLM calls to ensure performance targets met
 - [ ] T068 Security review: validate file path handling, prevent directory traversal
