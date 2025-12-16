@@ -50,8 +50,8 @@ def create_parser() -> argparse.ArgumentParser:
         "-n",
         "--quantidade",
         type=int,
-        default=1,
-        help="Número de synths a gerar (padrão: 1)",
+        default=0,
+        help="Número de synths NOVOS a gerar (0 = usar existentes com --avatar)",
     )
     gensynth_parser.add_argument(
         "-o",
@@ -89,6 +89,26 @@ def create_parser() -> argparse.ArgumentParser:
         "--individual-files",
         action="store_true",
         help="Salvar também em arquivos individuais (além do arquivo consolidado)",
+    )
+    gensynth_parser.add_argument(
+        "--avatar",
+        action="store_true",
+        help="Gerar avatares para os synths (requer API OpenAI)",
+    )
+    gensynth_parser.add_argument(
+        "-b",
+        "--blocks",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Número de blocos de avatares a gerar (1 bloco = 9 avatares)",
+    )
+    gensynth_parser.add_argument(
+        "--synth-ids",
+        type=str,
+        default=None,
+        metavar="ID1,ID2,...",
+        help="Gerar avatares para synths existentes (lista de IDs separados por vírgula)",
     )
 
     # research subcommand
@@ -164,8 +184,8 @@ def main():
 
         # Convert args to match original gen_synth.py interface
         sys.argv = ["synthlab gensynth"]
-        if args.quantidade:
-            sys.argv.extend(["-n", str(args.quantidade)])
+        # Always pass -n, even if 0 (to support auto-detect mode)
+        sys.argv.extend(["-n", str(args.quantidade)])
         if args.output:
             sys.argv.extend(["-o", args.output])
         if args.quiet:
@@ -182,6 +202,12 @@ def main():
             sys.argv.extend(["--analyze", args.analyze])
         if args.individual_files:
             sys.argv.append("--individual-files")
+        if args.avatar:
+            sys.argv.append("--avatar")
+        if args.blocks:
+            sys.argv.extend(["-b", str(args.blocks)])
+        if args.synth_ids:
+            sys.argv.extend(["--synth-ids", args.synth_ids])
 
         gensynth_cli_main()
 
