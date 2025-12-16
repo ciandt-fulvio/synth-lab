@@ -198,6 +198,52 @@ def write_summary(summary_file: SummaryFile) -> None:
     summary_file.path.write_text(content)
 
 
+def load_topic_guide_context(topic_guide_name: str, base_dir: Path | None = None) -> str:
+    """
+    Load topic guide context for use in interviews.
+
+    Parses summary.md and returns formatted file descriptions.
+
+    Args:
+        topic_guide_name: Name of the topic guide to load
+        base_dir: Base directory for topic guides (defaults to data/topic_guides/)
+
+    Returns:
+        Formatted string with file descriptions, or empty string if not found
+
+    Examples:
+        >>> context = load_topic_guide_context("amazon-ecommerce")
+        >>> "Available Context Materials:" in context
+        True
+    """
+    import os
+
+    if base_dir is None:
+        base_dir = Path(os.environ.get("TOPIC_GUIDES_DIR", "data/topic_guides"))
+
+    guide_path = base_dir / topic_guide_name
+    summary_path = guide_path / "summary.md"
+
+    if not summary_path.exists():
+        return ""
+
+    try:
+        summary_file = parse_summary(summary_path)
+
+        if not summary_file.file_descriptions:
+            return ""
+
+        # Format for LLM context
+        lines = ["Available Context Materials:"]
+        for desc in summary_file.file_descriptions:
+            lines.append(f"- {desc.filename}: {desc.description}")
+
+        return "\n".join(lines)
+
+    except Exception:
+        return ""
+
+
 if __name__ == "__main__":
     """Validation: Test summary file management with real files."""
     import sys
