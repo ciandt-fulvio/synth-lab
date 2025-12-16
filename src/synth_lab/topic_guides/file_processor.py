@@ -77,6 +77,231 @@ def compute_file_hash(file_path: Path) -> str:
     return md5_hash.hexdigest()
 
 
+def scan_directory(directory: Path) -> list[Path]:
+    """
+    Scan directory for all files, excluding summary.md.
+
+    Args:
+        directory: Path to the topic guide directory
+
+    Returns:
+        List of Path objects for all files except summary.md
+
+    Examples:
+        >>> files = scan_directory(Path("data/topic_guides/test"))
+        >>> "summary.md" in [f.name for f in files]
+        False
+    """
+    if not directory.exists():
+        return []
+
+    all_files = [f for f in directory.iterdir() if f.is_file()]
+    # Exclude summary.md
+    return [f for f in all_files if f.name != "summary.md"]
+
+
+def is_supported_type(file_path: Path) -> bool:
+    """
+    Check if file type is supported for documentation.
+
+    Args:
+        file_path: Path to the file to check
+
+    Returns:
+        True if file type is supported, False otherwise
+
+    Examples:
+        >>> is_supported_type(Path("image.png"))
+        True
+        >>> is_supported_type(Path("video.mp4"))
+        False
+    """
+    file_type = detect_file_type(file_path)
+    return file_type is not None
+
+
+def extract_pdf_text(pdf_path: Path, max_pages: int = 2) -> str:
+    """
+    Extract text preview from PDF file using pdfplumber.
+
+    Extracts text from first N pages for LLM summarization.
+
+    Args:
+        pdf_path: Path to PDF file
+        max_pages: Maximum number of pages to extract (default: 2)
+
+    Returns:
+        Extracted text string, or empty string on error
+
+    Examples:
+        >>> text = extract_pdf_text(Path("doc.pdf"))
+        >>> len(text) > 0
+        True
+    """
+    import pdfplumber
+
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            text_parts = []
+            for page_num, page in enumerate(pdf.pages[:max_pages]):
+                text = page.extract_text()
+                if text:
+                    text_parts.append(text)
+
+            return "\n\n".join(text_parts)
+    except Exception:
+        # Return empty string for corrupted/unreadable PDFs
+        return ""
+
+
+def encode_image_for_vision(image_path: Path) -> str:
+    """
+    Encode image file to base64 for OpenAI Vision API.
+
+    Args:
+        image_path: Path to PNG or JPEG image
+
+    Returns:
+        Base64 encoded string
+
+    Examples:
+        >>> encoded = encode_image_for_vision(Path("image.png"))
+        >>> len(encoded) > 0
+        True
+    """
+    import base64
+
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")
+
+
+def call_openai_api(
+    prompt: str, image_base64: str | None = None, api_key: str | None = None
+) -> str:
+    """
+    Call OpenAI API with retry logic and exponential backoff.
+
+    Uses gpt-4o-mini model with tenacity for retries.
+
+    Args:
+        prompt: Text prompt for the LLM
+        image_base64: Optional base64-encoded image for Vision API
+        api_key: OpenAI API key (uses OPENAI_API_KEY env var if not provided)
+
+    Returns:
+        LLM response text
+
+    Raises:
+        APIError: After max retries exhausted
+    """
+    import os
+
+    from openai import OpenAI
+    from tenacity import retry, stop_after_attempt, wait_exponential
+
+    # Get API key from parameter or environment
+    if api_key is None:
+        api_key = os.environ.get("OPENAI_API_KEY")
+
+    if not api_key:
+        raise ValueError("OpenAI API key not found. Set OPENAI_API_KEY environment variable.")
+
+    client = OpenAI(api_key=api_key)
+
+    @retry(
+        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10)
+    )
+    def _make_request():
+        if image_base64:
+            # Vision API call
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/png;base64,{image_base64}"},
+                            },
+                        ],
+                    }
+                ],
+                max_tokens=60,
+                temperature=0.2,
+            )
+        else:
+            # Text-only API call
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=60,
+                temperature=0.2,
+            )
+
+        return response.choices[0].message.content
+
+    return _make_request()
+
+
+def generate_file_description(file_path: Path, api_key: str | None = None) -> str | None:
+    """
+    Generate AI description for a file based on its type.
+
+    Routes to appropriate LLM prompt based on file type (image, PDF, text).
+
+    Args:
+        file_path: Path to the file to describe
+        api_key: Optional OpenAI API key
+
+    Returns:
+        Generated description, or None on API failure
+
+    Examples:
+        >>> desc = generate_file_description(Path("image.png"))
+        >>> isinstance(desc, str)
+        True
+    """
+    file_type = detect_file_type(file_path)
+
+    if not file_type:
+        return None
+
+    try:
+        if file_type in [FileType.PNG, FileType.JPEG]:
+            # Image description via Vision API
+            image_base64 = encode_image_for_vision(file_path)
+            prompt = (
+                "Describe this image in 1-2 sentences. Focus on what it shows, "
+                "its purpose, and key visible elements. Be concise and specific."
+            )
+            return call_openai_api(prompt, image_base64=image_base64, api_key=api_key)
+
+        elif file_type == FileType.PDF:
+            # PDF description via text extraction
+            text_preview = extract_pdf_text(file_path)
+            if not text_preview:
+                return "PDF document (content could not be extracted)"
+
+            prompt = (
+                f"Summarize this PDF content in 1-2 sentences:\n\n{text_preview[:2000]}"
+            )
+            return call_openai_api(prompt, api_key=api_key)
+
+        elif file_type in [FileType.MD, FileType.TXT]:
+            # Text/Markdown description
+            text_content = file_path.read_text()[:2000]  # First 2000 chars
+            prompt = f"Summarize this document in 1-2 sentences:\n\n{text_content}"
+            return call_openai_api(prompt, api_key=api_key)
+
+    except Exception:
+        # Return None on any API failure
+        return None
+
+    return None
+
+
 if __name__ == "__main__":
     """Validation: Test file processing functions with real files."""
     import sys

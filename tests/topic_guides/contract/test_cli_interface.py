@@ -130,5 +130,76 @@ class TestCreateCommand:
         # Typer typically shows usage/help on missing required params
 
 
+class TestUpdateCommand:
+    """Contract tests for 'synthlab topic-guide update' command."""
+
+    def test_update_command_success(self, tmp_path):
+        """
+        Test successful topic guide update via CLI.
+
+        Contract Requirements:
+        - Command: synthlab topic-guide update --name <name>
+        - Exit code: 0 on success
+        - Output: Summary of operations (files documented, skipped, failed)
+        """
+        data_dir = tmp_path / "data" / "topic_guides"
+        env = os.environ.copy()
+        env["TOPIC_GUIDES_DIR"] = str(data_dir)
+        env["OPENAI_API_KEY"] = "sk-test-key"  # Fake key for testing
+
+        # Create topic guide first
+        subprocess.run(
+            ["uv", "run", "python", "-m", "synth_lab", "topic-guide", "create", "--name", "test"],
+            env=env,
+        )
+
+        # Add a test file
+        (data_dir / "test" / "test.txt").write_text("Test content")
+
+        # Run update command
+        result = subprocess.run(
+            ["uv", "run", "python", "-m", "synth_lab", "topic-guide", "update", "--name", "test"],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+
+        assert result.returncode == 0, f"Command failed: {result.stderr}"
+        assert "Summary:" in result.stdout or "Updating" in result.stdout
+
+    def test_update_command_nonexistent_guide_fails(self, tmp_path):
+        """
+        Test updating non-existent topic guide returns error.
+
+        Contract Requirements:
+        - Exit code: 1 on topic guide not found
+        - Output: Error message with ✗ prefix
+        """
+        data_dir = tmp_path / "data" / "topic_guides"
+        env = os.environ.copy()
+        env["TOPIC_GUIDES_DIR"] = str(data_dir)
+
+        result = subprocess.run(
+            [
+                "uv",
+                "run",
+                "python",
+                "-m",
+                "synth_lab",
+                "topic-guide",
+                "update",
+                "--name",
+                "nonexistent",
+            ],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+
+        assert result.returncode == 1
+        output = result.stderr + result.stdout
+        assert "✗" in output or "not found" in output.lower()
+
+
 # Additional contract tests can be added as we implement more commands
-# (update, list, show) in future phases
+# (list, show) in future phases
