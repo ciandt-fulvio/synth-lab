@@ -19,8 +19,9 @@ Criar Synths representativos da população brasileira para:
 
 ### Interface CLI Moderna
 - 🎨 **Saída colorida e formatada** com biblioteca Rich
-- ⚡ **Comandos intuitivos**: `synthlab gensynth -n 100`, `synthlab listsynth`, `synthlab research`
+- ⚡ **Comandos intuitivos**: `synthlab gensynth -n 100`, `synthlab listsynth`, `synthlab research`, `synthlab topic-guide`
 - 🎤 **Entrevistas de UX simuladas** com LLMs conversando (interviewer + synth)
+- 📚 **Topic Guides com IA** - Organize materiais de contexto (imagens, PDFs, documentos) e gere descrições automáticas para entrevistas
 - 📊 **Benchmark integrado** para análise de performance
 - 🔇 **Modo silencioso** para integração em pipelines
 - ✅ **Validação e análise** de distribuições demográficas
@@ -144,14 +145,54 @@ uv run synthlab listsynth --full-query "SELECT nome, demografia.renda_mensal FRO
 
 > **Nota**: Use a notação de ponto (`.`) para acessar campos aninhados. Por exemplo: `demografia.idade`, `demografia.localizacao.regiao`, `capacidades_tecnologicas.alfabetizacao_digital`.
 
+#### Topic Guides (Materiais de Contexto)
+
+```bash
+# Criar novo topic guide
+uv run synthlab topic-guide create --name amazon-ecommerce
+
+# Adicionar arquivos ao diretório criado
+# Copie imagens, PDFs, documentos para data/topic_guides/amazon-ecommerce/
+cp screenshots/*.png data/topic_guides/amazon-ecommerce/
+cp documentation/*.pdf data/topic_guides/amazon-ecommerce/
+
+# Gerar descrições automáticas com IA
+uv run synthlab topic-guide update --name amazon-ecommerce
+
+# Forçar re-processamento de todos os arquivos
+uv run synthlab topic-guide update --name amazon-ecommerce --force
+
+# Listar todos os topic guides
+uv run synthlab topic-guide list
+
+# Listar com detalhes (contagem de arquivos, paths)
+uv run synthlab topic-guide list --verbose
+
+# Visualizar conteúdo de um guide
+uv run synthlab topic-guide show --name amazon-ecommerce
+```
+
+**Tipos de arquivos suportados:**
+- Imagens: PNG, JPEG (via OpenAI Vision API)
+- Documentos: PDF, Markdown (.md), Text (.txt)
+
+**Funcionamento:**
+1. `create` - Cria diretório e arquivo `summary.md` inicial
+2. Adicione manualmente arquivos ao diretório criado
+3. `update` - Escaneia arquivos e gera descrições com gpt-4o-mini (~$0.000054/arquivo)
+4. Hash-based change detection: apenas arquivos novos/modificados são reprocessados
+5. Descrições salvas em `summary.md` para uso nas entrevistas
+
+> **Nota**: Requer `OPENAI_API_KEY` configurada. As descrições são geradas automaticamente e ajudam o LLM entrevistador a ter contexto sobre materiais visuais durante entrevistas.
+
 #### Entrevistas de Pesquisa UX
 
 ```bash
 # Realizar entrevista com um synth
 uv run synthlab research abc123
 
-# Entrevista com guia de tópicos
-uv run synthlab research abc123 --topic-guide data/topic_guides/ecommerce-mobile.md
+# Entrevista com topic guide (materiais de contexto)
+uv run synthlab research abc123 --topic-guide amazon-ecommerce
 
 # Personalizar configurações
 uv run synthlab research abc123 \
@@ -422,14 +463,22 @@ Veja o notebook `first-lab.ipynb` para exemplos de análise exploratória dos Sy
 
 ### Casos de Uso
 
-**1. Pesquisa UX Qualitativa**
+**1. Pesquisa UX Qualitativa com Topic Guides**
 ```bash
-# Entrevista sobre e-commerce com synth específico
-uv run synthlab research fhynws --topic-guide data/topic_guides/compra-amazon.md
+# Criar topic guide com materiais de contexto
+uv run synthlab topic-guide create --name mobile-banking
+cp screens/*.png data/topic_guides/mobile-banking/
+cp user-flows/*.pdf data/topic_guides/mobile-banking/
+
+# Gerar descrições automáticas das telas e documentos
+uv run synthlab topic-guide update --name mobile-banking
+
+# Entrevista com contexto visual (LLM vê descrições das imagens)
+uv run synthlab research abc123 --topic-guide mobile-banking
 
 # Múltiplas entrevistas para saturação de dados
 for synth_id in abc123 xyz789 def456; do
-  uv run synthlab research $synth_id --topic-guide data/topic_guides/mobile-app.md
+  uv run synthlab research $synth_id --topic-guide mobile-banking
 done
 
 # Análise de transcrições (Python)
