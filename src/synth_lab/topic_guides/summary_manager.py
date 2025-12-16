@@ -98,13 +98,13 @@ def parse_summary(summary_path: Path) -> SummaryFile:
     if file_desc_match:
         file_desc_section = file_desc_match.group(1)
 
-        # Pattern: - **filename** (hash: abc123...)
+        # Pattern: - **filename** (hash: full_hash_string)
         #            Description text
-        pattern = r"- \*\*(.+?)\*\* \(hash: (.+?)\)\n  (.+?)(?=\n- \*\*|\Z)"
+        pattern = r"- \*\*(.+?)\*\* \(hash: ([a-f0-9]+)\)\n  (.+?)(?=\n- \*\*|\Z)"
 
         for match in re.finditer(pattern, file_desc_section, re.DOTALL):
             filename = match.group(1)
-            content_hash = match.group(2).rstrip(".")  # Remove trailing dots
+            content_hash = match.group(2)  # Full MD5 hash (32 chars)
             description = match.group(3).strip()
 
             file_descriptions.append(
@@ -130,7 +130,8 @@ def add_file_description(
     """
     Add or update file description in the summary file.
 
-    If a description for the same filename already exists, it's replaced.
+    If a description for the same filename AND different hash exists, it's replaced.
+    If a description for the same filename AND same hash exists, skip (no update needed).
     Otherwise, the new description is appended.
 
     Args:
@@ -147,11 +148,14 @@ def add_file_description(
     # Check if description for this filename already exists
     for i, existing_desc in enumerate(summary_file.file_descriptions):
         if existing_desc.filename == file_description.filename:
-            # Replace existing description
+            # If hash is the same, don't update (file unchanged)
+            if existing_desc.content_hash == file_description.content_hash:
+                return
+            # If hash is different, replace (file was modified)
             summary_file.file_descriptions[i] = file_description
             return
 
-    # Add new description
+    # Add new description (new file)
     summary_file.file_descriptions.append(file_description)
 
 

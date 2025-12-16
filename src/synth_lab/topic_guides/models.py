@@ -80,11 +80,13 @@ class FileDescription:
         """
         Convert to markdown format for summary.md FILE DESCRIPTION section.
 
+        Stores full hash for accurate change detection, displays first 8 chars for readability.
+
         Returns:
             Markdown string with filename, hash, and description
         """
         lines = [
-            f"- **{self.filename}** (hash: {self.content_hash[:8]}...)",
+            f"- **{self.filename}** (hash: {self.content_hash})",
             f"  {self.description}",
         ]
         return "\n".join(lines)
