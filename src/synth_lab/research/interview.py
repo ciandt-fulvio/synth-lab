@@ -6,27 +6,45 @@ This module handles:
 - OpenAI client wrapping with structured outputs
 - Conversation turn execution
 - Main interview loop
+- Function calling for dynamic image loading (when topic guide provided)
 
 Functions:
 - load_synth(): Load synth by ID from JSON
 - validate_synth_exists(): Check if synth exists
-- conversation_turn(): Execute single LLM call
+- load_image_for_analysis(): Load and base64-encode images for Vision API
+- conversation_turn(): Execute single LLM call (supports function calling)
 - run_interview(): Main interview loop
+
+Function Calling:
+When a topic guide is provided (not .md file), the system:
+- Loads context description and file descriptions
+- Enables load_image_for_analysis tool for LLM
+- LLM can request to see actual images during interview
+- Images are base64-encoded and sent to Vision API
+- Allows visual analysis beyond text descriptions
 
 Sample usage:
     from synth_lab.research.interview import run_interview
 
-    session, messages = run_interview(
+    # Run interview with topic guide (required)
+    session, messages, synth = run_interview(
         synth_id="abc123",
-        topic_guide_path=None,
+        topic_guide_name="compra-amazon",
         max_rounds=10
     )
 
+    # Topic guide must contain:
+    # - script.json: Interview questions
+    # - summary.md: Context and file descriptions
+    # - Files referenced in summary.md
+
 Expected output:
-    InterviewSession and list of Message objects
+    (InterviewSession, list[Message], dict) tuple
 
 Third-party Documentation:
 - OpenAI Python SDK: https://github.com/openai/openai-python
+- Function Calling: https://platform.openai.com/docs/guides/function-calling
+- Vision API: https://platform.openai.com/docs/guides/vision
 """
 
 import json
@@ -50,9 +68,21 @@ from synth_lab.research.models import (
     Speaker,
 )
 from synth_lab.research.prompts import build_interviewer_prompt, build_synth_prompt, load_topic_guide
+from synth_lab.topic_guides.summary_manager import load_topic_guide_context
+import base64
+import os
+import json
+import openai
+from pydantic import BaseModel
 
 console = Console()
 SYNTHS_FILE = Path("data/synths/synths.json")
+
+
+# Pydantic model for load_image_for_analysis tool parameters
+class LoadImageParams(BaseModel):
+    """Parameters for loading an image from topic guide."""
+    filename: str
 
 
 def load_synth(synth_id: str) -> dict | None:
@@ -88,11 +118,43 @@ def validate_synth_exists(synth_id: str) -> bool:
     return load_synth(synth_id) is not None
 
 
+def load_image_for_analysis(filename: str, topic_guide_name: str) -> str | None:
+    """
+    Load image file and encode to base64 for Vision API.
+
+    Args:
+        filename: Name of the image file (e.g., '01_homepage.PNG')
+        topic_guide_name: Name of the topic guide directory
+
+    Returns:
+        Base64-encoded image data or None if file not found
+
+    Raises:
+        FileNotFoundError: If image file doesn't exist
+    """
+    base_dir = Path(os.environ.get("TOPIC_GUIDES_DIR", "data/topic_guides"))
+    guide_path = base_dir / topic_guide_name
+    image_path = guide_path / filename
+
+    if not image_path.exists():
+        logger.error(f"Image not found: {image_path}")
+        raise FileNotFoundError(f"Image file '{filename}' not found in topic guide '{topic_guide_name}'")
+
+    # Read and encode image
+    with open(image_path, "rb") as f:
+        image_data = base64.b64encode(f.read()).decode('utf-8')
+
+    logger.info(f"Loaded image: {filename} ({len(image_data)} bytes base64)")
+    return image_data
+
+
 def conversation_turn(
     client: OpenAI,
     messages: list[dict],
     system_prompt: str,
     model: str = "gpt-4o",
+    tools: list[dict] | None = None,
+    topic_guide_name: str | None = None,
 ) -> InterviewResponse:
     """
     Execute single conversation turn with LLM.
@@ -102,6 +164,8 @@ def conversation_turn(
         messages: Conversation history
         system_prompt: System prompt for this participant
         model: Model name to use
+        tools: Optional list of function calling tools
+        topic_guide_name: Topic guide name (required if tools provided)
 
     Returns:
         Parsed InterviewResponse from LLM
@@ -109,11 +173,86 @@ def conversation_turn(
     Raises:
         Exception: If API call fails
     """
-    completion = client.beta.chat.completions.parse(
-        model=model,
-        messages=[{"role": "system", "content": system_prompt}] + messages,
-        response_format=InterviewResponse,
-    )
+    # Build API call parameters
+    api_params = {
+        "model": model,
+        "messages": [{"role": "system", "content": system_prompt}] + messages,
+        "response_format": InterviewResponse,
+    }
+
+    # Add tools if provided
+    if tools:
+        api_params["tools"] = tools
+
+    completion = client.beta.chat.completions.parse(**api_params)
+
+    # Handle tool calls if present
+    message = completion.choices[0].message
+
+    # If LLM requested tool calls, execute them
+    if hasattr(message, 'tool_calls') and message.tool_calls:
+        logger.info(f"LLM requested {len(message.tool_calls)} tool calls")
+
+        # Add assistant's message with tool calls to history
+        messages.append({
+            "role": "assistant",
+            "content": message.content or "",
+            "tool_calls": [
+                {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {
+                        "name": tc.function.name,
+                        "arguments": tc.function.arguments
+                    }
+                }
+                for tc in message.tool_calls
+            ]
+        })
+
+        # Execute each tool call
+        for tool_call in message.tool_calls:
+            function_name = tool_call.function.name
+
+            # With pydantic_function_tool, arguments are already parsed
+            if hasattr(tool_call.function, 'parsed_arguments') and tool_call.function.parsed_arguments:
+                function_args = tool_call.function.parsed_arguments
+            else:
+                # Fallback to parsing JSON if not using pydantic_function_tool
+                function_args = json.loads(tool_call.function.arguments)
+
+            logger.info(f"Executing tool: {function_name} with args: {function_args}")
+
+            # Execute the function
+            if function_name == "load_image_for_analysis":
+                try:
+                    # Get filename from parsed arguments (Pydantic model) or dict
+                    filename = function_args.filename if isinstance(function_args, LoadImageParams) else function_args["filename"]
+
+                    image_data = load_image_for_analysis(
+                        filename=filename,
+                        topic_guide_name=topic_guide_name
+                    )
+                    # Add tool response to messages
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": f"Image loaded successfully. Base64 data: data:image/png;base64,{image_data[:100]}... (truncated)"
+                    })
+                except Exception as e:
+                    logger.error(f"Tool call failed: {e}")
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": f"Error loading image: {str(e)}"
+                    })
+
+        # Make another API call to get the final response
+        completion = client.beta.chat.completions.parse(
+            model=model,
+            messages=[{"role": "system", "content": system_prompt}] + messages,
+            response_format=InterviewResponse,
+        )
 
     return completion.choices[0].message.parsed
 
@@ -196,16 +335,16 @@ Duração: {minutes}m {seconds}s
 
 def run_interview(
     synth_id: str,
-    topic_guide_path: str | None = None,
+    topic_guide_name: str,
     max_rounds: int = 10,
     model: str = "gpt-4o",
 ) -> tuple[InterviewSession, list[Message], dict]:
     """
-    Execute complete interview loop.
+    Execute complete interview loop with topic guide script.
 
     Args:
         synth_id: ID of synth to interview
-        topic_guide_path: Optional path to topic guide
+        topic_guide_name: Name of topic guide (required)
         max_rounds: Maximum conversation rounds
         model: LLM model to use
 
@@ -214,7 +353,7 @@ def run_interview(
 
     Raises:
         ValueError: If synth not found or OPENAI_API_KEY missing
-        FileNotFoundError: If topic guide not found
+        FileNotFoundError: If topic guide, script.json, or summary.md not found
     """
     # Validate API key
     if not os.getenv("OPENAI_API_KEY"):
@@ -225,16 +364,49 @@ def run_interview(
     if not synth:
         raise ValueError(f"Synth with ID '{synth_id}' not found")
 
-    # Load topic guide if provided
-    topic_guide_content = None
-    if topic_guide_path:
-        topic_guide_content = load_topic_guide(topic_guide_path)
+    # Load topic guide (required)
+    base_dir = Path(os.environ.get("TOPIC_GUIDES_DIR", "data/topic_guides"))
+    topic_dir = base_dir / topic_guide_name
+
+    # Validate topic guide directory
+    if not topic_dir.exists():
+        raise FileNotFoundError(f"Topic guide directory not found: {topic_dir}")
+
+    # Load script.json
+    script_path = topic_dir / "script.json"
+    if not script_path.exists():
+        raise FileNotFoundError(f"script.json not found in topic guide: {script_path}")
+
+    with open(script_path, encoding="utf-8") as f:
+        interview_script = json.load(f)
+
+    # Validate script structure
+    if not isinstance(interview_script, list):
+        raise ValueError(f"script.json must be a list of questions")
+
+    for item in interview_script:
+        if "id" not in item or "ask" not in item:
+            raise ValueError(f"Each question in script.json must have 'id' and 'ask' fields")
+
+    logger.info(f"Loaded interview script with {len(interview_script)} questions")
+
+    # Load topic guide context (summary.md + file descriptions)
+    topic_guide_content = load_topic_guide_context(topic_guide_name)
+
+    # Define tools for loading images using pydantic_function_tool
+    tools = [
+        openai.pydantic_function_tool(
+            LoadImageParams,
+            name="load_image_for_analysis",
+            description="Load an image file from the topic guide to view it visually. Use this when you need to see the actual image content, not just the text description."
+        )
+    ]
 
     # Initialize session
     session = InterviewSession(
         id=str(uuid4()),
         synth_id=synth_id,
-        topic_guide_path=topic_guide_path,
+        topic_guide_path=topic_guide_name,  # Store topic guide name
         max_rounds=max_rounds,
         start_time=datetime.now(timezone.utc),
         status=SessionStatus.IN_PROGRESS,
@@ -245,8 +417,10 @@ def run_interview(
     display_interview_header(synth)
 
     # Build system prompts
-    interviewer_prompt = build_interviewer_prompt(topic_guide_content)
-    synth_prompt = build_synth_prompt(synth)
+    # Interviewer gets the script (questions to ask)
+    interviewer_prompt = build_interviewer_prompt(interview_script)
+    # Synth gets the context (materials to reference)
+    synth_prompt = build_synth_prompt(synth, topic_guide_content)
 
     # Initialize OpenAI client
     client = OpenAI()
@@ -263,7 +437,8 @@ def run_interview(
             # Interviewer turn
             with console.status(f"[blue]Entrevistador pensando... (turno {round_number})", spinner="dots"):
                 interviewer_response = conversation_turn(
-                    client, conversation_history, interviewer_prompt, model
+                    client, conversation_history, interviewer_prompt, model,
+                    tools=tools, topic_guide_name=topic_guide_name
                 )
 
             # Display and record
@@ -288,7 +463,8 @@ def run_interview(
             # Synth turn
             with console.status(f"[green]{synth['nome']} pensando...", spinner="dots"):
                 synth_response = conversation_turn(
-                    client, conversation_history, synth_prompt, model
+                    client, conversation_history, synth_prompt, model,
+                    tools=tools, topic_guide_name=topic_guide_name
                 )
 
             # Display and record

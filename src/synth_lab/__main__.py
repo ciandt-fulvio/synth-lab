@@ -121,10 +121,9 @@ def create_parser() -> argparse.ArgumentParser:
         help="ID do synth a ser entrevistado (6 caracteres)",
     )
     research_parser.add_argument(
-        "-t",
-        "--topic-guide",
+        "topic_guide_name",
         type=str,
-        help="Caminho para arquivo de guia de tópicos",
+        help="Nome do topic guide (ex: compra-amazon)",
     )
     research_parser.add_argument(
         "-r",
@@ -148,13 +147,23 @@ def create_parser() -> argparse.ArgumentParser:
         help="Diretório para salvar transcrição (padrão: data/transcripts)",
     )
 
+    # topic-guide subcommand
+    # topic-guide has its own Typer sub-app with multiple commands (create, update, list, show)
+    # We use parse_known_args to pass remaining args to Typer
+    subparsers.add_parser(
+        "topic-guide", help="Manage topic guides with multi-modal context materials",
+        add_help=False  # Let Typer handle --help
+    )
+
     return parser
 
 
 def main():
     """Main CLI entry point."""
     parser = create_parser()
-    args = parser.parse_args()
+
+    # Use parse_known_args to handle topic-guide's sub-commands
+    args, unknown_args = parser.parse_known_args()
 
     # If no command specified, show help
     if not args.command:
@@ -217,9 +226,7 @@ def main():
         from synth_lab.research.cli import app as research_app
 
         # Convert args to match Typer interface
-        sys.argv = ["synthlab research", args.synth_id]
-        if args.topic_guide:
-            sys.argv.extend(["--topic-guide", args.topic_guide])
+        sys.argv = ["synthlab research", args.synth_id, args.topic_guide_name]
         if args.max_rounds:
             sys.argv.extend(["--max-rounds", str(args.max_rounds)])
         if args.model:
@@ -228,6 +235,16 @@ def main():
             sys.argv.extend(["--output", args.output])
 
         research_app()
+
+    # Handle topic-guide command
+    if args.command == "topic-guide":
+        # Import here to avoid circular imports and speed up --help
+        from synth_lab.topic_guides.cli import app as topic_guide_app
+
+        # Typer will handle all subcommands (create, update, list, show)
+        # Reset sys.argv to pass remaining args to Typer
+        sys.argv = ["synthlab topic-guide"] + unknown_args
+        topic_guide_app()
 
 
 if __name__ == "__main__":
