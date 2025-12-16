@@ -302,6 +302,46 @@ def generate_file_description(file_path: Path, api_key: str | None = None) -> st
     return None
 
 
+def generate_context_overview(file_descriptions: list[str], api_key: str | None = None) -> str | None:
+    """
+    Generate contextual overview based on all file descriptions in the topic guide.
+
+    Analyzes all file descriptions and creates a 2-3 sentence summary of what
+    the topic guide is about, what materials are included, and their purpose.
+
+    Args:
+        file_descriptions: List of individual file descriptions
+        api_key: Optional OpenAI API key
+
+    Returns:
+        Generated context overview, or None on API failure
+
+    Examples:
+        >>> descriptions = ["Screenshot of homepage", "PDF user manual", "Wireframe mockup"]
+        >>> overview = generate_context_overview(descriptions)
+        >>> isinstance(overview, str)
+        True
+    """
+    if not file_descriptions:
+        return ""
+
+    try:
+        # Build prompt with all file descriptions
+        files_list = "\n".join(f"- {desc}" for desc in file_descriptions)
+        prompt = (
+            f"Based on these files, write a 2-3 sentence overview describing what this "
+            f"topic guide is about, what materials are included, and their purpose:\n\n"
+            f"{files_list}\n\n"
+            f"Be concise and focus on the overall context and purpose."
+        )
+
+        return call_openai_api(prompt, api_key=api_key)
+
+    except Exception:
+        # Return None on any API failure
+        return None
+
+
 if __name__ == "__main__":
     """Validation: Test file processing functions with real files."""
     import sys
