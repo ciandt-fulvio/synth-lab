@@ -50,6 +50,7 @@ from synth_lab.research.models import (
     Speaker,
 )
 from synth_lab.research.prompts import build_interviewer_prompt, build_synth_prompt, load_topic_guide
+from synth_lab.topic_guides.summary_manager import load_topic_guide_context
 
 console = Console()
 SYNTHS_FILE = Path("data/synths/synths.json")
@@ -228,7 +229,13 @@ def run_interview(
     # Load topic guide if provided
     topic_guide_content = None
     if topic_guide_path:
-        topic_guide_content = load_topic_guide(topic_guide_path)
+        # Check if it's a .md file (old style) or topic guide name (new style)
+        if topic_guide_path.endswith('.md'):
+            # Legacy: load markdown file directly
+            topic_guide_content = load_topic_guide(topic_guide_path)
+        else:
+            # New: load topic guide context with AI-generated descriptions
+            topic_guide_content = load_topic_guide_context(topic_guide_path)
 
     # Initialize session
     session = InterviewSession(
