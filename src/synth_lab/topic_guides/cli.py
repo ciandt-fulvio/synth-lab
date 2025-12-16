@@ -204,6 +204,7 @@ def update_command(
 
     from synth_lab.topic_guides.file_processor import (
         compute_file_hash,
+        generate_context_overview,
         generate_file_description,
         is_supported_type,
         scan_directory,
@@ -321,6 +322,19 @@ def update_command(
                 add_file_description(summary_file, file_desc)
                 console.print(f"  ⚠ {filename} - processing error (placeholder added)", style="yellow")
                 failed_count += 1
+
+        # Generate contextual overview based on all file descriptions
+        if summary_file.file_descriptions:
+            console.print("\nGenerating contextual overview...")
+            all_descriptions = [desc.description for desc in summary_file.file_descriptions if not desc.is_placeholder]
+
+            if all_descriptions:
+                context_overview = generate_context_overview(all_descriptions, api_key=api_key)
+                if context_overview:
+                    summary_file.context_description = context_overview
+                    console.print("  ✓ Context overview generated", style="green")
+                else:
+                    console.print("  ⚠ Context overview generation failed", style="yellow")
 
         # Write updated summary
         write_summary(summary_file)
