@@ -21,10 +21,7 @@ Expected Output:
             "amabilidade": 58,
             "neuroticismo": 42
         },
-        "valores": ["honestidade", "família", "liberdade"],  # Exatamente 3
         "interesses": ["tecnologia", "esportes"],  # 1-4 itens, correlacionado com abertura
-        "hobbies": ["leitura", "corrida", "violão"],  # 3-4 itens
-        "estilo_vida": "",  # Derivado posteriormente
         "inclinacao_politica": 45,  # Correlacionado com religião
         "inclinacao_religiosa": "católico"  # Católicos/evangélicos tendem à direita
     }
@@ -63,7 +60,7 @@ def generate_psychographics(
     big_five: dict[str, int], config_data: dict[str, Any]
 ) -> dict[str, Any]:
     """
-    Gera atributos psicográficos (valores, interesses, hobbies, política, religião).
+    Gera atributos psicográficos (interesses, política, religião).
 
     Correlações implementadas:
     - Católicos e evangélicos têm maior probabilidade de serem de direita
@@ -79,9 +76,6 @@ def generate_psychographics(
     ibge = config_data["ibge"]
     interests = config_data["interests_hobbies"]
 
-    # Valores (exatamente 3 itens)
-    valores = random.sample(interests["valores"], k=3)
-
     # Interesses (1-4 itens, correlacionados com abertura)
     # Abertura baixa (0-40): 1-2 interesses
     # Abertura média (41-70): 2-3 interesses
@@ -94,10 +88,6 @@ def generate_psychographics(
         num_interesses = random.randint(3, 4)
 
     interesses_list = random.sample(interests["interesses"], k=num_interesses)
-
-    # Hobbies (3-4 itens, garantindo unicidade conforme schema minItems: 3)
-    num_hobbies = random.randint(3, 4)
-    hobbies = list(set(random.sample(interests["hobbies"], k=num_hobbies)))
 
     # Inclinação religiosa primeiro (afeta política)
     inclinacao_religiosa = weighted_choice(ibge["religiao"])
@@ -133,10 +123,7 @@ def generate_psychographics(
 
     return {
         "personalidade_big_five": big_five,
-        "valores": valores,
         "interesses": interesses_list,
-        "hobbies": hobbies,
-        "estilo_vida": "",  # Será derivado depois
         "inclinacao_politica": inclinacao_politica,
         "inclinacao_religiosa": inclinacao_religiosa,
     }
@@ -194,14 +181,10 @@ if __name__ == "__main__":
 
         if "personalidade_big_five" not in psycho:
             all_validation_failures.append("Psychographics missing personalidade_big_five")
-        if "valores" not in psycho or len(psycho["valores"]) != 3:
-            all_validation_failures.append(f"Psychographics valores should be exactly 3: {psycho.get('valores')}")
         if "interesses" not in psycho or len(psycho["interesses"]) < 1 or len(psycho["interesses"]) > 4:
             all_validation_failures.append(
                 f"Psychographics interesses should be 1-4: {psycho.get('interesses')}"
             )
-        if "hobbies" not in psycho or len(psycho["hobbies"]) < 3:
-            all_validation_failures.append(f"Psychographics hobbies invalid: {psycho.get('hobbies')}")
         if "inclinacao_politica" not in psycho:
             all_validation_failures.append("Psychographics missing inclinacao_politica")
         elif not (-100 <= psycho["inclinacao_politica"] <= 100):
@@ -310,22 +293,9 @@ if __name__ == "__main__":
             psycho = generate_psychographics(big_five, config)
 
             # Verify all required fields
-            if len(psycho["valores"]) != 3:
-                batch_errors.append(
-                    f"Batch {i}: valores should be exactly 3: {len(psycho['valores'])}"
-                )
             if len(psycho["interesses"]) < 1 or len(psycho["interesses"]) > 4:
                 batch_errors.append(
                     f"Batch {i}: interesses should be 1-4: {len(psycho['interesses'])}"
-                )
-            if len(psycho["hobbies"]) < 3 or len(psycho["hobbies"]) > 4:
-                batch_errors.append(
-                    f"Batch {i}: hobbies count out of range: {len(psycho['hobbies'])}"
-                )
-            # Verify hobbies are unique
-            if len(psycho["hobbies"]) != len(set(psycho["hobbies"])):
-                batch_errors.append(
-                    f"Batch {i}: hobbies has duplicates: {psycho['hobbies']}"
                 )
             if not (-100 <= psycho["inclinacao_politica"] <= 100):
                 batch_errors.append(
