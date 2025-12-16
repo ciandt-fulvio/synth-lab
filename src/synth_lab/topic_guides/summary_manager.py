@@ -238,7 +238,16 @@ def load_topic_guide_context(topic_guide_name: str, base_dir: Path | None = None
             return ""
 
         # Format for LLM context
-        lines = ["Available Context Materials:"]
+        lines = []
+
+        # Add context overview if available
+        if summary_file.context_description:
+            lines.append("CONTEXT OVERVIEW:")
+            lines.append(summary_file.context_description)
+            lines.append("")  # Blank line for readability
+
+        # Add file descriptions
+        lines.append("Available Context Materials:")
         for desc in summary_file.file_descriptions:
             lines.append(f"- {desc.filename}: {desc.description}")
 
