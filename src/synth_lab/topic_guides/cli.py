@@ -185,14 +185,165 @@ def create_command(
 @app.command("update")
 def update_command(
     name: str = typer.Option(..., "--name", help="Name of the topic guide to update"),
+    force: bool = typer.Option(
+        False, "--force", help="Re-process all files even if unchanged"
+    ),
 ) -> None:
     """
-    Update topic guide with AI descriptions for files (Phase 4 - Not yet implemented).
+    Update topic guide with AI descriptions for files.
 
-    Scans the topic guide directory for new/modified files and generates AI descriptions.
+    Scans the topic guide directory for new/modified files and generates AI descriptions
+    using OpenAI's gpt-4o-mini model.
+
+    Examples:
+        synthlab topic-guide update --name amazon-ecommerce
+        synthlab topic-guide update --name mobile-study --force
     """
-    console.print("⚠ Command 'update' will be implemented in Phase 4", style="yellow")
-    sys.exit(0)
+    import os
+    from datetime import datetime
+
+    from synth_lab.topic_guides.file_processor import (
+        compute_file_hash,
+        generate_file_description,
+        is_supported_type,
+        scan_directory,
+    )
+    from synth_lab.topic_guides.models import FileDescription
+    from synth_lab.topic_guides.summary_manager import (
+        add_file_description,
+        has_file,
+        parse_summary,
+        write_summary,
+    )
+
+    try:
+        # Check if topic guide exists
+        base_dir = get_base_dir()
+        guide_path = base_dir / name
+
+        if not guide_path.exists():
+            console.print(
+                f"✗ Error: Topic guide '[cyan]{name}[/cyan]' not found", style="red"
+            )
+            console.print(
+                f"  Create it first: [bold]synthlab topic-guide create --name {name}[/bold]"
+            )
+            sys.exit(1)
+
+        # Check for OPENAI_API_KEY
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            console.print("✗ Error: OpenAI API key not found", style="red")
+            console.print("  Set OPENAI_API_KEY environment variable")
+            sys.exit(1)
+
+        console.print(f"Updating topic guide '[cyan]{name}[/cyan]'...\n")
+        logger.info(f"Starting update for topic guide: {guide_path}")
+
+        # Load summary.md
+        summary_path = guide_path / "summary.md"
+        summary_file = parse_summary(summary_path)
+
+        # Scan directory for files
+        files = scan_directory(guide_path)
+        logger.info(f"Found {len(files)} files in directory")
+
+        # Track statistics
+        documented_count = 0
+        unchanged_count = 0
+        skipped_count = 0
+        failed_count = 0
+        unsupported_files = []
+
+        console.print("Processing files:")
+
+        # Process each file
+        for file_path in files:
+            filename = file_path.name
+
+            # Check if supported type
+            if not is_supported_type(file_path):
+                console.print(f"  ⚠ {filename} - unsupported file type (skipped)", style="yellow")
+                unsupported_files.append(filename)
+                skipped_count += 1
+                continue
+
+            # Compute hash
+            try:
+                content_hash = compute_file_hash(file_path)
+            except Exception as e:
+                logger.error(f"Failed to compute hash for {filename}: {e}")
+                console.print(f"  ⚠ {filename} - corrupted file (skipped)", style="yellow")
+                skipped_count += 1
+                continue
+
+            # Check if file already documented with same hash
+            if not force and has_file(summary_file, content_hash):
+                console.print(f"  ⊘ {filename} - unchanged (skipped)")
+                unchanged_count += 1
+                continue
+
+            # Generate description via LLM
+            try:
+                description = generate_file_description(file_path, api_key=api_key)
+
+                if description is None:
+                    # API failure - add placeholder
+                    description = "API failure - manual documentation needed"
+                    is_placeholder = True
+                    console.print(f"  ⚠ {filename} - API failure (placeholder added)", style="yellow")
+                    failed_count += 1
+                else:
+                    is_placeholder = False
+                    console.print(f"  ✓ {filename} - described successfully", style="green")
+                    documented_count += 1
+
+                # Add to summary
+                file_desc = FileDescription(
+                    filename=filename,
+                    content_hash=content_hash,
+                    description=description,
+                    generated_at=datetime.now(),
+                    is_placeholder=is_placeholder,
+                )
+                add_file_description(summary_file, file_desc)
+
+            except Exception as e:
+                logger.error(f"Failed to process {filename}: {e}")
+                # Add placeholder on error
+                file_desc = FileDescription(
+                    filename=filename,
+                    content_hash=content_hash,
+                    description="Error during processing - manual documentation needed",
+                    generated_at=datetime.now(),
+                    is_placeholder=True,
+                )
+                add_file_description(summary_file, file_desc)
+                console.print(f"  ⚠ {filename} - processing error (placeholder added)", style="yellow")
+                failed_count += 1
+
+        # Write updated summary
+        write_summary(summary_file)
+        logger.info(f"Updated summary file: {summary_path}")
+
+        # Display summary
+        console.print(f"\n[bold]Summary:[/bold]")
+        if documented_count > 0:
+            console.print(f"  - {documented_count} file(s) documented", style="green")
+        if unchanged_count > 0:
+            console.print(f"  - {unchanged_count} file(s) unchanged")
+        if skipped_count > 0:
+            console.print(f"  - {skipped_count} file(s) skipped (unsupported/corrupted)", style="yellow")
+        if failed_count > 0:
+            console.print(f"  - {failed_count} file(s) failed (placeholders added)", style="yellow")
+
+        console.print(f"\nUpdated: [cyan]{summary_path}[/cyan]")
+        sys.exit(0)
+
+    except Exception as e:
+        logger.error(f"Update command failed: {e}")
+        console.print(f"✗ Error: {e}", style="red")
+        sys.exit(1)
 
 
 @app.command("list")

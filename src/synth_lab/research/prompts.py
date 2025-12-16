@@ -141,6 +141,7 @@ INTERESSES: {", ".join(interesses) if interesses else "Vários"}
 SEU COMPORTAMENTO NA ENTREVISTA:
 - Responda como {nome} responderia baseado em sua personalidade
 - Use linguagem natural e informal típica de pessoas da sua idade e região
+	-> Formalidade; Extensão; Densidade; Complexidade; Tom relacional
 - Seus interesses, valores e experiências influenciam suas respostas
 - Demonstre emoções e reações consistentes com seu perfil psicológico
 

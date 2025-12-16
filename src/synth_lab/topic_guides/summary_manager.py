@@ -124,6 +124,58 @@ def parse_summary(summary_path: Path) -> SummaryFile:
     )
 
 
+def add_file_description(
+    summary_file: SummaryFile, file_description: FileDescription
+) -> None:
+    """
+    Add or update file description in the summary file.
+
+    If a description for the same filename already exists, it's replaced.
+    Otherwise, the new description is appended.
+
+    Args:
+        summary_file: SummaryFile object to modify
+        file_description: FileDescription to add or update
+
+    Examples:
+        >>> summary = SummaryFile(...)
+        >>> desc = FileDescription(...)
+        >>> add_file_description(summary, desc)
+        >>> len(summary.file_descriptions) > 0
+        True
+    """
+    # Check if description for this filename already exists
+    for i, existing_desc in enumerate(summary_file.file_descriptions):
+        if existing_desc.filename == file_description.filename:
+            # Replace existing description
+            summary_file.file_descriptions[i] = file_description
+            return
+
+    # Add new description
+    summary_file.file_descriptions.append(file_description)
+
+
+def has_file(summary_file: SummaryFile, content_hash: str) -> bool:
+    """
+    Check if file with matching content hash exists in summary.
+
+    Used to skip unchanged files during update.
+
+    Args:
+        summary_file: SummaryFile object to check
+        content_hash: MD5 hash of file content
+
+    Returns:
+        True if file with this hash is already documented
+
+    Examples:
+        >>> summary = SummaryFile(...)
+        >>> has_file(summary, "abc123")
+        False
+    """
+    return summary_file.get_description_by_hash(content_hash) is not None
+
+
 def write_summary(summary_file: SummaryFile) -> None:
     """
     Write a SummaryFile object to disk.
