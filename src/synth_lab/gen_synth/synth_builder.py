@@ -88,8 +88,8 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
         deficiencias
     )
 
-    # 8. Generate behavioral biases
-    vieses = biases.generate_behavioral_biases()
+    # 8. Generate behavioral biases (coherent with personality - User Story 2)
+    vieses = biases.generate_biases_with_coherence(big_five)
 
     # 9. Derive archetype
     arquetipo = derivations.derive_archetype(demografia, big_five)
