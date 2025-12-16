@@ -38,21 +38,28 @@ from .utils import normal_distribution, weighted_choice
 
 def generate_big_five() -> dict[str, int]:
     """
-    Gera traços de personalidade Big Five com distribuição Normal(μ=50, σ=15).
+    Gera traços de personalidade Big Five com distribuição baseada em dados brasileiros.
 
     Big Five personality traits are the most scientifically validated
     personality model, measuring: Openness, Conscientiousness, Extraversion,
     Agreeableness, and Neuroticism.
 
+    Distribuição baseada em: International Sexuality Description Project (Brazil)
+    - Abertura (Openness): μ=49.16, σ=9.37
+    - Conscienciosidade (Conscientiousness): μ=45.38, σ=9.28
+    - Extroversao (Extraversion): μ=45.89, σ=9.36
+    - Amabilidade (Agreeableness): μ=45.86, σ=8.82
+    - Neuroticismo (Neuroticism): μ=53.14, σ=9.07
+
     Returns:
         dict[str, int]: Dictionary with 5 personality traits (0-100 scale)
     """
     return {
-        "abertura": normal_distribution(50, 15, 0, 100),
-        "conscienciosidade": normal_distribution(50, 15, 0, 100),
-        "extroversao": normal_distribution(50, 15, 0, 100),
-        "amabilidade": normal_distribution(50, 15, 0, 100),
-        "neuroticismo": normal_distribution(50, 15, 0, 100),
+        "abertura": normal_distribution(49.16, 9.37, 0, 100),
+        "conscienciosidade": normal_distribution(45.38, 9.28, 0, 100),
+        "extroversao": normal_distribution(45.89, 9.36, 0, 100),
+        "amabilidade": normal_distribution(45.86, 8.82, 0, 100),
+        "neuroticismo": normal_distribution(53.14, 9.07, 0, 100),
     }
 
 

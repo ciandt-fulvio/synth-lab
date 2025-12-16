@@ -205,7 +205,8 @@ def test_extreme_personalities_produce_extreme_biases():
     config = load_config_data()
 
     # Generate multiple synths and look for extreme cases
-    synths = [synth_builder.assemble_synth(config) for _ in range(30)]
+    # Use 50 samples to increase probability of finding extremes
+    synths = [synth_builder.assemble_synth(config) for _ in range(50)]
 
     found_high_conscientiousness = False
     found_high_neuroticism = False
@@ -215,8 +216,8 @@ def test_extreme_personalities_produce_extreme_biases():
         personality = synth["psicografia"]["personalidade_big_five"]
         biases = synth["vieses"]
 
-        # Check high conscientiousness case
-        if personality["conscienciosidade"] >= 80:
+        # Check high conscientiousness case (lowered threshold to 75)
+        if personality["conscienciosidade"] >= 75:
             found_high_conscientiousness = True
             assert biases["vies_status_quo"] >= 70, (
                 "Very high conscientiousness should produce high vies_status_quo"
@@ -226,24 +227,24 @@ def test_extreme_personalities_produce_extreme_biases():
                 "Very high conscientiousness should produce low desconto_hiperbolico (with tolerance)"
             )
 
-        # Check high neuroticism case
-        if personality["neuroticismo"] >= 80:
+        # Check high neuroticism case (lowered threshold to 75)
+        if personality["neuroticismo"] >= 75:
             found_high_neuroticism = True
             assert biases["aversao_perda"] >= 70, (
                 "Very high neuroticism should produce high aversao_perda"
             )
 
-        # Check high openness case
-        if personality["abertura"] >= 80:
+        # Check high openness case (lowered threshold to 75)
+        if personality["abertura"] >= 75:
             found_high_openness = True
             assert biases["vies_confirmacao"] <= 35, (
                 "Very high openness should produce low vies_confirmacao"
             )
 
     # Verify we found at least some extreme cases
-    # (With 30 samples and normal distribution, we should find at least one)
+    # (With 50 samples and normal distribution at 75+ threshold, very likely to find one)
     assert found_high_conscientiousness or found_high_neuroticism or found_high_openness, (
-        "Should find at least one extreme personality case in 30 samples"
+        "Should find at least one extreme personality case (75+) in 50 samples"
     )
 
 
