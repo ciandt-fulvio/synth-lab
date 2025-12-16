@@ -128,13 +128,23 @@ def create_parser() -> argparse.ArgumentParser:
         help="Diretório para salvar transcrição (padrão: data/transcripts)",
     )
 
+    # topic-guide subcommand
+    # topic-guide has its own Typer sub-app with multiple commands (create, update, list, show)
+    # We use parse_known_args to pass remaining args to Typer
+    subparsers.add_parser(
+        "topic-guide", help="Manage topic guides with multi-modal context materials",
+        add_help=False  # Let Typer handle --help
+    )
+
     return parser
 
 
 def main():
     """Main CLI entry point."""
     parser = create_parser()
-    args = parser.parse_args()
+
+    # Use parse_known_args to handle topic-guide's sub-commands
+    args, unknown_args = parser.parse_known_args()
 
     # If no command specified, show help
     if not args.command:
@@ -202,6 +212,16 @@ def main():
             sys.argv.extend(["--output", args.output])
 
         research_app()
+
+    # Handle topic-guide command
+    if args.command == "topic-guide":
+        # Import here to avoid circular imports and speed up --help
+        from synth_lab.topic_guides.cli import app as topic_guide_app
+
+        # Typer will handle all subcommands (create, update, list, show)
+        # Reset sys.argv to pass remaining args to Typer
+        sys.argv = ["synthlab topic-guide"] + unknown_args
+        topic_guide_app()
 
 
 if __name__ == "__main__":
