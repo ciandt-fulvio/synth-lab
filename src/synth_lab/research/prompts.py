@@ -23,12 +23,13 @@ Third-party Documentation:
 from pathlib import Path
 
 
-def build_interviewer_prompt(topic_guide_content: str | None = None) -> str:
+def build_interviewer_prompt(interview_script: list[dict] | None = None) -> str:
     """
     Build system prompt for interviewer LLM.
 
     Args:
-        topic_guide_content: Optional content from topic guide file
+        interview_script: List of questions from script.json (required)
+                         Each dict must have 'id' and 'ask' keys
 
     Returns:
         Complete system prompt for interviewer
@@ -81,19 +82,32 @@ QUANDO ENCERRAR (should_end: true):
 - Entrevistado está cansado ou desengajado
 """
 
-    if topic_guide_content:
-        base_prompt += f"\n\nGUIA DE TÓPICOS:\n{topic_guide_content}\n"
-        base_prompt += "\nSiga este guia para estruturar a entrevista, mas mantenha flexibilidade para explorar tópicos interessantes que surgirem naturalmente.\n"
+    if interview_script:
+        base_prompt += "\n\nROTEIRO DA ENTREVISTA:\n"
+        base_prompt += "Você DEVE seguir estas perguntas NA ORDEM, uma por turno:\n\n"
+
+        for question in interview_script:
+            base_prompt += f"{question['id']}. {question['ask']}\n"
+
+        base_prompt += "\n"
+        base_prompt += "INSTRUÇÕES PARA USAR O ROTEIRO:\n"
+        base_prompt += "- Faça UMA pergunta do roteiro por turno\n"
+        base_prompt += "- Siga a ordem numerada (1, 2, 3...)\n"
+        base_prompt += "- Após a resposta, você PODE fazer perguntas de follow-up para aprofundar\n"
+        base_prompt += "- Depois dos follow-ups, avance para a PRÓXIMA pergunta do roteiro\n"
+        base_prompt += "- NÃO invente perguntas novas - use apenas as do roteiro\n"
+        base_prompt += "- Mantenha track de qual pergunta você está (use internal_notes)\n\n"
 
     return base_prompt
 
 
-def build_synth_prompt(synth: dict) -> str:
+def build_synth_prompt(synth: dict, topic_guide_context: str | None = None) -> str:
     """
     Build system prompt for synth LLM with complete persona.
 
     Args:
         synth: Complete synth data dictionary
+        topic_guide_context: Optional context from topic guide (summary.md)
 
     Returns:
         System prompt with full persona details
@@ -141,6 +155,7 @@ INTERESSES: {", ".join(interesses) if interesses else "Vários"}
 SEU COMPORTAMENTO NA ENTREVISTA:
 - Responda como {nome} responderia baseado em sua personalidade
 - Use linguagem natural e informal típica de pessoas da sua idade e região
+	-> Formalidade; Extensão; Densidade; Complexidade; Tom relacional
 - Seus interesses, valores e experiências influenciam suas respostas
 - Demonstre emoções e reações consistentes com seu perfil psicológico
 
@@ -158,10 +173,15 @@ IMPORTANTE:
   * Se você tem alto Neuroticismo e baixa Conscienciosidade. Se o texto for longo, sinta-se impaciente. Se o design for feio, julgue-o. Não seja polido.
 - Responda de forma natural, como em uma conversa real
 - "should_end": SEMPRE false (apenas o entrevistador decide quando encerrar)
-- "internal_notes": Antes de cada ação ou resposta, gere um pensamento interno avaliando o cenário com base na sua PERSONALIDADE (Big Five).""
-
-""
+- "internal_notes": Antes de cada ação ou resposta, gere um pensamento interno avaliando o cenário com base na sua PERSONALIDADE (Big Five).
 """
+
+    if topic_guide_context:
+        prompt += "\n\nCONTEXTO DA ENTREVISTA:\n"
+        prompt += "Você tem acesso aos seguintes materiais e contexto para esta entrevista:\n\n"
+        prompt += topic_guide_context + "\n\n"
+        prompt += "Use este contexto para responder às perguntas do entrevistador de forma informada.\n"
+        prompt += "O entrevistador pode pedir para você comentar sobre esses materiais.\n"
 
     return prompt
 
@@ -209,10 +229,13 @@ if __name__ == "__main__":
     # Test 2: Build interviewer prompt with topic guide
     total_tests += 1
     try:
-        guide_content = "# Test Guide\n- Question 1\n- Question 2"
-        prompt = build_interviewer_prompt(guide_content)
-        assert "Test Guide" in prompt
-        assert "Question 1" in prompt
+        interview_script = [
+            {"id": "1", "ask": "Question 1"},
+            {"id": "2", "ask": "Question 2"},
+        ]
+        prompt = build_interviewer_prompt(interview_script)
+        assert "1. Question 1" in prompt
+        assert "2. Question 2" in prompt
         print("✓ Interviewer prompt generated (with topic guide)")
     except Exception as e:
         all_validation_failures.append(f"Interviewer prompt (with guide): {e}")
@@ -254,7 +277,8 @@ if __name__ == "__main__":
     try:
         try:
             load_topic_guide("/nonexistent/file.md")
-            all_validation_failures.append("Topic guide load: Should have raised FileNotFoundError")
+            all_validation_failures.append(
+                "Topic guide load: Should have raised FileNotFoundError")
         except FileNotFoundError:
             print("✓ Load topic guide correctly raises FileNotFoundError")
     except Exception as e:
@@ -270,6 +294,7 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Prompts module is validated and ready for use")
         sys.exit(0)

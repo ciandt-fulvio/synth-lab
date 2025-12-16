@@ -48,8 +48,8 @@ def research(
     synth_id: str = typer.Argument(
         ..., help="ID do synth a ser entrevistado (6 caracteres)"
     ),
-    topic_guide: str = typer.Option(
-        None, "--topic-guide", "-t", help="Caminho para arquivo de guia de tópicos"
+    topic_guide_name: str = typer.Argument(
+        ..., help="Nome do topic guide (ex: compra-amazon)"
     ),
     max_rounds: int = typer.Option(
         10,
@@ -70,10 +70,15 @@ def research(
     ),
 ):
     """
-    Executar entrevista de pesquisa UX com um synth.
+    Executar entrevista de pesquisa UX com um synth usando um topic guide.
 
-    Realiza uma conversa completa entre entrevistador LLM e synth LLM,
-    exibindo mensagens em tempo real e salvando transcrição em JSON.
+    O topic guide deve conter:
+    - script.json: Roteiro de perguntas da entrevista
+    - summary.md: Contexto e descrições dos materiais
+    - Arquivos de contexto (imagens, PDFs, etc.)
+
+    Exemplo:
+        synthlab research abc123 compra-amazon
     """
     # Validate synth exists
     if not validate_synth_exists(synth_id):
@@ -86,15 +91,42 @@ def research(
         )
         sys.exit(1)
 
-    # Validate topic guide if provided
-    if topic_guide:
-        topic_path = Path(topic_guide)
-        if not topic_path.exists():
-            console.print(
-                f"[bold red]✗[/bold red] Guia de tópicos não encontrado: {topic_guide}",
-                style="red",
-            )
-            sys.exit(1)
+    # Validate topic guide
+    import os
+    base_dir = Path(os.environ.get("TOPIC_GUIDES_DIR", "data/topic_guides"))
+    topic_dir = base_dir / topic_guide_name
+
+    # Check if topic guide directory exists
+    if not topic_dir.exists():
+        console.print(
+            f"[bold red]✗[/bold red] Topic guide '{topic_guide_name}' não encontrado",
+            style="red",
+        )
+        console.print(f"\nProcurado em: {topic_dir}")
+        console.print("\nUse [bold]synthlab topic-guide list[/bold] para ver guides disponíveis")
+        sys.exit(1)
+
+    # Check if script.json exists
+    script_path = topic_dir / "script.json"
+    if not script_path.exists():
+        console.print(
+            f"[bold red]✗[/bold red] Arquivo script.json não encontrado no topic guide '{topic_guide_name}'",
+            style="red",
+        )
+        console.print(f"\nProcurado em: {script_path}")
+        console.print("\nO topic guide deve conter um arquivo script.json com o roteiro de perguntas")
+        sys.exit(1)
+
+    # Check if summary.md exists
+    summary_path = topic_dir / "summary.md"
+    if not summary_path.exists():
+        console.print(
+            f"[bold red]✗[/bold red] Arquivo summary.md não encontrado no topic guide '{topic_guide_name}'",
+            style="red",
+        )
+        console.print(f"\nProcurado em: {summary_path}")
+        console.print("\nUse [bold]synthlab topic-guide update {topic_guide_name}[/bold] para gerar o summary.md")
+        sys.exit(1)
 
     # Check for OPENAI_API_KEY
     import os
@@ -111,10 +143,10 @@ def research(
 
     try:
         # Run interview
-        logger.info(f"Starting interview with synth {synth_id}")
+        logger.info(f"Starting interview with synth {synth_id} and topic guide {topic_guide_name}")
         session, messages, synth = run_interview(
             synth_id=synth_id,
-            topic_guide_path=topic_guide,
+            topic_guide_name=topic_guide_name,
             max_rounds=max_rounds,
             model=model,
         )
