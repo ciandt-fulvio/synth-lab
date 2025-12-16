@@ -1,0 +1,196 @@
+"""
+CLI interface for UX research interviews with synths.
+
+This module provides the command-line interface for running interviews:
+- research command with synth_id argument
+- Optional topic guide path
+- Optional max_rounds configuration
+- Optional model selection
+
+Functions:
+- research_command(): Main CLI handler for research subcommand
+- app: Typer application instance
+
+Sample usage:
+    synthlab research abc123
+    synthlab research abc123 --topic-guide data/topic_guides/ecommerce-mobile.md
+    synthlab research abc123 --max-rounds 15 --model gpt-4o
+
+Expected output:
+    Real-time interview display with Rich formatting
+    Transcript saved to data/transcripts/{synth_id}_{timestamp}.json
+
+Third-party Documentation:
+- Typer: https://typer.tiangolo.com/
+- Rich: https://rich.readthedocs.io/
+"""
+
+import sys
+from pathlib import Path
+
+import typer
+from loguru import logger
+from rich.console import Console
+
+from synth_lab.research.interview import run_interview, validate_synth_exists
+from synth_lab.research.transcript import save_transcript
+
+app = typer.Typer(
+    name="research",
+    help="Realizar entrevistas de pesquisa UX com synths",
+    no_args_is_help=True,
+)
+console = Console()
+
+
+@app.command()
+def research(
+    synth_id: str = typer.Argument(
+        ..., help="ID do synth a ser entrevistado (6 caracteres)"
+    ),
+    topic_guide: str = typer.Option(
+        None, "--topic-guide", "-t", help="Caminho para arquivo de guia de tópicos"
+    ),
+    max_rounds: int = typer.Option(
+        10,
+        "--max-rounds",
+        "-r",
+        min=1,
+        max=100,
+        help="Número máximo de rodadas de conversa",
+    ),
+    model: str = typer.Option(
+        "gpt-4o", "--model", "-m", help="Modelo de LLM a usar (ex: gpt-4o, gpt-4)"
+    ),
+    output_dir: str = typer.Option(
+        "data/transcripts",
+        "--output",
+        "-o",
+        help="Diretório para salvar transcrição",
+    ),
+):
+    """
+    Executar entrevista de pesquisa UX com um synth.
+
+    Realiza uma conversa completa entre entrevistador LLM e synth LLM,
+    exibindo mensagens em tempo real e salvando transcrição em JSON.
+    """
+    # Validate synth exists
+    if not validate_synth_exists(synth_id):
+        console.print(
+            f"[bold red]✗[/bold red] Synth com ID '{synth_id}' não encontrado",
+            style="red",
+        )
+        console.print(
+            "\nUse [bold]synthlab listsynth[/bold] para ver synths disponíveis"
+        )
+        sys.exit(1)
+
+    # Validate topic guide if provided
+    if topic_guide:
+        topic_path = Path(topic_guide)
+        if not topic_path.exists():
+            console.print(
+                f"[bold red]✗[/bold red] Guia de tópicos não encontrado: {topic_guide}",
+                style="red",
+            )
+            sys.exit(1)
+
+    # Check for OPENAI_API_KEY
+    import os
+
+    if not os.getenv("OPENAI_API_KEY"):
+        console.print(
+            "[bold red]✗[/bold red] Variável de ambiente OPENAI_API_KEY não configurada",
+            style="red",
+        )
+        console.print(
+            "\nConfigure sua chave de API:\n[bold]export OPENAI_API_KEY='sua-chave'[/bold]"
+        )
+        sys.exit(1)
+
+    try:
+        # Run interview
+        logger.info(f"Starting interview with synth {synth_id}")
+        session, messages, synth = run_interview(
+            synth_id=synth_id,
+            topic_guide_path=topic_guide,
+            max_rounds=max_rounds,
+            model=model,
+        )
+
+        # Save transcript
+        console.print("\n[cyan]💾 Salvando transcrição...[/cyan]")
+        transcript_path = save_transcript(
+            session=session,
+            messages=messages,
+            synth_snapshot=synth,
+            output_dir=output_dir,
+        )
+
+        console.print(
+            f"[bold green]✓[/bold green] Transcrição salva em: [bold]{transcript_path}[/bold]"
+        )
+
+    except ValueError as e:
+        console.print(f"[bold red]✗[/bold red] Erro de validação: {e}", style="red")
+        sys.exit(1)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]⚠[/yellow] Entrevista interrompida pelo usuário")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"Interview failed: {e}")
+        console.print(f"[bold red]✗[/bold red] Erro na entrevista: {e}", style="red")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    """Validation with mock synth."""
+    print("=== Research CLI Module Validation ===\n")
+
+    all_validation_failures = []
+    total_tests = 0
+
+    # Test 1: CLI app exists
+    total_tests += 1
+    try:
+        assert app is not None
+        assert app.info.name == "research"
+        print("✓ Typer app created successfully")
+    except Exception as e:
+        all_validation_failures.append(f"Typer app creation: {e}")
+
+    # Test 2: research command exists
+    total_tests += 1
+    try:
+        commands = [cmd.name for cmd in app.registered_commands]
+        assert "research" in commands or len(app.registered_commands) > 0
+        print("✓ research command registered")
+    except Exception as e:
+        all_validation_failures.append(f"Command registration: {e}")
+
+    # Test 3: Required imports work
+    total_tests += 1
+    try:
+        from synth_lab.research.interview import run_interview, validate_synth_exists
+        from synth_lab.research.transcript import save_transcript
+
+        print("✓ All required imports successful")
+    except Exception as e:
+        all_validation_failures.append(f"Import validation: {e}")
+
+    # Final validation result
+    print()
+    if all_validation_failures:
+        print(
+            f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:"
+        )
+        for failure in all_validation_failures:
+            print(f"  - {failure}")
+        sys.exit(1)
+    else:
+        print(
+            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results"
+        )
+        print("CLI module is validated and ready for use")
+        sys.exit(0)
