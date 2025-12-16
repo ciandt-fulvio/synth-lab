@@ -8,6 +8,7 @@
 ## 🎯 Objetivo
 
 Criar Synths representativos da população brasileira para:
+- **Pesquisas de UX qualitativas** com entrevistas simuladas
 - Testes de UX e design de interfaces
 - Simulações Monte Carlo e modelagem estatística
 - Validação de acessibilidade e inclusão
@@ -18,7 +19,8 @@ Criar Synths representativos da população brasileira para:
 
 ### Interface CLI Moderna
 - 🎨 **Saída colorida e formatada** com biblioteca Rich
-- ⚡ **Comandos intuitivos**: `synthlab gensynth -n 100`, `synthlab listsynth`
+- ⚡ **Comandos intuitivos**: `synthlab gensynth -n 100`, `synthlab listsynth`, `synthlab research`
+- 🎤 **Entrevistas de UX simuladas** com LLMs conversando (interviewer + synth)
 - 📊 **Benchmark integrado** para análise de performance
 - 🔇 **Modo silencioso** para integração em pipelines
 - ✅ **Validação e análise** de distribuições demográficas
@@ -73,6 +75,7 @@ uv run synthlab --version
 # Ver ajuda de um comando específico
 uv run synthlab gensynth --help
 uv run synthlab listsynth --help
+uv run synthlab research --help
 ```
 
 ### Comandos Disponíveis
@@ -140,6 +143,27 @@ uv run synthlab listsynth --full-query "SELECT nome, demografia.renda_mensal FRO
 ```
 
 > **Nota**: Use a notação de ponto (`.`) para acessar campos aninhados. Por exemplo: `demografia.idade`, `demografia.localizacao.regiao`, `capacidades_tecnologicas.alfabetizacao_digital`.
+
+#### Entrevistas de Pesquisa UX
+
+```bash
+# Realizar entrevista com um synth
+uv run synthlab research abc123
+
+# Entrevista com guia de tópicos
+uv run synthlab research abc123 --topic-guide data/topic_guides/ecommerce-mobile.md
+
+# Personalizar configurações
+uv run synthlab research abc123 \
+  --max-rounds 15 \
+  --model gpt-4o \
+  --output data/minhas-entrevistas
+
+# Ver transcrição salva
+cat data/transcripts/abc123_20251216_143052.json
+```
+
+> **Nota**: Requer `OPENAI_API_KEY` configurada. As entrevistas usam dois LLMs em conversa - um como entrevistador UX e outro como o synth (persona), com comportamento baseado no Big Five personality. Transcrições são salvas automaticamente em JSON.
 
 ### Estrutura de Saída
 
@@ -279,24 +303,37 @@ synth-lab/
 │       │   ├── gen_synth.py      # Orquestrador principal
 │       │   ├── config.py         # Configurações e paths
 │       │   └── utils.py          # Funções utilitárias
-│       └── query/                # Módulo de consulta
-│           ├── __init__.py       # Enums e exceções
-│           ├── validator.py      # Validação de queries
-│           ├── database.py       # Operações DuckDB
-│           ├── formatter.py      # Formatação Rich tables
-│           └── cli.py            # Comando listsynth
+│       ├── query/                # Módulo de consulta
+│       │   ├── __init__.py       # Enums e exceções
+│       │   ├── validator.py      # Validação de queries
+│       │   ├── database.py       # Operações DuckDB
+│       │   ├── formatter.py      # Formatação Rich tables
+│       │   └── cli.py            # Comando listsynth
+│       └── research/             # Módulo de pesquisa UX
+│           ├── __init__.py       # Public API
+│           ├── models.py         # Pydantic models
+│           ├── prompts.py        # System prompts
+│           ├── interview.py      # Interview logic
+│           ├── transcript.py     # JSON persistence
+│           └── cli.py            # Comando research
 ├── tests/
 │   ├── unit/
 │   │   └── synth_lab/
 │   │       ├── gen_synth/        # Testes unitários de geração
-│   │       └── query/            # Testes unitários de query
+│   │       ├── query/            # Testes unitários de query
+│   │       └── research/         # Testes unitários de research
 │   ├── integration/
 │   │   └── synth_lab/
 │   │       └── query/            # Testes de integração
+│   ├── contract/
+│   │   └── synth_lab/
+│   │       └── research/         # Testes de contrato (LLM schemas)
 │   └── fixtures/
 │       └── query/                # Fixtures para testes
 ├── data/
 │   ├── synths/                   # Synths gerados (JSON)
+│   ├── transcripts/              # Transcrições de entrevistas (JSON)
+│   ├── topic_guides/             # Guias de tópicos para entrevistas
 │   ├── config/                   # Configurações demográficas
 │   │   ├── ibge_distributions.json
 │   │   ├── interests_hobbies.json
@@ -306,10 +343,15 @@ synth-lab/
 ├── specs/
 │   ├── 001-generate-synths/      # Feature 1: Geração de Synths
 │   ├── 002-synthlab-cli/         # Feature 2: CLI SynthLab
-│   └── 003-synth-query/          # Feature 3: Query de Synths
+│   ├── 003-synth-query/          # Feature 3: Query de Synths
+│   └── 005-ux-research-interviews/ # Feature 5: Entrevistas UX
 │       ├── spec.md               # Especificação da feature
 │       ├── plan.md               # Plano de implementação
-│       └── tasks.md              # Tarefas e progresso
+│       ├── tasks.md              # Tarefas e progresso
+│       ├── data-model.md         # Modelos de dados
+│       ├── research.md           # Metodologia UX research
+│       ├── quickstart.md         # Guia rápido
+│       └── contracts/            # Schemas JSON para LLM responses
 ├── pyproject.toml                # Configuração do projeto
 ├── pytest.ini                    # Configuração pytest
 └── README.md                     # Este arquivo
@@ -363,6 +405,8 @@ Todas as distribuições estatísticas são baseadas em fontes oficiais e pesqui
 
 - **Python 3.13+**: Linguagem base
 - **Faker (pt_BR)**: Geração de dados sintéticos brasileiros
+- **OpenAI Python SDK**: Structured outputs para entrevistas com LLMs
+- **Pydantic v2**: Validação estrita de dados e schemas
 - **jsonschema**: Validação de estrutura de dados
 - **rich**: Interface CLI com saída colorida e formatada
 - **DuckDB**: Motor SQL para consultas rápidas em JSON
@@ -378,7 +422,25 @@ Veja o notebook `first-lab.ipynb` para exemplos de análise exploratória dos Sy
 
 ### Casos de Uso
 
-**1. Análise Demográfica com SQL**
+**1. Pesquisa UX Qualitativa**
+```bash
+# Entrevista sobre e-commerce com synth específico
+uv run synthlab research fhynws --topic-guide data/topic_guides/compra-amazon.md
+
+# Múltiplas entrevistas para saturação de dados
+for synth_id in abc123 xyz789 def456; do
+  uv run synthlab research $synth_id --topic-guide data/topic_guides/mobile-app.md
+done
+
+# Análise de transcrições (Python)
+import json
+from pathlib import Path
+
+transcripts = [json.loads(p.read_text()) for p in Path("data/transcripts").glob("*.json")]
+# Análise qualitativa: temas recorrentes, pain points, insights
+```
+
+**2. Análise Demográfica com SQL**
 ```bash
 # Distribuição por região
 uv run synthlab listsynth --full-query "SELECT demografia.localizacao.regiao as regiao, COUNT(*) as total FROM synths GROUP BY regiao ORDER BY total DESC"
@@ -390,7 +452,7 @@ uv run synthlab listsynth --full-query "SELECT demografia.escolaridade, AVG(demo
 uv run synthlab listsynth --where "demografia.renda_mensal > 10000 AND demografia.escolaridade = 'Superior completo'"
 ```
 
-**2. Testes de UX/UI**
+**3. Testes de UX/UI**
 ```bash
 # Selecionar Synths com baixa alfabetização digital
 uv run synthlab listsynth --where "capacidades_tecnologicas.alfabetizacao_digital < 40"
@@ -399,7 +461,7 @@ uv run synthlab listsynth --where "capacidades_tecnologicas.alfabetizacao_digita
 uv run synthlab listsynth --full-query "SELECT nome, demografia.idade, demografia.localizacao.cidade FROM synths WHERE deficiencias.visual.tipo != 'nenhuma'"
 ```
 
-**3. Segmentação de Mercado**
+**4. Segmentação de Mercado**
 ```bash
 # Jovens da região Sudeste
 uv run synthlab listsynth --where "demografia.idade BETWEEN 18 AND 35 AND demografia.localizacao.regiao = 'Sudeste'"
@@ -408,7 +470,7 @@ uv run synthlab listsynth --where "demografia.idade BETWEEN 18 AND 35 AND demogr
 uv run synthlab listsynth --where "capacidades_tecnologicas.alfabetizacao_digital > 70 AND demografia.renda_mensal > 5000"
 ```
 
-**4. Análise Comportamental**
+**5. Análise Comportamental**
 ```python
 # Usar Python para análise mais complexa
 import json
