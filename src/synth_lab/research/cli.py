@@ -49,7 +49,7 @@ def research(
         ..., help="ID do synth a ser entrevistado (6 caracteres)"
     ),
     topic_guide: str = typer.Option(
-        None, "--topic-guide", "-t", help="Caminho para arquivo de guia de tópicos"
+        None, "--topic-guide", "-t", help="Nome do topic guide (ex: compra-amazon) ou caminho para arquivo .md"
     ),
     max_rounds: int = typer.Option(
         10,
@@ -87,14 +87,36 @@ def research(
         sys.exit(1)
 
     # Validate topic guide if provided
+    # Accept either topic guide name or file path
     if topic_guide:
-        topic_path = Path(topic_guide)
-        if not topic_path.exists():
-            console.print(
-                f"[bold red]✗[/bold red] Guia de tópicos não encontrado: {topic_guide}",
-                style="red",
-            )
-            sys.exit(1)
+        # Check if it's a file path (.md file)
+        if topic_guide.endswith('.md'):
+            topic_path = Path(topic_guide)
+            if not topic_path.exists():
+                console.print(
+                    f"[bold red]✗[/bold red] Arquivo de guia de tópicos não encontrado: {topic_guide}",
+                    style="red",
+                )
+                sys.exit(1)
+        else:
+            # Assume it's a topic guide name
+            import os
+            base_dir = Path(os.environ.get("TOPIC_GUIDES_DIR", "data/topic_guides"))
+            topic_dir = base_dir / topic_guide
+            summary_path = topic_dir / "summary.md"
+
+            if not summary_path.exists():
+                console.print(
+                    f"[bold red]✗[/bold red] Topic guide '{topic_guide}' não encontrado",
+                    style="red",
+                )
+                console.print(
+                    f"\nProcurado em: {summary_path}"
+                )
+                console.print(
+                    "\nUse [bold]synthlab topic-guide list[/bold] para ver guides disponíveis"
+                )
+                sys.exit(1)
 
     # Check for OPENAI_API_KEY
     import os

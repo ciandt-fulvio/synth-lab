@@ -191,11 +191,15 @@ uv run synthlab topic-guide show --name amazon-ecommerce
 # Realizar entrevista com um synth
 uv run synthlab research abc123
 
-# Entrevista com topic guide (materiais de contexto)
-uv run synthlab research abc123 --topic-guide amazon-ecommerce
+# Entrevista com topic guide (materiais de contexto COM descrições IA)
+uv run synthlab research abc123 --topic-guide compra-amazon
+
+# Ou usar arquivo .md tradicional (sem descrições automáticas)
+uv run synthlab research abc123 --topic-guide data/topic_guides/custom-guide.md
 
 # Personalizar configurações
 uv run synthlab research abc123 \
+  --topic-guide compra-amazon \
   --max-rounds 15 \
   --model gpt-4o \
   --output data/minhas-entrevistas
@@ -205,6 +209,8 @@ cat data/transcripts/abc123_20251216_143052.json
 ```
 
 > **Nota**: Requer `OPENAI_API_KEY` configurada. As entrevistas usam dois LLMs em conversa - um como entrevistador UX e outro como o synth (persona), com comportamento baseado no Big Five personality. Transcrições são salvas automaticamente em JSON.
+>
+> **Topic Guides**: Quando você passa `--topic-guide compra-amazon`, o sistema carrega automaticamente as descrições IA de todas as imagens/PDFs/documentos do topic guide. O entrevistador terá acesso ao contexto visual através das descrições geradas.
 
 ### Estrutura de Saída
 
