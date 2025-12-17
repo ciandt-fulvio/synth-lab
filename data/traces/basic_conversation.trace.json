@@ -1,0 +1,156 @@
+{
+  "trace_id": "basic-conversation-demo",
+  "start_time": "2025-12-17T21:34:57.072182+00:00",
+  "end_time": "2025-12-17T21:35:00.210064+00:00",
+  "duration_ms": 3137,
+  "turns": [
+    {
+      "turn_id": "e685f096-4b61-4d89-a8ae-48af5ee7033c",
+      "turn_number": 1,
+      "start_time": "2025-12-17T21:34:57.072182+00:00",
+      "end_time": "2025-12-17T21:34:58.894327+00:00",
+      "duration_ms": 1822,
+      "steps": [
+        {
+          "span_id": "f6e40afa-9024-4d8c-8f9c-d71233106f54",
+          "type": "logic",
+          "start_time": "2025-12-17T21:34:57.072430+00:00",
+          "end_time": "2025-12-17T21:34:57.084958+00:00",
+          "duration_ms": 12,
+          "status": "success",
+          "attributes": {
+            "operation": "Parse user input",
+            "input": "What is the weather in Paris?"
+          }
+        },
+        {
+          "span_id": "f346b0cc-5c57-4ce9-9298-67428cebc797",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:34:57.084992+00:00",
+          "end_time": "2025-12-17T21:34:57.586234+00:00",
+          "duration_ms": 501,
+          "status": "success",
+          "attributes": {
+            "prompt": "What is the weather in Paris?",
+            "model": "claude-sonnet-4-5",
+            "response": "I'll check the weather in Paris for you.",
+            "tokens_input": 8,
+            "tokens_output": 12
+          }
+        },
+        {
+          "span_id": "d5dcd52f-1159-4642-ba66-c3680b694843",
+          "type": "tool_call",
+          "start_time": "2025-12-17T21:34:57.586320+00:00",
+          "end_time": "2025-12-17T21:34:58.589219+00:00",
+          "duration_ms": 1002,
+          "status": "success",
+          "attributes": {
+            "tool_name": "get_weather",
+            "arguments": {
+              "city": "Paris",
+              "units": "celsius"
+            },
+            "result": {
+              "temperature": 15,
+              "condition": "cloudy",
+              "humidity": 65
+            }
+          }
+        },
+        {
+          "span_id": "325b7a5b-aed6-4bed-a8b7-ba8deb347a58",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:34:58.589278+00:00",
+          "end_time": "2025-12-17T21:34:58.894312+00:00",
+          "duration_ms": 305,
+          "status": "success",
+          "attributes": {
+            "prompt": "Format weather response for Paris: 15°C, cloudy",
+            "model": "claude-sonnet-4-5",
+            "response": "The weather in Paris is currently 15°C and cloudy with 65% humidity.",
+            "tokens_input": 15,
+            "tokens_output": 20
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "bd1c4852-fdc5-4842-a95c-0ec5a29f7b04",
+      "turn_number": 2,
+      "start_time": "2025-12-17T21:34:58.894386+00:00",
+      "end_time": "2025-12-17T21:34:59.299287+00:00",
+      "duration_ms": 404,
+      "steps": [
+        {
+          "span_id": "db3f6325-40fb-454d-93f6-cc3fb629909c",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:34:58.894406+00:00",
+          "end_time": "2025-12-17T21:34:59.299264+00:00",
+          "duration_ms": 404,
+          "status": "success",
+          "attributes": {
+            "prompt": "What about tomorrow?",
+            "model": "claude-sonnet-4-5",
+            "response": "I don't have access to forecast data, only current weather.",
+            "tokens_input": 5,
+            "tokens_output": 15
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "7af29158-3046-4085-b6b8-4cb15647b0e3",
+      "turn_number": 3,
+      "start_time": "2025-12-17T21:34:59.299343+00:00",
+      "end_time": "2025-12-17T21:35:00.210064+00:00",
+      "duration_ms": 910,
+      "steps": [
+        {
+          "span_id": "1049afe6-bb58-43bf-9bec-051ff01cfa26",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:34:59.299374+00:00",
+          "end_time": "2025-12-17T21:34:59.704418+00:00",
+          "duration_ms": 405,
+          "status": "success",
+          "attributes": {
+            "prompt": "How about London?",
+            "model": "claude-sonnet-4-5",
+            "response": "Let me check London's weather."
+          }
+        },
+        {
+          "span_id": "55f426b3-4c58-4eb5-af00-21deb2c07788",
+          "type": "tool_call",
+          "start_time": "2025-12-17T21:34:59.704482+00:00",
+          "end_time": "2025-12-17T21:35:00.208939+00:00",
+          "duration_ms": 504,
+          "status": "error",
+          "attributes": {
+            "tool_name": "get_weather",
+            "arguments": {
+              "city": "London"
+            },
+            "error_message": "API timeout after 500ms"
+          }
+        },
+        {
+          "span_id": "d2f7fab0-fc11-4910-88d7-a145fecf077e",
+          "type": "error",
+          "start_time": "2025-12-17T21:35:00.210048+00:00",
+          "end_time": "2025-12-17T21:35:00.210056+00:00",
+          "duration_ms": 0,
+          "status": "error",
+          "attributes": {
+            "error_type": "APITimeoutError",
+            "error_message": "Weather API did not respond in time"
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "user_id": "demo-user",
+    "session": "example"
+  }
+}
