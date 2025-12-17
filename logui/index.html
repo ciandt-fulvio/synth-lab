@@ -88,6 +88,17 @@
                     <!-- Rendered by waterfall.js -->
                 </div>
             </section>
+
+            <!-- Detail Panel (Sidebar) -->
+            <aside id="detail-panel" class="detail-panel hidden">
+                <div class="detail-header">
+                    <h3 id="detail-title">Step Details</h3>
+                    <button id="detail-close" class="detail-close">&times;</button>
+                </div>
+                <div id="detail-content" class="detail-content">
+                    <p class="detail-placeholder">Click on a step to view details</p>
+                </div>
+            </aside>
         </main>
 
         <!-- Error Display -->
@@ -101,5 +112,6 @@
     <!-- JavaScript -->
     <script src="trace-renderer.js"></script>
     <script src="waterfall.js"></script>
+    <script src="details.js"></script>
 </body>
 </html>

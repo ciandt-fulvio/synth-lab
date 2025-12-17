@@ -194,6 +194,8 @@ function selectStep(step) {
         stepElement.classList.add('selected');
     }
 
-    // Log for now (detail panel will be added in Phase 4)
-    console.log('Selected step:', step);
+    // Show detail panel (Phase 4)
+    if (typeof showDetails === 'function') {
+        showDetails(step);
+    }
 }
