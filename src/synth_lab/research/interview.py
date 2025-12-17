@@ -154,7 +154,7 @@ def conversation_turn(
     client: OpenAI,
     messages: list[dict],
     system_prompt: str,
-    model: str = "gpt-5.1-mini",
+    model: str = "gpt-5-mini",
     tools: list[dict] | None = None,
     topic_guide_name: str | None = None,
     tracer: Tracer | None = None,
@@ -184,6 +184,8 @@ def conversation_turn(
         "model": model,
         "messages": [{"role": "system", "content": system_prompt}] + messages,
         "response_format": InterviewResponse,
+        "reasoning_effort": "low",
+        "verbosity": "low"
     }
 
     # Add tools if provided
@@ -215,8 +217,10 @@ def conversation_turn(
 
                     # Record token usage if available
                     if hasattr(completion, 'usage') and completion.usage:
-                        span.set_attribute("tokens_input", completion.usage.prompt_tokens)
-                        span.set_attribute("tokens_output", completion.usage.completion_tokens)
+                        span.set_attribute(
+                            "tokens_input", completion.usage.prompt_tokens)
+                        span.set_attribute(
+                            "tokens_output", completion.usage.completion_tokens)
 
                 span.set_status(SpanStatus.SUCCESS)
             except Exception as e:
@@ -232,6 +236,8 @@ def conversation_turn(
     # If LLM requested tool calls, execute them
     if hasattr(message, 'tool_calls') and message.tool_calls:
         logger.info(f"LLM requested {len(message.tool_calls)} tool calls")
+        logger.debug(
+            f"Tracer available: {tracer is not None}, current_turn: {tracer._current_turn if tracer else 'N/A'}")
 
         # Add assistant's message with tool calls to history
         messages.append({
@@ -269,6 +275,8 @@ def conversation_turn(
                 # Get filename from parsed arguments (Pydantic model) or dict
                 filename = function_args.filename if isinstance(
                     function_args, LoadImageParams) else function_args["filename"]
+                logger.info(
+                    f"Processing tool call for image: {filename}, tracer: {tracer is not None}")
 
                 def _execute_tool():
                     return load_image_for_analysis(
@@ -286,7 +294,8 @@ def conversation_turn(
                     }) as span:
                         try:
                             image_data = _execute_tool()
-                            span.set_attribute("result", f"Image loaded: {filename} ({len(image_data)} bytes)")
+                            span.set_attribute(
+                                "result", f"Image loaded: {filename} ({len(image_data)} bytes)")
                             span.set_status(SpanStatus.SUCCESS)
                             tool_result = image_data
                         except Exception as e:
@@ -405,7 +414,7 @@ def run_interview(
     synth_id: str,
     topic_guide_name: str,
     max_rounds: int = 10,
-    model: str = "gpt-4o",
+    model: str = "gpt-5-mini",
 ) -> tuple[InterviewSession, list[Message], dict]:
     """
     Execute complete interview loop with topic guide script.
@@ -465,12 +474,17 @@ def run_interview(
     # Load topic guide context (summary.md + file descriptions)
     topic_guide_content = load_topic_guide_context(topic_guide_name)
 
+    # Get list of available image files in topic guide
+    available_images = [f.name for f in topic_dir.iterdir()
+                       if f.is_file() and f.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif']]
+    logger.info(f"Available images in topic guide: {available_images}")
+
     # Define tools for loading images using pydantic_function_tool
     tools = [
         openai.pydantic_function_tool(
             LoadImageParams,
             name="load_image_for_analysis",
-            description="Load an image file from the topic guide to view it visually. Use this when you need to see the actual image content, not just the text description."
+            description=f"Load an image file from the topic guide to view it visually. Available images: {', '.join(available_images)}"
         )
     ]
 
@@ -520,6 +534,16 @@ def run_interview(
         while round_number <= max_rounds:
             # Start new turn in trace
             with tracer.start_turn(turn_number=round_number):
+                # Log system prompts on turn 1
+                if round_number == 1:
+                    with tracer.start_span(SpanType.LOGIC, attributes={
+                        "operation": "Initialize interview prompts",
+                        "interviewer_prompt": interviewer_prompt,
+                        "synth_prompt": synth_prompt,
+                        "available_images": available_images,
+                    }) as span:
+                        span.set_status(SpanStatus.SUCCESS)
+
                 # Interviewer turn
                 with console.status(f"[blue]Entrevistador pensando... (turno {round_number})", spinner="dots"):
                     interviewer_response = conversation_turn(
@@ -529,7 +553,8 @@ def run_interview(
                     )
 
                 # Display and record
-                display_message(Speaker.INTERVIEWER, interviewer_response.message)
+                display_message(Speaker.INTERVIEWER,
+                                interviewer_response.message)
                 msg = Message(
                     speaker=Speaker.INTERVIEWER,
                     content=interviewer_response.message,
@@ -593,8 +618,10 @@ def run_interview(
             try:
                 tracer.save_trace(str(trace_path))
                 logger.info(f"Trace saved to {trace_path}")
-                console.print(f"\n[cyan]📊 Trace salvo em:[/cyan] [bold]{trace_path}[/bold]")
-                console.print(f"[dim]   Visualize em: logui/index.html[/dim]\n")
+                console.print(
+                    f"\n[cyan]📊 Trace salvo em:[/cyan] [bold]{trace_path}[/bold]")
+                console.print(
+                    f"[dim]   Visualize em: logui/index.html[/dim]\n")
             except Exception as save_error:
                 logger.error(f"Failed to save trace: {save_error}")
 
