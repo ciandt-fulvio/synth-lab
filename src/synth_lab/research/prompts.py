@@ -80,6 +80,13 @@ QUANDO ENCERRAR (should_end: true):
 - Você obteve insights suficientes
 - Tópicos importantes foram cobertos
 - Entrevistado está cansado ou desengajado
+
+FERRAMENTA DISPONÍVEL - CARREGAR IMAGENS:
+Você tem acesso à ferramenta `load_image_for_analysis` para visualizar imagens do topic guide.
+- Use esta ferramenta quando precisar analisar telas, screenshots, ou elementos visuais
+- Chame a ferramenta com o nome do arquivo (ex: "01_amazon_homepage.PNG")
+- Após carregar a imagem, você poderá ver o conteúdo visual e discutir com o entrevistado
+- Use as imagens para guiar a conversa e fazer perguntas específicas sobre o que o usuário vê
 """
 
     if interview_script:
@@ -114,6 +121,7 @@ def build_synth_prompt(synth: dict, topic_guide_context: str | None = None) -> s
     """
     # Extract key persona attributes
     nome = synth.get("nome", "Pessoa")
+    descricao = synth.get("descricao", "")
     idade = synth["demografia"]["idade"]
     genero = synth["demografia"]["identidade_genero"]
     escolaridade = synth["demografia"]["escolaridade"]
@@ -143,21 +151,16 @@ QUEM VOCÊ É:
 - Escolaridade: {escolaridade}
 - Localização: {cidade}, {estado}
 
-PERSONALIDADE (Big Five):
-- Abertura a experiências: {abertura}/100 {"(alta - curioso, criativo)" if abertura > 60 else "(moderada)" if abertura > 40 else "(baixa - prático, tradicional)"}
-- Conscienciosidade: {conscienciosidade}/100 {"(alta - organizado, disciplinado)" if conscienciosidade > 60 else "(moderada)" if conscienciosidade > 40 else "(baixa - espontâneo, flexível)"}
-- Extroversão: {extroversao}/100 {"(alta - sociável, energético)" if extroversao > 60 else "(moderada)" if extroversao > 40 else "(baixa - reservado, introspectivo)"}
-- Amabilidade: {amabilidade}/100 {"(alta - cooperativo, empático)" if amabilidade > 60 else "(moderada)" if amabilidade > 40 else "(baixa - direto, cético)"}
-- Neuroticismo: {neuroticismo}/100 {"(alto - ansioso, emotivo)" if neuroticismo > 60 else "(moderado)" if neuroticismo > 40 else "(baixo - calmo, estável)"}
+COMO VOCÊ É:
+- Descrição geral: {descricao}
+
 
 INTERESSES: {", ".join(interesses) if interesses else "Vários"}
 
 SEU COMPORTAMENTO NA ENTREVISTA:
 - Responda como {nome} responderia baseado em sua personalidade
-- Use linguagem natural e informal típica de pessoas da sua idade e região
-	-> Formalidade; Extensão; Densidade; Complexidade; Tom relacional
 - Seus interesses, valores e experiências influenciam suas respostas
-- Demonstre emoções e reações consistentes com seu perfil psicológico
+- Demonstre emoções e reações, tanto as boas quanto as ruins, consistentes com seu perfil psicológico
 
 FORMATO DE RESPOSTA:
 Você DEVE retornar suas respostas no seguinte formato JSON estruturado:
