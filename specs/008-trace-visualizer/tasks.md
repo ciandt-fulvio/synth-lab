@@ -27,11 +27,11 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create Python SDK directory structure: src/synth_lab/trace_visualizer/ with __init__.py
-- [ ] T002 Create test directory structure: tests/unit/synth_lab/trace_visualizer/
-- [ ] T003 Create UI directory structure: ui/ with index.html, styles.css placeholders
-- [ ] T004 [P] Add trace_visualizer to src/synth_lab/__init__.py public exports
-- [ ] T005 [P] Create data/traces/ directory for trace file storage
+- [x] T001 Create Python SDK directory structure: src/synth_lab/trace_visualizer/ with __init__.py
+- [x] T002 Create test directory structure: tests/unit/synth_lab/trace_visualizer/
+- [x] T003 Create UI directory structure: ui/ with index.html, styles.css placeholders
+- [x] T004 [P] Add trace_visualizer to src/synth_lab/__init__.py public exports
+- [x] T005 [P] Create data/traces/ directory for trace file storage
 
 **Checkpoint**: Project structure ready for implementation
 
@@ -43,15 +43,15 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 [P] Define SpanType enum (llm_call, tool_call, turn, error, logic) in src/synth_lab/trace_visualizer/models.py
-- [ ] T007 [P] Define SpanStatus enum (success, error, pending) in src/synth_lab/trace_visualizer/models.py
-- [ ] T008 Write unit test for Step dataclass validation in tests/unit/synth_lab/trace_visualizer/test_models.py
-- [ ] T009 Implement Step dataclass with span_id, type, start_time, end_time, duration_ms, status, attributes in src/synth_lab/trace_visualizer/models.py
-- [ ] T010 Write unit test for Turn dataclass validation in tests/unit/synth_lab/trace_visualizer/test_models.py
-- [ ] T011 Implement Turn dataclass with turn_id, turn_number, start_time, end_time, duration_ms, steps in src/synth_lab/trace_visualizer/models.py
-- [ ] T012 Write unit test for Trace dataclass validation in tests/unit/synth_lab/trace_visualizer/test_models.py
-- [ ] T013 Implement Trace dataclass with trace_id, start_time, end_time, duration_ms, turns, metadata in src/synth_lab/trace_visualizer/models.py
-- [ ] T014 Run tests: pytest tests/unit/synth_lab/trace_visualizer/test_models.py - verify all pass and run <5s
+- [x] T006 [P] Define SpanType enum (llm_call, tool_call, turn, error, logic) in src/synth_lab/trace_visualizer/models.py
+- [x] T007 [P] Define SpanStatus enum (success, error, pending) in src/synth_lab/trace_visualizer/models.py
+- [x] T008 Write unit test for Step dataclass validation in tests/unit/synth_lab/trace_visualizer/test_models.py
+- [x] T009 Implement Step dataclass with span_id, type, start_time, end_time, duration_ms, status, attributes in src/synth_lab/trace_visualizer/models.py
+- [x] T010 Write unit test for Turn dataclass validation in tests/unit/synth_lab/trace_visualizer/test_models.py
+- [x] T011 Implement Turn dataclass with turn_id, turn_number, start_time, end_time, duration_ms, steps in src/synth_lab/trace_visualizer/models.py
+- [x] T012 Write unit test for Trace dataclass validation in tests/unit/synth_lab/trace_visualizer/test_models.py
+- [x] T013 Implement Trace dataclass with trace_id, start_time, end_time, duration_ms, turns, metadata in src/synth_lab/trace_visualizer/models.py
+- [x] T014 Run tests: pytest tests/unit/synth_lab/trace_visualizer/test_models.py - verify all pass and run <5s
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
