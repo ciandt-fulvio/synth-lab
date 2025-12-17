@@ -21,6 +21,7 @@ import hashlib
 from pathlib import Path
 
 from synth_lab.topic_guides.models import FileType
+from synth_lab.trace_visualizer import Tracer, SpanType, SpanStatus
 
 
 def detect_file_type(file_path: Path) -> FileType | None:
@@ -176,7 +177,7 @@ def encode_image_for_vision(image_path: Path) -> str:
 
 
 def call_openai_api(
-    prompt: str, image_base64: str | None = None, api_key: str | None = None
+    prompt: str, image_base64: str | None = None, api_key: str | None = None, tracer: Tracer | None = None
 ) -> str:
     """
     Call OpenAI API with retry logic and exponential backoff.
@@ -187,6 +188,7 @@ def call_openai_api(
         prompt: Text prompt for the LLM
         image_base64: Optional base64-encoded image for Vision API
         api_key: OpenAI API key (uses OPENAI_API_KEY env var if not provided)
+        tracer: Optional Tracer for recording trace data
 
     Returns:
         LLM response text
@@ -207,6 +209,15 @@ def call_openai_api(
         raise ValueError("OpenAI API key not found. Set OPENAI_API_KEY environment variable.")
 
     client = OpenAI(api_key=api_key)
+
+    # Start span if tracer provided
+    span = None
+    if tracer:
+        span = tracer.start_span(SpanType.LLM_CALL, attributes={
+            "prompt": prompt[:500] + "..." if len(prompt) > 500 else prompt,
+            "model": "gpt-4o-mini",
+            "has_image": image_base64 is not None,
+        })
 
     @retry(
         stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10)
@@ -240,9 +251,29 @@ def call_openai_api(
                 temperature=0.2,
             )
 
-        return response.choices[0].message.content
+        return response
 
-    return _make_request()
+    try:
+        response = _make_request()
+        content = response.choices[0].message.content
+
+        # Record response in span
+        if span:
+            span.set_attribute("response", content)
+            if hasattr(response, 'usage') and response.usage:
+                span.set_attribute("tokens_input", response.usage.prompt_tokens)
+                span.set_attribute("tokens_output", response.usage.completion_tokens)
+            span.set_status(SpanStatus.SUCCESS)
+
+        return content
+    except Exception as e:
+        if span:
+            span.set_status(SpanStatus.ERROR)
+            span.set_attribute("error_message", str(e))
+        raise
+    finally:
+        if span:
+            span.__exit__(None, None, None)
 
 
 def generate_file_description(file_path: Path, api_key: str | None = None) -> str | None:

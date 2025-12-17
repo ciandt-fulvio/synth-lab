@@ -434,13 +434,46 @@ python3 -m http.server 8000
 
 ---
 
+## Integração com Research Interviews
+
+O trace visualizer está **automaticamente integrado** com o módulo de pesquisa. Quando você executa uma entrevista:
+
+```bash
+synthlab research fhynws compra-amazon --max-rounds 5
+```
+
+Um trace é automaticamente gerado em `data/traces/interview-{synth_id}-{session_id}.trace.json` contendo:
+
+- **Cada round** da conversa como um turn separado
+- **Chamadas LLM** (interviewer e synth) com prompts, respostas e tokens
+- **Tool calls** (ex: load_image_for_analysis) com argumentos e resultados
+- **Erros** capturados automaticamente com mensagens e status
+
+### Visualizando Traces de Entrevistas
+
+1. Execute uma entrevista: `synthlab research <synth_id> <topic_guide>`
+2. O caminho do trace será exibido no final da entrevista
+3. Abra `logui/index.html` no navegador
+4. Carregue o arquivo `.trace.json` gerado
+5. Explore o waterfall e clique nos spans para ver detalhes
+
+### Demo sem API
+
+Para ver a estrutura de um trace de entrevista sem fazer chamadas reais:
+
+```bash
+uv run examples/trace_visualizer/interview_trace_demo.py
+```
+
+---
+
 ## Próximos Passos
 
 1. ✅ **Leia**: [data-model.md](data-model.md) para entender estrutura JSON
 2. ✅ **Experimente**: Rode exemplo completo acima
 3. ✅ **Visualize**: Abra UI e explore trace gerado
 4. ✅ **Instrumente**: Adicione tracer ao seu código LLM
-5. ⏳ **Avançado**: Exportar/importar traces (P2 feature)
+5. ✅ **Avançado**: Exportar/importar traces
 
 ---
 
