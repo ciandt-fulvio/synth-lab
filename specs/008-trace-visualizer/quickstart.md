@@ -89,7 +89,7 @@ print("✅ Trace salvo em weather-demo.trace.json")
 
 ### Passo 3: Visualizar no Navegador
 
-1. Abrir `ui/index.html` no navegador (Chrome, Firefox, Safari)
+1. Abrir `logui/index.html` no navegador (Chrome, Firefox, Safari)
 2. Clicar em "Load Trace" e selecionar `weather-demo.trace.json`
 3. Explorar waterfall: ver timeline de execução
 4. Clicar em etapas para ver detalhes (prompts, respostas, argumentos)
@@ -241,7 +241,7 @@ with tracer.start_span("tool_call", attributes={...}) as span:
 
 ### Abrir UI
 
-1. Navegar até `ui/index.html` no navegador
+1. Navegar até `logui/index.html` no navegador
 2. Ou usar servidor local:
    ```bash
    cd ui
