@@ -38,7 +38,7 @@ from synth_lab.trace_visualizer import Tracer
 ### Passo 2: Criar Trace e Instrumentar Código
 
 ```python
-from synth_lab.trace_visualizer import Tracer
+from synth_lab.trace_visualizer import Tracer, SpanType, SpanStatus
 
 # Criar tracer para conversa
 tracer = Tracer(trace_id="conv-weather-demo")
@@ -47,38 +47,31 @@ tracer = Tracer(trace_id="conv-weather-demo")
 with tracer.start_turn(turn_number=1):
 
     # Registrar LLM call
-    with tracer.start_span(
-        span_type="llm_call",
-        attributes={
-            "prompt": "What is the weather in Paris?",
-            "model": "claude-sonnet-4-5"
-        }
-    ) as span:
+    with tracer.start_span(SpanType.LLM_CALL, attributes={
+        "prompt": "What is the weather in Paris?",
+        "model": "claude-sonnet-4-5"
+    }) as span:
         # Simular chamada LLM
         response = "Let me check the weather for you."
         span.set_attribute("response", response)
+        span.set_attribute("tokens_input", 8)
+        span.set_attribute("tokens_output", 10)
 
     # Registrar tool call
-    with tracer.start_span(
-        span_type="tool_call",
-        attributes={
-            "tool_name": "get_weather",
-            "arguments": {"city": "Paris"}
-        }
-    ) as span:
+    with tracer.start_span(SpanType.TOOL_CALL, attributes={
+        "tool_name": "get_weather",
+        "arguments": {"city": "Paris"}
+    }) as span:
         # Simular chamada tool
         result = {"temp": 15, "condition": "cloudy"}
         span.set_attribute("result", result)
-        span.set_status("success")
+        span.set_status(SpanStatus.SUCCESS)
 
     # Registrar resposta final
-    with tracer.start_span(
-        span_type="llm_call",
-        attributes={
-            "prompt": "Format weather response",
-            "model": "claude-sonnet-4-5"
-        }
-    ) as span:
+    with tracer.start_span(SpanType.LLM_CALL, attributes={
+        "prompt": "Format weather response",
+        "model": "claude-sonnet-4-5"
+    }) as span:
         response = "The weather in Paris is 15°C and cloudy."
         span.set_attribute("response", response)
 
@@ -109,70 +102,67 @@ print("✅ Trace salvo em weather-demo.trace.json")
 ## Exemplo Completo: Conversa Multi-Turn
 
 ```python
-from synth_lab.trace_visualizer import Tracer
+from synth_lab.trace_visualizer import Tracer, SpanType, SpanStatus
 import time
 
-# Criar tracer
-tracer = Tracer(trace_id="multi-turn-weather")
+# Criar tracer com metadata opcional
+tracer = Tracer(
+    trace_id="multi-turn-weather",
+    metadata={"user_id": "demo-user", "session": "example"}
+)
 
 # Turn 1: Usuário pergunta sobre Paris
 with tracer.start_turn(turn_number=1):
-    with tracer.start_span(
-        span_type="llm_call",
-        attributes={
-            "prompt": "What is the weather in Paris?",
-            "model": "claude-sonnet-4-5"
-        }
-    ) as span:
+    with tracer.start_span(SpanType.LLM_CALL, attributes={
+        "prompt": "What is the weather in Paris?",
+        "model": "claude-sonnet-4-5"
+    }) as span:
         time.sleep(0.5)  # Simular latência LLM
         span.set_attribute("response", "Let me check.")
+        span.set_attribute("tokens_input", 8)
+        span.set_attribute("tokens_output", 5)
 
-    with tracer.start_span(
-        span_type="tool_call",
-        attributes={
-            "tool_name": "get_weather",
-            "arguments": {"city": "Paris"}
-        }
-    ) as span:
+    with tracer.start_span(SpanType.TOOL_CALL, attributes={
+        "tool_name": "get_weather",
+        "arguments": {"city": "Paris"}
+    }) as span:
         time.sleep(1.0)  # Simular latência API
         span.set_attribute("result", {"temp": 15, "condition": "cloudy"})
-        span.set_status("success")
+        span.set_status(SpanStatus.SUCCESS)
 
 # Turn 2: Usuário pergunta sobre previsão
 with tracer.start_turn(turn_number=2):
-    with tracer.start_span(
-        span_type="llm_call",
-        attributes={
-            "prompt": "What about tomorrow?",
-            "model": "claude-sonnet-4-5"
-        }
-    ) as span:
+    with tracer.start_span(SpanType.LLM_CALL, attributes={
+        "prompt": "What about tomorrow?",
+        "model": "claude-sonnet-4-5"
+    }) as span:
         time.sleep(0.5)  # Simular latência LLM
         span.set_attribute("response", "I don't have forecast data.")
 
-# Turn 3: Usuário tenta London
+# Turn 3: Usuário tenta London (com erro)
 with tracer.start_turn(turn_number=3):
-    with tracer.start_span(
-        span_type="llm_call",
-        attributes={
-            "prompt": "How about London?",
-            "model": "claude-sonnet-4-5"
-        }
-    ) as span:
+    with tracer.start_span(SpanType.LLM_CALL, attributes={
+        "prompt": "How about London?",
+        "model": "claude-sonnet-4-5"
+    }) as span:
         time.sleep(0.5)
         span.set_attribute("response", "Let me check London.")
 
-    with tracer.start_span(
-        span_type="tool_call",
-        attributes={
-            "tool_name": "get_weather",
-            "arguments": {"city": "London"}
-        }
-    ) as span:
+    with tracer.start_span(SpanType.TOOL_CALL, attributes={
+        "tool_name": "get_weather",
+        "arguments": {"city": "London"}
+    }) as span:
         time.sleep(1.0)
         # Simular erro
-        span.set_status("error")
+        span.set_status(SpanStatus.ERROR)
         span.set_attribute("error_message", "API timeout after 1000ms")
+
+    # Registrar erro explicitamente
+    with tracer.start_span(SpanType.ERROR, attributes={
+        "error_type": "APITimeoutError",
+        "error_message": "Weather API did not respond in time"
+    }):
+        pass
 
 # Salvar e visualizar
 tracer.save_trace("data/traces/multi-turn-demo.trace.json")
