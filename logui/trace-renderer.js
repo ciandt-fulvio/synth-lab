@@ -20,6 +20,7 @@ const errorText = document.getElementById('error-text');
 const errorClose = document.getElementById('error-close');
 const traceInfo = document.getElementById('trace-info');
 const waterfallSection = document.getElementById('waterfall-section');
+const exportButton = document.getElementById('export-trace');
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
@@ -28,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dropZone.addEventListener('dragleave', handleDragLeave);
     dropZone.addEventListener('drop', handleDrop);
     errorClose.addEventListener('click', hideError);
+    exportButton.addEventListener('click', exportTrace);
 });
 
 /**
@@ -170,8 +172,9 @@ function displayTraceInfo(trace) {
     document.getElementById('info-turns').textContent = trace.turns.length;
     document.getElementById('info-steps').textContent = totalSteps;
 
-    // Show info panel
+    // Show info panel and export button
     traceInfo.classList.remove('hidden');
+    exportButton.classList.remove('hidden');
 }
 
 /**
@@ -194,4 +197,59 @@ function hideError() {
  */
 function getCurrentTrace() {
     return currentTrace;
+}
+
+/**
+ * Export trace as .trace.json file
+ */
+function exportTrace() {
+    if (!currentTrace) {
+        showError('Nenhum trace carregado para exportar');
+        return;
+    }
+
+    // Generate filename with trace ID and timestamp
+    const filename = generateTraceFilename(currentTrace);
+
+    // Convert trace to JSON
+    const jsonString = JSON.stringify(currentTrace, null, 2);
+
+    // Create Blob
+    const blob = new Blob([jsonString], { type: 'application/json' });
+
+    // Create download link
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+
+    // Cleanup
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    fileStatus.textContent = `✅ ${filename} exportado`;
+    setTimeout(() => {
+        fileStatus.textContent = '';
+    }, 3000);
+}
+
+/**
+ * Generate filename for trace export
+ */
+function generateTraceFilename(trace) {
+    // Use trace_id as base
+    const baseId = trace.trace_id || 'trace';
+
+    // Add timestamp
+    const now = new Date();
+    const timestamp = now.toISOString()
+        .replace(/[:.]/g, '-')
+        .replace('T', '_')
+        .substring(0, 19);
+
+    return `${baseId}_${timestamp}.trace.json`;
 }
