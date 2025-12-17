@@ -72,53 +72,53 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T015 [P] [US1] Write test for Tracer.__init__() in tests/unit/synth_lab/trace_visualizer/test_tracer.py
-- [ ] T016 [P] [US1] Write test for Tracer.start_turn() context manager in tests/unit/synth_lab/trace_visualizer/test_tracer.py
-- [ ] T017 [P] [US1] Write test for Tracer.start_span() context manager in tests/unit/synth_lab/trace_visualizer/test_tracer.py
-- [ ] T018 [P] [US1] Write test for Tracer.save_trace() JSON serialization in tests/unit/synth_lab/trace_visualizer/test_tracer.py
-- [ ] T019 [P] [US1] Write test for load_trace() JSON deserialization in tests/unit/synth_lab/trace_visualizer/test_persistence.py
-- [ ] T020 [P] [US1] Write test for save_trace() file creation in tests/unit/synth_lab/trace_visualizer/test_persistence.py
+- [x] T015 [P] [US1] Write test for Tracer.__init__() in tests/unit/synth_lab/trace_visualizer/test_tracer.py
+- [x] T016 [P] [US1] Write test for Tracer.start_turn() context manager in tests/unit/synth_lab/trace_visualizer/test_tracer.py
+- [x] T017 [P] [US1] Write test for Tracer.start_span() context manager in tests/unit/synth_lab/trace_visualizer/test_tracer.py
+- [x] T018 [P] [US1] Write test for Tracer.save_trace() JSON serialization in tests/unit/synth_lab/trace_visualizer/test_tracer.py
+- [x] T019 [P] [US1] Write test for load_trace() JSON deserialization in tests/unit/synth_lab/trace_visualizer/test_persistence.py
+- [x] T020 [P] [US1] Write test for save_trace() file creation in tests/unit/synth_lab/trace_visualizer/test_persistence.py
 
 ### Implementation for User Story 1
 
 **SDK Core (Recording)**:
 
-- [ ] T021 [US1] Implement Tracer.__init__() with trace_id and metadata in src/synth_lab/trace_visualizer/tracer.py
-- [ ] T022 [US1] Implement Tracer.start_turn() context manager with timestamp recording in src/synth_lab/trace_visualizer/tracer.py
-- [ ] T023 [US1] Implement Tracer.start_span() context manager with Span object yielding in src/synth_lab/trace_visualizer/tracer.py
-- [ ] T024 [US1] Implement Span.set_attribute() and Span.set_status() methods in src/synth_lab/trace_visualizer/tracer.py
-- [ ] T025 [US1] Implement Tracer.trace property (read-only access) in src/synth_lab/trace_visualizer/tracer.py
-- [ ] T026 [US1] Run SDK tests: pytest tests/unit/synth_lab/trace_visualizer/test_tracer.py - verify all pass <5s
+- [x] T021 [US1] Implement Tracer.__init__() with trace_id and metadata in src/synth_lab/trace_visualizer/tracer.py
+- [x] T022 [US1] Implement Tracer.start_turn() context manager with timestamp recording in src/synth_lab/trace_visualizer/tracer.py
+- [x] T023 [US1] Implement Tracer.start_span() context manager with Span object yielding in src/synth_lab/trace_visualizer/tracer.py
+- [x] T024 [US1] Implement Span.set_attribute() and Span.set_status() methods in src/synth_lab/trace_visualizer/tracer.py
+- [x] T025 [US1] Implement Tracer.trace property (read-only access) in src/synth_lab/trace_visualizer/tracer.py
+- [x] T026 [US1] Run SDK tests: pytest tests/unit/synth_lab/trace_visualizer/test_tracer.py - verify all pass <5s
 
 **Persistence Layer**:
 
-- [ ] T027 [US1] Implement save_trace(trace, path) with JSON serialization in src/synth_lab/trace_visualizer/persistence.py
-- [ ] T028 [US1] Implement load_trace(path) with JSON deserialization in src/synth_lab/trace_visualizer/persistence.py
-- [ ] T029 [US1] Add Tracer.save_trace(path) wrapper method in src/synth_lab/trace_visualizer/tracer.py
-- [ ] T030 [US1] Run persistence tests: pytest tests/unit/synth_lab/trace_visualizer/test_persistence.py - verify all pass <5s
+- [x] T027 [US1] Implement save_trace(trace, path) with JSON serialization in src/synth_lab/trace_visualizer/persistence.py
+- [x] T028 [US1] Implement load_trace(path) with JSON deserialization in src/synth_lab/trace_visualizer/persistence.py
+- [x] T029 [US1] Add Tracer.save_trace(path) wrapper method in src/synth_lab/trace_visualizer/tracer.py
+- [x] T030 [US1] Run persistence tests: pytest tests/unit/synth_lab/trace_visualizer/test_persistence.py - verify all pass <5s
 
 **Public API**:
 
-- [ ] T031 [US1] Export Tracer, SpanType, SpanStatus in src/synth_lab/trace_visualizer/__init__.py
-- [ ] T032 [US1] Create example script demonstrating multi-turn recording in examples/trace_visualizer/basic_conversation.py
-- [ ] T033 [US1] Run example script and generate test trace: uv run examples/trace_visualizer/basic_conversation.py
+- [x] T031 [US1] Export Tracer, SpanType, SpanStatus in src/synth_lab/trace_visualizer/__init__.py
+- [x] T032 [US1] Create example script demonstrating multi-turn recording in examples/trace_visualizer/basic_conversation.py
+- [x] T033 [US1] Run example script and generate test trace: uv run examples/trace_visualizer/basic_conversation.py
 
 **UI Core (Visualization)**:
 
-- [ ] T034 [US1] Implement HTML shell with file upload button and waterfall container in logui/index.html
-- [ ] T035 [US1] Implement trace-renderer.js: loadTrace(file), parseJSON(data) in logui/trace-renderer.js
-- [ ] T036 [US1] Implement waterfall.js: renderWaterfall(trace) with horizontal bars in logui/waterfall.js
-- [ ] T037 [US1] Implement waterfall.js: renderTurn(turn) with duration scaling in logui/waterfall.js
-- [ ] T038 [US1] Implement waterfall.js: renderStep(step) with nested positioning in logui/waterfall.js
-- [ ] T039 [US1] Add expand/collapse functionality for turns in logui/waterfall.js
-- [ ] T040 [US1] Implement basic CSS layout (flexbox container, waterfall grid) in logui/styles.css
-- [ ] T041 [US1] Implement CSS for duration bars (width proportional to time) in logui/styles.css
+- [x] T034 [US1] Implement HTML shell with file upload button and waterfall container in logui/index.html
+- [x] T035 [US1] Implement trace-renderer.js: loadTrace(file), parseJSON(data) in logui/trace-renderer.js
+- [x] T036 [US1] Implement waterfall.js: renderWaterfall(trace) with horizontal bars in logui/waterfall.js
+- [x] T037 [US1] Implement waterfall.js: renderTurn(turn) with duration scaling in logui/waterfall.js
+- [x] T038 [US1] Implement waterfall.js: renderStep(step) with nested positioning in logui/waterfall.js
+- [x] T039 [US1] Add expand/collapse functionality for turns in logui/waterfall.js
+- [x] T040 [US1] Implement basic CSS layout (flexbox container, waterfall grid) in logui/styles.css
+- [x] T041 [US1] Implement CSS for duration bars (width proportional to time) in logui/styles.css
 
 **Manual Testing (BDD Acceptance)**:
 
-- [ ] T042 [US1] BDD Test 1.1: Load trace with 3 turns → verify 3 bars with labels
-- [ ] T043 [US1] BDD Test 1.2: Expand turn → verify 5 sub-bars, durations sum correctly
-- [ ] T044 [US1] BDD Test 1.3: Identify slowest step in <10s by visual inspection only
+- [x] T042 [US1] BDD Test 1.1: Load trace with 3 turns → verify 3 bars with labels
+- [x] T043 [US1] BDD Test 1.2: Expand turn → verify 5 sub-bars, durations sum correctly
+- [x] T044 [US1] BDD Test 1.3: Identify slowest step in <10s by visual inspection only
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - recording + waterfall visualization working end-to-end
 
