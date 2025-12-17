@@ -173,7 +173,7 @@ All architectural decisions were provided upfront during planning. No additional
 - Server-based UI (Flask/FastAPI) → Rejected: not offline-capable
 - Desktop app (Electron/Tauri) → Rejected: overkill for MVP, harder to distribute
 
-**Implementation Impact**: ui/ directory with 5 files, loaded via file:// protocol.
+**Implementation Impact**: logui/ directory with 5 files, loaded via file:// protocol.
 
 ---
 

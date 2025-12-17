@@ -92,7 +92,7 @@ tests/unit/synth_lab/trace_visualizer/
 └── test_persistence.py
 
 # UI (static, deployed as HTML artifact)
-ui/
+logui/
 ├── index.html                # Main UI shell
 ├── styles.css                # Waterfall visualization styles
 ├── waterfall.js              # Timeline rendering

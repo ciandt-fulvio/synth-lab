@@ -18,7 +18,7 @@
 
 - **Python SDK**: `src/synth_lab/trace_visualizer/`
 - **Tests**: `tests/unit/synth_lab/trace_visualizer/`
-- **UI**: `ui/` (static HTML/CSS/JS)
+- **UI**: `logui/` (static HTML/CSS/JS)
 - **Documentation**: `specs/008-trace-visualizer/`
 
 ---
@@ -29,7 +29,7 @@
 
 - [x] T001 Create Python SDK directory structure: src/synth_lab/trace_visualizer/ with __init__.py
 - [x] T002 Create test directory structure: tests/unit/synth_lab/trace_visualizer/
-- [x] T003 Create UI directory structure: ui/ with index.html, styles.css placeholders
+- [x] T003 Create UI directory structure: logui/ with index.html, styles.css placeholders
 - [x] T004 [P] Add trace_visualizer to src/synth_lab/__init__.py public exports
 - [x] T005 [P] Create data/traces/ directory for trace file storage
 
@@ -105,14 +105,14 @@
 
 **UI Core (Visualization)**:
 
-- [ ] T034 [US1] Implement HTML shell with file upload button and waterfall container in ui/index.html
-- [ ] T035 [US1] Implement trace-renderer.js: loadTrace(file), parseJSON(data) in ui/trace-renderer.js
-- [ ] T036 [US1] Implement waterfall.js: renderWaterfall(trace) with horizontal bars in ui/waterfall.js
-- [ ] T037 [US1] Implement waterfall.js: renderTurn(turn) with duration scaling in ui/waterfall.js
-- [ ] T038 [US1] Implement waterfall.js: renderStep(step) with nested positioning in ui/waterfall.js
-- [ ] T039 [US1] Add expand/collapse functionality for turns in ui/waterfall.js
-- [ ] T040 [US1] Implement basic CSS layout (flexbox container, waterfall grid) in ui/styles.css
-- [ ] T041 [US1] Implement CSS for duration bars (width proportional to time) in ui/styles.css
+- [ ] T034 [US1] Implement HTML shell with file upload button and waterfall container in logui/index.html
+- [ ] T035 [US1] Implement trace-renderer.js: loadTrace(file), parseJSON(data) in logui/trace-renderer.js
+- [ ] T036 [US1] Implement waterfall.js: renderWaterfall(trace) with horizontal bars in logui/waterfall.js
+- [ ] T037 [US1] Implement waterfall.js: renderTurn(turn) with duration scaling in logui/waterfall.js
+- [ ] T038 [US1] Implement waterfall.js: renderStep(step) with nested positioning in logui/waterfall.js
+- [ ] T039 [US1] Add expand/collapse functionality for turns in logui/waterfall.js
+- [ ] T040 [US1] Implement basic CSS layout (flexbox container, waterfall grid) in logui/styles.css
+- [ ] T041 [US1] Implement CSS for duration bars (width proportional to time) in logui/styles.css
 
 **Manual Testing (BDD Acceptance)**:
 
@@ -145,14 +145,14 @@
 
 **UI Details Panel**:
 
-- [ ] T048 [US2] Implement HTML sidebar detail panel structure in ui/index.html
-- [ ] T049 [US2] Implement details.js: showDetails(span) with click event binding in ui/details.js
-- [ ] T050 [US2] Implement details.js: renderLLMCallDetails(attributes) showing prompt/response/model in ui/details.js
-- [ ] T051 [US2] Implement details.js: renderToolCallDetails(attributes) showing tool_name/args/result in ui/details.js
-- [ ] T052 [US2] Implement details.js: renderErrorDetails(attributes) showing error_type/message in ui/details.js
-- [ ] T053 [US2] Implement details.js: truncateContent(text, maxLength=500) with "Show More" toggle in ui/details.js
-- [ ] T054 [US2] Add CSS for detail panel (fixed sidebar, scrollable content) in ui/styles.css
-- [ ] T055 [US2] Add CSS for truncated content (ellipsis, expand button) in ui/styles.css
+- [ ] T048 [US2] Implement HTML sidebar detail panel structure in logui/index.html
+- [ ] T049 [US2] Implement details.js: showDetails(span) with click event binding in logui/details.js
+- [ ] T050 [US2] Implement details.js: renderLLMCallDetails(attributes) showing prompt/response/model in logui/details.js
+- [ ] T051 [US2] Implement details.js: renderToolCallDetails(attributes) showing tool_name/args/result in logui/details.js
+- [ ] T052 [US2] Implement details.js: renderErrorDetails(attributes) showing error_type/message in logui/details.js
+- [ ] T053 [US2] Implement details.js: truncateContent(text, maxLength=500) with "Show More" toggle in logui/details.js
+- [ ] T054 [US2] Add CSS for detail panel (fixed sidebar, scrollable content) in logui/styles.css
+- [ ] T055 [US2] Add CSS for truncated content (ellipsis, expand button) in logui/styles.css
 
 **Manual Testing (BDD Acceptance)**:
 
@@ -186,13 +186,13 @@
 
 **UI Export/Import**:
 
-- [ ] T063 [US3] Add "Export Trace" button to UI in ui/index.html
-- [ ] T064 [US3] Implement exportTrace(trace) with Blob download in ui/trace-renderer.js
-- [ ] T065 [US3] Implement file naming: conversation_id_timestamp.trace.json in ui/trace-renderer.js
-- [ ] T066 [US3] Add "Import Trace" file input to UI (drag-and-drop support) in ui/index.html
-- [ ] T067 [US3] Implement importTrace(file) with FileReader in ui/trace-renderer.js
-- [ ] T068 [US3] Add validation: check JSON structure before rendering in ui/trace-renderer.js
-- [ ] T069 [US3] Add error handling: show "Invalid trace file" message for corrupted JSON in ui/trace-renderer.js
+- [ ] T063 [US3] Add "Export Trace" button to UI in logui/index.html
+- [ ] T064 [US3] Implement exportTrace(trace) with Blob download in logui/trace-renderer.js
+- [ ] T065 [US3] Implement file naming: conversation_id_timestamp.trace.json in logui/trace-renderer.js
+- [ ] T066 [US3] Add "Import Trace" file input to UI (drag-and-drop support) in logui/index.html
+- [ ] T067 [US3] Implement importTrace(file) with FileReader in logui/trace-renderer.js
+- [ ] T068 [US3] Add validation: check JSON structure before rendering in logui/trace-renderer.js
+- [ ] T069 [US3] Add error handling: show "Invalid trace file" message for corrupted JSON in logui/trace-renderer.js
 
 **Manual Testing (BDD Acceptance)**:
 
@@ -217,11 +217,11 @@
 
 **UI Semantic Colors**:
 
-- [ ] T073 [P] [US4] Define CSS color variables (--color-llm-call, --color-tool-call, --color-error, --color-logic) in ui/styles.css
-- [ ] T074 [P] [US4] Apply background color to waterfall bars based on span.type in ui/waterfall.js
-- [ ] T075 [P] [US4] Add color legend to UI header (LLM=Blue, Tool=Green, Error=Red, Logic=Yellow) in ui/index.html
-- [ ] T076 [P] [US4] Style error spans with red text and background in ui/styles.css
-- [ ] T077 [P] [US4] Ensure colors are accessible (WCAG AA contrast ratio) in ui/styles.css
+- [ ] T073 [P] [US4] Define CSS color variables (--color-llm-call, --color-tool-call, --color-error, --color-logic) in logui/styles.css
+- [ ] T074 [P] [US4] Apply background color to waterfall bars based on span.type in logui/waterfall.js
+- [ ] T075 [P] [US4] Add color legend to UI header (LLM=Blue, Tool=Green, Error=Red, Logic=Yellow) in logui/index.html
+- [ ] T076 [P] [US4] Style error spans with red text and background in logui/styles.css
+- [ ] T077 [P] [US4] Ensure colors are accessible (WCAG AA contrast ratio) in logui/styles.css
 
 **Manual Testing (BDD Acceptance)**:
 
@@ -245,7 +245,7 @@
 - [ ] T086 Create comprehensive trace for testing (20 turns, 50 steps, all span types) in examples/trace_visualizer/comprehensive_demo.py
 - [ ] T087 Run full test battery: pytest tests/unit/synth_lab/trace_visualizer/ - verify all pass <5s
 - [ ] T088 Run quickstart.md validation: execute all code examples and verify outputs
-- [ ] T089 [P] Optimize waterfall rendering for large traces (virtual scrolling if >100 steps) in ui/waterfall.js
+- [ ] T089 [P] Optimize waterfall rendering for large traces (virtual scrolling if >100 steps) in logui/waterfall.js
 - [ ] T090 Add performance test: load 100-step trace, verify <2s load time (SC-006)
 - [ ] T091 Code review: verify <300 lines per Python module (Constitution V)
 - [ ] T092 Security review: check for XSS vulnerabilities in detail panel rendering
@@ -306,10 +306,10 @@ Task: "Write test for load_trace() JSON deserialization in tests/unit/synth_lab/
 Task: "Write test for save_trace() file creation in tests/unit/synth_lab/trace_visualizer/test_persistence.py"
 
 # After tests fail, launch UI files in parallel:
-Task: "Implement HTML shell with file upload button and waterfall container in ui/index.html"
-Task: "Implement trace-renderer.js: loadTrace(file), parseJSON(data) in ui/trace-renderer.js"
-Task: "Implement waterfall.js: renderWaterfall(trace) with horizontal bars in ui/waterfall.js"
-Task: "Implement basic CSS layout (flexbox container, waterfall grid) in ui/styles.css"
+Task: "Implement HTML shell with file upload button and waterfall container in logui/index.html"
+Task: "Implement trace-renderer.js: loadTrace(file), parseJSON(data) in logui/trace-renderer.js"
+Task: "Implement waterfall.js: renderWaterfall(trace) with horizontal bars in logui/waterfall.js"
+Task: "Implement basic CSS layout (flexbox container, waterfall grid) in logui/styles.css"
 ```
 
 ---
