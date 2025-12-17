@@ -226,7 +226,7 @@ function renderErrorDetails(attributes) {
 function renderLogicDetails(attributes) {
     const sections = [];
 
-    // Operation
+    // Operation first
     if (attributes.operation) {
         sections.push({
             label: 'Operation',
@@ -235,31 +235,25 @@ function renderLogicDetails(attributes) {
         });
     }
 
-    // Input
-    if (attributes.input !== undefined) {
-        const inputValue = typeof attributes.input === 'string'
-            ? attributes.input
-            : JSON.stringify(attributes.input, null, 2);
+    // Render ALL other attributes dynamically
+    for (const [key, value] of Object.entries(attributes)) {
+        // Skip operation (already rendered)
+        if (key === 'operation') continue;
+
+        const displayValue = typeof value === 'string'
+            ? value
+            : JSON.stringify(value, null, 2);
+
+        // Format key for display (snake_case to Title Case)
+        const label = key.split('_').map(word =>
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
 
         sections.push({
-            label: 'Input',
-            value: inputValue,
-            type: typeof attributes.input === 'string' ? 'long-text' : 'code',
-            id: 'input'
-        });
-    }
-
-    // Output
-    if (attributes.output !== undefined) {
-        const outputValue = typeof attributes.output === 'string'
-            ? attributes.output
-            : JSON.stringify(attributes.output, null, 2);
-
-        sections.push({
-            label: 'Output',
-            value: outputValue,
-            type: typeof attributes.output === 'string' ? 'long-text' : 'code',
-            id: 'output'
+            label: label,
+            value: displayValue,
+            type: typeof value === 'string' && value.length > 100 ? 'long-text' : (typeof value === 'object' ? 'code' : 'text'),
+            id: key
         });
     }
 
