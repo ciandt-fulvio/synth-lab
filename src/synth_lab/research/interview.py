@@ -583,24 +583,26 @@ def run_interview(
         raise
     else:
         session.status = SessionStatus.COMPLETED
+    finally:
+        # Always save trace, even on error (if we have any turns)
+        if tracer._turns:
+            trace_dir = Path("data/traces")
+            trace_dir.mkdir(parents=True, exist_ok=True)
+            trace_filename = f"interview-{synth_id}-{session.id[:8]}.trace.json"
+            trace_path = trace_dir / trace_filename
+            try:
+                tracer.save_trace(str(trace_path))
+                logger.info(f"Trace saved to {trace_path}")
+                console.print(f"\n[cyan]📊 Trace salvo em:[/cyan] [bold]{trace_path}[/bold]")
+                console.print(f"[dim]   Visualize em: logui/index.html[/dim]\n")
+            except Exception as save_error:
+                logger.error(f"Failed to save trace: {save_error}")
 
     # Finalize session
     session.end_time = datetime.now(timezone.utc)
 
-    # Save trace
-    trace_dir = Path("data/traces")
-    trace_dir.mkdir(parents=True, exist_ok=True)
-    trace_filename = f"interview-{synth_id}-{session.id[:8]}.trace.json"
-    trace_path = trace_dir / trace_filename
-    tracer.save_trace(str(trace_path))
-    logger.info(f"Trace saved to {trace_path}")
-
     # Display summary
     display_interview_summary(session, len(messages_list))
-
-    # Display trace info
-    console.print(f"\n[cyan]📊 Trace salvo em:[/cyan] [bold]{trace_path}[/bold]")
-    console.print(f"[dim]   Visualize em: logui/index.html[/dim]\n")
 
     return session, messages_list, synth
 
