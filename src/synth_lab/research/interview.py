@@ -190,43 +190,41 @@ def conversation_turn(
     if tools:
         api_params["tools"] = tools
 
-    # Start LLM call span if tracer provided
-    llm_span = None
-    if tracer:
-        # Get last user message for prompt context
-        user_msgs = [m for m in messages if m.get("role") == "user"]
-        last_msg = user_msgs[-1]["content"] if user_msgs else "Starting conversation"
+    # Get prompt context for tracing
+    user_msgs = [m for m in messages if m.get("role") == "user"]
+    last_msg = user_msgs[-1]["content"] if user_msgs else "Starting conversation"
 
-        llm_span = tracer.start_span(SpanType.LLM_CALL, attributes={
+    # Execute LLM call with optional tracing
+    def _make_llm_call():
+        return client.beta.chat.completions.parse(**api_params)
+
+    if tracer:
+        with tracer.start_span(SpanType.LLM_CALL, attributes={
             "prompt": last_msg,
             "model": model,
             "speaker": speaker.value if speaker else "unknown",
-            "system_prompt": system_prompt[:200] + "..." if len(system_prompt) > 200 else system_prompt,
-        })
+        }) as span:
+            try:
+                completion = _make_llm_call()
 
-    try:
-        completion = client.beta.chat.completions.parse(**api_params)
+                # Record response in span
+                if completion.choices:
+                    msg = completion.choices[0].message
+                    if hasattr(msg, 'parsed') and msg.parsed:
+                        span.set_attribute("response", msg.parsed.message)
 
-        # Record response in span
-        if llm_span and completion.choices:
-            message = completion.choices[0].message
-            if hasattr(message, 'parsed') and message.parsed:
-                llm_span.set_attribute("response", message.parsed.message)
+                    # Record token usage if available
+                    if hasattr(completion, 'usage') and completion.usage:
+                        span.set_attribute("tokens_input", completion.usage.prompt_tokens)
+                        span.set_attribute("tokens_output", completion.usage.completion_tokens)
 
-            # Record token usage if available
-            if hasattr(completion, 'usage') and completion.usage:
-                llm_span.set_attribute("tokens_input", completion.usage.prompt_tokens)
-                llm_span.set_attribute("tokens_output", completion.usage.completion_tokens)
-
-            llm_span.set_status(SpanStatus.SUCCESS)
-    except Exception as e:
-        if llm_span:
-            llm_span.set_status(SpanStatus.ERROR)
-            llm_span.set_attribute("error_message", str(e))
-        raise
-    finally:
-        if llm_span:
-            llm_span.__exit__(None, None, None)
+                span.set_status(SpanStatus.SUCCESS)
+            except Exception as e:
+                span.set_status(SpanStatus.ERROR)
+                span.set_attribute("error_message", str(e))
+                raise
+    else:
+        completion = _make_llm_call()
 
     # Handle tool calls if present
     message = completion.choices[0].message
@@ -268,51 +266,54 @@ def conversation_turn(
 
             # Execute the function with tracing
             if function_name == "load_image_for_analysis":
-                # Start tool call span
-                tool_span = None
-                if tracer:
-                    tool_span = tracer.start_span(SpanType.TOOL_CALL, attributes={
-                        "tool_name": function_name,
-                        "arguments": {"filename": function_args.filename} if isinstance(function_args, LoadImageParams) else function_args,
-                    })
+                # Get filename from parsed arguments (Pydantic model) or dict
+                filename = function_args.filename if isinstance(
+                    function_args, LoadImageParams) else function_args["filename"]
 
-                try:
-                    # Get filename from parsed arguments (Pydantic model) or dict
-                    filename = function_args.filename if isinstance(
-                        function_args, LoadImageParams) else function_args["filename"]
-
-                    image_data = load_image_for_analysis(
+                def _execute_tool():
+                    return load_image_for_analysis(
                         filename=filename,
                         topic_guide_name=topic_guide_name
                     )
 
-                    # Record success in span
-                    if tool_span:
-                        tool_span.set_attribute("result", f"Image loaded: {filename} ({len(image_data)} bytes)")
-                        tool_span.set_status(SpanStatus.SUCCESS)
+                tool_result = None
+                tool_error = None
 
-                    # Add tool response to messages
+                if tracer:
+                    with tracer.start_span(SpanType.TOOL_CALL, attributes={
+                        "tool_name": function_name,
+                        "arguments": {"filename": filename},
+                    }) as span:
+                        try:
+                            image_data = _execute_tool()
+                            span.set_attribute("result", f"Image loaded: {filename} ({len(image_data)} bytes)")
+                            span.set_status(SpanStatus.SUCCESS)
+                            tool_result = image_data
+                        except Exception as e:
+                            logger.error(f"Tool call failed: {e}")
+                            span.set_status(SpanStatus.ERROR)
+                            span.set_attribute("error_message", str(e))
+                            tool_error = e
+                else:
+                    try:
+                        tool_result = _execute_tool()
+                    except Exception as e:
+                        logger.error(f"Tool call failed: {e}")
+                        tool_error = e
+
+                # Add tool response to messages
+                if tool_result:
                     messages.append({
                         "role": "tool",
                         "tool_call_id": tool_call.id,
-                        "content": f"Image loaded successfully. Base64 data: data:image/png;base64,{image_data[:100]}... (truncated)"
+                        "content": f"Image loaded successfully. Base64 data: data:image/png;base64,{tool_result[:100]}... (truncated)"
                     })
-                except Exception as e:
-                    logger.error(f"Tool call failed: {e}")
-
-                    # Record error in span
-                    if tool_span:
-                        tool_span.set_status(SpanStatus.ERROR)
-                        tool_span.set_attribute("error_message", str(e))
-
+                else:
                     messages.append({
                         "role": "tool",
                         "tool_call_id": tool_call.id,
-                        "content": f"Error loading image: {str(e)}"
+                        "content": f"Error loading image: {str(tool_error)}"
                     })
-                finally:
-                    if tool_span:
-                        tool_span.__exit__(None, None, None)
 
         # Make another API call to get the final response
         completion = client.beta.chat.completions.parse(
