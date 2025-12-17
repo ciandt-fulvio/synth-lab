@@ -1,0 +1,1035 @@
+{
+  "trace_id": "comprehensive-demo-trace",
+  "start_time": "2025-12-17T21:59:36.531709+00:00",
+  "end_time": "2025-12-17T21:59:51.350927+00:00",
+  "duration_ms": 14819,
+  "turns": [
+    {
+      "turn_id": "14b9e2e1-63e9-432a-9179-57560001330d",
+      "turn_number": 1,
+      "start_time": "2025-12-17T21:59:36.531709+00:00",
+      "end_time": "2025-12-17T21:59:37.748377+00:00",
+      "duration_ms": 1216,
+      "steps": [
+        {
+          "span_id": "b2527b55-bd90-4a22-9f95-65688e431fd7",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:36.531973+00:00",
+          "end_time": "2025-12-17T21:59:36.544037+00:00",
+          "duration_ms": 12,
+          "status": "success",
+          "attributes": {
+            "operation": "Parse research query",
+            "input": "Research the history of artificial intelligence"
+          }
+        },
+        {
+          "span_id": "f6329655-5cf3-48b4-8e26-53974127ba41",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:36.544089+00:00",
+          "end_time": "2025-12-17T21:59:36.945067+00:00",
+          "duration_ms": 400,
+          "status": "success",
+          "attributes": {
+            "prompt": "Break down this research query into searchable topics: 'Research the history of artificial intelligence'",
+            "model": "claude-sonnet-4-5",
+            "response": "I'll break this into: 1) Early AI foundations (1950s-1960s), 2) AI winters and revivals, 3) Modern deep learning era",
+            "tokens_input": 25,
+            "tokens_output": 42
+          }
+        },
+        {
+          "span_id": "cc7f56cf-90a5-4c09-9f97-ac53ab8968da",
+          "type": "tool_call",
+          "start_time": "2025-12-17T21:59:36.945186+00:00",
+          "end_time": "2025-12-17T21:59:37.748359+00:00",
+          "duration_ms": 803,
+          "status": "success",
+          "attributes": {
+            "tool_name": "web_search",
+            "arguments": {
+              "query": "AI history 1950s foundations",
+              "max_results": 5
+            },
+            "result": {
+              "sources": [
+                "Turing Test 1950",
+                "Dartmouth Conference 1956",
+                "Perceptron 1958"
+              ],
+              "summary": "Early AI focused on symbolic reasoning and problem-solving"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "d1af5e4f-8a48-4bb7-bd56-f62e710eaf93",
+      "turn_number": 2,
+      "start_time": "2025-12-17T21:59:37.748430+00:00",
+      "end_time": "2025-12-17T21:59:38.879834+00:00",
+      "duration_ms": 1131,
+      "steps": [
+        {
+          "span_id": "dfc024d7-b293-4dfb-8b5d-45cfba39c864",
+          "type": "tool_call",
+          "start_time": "2025-12-17T21:59:37.748461+00:00",
+          "end_time": "2025-12-17T21:59:38.252368+00:00",
+          "duration_ms": 503,
+          "status": "success",
+          "attributes": {
+            "tool_name": "load_dataset",
+            "arguments": {
+              "dataset_id": "ai_papers_historical"
+            },
+            "result": {
+              "rows": 1500,
+              "columns": [
+                "year",
+                "title",
+                "author",
+                "citations"
+              ]
+            }
+          }
+        },
+        {
+          "span_id": "88a3d0aa-a590-43d6-9245-4e97b130fa5e",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:38.252431+00:00",
+          "end_time": "2025-12-17T21:59:38.274699+00:00",
+          "duration_ms": 22,
+          "status": "success",
+          "attributes": {
+            "operation": "Filter data by decade",
+            "input": {
+              "decade": "1980s"
+            },
+            "output": {
+              "filtered_rows": 245
+            }
+          }
+        },
+        {
+          "span_id": "4a72b8d7-618f-4e96-8fd1-4a6a3b1124d4",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:38.274755+00:00",
+          "end_time": "2025-12-17T21:59:38.879797+00:00",
+          "duration_ms": 605,
+          "status": "success",
+          "attributes": {
+            "prompt": "Analyze this dataset of 245 AI papers from the 1980s and identify key trends",
+            "model": "claude-sonnet-4-5",
+            "response": "The 1980s saw the rise of expert systems, neural network renaissance with backpropagation, and increased commercial AI applications",
+            "tokens_input": 312,
+            "tokens_output": 89
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "062908d6-6ebd-4948-811a-38a96cea9da1",
+      "turn_number": 3,
+      "start_time": "2025-12-17T21:59:38.879904+00:00",
+      "end_time": "2025-12-17T21:59:40.389278+00:00",
+      "duration_ms": 1509,
+      "steps": [
+        {
+          "span_id": "482b9e3e-7969-4074-9704-110edb908fee",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:38.879932+00:00",
+          "end_time": "2025-12-17T21:59:39.184928+00:00",
+          "duration_ms": 304,
+          "status": "success",
+          "attributes": {
+            "prompt": "Should I fetch real-time AI news data?",
+            "model": "claude-sonnet-4-5",
+            "response": "Yes, let me fetch the latest AI news",
+            "tokens_input": 15,
+            "tokens_output": 18
+          }
+        },
+        {
+          "span_id": "2e10285b-a35d-406c-be8b-20de8d4c17de",
+          "type": "tool_call",
+          "start_time": "2025-12-17T21:59:39.184993+00:00",
+          "end_time": "2025-12-17T21:59:40.387910+00:00",
+          "duration_ms": 1202,
+          "status": "error",
+          "attributes": {
+            "tool_name": "fetch_news_api",
+            "arguments": {
+              "topic": "artificial intelligence",
+              "days": 7
+            },
+            "error_message": "API timeout after 1000ms"
+          }
+        },
+        {
+          "span_id": "01a43d9e-4607-422e-83f9-d2b279611b7b",
+          "type": "error",
+          "start_time": "2025-12-17T21:59:40.387995+00:00",
+          "end_time": "2025-12-17T21:59:40.389271+00:00",
+          "duration_ms": 1,
+          "status": "success",
+          "attributes": {
+            "error_type": "APITimeoutError",
+            "error_message": "News API did not respond within timeout period"
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "3677e45b-41ef-4eaf-80d6-051e59f41435",
+      "turn_number": 4,
+      "start_time": "2025-12-17T21:59:40.389310+00:00",
+      "end_time": "2025-12-17T21:59:40.959810+00:00",
+      "duration_ms": 570,
+      "steps": [
+        {
+          "span_id": "7cb78b7f-ffff-4084-a7d4-6457039dfac4",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:40.389325+00:00",
+          "end_time": "2025-12-17T21:59:40.401858+00:00",
+          "duration_ms": 12,
+          "status": "success",
+          "attributes": {
+            "operation": "Process turn 4",
+            "input": "Turn 4 data",
+            "output": "Processed turn 4"
+          }
+        },
+        {
+          "span_id": "0fc78976-2987-4c77-ac6f-5a3e97a864c2",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:40.401910+00:00",
+          "end_time": "2025-12-17T21:59:40.803360+00:00",
+          "duration_ms": 401,
+          "status": "success",
+          "attributes": {
+            "prompt": "Generate response for turn 4",
+            "model": "claude-sonnet-4-5",
+            "response": "Response for turn 4",
+            "tokens_input": 24,
+            "tokens_output": 38
+          }
+        },
+        {
+          "span_id": "da297b21-416b-4065-b05e-f738d6084954",
+          "type": "tool_call",
+          "start_time": "2025-12-17T21:59:40.803472+00:00",
+          "end_time": "2025-12-17T21:59:40.959591+00:00",
+          "duration_ms": 156,
+          "status": "success",
+          "attributes": {
+            "tool_name": "database_query",
+            "arguments": {
+              "query": "SELECT * FROM data WHERE turn=4"
+            },
+            "result": {
+              "rows": 40
+            }
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "da9772c1-b647-4e16-9db6-f91fdd046d9a",
+      "turn_number": 5,
+      "start_time": "2025-12-17T21:59:40.960659+00:00",
+      "end_time": "2025-12-17T21:59:41.479839+00:00",
+      "duration_ms": 519,
+      "steps": [
+        {
+          "span_id": "6b1d68c0-d513-4c11-8cdb-c4147e5c83c2",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:40.963889+00:00",
+          "end_time": "2025-12-17T21:59:40.974604+00:00",
+          "duration_ms": 10,
+          "status": "success",
+          "attributes": {
+            "operation": "Process turn 5",
+            "input": "Turn 5 data",
+            "output": "Processed turn 5"
+          }
+        },
+        {
+          "span_id": "82cf7614-4e06-4f91-98df-0ecebac21c2e",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:40.974779+00:00",
+          "end_time": "2025-12-17T21:59:41.479824+00:00",
+          "duration_ms": 505,
+          "status": "success",
+          "attributes": {
+            "prompt": "Generate response for turn 5",
+            "model": "claude-sonnet-4-5",
+            "response": "Response for turn 5",
+            "tokens_input": 25,
+            "tokens_output": 40
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "73381a24-155a-4651-8981-69d91376c842",
+      "turn_number": 6,
+      "start_time": "2025-12-17T21:59:41.479877+00:00",
+      "end_time": "2025-12-17T21:59:41.950447+00:00",
+      "duration_ms": 470,
+      "steps": [
+        {
+          "span_id": "d245b7bf-a179-4639-bc99-1dd80e1124a6",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:41.479888+00:00",
+          "end_time": "2025-12-17T21:59:41.492447+00:00",
+          "duration_ms": 12,
+          "status": "success",
+          "attributes": {
+            "operation": "Process turn 6",
+            "input": "Turn 6 data",
+            "output": "Processed turn 6"
+          }
+        },
+        {
+          "span_id": "1aef8641-45be-4198-937e-eae72533b41d",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:41.492541+00:00",
+          "end_time": "2025-12-17T21:59:41.795765+00:00",
+          "duration_ms": 303,
+          "status": "success",
+          "attributes": {
+            "prompt": "Generate response for turn 6",
+            "model": "claude-sonnet-4-5",
+            "response": "Response for turn 6",
+            "tokens_input": 26,
+            "tokens_output": 42
+          }
+        },
+        {
+          "span_id": "7ad66b84-1740-416b-9657-f02fd0445f4a",
+          "type": "tool_call",
+          "start_time": "2025-12-17T21:59:41.795843+00:00",
+          "end_time": "2025-12-17T21:59:41.950430+00:00",
+          "duration_ms": 154,
+          "status": "success",
+          "attributes": {
+            "tool_name": "database_query",
+            "arguments": {
+              "query": "SELECT * FROM data WHERE turn=6"
+            },
+            "result": {
+              "rows": 60
+            }
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "dc59c6b0-513d-4db8-a220-dc05dbbbdf1a",
+      "turn_number": 7,
+      "start_time": "2025-12-17T21:59:41.950479+00:00",
+      "end_time": "2025-12-17T21:59:42.368064+00:00",
+      "duration_ms": 417,
+      "steps": [
+        {
+          "span_id": "ce1f6cc5-166a-4864-b131-dbec58e5608f",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:41.950498+00:00",
+          "end_time": "2025-12-17T21:59:41.963027+00:00",
+          "duration_ms": 12,
+          "status": "success",
+          "attributes": {
+            "operation": "Process turn 7",
+            "input": "Turn 7 data",
+            "output": "Processed turn 7"
+          }
+        },
+        {
+          "span_id": "5ac2425f-cc53-4f4b-901a-0d9358ab19ea",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:41.963074+00:00",
+          "end_time": "2025-12-17T21:59:42.368015+00:00",
+          "duration_ms": 404,
+          "status": "success",
+          "attributes": {
+            "prompt": "Generate response for turn 7",
+            "model": "claude-sonnet-4-5",
+            "response": "Response for turn 7",
+            "tokens_input": 27,
+            "tokens_output": 44
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "f98f0409-d1e0-4c41-8f2c-28588b3c7847",
+      "turn_number": 8,
+      "start_time": "2025-12-17T21:59:42.368159+00:00",
+      "end_time": "2025-12-17T21:59:43.037845+00:00",
+      "duration_ms": 669,
+      "steps": [
+        {
+          "span_id": "cd52c866-cb9a-4393-a734-2dee030e485b",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:42.368191+00:00",
+          "end_time": "2025-12-17T21:59:42.380800+00:00",
+          "duration_ms": 12,
+          "status": "success",
+          "attributes": {
+            "operation": "Process turn 8",
+            "input": "Turn 8 data",
+            "output": "Processed turn 8"
+          }
+        },
+        {
+          "span_id": "bab3ff37-f4d6-4bde-8d3f-16a55b2e92ca",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:42.380887+00:00",
+          "end_time": "2025-12-17T21:59:42.884022+00:00",
+          "duration_ms": 503,
+          "status": "success",
+          "attributes": {
+            "prompt": "Generate response for turn 8",
+            "model": "claude-sonnet-4-5",
+            "response": "Response for turn 8",
+            "tokens_input": 28,
+            "tokens_output": 46
+          }
+        },
+        {
+          "span_id": "fb483c5d-cd64-4f81-868a-c361db367532",
+          "type": "tool_call",
+          "start_time": "2025-12-17T21:59:42.884088+00:00",
+          "end_time": "2025-12-17T21:59:43.037818+00:00",
+          "duration_ms": 153,
+          "status": "success",
+          "attributes": {
+            "tool_name": "database_query",
+            "arguments": {
+              "query": "SELECT * FROM data WHERE turn=8"
+            },
+            "result": {
+              "rows": 80
+            }
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "5aa5921e-7b63-4b8a-9bca-b1eccd6b78e4",
+      "turn_number": 9,
+      "start_time": "2025-12-17T21:59:43.037894+00:00",
+      "end_time": "2025-12-17T21:59:43.350344+00:00",
+      "duration_ms": 312,
+      "steps": [
+        {
+          "span_id": "a4c7045b-4fae-43b2-b037-32c224d4a1a1",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:43.037916+00:00",
+          "end_time": "2025-12-17T21:59:43.049803+00:00",
+          "duration_ms": 11,
+          "status": "success",
+          "attributes": {
+            "operation": "Process turn 9",
+            "input": "Turn 9 data",
+            "output": "Processed turn 9"
+          }
+        },
+        {
+          "span_id": "7434b27b-76b0-4d22-a7df-ec3370f13e66",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:43.049923+00:00",
+          "end_time": "2025-12-17T21:59:43.350313+00:00",
+          "duration_ms": 300,
+          "status": "success",
+          "attributes": {
+            "prompt": "Generate response for turn 9",
+            "model": "claude-sonnet-4-5",
+            "response": "Response for turn 9",
+            "tokens_input": 29,
+            "tokens_output": 48
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "bcffcae6-283a-422e-af03-e82fabe9f64f",
+      "turn_number": 10,
+      "start_time": "2025-12-17T21:59:43.350423+00:00",
+      "end_time": "2025-12-17T21:59:43.919766+00:00",
+      "duration_ms": 569,
+      "steps": [
+        {
+          "span_id": "2a15691b-5464-4009-bc1e-2348745e4c3c",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:43.350457+00:00",
+          "end_time": "2025-12-17T21:59:43.362992+00:00",
+          "duration_ms": 12,
+          "status": "success",
+          "attributes": {
+            "operation": "Process turn 10",
+            "input": "Turn 10 data",
+            "output": "Processed turn 10"
+          }
+        },
+        {
+          "span_id": "32142d5e-5b70-4b33-a19c-b68faa018ee0",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:43.363053+00:00",
+          "end_time": "2025-12-17T21:59:43.764566+00:00",
+          "duration_ms": 401,
+          "status": "success",
+          "attributes": {
+            "prompt": "Generate response for turn 10",
+            "model": "claude-sonnet-4-5",
+            "response": "Response for turn 10",
+            "tokens_input": 30,
+            "tokens_output": 50
+          }
+        },
+        {
+          "span_id": "f0714be9-8eda-4e5f-a4e3-be1f59f4b844",
+          "type": "tool_call",
+          "start_time": "2025-12-17T21:59:43.764683+00:00",
+          "end_time": "2025-12-17T21:59:43.919736+00:00",
+          "duration_ms": 155,
+          "status": "success",
+          "attributes": {
+            "tool_name": "database_query",
+            "arguments": {
+              "query": "SELECT * FROM data WHERE turn=10"
+            },
+            "result": {
+              "rows": 100
+            }
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "3ceda677-56c3-436c-9b0c-c7462de1c084",
+      "turn_number": 11,
+      "start_time": "2025-12-17T21:59:43.919845+00:00",
+      "end_time": "2025-12-17T21:59:44.179655+00:00",
+      "duration_ms": 259,
+      "steps": [
+        {
+          "span_id": "9c1934d7-8b3f-424b-b0b9-d6ff6d595d81",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:43.919873+00:00",
+          "end_time": "2025-12-17T21:59:43.926191+00:00",
+          "duration_ms": 6,
+          "status": "success",
+          "attributes": {
+            "operation": "Check cache",
+            "input": "key_11",
+            "output": "cache_hit"
+          }
+        },
+        {
+          "span_id": "b00a805c-a942-4086-b253-89cc9fc4a395",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:43.926234+00:00",
+          "end_time": "2025-12-17T21:59:44.179634+00:00",
+          "duration_ms": 253,
+          "status": "success",
+          "attributes": {
+            "prompt": "Summarize computation result for turn 11",
+            "model": "claude-sonnet-4-5",
+            "response": "Computation complete for turn 11",
+            "tokens_input": 45,
+            "tokens_output": 25
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "8cee229a-7ec6-451f-b63b-375e1738fe7c",
+      "turn_number": 12,
+      "start_time": "2025-12-17T21:59:44.179701+00:00",
+      "end_time": "2025-12-17T21:59:45.956291+00:00",
+      "duration_ms": 1776,
+      "steps": [
+        {
+          "span_id": "6c16a375-2956-465a-bdb3-0c773bdb1e88",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:44.179720+00:00",
+          "end_time": "2025-12-17T21:59:44.184868+00:00",
+          "duration_ms": 5,
+          "status": "success",
+          "attributes": {
+            "operation": "Check cache",
+            "input": "key_12",
+            "output": "cache_miss"
+          }
+        },
+        {
+          "span_id": "e22386e5-10fe-49d7-8dec-86df9893052b",
+          "type": "tool_call",
+          "start_time": "2025-12-17T21:59:44.184949+00:00",
+          "end_time": "2025-12-17T21:59:45.689240+00:00",
+          "duration_ms": 1504,
+          "status": "success",
+          "attributes": {
+            "tool_name": "compute_expensive_operation",
+            "arguments": {
+              "complexity": "high",
+              "input_size": 1000
+            },
+            "result": {
+              "computed_value": 12000
+            }
+          }
+        },
+        {
+          "span_id": "ad5a192e-4a6d-43fb-9f1f-b50c355fb91b",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:45.689329+00:00",
+          "end_time": "2025-12-17T21:59:45.701625+00:00",
+          "duration_ms": 12,
+          "status": "success",
+          "attributes": {
+            "operation": "Write to cache",
+            "input": {
+              "key": "key_12",
+              "value": 12000
+            }
+          }
+        },
+        {
+          "span_id": "be658d73-8412-43af-9fa5-28c7f7a64ff7",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:45.701797+00:00",
+          "end_time": "2025-12-17T21:59:45.956275+00:00",
+          "duration_ms": 254,
+          "status": "success",
+          "attributes": {
+            "prompt": "Summarize computation result for turn 12",
+            "model": "claude-sonnet-4-5",
+            "response": "Computation complete for turn 12",
+            "tokens_input": 45,
+            "tokens_output": 25
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "0b891f0d-1956-4bf3-92fc-5dea2da9318b",
+      "turn_number": 13,
+      "start_time": "2025-12-17T21:59:45.956322+00:00",
+      "end_time": "2025-12-17T21:59:46.217673+00:00",
+      "duration_ms": 261,
+      "steps": [
+        {
+          "span_id": "1d0a4364-13e4-4679-9eb6-b7c426e7b8b0",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:45.956347+00:00",
+          "end_time": "2025-12-17T21:59:45.962577+00:00",
+          "duration_ms": 6,
+          "status": "success",
+          "attributes": {
+            "operation": "Check cache",
+            "input": "key_13",
+            "output": "cache_hit"
+          }
+        },
+        {
+          "span_id": "dc8d9464-959c-434a-b384-83f36a1f89d2",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:45.962618+00:00",
+          "end_time": "2025-12-17T21:59:46.217656+00:00",
+          "duration_ms": 255,
+          "status": "success",
+          "attributes": {
+            "prompt": "Summarize computation result for turn 13",
+            "model": "claude-sonnet-4-5",
+            "response": "Computation complete for turn 13",
+            "tokens_input": 45,
+            "tokens_output": 25
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "edb8aed0-f098-4017-a29e-23288e9b0dff",
+      "turn_number": 14,
+      "start_time": "2025-12-17T21:59:46.217705+00:00",
+      "end_time": "2025-12-17T21:59:46.477867+00:00",
+      "duration_ms": 260,
+      "steps": [
+        {
+          "span_id": "dc9cb1de-4bcd-45bd-b381-f8accca2635c",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:46.217717+00:00",
+          "end_time": "2025-12-17T21:59:46.224015+00:00",
+          "duration_ms": 6,
+          "status": "success",
+          "attributes": {
+            "operation": "Check cache",
+            "input": "key_14",
+            "output": "cache_hit"
+          }
+        },
+        {
+          "span_id": "c21e8264-942b-4ce7-835e-4b93ca824774",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:46.224081+00:00",
+          "end_time": "2025-12-17T21:59:46.477852+00:00",
+          "duration_ms": 253,
+          "status": "success",
+          "attributes": {
+            "prompt": "Summarize computation result for turn 14",
+            "model": "claude-sonnet-4-5",
+            "response": "Computation complete for turn 14",
+            "tokens_input": 45,
+            "tokens_output": 25
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "e10d0895-e8f4-4899-b84f-ebb0f42d5047",
+      "turn_number": 15,
+      "start_time": "2025-12-17T21:59:46.477899+00:00",
+      "end_time": "2025-12-17T21:59:48.255224+00:00",
+      "duration_ms": 1777,
+      "steps": [
+        {
+          "span_id": "d000838f-384b-44af-a5dd-cc3c1ab24328",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:46.477911+00:00",
+          "end_time": "2025-12-17T21:59:46.484182+00:00",
+          "duration_ms": 6,
+          "status": "success",
+          "attributes": {
+            "operation": "Check cache",
+            "input": "key_15",
+            "output": "cache_miss"
+          }
+        },
+        {
+          "span_id": "368fe009-9186-4d7c-ac79-e65829dd92fd",
+          "type": "tool_call",
+          "start_time": "2025-12-17T21:59:46.484205+00:00",
+          "end_time": "2025-12-17T21:59:47.988349+00:00",
+          "duration_ms": 1504,
+          "status": "success",
+          "attributes": {
+            "tool_name": "compute_expensive_operation",
+            "arguments": {
+              "complexity": "high",
+              "input_size": 1000
+            },
+            "result": {
+              "computed_value": 15000
+            }
+          }
+        },
+        {
+          "span_id": "41412e69-7b0d-457b-a41b-eec3b28ee3a3",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:47.988408+00:00",
+          "end_time": "2025-12-17T21:59:48.000934+00:00",
+          "duration_ms": 12,
+          "status": "success",
+          "attributes": {
+            "operation": "Write to cache",
+            "input": {
+              "key": "key_15",
+              "value": 15000
+            }
+          }
+        },
+        {
+          "span_id": "22910b41-4530-441d-b161-912e32993cfe",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:48.000965+00:00",
+          "end_time": "2025-12-17T21:59:48.255206+00:00",
+          "duration_ms": 254,
+          "status": "success",
+          "attributes": {
+            "prompt": "Summarize computation result for turn 15",
+            "model": "claude-sonnet-4-5",
+            "response": "Computation complete for turn 15",
+            "tokens_input": 45,
+            "tokens_output": 25
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "9cf37a8d-c186-4212-a65a-ee5991126538",
+      "turn_number": 16,
+      "start_time": "2025-12-17T21:59:48.255262+00:00",
+      "end_time": "2025-12-17T21:59:48.484118+00:00",
+      "duration_ms": 228,
+      "steps": [
+        {
+          "span_id": "3f261812-4574-4181-a647-9911cc535da1",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:48.255285+00:00",
+          "end_time": "2025-12-17T21:59:48.459336+00:00",
+          "duration_ms": 204,
+          "status": "success",
+          "attributes": {
+            "prompt": "Attempt risky operation 16",
+            "model": "claude-sonnet-4-5",
+            "response": "Proceeding with operation",
+            "tokens_input": 10,
+            "tokens_output": 8
+          }
+        },
+        {
+          "span_id": "ff64da07-df9a-4ac5-8a90-92670ae55601",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:48.459402+00:00",
+          "end_time": "2025-12-17T21:59:48.484093+00:00",
+          "duration_ms": 24,
+          "status": "success",
+          "attributes": {
+            "operation": "Execute operation",
+            "result": "success"
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "475c9777-8dc3-4b3f-a5a0-6ef93476b7bd",
+      "turn_number": 17,
+      "start_time": "2025-12-17T21:59:48.484164+00:00",
+      "end_time": "2025-12-17T21:59:48.702184+00:00",
+      "duration_ms": 218,
+      "steps": [
+        {
+          "span_id": "4f6a7962-1459-4344-a7d5-7f8703b5c697",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:48.484189+00:00",
+          "end_time": "2025-12-17T21:59:48.688038+00:00",
+          "duration_ms": 203,
+          "status": "success",
+          "attributes": {
+            "prompt": "Attempt risky operation 17",
+            "model": "claude-sonnet-4-5",
+            "response": "Proceeding with operation",
+            "tokens_input": 10,
+            "tokens_output": 8
+          }
+        },
+        {
+          "span_id": "ba4b6402-bf8d-4467-91fc-1b7db0d93065",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:48.688136+00:00",
+          "end_time": "2025-12-17T21:59:48.700766+00:00",
+          "duration_ms": 12,
+          "status": "error",
+          "attributes": {
+            "operation": "Validate input",
+            "error_message": "Invalid input format"
+          }
+        },
+        {
+          "span_id": "2dc2773b-8964-48bd-a2bb-28d12cc6152c",
+          "type": "error",
+          "start_time": "2025-12-17T21:59:48.700867+00:00",
+          "end_time": "2025-12-17T21:59:48.702161+00:00",
+          "duration_ms": 1,
+          "status": "success",
+          "attributes": {
+            "error_type": "ValidationError",
+            "error_message": "Input failed schema validation"
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "29275c9b-030d-400b-84a0-951da2990727",
+      "turn_number": 18,
+      "start_time": "2025-12-17T21:59:48.702238+00:00",
+      "end_time": "2025-12-17T21:59:48.928839+00:00",
+      "duration_ms": 226,
+      "steps": [
+        {
+          "span_id": "ee03c385-e32c-429c-9758-fbd201ed6ba6",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:48.702268+00:00",
+          "end_time": "2025-12-17T21:59:48.904888+00:00",
+          "duration_ms": 202,
+          "status": "success",
+          "attributes": {
+            "prompt": "Attempt risky operation 18",
+            "model": "claude-sonnet-4-5",
+            "response": "Proceeding with operation",
+            "tokens_input": 10,
+            "tokens_output": 8
+          }
+        },
+        {
+          "span_id": "f3acb682-a3a7-4fe8-ad06-f1723cb1c4c5",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:48.904998+00:00",
+          "end_time": "2025-12-17T21:59:48.928820+00:00",
+          "duration_ms": 23,
+          "status": "success",
+          "attributes": {
+            "operation": "Execute operation",
+            "result": "success"
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "7bcd0624-f03b-48ab-b936-581f5846043a",
+      "turn_number": 19,
+      "start_time": "2025-12-17T21:59:48.928876+00:00",
+      "end_time": "2025-12-17T21:59:50.139160+00:00",
+      "duration_ms": 1210,
+      "steps": [
+        {
+          "span_id": "a3ea76b8-5a14-4503-9fe2-fa27e003be23",
+          "type": "tool_call",
+          "start_time": "2025-12-17T21:59:48.928901+00:00",
+          "end_time": "2025-12-17T21:59:49.329025+00:00",
+          "duration_ms": 400,
+          "status": "success",
+          "attributes": {
+            "tool_name": "aggregate_results",
+            "arguments": {
+              "turns": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18
+              ]
+            },
+            "result": {
+              "total_turns": 19,
+              "successful_operations": 17,
+              "errors": 2
+            }
+          }
+        },
+        {
+          "span_id": "cb6c3a8b-e8e2-4514-943f-66a9430d1ec8",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:49.329080+00:00",
+          "end_time": "2025-12-17T21:59:50.132796+00:00",
+          "duration_ms": 803,
+          "status": "success",
+          "attributes": {
+            "prompt": "Summarize the entire conversation history covering AI research,\n                data analysis, news fetching, computations, and error handling across 20 turns",
+            "model": "claude-sonnet-4-5",
+            "response": "Based on our comprehensive analysis:\n\n1. Historical Research: Successfully researched AI history from 1950s foundations through modern deep learning\n2. Data Analysis: Analyzed 1500 historical AI papers, identified key trends in expert systems and neural networks\n3. Real-time Data: Encountered API timeout when fetching current news (handled gracefully)\n4. Computation: Performed cache-optimized expensive operations with 67% cache hit rate\n5. Error Handling: Successfully handled 2 errors (API timeout, validation failure) without disrupting workflow\n\nOverall: Processed 20 turns with 50+ distinct operations, demonstrating robust multi-turn conversation handling.",
+            "tokens_input": 89,
+            "tokens_output": 156
+          }
+        },
+        {
+          "span_id": "2ade0c37-5d50-4040-8031-c0eea8545b80",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:50.132870+00:00",
+          "end_time": "2025-12-17T21:59:50.139146+00:00",
+          "duration_ms": 6,
+          "status": "success",
+          "attributes": {
+            "operation": "Finalize trace",
+            "status": "complete"
+          }
+        }
+      ]
+    },
+    {
+      "turn_id": "a4bf5ac1-5f8a-4946-b957-79fc69d6b358",
+      "turn_number": 20,
+      "start_time": "2025-12-17T21:59:50.139192+00:00",
+      "end_time": "2025-12-17T21:59:51.350927+00:00",
+      "duration_ms": 1211,
+      "steps": [
+        {
+          "span_id": "979c6fd3-2fb9-4c5a-a7b2-030b4c9db577",
+          "type": "tool_call",
+          "start_time": "2025-12-17T21:59:50.139212+00:00",
+          "end_time": "2025-12-17T21:59:50.540458+00:00",
+          "duration_ms": 401,
+          "status": "success",
+          "attributes": {
+            "tool_name": "aggregate_results",
+            "arguments": {
+              "turns": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19
+              ]
+            },
+            "result": {
+              "total_turns": 20,
+              "successful_operations": 18,
+              "errors": 2
+            }
+          }
+        },
+        {
+          "span_id": "04c1b74b-33d8-4262-be1d-05fc8b12985f",
+          "type": "llm_call",
+          "start_time": "2025-12-17T21:59:50.540522+00:00",
+          "end_time": "2025-12-17T21:59:51.345540+00:00",
+          "duration_ms": 805,
+          "status": "success",
+          "attributes": {
+            "prompt": "Summarize the entire conversation history covering AI research,\n                data analysis, news fetching, computations, and error handling across 20 turns",
+            "model": "claude-sonnet-4-5",
+            "response": "Based on our comprehensive analysis:\n\n1. Historical Research: Successfully researched AI history from 1950s foundations through modern deep learning\n2. Data Analysis: Analyzed 1500 historical AI papers, identified key trends in expert systems and neural networks\n3. Real-time Data: Encountered API timeout when fetching current news (handled gracefully)\n4. Computation: Performed cache-optimized expensive operations with 67% cache hit rate\n5. Error Handling: Successfully handled 2 errors (API timeout, validation failure) without disrupting workflow\n\nOverall: Processed 20 turns with 50+ distinct operations, demonstrating robust multi-turn conversation handling.",
+            "tokens_input": 89,
+            "tokens_output": 156
+          }
+        },
+        {
+          "span_id": "d6b6e6ac-f8c6-4e88-bd6b-baaf3cbc41e5",
+          "type": "logic",
+          "start_time": "2025-12-17T21:59:51.345587+00:00",
+          "end_time": "2025-12-17T21:59:51.350914+00:00",
+          "duration_ms": 5,
+          "status": "success",
+          "attributes": {
+            "operation": "Finalize trace",
+            "status": "complete"
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "user_id": "demo-user",
+    "session_id": "comprehensive-session",
+    "scenario": "full-featured-demo"
+  }
+}
