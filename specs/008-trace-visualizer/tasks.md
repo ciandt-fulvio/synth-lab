@@ -145,14 +145,14 @@
 
 **UI Details Panel**:
 
-- [ ] T048 [US2] Implement HTML sidebar detail panel structure in logui/index.html
-- [ ] T049 [US2] Implement details.js: showDetails(span) with click event binding in logui/details.js
-- [ ] T050 [US2] Implement details.js: renderLLMCallDetails(attributes) showing prompt/response/model in logui/details.js
-- [ ] T051 [US2] Implement details.js: renderToolCallDetails(attributes) showing tool_name/args/result in logui/details.js
-- [ ] T052 [US2] Implement details.js: renderErrorDetails(attributes) showing error_type/message in logui/details.js
-- [ ] T053 [US2] Implement details.js: truncateContent(text, maxLength=500) with "Show More" toggle in logui/details.js
-- [ ] T054 [US2] Add CSS for detail panel (fixed sidebar, scrollable content) in logui/styles.css
-- [ ] T055 [US2] Add CSS for truncated content (ellipsis, expand button) in logui/styles.css
+- [x] T048 [US2] Implement HTML sidebar detail panel structure in logui/index.html
+- [x] T049 [US2] Implement details.js: showDetails(span) with click event binding in logui/details.js
+- [x] T050 [US2] Implement details.js: renderLLMCallDetails(attributes) showing prompt/response/model in logui/details.js
+- [x] T051 [US2] Implement details.js: renderToolCallDetails(attributes) showing tool_name/args/result in logui/details.js
+- [x] T052 [US2] Implement details.js: renderErrorDetails(attributes) showing error_type/message in logui/details.js
+- [x] T053 [US2] Implement details.js: truncateContent(text, maxLength=500) with "Show More" toggle in logui/details.js
+- [x] T054 [US2] Add CSS for detail panel (fixed sidebar, scrollable content) in logui/styles.css
+- [x] T055 [US2] Add CSS for truncated content (ellipsis, expand button) in logui/styles.css
 
 **Manual Testing (BDD Acceptance)**:
 
@@ -186,13 +186,13 @@
 
 **UI Export/Import**:
 
-- [ ] T063 [US3] Add "Export Trace" button to UI in logui/index.html
-- [ ] T064 [US3] Implement exportTrace(trace) with Blob download in logui/trace-renderer.js
-- [ ] T065 [US3] Implement file naming: conversation_id_timestamp.trace.json in logui/trace-renderer.js
-- [ ] T066 [US3] Add "Import Trace" file input to UI (drag-and-drop support) in logui/index.html
-- [ ] T067 [US3] Implement importTrace(file) with FileReader in logui/trace-renderer.js
-- [ ] T068 [US3] Add validation: check JSON structure before rendering in logui/trace-renderer.js
-- [ ] T069 [US3] Add error handling: show "Invalid trace file" message for corrupted JSON in logui/trace-renderer.js
+- [x] T063 [US3] Add "Export Trace" button to UI in logui/index.html
+- [x] T064 [US3] Implement exportTrace(trace) with Blob download in logui/trace-renderer.js
+- [x] T065 [US3] Implement file naming: conversation_id_timestamp.trace.json in logui/trace-renderer.js
+- [x] T066 [US3] Add "Import Trace" file input to UI (drag-and-drop support) in logui/index.html
+- [x] T067 [US3] Implement importTrace(file) with FileReader in logui/trace-renderer.js
+- [x] T068 [US3] Add validation: check JSON structure before rendering in logui/trace-renderer.js
+- [x] T069 [US3] Add error handling: show "Invalid trace file" message for corrupted JSON in logui/trace-renderer.js
 
 **Manual Testing (BDD Acceptance)**:
 
@@ -217,11 +217,11 @@
 
 **UI Semantic Colors**:
 
-- [ ] T073 [P] [US4] Define CSS color variables (--color-llm-call, --color-tool-call, --color-error, --color-logic) in logui/styles.css
-- [ ] T074 [P] [US4] Apply background color to waterfall bars based on span.type in logui/waterfall.js
-- [ ] T075 [P] [US4] Add color legend to UI header (LLM=Blue, Tool=Green, Error=Red, Logic=Yellow) in logui/index.html
-- [ ] T076 [P] [US4] Style error spans with red text and background in logui/styles.css
-- [ ] T077 [P] [US4] Ensure colors are accessible (WCAG AA contrast ratio) in logui/styles.css
+- [x] T073 [P] [US4] Define CSS color variables (--color-llm-call, --color-tool-call, --color-error, --color-logic) in logui/styles.css
+- [x] T074 [P] [US4] Apply background color to waterfall bars based on span.type in logui/waterfall.js
+- [x] T075 [P] [US4] Add color legend to UI header (LLM=Blue, Tool=Green, Error=Red, Logic=Yellow) in logui/index.html
+- [x] T076 [P] [US4] Style error spans with red text and background in logui/styles.css
+- [x] T077 [P] [US4] Ensure colors are accessible (WCAG AA contrast ratio) in logui/styles.css
 
 **Manual Testing (BDD Acceptance)**:
 
@@ -241,9 +241,9 @@
 - [ ] T082 [P] Add type hints to all SDK functions and methods
 - [ ] T083 [P] Run ruff linter on SDK: ruff check src/synth_lab/trace_visualizer/
 - [ ] T084 [P] Format code with ruff: ruff format src/synth_lab/trace_visualizer/
-- [ ] T085 Add usage examples to quickstart.md based on working code
-- [ ] T086 Create comprehensive trace for testing (20 turns, 50 steps, all span types) in examples/trace_visualizer/comprehensive_demo.py
-- [ ] T087 Run full test battery: pytest tests/unit/synth_lab/trace_visualizer/ - verify all pass <5s
+- [x] T085 Add usage examples to quickstart.md based on working code
+- [x] T086 Create comprehensive trace for testing (20 turns, 50 steps, all span types) in examples/trace_visualizer/comprehensive_demo.py
+- [x] T087 Run full test battery: pytest tests/unit/synth_lab/trace_visualizer/ - verify all pass <5s
 - [ ] T088 Run quickstart.md validation: execute all code examples and verify outputs
 - [ ] T089 [P] Optimize waterfall rendering for large traces (virtual scrolling if >100 steps) in logui/waterfall.js
 - [ ] T090 Add performance test: load 100-step trace, verify <2s load time (SC-006)
