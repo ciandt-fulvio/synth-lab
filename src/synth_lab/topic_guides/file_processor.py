@@ -210,15 +210,6 @@ def call_openai_api(
 
     client = OpenAI(api_key=api_key)
 
-    # Start span if tracer provided
-    span = None
-    if tracer:
-        span = tracer.start_span(SpanType.LLM_CALL, attributes={
-            "prompt": prompt[:500] + "..." if len(prompt) > 500 else prompt,
-            "model": "gpt-4o-mini",
-            "has_image": image_base64 is not None,
-        })
-
     @retry(
         stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10)
     )
@@ -253,27 +244,31 @@ def call_openai_api(
 
         return response
 
-    try:
+    # Execute with optional tracing
+    if tracer:
+        with tracer.start_span(SpanType.LLM_CALL, attributes={
+            "prompt": prompt[:500] + "..." if len(prompt) > 500 else prompt,
+            "model": "gpt-4o-mini",
+            "has_image": image_base64 is not None,
+        }) as span:
+            try:
+                response = _make_request()
+                content = response.choices[0].message.content
+
+                span.set_attribute("response", content)
+                if hasattr(response, 'usage') and response.usage:
+                    span.set_attribute("tokens_input", response.usage.prompt_tokens)
+                    span.set_attribute("tokens_output", response.usage.completion_tokens)
+                span.set_status(SpanStatus.SUCCESS)
+
+                return content
+            except Exception as e:
+                span.set_status(SpanStatus.ERROR)
+                span.set_attribute("error_message", str(e))
+                raise
+    else:
         response = _make_request()
-        content = response.choices[0].message.content
-
-        # Record response in span
-        if span:
-            span.set_attribute("response", content)
-            if hasattr(response, 'usage') and response.usage:
-                span.set_attribute("tokens_input", response.usage.prompt_tokens)
-                span.set_attribute("tokens_output", response.usage.completion_tokens)
-            span.set_status(SpanStatus.SUCCESS)
-
-        return content
-    except Exception as e:
-        if span:
-            span.set_status(SpanStatus.ERROR)
-            span.set_attribute("error_message", str(e))
-        raise
-    finally:
-        if span:
-            span.__exit__(None, None, None)
+        return response.choices[0].message.content
 
 
 def generate_file_description(file_path: Path, api_key: str | None = None) -> str | None:
