@@ -112,7 +112,8 @@ def create_topic_guide(name: str, base_dir: Path | None = None) -> Path:
 
     # Check if already exists
     if guide_path.exists():
-        raise FileExistsError(f"Topic guide '{name}' already exists at {guide_path}")
+        raise FileExistsError(
+            f"Topic guide '{name}' already exists at {guide_path}")
 
     try:
         # Create directory structure (parents=True creates base_dir if needed)
@@ -137,7 +138,8 @@ def create_topic_guide(name: str, base_dir: Path | None = None) -> Path:
 
 @app.command("create")
 def create_command(
-    name: str = typer.Option(..., "--name", help="Name of the topic guide to create"),
+    name: str = typer.Option(..., "--name",
+                             help="Name of the topic guide to create"),
 ) -> None:
     """
     Create a new topic guide directory with initialized summary.md file.
@@ -153,7 +155,8 @@ def create_command(
         guide_path = create_topic_guide(name)
 
         # Success message (Contract: ✓ prefix, includes path, usage hint)
-        console.print(f"✓ Topic guide '[cyan]{name}[/cyan]' created successfully", style="green")
+        console.print(
+            f"✓ Topic guide '[cyan]{name}[/cyan]' created successfully", style="green")
         console.print(f"  Path: {guide_path}")
         console.print(
             f"  Add files to this directory and run "
@@ -164,7 +167,8 @@ def create_command(
 
     except FileExistsError:
         # Contract: Exit code 1 for duplicate, ✗ prefix
-        console.print(f"✗ Error: Topic guide '[cyan]{name}[/cyan]' already exists", style="red")
+        console.print(
+            f"✗ Error: Topic guide '[cyan]{name}[/cyan]' already exists", style="red")
         console.print(
             f"  Use '[bold]synthlab topic-guide update --name {name}[/bold]' to update it"
         )
@@ -184,7 +188,8 @@ def create_command(
 
 @app.command("update")
 def update_command(
-    name: str = typer.Option(..., "--name", help="Name of the topic guide to update"),
+    name: str = typer.Option(..., "--name",
+                             help="Name of the topic guide to update"),
     force: bool = typer.Option(
         False, "--force", help="Re-process all files even if unchanged"
     ),
@@ -193,7 +198,7 @@ def update_command(
     Update topic guide with AI descriptions for files.
 
     Scans the topic guide directory for new/modified files and generates AI descriptions
-    using OpenAI's gpt-4o-mini model.
+    using OpenAI's gpt-5-mini-mini model.
 
     Examples:
         synthlab topic-guide update --name amazon-ecommerce
@@ -264,7 +269,8 @@ def update_command(
 
             # Check if supported type
             if not is_supported_type(file_path):
-                console.print(f"  ⚠ {filename} - unsupported file type (skipped)", style="yellow")
+                console.print(
+                    f"  ⚠ {filename} - unsupported file type (skipped)", style="yellow")
                 unsupported_files.append(filename)
                 skipped_count += 1
                 continue
@@ -274,7 +280,8 @@ def update_command(
                 content_hash = compute_file_hash(file_path)
             except Exception as e:
                 logger.error(f"Failed to compute hash for {filename}: {e}")
-                console.print(f"  ⚠ {filename} - corrupted file (skipped)", style="yellow")
+                console.print(
+                    f"  ⚠ {filename} - corrupted file (skipped)", style="yellow")
                 skipped_count += 1
                 continue
 
@@ -286,17 +293,20 @@ def update_command(
 
             # Generate description via LLM
             try:
-                description = generate_file_description(file_path, api_key=api_key)
+                description = generate_file_description(
+                    file_path, api_key=api_key)
 
                 if description is None:
                     # API failure - add placeholder
                     description = "API failure - manual documentation needed"
                     is_placeholder = True
-                    console.print(f"  ⚠ {filename} - API failure (placeholder added)", style="yellow")
+                    console.print(
+                        f"  ⚠ {filename} - API failure (placeholder added)", style="yellow")
                     failed_count += 1
                 else:
                     is_placeholder = False
-                    console.print(f"  ✓ {filename} - described successfully", style="green")
+                    console.print(
+                        f"  ✓ {filename} - described successfully", style="green")
                     documented_count += 1
 
                 # Add to summary
@@ -320,21 +330,26 @@ def update_command(
                     is_placeholder=True,
                 )
                 add_file_description(summary_file, file_desc)
-                console.print(f"  ⚠ {filename} - processing error (placeholder added)", style="yellow")
+                console.print(
+                    f"  ⚠ {filename} - processing error (placeholder added)", style="yellow")
                 failed_count += 1
 
         # Generate contextual overview based on all file descriptions
         if summary_file.file_descriptions:
             console.print("\nGenerating contextual overview...")
-            all_descriptions = [desc.description for desc in summary_file.file_descriptions if not desc.is_placeholder]
+            all_descriptions = [
+                desc.description for desc in summary_file.file_descriptions if not desc.is_placeholder]
 
             if all_descriptions:
-                context_overview = generate_context_overview(all_descriptions, api_key=api_key)
+                context_overview = generate_context_overview(
+                    all_descriptions, api_key=api_key)
                 if context_overview:
                     summary_file.context_description = context_overview
-                    console.print("  ✓ Context overview generated", style="green")
+                    console.print(
+                        "  ✓ Context overview generated", style="green")
                 else:
-                    console.print("  ⚠ Context overview generation failed", style="yellow")
+                    console.print(
+                        "  ⚠ Context overview generation failed", style="yellow")
 
         # Write updated summary
         write_summary(summary_file)
@@ -343,13 +358,16 @@ def update_command(
         # Display summary
         console.print(f"\n[bold]Summary:[/bold]")
         if documented_count > 0:
-            console.print(f"  - {documented_count} file(s) documented", style="green")
+            console.print(
+                f"  - {documented_count} file(s) documented", style="green")
         if unchanged_count > 0:
             console.print(f"  - {unchanged_count} file(s) unchanged")
         if skipped_count > 0:
-            console.print(f"  - {skipped_count} file(s) skipped (unsupported/corrupted)", style="yellow")
+            console.print(
+                f"  - {skipped_count} file(s) skipped (unsupported/corrupted)", style="yellow")
         if failed_count > 0:
-            console.print(f"  - {failed_count} file(s) failed (placeholders added)", style="yellow")
+            console.print(
+                f"  - {failed_count} file(s) failed (placeholders added)", style="yellow")
 
         console.print(f"\nUpdated: [cyan]{summary_path}[/cyan]")
         sys.exit(0)
@@ -362,7 +380,8 @@ def update_command(
 
 @app.command("list")
 def list_command(
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed information"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Show detailed information"),
 ) -> None:
     """
     List all topic guides.
@@ -381,7 +400,8 @@ def list_command(
         if not base_dir.exists():
             console.print("No topic guides found.\n")
             console.print("Create your first topic guide:")
-            console.print("  [bold]synthlab topic-guide create --name my-first-guide[/bold]")
+            console.print(
+                "  [bold]synthlab topic-guide create --name my-first-guide[/bold]")
             sys.exit(0)
 
         # Scan for topic guide directories
@@ -390,7 +410,8 @@ def list_command(
         if not guides:
             console.print("No topic guides found.\n")
             console.print("Create your first topic guide:")
-            console.print("  [bold]synthlab topic-guide create --name my-first-guide[/bold]")
+            console.print(
+                "  [bold]synthlab topic-guide create --name my-first-guide[/bold]")
             sys.exit(0)
 
         console.print("[bold]Topic Guides:[/bold]\n")
@@ -410,9 +431,11 @@ def list_command(
                         console.print(f"  Files documented: {file_count}")
                         console.print()
                     except Exception:
-                        console.print(f"  - [cyan]{guide_name}[/cyan] (error reading summary)")
+                        console.print(
+                            f"  - [cyan]{guide_name}[/cyan] (error reading summary)")
                 else:
-                    console.print(f"  - [cyan]{guide_name}[/cyan] (no summary.md)")
+                    console.print(
+                        f"  - [cyan]{guide_name}[/cyan] (no summary.md)")
             else:
                 # Simple list
                 console.print(f"  - {guide_name}")
@@ -428,7 +451,8 @@ def list_command(
 
 @app.command("show")
 def show_command(
-    name: str = typer.Option(..., "--name", help="Name of the topic guide to display"),
+    name: str = typer.Option(..., "--name",
+                             help="Name of the topic guide to display"),
 ) -> None:
     """
     Show topic guide details.
@@ -456,7 +480,8 @@ def show_command(
 
         summary_path = guide_path / "summary.md"
         if not summary_path.exists():
-            console.print(f"✗ Error: summary.md not found in '{name}'", style="red")
+            console.print(
+                f"✗ Error: summary.md not found in '{name}'", style="red")
             sys.exit(1)
 
         summary = parse_summary(summary_path)
@@ -482,10 +507,12 @@ def show_command(
         else:
             console.print()
             for desc in summary.file_descriptions:
-                console.print(f"[cyan]{desc.filename}[/cyan] (hash: {desc.content_hash[:8]}...):")
+                console.print(
+                    f"[cyan]{desc.filename}[/cyan] (hash: {desc.content_hash[:8]}...):")
                 console.print(f"  {desc.description}")
                 if desc.is_placeholder:
-                    console.print("  [yellow]⚠ Placeholder - needs manual documentation[/yellow]")
+                    console.print(
+                        "  [yellow]⚠ Placeholder - needs manual documentation[/yellow]")
                 console.print()
 
         sys.exit(0)
@@ -510,11 +537,13 @@ if __name__ == "__main__":
         guide_path = create_topic_guide("test-guide", base_dir=base)
 
         if not guide_path.exists():
-            all_validation_failures.append("create_topic_guide: Directory not created")
+            all_validation_failures.append(
+                "create_topic_guide: Directory not created")
 
         summary_path = guide_path / "summary.md"
         if not summary_path.exists():
-            all_validation_failures.append("create_topic_guide: summary.md not created")
+            all_validation_failures.append(
+                "create_topic_guide: summary.md not created")
 
         content = summary_path.read_text()
         if "# contexto para o guide: test-guide" not in content:
@@ -594,6 +623,7 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("CLI functions are validated and formal tests can now be written")
         sys.exit(0)

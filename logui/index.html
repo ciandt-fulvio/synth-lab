@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trace Visualizer - Mini-Jaeger Local</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <h1>📊 Trace Visualizer</h1>
+            <p class="subtitle">Mini-Jaeger Local para Conversas LLM Multi-turn</p>
+        </header>
+
+        <!-- File Upload Section -->
+        <section class="upload-section">
+            <div class="upload-controls">
+                <label for="trace-file-input" class="file-upload-label">
+                    📁 Carregar Trace
+                    <input
+                        type="file"
+                        id="trace-file-input"
+                        accept=".json,.trace.json"
+                        class="file-input"
+                    >
+                </label>
+                <button id="export-trace" class="export-button hidden">
+                    💾 Exportar Trace
+                </button>
+                <span id="file-status" class="file-status"></span>
+            </div>
+
+            <!-- Drag and Drop Area -->
+            <div id="drop-zone" class="drop-zone">
+                <p class="drop-message">
+                    Arraste um arquivo .trace.json aqui<br>
+                    <small>ou clique em "Carregar Trace" acima</small>
+                </p>
+            </div>
+        </section>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Trace Info Panel -->
+            <section id="trace-info" class="trace-info hidden">
+                <h2>Informações do Trace</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Trace ID:</span>
+                        <span id="info-trace-id" class="info-value"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Duração:</span>
+                        <span id="info-duration" class="info-value"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Turns:</span>
+                        <span id="info-turns" class="info-value"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Steps:</span>
+                        <span id="info-steps" class="info-value"></span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Waterfall Visualization Container -->
+            <section id="waterfall-section" class="waterfall-section hidden">
+                <h2>Timeline (Waterfall)</h2>
+
+                <!-- Color Legend -->
+                <div class="legend">
+                    <span class="legend-item">
+                        <span class="legend-color llm-call"></span> LLM Call
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-color tool-call"></span> Tool Call
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-color logic"></span> Logic
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-color error"></span> Error
+                    </span>
+                </div>
+
+                <!-- Waterfall Container -->
+                <div id="waterfall-container" class="waterfall-container">
+                    <!-- Rendered by waterfall.js -->
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Error Display -->
+        <div id="error-message" class="error-message hidden">
+            <span class="error-icon">⚠️</span>
+            <span id="error-text"></span>
+            <button id="error-close" class="error-close">&times;</button>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="trace-renderer.js"></script>
+    <script src="waterfall.js"></script>
+    <script src="details.js"></script>
+</body>
+</html>

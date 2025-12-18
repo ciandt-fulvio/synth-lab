@@ -14,10 +14,8 @@
     "version",
     "demografia",
     "psicografia",
-    "comportamento",
     "deficiencias",
-    "capacidades_tecnologicas",
-    "vieses"
+    "capacidades_tecnologicas"
   ],
   "properties": {
     "id": {
@@ -229,84 +227,6 @@
       },
       "additionalProperties": false
     },
-    "comportamento": {
-      "type": "object",
-      "properties": {
-        "habitos_consumo": {
-          "type": "object",
-          "properties": {
-            "frequencia_compras": {
-              "type": "string",
-              "enum": ["diária", "semanal", "quinzenal", "mensal", "esporádica"],
-              "description": "Frequência de compras"
-            },
-            "preferencia_canal": {
-              "type": "string",
-              "enum": ["loja física", "e-commerce", "híbrido"],
-              "description": "Canal de compra preferido"
-            },
-            "categorias_preferidas": {
-              "type": "array",
-              "items": {"type": "string"},
-              "uniqueItems": true,
-              "description": "Categorias de produtos preferidas"
-            }
-          }
-        },
-        "padroes_midia": {
-          "type": "object",
-          "properties": {
-            "tv_aberta": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 70,
-              "description": "Horas/semana de TV aberta"
-            },
-            "streaming": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 70,
-              "description": "Horas/semana de streaming"
-            },
-            "redes_sociais": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 70,
-              "description": "Horas/semana em redes sociais"
-            }
-          }
-        },
-        "fonte_noticias": {
-          "type": "array",
-          "items": {"type": "string"},
-          "uniqueItems": true,
-          "description": "Fontes de notícias utilizadas"
-        },
-        "lealdade_marca": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Lealdade a marcas (0=troca fácil, 100=muito fiel)"
-        },
-        "engajamento_redes_sociais": {
-          "type": "object",
-          "properties": {
-            "plataformas": {
-              "type": "array",
-              "items": {"type": "string"},
-              "uniqueItems": true,
-              "description": "Plataformas de redes sociais usadas"
-            },
-            "frequencia_posts": {
-              "type": "string",
-              "enum": ["nunca", "raro", "ocasional", "frequente", "muito frequente"],
-              "description": "Frequência de posts"
-            }
-          }
-        }
-      },
-      "additionalProperties": false
-    },
     "deficiencias": {
       "type": "object",
       "properties": {
@@ -428,53 +348,6 @@
               "description": "Familiaridade com redes sociais"
             }
           }
-        }
-      }
-    },
-    "vieses": {
-      "type": "object",
-      "properties": {
-        "aversao_perda": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Intensidade de aversão à perda"
-        },
-        "desconto_hiperbolico": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Intensidade de desconto hiperbólico (preferência por recompensas imediatas)"
-        },
-        "suscetibilidade_chamariz": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Suscetibilidade ao efeito chamariz (decoy effect)"
-        },
-        "ancoragem": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Intensidade de ancoragem (influência do primeiro valor apresentado)"
-        },
-        "vies_confirmacao": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Intensidade do viés de confirmação"
-        },
-        "vies_status_quo": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Intensidade do viés de status quo (preferência por manter escolhas atuais)"
-        },
-        "sobrecarga_informacao": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Suscetibilidade à sobrecarga de informação (paralisia por excesso de opções)"
         }
       }
     }
