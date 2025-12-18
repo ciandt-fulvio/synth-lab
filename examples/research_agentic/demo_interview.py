@@ -35,21 +35,29 @@ Expected output:
 - Trace file saved to data/traces/ (if --trace-path specified)
 """
 
+from synth_lab.research_agentic.runner import run_interview
+from loguru import logger
 import argparse
 import asyncio
 import sys
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 # Add src to path for development
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 # Suppress debug logging
-from loguru import logger
 logger.remove()
 logger.add(sys.stderr, level="WARNING")
 
-from synth_lab.research_agentic.runner import run_interview
+
+# GMT-3 timezone (São Paulo)
+TZ_GMT_MINUS_3 = timezone(timedelta(hours=-3))
+
+
+def get_timestamp_gmt3() -> str:
+    """Get current timestamp in GMT-3 format for file names."""
+    return datetime.now(TZ_GMT_MINUS_3).strftime("%Y%m%d_%H%M%S")
 
 
 def parse_args() -> argparse.Namespace:
@@ -93,8 +101,8 @@ Examples:
     parser.add_argument(
         "--model",
         type=str,
-        default="gpt-5-mini",
-        help="LLM model to use (default: gpt-5-mini)",
+        default="gpt-5-nano",
+        help="LLM model to use (default: gpt-5-nano)",
     )
     parser.add_argument(
         "--trace-path",
@@ -121,10 +129,10 @@ async def main():
     args = parse_args()
     verbose = not args.quiet
 
-    # Generate trace path if not specified
+    # Generate trace path if not specified (using GMT-3)
     trace_path = args.trace_path
     if trace_path is None:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = get_timestamp_gmt3()
         trace_path = f"data/traces/interview_{args.synth_id}_{timestamp}.trace.json"
 
     print("=" * 60)
@@ -173,7 +181,8 @@ async def main():
         print("Conversation Summary")
         print("=" * 60)
         for i, msg in enumerate(result.messages, 1):
-            preview = msg.text[:100] + "..." if len(msg.text) > 100 else msg.text
+            preview = msg.text[:100] + \
+                "..." if len(msg.text) > 100 else msg.text
             print(f"{i}. [{msg.speaker}]: {preview}")
 
     except FileNotFoundError as e:
@@ -186,7 +195,8 @@ async def main():
         print(f"\nError: {e}")
         print("\nUse --synth-id with a valid ID from data/synths/synths.json")
         print("List available synths with:")
-        print('  python -c "import json; data = json.load(open(\'data/synths/synths.json\')); print(\'\\n\'.join(f\'{s[\"id\"]}: {s[\"nome\"]}\' for s in data[:10]))"')
+        print(
+            '  python -c "import json; data = json.load(open(\'data/synths/synths.json\')); print(\'\\n\'.join(f\'{s[\"id\"]}: {s[\"nome\"]}\' for s in data[:10]))"')
         sys.exit(1)
     except Exception as e:
         print(f"\nError: {e}")

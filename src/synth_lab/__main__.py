@@ -120,11 +120,17 @@ def create_parser() -> argparse.ArgumentParser:
         help="Modelo de LLM a usar (padrão: gpt-5-mini)",
     )
     research_parser.add_argument(
-        "-o",
         "--trace-path",
         type=str,
         default=None,
         help="Caminho para salvar trace (auto-gera se não especificado)",
+    )
+    research_parser.add_argument(
+        "-o",
+        "--transcript-path",
+        type=str,
+        default=None,
+        help="Caminho para salvar transcrição JSON (auto-gera se não especificado)",
     )
     research_parser.add_argument(
         "-q",
@@ -213,6 +219,8 @@ def main():
             sys.argv.extend(["--model", args.model])
         if args.trace_path:
             sys.argv.extend(["--trace-path", args.trace_path])
+        if args.transcript_path:
+            sys.argv.extend(["--transcript-path", args.transcript_path])
         if args.quiet:
             sys.argv.append("--quiet")
 

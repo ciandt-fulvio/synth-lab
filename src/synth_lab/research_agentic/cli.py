@@ -30,7 +30,7 @@ import asyncio
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import typer
@@ -42,6 +42,20 @@ from synth_lab.research_agentic.runner import run_interview
 # Configure loguru to only show warnings and above (suppress debug/info)
 logger.remove()  # Remove default handler
 logger.add(sys.stderr, level="WARNING")
+
+# GMT-3 timezone (São Paulo)
+TZ_GMT_MINUS_3 = timezone(timedelta(hours=-3))
+
+
+def get_timestamp_gmt3() -> str:
+    """Get current timestamp in GMT-3 format for file names."""
+    return datetime.now(TZ_GMT_MINUS_3).strftime("%Y%m%d_%H%M%S")
+
+
+def get_datetime_gmt3() -> datetime:
+    """Get current datetime in GMT-3."""
+    return datetime.now(TZ_GMT_MINUS_3)
+
 
 app = typer.Typer(
     name="research",
@@ -88,16 +102,21 @@ def research(
         help="Número máximo de turnos de conversa",
     ),
     model: str = typer.Option(
-        "gpt-5-mini",
+        "gpt-5-nano",
         "--model",
         "-m",
-        help="Modelo de LLM a usar (ex: gpt-5-mini, gpt-4o)",
+        help="Modelo de LLM a usar (ex: gpt-5-nano, gpt-4o)",
     ),
     trace_path: str = typer.Option(
         None,
         "--trace-path",
-        "-o",
         help="Caminho para salvar arquivo de trace (auto-gera se não especificado)",
+    ),
+    transcript_path: str = typer.Option(
+        None,
+        "--transcript-path",
+        "-o",
+        help="Caminho para salvar transcrição JSON (auto-gera se não especificado)",
     ),
     quiet: bool = typer.Option(
         False,
@@ -174,10 +193,12 @@ def research(
         )
         sys.exit(1)
 
-    # Generate trace path if not specified
+    # Generate paths if not specified (using GMT-3)
+    timestamp = get_timestamp_gmt3()
     if trace_path is None:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         trace_path = f"data/traces/interview_{synth_id}_{timestamp}.trace.json"
+    if transcript_path is None:
+        transcript_path = f"data/transcripts/interview_{synth_id}_{timestamp}.json"
 
     verbose = not quiet
 
@@ -192,6 +213,7 @@ def research(
     console.print(f"  Model: [bold]{model}[/bold]")
     console.print(f"  Max Turns: [bold]{max_turns}[/bold]")
     console.print(f"  Trace: [bold]{trace_path}[/bold]")
+    console.print(f"  Transcript: [bold]{transcript_path}[/bold]")
     console.print()
     console.print("[cyan]─" * 60 + "[/cyan]")
     console.print("[cyan]  Starting interview...[/cyan]")
@@ -228,6 +250,37 @@ def research(
                 f"\n[bold green]✓[/bold green] Trace salvo em: [bold]{result.trace_path}[/bold]"
             )
 
+        # Save transcript
+        transcript_data = {
+            "metadata": {
+                "synth_id": result.synth_id,
+                "synth_name": result.synth_name,
+                "topic_guide": result.topic_guide_name,
+                "model": model,
+                "max_turns": max_turns,
+                "total_turns": result.total_turns,
+                "timestamp": get_datetime_gmt3().isoformat(),
+                "timezone": "GMT-3",
+            },
+            "messages": [
+                {
+                    "speaker": msg.speaker,
+                    "text": msg.text,
+                    "internal_notes": msg.internal_notes,
+                }
+                for msg in result.messages
+            ],
+        }
+
+        # Ensure transcript directory exists
+        Path(transcript_path).parent.mkdir(parents=True, exist_ok=True)
+        with open(transcript_path, "w", encoding="utf-8") as f:
+            json.dump(transcript_data, f, ensure_ascii=False, indent=2)
+
+        console.print(
+            f"[bold green]✓[/bold green] Transcrição salva em: [bold]{transcript_path}[/bold]"
+        )
+
         # Print conversation summary
         console.print()
         console.print("[bold cyan]═" * 60 + "[/bold cyan]")
@@ -236,20 +289,25 @@ def research(
         for i, msg in enumerate(result.messages, 1):
             preview = msg.text[:80] + "..." if len(msg.text) > 80 else msg.text
             speaker_color = "blue" if msg.speaker == "Interviewer" else "green"
-            console.print(f"  {i}. [{speaker_color}][{msg.speaker}][/{speaker_color}]: {preview}")
+            console.print(
+                f"  {i}. [{speaker_color}][{msg.speaker}][/{speaker_color}]: {preview}")
 
     except FileNotFoundError as e:
-        console.print(f"[bold red]✗[/bold red] Arquivo não encontrado: {e}", style="red")
+        console.print(
+            f"[bold red]✗[/bold red] Arquivo não encontrado: {e}", style="red")
         sys.exit(1)
     except ValueError as e:
-        console.print(f"[bold red]✗[/bold red] Erro de validação: {e}", style="red")
+        console.print(
+            f"[bold red]✗[/bold red] Erro de validação: {e}", style="red")
         sys.exit(1)
     except KeyboardInterrupt:
-        console.print("\n[yellow]⚠[/yellow] Entrevista interrompida pelo usuário")
+        console.print(
+            "\n[yellow]⚠[/yellow] Entrevista interrompida pelo usuário")
         sys.exit(0)
     except Exception as e:
         logger.error(f"Interview failed: {e}")
-        console.print(f"[bold red]✗[/bold red] Erro na entrevista: {e}", style="red")
+        console.print(
+            f"[bold red]✗[/bold red] Erro na entrevista: {e}", style="red")
         sys.exit(1)
 
 

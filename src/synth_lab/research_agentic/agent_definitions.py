@@ -43,7 +43,7 @@ def create_interviewer(
     topic_guide: str,
     conversation_history: str,
     mcp_servers: list[Any] | None = None,
-    model: str = "gpt-5-mini",
+    model: str = "gpt-5-nano",
     reasoning_effort: str = "low",
 ) -> Agent:
     """
@@ -78,7 +78,7 @@ def create_interviewee(
     synth: dict[str, Any],
     conversation_history: str,
     mcp_servers: list[Any] | None = None,
-    model: str = "gpt-5-mini",
+    model: str = "gpt-5-nano",
     reasoning_effort: str = "low",
 ) -> Agent:
     """
@@ -111,7 +111,7 @@ def create_interviewee(
 
 def create_interviewer_reviewer(
     raw_response: str,
-    model: str = "gpt-5-mini",
+    model: str = "gpt-5-nano",
     reasoning_effort: str = "low",
 ) -> Agent:
     """
@@ -141,7 +141,7 @@ def create_interviewer_reviewer(
 def create_interviewee_reviewer(
     synth: dict[str, Any],
     raw_response: str,
-    model: str = "gpt-5-mini",
+    model: str = "gpt-5-nano",
     reasoning_effort: str = "low",
 ) -> Agent:
     """
@@ -174,7 +174,7 @@ def create_interviewee_reviewer(
 def create_orchestrator(
     conversation_history: str,
     last_message: str,
-    model: str = "gpt-5-mini",
+    model: str = "gpt-5-nano",
     reasoning_effort: str = "low",
 ) -> Agent:
     """
