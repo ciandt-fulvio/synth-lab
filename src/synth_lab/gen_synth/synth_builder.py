@@ -24,8 +24,6 @@ from typing import Any
 
 from synth_lab.gen_synth import (
     analysis,
-    behavior,
-    biases,
     demographics,
     derivations,
     disabilities,
@@ -46,14 +44,12 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
     2. Generating name based on demographics
     3. Generating Big Five personality traits
     4. Generating psychographics (interests, political/religious inclinations)
-    5. Generating behavior (consumption, media patterns)
-    6. Generating disabilities (if applicable)
-    7. Generating tech capabilities (digital literacy, devices)
-    8. Generating behavioral biases (cognitive biases)
-    9. Deriving archetype from demographics and personality
-    10. Generating photo link from name
-    11. Assembling complete synth
-    12. Deriving description from complete synth
+    5. Generating disabilities (if applicable)
+    6. Generating tech capabilities (digital literacy, devices)
+    7. Deriving archetype from demographics and personality
+    8. Generating photo link from name
+    9. Assembling complete synth
+    10. Deriving description from complete synth
 
     Args:
         config: Configuration dict with 'ibge', 'occupations', 'interests_hobbies'
@@ -76,28 +72,22 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
     # 4. Generate full psychographics profile
     psicografia = psychographics.generate_psychographics(big_five, config)
 
-    # 5. Generate behavior (correlated with age and income)
-    comportamento = behavior.generate_behavior(demografia, config)
-
-    # 6. Generate disabilities
+    # 5. Generate disabilities
     deficiencias = disabilities.generate_disabilities(config["ibge"])
 
-    # 7. Generate tech capabilities (correlated with age and disabilities)
+    # 6. Generate tech capabilities (correlated with age and disabilities)
     capacidades_tecnologicas = tech_capabilities.generate_tech_capabilities(
         demografia,
         deficiencias
     )
 
-    # 8. Generate behavioral biases (coherent with personality - User Story 2)
-    vieses = biases.generate_biases_with_coherence(big_five)
-
-    # 9. Derive archetype
+    # 7. Derive archetype
     arquetipo = derivations.derive_archetype(demografia, big_five)
 
-    # 10. Generate photo link
+    # 8. Generate photo link
     link_photo = derivations.generate_photo_link(nome)
 
-    # 11. Assemble complete synth (needed for description)
+    # 9. Assemble complete synth (needed for description)
     synth = {
         "id": synth_id,
         "nome": nome,
@@ -108,13 +98,11 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
         "version": "2.0.0",
         "demografia": demografia,
         "psicografia": psicografia,
-        "comportamento": comportamento,
         "deficiencias": deficiencias,
         "capacidades_tecnologicas": capacidades_tecnologicas,
-        "vieses": vieses,
     }
 
-    # 12. Derive description (needs complete synth)
+    # 10. Derive description (needs complete synth)
     descricao = derivations.derive_description(synth)
     synth["descricao"] = descricao
 
@@ -149,7 +137,7 @@ if __name__ == "__main__":
         required_fields = [
             "id", "nome", "arquetipo", "descricao", "link_photo",
             "created_at", "version", "demografia", "psicografia",
-            "comportamento", "deficiencias", "capacidades_tecnologicas", "vieses"
+            "deficiencias", "capacidades_tecnologicas"
         ]
 
         missing_fields = [f for f in required_fields if f not in synth]
@@ -223,26 +211,7 @@ if __name__ == "__main__":
             else:
                 print(f"✓ Psychographics complete with Big Five and lifestyle")
 
-    # Test 5: Verify behavior structure
-    total_tests += 1
-    if "synth" in locals():
-        comp = synth["comportamento"]
-
-        required_comp_fields = [
-            "habitos_consumo", "padroes_midia",
-            "fonte_noticias", "lealdade_marca",
-            "engajamento_redes_sociais"
-        ]
-
-        missing_comp = [f for f in required_comp_fields if f not in comp]
-        if missing_comp:
-            all_validation_failures.append(
-                f"Behavior: Missing fields: {missing_comp}"
-            )
-        else:
-            print(f"✓ Behavior complete with consumption and technology patterns")
-
-    # Test 6: Verify disabilities structure
+    # Test 5: Verify disabilities structure
     total_tests += 1
     if "synth" in locals():
         defic = synth["deficiencias"]
@@ -256,7 +225,7 @@ if __name__ == "__main__":
         else:
             print(f"✓ Disabilities complete: {defic['visual']['tipo']}")
 
-    # Test 7: Verify tech capabilities structure
+    # Test 6: Verify tech capabilities structure
     total_tests += 1
     if "synth" in locals():
         tech = synth["capacidades_tecnologicas"]
@@ -274,25 +243,7 @@ if __name__ == "__main__":
         else:
             print(f"✓ Tech capabilities complete: digital literacy {tech['alfabetizacao_digital']}")
 
-    # Test 8: Verify biases structure
-    total_tests += 1
-    if "synth" in locals():
-        vieses_data = synth["vieses"]
-
-        required_biases = [
-            "aversao_perda", "desconto_hiperbolico", "suscetibilidade_chamariz",
-            "ancoragem", "vies_confirmacao", "vies_status_quo", "sobrecarga_informacao"
-        ]
-
-        missing_biases = [b for b in required_biases if b not in vieses_data]
-        if missing_biases:
-            all_validation_failures.append(
-                f"Biases: Missing biases: {missing_biases}"
-            )
-        else:
-            print(f"✓ Biases complete: all 7 cognitive biases present")
-
-    # Test 9: Verify derivations
+    # Test 7: Verify derivations
     total_tests += 1
     if "synth" in locals():
         if len(synth["arquetipo"]) < 10:
@@ -310,7 +261,7 @@ if __name__ == "__main__":
         if not all_validation_failures[-3:]:  # If no failures in this test
             print(f"✓ Derivations correct: archetype, description, photo link")
 
-    # Test 10: Generate batch of 3 synths to verify uniqueness
+    # Test 8: Generate batch of 3 synths to verify uniqueness
     total_tests += 1
     try:
         synths_batch = [assemble_synth(config) for _ in range(3)]
@@ -334,7 +285,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Batch generation: Failed - {e}")
 
-    # Test 11: Validate generated synth against schema
+    # Test 9: Validate generated synth against schema
     total_tests += 1
     if "synth" in locals():
         try:

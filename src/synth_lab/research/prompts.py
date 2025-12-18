@@ -38,29 +38,15 @@ def build_interviewer_prompt(interview_script: list[dict] | None = None) -> str:
 
 Seu objetivo é explicar fenômenos conectando fatos observáveis com experiência vivida, significado e contexto.
 
-Princípios orientadores:
-- Fundamentar a análise em informações verificáveis sempre que possível.
-- Interpretar comportamentos dentro de seus contextos sociais, culturais e situacionais.
-- Separar explicitamente fatos, interpretações e suposições.
-- Buscar explicações estruturais (econômicas, institucionais, tecnológicas) sem ignorar a subjetividade humana.
-- Tratar contradições e ambiguidades como dados, não como erros.
-- Tornar a incerteza visível.
-
 Comportamento de entrevista e investigação:
-- Seguir um guia pré-definido de tópicos de pesquisa, garantindo a cobertura dos temas centrais.
 - Manter autonomia para fazer perguntas de acompanhamento dinamicamente, com base nas respostas do usuário.
 - Explorar ativamente perguntas de “por quê” para revelar motivações, significados e crenças causais.
 - Solicitar exemplos concretos, situações específicas e experiências vividas sempre que as respostas forem abstratas ou generalizadas.
 - Utilizar perguntas de sondagem para esclarecer inconsistências, tensões ou afirmações vagas.
 - Permitir que a conversa se desvie do guia quando surgirem insights relevantes, reconectando-se depois aos tópicos principais.
-- Tratar silêncio, hesitação ou falta de detalhes como sinais para aprofundar a investigação, e não como encerramento.
+- Ser claro, cada pergunta deve ter um propósito investigativo explícito. Nunca faça uma pergunta com várias partes. Ex, nunca pergunte coisa como "Como você usa X e o que você acha de Y?", nesse caso divida em duas perguntas separadas.
 
-Estrutura de resposta e análise:
-1. Base factual: o que pode ser estabelecido com razoável confiança.
-2. Camada contextual: contexto social, cultural, histórico ou tecnológico.
-3. Camada interpretativa: como diferentes atores podem perceber ou vivenciar a situação.
-4. Tensões e contradições: onde a realidade não se alinha de forma simples.
-5. Questões em aberto e hipóteses para investigação futura.
+- Tente sempre encerrar perguntando 'ha mais alguma coisa que você gostaria de compartilhar e que não foi abordada?'
 
 FORMATO DE RESPOSTA:
 Você DEVE retornar suas respostas no seguinte formato JSON estruturado:
@@ -102,7 +88,7 @@ Você tem acesso à ferramenta `load_image_for_analysis` para visualizar imagens
         base_prompt += "- Siga a ordem numerada (1, 2, 3...)\n"
         base_prompt += "- Após a resposta, você PODE fazer perguntas de follow-up para aprofundar\n"
         base_prompt += "- Depois dos follow-ups, avance para a PRÓXIMA pergunta do roteiro\n"
-        base_prompt += "- NÃO invente perguntas novas - use apenas as do roteiro\n"
+#        base_prompt += "- NÃO invente perguntas novas - use apenas as do roteiro\n"
         base_prompt += "- Mantenha track de qual pergunta você está (use internal_notes)\n\n"
 
     return base_prompt
@@ -130,17 +116,17 @@ def build_synth_prompt(synth: dict, topic_guide_context: str | None = None) -> s
     estado = synth["demografia"]["localizacao"]["estado"]
 
     # Big Five personality
-    big_five = synth["psicografia"]["personalidade_big_five"]
-    abertura = big_five["abertura"]
-    conscienciosidade = big_five["conscienciosidade"]
-    extroversao = big_five["extroversao"]
-    amabilidade = big_five["amabilidade"]
-    neuroticismo = big_five["neuroticismo"]
+    # big_five = synth["psicografia"]["personalidade_big_five"]
+    # abertura = big_five["abertura"]
+    # conscienciosidade = big_five["conscienciosidade"]
+    # extroversao = big_five["extroversao"]
+    # amabilidade = big_five["amabilidade"]
+    # neuroticismo = big_five["neuroticismo"]
 
     # Behavioral traits
     interesses = synth["psicografia"].get("interesses", [])
-    inclinacao_politica = synth["psicografia"].get("inclinacao_politica", 0)
-    religiao = synth["psicografia"].get("inclinacao_religiosa", "")
+    # inclinacao_politica = synth["psicografia"].get("inclinacao_politica", 0)
+    # religiao = synth["psicografia"].get("inclinacao_religiosa", "")
 
     prompt = f"""Você é {nome}, {idade} anos, {genero}.
 
@@ -153,7 +139,6 @@ QUEM VOCÊ É:
 
 COMO VOCÊ É:
 - Descrição geral: {descricao}
-
 
 INTERESSES: {", ".join(interesses) if interesses else "Vários"}
 

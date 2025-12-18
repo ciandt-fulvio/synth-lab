@@ -103,6 +103,10 @@ function renderTurn(turn, index, maxDuration) {
  * Render a single step
  */
 function renderStep(step, index, maxDuration) {
+    const stepContainer = document.createElement('div');
+    stepContainer.className = 'step-container';
+
+    // Step row (header + bar)
     const stepElement = document.createElement('div');
     stepElement.className = 'step-row';
     stepElement.dataset.spanId = step.span_id;
@@ -114,6 +118,7 @@ function renderStep(step, index, maxDuration) {
     // Format step name based on type
     let stepName = formatStepName(step);
     stepLabel.innerHTML = `
+        <span class="step-toggle">▶</span>
         <span class="step-index">${index + 1}.</span>
         <span class="step-name">${stepName}</span>
         <span class="step-duration">${step.duration_ms}ms</span>
@@ -131,16 +136,26 @@ function renderStep(step, index, maxDuration) {
     const stepWidth = (step.duration_ms / maxDuration) * 100;
     stepBar.style.width = `${stepWidth}%`;
 
-    // Click handler for future detail panel
-    stepElement.addEventListener('click', () => {
-        selectStep(step);
+    // Detail content container (initially collapsed)
+    const detailContent = document.createElement('div');
+    detailContent.className = 'step-detail-content collapsed';
+    detailContent.style.display = 'none';
+
+    // Click handler to toggle details
+    stepElement.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleStepDetails(stepContainer, stepElement, detailContent, step);
     });
 
-    // Assemble step
+    // Assemble step row
     stepElement.appendChild(stepLabel);
     stepElement.appendChild(stepBar);
 
-    return stepElement;
+    // Assemble step container
+    stepContainer.appendChild(stepElement);
+    stepContainer.appendChild(detailContent);
+
+    return stepContainer;
 }
 
 /**
@@ -180,22 +195,56 @@ function toggleTurn(turnContainer, stepsContainer) {
 }
 
 /**
- * Select a step (highlight and show details)
+ * Toggle step details expansion
+ */
+function toggleStepDetails(stepContainer, stepElement, detailContent, step) {
+    const toggle = stepElement.querySelector('.step-toggle');
+    const isExpanded = detailContent.style.display !== 'none';
+
+    if (isExpanded) {
+        // Collapse
+        detailContent.style.display = 'none';
+        detailContent.classList.add('collapsed');
+        toggle.textContent = '▶';
+        stepElement.classList.remove('selected');
+    } else {
+        // Expand - close all other steps first
+        document.querySelectorAll('.step-detail-content').forEach(el => {
+            el.style.display = 'none';
+            el.classList.add('collapsed');
+        });
+        document.querySelectorAll('.step-toggle').forEach(el => {
+            el.textContent = '▶';
+        });
+        document.querySelectorAll('.step-row.selected').forEach(el => {
+            el.classList.remove('selected');
+        });
+
+        // Open this step
+        detailContent.style.display = 'block';
+        detailContent.classList.remove('collapsed');
+        toggle.textContent = '▼';
+        stepElement.classList.add('selected');
+
+        // Populate details
+        if (typeof renderStepDetails === 'function') {
+            renderStepDetails(detailContent, step);
+        }
+    }
+}
+
+/**
+ * Select a step (for legacy compatibility)
  */
 function selectStep(step) {
-    // Remove previous selection
-    document.querySelectorAll('.step-row.selected').forEach(el => {
-        el.classList.remove('selected');
-    });
-
-    // Add selection to clicked step
+    // This is called from details.js but we'll use the new toggle system
     const stepElement = document.querySelector(`[data-span-id="${step.span_id}"]`);
-    if (stepElement) {
-        stepElement.classList.add('selected');
-    }
-
-    // Show detail panel (Phase 4)
-    if (typeof showDetails === 'function') {
-        showDetails(step);
+    if (stepElement && stepElement.parentElement) {
+        const stepRow = stepElement;
+        const stepContainer = stepElement.parentElement;
+        const detailContent = stepContainer.querySelector('.step-detail-content');
+        if (detailContent) {
+            toggleStepDetails(stepContainer, stepRow, detailContent, step);
+        }
     }
 }

@@ -205,6 +205,7 @@ def conversation_turn(
             "prompt": last_msg,
             "model": model,
             "speaker": speaker.value if speaker else "unknown",
+            "system_prompt": system_prompt,  # Log the actual system prompt used
         }) as span:
             try:
                 completion = _make_llm_call()
@@ -476,7 +477,7 @@ def run_interview(
 
     # Get list of available image files in topic guide
     available_images = [f.name for f in topic_dir.iterdir()
-                       if f.is_file() and f.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif']]
+                        if f.is_file() and f.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif']]
     logger.info(f"Available images in topic guide: {available_images}")
 
     # Define tools for loading images using pydantic_function_tool

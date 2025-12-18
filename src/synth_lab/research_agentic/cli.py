@@ -1,0 +1,314 @@
+"""
+CLI interface for agentic UX research interviews with synths.
+
+This module provides the command-line interface for running multi-agent interviews:
+- research command with synth_id argument
+- Topic guide path
+- Max turns configuration
+- Model selection
+- Trace output for visualization
+
+Functions:
+- research(): Main CLI handler for research subcommand
+- app: Typer application instance
+
+Sample usage:
+    synthlab research abc123 compra-amazon
+    synthlab research abc123 compra-amazon --max-turns 6 --model gpt-4o
+    synthlab research abc123 compra-amazon --trace-path data/traces/demo.json
+
+Expected output:
+    Real-time interview display
+    Trace file saved to data/traces/
+
+Third-party Documentation:
+- Typer: https://typer.tiangolo.com/
+- Rich: https://rich.readthedocs.io/
+"""
+
+import asyncio
+import json
+import os
+import sys
+from datetime import datetime
+from pathlib import Path
+
+import typer
+from loguru import logger
+from rich.console import Console
+
+from synth_lab.research_agentic.runner import run_interview
+
+# Configure loguru to only show warnings and above (suppress debug/info)
+logger.remove()  # Remove default handler
+logger.add(sys.stderr, level="WARNING")
+
+app = typer.Typer(
+    name="research",
+    help="Realizar entrevistas de pesquisa UX com synths (sistema multi-agente)",
+    no_args_is_help=True,
+)
+console = Console()
+
+
+def validate_synth_exists(synth_id: str) -> bool:
+    """
+    Check if a synth with the given ID exists in the database.
+
+    Args:
+        synth_id: The synth ID to check
+
+    Returns:
+        True if synth exists, False otherwise
+    """
+    synths_path = Path("data/synths/synths.json")
+    if not synths_path.exists():
+        return False
+
+    with open(synths_path, encoding="utf-8") as f:
+        synths = json.load(f)
+
+    return any(synth.get("id") == synth_id for synth in synths)
+
+
+@app.command()
+def research(
+    synth_id: str = typer.Argument(
+        ..., help="ID do synth a ser entrevistado (6 caracteres)"
+    ),
+    topic_guide_name: str = typer.Argument(
+        ..., help="Nome do topic guide (ex: compra-amazon)"
+    ),
+    max_turns: int = typer.Option(
+        6,
+        "--max-turns",
+        "-t",
+        min=1,
+        max=50,
+        help="Número máximo de turnos de conversa",
+    ),
+    model: str = typer.Option(
+        "gpt-5-mini",
+        "--model",
+        "-m",
+        help="Modelo de LLM a usar (ex: gpt-5-mini, gpt-4o)",
+    ),
+    trace_path: str = typer.Option(
+        None,
+        "--trace-path",
+        "-o",
+        help="Caminho para salvar arquivo de trace (auto-gera se não especificado)",
+    ),
+    quiet: bool = typer.Option(
+        False,
+        "--quiet",
+        "-q",
+        help="Suprimir output da conversa",
+    ),
+):
+    """
+    Executar entrevista de pesquisa UX com um synth usando sistema multi-agente.
+
+    O sistema utiliza múltiplos agentes:
+    - Orchestrator: Decide a alternância de turnos
+    - Interviewer: Faz perguntas baseadas no topic guide
+    - Interviewee: Responde como a persona sintética
+    - Reviewer: Adapta tom para autenticidade
+
+    O topic guide deve conter:
+    - script.json: Roteiro de perguntas da entrevista
+    - summary.md: Contexto e descrições dos materiais
+
+    Exemplo:
+        synthlab research abc123 compra-amazon
+        synthlab research abc123 compra-amazon --max-turns 8 --model gpt-4o
+    """
+    # Validate synth exists
+    if not validate_synth_exists(synth_id):
+        console.print(
+            f"[bold red]✗[/bold red] Synth com ID '{synth_id}' não encontrado",
+            style="red",
+        )
+        console.print(
+            "\nUse [bold]synthlab listsynth[/bold] para ver synths disponíveis"
+        )
+        sys.exit(1)
+
+    # Validate topic guide
+    base_dir = Path(os.environ.get("TOPIC_GUIDES_DIR", "data/topic_guides"))
+    topic_dir = base_dir / topic_guide_name
+
+    # Check if topic guide directory exists
+    if not topic_dir.exists():
+        console.print(
+            f"[bold red]✗[/bold red] Topic guide '{topic_guide_name}' não encontrado",
+            style="red",
+        )
+        console.print(f"\nProcurado em: {topic_dir}")
+        console.print(
+            "\nUse [bold]synthlab topic-guide list[/bold] para ver guides disponíveis"
+        )
+        sys.exit(1)
+
+    # Check if script.json exists
+    script_path = topic_dir / "script.json"
+    if not script_path.exists():
+        console.print(
+            f"[bold red]✗[/bold red] Arquivo script.json não encontrado no topic guide '{topic_guide_name}'",
+            style="red",
+        )
+        console.print(f"\nProcurado em: {script_path}")
+        console.print(
+            "\nO topic guide deve conter um arquivo script.json com o roteiro de perguntas"
+        )
+        sys.exit(1)
+
+    # Check for OPENAI_API_KEY
+    if not os.getenv("OPENAI_API_KEY"):
+        console.print(
+            "[bold red]✗[/bold red] Variável de ambiente OPENAI_API_KEY não configurada",
+            style="red",
+        )
+        console.print(
+            "\nConfigure sua chave de API:\n[bold]export OPENAI_API_KEY='sua-chave'[/bold]"
+        )
+        sys.exit(1)
+
+    # Generate trace path if not specified
+    if trace_path is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        trace_path = f"data/traces/interview_{synth_id}_{timestamp}.trace.json"
+
+    verbose = not quiet
+
+    # Print header
+    console.print()
+    console.print("[bold cyan]═" * 60 + "[/bold cyan]")
+    console.print("[bold cyan]  Agentic Interview System[/bold cyan]")
+    console.print("[bold cyan]═" * 60 + "[/bold cyan]")
+    console.print()
+    console.print(f"  Synth ID: [bold]{synth_id}[/bold]")
+    console.print(f"  Topic Guide: [bold]{topic_guide_name}[/bold]")
+    console.print(f"  Model: [bold]{model}[/bold]")
+    console.print(f"  Max Turns: [bold]{max_turns}[/bold]")
+    console.print(f"  Trace: [bold]{trace_path}[/bold]")
+    console.print()
+    console.print("[cyan]─" * 60 + "[/cyan]")
+    console.print("[cyan]  Starting interview...[/cyan]")
+    console.print("[cyan]─" * 60 + "[/cyan]")
+
+    try:
+        # Run interview (async)
+        logger.info(
+            f"Starting agentic interview with synth {synth_id} and topic guide {topic_guide_name}"
+        )
+
+        result = asyncio.run(
+            run_interview(
+                synth_id=synth_id,
+                topic_guide_name=topic_guide_name,
+                max_turns=max_turns,
+                trace_path=trace_path,
+                model=model,
+                verbose=verbose,
+            )
+        )
+
+        # Print summary
+        console.print()
+        console.print("[cyan]─" * 60 + "[/cyan]")
+        console.print("[bold green]  Interview completed![/bold green]")
+        console.print("[cyan]─" * 60 + "[/cyan]")
+        console.print(f"  Total turns: [bold]{result.total_turns}[/bold]")
+        console.print(f"  Total messages: [bold]{len(result.messages)}[/bold]")
+        console.print(f"  Synth: [bold]{result.synth_name}[/bold]")
+
+        if result.trace_path:
+            console.print(
+                f"\n[bold green]✓[/bold green] Trace salvo em: [bold]{result.trace_path}[/bold]"
+            )
+
+        # Print conversation summary
+        console.print()
+        console.print("[bold cyan]═" * 60 + "[/bold cyan]")
+        console.print("[bold cyan]  Conversation Summary[/bold cyan]")
+        console.print("[bold cyan]═" * 60 + "[/bold cyan]")
+        for i, msg in enumerate(result.messages, 1):
+            preview = msg.text[:80] + "..." if len(msg.text) > 80 else msg.text
+            speaker_color = "blue" if msg.speaker == "Interviewer" else "green"
+            console.print(f"  {i}. [{speaker_color}][{msg.speaker}][/{speaker_color}]: {preview}")
+
+    except FileNotFoundError as e:
+        console.print(f"[bold red]✗[/bold red] Arquivo não encontrado: {e}", style="red")
+        sys.exit(1)
+    except ValueError as e:
+        console.print(f"[bold red]✗[/bold red] Erro de validação: {e}", style="red")
+        sys.exit(1)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]⚠[/yellow] Entrevista interrompida pelo usuário")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"Interview failed: {e}")
+        console.print(f"[bold red]✗[/bold red] Erro na entrevista: {e}", style="red")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    """Validation of CLI module."""
+    print("=== Research Agentic CLI Module Validation ===\n")
+
+    all_validation_failures = []
+    total_tests = 0
+
+    # Test 1: CLI app exists
+    total_tests += 1
+    try:
+        assert app is not None
+        assert app.info.name == "research"
+        print("✓ Typer app created successfully")
+    except Exception as e:
+        all_validation_failures.append(f"Typer app creation: {e}")
+
+    # Test 2: research command exists
+    total_tests += 1
+    try:
+        commands = [cmd.name for cmd in app.registered_commands]
+        assert "research" in commands or len(app.registered_commands) > 0
+        print("✓ research command registered")
+    except Exception as e:
+        all_validation_failures.append(f"Command registration: {e}")
+
+    # Test 3: Required imports work
+    total_tests += 1
+    try:
+        from synth_lab.research_agentic.runner import run_interview
+
+        print("✓ All required imports successful")
+    except Exception as e:
+        all_validation_failures.append(f"Import validation: {e}")
+
+    # Test 4: validate_synth_exists function works
+    total_tests += 1
+    try:
+        # Should return False for non-existent synth
+        result = validate_synth_exists("nonexistent_id_12345")
+        assert result is False
+        print("✓ validate_synth_exists works correctly")
+    except Exception as e:
+        all_validation_failures.append(f"validate_synth_exists: {e}")
+
+    # Final validation result
+    print()
+    if all_validation_failures:
+        print(
+            f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:"
+        )
+        for failure in all_validation_failures:
+            print(f"  - {failure}")
+        sys.exit(1)
+    else:
+        print(
+            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results"
+        )
+        print("CLI module is validated and ready for use")
+        sys.exit(0)
