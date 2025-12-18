@@ -21,6 +21,13 @@ result = await run_interview(
 ```
 """
 
+from .agent_definitions import (
+    create_interviewee,
+    create_interviewee_reviewer,
+    create_interviewer,
+    create_orchestrator,
+)
+from .tracing_bridge import TraceVisualizerProcessor
 import asyncio
 import json
 from dataclasses import dataclass, field
@@ -30,16 +37,21 @@ from typing import Any
 from agents import Runner, add_trace_processor, trace
 from agents.mcp import MCPServerStdio
 from loguru import logger
+from rich.console import Console
 
 from synth_lab.trace_visualizer import SpanStatus, SpanType, Tracer
 
-from .agent_definitions import (
-    create_interviewee,
-    create_interviewee_reviewer,
-    create_interviewer,
-    create_orchestrator,
-)
-from .tracing_bridge import TraceVisualizerProcessor
+# Console for colored output
+_console = Console()
+
+
+def _print_speaker(speaker: str, message: str) -> None:
+    """Print message with colored speaker tag."""
+    if speaker == "Interviewer":
+        _console.print(f"\n[blue][{speaker}][/blue]")
+    else:
+        _console.print(f"\n[green][{speaker}][/green]")
+    _console.print(message)
 
 
 @dataclass
@@ -255,7 +267,7 @@ async def run_interview(
     topic_guide_name: str,
     max_turns: int = 6,
     trace_path: str | None = None,
-    model: str = "gpt-5-mini",
+    model: str = "gpt-5-nano",
     use_mcp: bool = False,
     mcp_directory: str | None = None,
     verbose: bool = True,
@@ -447,8 +459,7 @@ async def run_interview(
 
                     # Log to console
                     if verbose:
-                        print(f"\n[{speaker}]")
-                        print(visible_message)
+                        _print_speaker(speaker, visible_message)
 
                 turns += 1
 
@@ -478,7 +489,7 @@ async def run_interview_simple(
     synth_id: str | None = None,
     persona_description: str | None = None,
     max_turns: int = 4,
-    model: str = "gpt-5-mini",
+    model: str = "gpt-5-nano",
     verbose: bool = True,
 ) -> list[ConversationMessage]:
     """
@@ -574,8 +585,7 @@ async def run_interview_simple(
         shared_memory.conversation.append(message)
 
         if verbose:
-            print(f"\n[{speaker}]")
-            print(visible_message)
+            _print_speaker(speaker, visible_message)
 
         turns += 1
 
@@ -588,7 +598,7 @@ def run_interview_sync(
     topic_guide_name: str,
     max_turns: int = 6,
     trace_path: str | None = None,
-    model: str = "gpt-5-mini",
+    model: str = "gpt-5-nano",
     verbose: bool = True,
 ) -> InterviewResult:
     """
