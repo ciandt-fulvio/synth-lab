@@ -182,7 +182,7 @@ def call_openai_api(
     """
     Call OpenAI API with retry logic and exponential backoff.
 
-    Uses gpt-4o-mini model with tenacity for retries.
+    Uses gpt-5-mini-mini model with tenacity for retries.
 
     Args:
         prompt: Text prompt for the LLM
@@ -206,7 +206,8 @@ def call_openai_api(
         api_key = os.environ.get("OPENAI_API_KEY")
 
     if not api_key:
-        raise ValueError("OpenAI API key not found. Set OPENAI_API_KEY environment variable.")
+        raise ValueError(
+            "OpenAI API key not found. Set OPENAI_API_KEY environment variable.")
 
     client = OpenAI(api_key=api_key)
 
@@ -217,7 +218,7 @@ def call_openai_api(
         if image_base64:
             # Vision API call
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-mini-mini",
                 messages=[
                     {
                         "role": "user",
@@ -236,7 +237,7 @@ def call_openai_api(
         else:
             # Text-only API call
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-mini-mini",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=60,
                 temperature=0.2,
@@ -248,7 +249,7 @@ def call_openai_api(
     if tracer:
         with tracer.start_span(SpanType.LLM_CALL, attributes={
             "prompt": prompt[:500] + "..." if len(prompt) > 500 else prompt,
-            "model": "gpt-4o-mini",
+            "model": "gpt-5-mini-mini",
             "has_image": image_base64 is not None,
         }) as span:
             try:
@@ -257,8 +258,10 @@ def call_openai_api(
 
                 span.set_attribute("response", content)
                 if hasattr(response, 'usage') and response.usage:
-                    span.set_attribute("tokens_input", response.usage.prompt_tokens)
-                    span.set_attribute("tokens_output", response.usage.completion_tokens)
+                    span.set_attribute(
+                        "tokens_input", response.usage.prompt_tokens)
+                    span.set_attribute(
+                        "tokens_output", response.usage.completion_tokens)
                 span.set_status(SpanStatus.SUCCESS)
 
                 return content
@@ -465,6 +468,7 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("File processor functions are validated and formal tests can now be written")
         sys.exit(0)

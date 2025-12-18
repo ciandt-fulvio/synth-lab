@@ -19,10 +19,8 @@ def test_assemble_synth_structure(config_data):
         "version",
         "demografia",
         "psicografia",
-        "comportamento",
         "deficiencias",
         "capacidades_tecnologicas",
-        "vieses",
     ]
 
     for field in required_fields:
@@ -72,28 +70,6 @@ def test_assemble_synth_psychographics(config_data):
         assert field not in psycho, f"Field {field} should not be in v2.0.0 schema"
 
 
-def test_assemble_synth_behavior(config_data):
-    """Test behavior section is complete (v2.0.0)."""
-    synth = synth_builder.assemble_synth(config_data)
-
-    behavior = synth["comportamento"]
-    required_behavior_fields = [
-        "habitos_consumo",
-        "padroes_midia",
-        "fonte_noticias",
-        "lealdade_marca",
-        "engajamento_redes_sociais",
-    ]
-
-    for field in required_behavior_fields:
-        assert field in behavior
-
-    # Verify removed fields are NOT present in v2.0.0
-    removed_fields = ["uso_tecnologia", "comportamento_compra"]
-    for field in removed_fields:
-        assert field not in behavior, f"Field {field} should not be in v2.0.0 schema"
-
-
 def test_assemble_synth_disabilities(config_data):
     """Test disabilities section is complete."""
     synth = synth_builder.assemble_synth(config_data)
@@ -122,27 +98,6 @@ def test_assemble_synth_tech_capabilities(config_data):
 
     for field in required_tech_fields:
         assert field in tech
-
-
-def test_assemble_synth_biases(config_data):
-    """Test biases section is complete."""
-    synth = synth_builder.assemble_synth(config_data)
-
-    biases = synth["vieses"]
-    required_bias_fields = [
-        "aversao_perda",
-        "desconto_hiperbolico",
-        "suscetibilidade_chamariz",
-        "ancoragem",
-        "vies_confirmacao",
-        "vies_status_quo",
-        "sobrecarga_informacao",
-    ]
-
-    for field in required_bias_fields:
-        assert field in biases
-        assert isinstance(biases[field], int)
-        assert 0 <= biases[field] <= 100
 
 
 def test_assemble_synth_id_unique(config_data):

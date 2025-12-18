@@ -47,7 +47,7 @@ def simulate_interview_trace():
             "synth_id": "fhynws",
             "session_id": "abc123",
             "topic_guide": "compra-amazon",
-            "model": "gpt-4o",
+            "model": "gpt-5-mini",
             "synth_name": "João Lucas Barros",
         }
     )
@@ -58,12 +58,13 @@ def simulate_interview_trace():
         # Interviewer LLM call
         with tracer.start_span(SpanType.LLM_CALL, attributes={
             "prompt": "Starting interview...",
-            "model": "gpt-4o",
+            "model": "gpt-5-mini",
             "speaker": "interviewer",
             "system_prompt": "You are a UX researcher conducting interviews...",
         }) as span:
             time.sleep(0.5)  # Simulate API latency
-            span.set_attribute("response", "Olá! Vamos conversar sobre sua experiência com compras online na Amazon.")
+            span.set_attribute(
+                "response", "Olá! Vamos conversar sobre sua experiência com compras online na Amazon.")
             span.set_attribute("tokens_input", 120)
             span.set_attribute("tokens_output", 45)
             span.set_status(SpanStatus.SUCCESS)
@@ -71,12 +72,13 @@ def simulate_interview_trace():
         # Synth LLM call
         with tracer.start_span(SpanType.LLM_CALL, attributes={
             "prompt": "Olá! Vamos conversar sobre sua experiência com compras online na Amazon.",
-            "model": "gpt-4o",
+            "model": "gpt-5-mini",
             "speaker": "synth",
             "system_prompt": "You are João Lucas Barros, 85 years old...",
         }) as span:
             time.sleep(0.6)  # Simulate API latency
-            span.set_attribute("response", "Olá! Sim, eu uso a Amazon de vez em quando.")
+            span.set_attribute(
+                "response", "Olá! Sim, eu uso a Amazon de vez em quando.")
             span.set_attribute("tokens_input", 150)
             span.set_attribute("tokens_output", 32)
             span.set_status(SpanStatus.SUCCESS)
@@ -87,11 +89,12 @@ def simulate_interview_trace():
         # Interviewer asks about a screen
         with tracer.start_span(SpanType.LLM_CALL, attributes={
             "prompt": "Olá! Sim, eu uso a Amazon de vez em quando.",
-            "model": "gpt-4o",
+            "model": "gpt-5-mini",
             "speaker": "interviewer",
         }) as span:
             time.sleep(0.4)
-            span.set_attribute("response", "Você poderia descrever como você busca produtos?")
+            span.set_attribute(
+                "response", "Você poderia descrever como você busca produtos?")
             span.set_attribute("tokens_input", 80)
             span.set_attribute("tokens_output", 28)
             span.set_status(SpanStatus.SUCCESS)
@@ -102,17 +105,19 @@ def simulate_interview_trace():
             "arguments": {"filename": "01_amazon_homepage.PNG"},
         }) as span:
             time.sleep(0.8)  # Simulate image loading
-            span.set_attribute("result", "Image loaded: 01_amazon_homepage.PNG (431935 bytes)")
+            span.set_attribute(
+                "result", "Image loaded: 01_amazon_homepage.PNG (431935 bytes)")
             span.set_status(SpanStatus.SUCCESS)
 
         # Synth responds after seeing image
         with tracer.start_span(SpanType.LLM_CALL, attributes={
             "prompt": "Você poderia descrever como você busca produtos? [Image: homepage]",
-            "model": "gpt-4o",
+            "model": "gpt-5-mini",
             "speaker": "synth",
         }) as span:
             time.sleep(0.7)
-            span.set_attribute("response", "Eu uso a barra de busca no topo da página.")
+            span.set_attribute(
+                "response", "Eu uso a barra de busca no topo da página.")
             span.set_attribute("tokens_input", 180)
             span.set_attribute("tokens_output", 35)
             span.set_status(SpanStatus.SUCCESS)
@@ -123,7 +128,7 @@ def simulate_interview_trace():
         # Interviewer asks to see another screen
         with tracer.start_span(SpanType.LLM_CALL, attributes={
             "prompt": "Eu uso a barra de busca no topo da página.",
-            "model": "gpt-4o",
+            "model": "gpt-5-mini",
             "speaker": "interviewer",
         }) as span:
             time.sleep(0.3)
@@ -139,16 +144,18 @@ def simulate_interview_trace():
         }) as span:
             time.sleep(0.2)
             span.set_status(SpanStatus.ERROR)
-            span.set_attribute("error_message", "Image file 'nonexistent_image.PNG' not found")
+            span.set_attribute(
+                "error_message", "Image file 'nonexistent_image.PNG' not found")
 
         # Synth continues despite error
         with tracer.start_span(SpanType.LLM_CALL, attributes={
             "prompt": "Podemos ver a tela de resultados? [Error loading image]",
-            "model": "gpt-4o",
+            "model": "gpt-5-mini",
             "speaker": "synth",
         }) as span:
             time.sleep(0.5)
-            span.set_attribute("response", "Desculpe, não consigo ver a tela agora.")
+            span.set_attribute(
+                "response", "Desculpe, não consigo ver a tela agora.")
             span.set_attribute("tokens_input", 95)
             span.set_attribute("tokens_output", 18)
             span.set_status(SpanStatus.SUCCESS)

@@ -1,69 +1,73 @@
 /**
- * Detail Panel - Step inspection UI
+ * Detail Panel - Step inspection UI (Inline Collapsible)
  *
  * Handles:
- * - Click events on steps to show details
+ * - Rendering step details as inline collapsible content
  * - Rendering different step types (LLM calls, tool calls, errors, logic)
  * - Content truncation for long text (prompts, responses)
- * - Panel open/close state
  */
-
-// DOM Elements
-const detailPanel = document.getElementById('detail-panel');
-const detailTitle = document.getElementById('detail-title');
-const detailContent = document.getElementById('detail-content');
-const detailClose = document.getElementById('detail-close');
 
 // State
 let currentStep = null;
 let expandedSections = new Set();
 
 /**
- * Initialize detail panel event listeners
+ * Render step details into a container (new inline system)
  */
-function initializeDetailPanel() {
-    detailClose.addEventListener('click', hideDetailPanel);
+function renderStepDetails(container, step) {
+    currentStep = step;
+    expandedSections.clear();
+    container.innerHTML = '';
+
+    // Create detail wrapper
+    const detailWrapper = document.createElement('div');
+    detailWrapper.className = 'step-detail-wrapper';
+
+    // Render appropriate details based on step type
+    const contentElement = document.createElement('div');
+    contentElement.className = 'step-detail-body';
+
+    switch (step.type) {
+        case 'llm_call':
+            renderLLMCallDetails(step.attributes, contentElement);
+            break;
+        case 'tool_call':
+            renderToolCallDetails(step.attributes, contentElement);
+            break;
+        case 'error':
+            renderErrorDetails(step.attributes, contentElement);
+            break;
+        case 'logic':
+            renderLogicDetails(step.attributes, contentElement);
+            break;
+        default:
+            renderGenericDetails(step, contentElement);
+    }
+
+    detailWrapper.appendChild(contentElement);
+    container.appendChild(detailWrapper);
 }
 
 /**
- * Show detail panel with step information
+ * Show detail panel with step information (legacy)
  */
 function showDetails(step) {
     currentStep = step;
     expandedSections.clear();
-
-    // Update title based on step type
-    detailTitle.textContent = formatStepTitle(step);
-
-    // Render appropriate details based on step type
-    switch (step.type) {
-        case 'llm_call':
-            renderLLMCallDetails(step.attributes);
-            break;
-        case 'tool_call':
-            renderToolCallDetails(step.attributes);
-            break;
-        case 'error':
-            renderErrorDetails(step.attributes);
-            break;
-        case 'logic':
-            renderLogicDetails(step.attributes);
-            break;
-        default:
-            renderGenericDetails(step);
-    }
-
-    // Show panel
-    detailPanel.classList.remove('hidden');
+    // New system uses renderStepDetails instead
+    selectStep(step);
 }
 
 /**
- * Hide detail panel
+ * Hide detail panel (legacy)
  */
 function hideDetailPanel() {
-    detailPanel.classList.add('hidden');
     currentStep = null;
     expandedSections.clear();
+    document.querySelectorAll('.step-detail-content').forEach(el => {
+        el.style.display = 'none';
+        el.classList.add('collapsed');
+    });
 }
 
 /**
@@ -83,7 +87,7 @@ function formatStepTitle(step) {
 /**
  * Render LLM call details
  */
-function renderLLMCallDetails(attributes) {
+function renderLLMCallDetails(attributes, container) {
     const sections = [];
 
     // Model information
@@ -91,6 +95,15 @@ function renderLLMCallDetails(attributes) {
         sections.push({
             label: 'Model',
             value: attributes.model,
+            type: 'text'
+        });
+    }
+
+    // Speaker
+    if (attributes.speaker) {
+        sections.push({
+            label: 'Speaker',
+            value: attributes.speaker,
             type: 'text'
         });
     }
@@ -115,6 +128,26 @@ function renderLLMCallDetails(attributes) {
         });
     }
 
+    // Raw response
+    if (attributes.raw_response) {
+        sections.push({
+            label: 'Raw Response',
+            value: attributes.raw_response,
+            type: 'long-text',
+            id: 'raw_response'
+        });
+    }
+
+    // Final response
+    if (attributes.final_response) {
+        sections.push({
+            label: 'Final Response',
+            value: attributes.final_response,
+            type: 'long-text',
+            id: 'final_response'
+        });
+    }
+
     // Token counts
     if (attributes.tokens_input !== undefined || attributes.tokens_output !== undefined) {
         const tokenInfo = [];
@@ -131,13 +164,13 @@ function renderLLMCallDetails(attributes) {
         });
     }
 
-    renderDetailSections(sections);
+    renderDetailSections(sections, container);
 }
 
 /**
  * Render tool call details
  */
-function renderToolCallDetails(attributes) {
+function renderToolCallDetails(attributes, container) {
     const sections = [];
 
     // Tool name
@@ -179,13 +212,13 @@ function renderToolCallDetails(attributes) {
         });
     }
 
-    renderDetailSections(sections);
+    renderDetailSections(sections, container);
 }
 
 /**
  * Render error details
  */
-function renderErrorDetails(attributes) {
+function renderErrorDetails(attributes, container) {
     const sections = [];
 
     // Error type
@@ -217,13 +250,16 @@ function renderErrorDetails(attributes) {
         });
     }
 
-    renderDetailSections(sections);
+    renderDetailSections(sections, container);
 }
 
 /**
  * Render logic step details
  */
-function renderLogicDetails(attributes) {
+function renderLogicDetails(attributes, container) {
+    console.log('[DEBUG] renderLogicDetails called with:', attributes);
+    console.log('[DEBUG] Attribute keys:', Object.keys(attributes));
+
     const sections = [];
 
     // Operation first
@@ -239,6 +275,8 @@ function renderLogicDetails(attributes) {
     for (const [key, value] of Object.entries(attributes)) {
         // Skip operation (already rendered)
         if (key === 'operation') continue;
+
+        console.log(`[DEBUG] Processing attribute: ${key}, type: ${typeof value}, length: ${typeof value === 'string' ? value.length : 'N/A'}`);
 
         const displayValue = typeof value === 'string'
             ? value
@@ -257,13 +295,14 @@ function renderLogicDetails(attributes) {
         });
     }
 
-    renderDetailSections(sections);
+    console.log('[DEBUG] Total sections created:', sections.length, sections.map(s => s.label));
+    renderDetailSections(sections, container);
 }
 
 /**
  * Render generic details for unknown types
  */
-function renderGenericDetails(step) {
+function renderGenericDetails(step, container) {
     const sections = [];
 
     // Add all attributes as key-value pairs
@@ -280,17 +319,28 @@ function renderGenericDetails(step) {
         });
     }
 
-    renderDetailSections(sections);
+    renderDetailSections(sections, container);
 }
 
 /**
  * Render detail sections
  */
-function renderDetailSections(sections) {
-    detailContent.innerHTML = '';
+function renderDetailSections(sections, container) {
+    // Use provided container or fall back to detailContent (for legacy compatibility)
+    const target = container || (typeof detailContent !== 'undefined' ? detailContent : null);
+
+    if (!target) {
+        console.error('[ERROR] No container provided for renderDetailSections');
+        return;
+    }
+
+    target.innerHTML = '';
 
     if (sections.length === 0) {
-        detailContent.innerHTML = '<p class="detail-placeholder">No details available</p>';
+        const placeholder = document.createElement('p');
+        placeholder.className = 'detail-placeholder';
+        placeholder.textContent = 'No details available';
+        target.appendChild(placeholder);
         return;
     }
 
@@ -316,7 +366,7 @@ function renderDetailSections(sections) {
         }
 
         sectionElement.appendChild(valueContainer);
-        detailContent.appendChild(sectionElement);
+        target.appendChild(sectionElement);
     });
 }
 
@@ -370,7 +420,4 @@ function truncateContent(text, maxLength = 500, contentId) {
     return { element: container, needsTruncation: true };
 }
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', () => {
-    initializeDetailPanel();
-});
+// No initialization needed for new inline system

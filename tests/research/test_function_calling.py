@@ -115,7 +115,7 @@ class TestConversationTurnWithTools:
             client=mock_client,
             messages=[],
             system_prompt="You are a helpful assistant.",
-            model="gpt-4o"
+            model="gpt-5-mini"
         )
 
         # Verify
@@ -188,7 +188,7 @@ class TestConversationTurnWithTools:
             client=mock_client,
             messages=messages,
             system_prompt="You are a helpful assistant.",
-            model="gpt-4o",
+            model="gpt-5-mini",
             tools=tools,
             topic_guide_name="test-guide"
         )
@@ -218,7 +218,8 @@ if __name__ == "__main__":
 
         topic_guide_path = Path("data/topic_guides/compra-amazon")
         if not topic_guide_path.exists():
-            all_validation_failures.append("compra-amazon topic guide not found")
+            all_validation_failures.append(
+                "compra-amazon topic guide not found")
         else:
             image_file = "01_amazon_homepage.PNG"
             image_path = topic_guide_path / image_file
@@ -229,17 +230,21 @@ if __name__ == "__main__":
                 result = load_image_for_analysis(image_file, "compra-amazon")
 
                 if not isinstance(result, str):
-                    all_validation_failures.append(f"Expected str, got {type(result)}")
+                    all_validation_failures.append(
+                        f"Expected str, got {type(result)}")
                 elif len(result) < 100:
-                    all_validation_failures.append(f"Base64 result too short: {len(result)}")
+                    all_validation_failures.append(
+                        f"Base64 result too short: {len(result)}")
                 else:
                     # Verify it's valid base64
                     try:
                         decoded = base64.b64decode(result)
                         if len(decoded) == 0:
-                            all_validation_failures.append("Decoded image is empty")
+                            all_validation_failures.append(
+                                "Decoded image is empty")
                     except Exception as e:
-                        all_validation_failures.append(f"Base64 decode failed: {e}")
+                        all_validation_failures.append(
+                            f"Base64 decode failed: {e}")
 
     except Exception as e:
         all_validation_failures.append(f"Image loading test: {e}")
@@ -251,23 +256,27 @@ if __name__ == "__main__":
 
         try:
             load_image_for_analysis("nonexistent.png", "compra-amazon")
-            all_validation_failures.append("Expected FileNotFoundError but no exception was raised")
+            all_validation_failures.append(
+                "Expected FileNotFoundError but no exception was raised")
         except FileNotFoundError:
             # Expected - test passes
             pass
         except Exception as e:
-            all_validation_failures.append(f"Expected FileNotFoundError but got {type(e).__name__}")
+            all_validation_failures.append(
+                f"Expected FileNotFoundError but got {type(e).__name__}")
 
     except Exception as e:
         all_validation_failures.append(f"FileNotFoundError test: {e}")
 
     # Final validation result
     if all_validation_failures:
-        print(f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(
+            f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Function calling integration is validated and ready for use")
         sys.exit(0)

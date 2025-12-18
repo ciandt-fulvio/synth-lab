@@ -91,9 +91,9 @@ def create_parser() -> argparse.ArgumentParser:
         help="Salvar também em arquivos individuais (além do arquivo consolidado)",
     )
 
-    # research subcommand
+    # research subcommand (agentic multi-agent system)
     research_parser = subparsers.add_parser(
-        "research", help="Realizar entrevistas de pesquisa UX com synths"
+        "research", help="Realizar entrevistas de pesquisa UX com synths (sistema multi-agente)"
     )
     research_parser.add_argument(
         "synth_id",
@@ -106,25 +106,31 @@ def create_parser() -> argparse.ArgumentParser:
         help="Nome do topic guide (ex: compra-amazon)",
     )
     research_parser.add_argument(
-        "-r",
-        "--max-rounds",
+        "-t",
+        "--max-turns",
         type=int,
-        default=10,
-        help="Número máximo de rodadas de conversa (padrão: 10)",
+        default=6,
+        help="Número máximo de turnos de conversa (padrão: 6)",
     )
     research_parser.add_argument(
         "-m",
         "--model",
         type=str,
-        default="gpt-4o",
-        help="Modelo de LLM a usar (padrão: gpt-4o)",
+        default="gpt-5-mini",
+        help="Modelo de LLM a usar (padrão: gpt-5-mini)",
     )
     research_parser.add_argument(
         "-o",
-        "--output",
+        "--trace-path",
         type=str,
-        default="data/transcripts",
-        help="Diretório para salvar transcrição (padrão: data/transcripts)",
+        default=None,
+        help="Caminho para salvar trace (auto-gera se não especificado)",
+    )
+    research_parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="Suprimir output da conversa",
     )
 
     # topic-guide subcommand
@@ -194,19 +200,21 @@ def main():
 
         gensynth_cli_main()
 
-    # Handle research command
+    # Handle research command (agentic multi-agent system)
     if args.command == "research":
         # Import here to avoid circular imports and speed up --help
-        from synth_lab.research.cli import app as research_app
+        from synth_lab.research_agentic.cli import app as research_app
 
         # Convert args to match Typer interface
         sys.argv = ["synthlab research", args.synth_id, args.topic_guide_name]
-        if args.max_rounds:
-            sys.argv.extend(["--max-rounds", str(args.max_rounds)])
+        if args.max_turns:
+            sys.argv.extend(["--max-turns", str(args.max_turns)])
         if args.model:
             sys.argv.extend(["--model", args.model])
-        if args.output:
-            sys.argv.extend(["--output", args.output])
+        if args.trace_path:
+            sys.argv.extend(["--trace-path", args.trace_path])
+        if args.quiet:
+            sys.argv.append("--quiet")
 
         research_app()
 
