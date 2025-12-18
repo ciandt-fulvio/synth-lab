@@ -20,6 +20,7 @@ Criar Synths representativos da população brasileira para:
 ### Interface CLI Moderna
 - 🎨 **Saída colorida e formatada** com biblioteca Rich
 - ⚡ **Comandos intuitivos**: `synthlab gensynth -n 100`, `synthlab listsynth`, `synthlab research`, `synthlab topic-guide`
+- 🖼️ **Geração de avatares** via OpenAI API com controle de blocos (9 avatares por bloco)
 - 🎤 **Entrevistas de UX simuladas** com LLMs conversando (interviewer + synth)
 - 📚 **Topic Guides com IA** - Organize materiais de contexto (imagens, PDFs, documentos) e gere descrições automáticas para entrevistas
 - 📊 **Benchmark integrado** para análise de performance
@@ -91,6 +92,15 @@ uv run synthlab gensynth -n 1
 uv run synthlab gensynth -n 100
 uv run synthlab gensynth -n 1000
 
+# 🎨 NOVO: Gerar Synths com avatares visuais
+uv run synthlab gensynth -n 9 --avatar
+
+# Gerar com número customizado de blocos de avatares (1 bloco = 9 avatares)
+uv run synthlab gensynth --avatar -b 3  # Gera 27 avatares (3 blocos)
+
+# Combinar com outras opções
+uv run synthlab gensynth -n 18 --avatar --benchmark
+
 # Com benchmark de performance
 uv run synthlab gensynth -n 100 --benchmark
 
@@ -100,6 +110,52 @@ uv run synthlab gensynth -n 100 --quiet
 # Output em diretório customizado
 uv run synthlab gensynth -n 10 --output ./meus-synths/
 ```
+
+#### 🎨 Geração de Avatares
+
+Gere imagens de avatares visuais realistas para synths usando a OpenAI API (gpt-image-1-mini 2).
+
+**Requisitos**:
+```bash
+# Configure sua chave API OpenAI
+export OPENAI_API_KEY="sk-your-api-key-here"
+```
+
+**Uso**:
+```bash
+# Gerar 9 synths com avatares (1 bloco)
+uv run synthlab gensynth -n 9 --avatar
+
+# Gerar múltiplos blocos de avatares
+uv run synthlab gensynth -n 18 --avatar  # 2 blocos automáticos
+uv run synthlab gensynth --avatar -b 5   # 5 blocos explícitos (45 avatares)
+
+# Gerar avatares para synths existentes (User Story 3)
+uv run synthlab gensynth --avatar  # Auto-detecta synths sem avatar e gera para todos
+uv run synthlab gensynth --avatar --synth-ids syn001,syn002,syn003  # IDs específicos
+uv run synthlab gensynth --avatar --synth-ids syn010,syn011,syn012,syn013,syn014,syn015,syn016,syn017,syn018  # 9 IDs = 1 bloco
+
+# Combinar com outras opções
+uv run synthlab gensynth -n 27 --avatar --benchmark
+```
+
+**Características**:
+- 🖼️ Avatares 341x341 pixels em formato PNG
+- 🎭 Filtros visuais variados (B&W, sepia, warm, cool, 3D style)
+- 👥 Diversidade demográfica precisa (idade, gênero, etnia)
+- 💼 Backgrounds relacionados à profissão
+- 💰 Custo: ~$0.02 por bloco (9 avatares) usando gpt-image-1-mini 2
+- 📁 Salvos em: `data/synths/avatar/{synth-id}.png`
+
+**Funcionalidades Avançadas**:
+- ✅ **Auto-detecção**: Simplesmente rode `--avatar` para gerar avatares apenas para synths que não os possuem
+- ✅ Retry automático com exponential backoff para rate limits
+- ✅ Delay entre blocos para evitar throttling
+- ✅ Progress indicators em tempo real
+- ✅ Tratamento de erros robusto
+- ✅ Validação de dados antes da geração
+- ✅ Confirmação antes de sobrescrever avatares existentes
+- ✅ Geração de avatares para synths específicos (via --synth-ids)
 
 #### Validar Synths
 
