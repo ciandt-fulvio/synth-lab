@@ -14,7 +14,7 @@ Functions:
 Sample usage:
     synthlab research abc123
     synthlab research abc123 --topic-guide data/topic_guides/ecommerce-mobile.md
-    synthlab research abc123 --max-rounds 15 --model gpt-4o
+    synthlab research abc123 --max-rounds 15 --model gpt-5-mini
 
 Expected output:
     Real-time interview display with Rich formatting
@@ -60,7 +60,7 @@ def research(
         help="Número máximo de rodadas de conversa",
     ),
     model: str = typer.Option(
-        "gpt-4o", "--model", "-m", help="Modelo de LLM a usar (ex: gpt-4o, gpt-4)"
+        "gpt-5-mini", "--model", "-m", help="Modelo de LLM a usar (ex: gpt-5-mini, gpt-4)"
     ),
     output_dir: str = typer.Option(
         "data/transcripts",
@@ -103,7 +103,8 @@ def research(
             style="red",
         )
         console.print(f"\nProcurado em: {topic_dir}")
-        console.print("\nUse [bold]synthlab topic-guide list[/bold] para ver guides disponíveis")
+        console.print(
+            "\nUse [bold]synthlab topic-guide list[/bold] para ver guides disponíveis")
         sys.exit(1)
 
     # Check if script.json exists
@@ -114,7 +115,8 @@ def research(
             style="red",
         )
         console.print(f"\nProcurado em: {script_path}")
-        console.print("\nO topic guide deve conter um arquivo script.json com o roteiro de perguntas")
+        console.print(
+            "\nO topic guide deve conter um arquivo script.json com o roteiro de perguntas")
         sys.exit(1)
 
     # Check if summary.md exists
@@ -125,7 +127,8 @@ def research(
             style="red",
         )
         console.print(f"\nProcurado em: {summary_path}")
-        console.print("\nUse [bold]synthlab topic-guide update {topic_guide_name}[/bold] para gerar o summary.md")
+        console.print(
+            "\nUse [bold]synthlab topic-guide update {topic_guide_name}[/bold] para gerar o summary.md")
         sys.exit(1)
 
     # Check for OPENAI_API_KEY
@@ -143,7 +146,8 @@ def research(
 
     try:
         # Run interview
-        logger.info(f"Starting interview with synth {synth_id} and topic guide {topic_guide_name}")
+        logger.info(
+            f"Starting interview with synth {synth_id} and topic guide {topic_guide_name}")
         session, messages, synth = run_interview(
             synth_id=synth_id,
             topic_guide_name=topic_guide_name,
@@ -165,14 +169,17 @@ def research(
         )
 
     except ValueError as e:
-        console.print(f"[bold red]✗[/bold red] Erro de validação: {e}", style="red")
+        console.print(
+            f"[bold red]✗[/bold red] Erro de validação: {e}", style="red")
         sys.exit(1)
     except KeyboardInterrupt:
-        console.print("\n[yellow]⚠[/yellow] Entrevista interrompida pelo usuário")
+        console.print(
+            "\n[yellow]⚠[/yellow] Entrevista interrompida pelo usuário")
         sys.exit(0)
     except Exception as e:
         logger.error(f"Interview failed: {e}")
-        console.print(f"[bold red]✗[/bold red] Erro na entrevista: {e}", style="red")
+        console.print(
+            f"[bold red]✗[/bold red] Erro na entrevista: {e}", style="red")
         sys.exit(1)
 
 

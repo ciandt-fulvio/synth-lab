@@ -21,6 +21,7 @@ import hashlib
 from pathlib import Path
 
 from synth_lab.topic_guides.models import FileType
+from synth_lab.trace_visualizer import Tracer, SpanType, SpanStatus
 
 
 def detect_file_type(file_path: Path) -> FileType | None:
@@ -176,17 +177,18 @@ def encode_image_for_vision(image_path: Path) -> str:
 
 
 def call_openai_api(
-    prompt: str, image_base64: str | None = None, api_key: str | None = None
+    prompt: str, image_base64: str | None = None, api_key: str | None = None, tracer: Tracer | None = None
 ) -> str:
     """
     Call OpenAI API with retry logic and exponential backoff.
 
-    Uses gpt-4o-mini model with tenacity for retries.
+    Uses gpt-5-mini-mini model with tenacity for retries.
 
     Args:
         prompt: Text prompt for the LLM
         image_base64: Optional base64-encoded image for Vision API
         api_key: OpenAI API key (uses OPENAI_API_KEY env var if not provided)
+        tracer: Optional Tracer for recording trace data
 
     Returns:
         LLM response text
@@ -204,7 +206,8 @@ def call_openai_api(
         api_key = os.environ.get("OPENAI_API_KEY")
 
     if not api_key:
-        raise ValueError("OpenAI API key not found. Set OPENAI_API_KEY environment variable.")
+        raise ValueError(
+            "OpenAI API key not found. Set OPENAI_API_KEY environment variable.")
 
     client = OpenAI(api_key=api_key)
 
@@ -215,7 +218,7 @@ def call_openai_api(
         if image_base64:
             # Vision API call
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-mini-mini",
                 messages=[
                     {
                         "role": "user",
@@ -234,15 +237,41 @@ def call_openai_api(
         else:
             # Text-only API call
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-mini-mini",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=60,
                 temperature=0.2,
             )
 
-        return response.choices[0].message.content
+        return response
 
-    return _make_request()
+    # Execute with optional tracing
+    if tracer:
+        with tracer.start_span(SpanType.LLM_CALL, attributes={
+            "prompt": prompt[:500] + "..." if len(prompt) > 500 else prompt,
+            "model": "gpt-5-mini-mini",
+            "has_image": image_base64 is not None,
+        }) as span:
+            try:
+                response = _make_request()
+                content = response.choices[0].message.content
+
+                span.set_attribute("response", content)
+                if hasattr(response, 'usage') and response.usage:
+                    span.set_attribute(
+                        "tokens_input", response.usage.prompt_tokens)
+                    span.set_attribute(
+                        "tokens_output", response.usage.completion_tokens)
+                span.set_status(SpanStatus.SUCCESS)
+
+                return content
+            except Exception as e:
+                span.set_status(SpanStatus.ERROR)
+                span.set_attribute("error_message", str(e))
+                raise
+    else:
+        response = _make_request()
+        return response.choices[0].message.content
 
 
 def generate_file_description(file_path: Path, api_key: str | None = None) -> str | None:
@@ -439,6 +468,7 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("File processor functions are validated and formal tests can now be written")
         sys.exit(0)

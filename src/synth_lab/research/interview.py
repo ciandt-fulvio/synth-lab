@@ -69,6 +69,7 @@ from synth_lab.research.models import (
 )
 from synth_lab.research.prompts import build_interviewer_prompt, build_synth_prompt, load_topic_guide
 from synth_lab.topic_guides.summary_manager import load_topic_guide_context
+from synth_lab.trace_visualizer import Tracer, SpanType, SpanStatus
 import base64
 import os
 import json
@@ -138,7 +139,8 @@ def load_image_for_analysis(filename: str, topic_guide_name: str) -> str | None:
 
     if not image_path.exists():
         logger.error(f"Image not found: {image_path}")
-        raise FileNotFoundError(f"Image file '{filename}' not found in topic guide '{topic_guide_name}'")
+        raise FileNotFoundError(
+            f"Image file '{filename}' not found in topic guide '{topic_guide_name}'")
 
     # Read and encode image
     with open(image_path, "rb") as f:
@@ -152,9 +154,11 @@ def conversation_turn(
     client: OpenAI,
     messages: list[dict],
     system_prompt: str,
-    model: str = "gpt-4o",
+    model: str = "gpt-5-mini",
     tools: list[dict] | None = None,
     topic_guide_name: str | None = None,
+    tracer: Tracer | None = None,
+    speaker: Speaker | None = None,
 ) -> InterviewResponse:
     """
     Execute single conversation turn with LLM.
@@ -166,6 +170,8 @@ def conversation_turn(
         model: Model name to use
         tools: Optional list of function calling tools
         topic_guide_name: Topic guide name (required if tools provided)
+        tracer: Optional Tracer for recording trace data
+        speaker: Speaker type (for trace metadata)
 
     Returns:
         Parsed InterviewResponse from LLM
@@ -178,13 +184,52 @@ def conversation_turn(
         "model": model,
         "messages": [{"role": "system", "content": system_prompt}] + messages,
         "response_format": InterviewResponse,
+        "reasoning_effort": "low",
+        "verbosity": "low"
     }
 
     # Add tools if provided
     if tools:
         api_params["tools"] = tools
 
-    completion = client.beta.chat.completions.parse(**api_params)
+    # Get prompt context for tracing
+    user_msgs = [m for m in messages if m.get("role") == "user"]
+    last_msg = user_msgs[-1]["content"] if user_msgs else "Starting conversation"
+
+    # Execute LLM call with optional tracing
+    def _make_llm_call():
+        return client.beta.chat.completions.parse(**api_params)
+
+    if tracer:
+        with tracer.start_span(SpanType.LLM_CALL, attributes={
+            "prompt": last_msg,
+            "model": model,
+            "speaker": speaker.value if speaker else "unknown",
+            "system_prompt": system_prompt,  # Log the actual system prompt used
+        }) as span:
+            try:
+                completion = _make_llm_call()
+
+                # Record response in span
+                if completion.choices:
+                    msg = completion.choices[0].message
+                    if hasattr(msg, 'parsed') and msg.parsed:
+                        span.set_attribute("response", msg.parsed.message)
+
+                    # Record token usage if available
+                    if hasattr(completion, 'usage') and completion.usage:
+                        span.set_attribute(
+                            "tokens_input", completion.usage.prompt_tokens)
+                        span.set_attribute(
+                            "tokens_output", completion.usage.completion_tokens)
+
+                span.set_status(SpanStatus.SUCCESS)
+            except Exception as e:
+                span.set_status(SpanStatus.ERROR)
+                span.set_attribute("error_message", str(e))
+                raise
+    else:
+        completion = _make_llm_call()
 
     # Handle tool calls if present
     message = completion.choices[0].message
@@ -192,6 +237,8 @@ def conversation_turn(
     # If LLM requested tool calls, execute them
     if hasattr(message, 'tool_calls') and message.tool_calls:
         logger.info(f"LLM requested {len(message.tool_calls)} tool calls")
+        logger.debug(
+            f"Tracer available: {tracer is not None}, current_turn: {tracer._current_turn if tracer else 'N/A'}")
 
         # Add assistant's message with tool calls to history
         messages.append({
@@ -221,30 +268,61 @@ def conversation_turn(
                 # Fallback to parsing JSON if not using pydantic_function_tool
                 function_args = json.loads(tool_call.function.arguments)
 
-            logger.info(f"Executing tool: {function_name} with args: {function_args}")
+            logger.info(
+                f"Executing tool: {function_name} with args: {function_args}")
 
-            # Execute the function
+            # Execute the function with tracing
             if function_name == "load_image_for_analysis":
-                try:
-                    # Get filename from parsed arguments (Pydantic model) or dict
-                    filename = function_args.filename if isinstance(function_args, LoadImageParams) else function_args["filename"]
+                # Get filename from parsed arguments (Pydantic model) or dict
+                filename = function_args.filename if isinstance(
+                    function_args, LoadImageParams) else function_args["filename"]
+                logger.info(
+                    f"Processing tool call for image: {filename}, tracer: {tracer is not None}")
 
-                    image_data = load_image_for_analysis(
+                def _execute_tool():
+                    return load_image_for_analysis(
                         filename=filename,
                         topic_guide_name=topic_guide_name
                     )
-                    # Add tool response to messages
+
+                tool_result = None
+                tool_error = None
+
+                if tracer:
+                    with tracer.start_span(SpanType.TOOL_CALL, attributes={
+                        "tool_name": function_name,
+                        "arguments": {"filename": filename},
+                    }) as span:
+                        try:
+                            image_data = _execute_tool()
+                            span.set_attribute(
+                                "result", f"Image loaded: {filename} ({len(image_data)} bytes)")
+                            span.set_status(SpanStatus.SUCCESS)
+                            tool_result = image_data
+                        except Exception as e:
+                            logger.error(f"Tool call failed: {e}")
+                            span.set_status(SpanStatus.ERROR)
+                            span.set_attribute("error_message", str(e))
+                            tool_error = e
+                else:
+                    try:
+                        tool_result = _execute_tool()
+                    except Exception as e:
+                        logger.error(f"Tool call failed: {e}")
+                        tool_error = e
+
+                # Add tool response to messages
+                if tool_result:
                     messages.append({
                         "role": "tool",
                         "tool_call_id": tool_call.id,
-                        "content": f"Image loaded successfully. Base64 data: data:image/png;base64,{image_data[:100]}... (truncated)"
+                        "content": f"Image loaded successfully. Base64 data: data:image/png;base64,{tool_result[:100]}... (truncated)"
                     })
-                except Exception as e:
-                    logger.error(f"Tool call failed: {e}")
+                else:
                     messages.append({
                         "role": "tool",
                         "tool_call_id": tool_call.id,
-                        "content": f"Error loading image: {str(e)}"
+                        "content": f"Error loading image: {str(tool_error)}"
                     })
 
         # Make another API call to get the final response
@@ -337,7 +415,7 @@ def run_interview(
     synth_id: str,
     topic_guide_name: str,
     max_rounds: int = 10,
-    model: str = "gpt-4o",
+    model: str = "gpt-5-mini",
 ) -> tuple[InterviewSession, list[Message], dict]:
     """
     Execute complete interview loop with topic guide script.
@@ -370,12 +448,14 @@ def run_interview(
 
     # Validate topic guide directory
     if not topic_dir.exists():
-        raise FileNotFoundError(f"Topic guide directory not found: {topic_dir}")
+        raise FileNotFoundError(
+            f"Topic guide directory not found: {topic_dir}")
 
     # Load script.json
     script_path = topic_dir / "script.json"
     if not script_path.exists():
-        raise FileNotFoundError(f"script.json not found in topic guide: {script_path}")
+        raise FileNotFoundError(
+            f"script.json not found in topic guide: {script_path}")
 
     with open(script_path, encoding="utf-8") as f:
         interview_script = json.load(f)
@@ -386,19 +466,26 @@ def run_interview(
 
     for item in interview_script:
         if "id" not in item or "ask" not in item:
-            raise ValueError(f"Each question in script.json must have 'id' and 'ask' fields")
+            raise ValueError(
+                f"Each question in script.json must have 'id' and 'ask' fields")
 
-    logger.info(f"Loaded interview script with {len(interview_script)} questions")
+    logger.info(
+        f"Loaded interview script with {len(interview_script)} questions")
 
     # Load topic guide context (summary.md + file descriptions)
     topic_guide_content = load_topic_guide_context(topic_guide_name)
+
+    # Get list of available image files in topic guide
+    available_images = [f.name for f in topic_dir.iterdir()
+                        if f.is_file() and f.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif']]
+    logger.info(f"Available images in topic guide: {available_images}")
 
     # Define tools for loading images using pydantic_function_tool
     tools = [
         openai.pydantic_function_tool(
             LoadImageParams,
             name="load_image_for_analysis",
-            description="Load an image file from the topic guide to view it visually. Use this when you need to see the actual image content, not just the text description."
+            description=f"Load an image file from the topic guide to view it visually. Available images: {', '.join(available_images)}"
         )
     ]
 
@@ -411,6 +498,18 @@ def run_interview(
         start_time=datetime.now(timezone.utc),
         status=SessionStatus.IN_PROGRESS,
         model_used=model,
+    )
+
+    # Initialize tracer for recording conversation trace
+    tracer = Tracer(
+        trace_id=f"interview-{synth_id}-{session.id[:8]}",
+        metadata={
+            "synth_id": synth_id,
+            "session_id": session.id,
+            "topic_guide": topic_guide_name,
+            "model": model,
+            "synth_name": synth["nome"],
+        }
     )
 
     # Display header
@@ -434,52 +533,70 @@ def run_interview(
 
     try:
         while round_number <= max_rounds:
-            # Interviewer turn
-            with console.status(f"[blue]Entrevistador pensando... (turno {round_number})", spinner="dots"):
-                interviewer_response = conversation_turn(
-                    client, conversation_history, interviewer_prompt, model,
-                    tools=tools, topic_guide_name=topic_guide_name
+            # Start new turn in trace
+            with tracer.start_turn(turn_number=round_number):
+                # Log system prompts on turn 1
+                if round_number == 1:
+                    with tracer.start_span(SpanType.LOGIC, attributes={
+                        "operation": "Initialize interview prompts",
+                        "interviewer_prompt": interviewer_prompt,
+                        "synth_prompt": synth_prompt,
+                        "available_images": available_images,
+                    }) as span:
+                        span.set_status(SpanStatus.SUCCESS)
+
+                # Interviewer turn
+                with console.status(f"[blue]Entrevistador pensando... (turno {round_number})", spinner="dots"):
+                    interviewer_response = conversation_turn(
+                        client, conversation_history, interviewer_prompt, model,
+                        tools=tools, topic_guide_name=topic_guide_name,
+                        tracer=tracer, speaker=Speaker.INTERVIEWER
+                    )
+
+                # Display and record
+                display_message(Speaker.INTERVIEWER,
+                                interviewer_response.message)
+                msg = Message(
+                    speaker=Speaker.INTERVIEWER,
+                    content=interviewer_response.message,
+                    timestamp=datetime.now(timezone.utc),
+                    internal_notes=interviewer_response.internal_notes,
+                    round_number=round_number,
+                )
+                messages_list.append(msg)
+                conversation_history.append(
+                    {"role": "assistant" if len(
+                        conversation_history) % 2 == 0 else "user", "content": interviewer_response.message}
                 )
 
-            # Display and record
-            display_message(Speaker.INTERVIEWER, interviewer_response.message)
-            msg = Message(
-                speaker=Speaker.INTERVIEWER,
-                content=interviewer_response.message,
-                timestamp=datetime.now(timezone.utc),
-                internal_notes=interviewer_response.internal_notes,
-                round_number=round_number,
-            )
-            messages_list.append(msg)
-            conversation_history.append(
-                {"role": "assistant" if len(conversation_history) % 2 == 0 else "user", "content": interviewer_response.message}
-            )
+                # Check if interviewer wants to end
+                if interviewer_response.should_end:
+                    logger.info("Interviewer signaled end of interview")
+                    break
 
-            # Check if interviewer wants to end
-            if interviewer_response.should_end:
-                logger.info("Interviewer signaled end of interview")
-                break
+                # Synth turn
+                with console.status(f"[green]{synth['nome']} pensando...", spinner="dots"):
+                    synth_response = conversation_turn(
+                        client, conversation_history, synth_prompt, model,
+                        tools=tools, topic_guide_name=topic_guide_name,
+                        tracer=tracer, speaker=Speaker.SYNTH
+                    )
 
-            # Synth turn
-            with console.status(f"[green]{synth['nome']} pensando...", spinner="dots"):
-                synth_response = conversation_turn(
-                    client, conversation_history, synth_prompt, model,
-                    tools=tools, topic_guide_name=topic_guide_name
+                # Display and record
+                display_message(
+                    Speaker.SYNTH, synth_response.message, synth["nome"])
+                msg = Message(
+                    speaker=Speaker.SYNTH,
+                    content=synth_response.message,
+                    timestamp=datetime.now(timezone.utc),
+                    internal_notes=synth_response.internal_notes,
+                    round_number=round_number,
                 )
-
-            # Display and record
-            display_message(Speaker.SYNTH, synth_response.message, synth["nome"])
-            msg = Message(
-                speaker=Speaker.SYNTH,
-                content=synth_response.message,
-                timestamp=datetime.now(timezone.utc),
-                internal_notes=synth_response.internal_notes,
-                round_number=round_number,
-            )
-            messages_list.append(msg)
-            conversation_history.append(
-                {"role": "user" if len(conversation_history) % 2 == 0 else "assistant", "content": synth_response.message}
-            )
+                messages_list.append(msg)
+                conversation_history.append(
+                    {"role": "user" if len(
+                        conversation_history) % 2 == 0 else "assistant", "content": synth_response.message}
+                )
 
             round_number += 1
 
@@ -492,6 +609,22 @@ def run_interview(
         raise
     else:
         session.status = SessionStatus.COMPLETED
+    finally:
+        # Always save trace, even on error (if we have any turns)
+        if tracer._turns:
+            trace_dir = Path("data/traces")
+            trace_dir.mkdir(parents=True, exist_ok=True)
+            trace_filename = f"interview-{synth_id}-{session.id[:8]}.trace.json"
+            trace_path = trace_dir / trace_filename
+            try:
+                tracer.save_trace(str(trace_path))
+                logger.info(f"Trace saved to {trace_path}")
+                console.print(
+                    f"\n[cyan]📊 Trace salvo em:[/cyan] [bold]{trace_path}[/bold]")
+                console.print(
+                    f"[dim]   Visualize em: logui/index.html[/dim]\n")
+            except Exception as save_error:
+                logger.error(f"Failed to save trace: {save_error}")
 
     # Finalize session
     session.end_time = datetime.now(timezone.utc)
@@ -519,7 +652,8 @@ if __name__ == "__main__":
         if synth is None:
             print("✓ Load synth returns None for non-existent ID")
         else:
-            all_validation_failures.append("Load synth: Should return None for non-existent ID")
+            all_validation_failures.append(
+                "Load synth: Should return None for non-existent ID")
     except Exception as e:
         all_validation_failures.append(f"Load synth: {e}")
 
@@ -530,7 +664,8 @@ if __name__ == "__main__":
         if not exists:
             print("✓ Validate synth exists returns False for non-existent ID")
         else:
-            all_validation_failures.append("Validate synth: Should return False")
+            all_validation_failures.append(
+                "Validate synth: Should return False")
     except Exception as e:
         all_validation_failures.append(f"Validate synth: {e}")
 
@@ -560,6 +695,7 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Interview module is validated and ready for use")
         sys.exit(0)

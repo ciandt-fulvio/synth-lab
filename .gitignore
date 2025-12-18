@@ -64,4 +64,6 @@ coverage.xml
 data/synths/*.json
 data/synths/*.duckdb
 data/synths/*.duckdb.wal
+data/traces/*
+data/transcripts/*
 !data/synths/.gitkeep
