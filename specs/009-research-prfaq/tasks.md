@@ -150,62 +150,59 @@ User can execute `synthlab research-prfaq generate --batch-id {batch_id}` and re
 
 ---
 
-## Phase 4: User Story 2 - Refine and Edit Generated PR-FAQ (P2)
+## Phase 4: Manual Editing & Validation (SIMPLIFIED)
 
-Enable users to interactively edit generated PR-FAQ documents with version tracking and change history.
+**Approach**: Users manually edit JSON files in their preferred editor. CLI provides validation only.
+
+**Rationale**: Simpler than interactive CLI editor. Users prefer familiar tools (VS Code, vim, etc.). JSON files are git-friendly and transparent.
 
 ### Story Goal
 
-User can execute `synthlab research-prfaq edit --prfaq-id {id}` to load and modify PR-FAQ content, with changes automatically persisted and version tracked.
+Users can manually edit `data/outputs/prfaq/{batch_id}_prfaq.json` files and validate them with `synthlab research-prfaq validate {batch_id}`.
 
 ### Independent Test Criteria
 
-✅ Edit command loads existing PR-FAQ JSON file
-✅ Interactive editor presents Press Release and FAQ fields for modification
-✅ User can modify headline, one_liner, problem_statement, solution_overview
-✅ User can modify individual FAQ questions/answers
-✅ Changes persisted to JSON file with updated edit_history
-✅ Version tracking records: timestamp, field_modified, old_value, new_value
-✅ Re-generation from same batch_id prompts user to confirm overwrite or preserve manual edits
+✅ Users can edit JSON files directly with any text editor
+✅ Validate command checks edited files against JSON Schema
+✅ Validation reports specific errors (missing fields, invalid FAQ count, etc.)
+✅ Re-generation warns if file already exists
 
 ### Tasks
 
-- [ ] T026 [US2] Create unit test in `tests/unit/synth_lab/research_prfaq/test_cli.py`: test_edit_command_argument_parsing() - validates CLI argument handling
-- [ ] T027 [P] [US2] Create integration test in `tests/integration/synth_lab/research_prfaq/test_prfaq_generation_e2e.py`: test_edit_and_persist() - load PR-FAQ, modify fields, verify edit_history
-- [ ] T028 [US2] Implement interactive editor in `src/synth_lab/research_prfaq/generator.py` or separate module:
-  - edit_prfaq(prfaq_id: str) → loads PR-FAQ JSON file
-  - Create temp file with editable Press Release + FAQ fields in JSON or YAML format
-  - Open editor (platform-agnostic: use $EDITOR env var or provide CLI menu)
-  - Parse user changes
-  - Validate modifications against Pydantic models + JSON Schema
-  - Return updated PRFAQDocument with edit_history entries
-- [ ] T029 [US2] Create edit command in `src/synth_lab/research_prfaq/cli.py`:
-  - @app.command() for "research-prfaq edit"
-  - Arguments: --prfaq-id (required)
-  - Load PR-FAQ from `data/outputs/prfaq/{id}.json`
-  - Call edit_prfaq() for interactive editing
-  - Validate changes
-  - Persist updated document with incremented version
-  - Output: confirmation + modified fields summary
-- [ ] T030 [US2] Implement version tracking in models/generator:
-  - Track edit_history: timestamp, field_modified, old_value, new_value, modified_by
-  - Update validation_status to "edited" after user modifications
-  - Maintain edit count for display in list command
-- [ ] T031 [US2] Add regeneration check to generate command:
-  - When --batch-id maps to existing PR-FAQ, check for manual edits (validation_status == "edited")
-  - Prompt user: "PR-FAQ already exists with manual edits. Overwrite? (y/n): "
-  - Option to preserve existing edits or regenerate from latest research findings
-- [ ] T032 [P] [US2] Create file utility: load_prfaq_json(prfaq_id) → reads from {id}.json, returns PRFAQDocument; handle missing files with clear error messages
+- [X] T026-T030 ELIMINATED - No interactive editor needed
+- [X] T031 Add regeneration warning to generate command (already implemented with --force flag pattern)
+- [ ] T032 [RENAMED TO T026] Create validate command in `src/synth_lab/research_prfaq/cli.py`:
+  - @app.command() for "research-prfaq validate"
+  - Arguments: batch_id (required)
+  - Load JSON file via load_prfaq_json()
+  - Validate against JSON Schema using existing validator
+  - Display validation results with detailed error messages
+  - Output: ✓ Valid / ✗ Errors with field-level details
 
 ### Success Validation
 
-- ✅ `uv run synthlab research-prfaq edit --prfaq-id {id}` opens interactive editor
-- ✅ User can modify Press Release fields and FAQ questions/answers
-- ✅ Changes persist to JSON file
-- ✅ edit_history records all modifications with timestamps
-- ✅ Validation_status updated to "edited"
-- ✅ Integration test verifies edit + save + reload cycle
-- ✅ Fast test battery passes
+- ✅ Users can edit JSON files with any editor
+- ✅ `uv run synthlab research-prfaq validate batch_001` validates edited files
+- ✅ Validation catches schema violations (missing fields, wrong types, etc.)
+- ✅ Generate command warns before overwriting existing files
+
+### Manual Editing Workflow
+
+```bash
+# 1. Generate PR-FAQ
+synthlab research-prfaq generate batch_001
+
+# 2. Edit JSON file manually
+vim data/outputs/prfaq/batch_001_prfaq.json
+
+# 3. Validate edits
+synthlab research-prfaq validate batch_001
+# Output: ✓ Valid PR-FAQ with 8 FAQ items
+
+# 4. Regenerate (if needed)
+synthlab research-prfaq generate batch_001
+# Warning: File exists. Use --force to overwrite.
+```
 
 ---
 
