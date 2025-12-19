@@ -27,6 +27,7 @@ from .agent_definitions import (
     create_interviewer,
     create_orchestrator,
 )
+from .tools import create_image_loader_tool, get_available_images
 from .tracing_bridge import TraceVisualizerProcessor
 import asyncio
 import json
@@ -267,7 +268,7 @@ async def run_interview(
     topic_guide_name: str,
     max_turns: int = 6,
     trace_path: str | None = None,
-    model: str = "gpt-5-nano",
+    model: str = "gpt-5-mini",
     use_mcp: bool = False,
     mcp_directory: str | None = None,
     verbose: bool = True,
@@ -310,6 +311,16 @@ async def run_interview(
     synth = load_synth(synth_id)
     topic_guide = load_topic_guide(topic_guide_name)
     synth_name = synth.get("nome", "Participante")
+
+    # Load available images and create image tool for interviewee
+    available_images = get_available_images(topic_guide_name)
+    image_tool = None
+    if available_images:
+        image_tool = create_image_loader_tool(
+            topic_guide_name, available_images)
+        logger.info(
+            f"Created image tool with {len(available_images)} images: {available_images}"
+        )
 
     # Initialize shared memory
     shared_memory = SharedMemory(
@@ -406,10 +417,16 @@ async def run_interview(
                             "speaker": "interviewee",
                             "turn_number": turns + 1,
                         }) as span:
+                            # Prepare tools for interviewee (image access)
+                            interviewee_tools = [
+                                image_tool] if image_tool else []
+
                             interviewee = create_interviewee(
                                 synth=shared_memory.synth,
                                 conversation_history=shared_memory.format_history(),
                                 mcp_servers=mcp_servers,
+                                tools=interviewee_tools,
+                                available_images=available_images,
                                 model=model,
                             )
 
@@ -489,7 +506,7 @@ async def run_interview_simple(
     synth_id: str | None = None,
     persona_description: str | None = None,
     max_turns: int = 4,
-    model: str = "gpt-5-nano",
+    model: str = "gpt-5-mini",
     verbose: bool = True,
 ) -> list[ConversationMessage]:
     """
@@ -598,7 +615,7 @@ def run_interview_sync(
     topic_guide_name: str,
     max_turns: int = 6,
     trace_path: str | None = None,
-    model: str = "gpt-5-nano",
+    model: str = "gpt-5-mini",
     verbose: bool = True,
 ) -> InterviewResult:
     """

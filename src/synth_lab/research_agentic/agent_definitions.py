@@ -43,7 +43,7 @@ def create_interviewer(
     topic_guide: str,
     conversation_history: str,
     mcp_servers: list[Any] | None = None,
-    model: str = "gpt-5-nano",
+    model: str = "gpt-5-mini",
     reasoning_effort: str = "low",
 ) -> Agent:
     """
@@ -78,7 +78,9 @@ def create_interviewee(
     synth: dict[str, Any],
     conversation_history: str,
     mcp_servers: list[Any] | None = None,
-    model: str = "gpt-5-nano",
+    tools: list[Any] | None = None,
+    available_images: list[str] | None = None,
+    model: str = "gpt-5-mini",
     reasoning_effort: str = "low",
 ) -> Agent:
     """
@@ -91,19 +93,24 @@ def create_interviewee(
         synth: Complete synth data dictionary from database
         conversation_history: Formatted conversation history
         mcp_servers: Optional MCP servers for tool access
+        tools: Optional list of function tools (e.g., image loader)
+        available_images: Optional list of available image filenames from topic guide
         model: LLM model to use
         reasoning_effort: Reasoning effort level ("low", "medium", "high")
 
     Returns:
         Configured Agent instance
     """
-    instructions = format_interviewee_instructions(synth, conversation_history)
+    instructions = format_interviewee_instructions(
+        synth, conversation_history, available_images
+    )
     synth_name = synth.get("nome", "Participante")
 
     return Agent(
         name=f"Interviewee ({synth_name})",
         instructions=instructions,
         mcp_servers=mcp_servers or [],
+        tools=tools or [],
         model=model,
         model_settings=_get_model_settings(reasoning_effort),
     )
@@ -111,7 +118,7 @@ def create_interviewee(
 
 def create_interviewer_reviewer(
     raw_response: str,
-    model: str = "gpt-5-nano",
+    model: str = "gpt-5-mini",
     reasoning_effort: str = "low",
 ) -> Agent:
     """
@@ -141,7 +148,7 @@ def create_interviewer_reviewer(
 def create_interviewee_reviewer(
     synth: dict[str, Any],
     raw_response: str,
-    model: str = "gpt-5-nano",
+    model: str = "gpt-5-mini",
     reasoning_effort: str = "low",
 ) -> Agent:
     """
@@ -174,7 +181,7 @@ def create_interviewee_reviewer(
 def create_orchestrator(
     conversation_history: str,
     last_message: str,
-    model: str = "gpt-5-nano",
+    model: str = "gpt-5-mini",
     reasoning_effort: str = "low",
 ) -> Agent:
     """
