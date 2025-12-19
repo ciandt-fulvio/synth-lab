@@ -7,7 +7,7 @@ research interview module. When you run an interview using:
 
     synthlab research <synth_id> <topic_guide_name>
 
-The system automatically generates a trace file in data/traces/ that you can
+The system automatically generates a trace file in output/traces/ that you can
 visualize in the trace visualizer UI.
 
 The trace captures:
@@ -25,7 +25,7 @@ Usage:
 
     # Then visualize the generated trace:
     # 1. Open logui/index.html in browser
-    # 2. Load the trace from data/traces/interview-{synth_id}-{session_id}.trace.json
+    # 2. Load the trace from output/traces/interview-{synth_id}-{session_id}.trace.json
 """
 
 from synth_lab.trace_visualizer import Tracer, SpanType, SpanStatus
@@ -161,7 +161,7 @@ def simulate_interview_trace():
             span.set_status(SpanStatus.SUCCESS)
 
     # Save trace
-    trace_path = "data/traces/interview_demo.trace.json"
+    trace_path = "output/traces/interview_demo.trace.json"
     tracer.save_trace(trace_path)
 
     print(f"\n✅ Demo trace saved: {trace_path}")
@@ -171,12 +171,12 @@ def simulate_interview_trace():
 
     print("\n📊 To visualize:")
     print("   1. Open logui/index.html in browser")
-    print("   2. Load data/traces/interview_demo.trace.json")
+    print("   2. Load output/traces/interview_demo.trace.json")
     print("   3. Click on spans to see details")
 
     print("\n💡 To generate a real interview trace:")
     print("   synthlab research fhynws compra-amazon --max-rounds 2")
-    print("   (Trace will be saved to data/traces/interview-fhynws-*.trace.json)")
+    print("   (Trace will be saved to output/traces/interview-fhynws-*.trace.json)")
 
 
 if __name__ == "__main__":

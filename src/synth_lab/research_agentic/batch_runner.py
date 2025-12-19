@@ -71,7 +71,7 @@ def load_all_synths() -> list[dict[str, Any]]:
     Returns:
         List of synth dictionaries
     """
-    synths_path = Path("data/synths/synths.json")
+    synths_path = Path("output/synths/synths.json")
     if not synths_path.exists():
         raise FileNotFoundError(f"Synths file not found: {synths_path}")
 
@@ -109,7 +109,7 @@ def save_individual_transcript(
         Path where transcript was saved
     """
     timestamp = get_timestamp_gmt3()
-    transcript_path = f"data/transcripts/batch_{batch_id}/{result.synth_id}_{timestamp}.json"
+    transcript_path = f"output/transcripts/batch_{batch_id}/{result.synth_id}_{timestamp}.json"
 
     # Ensure directory exists
     Path(transcript_path).parent.mkdir(parents=True, exist_ok=True)
@@ -180,7 +180,7 @@ async def run_single_interview_safe(
         try:
             # Generate trace path
             timestamp = get_timestamp_gmt3()
-            trace_path = f"data/traces/batch_{batch_id}/{synth_id}_{timestamp}.trace.json"
+            trace_path = f"output/traces/batch_{batch_id}/{synth_id}_{timestamp}.trace.json"
 
             # Ensure trace directory exists
             Path(trace_path).parent.mkdir(parents=True, exist_ok=True)
@@ -333,7 +333,7 @@ async def run_batch_interviews(
             logger.info("Summary generated successfully")
 
             # Save summary to file
-            summary_path = f"data/reports/batch_{batch_id}.md"
+            summary_path = f"output/reports/batch_{batch_id}.md"
             Path(summary_path).parent.mkdir(parents=True, exist_ok=True)
             with open(summary_path, "w", encoding="utf-8") as f:
                 f.write(summary)

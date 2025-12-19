@@ -24,15 +24,15 @@ uv run examples/research_agentic/demo_interview.py --synth-id fhynws
 uv run examples/research_agentic/demo_interview.py --synth-id fhynws --max-turns 4 --model gpt-4o
 
 # Run with trace output
-uv run examples/research_agentic/demo_interview.py --synth-id fhynws --trace-path data/traces/demo.trace.json
+uv run examples/research_agentic/demo_interview.py --synth-id fhynws --trace-path output/traces/demo.trace.json
 
 # List available synths
-uv run python -c "import json; data = json.load(open('data/synths/synths.json')); print('\\n'.join(f'{s[\"id\"]}: {s[\"nome\"]}' for s in data[:10]))"
+uv run python -c "import json; data = json.load(open('output/synths/synths.json')); print('\\n'.join(f'{s[\"id\"]}: {s[\"nome\"]}' for s in data[:10]))"
 ```
 
 Expected output:
 - Conversation printed to console
-- Trace file saved to data/traces/ (if --trace-path specified)
+- Trace file saved to output/traces/ (if --trace-path specified)
 """
 
 from synth_lab.research_agentic.runner import run_interview
@@ -77,14 +77,14 @@ Examples:
   python demo_interview.py --synth-id fhynws --model gpt-4o
 
   # Save trace for visualization
-  python demo_interview.py --synth-id fhynws --trace-path data/traces/demo.trace.json
+  python demo_interview.py --synth-id fhynws --trace-path output/traces/demo.trace.json
         """,
     )
     parser.add_argument(
         "--synth-id",
         type=str,
         required=True,
-        help="ID of the synth to interview (from data/synths/synths.json)",
+        help="ID of the synth to interview (from output/synths/synths.json)",
     )
     parser.add_argument(
         "--topic-guide",
@@ -133,7 +133,7 @@ async def main():
     trace_path = args.trace_path
     if trace_path is None:
         timestamp = get_timestamp_gmt3()
-        trace_path = f"data/traces/interview_{args.synth_id}_{timestamp}.trace.json"
+        trace_path = f"output/traces/interview_{args.synth_id}_{timestamp}.trace.json"
 
     print("=" * 60)
     print("Agentic Interview Demo")
@@ -188,15 +188,15 @@ async def main():
     except FileNotFoundError as e:
         print(f"\nError: {e}")
         print("\nMake sure:")
-        print("- synths.json exists at data/synths/synths.json")
+        print("- synths.json exists at output/synths/synths.json")
         print(f"- topic guide exists at data/topic_guides/{args.topic_guide}/")
         sys.exit(1)
     except ValueError as e:
         print(f"\nError: {e}")
-        print("\nUse --synth-id with a valid ID from data/synths/synths.json")
+        print("\nUse --synth-id with a valid ID from output/synths/synths.json")
         print("List available synths with:")
         print(
-            '  python -c "import json; data = json.load(open(\'data/synths/synths.json\')); print(\'\\n\'.join(f\'{s[\"id\"]}: {s[\"nome\"]}\' for s in data[:10]))"')
+            '  python -c "import json; data = json.load(open(\'output/synths/synths.json\')); print(\'\\n\'.join(f\'{s[\"id\"]}: {s[\"nome\"]}\' for s in data[:10]))"')
         sys.exit(1)
     except Exception as e:
         print(f"\nError: {e}")

@@ -18,7 +18,7 @@ with tracer.start_turn(turn_number=1):
         span.set_attribute("response", response)
         span.set_status(SpanStatus.SUCCESS)
 
-tracer.save_trace("data/traces/weather.trace.json")
+tracer.save_trace("output/traces/weather.trace.json")
 ```
 
 For more examples, see: examples/trace_visualizer/

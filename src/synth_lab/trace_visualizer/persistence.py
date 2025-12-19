@@ -16,10 +16,10 @@ from synth_lab.trace_visualizer.persistence import save_trace, load_trace
 # Save trace
 tracer = Tracer()
 # ... record traces ...
-save_trace(tracer.trace, "data/traces/weather.trace.json")
+save_trace(tracer.trace, "output/traces/weather.trace.json")
 
 # Load trace
-trace = load_trace("data/traces/weather.trace.json")
+trace = load_trace("output/traces/weather.trace.json")
 print(f"Loaded trace: {trace.trace_id}")
 ```
 """
@@ -44,7 +44,7 @@ def save_trace(trace: Trace, path: str) -> None:
         path: Output file path (recommend .trace.json extension)
 
     Example:
-        save_trace(trace, "data/traces/conv-123.trace.json")
+        save_trace(trace, "output/traces/conv-123.trace.json")
 
     Raises:
         OSError: If file cannot be written (permissions, disk full, etc.)
@@ -75,7 +75,7 @@ def load_trace(path: str) -> Trace:
         Trace object reconstructed from JSON
 
     Example:
-        trace = load_trace("data/traces/conv-123.trace.json")
+        trace = load_trace("output/traces/conv-123.trace.json")
         print(f"Trace has {len(trace.turns)} turns")
 
     Raises:

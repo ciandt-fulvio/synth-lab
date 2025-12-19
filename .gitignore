@@ -61,9 +61,6 @@ coverage.xml
 
 # Project specific
 *.log
-data/synths/*.json
-data/synths/*.duckdb
-data/synths/*.duckdb.wal
-data/traces/*
-data/transcripts/*
-!data/synths/.gitkeep
+
+# Execution output data (synths, traces, transcripts, reports)
+output/

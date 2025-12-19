@@ -16,10 +16,10 @@ Functions:
 Sample usage:
     from synth_lab.research.transcript import save_transcript
 
-    save_transcript(session, messages, synth, "data/transcripts")
+    save_transcript(session, messages, synth, "output/transcripts")
 
 Expected output:
-    JSON file at data/transcripts/{synth_id}_{timestamp}.json
+    JSON file at output/transcripts/{synth_id}_{timestamp}.json
 
 Third-party Documentation:
 - Python pathlib: https://docs.python.org/3/library/pathlib.html
@@ -72,7 +72,7 @@ def save_transcript(
     session: InterviewSession,
     messages: list[Message],
     synth_snapshot: dict,
-    output_dir: str = "data/transcripts",
+    output_dir: str = "output/transcripts",
 ) -> Path:
     """
     Save transcript to JSON file.

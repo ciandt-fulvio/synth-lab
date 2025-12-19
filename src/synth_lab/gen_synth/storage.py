@@ -13,8 +13,8 @@ Sample Input:
     save_synth(synth_dict, save_individual=True)  # Saves to both
 
 Expected Output:
-    File saved at: data/synths/synths.json (consolidated)
-    File saved at: data/synths/abc123.json (if save_individual=True)
+    File saved at: output/synths/synths.json (consolidated)
+    File saved at: output/synths/abc123.json (if save_individual=True)
 
 Third-party packages:
 - None (uses standard library only)
@@ -73,7 +73,7 @@ def save_synth(synth_dict: dict[str, Any], output_dir: Path = SYNTHS_DIR, save_i
 
     Args:
         synth_dict: Dictionary containing complete synth data (must have "id" key)
-        output_dir: Directory path where synth JSON will be saved (default: data/synths/)
+        output_dir: Directory path where synth JSON will be saved (default: output/synths/)
         save_individual: If True, also save to individual file (default: False)
 
     Raises:

@@ -15,11 +15,11 @@ Functions:
 Sample usage:
     synthlab research abc123 compra-amazon
     synthlab research abc123 compra-amazon --max-turns 6 --model gpt-4o
-    synthlab research abc123 compra-amazon --trace-path data/traces/demo.json
+    synthlab research abc123 compra-amazon --trace-path output/traces/demo.json
 
 Expected output:
     Real-time interview display
-    Trace file saved to data/traces/
+    Trace file saved to output/traces/
 
 Third-party Documentation:
 - Typer: https://typer.tiangolo.com/
@@ -76,7 +76,7 @@ def validate_synth_exists(synth_id: str) -> bool:
     Returns:
         True if synth exists, False otherwise
     """
-    synths_path = Path("data/synths/synths.json")
+    synths_path = Path("output/synths/synths.json")
     if not synths_path.exists():
         return False
 
@@ -197,9 +197,9 @@ def research(
     # Generate paths if not specified (using GMT-3)
     timestamp = get_timestamp_gmt3()
     if trace_path is None:
-        trace_path = f"data/traces/interview_{synth_id}_{timestamp}.trace.json"
+        trace_path = f"output/traces/interview_{synth_id}_{timestamp}.trace.json"
     if transcript_path is None:
-        transcript_path = f"data/transcripts/interview_{synth_id}_{timestamp}.json"
+        transcript_path = f"output/transcripts/interview_{synth_id}_{timestamp}.json"
 
     verbose = not quiet
 
@@ -406,7 +406,7 @@ def batch(
     # Generate output path if not specified
     timestamp = get_timestamp_gmt3()
     if output_path is None:
-        output_path = f"data/reports/batch_{topic_guide_name}_{timestamp}.md"
+        output_path = f"output/reports/batch_{topic_guide_name}_{timestamp}.md"
 
     generate_summary = not no_summary
 

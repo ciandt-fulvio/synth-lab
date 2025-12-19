@@ -6,8 +6,8 @@ query execution with error handling.
 
 Sample Input:
     config = DatabaseConfig.default()
-    # db_path: Path("data/synths/synths.duckdb")
-    # json_path: Path("data/synths/synths.json")
+    # db_path: Path("output/synths/synths.duckdb")
+    # json_path: Path("output/synths/synths.json")
     
     con = initialize_database(config.db_path, config.json_path)
     result = execute_query(con, "SELECT * FROM synths LIMIT 10")
@@ -55,8 +55,8 @@ class DatabaseConfig:
     def default(cls) -> "DatabaseConfig":
         """Create default configuration for synth-lab."""
         return cls(
-            db_path=Path("data/synths/synths.duckdb"),
-            json_path=Path("data/synths/synths.json"),
+            db_path=Path("output/synths/synths.duckdb"),
+            json_path=Path("output/synths/synths.json"),
             table_name="synths",
         )
 

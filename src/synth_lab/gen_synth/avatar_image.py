@@ -6,7 +6,7 @@ incluindo download de URLs temporárias e divisão em 9 avatares individuais 341
 
 Dependências: Pillow>=10.0.0, requests>=2.31.0
 Entrada: URL de imagem 1024x1024 ou dados base64 e lista de 9 IDs de synth
-Saída: 9 arquivos PNG salvos em data/synths/avatar/
+Saída: 9 arquivos PNG salvos em output/synths/avatar/
 """
 
 import base64
