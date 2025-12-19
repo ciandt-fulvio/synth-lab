@@ -31,6 +31,7 @@ from .tools import create_image_loader_tool, get_available_images
 from .tracing_bridge import TraceVisualizerProcessor
 import asyncio
 import json
+import random
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -216,6 +217,97 @@ def load_topic_guide(topic_guide_name: str) -> str:
         f"No script.json or summary.md in {topic_guide_path}")
 
 
+def load_context_examples(topic_guide_name: str) -> dict[str, str] | None:
+    """
+    Load context examples from the topic guide script.json.
+
+    Args:
+        topic_guide_name: Name of the topic guide directory
+
+    Returns:
+        Dictionary with 'positive', 'negative', 'neutral' examples or None
+    """
+    script_path = Path(f"data/topic_guides/{topic_guide_name}/script.json")
+    if not script_path.exists():
+        return None
+
+    with open(script_path, encoding="utf-8") as f:
+        script = json.load(f)
+
+    # Get context_examples from first item in script
+    if script and isinstance(script, list) and len(script) > 0:
+        return script[0].get("context_examples")
+
+    return None
+
+
+async def generate_initial_context(
+    synth: dict[str, Any],
+    context_examples: dict[str, str],
+    topic_guide: str,
+    model: str = "gpt-5-mini",
+) -> str:
+    """
+    Generate initial context for the interviewee based on examples.
+
+    Randomly selects positive, negative, or neutral sentiment and generates
+    a personalized context using the synth's profile.
+
+    Args:
+        synth: Synth data dictionary
+        context_examples: Dict with 'positive', 'negative', 'neutral' examples
+        topic_guide: Topic guide content for context
+        model: LLM model to use
+
+    Returns:
+        Generated initial context string
+    """
+    from agents import Agent, Runner as AgentRunner
+
+    # Randomly choose sentiment
+    sentiment = random.choice(["positive", "negative", "neutral"])
+    example = context_examples.get(sentiment, "")
+
+    if not example:
+        return ""
+
+    # Build synth profile summary
+    nome = synth.get("nome", "Participante")
+    demo = synth.get("demografia", {})
+    idade = demo.get("idade", "desconhecida")
+    ocupacao = demo.get("ocupacao", "não informada")
+    cidade = demo.get("localizacao", {}).get("cidade", "não informada")
+
+    prompt = f"""Você deve gerar uma experiência pessoal para {nome}, {idade} anos, {ocupacao}, de {cidade}.
+
+TIPO DE EXPERIÊNCIA: {sentiment.upper()}
+
+EXEMPLO DE REFERÊNCIA (adapte para o perfil da pessoa):
+{example}
+
+REGRAS:
+- Gere uma experiência {sentiment} única e personalizada para esta pessoa
+- Use linguagem natural e coloquial adequada ao perfil
+- Inclua detalhes concretos (datas, situações, emoções)
+- Máximo 3-4 frases
+- NÃO copie o exemplo literalmente, apenas use como inspiração
+
+Responda APENAS com a experiência gerada, sem explicações adicionais."""
+
+    context_agent = Agent(
+        name="Context Generator",
+        instructions="Você é um gerador de contextos para personas sintéticas. Gere experiências realistas e personalizadas.",
+        model=model,
+    )
+
+    result = await AgentRunner.run(context_agent, input=prompt)
+    generated_context = result.final_output.strip()
+
+    logger.info(f"Generated {sentiment} context for {nome}: {generated_context[:100]}...")
+
+    return f"[EXPERIÊNCIA PRÉVIA - {sentiment.upper()}]: {generated_context}"
+
+
 def format_synth_profile(synth: dict[str, Any]) -> str:
     """
     Format synth data into a profile string for agent prompts.
@@ -312,6 +404,9 @@ async def run_interview(
     topic_guide = load_topic_guide(topic_guide_name)
     synth_name = synth.get("nome", "Participante")
 
+    # Load context examples for generating initial context
+    context_examples = load_context_examples(topic_guide_name)
+
     # Load available images and create image tool for interviewee
     available_images = get_available_images(topic_guide_name)
     image_tool = None
@@ -327,6 +422,9 @@ async def run_interview(
         topic_guide=topic_guide,
         synth=synth,
     )
+
+    # Initial context will be generated in parallel with first interviewer turn
+    initial_context: str = ""
 
     # Initialize tracer for visualization
     trace_id = f"agentic-interview-{synth_id}"
@@ -401,10 +499,29 @@ async def run_interview(
                                 model=model,
                             )
 
-                            raw_result = await Runner.run(
-                                interviewer,
-                                input="Faça sua próxima pergunta ou comentário."
-                            )
+                            # On first turn, generate context in parallel with interviewer
+                            if turns == 0 and context_examples:
+                                # Run both in parallel
+                                interviewer_task = Runner.run(
+                                    interviewer,
+                                    input="Faça sua próxima pergunta ou comentário."
+                                )
+                                context_task = generate_initial_context(
+                                    synth=synth,
+                                    context_examples=context_examples,
+                                    topic_guide=topic_guide,
+                                    model=model,
+                                )
+                                raw_result, initial_context = await asyncio.gather(
+                                    interviewer_task, context_task
+                                )
+                                logger.info(f"Generated initial context: {initial_context[:80]}...")
+                            else:
+                                raw_result = await Runner.run(
+                                    interviewer,
+                                    input="Faça sua próxima pergunta ou comentário."
+                                )
+
                             final_response = raw_result.final_output
                             span.set_attribute("response", final_response)
                             span.set_status(SpanStatus.SUCCESS)
@@ -427,6 +544,7 @@ async def run_interview(
                                 mcp_servers=mcp_servers,
                                 tools=interviewee_tools,
                                 available_images=available_images,
+                                initial_context=initial_context,
                                 model=model,
                             )
 

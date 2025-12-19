@@ -83,7 +83,7 @@ INTERESSES: {synth_interesses}
 
 CONTRATO COGNITIVO (Como você responde em entrevistas):
 {synth_cognitive_contract}
-
+{initial_context_section}
 SEU COMPORTAMENTO NA ENTREVISTA:
 - Responda como {synth_name} responderia baseado em sua personalidade
 - Seus interesses, valores e experiências influenciam suas respostas
@@ -190,6 +190,7 @@ def format_interviewee_instructions(
     synth: dict,
     conversation_history: str,
     available_images: list[str] | None = None,
+    initial_context: str = "",
 ) -> str:
     """
     Format interviewee instructions with complete persona context.
@@ -198,6 +199,7 @@ def format_interviewee_instructions(
         synth: Complete synth data dictionary from database
         conversation_history: Formatted conversation history string
         available_images: Optional list of available image filenames
+        initial_context: Pre-generated context about prior experience
 
     Returns:
         Formatted instructions string with all persona details
@@ -236,6 +238,18 @@ REGRAS A SEGUIR:
     else:
         cognitive_contract_str = "Não informado"
 
+    # Format initial context section (prior experience)
+    if initial_context:
+        initial_context_section = f"""
+
+SUA EXPERIÊNCIA PRÉVIA COM O TEMA:
+{initial_context}
+
+Use esta experiência como base para suas respostas. Ela molda sua opinião e sentimentos sobre o tema.
+"""
+    else:
+        initial_context_section = ""
+
     # Format available images section
     if available_images:
         images_list = ", ".join(available_images)
@@ -260,6 +274,7 @@ Use a ferramenta quando o entrevistador mostrar ou mencionar uma imagem e você 
         synth_descricao=descricao,
         synth_interesses=interesses_str,
         synth_cognitive_contract=cognitive_contract_str,
+        initial_context_section=initial_context_section,
         available_images_section=available_images_section,
         conversation_history=conversation_history,
     )
