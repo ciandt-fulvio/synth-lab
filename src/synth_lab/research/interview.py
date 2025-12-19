@@ -77,7 +77,7 @@ import openai
 from pydantic import BaseModel
 
 console = Console()
-SYNTHS_FILE = Path("data/synths/synths.json")
+SYNTHS_FILE = Path("output/synths/synths.json")
 
 
 # Pydantic model for load_image_for_analysis tool parameters
@@ -612,7 +612,7 @@ def run_interview(
     finally:
         # Always save trace, even on error (if we have any turns)
         if tracer._turns:
-            trace_dir = Path("data/traces")
+            trace_dir = Path("output/traces")
             trace_dir.mkdir(parents=True, exist_ok=True)
             trace_filename = f"interview-{synth_id}-{session.id[:8]}.trace.json"
             trace_path = trace_dir / trace_filename

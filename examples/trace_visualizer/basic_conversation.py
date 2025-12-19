@@ -9,7 +9,7 @@ Usage:
     uv run examples/trace_visualizer/basic_conversation.py
 
 Output:
-    data/traces/basic_conversation.trace.json
+    output/traces/basic_conversation.trace.json
 
 Next steps:
     1. Open logui/index.html in browser
@@ -146,7 +146,7 @@ def main():
             span.set_status(SpanStatus.ERROR)
 
     # Save trace
-    output_path = "data/traces/basic_conversation.trace.json"
+    output_path = "output/traces/basic_conversation.trace.json"
     tracer.save_trace(output_path)
 
     # Print summary

@@ -28,7 +28,7 @@ Sample usage:
 
 Expected output:
     - Real-time interview display in terminal
-    - JSON transcript saved to data/transcripts/
+    - JSON transcript saved to output/transcripts/
 
 Third-party Documentation:
 - OpenAI Python SDK: https://github.com/openai/openai-python

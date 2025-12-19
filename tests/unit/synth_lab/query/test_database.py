@@ -11,13 +11,13 @@ def test_database_config_creation():
     from synth_lab.query.database import DatabaseConfig
     
     config = DatabaseConfig(
-        db_path=Path("data/synths/synths.duckdb"),
-        json_path=Path("data/synths/synths.json"),
+        db_path=Path("output/synths/synths.duckdb"),
+        json_path=Path("output/synths/synths.json"),
         table_name="synths"
     )
     
-    assert config.db_path == Path("data/synths/synths.duckdb")
-    assert config.json_path == Path("data/synths/synths.json")
+    assert config.db_path == Path("output/synths/synths.duckdb")
+    assert config.json_path == Path("output/synths/synths.json")
     assert config.table_name == "synths"
 
 
@@ -28,8 +28,8 @@ def test_database_config_default():
     
     config = DatabaseConfig.default()
     
-    assert config.db_path == Path("data/synths/synths.duckdb")
-    assert config.json_path == Path("data/synths/synths.json")
+    assert config.db_path == Path("output/synths/synths.duckdb")
+    assert config.json_path == Path("output/synths/synths.json")
     assert config.table_name == "synths"
 
 

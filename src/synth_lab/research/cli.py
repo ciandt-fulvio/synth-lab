@@ -18,7 +18,7 @@ Sample usage:
 
 Expected output:
     Real-time interview display with Rich formatting
-    Transcript saved to data/transcripts/{synth_id}_{timestamp}.json
+    Transcript saved to output/transcripts/{synth_id}_{timestamp}.json
 
 Third-party Documentation:
 - Typer: https://typer.tiangolo.com/
@@ -63,7 +63,7 @@ def research(
         "gpt-5-mini", "--model", "-m", help="Modelo de LLM a usar (ex: gpt-5-mini, gpt-4)"
     ),
     output_dir: str = typer.Option(
-        "data/transcripts",
+        "output/transcripts",
         "--output",
         "-o",
         help="Diretório para salvar transcrição",

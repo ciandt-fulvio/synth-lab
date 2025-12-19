@@ -240,7 +240,7 @@ Overall: Processed 20 turns with 50+ distinct operations, demonstrating robust m
                 span.set_attribute("status", "complete")
 
     # Save trace
-    output_path = "data/traces/comprehensive_demo.trace.json"
+    output_path = "output/traces/comprehensive_demo.trace.json"
     tracer.save_trace(output_path)
 
     print(f"✅ Comprehensive trace generated: {output_path}")

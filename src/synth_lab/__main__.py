@@ -58,7 +58,7 @@ def create_parser() -> argparse.ArgumentParser:
         "--output",
         type=str,
         metavar="DIR",
-        help="Diretório de saída para synths gerados (padrão: data/synths/)",
+        help="Diretório de saída para synths gerados (padrão: output/synths/)",
     )
     gensynth_parser.add_argument(
         "-q", "--quiet", action="store_true", help="Modo silencioso - suprimir output verboso"
@@ -74,7 +74,7 @@ def create_parser() -> argparse.ArgumentParser:
     gensynth_parser.add_argument(
         "--validate-all",
         action="store_true",
-        help="Validar todos os Synths em data/synths/",
+        help="Validar todos os Synths em output/synths/",
     )
     gensynth_parser.add_argument(
         "--validar", action="store_true", help="Executar testes de validação internos"

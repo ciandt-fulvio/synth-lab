@@ -16,7 +16,7 @@ result = await run_interview(
     synth_id="abc123",
     topic_guide_name="compra-amazon",
     max_turns=6,
-    trace_path="data/traces/interview.trace.json"
+    trace_path="output/traces/interview.trace.json"
 )
 ```
 """
@@ -168,7 +168,7 @@ def load_synth(synth_id: str) -> dict[str, Any]:
     Raises:
         ValueError: If synth not found
     """
-    synths_path = Path("data/synths/synths.json")
+    synths_path = Path("output/synths/synths.json")
     if not synths_path.exists():
         raise FileNotFoundError(f"Synths file not found: {synths_path}")
 

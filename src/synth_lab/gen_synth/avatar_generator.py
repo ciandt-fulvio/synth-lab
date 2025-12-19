@@ -9,7 +9,7 @@ Este módulo coordena todo o fluxo de geração de avatares:
 
 Dependências: openai>=2.8.0, rich>=13.0.0, Pillow
 Entrada: Lista de synths com dados demográficos
-Saída: Arquivos PNG salvos em data/synths/avatar/
+Saída: Arquivos PNG salvos em output/synths/avatar/
 """
 
 import os
@@ -35,7 +35,7 @@ BACKOFF_FACTOR = 2  # Segundos base para backoff exponencial
 INTER_BLOCK_DELAY = 1.5  # Delay entre blocos para evitar rate limits (T049)
 
 
-def load_synth_by_id(synth_id: str, synths_file: str | Path = "data/synths/synths.json") -> dict[str, Any] | None:
+def load_synth_by_id(synth_id: str, synths_file: str | Path = "output/synths/synths.json") -> dict[str, Any] | None:
     """
     Carrega dados de um synth por ID do arquivo synths.json.
 
@@ -44,7 +44,7 @@ def load_synth_by_id(synth_id: str, synths_file: str | Path = "data/synths/synth
 
     Args:
         synth_id: ID do synth a carregar (ex: "syn001")
-        synths_file: Caminho para arquivo synths.json (padrão: data/synths/synths.json)
+        synths_file: Caminho para arquivo synths.json (padrão: output/synths/synths.json)
 
     Returns:
         dict | None: Dados do synth se encontrado, None caso contrário
@@ -86,7 +86,7 @@ def load_synth_by_id(synth_id: str, synths_file: str | Path = "data/synths/synth
 
 def load_synths_by_ids(
     synth_ids: list[str],
-    synths_file: str | Path = "data/synths/synths.json"
+    synths_file: str | Path = "output/synths/synths.json"
 ) -> list[dict[str, Any]]:
     """
     Carrega múltiplos synths por lista de IDs.
@@ -130,8 +130,8 @@ def load_synths_by_ids(
 
 
 def find_synths_without_avatars(
-    synths_file: str | Path = "data/synths/synths.json",
-    avatar_dir: str | Path = "data/synths/avatar"
+    synths_file: str | Path = "output/synths/synths.json",
+    avatar_dir: str | Path = "output/synths/avatar"
 ) -> list[dict[str, Any]]:
     """
     Encontra todos os synths que ainda não possuem arquivo de avatar.
@@ -397,7 +397,7 @@ def generate_avatars(
     avatar_dir: Path | None = None,
     api_key: str | None = None,
     synth_ids: list[str] | None = None,
-    synths_file: str | Path = "data/synths/synths.json"
+    synths_file: str | Path = "output/synths/synths.json"
 ) -> list[str]:
     """
     Gera avatares para lista de synths.
@@ -408,7 +408,7 @@ def generate_avatars(
     Args:
         synths: Lista de synths para gerar avatares (ou None se usando synth_ids)
         blocks: Número de blocos a gerar (sobrescreve cálculo automático)
-        avatar_dir: Diretório onde salvar avatares (padrão: data/synths/avatar/)
+        avatar_dir: Diretório onde salvar avatares (padrão: output/synths/avatar/)
         api_key: Chave API OpenAI (padrão: variável ambiente OPENAI_API_KEY)
         synth_ids: Lista de IDs de synths existentes para carregar (User Story 3)
         synths_file: Caminho para arquivo synths.json (usado com synth_ids)

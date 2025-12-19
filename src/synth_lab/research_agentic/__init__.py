@@ -22,7 +22,7 @@ result = await run_interview(
     synth_id="abc123",
     topic="compra-amazon",
     max_turns=6,
-    trace_path="data/traces/agentic-interview.trace.json"
+    trace_path="output/traces/agentic-interview.trace.json"
 )
 ```
 """
