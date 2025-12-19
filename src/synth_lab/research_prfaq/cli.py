@@ -36,12 +36,12 @@ console = Console()
 @app.command()
 def generate(
     batch_id: str = typer.Argument(..., help="Research batch ID"),
-    output_dir: str = typer.Option("data/outputs/prfaq", "--output-dir", "-o", help="Output directory for PR-FAQ"),
+    output_dir: str = typer.Option("output/reports", "--output-dir", "-o", help="Output directory for PR-FAQ"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logging"),
 ):
     """Generate PR-FAQ from research batch report.
 
-    Reads batch summary from data/transcripts/{batch_id}/batch_summary.json
+    Reads batch summary from output/reports/{batch_id}.md
     and generates a PR-FAQ document using hybrid chain-of-thought + structured output.
 
     Example:
@@ -125,7 +125,7 @@ def edit(
 def export(
     batch_id: str = typer.Argument(..., help="Batch ID of PR-FAQ document to export"),
     format: str = typer.Option("pdf", "--format", "-f", help="Export format: pdf, md, html"),
-    output_dir: str = typer.Option("data/outputs/prfaq", "--output-dir", "-o", help="Base output directory"),
+    output_dir: str = typer.Option("output/reports", "--output-dir", "-o", help="Base output directory"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logging"),
 ):
     """Export PR-FAQ to PDF, Markdown, or HTML format.

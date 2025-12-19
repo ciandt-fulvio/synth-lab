@@ -192,13 +192,13 @@ Return ONLY valid JSON matching the schema."""
 
 def save_prfaq_json(
     prfaq: PRFAQDocument,
-    output_dir: str = "data/outputs/prfaq"
+    output_dir: str = "output/reports"
 ) -> Path:
     """Save PR-FAQ document to JSON file.
 
     Args:
         prfaq: PRFAQDocument to save
-        output_dir: Base directory for PR-FAQ outputs
+        output_dir: Base directory for PR-FAQ outputs (default: output/reports)
 
     Returns:
         Path to saved JSON file
@@ -222,7 +222,7 @@ def save_prfaq_json(
 
 def load_prfaq_json(
     batch_id: str,
-    output_dir: str = "data/outputs/prfaq"
+    output_dir: str = "output/reports"
 ) -> PRFAQDocument:
     """Load PR-FAQ document from JSON file.
 
