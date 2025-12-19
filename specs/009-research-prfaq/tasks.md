@@ -42,16 +42,16 @@ Initialize project structure and configure development environment.
 
 ### Tasks
 
-- [ ] T001 Create `src/synth_lab/research_prfaq/` module directory structure with all 7 module files (`__init__.py`, `models.py`, `generator.py`, `exporter.py`, `validator.py`, `prompts.py`, `cli.py`)
-- [ ] T002 [P] Create `tests/unit/synth_lab/research_prfaq/` directory with 5 unit test files: `test_models.py`, `test_generator.py`, `test_exporter.py`, `test_validator.py`, `test_cli.py`
-- [ ] T003 [P] Create `tests/integration/synth_lab/research_prfaq/` directory with 3 integration test files: `test_batch_summary_parsing.py`, `test_prfaq_generation_e2e.py`, `test_export_formats.py`
-- [ ] T004 [P] Create `tests/contract/synth_lab/research_prfaq/` directory with contract test file `test_json_schema.py`
-- [ ] T005 [P] Create output directories: `data/outputs/prfaq/` and `data/outputs/prfaq/.versions/`
-- [ ] T006 Create `specs/009-research-prfaq/contracts/` directory and `prfaq-schema.json` with JSON Schema from plan.md (Section 1.2)
-- [ ] T007 [P] Add reportlab or weasyprint dependency to `pyproject.toml` (decision from Phase 0 research.md)
-- [ ] T008 Verify existing dependencies available: openai>=2.8.0, pydantic>=2.0, typer>=0.9.0, loguru
-- [ ] T009 Create `.pre-commit-config.yaml` entry to run fast test battery (unit tests with mocked LLM) on every commit
-- [ ] T010 Create `specs/009-research-prfaq/research.md` placeholder for Phase 0 research findings (few-shot examples, PDF library decision, etc.)
+- [X] T001 Create `src/synth_lab/research_prfaq/` module directory structure with all 7 module files (`__init__.py`, `models.py`, `generator.py`, `exporter.py`, `validator.py`, `prompts.py`, `cli.py`)
+- [X] T002 [P] Create `tests/unit/synth_lab/research_prfaq/` directory with 5 unit test files: `test_models.py`, `test_generator.py`, `test_exporter.py`, `test_validator.py`, `test_cli.py`
+- [X] T003 [P] Create `tests/integration/synth_lab/research_prfaq/` directory with 3 integration test files: `test_batch_summary_parsing.py`, `test_prfaq_generation_e2e.py`, `test_export_formats.py`
+- [X] T004 [P] Create `tests/contract/synth_lab/research_prfaq/` directory with contract test file `test_json_schema.py`
+- [X] T005 [P] Create output directories: `data/outputs/prfaq/` and `data/outputs/prfaq/.versions/`
+- [X] T006 Create `specs/009-research-prfaq/contracts/` directory and `prfaq-schema.json` with JSON Schema from plan.md (Section 1.2)
+- [ ] T007 [P] Add reportlab or weasyprint dependency to `pyproject.toml` (decision from Phase 0 research.md) [DEFERRED - Export in Phase 5]
+- [X] T008 Verify existing dependencies available: openai>=2.8.0, pydantic>=2.0, typer>=0.9.0, loguru
+- [ ] T009 Create `.pre-commit-config.yaml` entry to run fast test battery (unit tests with mocked LLM) on every commit [DEFERRED - Phase 7]
+- [ ] T010 Create `specs/009-research-prfaq/research.md` placeholder for Phase 0 research findings (few-shot examples, PDF library decision, etc.) [DEFERRED - Documentation in Phase 7]
 
 ---
 
@@ -69,12 +69,12 @@ Implement core data models, validation, and utilities. These tasks are blocking 
 
 ### Tasks
 
-- [ ] T011 [P] Create Pydantic models in `src/synth_lab/research_prfaq/models.py`: ResearchReport (batch_id, summary_content, sections, generated_at, parsed_insights), PRFAQDocument (id, batch_id, press_release, faqs, metadata, edit_history), Version (id, prfaq_id, timestamp, changes), and supporting classes per plan.md Section 1.1
-- [ ] T012 [P] Create `src/synth_lab/research_prfaq/validator.py` with JSONSchemaValidator class: validate_prfaq_structure() method that validates against `contracts/prfaq-schema.json`, consistency checks (headline != empty, 8-12 FAQs), and returns validation status + errors
-- [ ] T013 [P] Create `src/synth_lab/research_prfaq/prompts.py` with: SYSTEM_PROMPT (chain-of-thought instruction focused on "recommendations" + "recurrent_patterns" sections), 2 few-shot examples (high-quality PR-FAQ samples), and helper functions for prompt formatting per plan.md Section 1.2
-- [ ] T014 Create batch summary parser in `src/synth_lab/research_prfaq/models.py` or utility function: parse_batch_summary(batch_id) → loads `data/transcripts/{batch_id}/batch_summary.json`, parses Markdown sections, extracts pain points/benefits/quotes, returns ResearchReport
-- [ ] T015 [P] Create `src/synth_lab/research_prfaq/__init__.py` with public API exports: ResearchReport, PRFAQDocument, JSONSchemaValidator, parse_batch_summary, etc.
-- [ ] T016 [P] Create logging setup in `src/synth_lab/research_prfaq/models.py` or separate utility: configure loguru logger for feature (file output to `logs/research_prfaq.log`)
+- [X] T011 [P] Create Pydantic models in `src/synth_lab/research_prfaq/models.py`: ResearchReport (batch_id, summary_content, sections, generated_at, parsed_insights), PRFAQDocument (id, batch_id, press_release, faqs, metadata, edit_history), Version (id, prfaq_id, timestamp, changes), and supporting classes per plan.md Section 1.1
+- [X] T012 [P] Create `src/synth_lab/research_prfaq/validator.py` with JSONSchemaValidator class: validate_prfaq_structure() method that validates against `contracts/prfaq-schema.json`, consistency checks (headline != empty, 8-12 FAQs), and returns validation status + errors
+- [X] T013 [P] Create `src/synth_lab/research_prfaq/prompts.py` with: SYSTEM_PROMPT (chain-of-thought instruction focused on "recommendations" + "recurrent_patterns" sections), 2 few-shot examples (high-quality PR-FAQ samples), and helper functions for prompt formatting per plan.md Section 1.2
+- [X] T014 Create batch summary parser in `src/synth_lab/research_prfaq/models.py` or utility function: parse_batch_summary(batch_id) → loads `data/transcripts/{batch_id}/batch_summary.json`, parses Markdown sections, extracts pain points/benefits/quotes, returns ResearchReport
+- [X] T015 [P] Create `src/synth_lab/research_prfaq/__init__.py` with public API exports: ResearchReport, PRFAQDocument, JSONSchemaValidator, parse_batch_summary, etc.
+- [X] T016 [P] Create logging setup in `src/synth_lab/research_prfaq/models.py` or separate utility: configure loguru logger for feature (file output to `logs/research_prfaq.log`)
 
 ### Acceptance Criteria
 
@@ -108,13 +108,13 @@ User can execute `synthlab research-prfaq generate --batch-id {batch_id}` and re
 ### Tasks
 
 **Tests (if TDD - write before implementation)**:
-- [ ] T017 [US1] Create unit test in `tests/unit/synth_lab/research_prfaq/test_generator.py`: test_generate_prfaq_with_mocked_llm() - validates LLM parsing and output structure with mocked API calls
-- [ ] T018 [P] [US1] Create unit test in `tests/unit/synth_lab/research_prfaq/test_models.py`: test_prfaq_document_validation() - validates Pydantic model constraints (8-12 FAQs, required fields, types)
-- [ ] T019 [P] [US1] Create contract test in `tests/contract/synth_lab/research_prfaq/test_json_schema.py`: test_valid_prfaq_passes_schema() and test_invalid_prfaq_fails_schema() using `contracts/prfaq-schema.json`
-- [ ] T020 [US1] Create integration test in `tests/integration/synth_lab/research_prfaq/test_prfaq_generation_e2e.py`: test_generate_prfaq_e2e() - real batch_summary.json parsing, LLM call (with fixture/mock), file I/O validation
+- [ ] T017 [US1] Create unit test in `tests/unit/synth_lab/research_prfaq/test_generator.py`: test_generate_prfaq_with_mocked_llm() - validates LLM parsing and output structure with mocked API calls [DEFERRED - Phase 7]
+- [ ] T018 [P] [US1] Create unit test in `tests/unit/synth_lab/research_prfaq/test_models.py`: test_prfaq_document_validation() - validates Pydantic model constraints (8-12 FAQs, required fields, types) [DEFERRED - Phase 7]
+- [ ] T019 [P] [US1] Create contract test in `tests/contract/synth_lab/research_prfaq/test_json_schema.py`: test_valid_prfaq_passes_schema() and test_invalid_prfaq_fails_schema() using `contracts/prfaq-schema.json` [DEFERRED - Phase 7]
+- [ ] T020 [US1] Create integration test in `tests/integration/synth_lab/research_prfaq/test_prfaq_generation_e2e.py`: test_generate_prfaq_e2e() - real batch_summary.json parsing, LLM call (with fixture/mock), file I/O validation [DEFERRED - Phase 7]
 
 **Implementation**:
-- [ ] T021 [US1] Create `src/synth_lab/research_prfaq/generator.py` with PRFAQGenerator class:
+- [X] T021 [US1] Create `src/synth_lab/research_prfaq/generator.py` with PRFAQGenerator class:
   - __init__(model="gpt-4o", confidence_threshold=0.75)
   - generate(research_report: ResearchReport) → PRFAQDocument
   - Extract pain points from research.sections["recommendations"] + ["recurrent_patterns"]
@@ -123,8 +123,8 @@ User can execute `synthlab research-prfaq generate --batch-id {batch_id}` and re
   - Parse LLM response, calculate confidence_score
   - Handle rate limiting with exponential backoff (3 retries)
   - Return PRFAQDocument with metadata
-- [ ] T022 [US1] Add LLM error handling to generator: retry logic for rate limits, API errors, malformed responses; fallback behavior if generation fails
-- [ ] T023 [US1] Create `src/synth_lab/research_prfaq/cli.py` with generate command:
+- [X] T022 [US1] Add LLM error handling to generator: retry logic for rate limits, API errors, malformed responses; fallback behavior if generation fails
+- [X] T023 [US1] Create `src/synth_lab/research_prfaq/cli.py` with generate command:
   - @app.command() for "research-prfaq generate"
   - Arguments: --batch-id (required), --output (optional, default: data/outputs/prfaq/), --model (optional)
   - Load batch_summary.json via parse_batch_summary()
@@ -133,8 +133,8 @@ User can execute `synthlab research-prfaq generate --batch-id {batch_id}` and re
   - Persist to JSON file with metadata (generated_at, model_used, validation_status, confidence_score)
   - Output: confirmation message + file path + confidence score
   - Error handling: batch_id not found, validation failure, LLM error
-- [ ] T024 [US1] Integrate generate command into main synthlab Typer app: add research_prfaq subcommand group under main `synthlab` command (following pattern from research_agentic, query modules)
-- [ ] T025 [P] [US1] Create file I/O utilities in generator or separate module: save_prfaq_json(prfaq: PRFAQDocument, output_dir) → writes to {batch_id}_{timestamp}_prfaq.json with proper formatting and metadata
+- [X] T024 [US1] Integrate generate command into main synthlab Typer app: add research_prfaq subcommand group under main `synthlab` command (following pattern from research_agentic, query modules)
+- [X] T025 [P] [US1] Create file I/O utilities in generator or separate module: save_prfaq_json(prfaq: PRFAQDocument, output_dir) → writes to {batch_id}_{timestamp}_prfaq.json with proper formatting and metadata
 
 ### Success Validation
 
