@@ -488,6 +488,7 @@ async def run_interview(
 
                     if "Interviewer" in decision:
                         # Interviewer's turn
+                        interviewer_input = "Faça sua próxima pergunta ou comentário."
                         with tracer.start_span(SpanType.LLM_CALL, {
                             "speaker": "interviewer",
                             "turn_number": turns + 1,
@@ -499,12 +500,15 @@ async def run_interview(
                                 model=model,
                             )
 
+                            # Log request (system prompt + input)
+                            span.set_attribute("request", f"[System Prompt]\n{interviewer.instructions}\n\n[Input]\n{interviewer_input}")
+
                             # On first turn, generate context in parallel with interviewer
                             if turns == 0 and context_examples:
                                 # Run both in parallel
                                 interviewer_task = Runner.run(
                                     interviewer,
-                                    input="Faça sua próxima pergunta ou comentário."
+                                    input=interviewer_input
                                 )
                                 context_task = generate_initial_context(
                                     synth=synth,
@@ -519,7 +523,7 @@ async def run_interview(
                             else:
                                 raw_result = await Runner.run(
                                     interviewer,
-                                    input="Faça sua próxima pergunta ou comentário."
+                                    input=interviewer_input
                                 )
 
                             final_response = raw_result.final_output
@@ -530,6 +534,7 @@ async def run_interview(
 
                     else:
                         # Interviewee's turn
+                        interviewee_input = "Responda à última pergunta."
                         with tracer.start_span(SpanType.LLM_CALL, {
                             "speaker": "interviewee",
                             "turn_number": turns + 1,
@@ -548,14 +553,18 @@ async def run_interview(
                                 model=model,
                             )
 
+                            # Log request (system prompt + input)
+                            span.set_attribute("request", f"[System Prompt]\n{interviewee.instructions}\n\n[Input]\n{interviewee_input}")
+
                             raw_result = await Runner.run(
                                 interviewee,
-                                input="Responda à última pergunta."
+                                input=interviewee_input
                             )
                             raw_response = raw_result.final_output
-                            span.set_attribute("raw_response", raw_response)
+                            span.set_attribute("response", raw_response)
 
                         # Review interviewee response
+                        reviewer_input = "Revise esta resposta para maior autenticidade."
                         with tracer.start_span(SpanType.LLM_CALL, {
                             "speaker": "interviewee_reviewer",
                             "turn_number": turns + 1,
@@ -566,13 +575,15 @@ async def run_interview(
                                 model=model,
                             )
 
+                            # Log request (system prompt + input)
+                            span.set_attribute("request", f"[System Prompt]\n{reviewer.instructions}\n\n[Input]\n{reviewer_input}")
+
                             review_result = await Runner.run(
                                 reviewer,
-                                input="Revise esta resposta para maior autenticidade."
+                                input=reviewer_input
                             )
                             final_response = review_result.final_output
-                            span.set_attribute(
-                                "final_response", final_response)
+                            span.set_attribute("response", final_response)
                             span.set_status(SpanStatus.SUCCESS)
 
                         speaker = "Interviewee"

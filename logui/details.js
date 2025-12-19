@@ -108,8 +108,18 @@ function renderLLMCallDetails(attributes, container) {
         });
     }
 
-    // Prompt
-    if (attributes.prompt) {
+    // Request (system prompt + input) - show before response
+    if (attributes.request) {
+        sections.push({
+            label: 'Request',
+            value: attributes.request,
+            type: 'long-text',
+            id: 'request'
+        });
+    }
+
+    // Prompt (legacy fallback)
+    if (attributes.prompt && !attributes.request) {
         sections.push({
             label: 'Prompt',
             value: attributes.prompt,
