@@ -35,7 +35,7 @@ Comportamento de entrevista e investigação:
 
 - Tente sempre encerrar perguntando 'ha mais alguma coisa que você gostaria de compartilhar e que não foi abordada?'
 
-## Contexto da Pesquisa
+## Roteiro da Pesquisa
 {topic_guide}
 
 ## Histórico da Conversa
@@ -46,7 +46,7 @@ Você DEVE retornar suas respostas no seguinte formato JSON estruturado:
 {{
   "message": "sua mensagem falada para o entrevistado",
   "should_end": false,
-  "internal_notes": "suas anotações internas sobre insights observados"
+  "internal_notes": "suas anotações internas sobre insights observados, bem como o raciocínio por trás de suas próximas perguntas com base nos temas do Roteiro da Pesquisa"
 }}
 
 IMPORTANTE:
@@ -61,7 +61,7 @@ QUANDO ENCERRAR (should_end: true):
 - Entrevistado está cansado ou desengajado
 
 ## Sua Tarefa
-Baseado no contexto e histórico, formule sua próxima pergunta ou resposta.
+Baseado no histórico e no roteiro da entrevista, formule sua próxima pergunta ou resposta.
 Se for o início da entrevista, faça uma breve introdução e a primeira pergunta.
 """
 
@@ -81,11 +81,15 @@ COMO VOCÊ É:
 
 INTERESSES: {synth_interesses}
 
+CONTRATO COGNITIVO (Como você responde em entrevistas):
+{synth_cognitive_contract}
+
 SEU COMPORTAMENTO NA ENTREVISTA:
 - Responda como {synth_name} responderia baseado em sua personalidade
 - Seus interesses, valores e experiências influenciam suas respostas
 - Demonstre emoções e reações, tanto as boas quanto as ruins, consistentes com seu perfil psicológico
-
+- **IMPORTANTE**: Siga rigorosamente as regras do seu Contrato Cognitivo acima. Ele define como você naturalmente responde em conversas
+{available_images_section}
 FORMATO DE RESPOSTA:
 Você DEVE retornar suas respostas no seguinte formato JSON estruturado:
 {{
@@ -134,6 +138,7 @@ Revisar e adaptar a resposta do entrevistado conforme o perfil demográfico e ps
 . Vocabulário adequado à idade e região
 . Quando necessário, inserção de erros ortoográficos ou gramaticais comuns para a faixa etária e escolaridade
 . Adicione expressões regionais ou gírias típicas da localidade
+. Evite listas e itens bullet points. Sempre que possível, transforme isso em texto corrido.
 
 ## Resposta Original do Entrevistado
 {raw_response}
@@ -182,7 +187,9 @@ def format_interviewer_instructions(topic_guide: str, conversation_history: str)
 
 
 def format_interviewee_instructions(
-    synth: dict, conversation_history: str
+    synth: dict,
+    conversation_history: str,
+    available_images: list[str] | None = None,
 ) -> str:
     """
     Format interviewee instructions with complete persona context.
@@ -190,6 +197,7 @@ def format_interviewee_instructions(
     Args:
         synth: Complete synth data dictionary from database
         conversation_history: Formatted conversation history string
+        available_images: Optional list of available image filenames
 
     Returns:
         Formatted instructions string with all persona details
@@ -214,6 +222,33 @@ def format_interviewee_instructions(
     interesses = psicografia.get("interesses", [])
     interesses_str = ", ".join(interesses) if interesses else "Vários"
 
+    # Cognitive contract (contrato cognitivo)
+    contrato = psicografia.get("contratos_cognitivos", {})
+    if contrato:
+        contract_nome = contrato.get("nome", "Perfil Desconhecido")
+        contract_descricao = contrato.get("descricao", "")
+        contract_regras = contrato.get("regras", [])
+        regras_formatadas = "\n".join([f"  • {regra}" for regra in contract_regras])
+        cognitive_contract_str = f"""PERFIL: {contract_nome}
+DESCRIÇÃO: {contract_descricao}
+REGRAS A SEGUIR:
+{regras_formatadas}"""
+    else:
+        cognitive_contract_str = "Não informado"
+
+    # Format available images section
+    if available_images:
+        images_list = ", ".join(available_images)
+        available_images_section = f"""
+IMAGENS DISPONÍVEIS:
+Você pode visualizar as seguintes imagens usando a ferramenta 'ver_imagem':
+{images_list}
+
+Use a ferramenta quando o entrevistador mostrar ou mencionar uma imagem e você quiser analisá-la visualmente antes de responder.
+"""
+    else:
+        available_images_section = ""
+
     return INTERVIEWEE_INSTRUCTIONS.format(
         synth_name=nome,
         synth_idade=idade,
@@ -224,6 +259,8 @@ def format_interviewee_instructions(
         synth_estado=estado,
         synth_descricao=descricao,
         synth_interesses=interesses_str,
+        synth_cognitive_contract=cognitive_contract_str,
+        available_images_section=available_images_section,
         conversation_history=conversation_history,
     )
 

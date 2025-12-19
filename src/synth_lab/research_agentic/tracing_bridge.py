@@ -27,7 +27,7 @@ from typing import Any
 from agents.tracing import Span, Trace, TracingProcessor
 from loguru import logger
 
-from synth_lab.trace_visualizer import SpanType, Tracer
+from synth_lab.trace_visualizer import SpanStatus, SpanType, Tracer
 
 
 class TraceVisualizerProcessor(TracingProcessor):
@@ -104,9 +104,10 @@ class TraceVisualizerProcessor(TracingProcessor):
         Args:
             span: The span that started
         """
+        span_type_name = type(span.span_data).__name__ if hasattr(span, 'span_data') else 'unknown'
+
         if self._verbose:
-            span_type = type(span.span_data).__name__ if hasattr(span, 'span_data') else 'unknown'
-            logger.debug(f"[TraceVisualizerProcessor] Span started: {span_type}")
+            logger.debug(f"[TraceVisualizerProcessor] Span started: {span_type_name}")
 
             # Log span details
             if hasattr(span, 'span_data'):
@@ -124,6 +125,10 @@ class TraceVisualizerProcessor(TracingProcessor):
                         except Exception:
                             pass
 
+        # Check if this is a tool call span and log/persist it
+        if self._is_tool_span(span):
+            self._handle_tool_span_start(span)
+
     def on_span_end(self, span: Span[Any]) -> None:
         """
         Called when a span completes execution.
@@ -131,9 +136,10 @@ class TraceVisualizerProcessor(TracingProcessor):
         Args:
             span: The completed span
         """
+        span_type_name = type(span.span_data).__name__ if hasattr(span, 'span_data') else 'unknown'
+
         if self._verbose:
-            span_type = type(span.span_data).__name__ if hasattr(span, 'span_data') else 'unknown'
-            logger.debug(f"[TraceVisualizerProcessor] Span ended: {span_type}")
+            logger.debug(f"[TraceVisualizerProcessor] Span ended: {span_type_name}")
 
             # Log span results
             if hasattr(span, 'span_data'):
@@ -143,6 +149,98 @@ class TraceVisualizerProcessor(TracingProcessor):
                     if len(output) > 300:
                         output = output[:300] + "..."
                     logger.debug(f"    output: {output}")
+
+        # Handle tool span completion
+        if self._is_tool_span(span):
+            self._handle_tool_span_end(span)
+
+    def _is_tool_span(self, span: Span[Any]) -> bool:
+        """Check if the span is a tool/function call span."""
+        if not hasattr(span, 'span_data'):
+            return False
+        span_data_type = type(span.span_data).__name__.lower()
+        return 'function' in span_data_type or 'tool' in span_data_type
+
+    def _handle_tool_span_start(self, span: Span[Any]) -> None:
+        """
+        Handle the start of a tool call span.
+
+        Logs the tool call and creates a span in our tracer.
+        """
+        span_data = span.span_data
+        span_id = id(span)
+
+        # Extract tool information
+        tool_name = getattr(span_data, 'name', 'unknown_tool')
+        tool_input = getattr(span_data, 'input', None)
+
+        # Log tool call (always, not just verbose)
+        logger.info(f"[Tool Call] {tool_name} started")
+        if tool_input:
+            input_str = str(tool_input)
+            if len(input_str) > 500:
+                input_str = input_str[:500] + "..."
+            logger.debug(f"[Tool Call] {tool_name} input: {input_str}")
+
+        # Create span in our tracer if we have an active turn
+        if self._tracer._current_turn is not None:
+            tracer_span = self._tracer.start_span(
+                SpanType.TOOL_CALL,
+                attributes={
+                    "tool_name": tool_name,
+                    "input": str(tool_input) if tool_input else None,
+                    "sdk_span_type": type(span_data).__name__,
+                },
+            )
+            # Enter the context manager
+            tracer_span.__enter__()
+            self._active_spans[span_id] = tracer_span
+
+    def _handle_tool_span_end(self, span: Span[Any]) -> None:
+        """
+        Handle the completion of a tool call span.
+
+        Logs the result and finalizes the tracer span.
+        """
+        span_data = span.span_data
+        span_id = id(span)
+
+        # Extract tool information
+        tool_name = getattr(span_data, 'name', 'unknown_tool')
+        tool_output = getattr(span_data, 'output', None)
+        tool_error = getattr(span_data, 'error', None)
+
+        # Log tool completion (always, not just verbose)
+        if tool_error:
+            logger.warning(f"[Tool Call] {tool_name} failed: {tool_error}")
+        else:
+            logger.info(f"[Tool Call] {tool_name} completed")
+            if tool_output:
+                output_str = str(tool_output)
+                if len(output_str) > 500:
+                    output_str = output_str[:500] + "..."
+                logger.debug(f"[Tool Call] {tool_name} output: {output_str}")
+
+        # Finalize the tracer span if we created one
+        if span_id in self._active_spans:
+            tracer_span = self._active_spans.pop(span_id)
+
+            # Set output/error attributes
+            if tool_output:
+                output_str = str(tool_output)
+                # Truncate very long outputs (like base64 images)
+                if len(output_str) > 1000:
+                    output_str = output_str[:1000] + f"... (truncated, {len(str(tool_output))} chars total)"
+                tracer_span.set_attribute("output", output_str)
+
+            if tool_error:
+                tracer_span.set_attribute("error", str(tool_error))
+                tracer_span.set_status(SpanStatus.ERROR)
+            else:
+                tracer_span.set_status(SpanStatus.SUCCESS)
+
+            # Exit the context manager
+            tracer_span.__exit__(None, None, None)
 
     def shutdown(self) -> None:
         """Called when the application stops."""

@@ -37,6 +37,7 @@ import typer
 from loguru import logger
 from rich.console import Console
 
+from synth_lab.research_agentic.batch_runner import run_batch_interviews
 from synth_lab.research_agentic.runner import run_interview
 
 # Configure loguru to only show warnings and above (suppress debug/info)
@@ -102,10 +103,10 @@ def research(
         help="Número máximo de turnos de conversa",
     ),
     model: str = typer.Option(
-        "gpt-5-nano",
+        "gpt-5-mini",
         "--model",
         "-m",
-        help="Modelo de LLM a usar (ex: gpt-5-nano, gpt-4o)",
+        help="Modelo de LLM a usar (ex: gpt-5-mini, gpt-4o)",
     ),
     trace_path: str = typer.Option(
         None,
@@ -308,6 +309,200 @@ def research(
         logger.error(f"Interview failed: {e}")
         console.print(
             f"[bold red]✗[/bold red] Erro na entrevista: {e}", style="red")
+        sys.exit(1)
+
+
+@app.command()
+def batch(
+    topic_guide_name: str = typer.Argument(
+        ..., help="Nome do topic guide (ex: compra-amazon)"
+    ),
+    max_interviews: int = typer.Option(
+        10,
+        "--max-interviews",
+        "-n",
+        min=1,
+        max=100,
+        help="Número máximo de entrevistas a realizar",
+    ),
+    max_concurrent: int = typer.Option(
+        10,
+        "--max-concurrent",
+        "-c",
+        min=1,
+        max=20,
+        help="Número máximo de entrevistas simultâneas",
+    ),
+    max_turns: int = typer.Option(
+        6,
+        "--max-turns",
+        "-t",
+        min=1,
+        max=50,
+        help="Número máximo de turnos por entrevista",
+    ),
+    model: str = typer.Option(
+        "gpt-5-mini",
+        "--model",
+        "-m",
+        help="Modelo de LLM a usar (ex: gpt-5-mini, gpt-4o)",
+    ),
+    no_summary: bool = typer.Option(
+        False,
+        "--no-summary",
+        help="Não gerar síntese ao final das entrevistas",
+    ),
+    output_path: str = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Caminho para salvar o relatório de síntese (auto-gera se não especificado)",
+    ),
+):
+    """
+    Executar entrevistas em batch com múltiplos synths em paralelo.
+
+    Este comando permite entrevistar vários synths de uma vez, com execução
+    paralela controlada. Ao final, gera uma síntese consolidada de todas
+    as entrevistas.
+
+    Os synths são selecionados em ordem do banco de dados, começando do
+    primeiro, até atingir o limite especificado por --max-interviews.
+
+    Exemplo:
+        synthlab research batch compra-amazon --max-interviews 5
+        synthlab research batch compra-amazon -n 10 -c 5 --model gpt-4o
+    """
+    import os
+
+    # Validate topic guide
+    base_dir = Path(os.environ.get("TOPIC_GUIDES_DIR", "data/topic_guides"))
+    topic_dir = base_dir / topic_guide_name
+
+    if not topic_dir.exists():
+        console.print(
+            f"[bold red]✗[/bold red] Topic guide '{topic_guide_name}' não encontrado",
+            style="red",
+        )
+        console.print(f"\nProcurado em: {topic_dir}")
+        sys.exit(1)
+
+    script_path = topic_dir / "script.json"
+    if not script_path.exists():
+        console.print(
+            f"[bold red]✗[/bold red] Arquivo script.json não encontrado no topic guide '{topic_guide_name}'",
+            style="red",
+        )
+        sys.exit(1)
+
+    # Check for OPENAI_API_KEY
+    if not os.getenv("OPENAI_API_KEY"):
+        console.print(
+            "[bold red]✗[/bold red] Variável de ambiente OPENAI_API_KEY não configurada",
+            style="red",
+        )
+        sys.exit(1)
+
+    # Generate output path if not specified
+    timestamp = get_timestamp_gmt3()
+    if output_path is None:
+        output_path = f"data/reports/batch_{topic_guide_name}_{timestamp}.md"
+
+    generate_summary = not no_summary
+
+    # Print header
+    console.print()
+    console.print("[bold cyan]═" * 60 + "[/bold cyan]")
+    console.print("[bold cyan]  Batch Interview System[/bold cyan]")
+    console.print("[bold cyan]═" * 60 + "[/bold cyan]")
+    console.print()
+    console.print(f"  Topic Guide: [bold]{topic_guide_name}[/bold]")
+    console.print(f"  Max Interviews: [bold]{max_interviews}[/bold]")
+    console.print(f"  Max Concurrent: [bold]{max_concurrent}[/bold]")
+    console.print(f"  Max Turns: [bold]{max_turns}[/bold]")
+    console.print(f"  Model: [bold]{model}[/bold]")
+    console.print(f"  Generate Summary: [bold]{generate_summary}[/bold]")
+    if generate_summary:
+        console.print(f"  Output: [bold]{output_path}[/bold]")
+    console.print()
+    console.print("[cyan]─" * 60 + "[/cyan]")
+
+    try:
+        # Run batch interviews
+        result = asyncio.run(
+            run_batch_interviews(
+                topic_guide_name=topic_guide_name,
+                max_interviews=max_interviews,
+                max_concurrent=max_concurrent,
+                max_turns=max_turns,
+                model=model,
+                generate_summary=generate_summary,
+            )
+        )
+
+        # Print results
+        console.print()
+        console.print("[cyan]─" * 60 + "[/cyan]")
+        console.print("[bold green]  Batch Completed![/bold green]")
+        console.print("[cyan]─" * 60 + "[/cyan]")
+        console.print(f"  Batch ID: [bold]{result.batch_id}[/bold]")
+        console.print(f"  Requested: [bold]{result.total_requested}[/bold]")
+        console.print(f"  Completed: [bold green]{result.total_completed}[/bold green]")
+        if result.total_failed > 0:
+            console.print(f"  Failed: [bold red]{result.total_failed}[/bold red]")
+
+        # Show failed interviews
+        if result.failed_interviews:
+            console.print()
+            console.print("[yellow]Entrevistas com erro:[/yellow]")
+            for synth_id, synth_name, error in result.failed_interviews:
+                console.print(f"  - {synth_name} ({synth_id}): {error}")
+
+        # Show successful interviews and transcript paths
+        if result.successful_interviews:
+            console.print()
+            console.print("[green]Entrevistas concluídas:[/green]")
+            for i, (interview_result, synth) in enumerate(result.successful_interviews):
+                transcript = result.transcript_paths[i] if i < len(result.transcript_paths) else "N/A"
+                console.print(
+                    f"  - {interview_result.synth_name} ({interview_result.synth_id}): "
+                    f"{interview_result.total_turns} turnos"
+                )
+
+        # Show transcript directory
+        if result.transcript_paths:
+            transcript_dir = str(Path(result.transcript_paths[0]).parent)
+            console.print()
+            console.print(
+                f"[bold green]✓[/bold green] Transcrições salvas em: [bold]{transcript_dir}/[/bold]"
+            )
+
+        # Display summary
+        if result.summary:
+            console.print()
+            console.print("[bold cyan]═" * 60 + "[/bold cyan]")
+            console.print("[bold cyan]  Síntese das Entrevistas[/bold cyan]")
+            console.print("[bold cyan]═" * 60 + "[/bold cyan]")
+            console.print()
+            console.print(result.summary)
+
+            if result.summary_path:
+                console.print()
+                console.print(
+                    f"[bold green]✓[/bold green] Síntese salva em: [bold]{result.summary_path}[/bold]"
+                )
+
+    except FileNotFoundError as e:
+        console.print(
+            f"[bold red]✗[/bold red] Arquivo não encontrado: {e}", style="red"
+        )
+        sys.exit(1)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]⚠[/yellow] Batch interrompido pelo usuário")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"Batch failed: {e}")
+        console.print(f"[bold red]✗[/bold red] Erro no batch: {e}", style="red")
         sys.exit(1)
 
 

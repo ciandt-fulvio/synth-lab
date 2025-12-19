@@ -112,51 +112,11 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     # research subcommand (agentic multi-agent system)
-    research_parser = subparsers.add_parser(
-        "research", help="Realizar entrevistas de pesquisa UX com synths (sistema multi-agente)"
-    )
-    research_parser.add_argument(
-        "synth_id",
-        type=str,
-        help="ID do synth a ser entrevistado (6 caracteres)",
-    )
-    research_parser.add_argument(
-        "topic_guide_name",
-        type=str,
-        help="Nome do topic guide (ex: compra-amazon)",
-    )
-    research_parser.add_argument(
-        "-t",
-        "--max-turns",
-        type=int,
-        default=6,
-        help="Número máximo de turnos de conversa (padrão: 6)",
-    )
-    research_parser.add_argument(
-        "-m",
-        "--model",
-        type=str,
-        default="gpt-5-mini",
-        help="Modelo de LLM a usar (padrão: gpt-5-mini)",
-    )
-    research_parser.add_argument(
-        "--trace-path",
-        type=str,
-        default=None,
-        help="Caminho para salvar trace (auto-gera se não especificado)",
-    )
-    research_parser.add_argument(
-        "-o",
-        "--transcript-path",
-        type=str,
-        default=None,
-        help="Caminho para salvar transcrição JSON (auto-gera se não especificado)",
-    )
-    research_parser.add_argument(
-        "-q",
-        "--quiet",
-        action="store_true",
-        help="Suprimir output da conversa",
+    # research has its own Typer sub-app with commands: research (single) and batch
+    # We use parse_known_args to pass remaining args to Typer
+    subparsers.add_parser(
+        "research", help="Realizar entrevistas de pesquisa UX com synths (sistema multi-agente)",
+        add_help=False  # Let Typer handle --help
     )
 
     # topic-guide subcommand
@@ -237,19 +197,9 @@ def main():
         # Import here to avoid circular imports and speed up --help
         from synth_lab.research_agentic.cli import app as research_app
 
-        # Convert args to match Typer interface
-        sys.argv = ["synthlab research", args.synth_id, args.topic_guide_name]
-        if args.max_turns:
-            sys.argv.extend(["--max-turns", str(args.max_turns)])
-        if args.model:
-            sys.argv.extend(["--model", args.model])
-        if args.trace_path:
-            sys.argv.extend(["--trace-path", args.trace_path])
-        if args.transcript_path:
-            sys.argv.extend(["--transcript-path", args.transcript_path])
-        if args.quiet:
-            sys.argv.append("--quiet")
-
+        # Typer will handle all subcommands (research, batch)
+        # Reset sys.argv to pass remaining args to Typer
+        sys.argv = ["synthlab research"] + unknown_args
         research_app()
 
     # Handle topic-guide command
