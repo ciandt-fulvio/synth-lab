@@ -80,6 +80,7 @@ def create_interviewee(
     mcp_servers: list[Any] | None = None,
     tools: list[Any] | None = None,
     available_images: list[str] | None = None,
+    initial_context: str = "",
     model: str = "gpt-5-mini",
     reasoning_effort: str = "low",
 ) -> Agent:
@@ -95,6 +96,7 @@ def create_interviewee(
         mcp_servers: Optional MCP servers for tool access
         tools: Optional list of function tools (e.g., image loader)
         available_images: Optional list of available image filenames from topic guide
+        initial_context: Pre-generated context about prior experience (positive/negative/neutral)
         model: LLM model to use
         reasoning_effort: Reasoning effort level ("low", "medium", "high")
 
@@ -102,7 +104,7 @@ def create_interviewee(
         Configured Agent instance
     """
     instructions = format_interviewee_instructions(
-        synth, conversation_history, available_images
+        synth, conversation_history, available_images, initial_context
     )
     synth_name = synth.get("nome", "Participante")
 
