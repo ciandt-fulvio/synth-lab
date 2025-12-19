@@ -85,6 +85,25 @@ function formatStepTitle(step) {
 }
 
 /**
+ * Extract message from JSON response if it's a JSON object with "message" field
+ * Otherwise return the original text
+ */
+function extractMessageFromResponse(text) {
+    if (!text || typeof text !== 'string') return text;
+
+    try {
+        const parsed = JSON.parse(text);
+        if (parsed && typeof parsed.message === 'string') {
+            return parsed.message;
+        }
+        return text;
+    } catch (e) {
+        // Not valid JSON, return original
+        return text;
+    }
+}
+
+/**
  * Render LLM call details
  */
 function renderLLMCallDetails(attributes, container) {
@@ -128,31 +147,31 @@ function renderLLMCallDetails(attributes, container) {
         });
     }
 
-    // Response
+    // Response - extract message from JSON if present
     if (attributes.response) {
         sections.push({
             label: 'Response',
-            value: attributes.response,
+            value: extractMessageFromResponse(attributes.response),
             type: 'long-text',
             id: 'response'
         });
     }
 
-    // Raw response
+    // Raw response - extract message from JSON if present
     if (attributes.raw_response) {
         sections.push({
             label: 'Raw Response',
-            value: attributes.raw_response,
+            value: extractMessageFromResponse(attributes.raw_response),
             type: 'long-text',
             id: 'raw_response'
         });
     }
 
-    // Final response
+    // Final response - extract message from JSON if present
     if (attributes.final_response) {
         sections.push({
             label: 'Final Response',
-            value: attributes.final_response,
+            value: extractMessageFromResponse(attributes.final_response),
             type: 'long-text',
             id: 'final_response'
         });

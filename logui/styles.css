@@ -503,6 +503,8 @@ body {
 
 .content-text {
     margin-bottom: 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .ellipsis {
