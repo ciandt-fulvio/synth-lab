@@ -249,7 +249,7 @@ uv run synthlab topic-guide show --name amazon-ecommerce
 **Entrevista Individual**:
 ```bash
 # Realizar entrevista com um synth usando topic guide
-uv run synthlab research abc123 compra-amazon
+uv run synthlab research interview abc123 compra-amazon
 
 # Personalizar configurações
 uv run synthlab research abc123 compra-amazon \
@@ -264,17 +264,17 @@ cat data/transcripts/abc123_20251216_143052.json
 **🔥 NOVO: Pesquisa em Batch com Múltiplos Synths**:
 ```bash
 # Executar entrevistas com múltiplos synths (paralelização automática)
-uv run synthlab research-batch compra-amazon \
+uv run synthlab research batch compra-amazon \
   --synth-ids abc123,xyz789,def456 \
   --max-rounds 15 \
   --model gpt-4o-mini
 
 # Pesquisa em batch com múltiplos synths (auto-detecta sintetizadores sem entrevista)
-uv run synthlab research-batch compra-amazon \
+uv run synthlab research batch compra-amazon \
   --limit 10  # Entrevista com os primeiros 10 synths sem transcrição
 
 # Executar com todas as opções
-uv run synthlab research-batch compra-amazon \
+uv run synthlab research batch compra-amazon \
   --synth-ids abc123,xyz789,def456,ghi012 \
   --max-rounds 12 \
   --model gpt-4o \
@@ -282,7 +282,7 @@ uv run synthlab research-batch compra-amazon \
   --summary
 
 # Com indicadores de progresso e sumarização automática
-uv run synthlab research-batch amazon-ecommerce \
+uv run synthlab research batch amazon-ecommerce \
   --limit 20 \
   --summary  # Gera arquivo summary.json com insights agregados
 ```
