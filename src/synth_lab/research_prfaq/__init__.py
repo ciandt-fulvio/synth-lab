@@ -44,6 +44,8 @@ from synth_lab.research_prfaq.models import (
     FAQItem,
     PRFAQDocument,
     ResearchReport,
+    setup_logging,
+    parse_batch_summary,
 )
 from synth_lab.research_prfaq.generator import generate_prfaq
 from synth_lab.research_prfaq.exporter import export_to_pdf, export_to_markdown, export_to_html
@@ -54,6 +56,8 @@ __all__ = [
     "FAQItem",
     "PRFAQDocument",
     "ResearchReport",
+    "setup_logging",
+    "parse_batch_summary",
     "generate_prfaq",
     "export_to_pdf",
     "export_to_markdown",
