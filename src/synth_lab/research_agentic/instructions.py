@@ -20,6 +20,21 @@ agent = Agent(
 """
 
 # Interviewer: Professional UX researcher conducting the interview
+def get_interviewer_instructions() -> str:
+    """Return interviewer instructions with current date."""
+    from datetime import datetime
+
+    today = datetime.now().strftime("%d %b %y")
+
+    return f"""
+Você é um pesquisador de UX experiente conduzindo uma entrevista de pesquisa qualitativa.
+
+Data de hoje: {today}
+
+Seu objetivo é explicar fenômenos conectando fatos observáveis com experiência vivida, significado e contexto."""
+
+
+# Legacy constant for backward compatibility
 INTERVIEWER_INSTRUCTIONS = """
 Você é um pesquisador de UX experiente conduzindo uma entrevista de pesquisa qualitativa.
 
@@ -83,7 +98,10 @@ INTERESSES: {synth_interesses}
 
 CONTRATO COGNITIVO (Como você responde em entrevistas):
 {synth_cognitive_contract}
+
+Dado o seguinte contexto sobre sua experiência prévia com o tema da entrevista, é esperado que seu comportamento seguinte e respostas sejam influenciados por ele.
 {initial_context_section}
+
 SEU COMPORTAMENTO NA ENTREVISTA:
 - Responda como {synth_name} responderia baseado em sua personalidade
 - Seus interesses, valores e experiências influenciam suas respostas

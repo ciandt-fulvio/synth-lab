@@ -1,31 +1,28 @@
 """PR-FAQ generation from research batch reports using LLM.
 
-Implements hybrid chain-of-thought + structured output strategy:
-1. Parse research report to extract pain points, benefits, segments
+Generates Markdown-formatted PR-FAQ documents following Amazon's Working Backwards framework:
+1. Parse research report from Markdown file
 2. Use few-shot examples to guide LLM
-3. Generate structured PR-FAQ with JSON validation
-4. Calculate confidence score based on research completeness
+3. Generate PR-FAQ directly in Markdown format
+4. Save to output/reports directory
 
 Third-party documentation:
 - OpenAI API: https://platform.openai.com/docs/
-- Pydantic: https://docs.pydantic.dev/
+- Amazon Working Backwards: https://www.amazon.jobs/en/landing_pages/working-backwards
 
 Sample usage:
-    from synth_lab.research_prfaq.generator import generate_prfaq
-    from synth_lab.research_prfaq.models import ResearchReport, setup_logging
+    from synth_lab.research_prfaq.generator import generate_prfaq_markdown
+    from synth_lab.research_prfaq.models import setup_logging
 
     setup_logging()
-    report = ResearchReport(batch_id="b1", summary_content="...", sections={...})
-    prfaq = generate_prfaq(report)
+    prfaq_md = generate_prfaq_markdown("batch_compra-amazon_20251218_164204")
 
 Expected output:
-    PRFAQDocument with:
-    - press_release: headline, one_liner, problem_statement, solution_overview
-    - faq: 8-12 Q&A items with customer segments
-    - confidence_score: based on research completeness
+    String containing Markdown-formatted PR-FAQ document with:
+    - Press Release: Heading, Subheading, Summary, Problem, Solution, Quotes
+    - FAQ: External FAQs (8-12) + Internal FAQs (8-12)
 """
 
-import json
 import os
 from pathlib import Path
 from datetime import datetime
@@ -34,53 +31,36 @@ from typing import Optional
 from openai import OpenAI
 from loguru import logger
 
-from synth_lab.research_prfaq.models import (
-    ResearchReport,
-    PRFAQDocument,
-    PressRelease,
-    FAQItem,
-    GenerationMetadata,
-)
-from synth_lab.research_prfaq.prompts import (
-    get_system_prompt,
-    get_few_shot_examples,
-    get_json_schema,
-)
-from synth_lab.research_prfaq.validator import validate_research_report, validate_prfaq
+from synth_lab.research_prfaq.models import parse_batch_summary
+from synth_lab.research_prfaq.prompts import get_system_prompt, get_few_shot_examples
 
 
-def generate_prfaq(
-    report: ResearchReport,
+def generate_prfaq_markdown(
+    batch_id: str,
     model: str = "gpt-4o-2024-08-06",
-    api_key: Optional[str] = None
-) -> PRFAQDocument:
-    """Generate PR-FAQ from research batch report using OpenAI API.
+    api_key: Optional[str] = None,
+    data_dir: str = "output/reports"
+) -> str:
+    """Generate PR-FAQ Markdown from research batch report using OpenAI API.
 
     Args:
-        report: ResearchReport with batch research data
-        model: OpenAI model to use (default: gpt-4o with structured outputs)
+        batch_id: Research batch identifier (e.g., batch_compra-amazon_20251218_164204)
+        model: OpenAI model to use (default: gpt-4o)
         api_key: OpenAI API key (default: from OPENAI_API_KEY env var)
+        data_dir: Directory containing research reports (default: output/reports)
 
     Returns:
-        PRFAQDocument with generated PR-FAQ content
+        String containing Markdown-formatted PR-FAQ document
 
     Raises:
-        ValueError: If report lacks critical sections or validation fails
+        FileNotFoundError: If batch report doesn't exist
         RuntimeError: If LLM generation fails
     """
-    logger.info(f"Starting PR-FAQ generation for batch {report.batch_id}")
+    logger.info(f"Starting PR-FAQ Markdown generation for batch {batch_id}")
 
-    # Validate research report first
-    validation_result = validate_research_report(report)
-    if not validation_result.is_valid:
-        error_msg = f"Research report validation failed: {validation_result.errors}"
-        logger.error(error_msg)
-        raise ValueError(error_msg)
-
-    if validation_result.warnings:
-        logger.warning(f"Research report warnings: {validation_result.warnings}")
-
-    logger.info(f"Research report validation passed with confidence {validation_result.confidence_score:.2f}")
+    # Load research report
+    report = parse_batch_summary(batch_id, data_dir=data_dir)
+    logger.info(f"Loaded research report with {len(report.sections)} sections")
 
     # Initialize OpenAI client
     client = OpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"))
@@ -94,222 +74,197 @@ def generate_prfaq(
         {"role": "system", "content": system_prompt}
     ]
 
-    # Add few-shot examples
+    # Add few-shot examples (user research → assistant PR-FAQ MD)
     for example in few_shot_examples:
         messages.append({
             "role": "user",
-            "content": f"Research Summary:\n\n{example['research_summary']}"
+            "content": f"Research Report:\n\n{example['research_summary']}"
         })
         messages.append({
             "role": "assistant",
-            "content": json.dumps(example['prfaq_output'], indent=2)
+            "content": example['prfaq_output']
         })
 
     # Add current research report
-    user_prompt = f"""Research Summary:
+    user_prompt = f"""Research Report:
 
 {report.summary_content}
 
-Based on this research batch summary, generate a PR-FAQ document following the Amazon Working Backwards framework.
+Based on this research batch summary, generate a complete PR-FAQ document in Markdown format following the Amazon Working Backwards framework.
 
-Focus on:
-1. Extract pain points from "recommendations" and "recurrent_patterns" sections
-2. Extract benefits from "recommendations" section
-3. Map customer segments from identified personas in the research
-4. Use key quotes to support the value proposition
+Batch ID: {batch_id}
+Generated: {datetime.now().strftime('%Y-%m-%d')}
 
-Return ONLY valid JSON matching the schema."""
+Generate the PR-FAQ with:
+- Press Release sections (Heading, Subheading, Summary, Problem, Solution, Quotes)
+- External FAQs (8-12 customer/press questions)
+- Internal FAQs (8-12 stakeholder questions covering finance, operations, technical, risks)
+
+Extract insights from the "Recomendações" and "Padrões Recorrentes" sections. Use actual quotes when available.
+
+Return ONLY the Markdown-formatted PR-FAQ document."""
 
     messages.append({"role": "user", "content": user_prompt})
 
     logger.debug(f"Calling OpenAI API with model {model}")
 
-    # Call OpenAI API with JSON mode for structured output
+    # Call OpenAI API for Markdown generation
     try:
         response = client.chat.completions.create(
             model=model,
             messages=messages,
-            response_format={"type": "json_object"},
             temperature=0.7,
-            max_tokens=2000
+            max_tokens=4000  # Increased for full Markdown output
         )
 
         logger.info(f"OpenAI API call successful. Tokens used: {response.usage.total_tokens}")
 
-        # Extract JSON response
-        response_text = response.choices[0].message.content
-        prfaq_data = json.loads(response_text)
+        # Extract Markdown response
+        prfaq_markdown = response.choices[0].message.content.strip()
+
+        logger.info(f"PR-FAQ Markdown generation successful for {batch_id} ({len(prfaq_markdown)} characters)")
+
+        return prfaq_markdown
 
     except Exception as e:
         error_msg = f"LLM generation failed: {str(e)}"
         logger.error(error_msg)
         raise RuntimeError(error_msg) from e
 
-    # Parse response into Pydantic models
-    try:
-        press_release = PressRelease(**prfaq_data["press_release"])
-        faq_items = [FAQItem(**item) for item in prfaq_data["faq"]]
 
-        # Create PRFAQDocument
-        prfaq = PRFAQDocument(
-            batch_id=report.batch_id,
-            press_release=press_release,
-            faq=faq_items,
-            generated_at=datetime.now(datetime.UTC) if hasattr(datetime, 'UTC') else datetime.utcnow(),
-            version=1,
-            validation_status="valid",
-            confidence_score=validation_result.confidence_score
-        )
-
-        logger.debug(f"Created PRFAQDocument with {len(faq_items)} FAQ items")
-
-    except Exception as e:
-        error_msg = f"Failed to parse LLM response into models: {str(e)}"
-        logger.error(error_msg)
-        raise ValueError(error_msg) from e
-
-    # Validate generated PR-FAQ
-    prfaq_validation = validate_prfaq(prfaq)
-    if not prfaq_validation.is_valid:
-        error_msg = f"Generated PR-FAQ validation failed: {prfaq_validation.errors}"
-        logger.error(error_msg)
-        raise ValueError(error_msg)
-
-    if prfaq_validation.warnings:
-        logger.warning(f"Generated PR-FAQ warnings: {prfaq_validation.warnings}")
-
-    # Update confidence score to be the minimum of report and prfaq confidence
-    final_confidence = min(validation_result.confidence_score, prfaq_validation.confidence_score)
-    prfaq.confidence_score = final_confidence
-
-    logger.info(
-        f"PR-FAQ generation successful for {report.batch_id}. "
-        f"Confidence: {final_confidence:.2f}, FAQ items: {len(faq_items)}"
-    )
-
-    return prfaq
-
-
-def save_prfaq_json(
-    prfaq: PRFAQDocument,
+def save_prfaq_markdown(
+    prfaq_markdown: str,
+    batch_id: str,
     output_dir: str = "output/reports"
 ) -> Path:
-    """Save PR-FAQ document to JSON file.
+    """Save PR-FAQ Markdown to file.
 
     Args:
-        prfaq: PRFAQDocument to save
+        prfaq_markdown: Markdown content of PR-FAQ
+        batch_id: Batch identifier for filename
         output_dir: Base directory for PR-FAQ outputs (default: output/reports)
 
     Returns:
-        Path to saved JSON file
+        Path to saved Markdown file
     """
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
     # Create filename with batch_id
-    filename = f"{prfaq.batch_id}_prfaq.json"
+    filename = f"{batch_id}_prfaq.md"
     file_path = output_path / filename
 
-    # Convert to dict and save
-    prfaq_dict = prfaq.model_dump(mode='json')
-
+    # Save Markdown content
     with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(prfaq_dict, f, indent=2, default=str)
+        f.write(prfaq_markdown)
 
-    logger.info(f"Saved PR-FAQ to {file_path}")
+    logger.info(f"Saved PR-FAQ Markdown to {file_path} ({len(prfaq_markdown)} characters)")
     return file_path
 
 
-def load_prfaq_json(
+def load_prfaq_markdown(
     batch_id: str,
     output_dir: str = "output/reports"
-) -> PRFAQDocument:
-    """Load PR-FAQ document from JSON file.
+) -> str:
+    """Load PR-FAQ Markdown from file.
 
     Args:
         batch_id: Batch identifier
         output_dir: Base directory for PR-FAQ outputs
 
     Returns:
-        PRFAQDocument loaded from file
+        String containing Markdown content
 
     Raises:
         FileNotFoundError: If PR-FAQ file doesn't exist
     """
     output_path = Path(output_dir)
-    filename = f"{batch_id}_prfaq.json"
+    filename = f"{batch_id}_prfaq.md"
     file_path = output_path / filename
 
     if not file_path.exists():
-        raise FileNotFoundError(f"PR-FAQ file not found: {file_path}")
+        raise FileNotFoundError(f"PR-FAQ Markdown file not found: {file_path}")
 
     with open(file_path, "r", encoding="utf-8") as f:
-        prfaq_dict = json.load(f)
+        prfaq_markdown = f.read()
 
-    # Parse dates
-    if "generated_at" in prfaq_dict and isinstance(prfaq_dict["generated_at"], str):
-        prfaq_dict["generated_at"] = datetime.fromisoformat(prfaq_dict["generated_at"].replace("Z", "+00:00"))
-
-    prfaq = PRFAQDocument(**prfaq_dict)
-    logger.info(f"Loaded PR-FAQ from {file_path}")
-    return prfaq
+    logger.info(f"Loaded PR-FAQ Markdown from {file_path} ({len(prfaq_markdown)} characters)")
+    return prfaq_markdown
 
 
 if __name__ == "__main__":
     # Validation test with real batch summary
     import sys
-    from synth_lab.research_prfaq.models import parse_batch_summary, setup_logging
+    from synth_lab.research_prfaq.models import setup_logging
 
     setup_logging()
 
     validation_failures = []
     total_tests = 0
 
-    # Test 1: Parse test batch summary
+    # Test 1: Check for available research reports
     total_tests += 1
-    try:
-        report = parse_batch_summary("test_batch_001")
-        logger.info(f"Loaded test batch: {report.batch_id}")
-    except Exception as e:
-        validation_failures.append(f"Failed to parse test batch: {str(e)}")
-
-    # Test 2: Generate PR-FAQ (requires OPENAI_API_KEY)
-    total_tests += 1
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        print("⚠️  OPENAI_API_KEY not set - skipping LLM generation test")
-        print("   Set OPENAI_API_KEY environment variable to test full generation")
+    reports_dir = Path("output/reports")
+    if not reports_dir.exists():
+        validation_failures.append(f"Reports directory not found: {reports_dir}")
     else:
-        try:
-            prfaq = generate_prfaq(report)
-            logger.info(f"Generated PR-FAQ with {len(prfaq.faq)} FAQ items")
+        md_files = list(reports_dir.glob("*.md"))
+        if not md_files:
+            print("⚠️  No research reports found in output/reports/")
+            print("   Run research summarizer first to generate batch reports")
+        else:
+            # Use first available report for testing
+            test_report = md_files[0].stem  # Get filename without extension
+            logger.info(f"Using test report: {test_report}")
 
-            # Test 3: Save PR-FAQ
+            # Test 2: Generate PR-FAQ Markdown (requires OPENAI_API_KEY)
             total_tests += 1
-            saved_path = save_prfaq_json(prfaq)
-            if not saved_path.exists():
-                validation_failures.append(f"Saved file not found: {saved_path}")
+            api_key = os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                print("⚠️  OPENAI_API_KEY not set - skipping LLM generation test")
+                print("   Set OPENAI_API_KEY environment variable to test full generation")
+            else:
+                try:
+                    prfaq_md = generate_prfaq_markdown(test_report)
+                    logger.info(f"Generated PR-FAQ Markdown ({len(prfaq_md)} characters)")
 
-            # Test 4: Load PR-FAQ
-            total_tests += 1
-            loaded_prfaq = load_prfaq_json(report.batch_id)
-            if loaded_prfaq.batch_id != prfaq.batch_id:
-                validation_failures.append("Loaded PR-FAQ doesn't match saved PR-FAQ")
+                    # Verify structure
+                    required_sections = ["Press Release", "Frequently Asked Questions"]
+                    missing = [s for s in required_sections if s not in prfaq_md]
+                    if missing:
+                        validation_failures.append(f"Generated PR-FAQ missing sections: {missing}")
 
-        except Exception as e:
-            validation_failures.append(f"PR-FAQ generation failed: {str(e)}")
+                    # Test 3: Save PR-FAQ
+                    total_tests += 1
+                    saved_path = save_prfaq_markdown(prfaq_md, test_report)
+                    if not saved_path.exists():
+                        validation_failures.append(f"Saved file not found: {saved_path}")
+
+                    # Test 4: Load PR-FAQ
+                    total_tests += 1
+                    loaded_md = load_prfaq_markdown(test_report)
+                    if loaded_md != prfaq_md:
+                        validation_failures.append("Loaded PR-FAQ doesn't match saved PR-FAQ")
+                    else:
+                        logger.info("Save/load round-trip successful")
+
+                except Exception as e:
+                    validation_failures.append(f"PR-FAQ generation failed: {str(e)}")
+                    import traceback
+                    logger.error(traceback.format_exc())
 
     # Report results
     if validation_failures:
-        print(f"❌ VALIDATION FAILED - {len(validation_failures)} of {total_tests} tests failed:")
+        print(f"\n❌ VALIDATION FAILED - {len(validation_failures)} of {total_tests} tests failed:")
         for failure in validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        if api_key:
-            print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
+        api_key = os.getenv("OPENAI_API_KEY")
+        if api_key and total_tests > 1:
+            print(f"\n✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
             print("Generator is validated and ready for use")
         else:
-            print(f"⚠️  PARTIAL VALIDATION - {total_tests-3} of {total_tests} tests passed (LLM tests skipped)")
-            print("   Set OPENAI_API_KEY to run full validation")
+            print(f"\n⚠️  PARTIAL VALIDATION - {total_tests} basic test(s) passed")
+            print("   Set OPENAI_API_KEY and add research reports to run full validation")
         sys.exit(0)

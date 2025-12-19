@@ -150,89 +150,30 @@ User can execute `synthlab research-prfaq generate --batch-id {batch_id}` and re
 
 ---
 
-## Phase 4: Manual Editing & Validation (SIMPLIFIED)
-
-**Approach**: Users manually edit JSON files in their preferred editor. CLI provides validation only.
-
-**Rationale**: Simpler than interactive CLI editor. Users prefer familiar tools (VS Code, vim, etc.). JSON files are git-friendly and transparent.
-
-### Story Goal
-
-Users can manually edit `data/outputs/prfaq/{batch_id}_prfaq.json` files and validate them with `synthlab research-prfaq validate {batch_id}`.
-
-### Independent Test Criteria
-
-✅ Users can edit JSON files directly with any text editor
-✅ Validate command checks edited files against JSON Schema
-✅ Validation reports specific errors (missing fields, invalid FAQ count, etc.)
-✅ Re-generation warns if file already exists
-
-### Tasks
-
-- [X] T026-T030 ELIMINATED - No interactive editor needed
-- [X] T031 Add regeneration warning to generate command (already implemented with --force flag pattern)
-- [ ] T032 [RENAMED TO T026] Create validate command in `src/synth_lab/research_prfaq/cli.py`:
-  - @app.command() for "research-prfaq validate"
-  - Arguments: batch_id (required)
-  - Load JSON file via load_prfaq_json()
-  - Validate against JSON Schema using existing validator
-  - Display validation results with detailed error messages
-  - Output: ✓ Valid / ✗ Errors with field-level details
-
-### Success Validation
-
-- ✅ Users can edit JSON files with any editor
-- ✅ `uv run synthlab research-prfaq validate batch_001` validates edited files
-- ✅ Validation catches schema violations (missing fields, wrong types, etc.)
-- ✅ Generate command warns before overwriting existing files
-
-### Manual Editing Workflow
-
-```bash
-# 1. Generate PR-FAQ
-synthlab research-prfaq generate batch_001
-
-# 2. Edit JSON file manually
-vim data/outputs/prfaq/batch_001_prfaq.json
-
-# 3. Validate edits
-synthlab research-prfaq validate batch_001
-# Output: ✓ Valid PR-FAQ with 8 FAQ items
-
-# 4. Regenerate (if needed)
-synthlab research-prfaq generate batch_001
-# Warning: File exists. Use --force to overwrite.
-```
-
----
-
 ## Phase 5: User Story 3 - Export PR-FAQ to Multiple Formats (P2)
 
-Enable users to export PR-FAQ documents to PDF, Markdown, and HTML formats for stakeholder sharing.
+    Enable users to export PR-FAQ documents to PDF and Markdown formats for stakeholder sharing.
 
 ### Story Goal
 
-User can execute `synthlab research-prfaq export --prfaq-id {id} --format <pdf|md|html>` to generate formatted output files ready for presentations, git repositories, or internal wikis.
+User can execute `synthlab research-prfaq export --prfaq-id {id} --format <pdf|md>` to generate formatted output files ready for presentations, git repositories, or internal wikis.
 
 ### Independent Test Criteria
 
 ✅ Export command loads PR-FAQ JSON file
 ✅ PDF export generates professional 341x341px-ready document with proper formatting
 ✅ Markdown export creates git-friendly document with proper heading hierarchy
-✅ HTML export creates web-ready document with semantic HTML
 ✅ All exports preserve content structure (Press Release + FAQ sections)
 ✅ Files written to `data/outputs/prfaq/{batch_id}_exports/`
 ✅ Export completes in <10 seconds per format (SC-005 & SC-006)
 
 ### Tasks
 
-- [ ] T033 [US3] Create unit test in `tests/unit/synth_lab/research_prfaq/test_exporter.py`: test_markdown_formatter() - validates MD heading hierarchy and structure [DEFERRED - Phase 7]
-- [ ] T034 [P] [US3] Create unit test in `tests/unit/synth_lab/research_prfaq/test_exporter.py`: test_pdf_formatter_structure() - validates PDF output structure (mocked reportlab) [DEFERRED - Phase 7]
-- [ ] T035 [P] [US3] Create unit test in `tests/unit/synth_lab/research_prfaq/test_exporter.py`: test_html_formatter_structure() - validates HTML semantic structure [DEFERRED - Phase 7]
-- [ ] T036 [US3] Create integration test in `tests/integration/synth_lab/research_prfaq/test_export_formats.py`: test_export_to_pdf() - real reportlab call, verify file creation [DEFERRED - Phase 7]
-- [ ] T037 [P] [US3] Create integration test in `tests/integration/synth_lab/research_prfaq/test_export_formats.py`: test_export_to_markdown() - real file write, verify content [DEFERRED - Phase 7]
-- [ ] T038 [P] [US3] Create integration test in `tests/integration/synth_lab/research_prfaq/test_export_formats.py`: test_export_to_html() - real file write, verify content [DEFERRED - Phase 7]
-- [X] T039 [US3] Create `src/synth_lab/research_prfaq/exporter.py` with PRFAQExporter class:
+- [ ] T033 [US3] Create unit test in `tests/unit/synth_lab/research_prfaq/test_exporter.py`: test_markdown_formatter() - validates MD heading hierarchy and structure
+- [ ] T034 [P] [US3] Create unit test in `tests/unit/synth_lab/research_prfaq/test_exporter.py`: test_pdf_formatter_structure() - validates PDF output structure (mocked reportlab)
+- [ ] T036 [US3] Create integration test in `tests/integration/synth_lab/research_prfaq/test_export_formats.py`: test_export_to_pdf() - real reportlab call, verify file creation
+- [ ] T037 [P] [US3] Create integration test in `tests/integration/synth_lab/research_prfaq/test_export_formats.py`: test_export_to_markdown() - real file write, verify content
+- [ ] T039 [US3] Create `src/synth_lab/research_prfaq/exporter.py` with PRFAQExporter class:
   - __init__(template_dir=None)
   - export_to_pdf(prfaq: PRFAQDocument, output_path) → generates PDF using reportlab with:
     - Title: Press Release headline
@@ -242,87 +183,64 @@ User can execute `synthlab research-prfaq export --prfaq-id {id} --format <pdf|m
   - export_to_markdown(prfaq: PRFAQDocument, output_path) → generates Markdown with:
     - H1: Headline, H2: problem_statement, solution_overview, FAQ, Answer structure
     - Git-friendly formatting (proper indentation, code blocks if needed)
-  - export_to_html(prfaq: PRFAQDocument, output_path) → generates HTML with:
-    - Semantic tags (header, section, article)
-    - CSS styling (inline or external)
-    - Responsive layout
-- [X] T040 [US3] Create export command in `src/synth_lab/research_prfaq/cli.py`:
+  [ ] T040 [US3] Create export command in `src/synth_lab/research_prfaq/cli.py`:
   - @app.command() for "research-prfaq export"
-  - Arguments: --prfaq-id (required), --format (pdf|md|html), --output (optional)
+  - Arguments: --prfaq-id (required), --format (pdf|md), --output (optional)
   - Load PR-FAQ from JSON
   - Call PRFAQExporter.export_to_{format}()
   - Create timestamped exports directory if needed
   - Output: file path + confirmation
   - Error handling: invalid format, file write error
-- [X] T041 [P] [US3] Create jinja2 templates for Markdown and HTML export in `src/synth_lab/research_prfaq/templates/`:
+- [ ] T041 [P] [US3] Create jinja2 templates for Markdown export in `src/synth_lab/research_prfaq/templates/`:
   - `prfaq.md.j2` - Markdown template with variables for headline, problem_statement, faqs list
-  - `prfaq.html.j2` - HTML template with semantic structure
-- [X] T042 [P] [US3] Add reportlab/weasyprint dependency import and initialization in exporter.py (verify library choice from Phase 0 research.md)
+- [ ] T042 [P] [US3] Add reportlab/weasyprint dependency import and initialization in exporter.py (verify library choice from Phase 0 research.md)
 
 ### Success Validation
 
-- ✅ `uv run synthlab research-prfaq export test_batch_001 --format pdf` generates PDF file (VALIDATED: 3.7 KB)
-- ✅ `uv run synthlab research-prfaq export test_batch_001 --format md` generates Markdown file (VALIDATED: 1.9 KB)
-- ✅ `uv run synthlab research-prfaq export test_batch_001 --format html` generates HTML file (VALIDATED: 7.9 KB)
-- ✅ All exports written to `data/outputs/prfaq/{batch_id}_exports/` (VALIDATED)
-- ✅ Files are readable and properly formatted (VALIDATED: Markdown shows proper structure)
-- ✅ Exporter module validation passed (4/4 tests with real data)
-- ✅ CLI export command functional across all 3 formats (VALIDATED)
-- [ ] All unit tests pass (mocked) [DEFERRED - Phase 7]
-- [ ] All integration tests pass (real file generation) [DEFERRED - Phase 7]
-- [ ] Fast test battery passes [DEFERRED - Phase 7]
+- ✅ `uv run synthlab research-prfaq export --prfaq-id {id} --format pdf` generates PDF file
+- ✅ `uv run synthlab research-prfaq export --prfaq-id {id} --format markdown` generates Markdown file
+- ✅ All exports written to `data/outputs/prfaq/{id}_exports/`
+- ✅ Files are readable and properly formatted
+- ✅ All unit tests pass (mocked)
+- ✅ All integration tests pass (real file generation)
+- ✅ Fast test battery passes
 
 ---
 
-## Phase 6: User Story 4 - View PR-FAQ Generation History (P3)
+## Phase 6: User Story 4 - Discover & List PR-FAQ Documents (P3)
 
-Enable users to discover, list, and compare PR-FAQ documents with version tracking and generation history.
+Enable users to discover and list generated PR-FAQ documents with basic metadata.
 
 ### Story Goal
 
-Users can execute `synthlab research-prfaq list` and `synthlab research-prfaq history --batch-id {id}` to view all generated PR-FAQs and track evolution over time.
+Users can execute `synthlab research-prfaq list` to view all generated PR-FAQs with basic information (ID, Batch ID, Created date).
 
 ### Independent Test Criteria
 
 ✅ List command discovers all PR-FAQ files in `data/outputs/prfaq/`
-✅ List displays: ID, Batch ID, Created, Modified, Status (valid/edited/needs_review)
-✅ History command shows version timeline with all generated + edited versions
-✅ Version diffs display field changes (old_value → new_value)
-✅ Batch ID filtering works in list command
+✅ List displays: ID, Batch ID, Created timestamp
+✅ Batch ID filtering works with --batch-id option
+✅ Sorting works (--sort created|modified)
+✅ Pagination works (--page, --limit)
 
 ### Tasks
 
-- [ ] T043 [US4] Create unit test in `tests/unit/synth_lab/research_prfaq/test_cli.py`: test_list_command_parsing() - validates output formatting
-- [ ] T044 [P] [US4] Create unit test in `tests/unit/synth_lab/research_prfaq/test_cli.py`: test_history_command_diff_calculation() - validates version comparison logic
-- [ ] T045 [US4] Create history/discovery utilities in `src/synth_lab/research_prfaq/generator.py` or separate module:
-  - discover_prfaqs(output_dir="data/outputs/prfaq/") → scans directory, returns list of PRFAQDocument metadata (id, batch_id, created, modified, status)
-  - get_prfaq_history(batch_id) → reads all versions from .versions/ directory, returns version timeline with diffs
-  - calculate_version_diff(old_prfaq, new_prfaq) → compares versions, returns list of field changes
-- [ ] T046 [US4] Create list command in `src/synth_lab/research_prfaq/cli.py`:
+- [ ] T043 [US4] Create unit test in `tests/unit/synth_lab/research_prfaq/test_cli.py`: test_list_command_parsing() - validates output formatting and filtering
+- [ ] T044 [US4] Create discovery utilities in `src/synth_lab/research_prfaq/generator.py` or separate module:
+  - discover_prfaqs(output_dir="data/outputs/prfaq/") → scans directory, returns list of PRFAQ metadata (id, batch_id, created)
+  - get_prfaq_metadata(file_path) → reads metadata from JSON file
+- [ ] T045 [US4] Create list command in `src/synth_lab/research_prfaq/cli.py`:
   - @app.command() for "research-prfaq list"
-  - Optional arguments: --batch-id (filter), --sort (created|modified)
+  - Optional arguments: --batch-id (filter), --sort (created|modified), --page, --limit
   - Call discover_prfaqs()
-  - Format as Rich table: ID | Batch ID | Created | Modified | Status
-  - Support pagination (e.g., --page 1 --limit 10)
+  - Format as Rich table: ID | Batch ID | Created
   - Output: table + summary (total count)
-- [ ] T047 [US4] Create history command in `src/synth_lab/research_prfaq/cli.py`:
-  - @app.command() for "research-prfaq history"
-  - Required argument: --batch-id
-  - Call get_prfaq_history()
-  - Display version timeline with:
-    - Version number, timestamp, generation method (auto/manual-edit)
-    - Summary of changes per version
-    - Option to show detailed diff: --verbose
-  - Output: formatted timeline
-- [ ] T048 [P] [US4] Create version diff formatter: display old_value → new_value for each field change
-- [ ] T049 [US4] Add version persistence: modify save_prfaq_json() to also write version to `.versions/{batch_id}_{version_number}.json`
 
 ### Success Validation
 
 - ✅ `uv run synthlab research-prfaq list` displays all PR-FAQs in table format
 - ✅ `uv run synthlab research-prfaq list --batch-id {id}` filters results
-- ✅ `uv run synthlab research-prfaq history --batch-id {id}` shows version timeline
-- ✅ Version diffs display field changes clearly
+- ✅ Pagination and sorting work correctly
 - ✅ Unit tests pass
 - ✅ Output formatting is clean and readable
 
@@ -349,15 +267,6 @@ Complete documentation, integration, performance optimization, and final testing
   - List all 5 commands with examples
   - Usage examples for each user story
   - Link to quickstart.md
-- [ ] T051 [P] Create `specs/009-research-prfaq/quickstart.md` (from plan.md Section 1.3):
-  - Workflow diagram: research-batch → PR-FAQ → export
-  - Example commands for each user story
-  - Expected outputs and files
-  - Troubleshooting section
-- [ ] T052 [P] Create `specs/009-research-prfaq/data-model.md` (from plan.md Section 1.1):
-  - Entity definitions with all fields, types, relationships
-  - State transition diagram (generated → valid → edited → exported)
-  - Example JSON for each entity
 - [ ] T053 Create final integration test in `tests/integration/synth_lab/research_prfaq/test_prfaq_generation_e2e.py`: test_complete_workflow_e2e() - batch → generate → edit → export (all 4 user stories)
 - [ ] T054 [P] Create performance test in `tests/integration/synth_lab/research_prfaq/test_prfaq_generation_e2e.py`: test_generation_performance() - verify <2 min for 5000+ word report (SC-001)
 - [ ] T055 [P] Create performance test: test_export_performance() - verify <10s per format (SC-005)
@@ -372,7 +281,7 @@ Complete documentation, integration, performance optimization, and final testing
   - exporter.export_*() → log file creation + format-specific details
   - cli commands → log command execution + results
 - [ ] T058 Create `src/synth_lab/research_prfaq/constants.py` with:
-  - DEFAULT_MODEL = "gpt-4o"
+  - DEFAULT_MODEL = "gpt-5-mini"
   - CONFIDENCE_THRESHOLD = 0.75
   - FAQ_MIN_COUNT, FAQ_MAX_COUNT = 8, 12
   - OUTPUT_DIR = "data/outputs/prfaq/"
@@ -439,14 +348,14 @@ T017-T049 → T050-T064 (Phase 7)
 
 ## Summary Statistics
 
-- **Total Tasks**: 64
+- **Total Tasks**: 58
 - **Setup Phase**: 10 tasks
 - **Foundational Phase**: 6 tasks
-- **User Story Phases**: 48 tasks
+- **User Story Phases**: 42 tasks
   - US1 (P1 - Generate): 9 tasks
   - US2 (P2 - Edit): 7 tasks
   - US3 (P2 - Export): 10 tasks
-  - US4 (P3 - History): 7 tasks
+  - US4 (P3 - Discover/List): 3 tasks
 - **Polish Phase**: 15 tasks
 
 - **Parallelizable Tasks**: 38 (marked with [P])
@@ -462,10 +371,10 @@ T017-T049 → T050-T064 (Phase 7)
 | **US1 - Generate** | 2 | 1 | 1 | 1 | 5 |
 | **US2 - Edit** | 1 | 1 | - | 1 | 3 |
 | **US3 - Export** | 3 | 3 | - | 1 | 7 |
-| **US4 - History** | 2 | 1 | - | - | 3 |
+| **US4 - Discover/List** | 1 | - | - | - | 1 |
 | **Foundational** | 3 | 1 | 1 | - | 5 |
 | **Polish** | - | 2 | - | 1 | 3 |
-| **Total** | 11 | 9 | 2 | 4 | 26 tests |
+| **Total** | 9 | 8 | 2 | 4 | 23 tests |
 
 ---
 
