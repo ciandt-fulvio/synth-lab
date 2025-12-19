@@ -460,6 +460,24 @@ body {
 /* Detail Sections */
 .detail-section {
     margin-bottom: 24px;
+    padding-left: 12px;
+    border-left: 3px solid #e2e8f0;
+}
+
+/* Color-coded sections */
+.detail-section.section-request {
+    border-left-color: #48bb78;
+}
+
+.detail-section.section-response,
+.detail-section.section-raw_response,
+.detail-section.section-final_response {
+    border-left-color: #4299e1;
+}
+
+.detail-section.section-error,
+.detail-section.section-error-message {
+    border-left-color: #f56565;
 }
 
 .detail-label {
