@@ -87,7 +87,7 @@ def validate_synth_exists(synth_id: str) -> bool:
 
 
 @app.command()
-def research(
+def interview(
     synth_id: str = typer.Argument(
         ..., help="ID do synth a ser entrevistado (6 caracteres)"
     ),
