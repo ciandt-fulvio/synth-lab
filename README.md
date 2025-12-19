@@ -19,9 +19,10 @@ Criar Synths representativos da população brasileira para:
 
 ### Interface CLI Moderna
 - 🎨 **Saída colorida e formatada** com biblioteca Rich
-- ⚡ **Comandos intuitivos**: `synthlab gensynth -n 100`, `synthlab listsynth`, `synthlab research`, `synthlab topic-guide`
+- ⚡ **Comandos intuitivos**: `synthlab gensynth`, `synthlab listsynth`, `synthlab research`, `synthlab research-batch`, `synthlab topic-guide`
 - 🖼️ **Geração de avatares** via OpenAI API com controle de blocos (9 avatares por bloco)
 - 🎤 **Entrevistas de UX simuladas** com LLMs conversando (interviewer + synth)
+- 🔥 **Pesquisa em Batch** - Entrevistas paralelas com múltiplos synths e sumarização automática
 - 📚 **Topic Guides com IA** - Organize materiais de contexto (imagens, PDFs, documentos) e gere descrições automáticas para entrevistas
 - 📊 **Benchmark integrado** para análise de performance
 - 🔇 **Modo silencioso** para integração em pipelines
@@ -78,6 +79,8 @@ uv run synthlab --version
 uv run synthlab gensynth --help
 uv run synthlab listsynth --help
 uv run synthlab research --help
+uv run synthlab research-batch --help
+uv run synthlab topic-guide --help
 ```
 
 ### Comandos Disponíveis
@@ -243,6 +246,7 @@ uv run synthlab topic-guide show --name amazon-ecommerce
 
 #### Entrevistas de Pesquisa UX
 
+**Entrevista Individual**:
 ```bash
 # Realizar entrevista com um synth usando topic guide
 uv run synthlab research abc123 compra-amazon
@@ -256,6 +260,40 @@ uv run synthlab research abc123 compra-amazon \
 # Ver transcrição salva
 cat data/transcripts/abc123_20251216_143052.json
 ```
+
+**🔥 NOVO: Pesquisa em Batch com Múltiplos Synths**:
+```bash
+# Executar entrevistas com múltiplos synths (paralelização automática)
+uv run synthlab research-batch compra-amazon \
+  --synth-ids abc123,xyz789,def456 \
+  --max-rounds 15 \
+  --model gpt-4o-mini
+
+# Pesquisa em batch com múltiplos synths (auto-detecta sintetizadores sem entrevista)
+uv run synthlab research-batch compra-amazon \
+  --limit 10  # Entrevista com os primeiros 10 synths sem transcrição
+
+# Executar com todas as opções
+uv run synthlab research-batch compra-amazon \
+  --synth-ids abc123,xyz789,def456,ghi012 \
+  --max-rounds 12 \
+  --model gpt-4o \
+  --output data/minhas-pesquisas/ \
+  --summary
+
+# Com indicadores de progresso e sumarização automática
+uv run synthlab research-batch amazon-ecommerce \
+  --limit 20 \
+  --summary  # Gera arquivo summary.json com insights agregados
+```
+
+**Características da Pesquisa em Batch**:
+- ⚡ **Paralelização automática**: Múltiplas entrevistas simultâneas (com rate limiting)
+- 📊 **Sumarização automática**: Gera `batch_summary.json` com insights agregados
+- 🔄 **Retry automático**: Trata rate limits e erros transitórios
+- 📁 **Saída organizada**: Todas as transcrições em subdiretório com timestamp
+- 🎯 **Filtros flexíveis**: Por IDs específicos, limite, ou auto-detecção
+- 📈 **Progress reporting**: Barra de progresso em tempo real
 
 > **Nota**: Requer `OPENAI_API_KEY` configurada. As entrevistas usam dois LLMs em conversa - um como entrevistador UX e outro como o synth (persona), com comportamento baseado no Big Five personality. Transcrições são salvas automaticamente em JSON.
 >
@@ -527,7 +565,7 @@ Veja o notebook `first-lab.ipynb` para exemplos de análise exploratória dos Sy
 
 ### Casos de Uso
 
-**1. Pesquisa UX Qualitativa com Topic Guides**
+**1. Pesquisa UX Qualitativa com Topic Guides e Batch Research**
 ```bash
 # Criar topic guide com materiais de contexto
 uv run synthlab topic-guide create --name mobile-banking
@@ -537,23 +575,55 @@ cp user-flows/*.pdf data/topic_guides/mobile-banking/
 # Gerar descrições automáticas das telas e documentos
 uv run synthlab topic-guide update --name mobile-banking
 
-# Entrevista com contexto visual (LLM vê descrições das imagens)
-uv run synthlab research abc123 --topic-guide mobile-banking
+# NOVO: Entrevistas em batch com múltiplos synths (paralelização automática)
+uv run synthlab research-batch mobile-banking \
+  --limit 15 \
+  --max-rounds 10 \
+  --summary  # Gera insights agregados automaticamente
 
-# Múltiplas entrevistas para saturação de dados
-for synth_id in abc123 xyz789 def456; do
-  uv run synthlab research $synth_id --topic-guide mobile-banking
-done
+# Ou com synths específicos
+uv run synthlab research-batch mobile-banking \
+  --synth-ids abc123,xyz789,def456,ghi012,jkl345 \
+  --summary
+
+# Ver resumo agregado
+cat data/transcripts/mobile-banking_batch_20251216_143052/batch_summary.json
 
 # Análise de transcrições (Python)
 import json
 from pathlib import Path
 
-transcripts = [json.loads(p.read_text()) for p in Path("data/transcripts").glob("*.json")]
+transcripts = [json.loads(p.read_text()) for p in Path("data/transcripts/mobile-banking_batch_20251216_143052").glob("*.json")]
 # Análise qualitativa: temas recorrentes, pain points, insights
 ```
 
-**2. Análise Demográfica com SQL**
+**2. 🖼️ NOVO: Geração de Avatares Realistas para Personas**
+```bash
+# Gerar synths com avatares (9 por bloco)
+uv run synthlab gensynth -n 9 --avatar
+
+# Gerar múltiplos blocos de avatares (45 avatares = 5 blocos)
+uv run synthlab gensynth -n 45 --avatar
+
+# Gerar avatares para synths existentes que ainda não possuem
+uv run synthlab gensynth --avatar
+
+# Gerar avatares para synths específicos
+uv run synthlab gensynth --avatar --synth-ids abc123,xyz789,def456
+
+# Combinar com análise de distribuição
+uv run synthlab gensynth -n 18 --avatar --analyze all --benchmark
+```
+
+**Características dos Avatares**:
+- 🎨 Imagens realistas de 341x341px em PNG
+- 👥 Diversidade demográfica precisa (idade, gênero, etnia)
+- 💼 Backgrounds relacionados à profissão
+- 🎭 Múltiplos estilos visuais (B&W, sepia, warm, cool, 3D)
+- 📁 Salvos em: `data/synths/avatar/{synth-id}.png`
+- 💰 ~$0.02 por bloco de 9 avatares usando OpenAI API
+
+**3. Análise Demográfica com SQL**
 ```bash
 # Distribuição por região
 uv run synthlab listsynth --full-query "SELECT demografia.localizacao.regiao as regiao, COUNT(*) as total FROM synths GROUP BY regiao ORDER BY total DESC"
@@ -565,7 +635,7 @@ uv run synthlab listsynth --full-query "SELECT demografia.escolaridade, AVG(demo
 uv run synthlab listsynth --where "demografia.renda_mensal > 10000 AND demografia.escolaridade = 'Superior completo'"
 ```
 
-**3. Testes de UX/UI**
+**4. Testes de UX/UI**
 ```bash
 # Selecionar Synths com baixa alfabetização digital
 uv run synthlab listsynth --where "capacidades_tecnologicas.alfabetizacao_digital < 40"
@@ -574,7 +644,7 @@ uv run synthlab listsynth --where "capacidades_tecnologicas.alfabetizacao_digita
 uv run synthlab listsynth --full-query "SELECT nome, demografia.idade, demografia.localizacao.cidade FROM synths WHERE deficiencias.visual.tipo != 'nenhuma'"
 ```
 
-**4. Segmentação de Mercado**
+**5. Segmentação de Mercado**
 ```bash
 # Jovens da região Sudeste
 uv run synthlab listsynth --where "demografia.idade BETWEEN 18 AND 35 AND demografia.localizacao.regiao = 'Sudeste'"
@@ -583,7 +653,7 @@ uv run synthlab listsynth --where "demografia.idade BETWEEN 18 AND 35 AND demogr
 uv run synthlab listsynth --where "capacidades_tecnologicas.alfabetizacao_digital > 70 AND demografia.renda_mensal > 5000"
 ```
 
-**5. Análise Comportamental**
+**6. Análise Comportamental**
 ```python
 # Usar Python para análise mais complexa
 import json
