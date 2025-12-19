@@ -1,0 +1,35 @@
+# {{ headline }}
+
+> {{ one_liner }}
+
+---
+
+## Problem
+
+{{ problem_statement }}
+
+## Solution
+
+{{ solution_overview }}
+
+---
+
+## FAQ
+
+{% for item in faq %}
+### {{ loop.index }}. {{ item.question }}
+
+{{ item.answer }}
+
+*Customer Segment: {{ item.customer_segment }}*
+
+{% endfor %}
+
+---
+
+## Metadata
+
+- **Batch ID**: {{ batch_id }}
+- **Generated**: {{ generated_at }}
+- **Version**: {{ version }}
+- **Confidence Score**: {{ "%.2f"|format(confidence_score) }}

@@ -27,6 +27,7 @@ from rich.markdown import Markdown
 
 from synth_lab.research_prfaq.models import setup_logging, parse_batch_summary
 from synth_lab.research_prfaq.generator import generate_prfaq, save_prfaq_json, load_prfaq_json
+from synth_lab.research_prfaq.exporter import export_to_pdf, export_to_markdown, export_to_html
 
 app = typer.Typer()
 console = Console()
@@ -122,12 +123,108 @@ def edit(
 
 @app.command()
 def export(
-    prfaq_id: str = typer.Argument(..., help="PR-FAQ document ID"),
-    format: str = typer.Option("pdf", "--format", "-f", help="Export format: pdf, markdown, html"),
+    batch_id: str = typer.Argument(..., help="Batch ID of PR-FAQ document to export"),
+    format: str = typer.Option("pdf", "--format", "-f", help="Export format: pdf, md, html"),
+    output_dir: str = typer.Option("data/outputs/prfaq", "--output-dir", "-o", help="Base output directory"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logging"),
 ):
-    """Export PR-FAQ to specified format."""
-    # Stub implementation - Phase 5
-    raise NotImplementedError("export command is implemented in Phase 5")
+    """Export PR-FAQ to PDF, Markdown, or HTML format.
+
+    Exports an existing PR-FAQ document to the specified format for different use cases:
+    - pdf: Professional presentations and email distribution
+    - md: Git-friendly version control and wikis
+    - html: Internal documentation and interactive consumption
+
+    Example:
+        synthlab research-prfaq export batch_001 --format pdf
+        synthlab research-prfaq export batch_001 --format md
+        synthlab research-prfaq export batch_001 --format html
+    """
+    # Setup logging
+    if verbose:
+        setup_logging()
+
+    # Normalize format aliases
+    format_map = {
+        "pdf": "pdf",
+        "md": "markdown",
+        "markdown": "markdown",
+        "html": "html",
+        "htm": "html"
+    }
+
+    if format.lower() not in format_map:
+        console.print(f"[red]✗ Invalid format:[/red] {format}")
+        console.print(f"[yellow]Valid formats:[/yellow] pdf, md (markdown), html")
+        raise typer.Exit(code=1)
+
+    export_format = format_map[format.lower()]
+
+    try:
+        # Load PR-FAQ document
+        console.print(f"[cyan]Loading PR-FAQ:[/cyan] {batch_id}")
+        prfaq = load_prfaq_json(batch_id, output_dir=output_dir)
+
+        console.print(f"[green]✓[/green] Loaded PR-FAQ: {prfaq.press_release.headline}")
+
+        # Create exports directory
+        from pathlib import Path
+        exports_dir = Path(output_dir) / f"{batch_id}_exports"
+        exports_dir.mkdir(parents=True, exist_ok=True)
+
+        # Export based on format
+        console.print(f"[cyan]Exporting to {export_format.upper()} format...[/cyan]")
+
+        if export_format == "pdf":
+            output_path = export_to_pdf(prfaq, exports_dir / f"{batch_id}_prfaq.pdf")
+            format_icon = "📄"
+        elif export_format == "markdown":
+            output_path = export_to_markdown(prfaq, exports_dir / f"{batch_id}_prfaq.md")
+            format_icon = "📝"
+        elif export_format == "html":
+            output_path = export_to_html(prfaq, exports_dir / f"{batch_id}_prfaq.html")
+            format_icon = "🌐"
+
+        # Display success message with file info
+        file_size = output_path.stat().st_size
+        size_kb = file_size / 1024
+
+        console.print(f"\n[green]✓ Export complete![/green]")
+        console.print(Panel(
+            f"{format_icon} [bold]{export_format.upper()}[/bold] export successful\n\n"
+            f"[cyan]File:[/cyan] {output_path}\n"
+            f"[cyan]Size:[/cyan] {size_kb:.1f} KB\n"
+            f"[cyan]Format:[/cyan] {export_format}",
+            border_style="green",
+            title="Export Summary"
+        ))
+
+        # Display PR-FAQ metadata
+        table = Table(title="PR-FAQ Metadata")
+        table.add_column("Field", style="cyan")
+        table.add_column("Value", style="white")
+
+        table.add_row("Batch ID", prfaq.batch_id)
+        table.add_row("Headline", prfaq.press_release.headline)
+        table.add_row("FAQ Items", str(len(prfaq.faq)))
+        table.add_row("Version", str(prfaq.version))
+        table.add_row("Confidence", f"{prfaq.confidence_score:.2%}")
+        table.add_row("Generated", prfaq.generated_at.strftime('%Y-%m-%d %H:%M:%S'))
+
+        console.print(table)
+
+    except FileNotFoundError as e:
+        console.print(f"[red]✗ Error:[/red] {str(e)}")
+        console.print(f"[yellow]Tip:[/yellow] Ensure PR-FAQ exists at {output_dir}/{batch_id}_prfaq.json")
+        console.print(f"[yellow]Generate it first:[/yellow] synthlab research-prfaq generate {batch_id}")
+        raise typer.Exit(code=1)
+
+    except Exception as e:
+        console.print(f"[red]✗ Export failed:[/red] {str(e)}")
+        if verbose:
+            import traceback
+            console.print(traceback.format_exc())
+        raise typer.Exit(code=1)
 
 
 @app.command()
