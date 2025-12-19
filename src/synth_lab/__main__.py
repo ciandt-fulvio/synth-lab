@@ -127,6 +127,14 @@ def create_parser() -> argparse.ArgumentParser:
         add_help=False  # Let Typer handle --help
     )
 
+    # research-prfaq subcommand
+    # research-prfaq has its own Typer sub-app with multiple commands (generate, edit, export, list, history)
+    # We use parse_known_args to pass remaining args to Typer
+    subparsers.add_parser(
+        "research-prfaq", help="Generate PR-FAQ documents from research batch reports",
+        add_help=False  # Let Typer handle --help
+    )
+
     return parser
 
 
@@ -211,6 +219,16 @@ def main():
         # Reset sys.argv to pass remaining args to Typer
         sys.argv = ["synthlab topic-guide"] + unknown_args
         topic_guide_app()
+
+    # Handle research-prfaq command
+    if args.command == "research-prfaq":
+        # Import here to avoid circular imports and speed up --help
+        from synth_lab.research_prfaq.cli import app as research_prfaq_app
+
+        # Typer will handle all subcommands (generate, edit, export, list, history)
+        # Reset sys.argv to pass remaining args to Typer
+        sys.argv = ["synthlab research-prfaq"] + unknown_args
+        research_prfaq_app()
 
 
 if __name__ == "__main__":

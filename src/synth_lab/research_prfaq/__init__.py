@@ -47,7 +47,7 @@ from synth_lab.research_prfaq.models import (
     setup_logging,
     parse_batch_summary,
 )
-from synth_lab.research_prfaq.generator import generate_prfaq
+from synth_lab.research_prfaq.generator import generate_prfaq, save_prfaq_json, load_prfaq_json
 from synth_lab.research_prfaq.exporter import export_to_pdf, export_to_markdown, export_to_html
 from synth_lab.research_prfaq.validator import validate_prfaq, validate_research_report
 
@@ -59,6 +59,8 @@ __all__ = [
     "setup_logging",
     "parse_batch_summary",
     "generate_prfaq",
+    "save_prfaq_json",
+    "load_prfaq_json",
     "export_to_pdf",
     "export_to_markdown",
     "export_to_html",

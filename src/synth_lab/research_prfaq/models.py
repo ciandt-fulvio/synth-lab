@@ -136,7 +136,7 @@ class PRFAQDocument(BaseModel):
     batch_id: str = Field(..., description="Source batch ID")
     press_release: PressRelease = Field(..., description="Press release section")
     faq: list[FAQItem] = Field(..., description="FAQ items (8-12 questions)")
-    generated_at: datetime = Field(default_factory=datetime.utcnow)
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(datetime.UTC) if hasattr(datetime, 'UTC') else datetime.utcnow())
     version: int = Field(default=1, description="Version number")
     edit_history: list[Dict[str, Any]] = Field(
         default_factory=list,
@@ -196,7 +196,7 @@ class GenerationMetadata(BaseModel):
     )
 
     batch_id: str = Field(..., description="Source batch ID")
-    generation_timestamp: datetime = Field(default_factory=datetime.utcnow)
+    generation_timestamp: datetime = Field(default_factory=lambda: datetime.now(datetime.UTC) if hasattr(datetime, 'UTC') else datetime.utcnow())
     model_used: str = Field(default="gpt-4", description="LLM model identifier")
     prompt_strategy: str = Field(
         default="hybrid_chain_of_thought_structured_output",
