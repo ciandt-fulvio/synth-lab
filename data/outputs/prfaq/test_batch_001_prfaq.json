@@ -1,56 +1,56 @@
 {
   "batch_id": "test_batch_001",
   "press_release": {
-    "headline": "Introducing DocSynth: Revolutionizing B2B SaaS Research with Automated PR-FAQ Generation",
-    "one_liner": "AI-driven tool that transforms interview data into PR-FAQ documents, minimizing manual effort and ensuring consistency.",
-    "problem_statement": "Product Managers at B2B SaaS companies are overwhelmed with manual document coordination, spending 40% of their time on repetitive tasks and facing confusion from version chaos across platforms like email, Slack, and Google Docs.",
-    "solution_overview": "DocSynth automates the synthesis of research interviews into standardized PR-FAQ documents, reducing time spent on manual tasks from weeks to days, while providing robust version control, collaboration features, and multiple export formats to meet diverse enterprise security and compliance needs."
+    "headline": "Introducing ResearchSync: Transform Customer Interviews into Strategic Documents",
+    "one_liner": "AI-powered synthesis of customer research into actionable PR-FAQ documents",
+    "problem_statement": "Product teams spend 40% of their time manually consolidating customer research, with synthesis taking 3-5 weeks per project.",
+    "solution_overview": "ResearchSync automates research synthesis, generating PR-FAQ documents in hours with standardized format and version control."
   },
   "faq": [
     {
-      "question": "How does DocSynth save time for Product Managers?",
-      "answer": "DocSynth cuts down the manual synthesis process from 3-5 weeks to just a few days by automatically generating PR-FAQ documents from interview data, allowing Product Managers to focus on strategic tasks.",
+      "question": "How much time does ResearchSync save?",
+      "answer": "ResearchSync reduces synthesis time from 3-5 weeks to 2-3 days, saving 80+ hours per project.",
       "customer_segment": "Product Manager"
     },
     {
-      "question": "What are the key features of DocSynth?",
-      "answer": "DocSynth offers automated PR-FAQ generation, standardized documentation formats, version control, collaboration features, and supports export to PDF, Markdown, and HTML.",
+      "question": "Can teams collaborate on documents?",
+      "answer": "Yes, with built-in editing tools, version history, and commenting for real-time collaboration.",
       "customer_segment": "Product Manager"
     },
     {
-      "question": "How does DocSynth handle security and compliance?",
-      "answer": "DocSynth is built with a security-first architecture that complies with SOC2, HIPAA, and GDPR standards, ensuring that enterprise security teams can trust the platform with sensitive data.",
-      "customer_segment": "Enterprise Security Team"
+      "question": "What format does ResearchSync output?",
+      "answer": "PR-FAQ documents are generated in JSON format and can be exported to PDF, Markdown, and HTML.",
+      "customer_segment": "Technical Lead"
     },
     {
-      "question": "Can DocSynth integrate with existing enterprise tools?",
-      "answer": "Yes, DocSynth offers pre-built integrations with Slack, Jira, and Confluence, simplifying the integration complexity with existing enterprise tools.",
-      "customer_segment": "IT Administrator"
+      "question": "How accurate are the AI-generated insights?",
+      "answer": "Each PR-FAQ includes a confidence score (0-1) based on research completeness.",
+      "customer_segment": "UX Researcher"
     },
     {
-      "question": "How does DocSynth ensure document consistency and version control?",
-      "answer": "DocSynth standardizes document formats across projects and provides robust version control features, reducing confusion from document version chaos.",
+      "question": "Can I customize the PR-FAQ template?",
+      "answer": "Yes, the minimal PR-FAQ format can be customized via Jinja2 templates.",
+      "customer_segment": "Technical Lead"
+    },
+    {
+      "question": "What customer segments are identified?",
+      "answer": "Each FAQ item is linked to synth persona archetypes based on research findings.",
+      "customer_segment": "UX Researcher"
+    },
+    {
+      "question": "How is version control handled?",
+      "answer": "All PR-FAQ edits are tracked with timestamps and version numbers.",
       "customer_segment": "Product Manager"
     },
     {
-      "question": "What pricing options are available for different team sizes?",
-      "answer": "DocSynth offers flexible pricing tailored to small teams and enterprise deployments, making it a cost-effective solution for teams of all sizes.",
-      "customer_segment": "Finance"
-    },
-    {
-      "question": "What support does DocSynth provide for small teams?",
-      "answer": "For small teams, DocSynth emphasizes ease-of-use and quick setup, allowing them to get started with minimal hassle.",
-      "customer_segment": "Small Team Enthusiast"
-    },
-    {
-      "question": "Why choose DocSynth over traditional methods?",
-      "answer": "DocSynth not only automates repetitive tasks but also enhances pattern recognition across projects by ensuring consistency, which is crucial for strategic decision-making.",
-      "customer_segment": "Product Manager"
+      "question": "What happens if the research batch has incomplete data?",
+      "answer": "The generator extracts insights from available sections and flags missing data.",
+      "customer_segment": "UX Researcher"
     }
   ],
-  "generated_at": "2025-12-19T12:43:42.952201",
+  "generated_at": "2025-12-19T13:14:50.760962",
   "version": 1,
   "edit_history": [],
   "validation_status": "valid",
-  "confidence_score": 0.9924999999999999
+  "confidence_score": 0.87
 }

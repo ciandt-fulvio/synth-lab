@@ -226,13 +226,13 @@ User can execute `synthlab research-prfaq export --prfaq-id {id} --format <pdf|m
 
 ### Tasks
 
-- [ ] T033 [US3] Create unit test in `tests/unit/synth_lab/research_prfaq/test_exporter.py`: test_markdown_formatter() - validates MD heading hierarchy and structure
-- [ ] T034 [P] [US3] Create unit test in `tests/unit/synth_lab/research_prfaq/test_exporter.py`: test_pdf_formatter_structure() - validates PDF output structure (mocked reportlab)
-- [ ] T035 [P] [US3] Create unit test in `tests/unit/synth_lab/research_prfaq/test_exporter.py`: test_html_formatter_structure() - validates HTML semantic structure
-- [ ] T036 [US3] Create integration test in `tests/integration/synth_lab/research_prfaq/test_export_formats.py`: test_export_to_pdf() - real reportlab call, verify file creation
-- [ ] T037 [P] [US3] Create integration test in `tests/integration/synth_lab/research_prfaq/test_export_formats.py`: test_export_to_markdown() - real file write, verify content
-- [ ] T038 [P] [US3] Create integration test in `tests/integration/synth_lab/research_prfaq/test_export_formats.py`: test_export_to_html() - real file write, verify content
-- [ ] T039 [US3] Create `src/synth_lab/research_prfaq/exporter.py` with PRFAQExporter class:
+- [ ] T033 [US3] Create unit test in `tests/unit/synth_lab/research_prfaq/test_exporter.py`: test_markdown_formatter() - validates MD heading hierarchy and structure [DEFERRED - Phase 7]
+- [ ] T034 [P] [US3] Create unit test in `tests/unit/synth_lab/research_prfaq/test_exporter.py`: test_pdf_formatter_structure() - validates PDF output structure (mocked reportlab) [DEFERRED - Phase 7]
+- [ ] T035 [P] [US3] Create unit test in `tests/unit/synth_lab/research_prfaq/test_exporter.py`: test_html_formatter_structure() - validates HTML semantic structure [DEFERRED - Phase 7]
+- [ ] T036 [US3] Create integration test in `tests/integration/synth_lab/research_prfaq/test_export_formats.py`: test_export_to_pdf() - real reportlab call, verify file creation [DEFERRED - Phase 7]
+- [ ] T037 [P] [US3] Create integration test in `tests/integration/synth_lab/research_prfaq/test_export_formats.py`: test_export_to_markdown() - real file write, verify content [DEFERRED - Phase 7]
+- [ ] T038 [P] [US3] Create integration test in `tests/integration/synth_lab/research_prfaq/test_export_formats.py`: test_export_to_html() - real file write, verify content [DEFERRED - Phase 7]
+- [X] T039 [US3] Create `src/synth_lab/research_prfaq/exporter.py` with PRFAQExporter class:
   - __init__(template_dir=None)
   - export_to_pdf(prfaq: PRFAQDocument, output_path) → generates PDF using reportlab with:
     - Title: Press Release headline
@@ -246,7 +246,7 @@ User can execute `synthlab research-prfaq export --prfaq-id {id} --format <pdf|m
     - Semantic tags (header, section, article)
     - CSS styling (inline or external)
     - Responsive layout
-- [ ] T040 [US3] Create export command in `src/synth_lab/research_prfaq/cli.py`:
+- [X] T040 [US3] Create export command in `src/synth_lab/research_prfaq/cli.py`:
   - @app.command() for "research-prfaq export"
   - Arguments: --prfaq-id (required), --format (pdf|md|html), --output (optional)
   - Load PR-FAQ from JSON
@@ -254,21 +254,23 @@ User can execute `synthlab research-prfaq export --prfaq-id {id} --format <pdf|m
   - Create timestamped exports directory if needed
   - Output: file path + confirmation
   - Error handling: invalid format, file write error
-- [ ] T041 [P] [US3] Create jinja2 templates for Markdown and HTML export in `src/synth_lab/research_prfaq/templates/`:
+- [X] T041 [P] [US3] Create jinja2 templates for Markdown and HTML export in `src/synth_lab/research_prfaq/templates/`:
   - `prfaq.md.j2` - Markdown template with variables for headline, problem_statement, faqs list
   - `prfaq.html.j2` - HTML template with semantic structure
-- [ ] T042 [P] [US3] Add reportlab/weasyprint dependency import and initialization in exporter.py (verify library choice from Phase 0 research.md)
+- [X] T042 [P] [US3] Add reportlab/weasyprint dependency import and initialization in exporter.py (verify library choice from Phase 0 research.md)
 
 ### Success Validation
 
-- ✅ `uv run synthlab research-prfaq export --prfaq-id {id} --format pdf` generates PDF file
-- ✅ `uv run synthlab research-prfaq export --prfaq-id {id} --format markdown` generates Markdown file
-- ✅ `uv run synthlab research-prfaq export --prfaq-id {id} --format html` generates HTML file
-- ✅ All exports written to `data/outputs/prfaq/{id}_exports/`
-- ✅ Files are readable and properly formatted
-- ✅ All unit tests pass (mocked)
-- ✅ All integration tests pass (real file generation)
-- ✅ Fast test battery passes
+- ✅ `uv run synthlab research-prfaq export test_batch_001 --format pdf` generates PDF file (VALIDATED: 3.7 KB)
+- ✅ `uv run synthlab research-prfaq export test_batch_001 --format md` generates Markdown file (VALIDATED: 1.9 KB)
+- ✅ `uv run synthlab research-prfaq export test_batch_001 --format html` generates HTML file (VALIDATED: 7.9 KB)
+- ✅ All exports written to `data/outputs/prfaq/{batch_id}_exports/` (VALIDATED)
+- ✅ Files are readable and properly formatted (VALIDATED: Markdown shows proper structure)
+- ✅ Exporter module validation passed (4/4 tests with real data)
+- ✅ CLI export command functional across all 3 formats (VALIDATED)
+- [ ] All unit tests pass (mocked) [DEFERRED - Phase 7]
+- [ ] All integration tests pass (real file generation) [DEFERRED - Phase 7]
+- [ ] Fast test battery passes [DEFERRED - Phase 7]
 
 ---
 

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Introducing ResearchSync: Transform Customer Interviews into Strategic Documents</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #f8f9fa;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .one-liner {
+            font-size: 1.2rem;
+            font-weight: 400;
+            font-style: italic;
+            opacity: 0.95;
+        }
+
+        section {
+            background: white;
+            padding: 30px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: #2c5282;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        p {
+            margin-bottom: 15px;
+            line-height: 1.8;
+            color: #4a5568;
+        }
+
+        .faq-container {
+            margin-top: 20px;
+        }
+
+        .faq-item {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f7fafc;
+            border-left: 4px solid #667eea;
+            border-radius: 6px;
+        }
+
+        .faq-question {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .faq-answer {
+            color: #4a5568;
+            margin-bottom: 10px;
+            line-height: 1.8;
+        }
+
+        .faq-segment {
+            font-size: 0.9rem;
+            color: #718096;
+            font-style: italic;
+            margin-top: 8px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #718096;
+            font-size: 0.875rem;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 40px;
+        }
+
+        .metadata {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .metadata-item {
+            background: #f7fafc;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+
+        .metadata-label {
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .metadata-value {
+            color: #718096;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 20px 10px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .one-liner {
+                font-size: 1rem;
+            }
+
+            section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Introducing ResearchSync: Transform Customer Interviews into Strategic Documents</h1>
+        <p class="one-liner">AI-powered synthesis of customer research into actionable PR-FAQ documents</p>
+    </header>
+
+    <section>
+        <h2>Problem</h2>
+        <p>Product teams spend 40% of their time manually consolidating customer research, with synthesis taking 3-5 weeks per project. This delay impacts go-to-market decisions and product strategy alignment.</p>
+    </section>
+
+    <section>
+        <h2>Solution</h2>
+        <p>ResearchSync automates research synthesis, generating PR-FAQ documents in hours with standardized format, version control, and AI-powered insights extraction from customer interviews.</p>
+    </section>
+
+    <section>
+        <h2>Frequently Asked Questions</h2>
+        <div class="faq-container">
+            <article class="faq-item">
+                <div class="faq-question">1. How much time does ResearchSync save compared to manual synthesis?</div>
+                <div class="faq-answer">ResearchSync reduces synthesis time from 3-5 weeks to 2-3 days, saving 80+ hours per project. Teams can iterate faster and make data-driven decisions with confidence.</div>
+                <div class="faq-segment">Customer Segment: Product Manager</div>
+            </article>
+            <article class="faq-item">
+                <div class="faq-question">2. Can teams collaborate on generated PR-FAQ documents?</div>
+                <div class="faq-answer">Yes, with built-in editing tools, version history tracking, and commenting capabilities for real-time collaboration across product, design, and research teams.</div>
+                <div class="faq-segment">Customer Segment: Product Manager</div>
+            </article>
+            <article class="faq-item">
+                <div class="faq-question">3. What format does ResearchSync output?</div>
+                <div class="faq-answer">PR-FAQ documents are generated in JSON format with validation against JSON Schema, and can be exported to PDF, Markdown, and HTML for different use cases.</div>
+                <div class="faq-segment">Customer Segment: Technical Lead</div>
+            </article>
+            <article class="faq-item">
+                <div class="faq-question">4. How accurate are the AI-generated insights?</div>
+                <div class="faq-answer">Each PR-FAQ includes a confidence score (0-1) based on research completeness. Documents undergo JSON Schema validation to ensure structural correctness.</div>
+                <div class="faq-segment">Customer Segment: UX Researcher</div>
+            </article>
+            <article class="faq-item">
+                <div class="faq-question">5. Can I customize the PR-FAQ template?</div>
+                <div class="faq-answer">Yes, the minimal PR-FAQ format (Headline, One-liner, Problem, Solution, FAQ) can be customized via Jinja2 templates for Markdown and HTML exports.</div>
+                <div class="faq-segment">Customer Segment: Technical Lead</div>
+            </article>
+            <article class="faq-item">
+                <div class="faq-question">6. What customer segments are identified?</div>
+                <div class="faq-answer">Each FAQ item is linked to synth persona archetypes (e.g., Product Manager, UX Researcher, Technical Lead) based on research findings.</div>
+                <div class="faq-segment">Customer Segment: UX Researcher</div>
+            </article>
+            <article class="faq-item">
+                <div class="faq-question">7. How is version control handled?</div>
+                <div class="faq-answer">All PR-FAQ edits are tracked with timestamps, field changes, and version numbers. Historical versions are stored in .versions/ directory.</div>
+                <div class="faq-segment">Customer Segment: Product Manager</div>
+            </article>
+            <article class="faq-item">
+                <div class="faq-question">8. What happens if the research batch has incomplete data?</div>
+                <div class="faq-answer">The generator extracts insights from available sections (recommendations, recurrent_patterns) and flags missing data with lower confidence scores.</div>
+                <div class="faq-segment">Customer Segment: UX Researcher</div>
+            </article>
+        </div>
+    </section>
+
+    <footer>
+        <div class="metadata">
+            <div class="metadata-item">
+                <span class="metadata-label">Batch ID:</span>
+                <span class="metadata-value">test_batch_001</span>
+            </div>
+            <div class="metadata-item">
+                <span class="metadata-label">Generated:</span>
+                <span class="metadata-value">2025-12-19 13:13:19</span>
+            </div>
+            <div class="metadata-item">
+                <span class="metadata-label">Version:</span>
+                <span class="metadata-value">1</span>
+            </div>
+            <div class="metadata-item">
+                <span class="metadata-label">Confidence Score:</span>
+                <span class="metadata-value">0.87</span>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
