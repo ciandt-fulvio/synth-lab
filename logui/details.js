@@ -435,7 +435,8 @@ function renderDetailSections(sections, container) {
 
     sections.forEach(section => {
         const sectionElement = document.createElement('div');
-        sectionElement.className = 'detail-section';
+        const sectionClass = section.id ? `section-${section.id}` : '';
+        sectionElement.className = `detail-section ${sectionClass}`.trim();
 
         // Label
         const label = document.createElement('div');
