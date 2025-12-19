@@ -37,7 +37,7 @@ from synth_lab.research_prfaq.prompts import get_system_prompt, get_few_shot_exa
 
 def generate_prfaq_markdown(
     batch_id: str,
-    model: str = "gpt-4o-2024-08-06",
+    model: str = "gpt-5-mini",
     api_key: Optional[str] = None,
     data_dir: str = "output/reports"
 ) -> str:
@@ -113,8 +113,7 @@ Return ONLY the Markdown-formatted PR-FAQ document."""
         response = client.chat.completions.create(
             model=model,
             messages=messages,
-            temperature=0.7,
-            max_tokens=4000  # Increased for full Markdown output
+            max_completion_tokens=4000  # Increased for full Markdown output
         )
 
         logger.info(f"OpenAI API call successful. Tokens used: {response.usage.total_tokens}")
