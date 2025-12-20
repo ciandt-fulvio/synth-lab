@@ -16,7 +16,6 @@ from pathlib import Path
 from typing import Any
 
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from synth_lab.gen_synth import analysis, storage, synth_builder, validation
 from synth_lab.gen_synth.config import SYNTHS_DIR, load_config_data

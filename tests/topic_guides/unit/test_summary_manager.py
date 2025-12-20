@@ -22,7 +22,7 @@ class TestSummaryFileInitialization:
 
         ## FILE DESCRIPTION
         """
-        from synth_lab.topic_guides.summary_manager import create_initial_summary
+        from synth_lab.services.topic_guides.summary_manager import create_initial_summary
 
         guide_name = "test-guide"
         summary_path = Path("/tmp/topic_guides/test-guide/summary.md")
@@ -40,7 +40,7 @@ class TestSummaryFileInitialization:
 
     def test_parse_summary_empty_file_description(self, tmp_path):
         """Test parsing summary.md with no file descriptions."""
-        from synth_lab.topic_guides.summary_manager import parse_summary
+        from synth_lab.services.topic_guides.summary_manager import parse_summary
 
         summary_path = tmp_path / "summary.md"
         summary_path.write_text(
@@ -60,7 +60,7 @@ Este é um contexto de teste.
 
     def test_parse_summary_with_file_descriptions(self, tmp_path):
         """Test parsing summary.md with existing file descriptions."""
-        from synth_lab.topic_guides.summary_manager import parse_summary
+        from synth_lab.services.topic_guides.summary_manager import parse_summary
 
         summary_path = tmp_path / "summary.md"
         summary_path.write_text(
@@ -96,8 +96,8 @@ Context description here.
 
     def test_write_summary_to_disk(self, tmp_path):
         """Test serializing SummaryFile to disk."""
-        from synth_lab.topic_guides.models import FileDescription, SummaryFile
-        from synth_lab.topic_guides.summary_manager import write_summary
+        from synth_lab.services.topic_guides.internal_models import FileDescription, SummaryFile
+        from synth_lab.services.topic_guides.summary_manager import write_summary
 
         summary_path = tmp_path / "summary.md"
 
@@ -132,7 +132,7 @@ Context description here.
         According to clarification (Answer B from /speckit.clarify):
         Should auto-append the section if missing.
         """
-        from synth_lab.topic_guides.summary_manager import parse_summary
+        from synth_lab.services.topic_guides.summary_manager import parse_summary
 
         summary_path = tmp_path / "summary.md"
         summary_path.write_text(
@@ -148,7 +148,7 @@ Just a context description, no FILE DESCRIPTION section.
         assert len(summary_file.file_descriptions) == 0
 
         # When written back, should include the section
-        from synth_lab.topic_guides.summary_manager import write_summary
+        from synth_lab.services.topic_guides.summary_manager import write_summary
 
         write_summary(summary_file)
 

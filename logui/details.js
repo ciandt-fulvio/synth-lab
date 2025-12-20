@@ -11,6 +11,66 @@
 let currentStep = null;
 let expandedSections = new Set();
 
+// Modal elements (cached on first use)
+let modalOverlay = null;
+let modalTitle = null;
+let modalBody = null;
+let modalClose = null;
+
+/**
+ * Initialize modal elements and event listeners
+ */
+function initModal() {
+    if (modalOverlay) return; // Already initialized
+
+    modalOverlay = document.getElementById('content-modal');
+    modalTitle = document.getElementById('modal-title');
+    modalBody = document.getElementById('modal-body');
+    modalClose = document.getElementById('modal-close');
+
+    if (!modalOverlay) return;
+
+    // Close on X button click
+    modalClose.addEventListener('click', closeModal);
+
+    // Close on overlay click (outside modal)
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+            closeModal();
+        }
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !modalOverlay.classList.contains('hidden')) {
+            closeModal();
+        }
+    });
+}
+
+/**
+ * Open modal with content
+ */
+function openModal(title, content) {
+    initModal();
+    if (!modalOverlay) return;
+
+    modalTitle.textContent = title;
+    modalBody.textContent = content;
+    modalOverlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden'; // Prevent background scroll
+}
+
+/**
+ * Close modal
+ */
+function closeModal() {
+    if (!modalOverlay) return;
+
+    modalOverlay.classList.add('hidden');
+    document.body.style.overflow = ''; // Restore scroll
+}
+
 /**
  * Render step details into a container (new inline system)
  */
@@ -375,7 +435,8 @@ function renderDetailSections(sections, container) {
 
     sections.forEach(section => {
         const sectionElement = document.createElement('div');
-        sectionElement.className = 'detail-section';
+        const sectionClass = section.id ? `section-${section.id}` : '';
+        sectionElement.className = `detail-section ${sectionClass}`.trim();
 
         // Label
         const label = document.createElement('div');
@@ -388,7 +449,7 @@ function renderDetailSections(sections, container) {
         valueContainer.className = `detail-value ${section.type || 'text'}`;
 
         if (section.type === 'long-text' || section.type === 'code') {
-            const { element, needsTruncation } = truncateContent(section.value, 500, section.id);
+            const { element, needsTruncation } = truncateContent(section.value, 500, section.id, section.label);
             valueContainer.appendChild(element);
         } else {
             valueContainer.textContent = section.value;
@@ -400,9 +461,9 @@ function renderDetailSections(sections, container) {
 }
 
 /**
- * Truncate content with "Show More" toggle
+ * Truncate content with "Show More" button that opens a modal
  */
-function truncateContent(text, maxLength = 500, contentId) {
+function truncateContent(text, maxLength = 500, contentId, label = 'Content') {
     const needsTruncation = text.length > maxLength;
     const container = document.createElement('div');
     container.className = 'truncatable-content';
@@ -415,33 +476,27 @@ function truncateContent(text, maxLength = 500, contentId) {
         return { element: container, needsTruncation: false };
     }
 
-    const isExpanded = expandedSections.has(contentId);
-    const displayText = isExpanded ? text : text.substring(0, maxLength);
+    // Always show truncated text
+    const displayText = text.substring(0, maxLength);
 
     const content = document.createElement('div');
     content.className = 'content-text';
     content.textContent = displayText;
 
-    if (!isExpanded) {
-        const ellipsis = document.createElement('span');
-        ellipsis.className = 'ellipsis';
-        ellipsis.textContent = '...';
-        content.appendChild(ellipsis);
-    }
+    const ellipsis = document.createElement('span');
+    ellipsis.className = 'ellipsis';
+    ellipsis.textContent = '...';
+    content.appendChild(ellipsis);
 
     container.appendChild(content);
 
-    // Toggle button
+    // Show More button opens modal with full content
     const toggleButton = document.createElement('button');
     toggleButton.className = 'toggle-content';
-    toggleButton.textContent = isExpanded ? 'Show Less' : 'Show More';
-    toggleButton.addEventListener('click', () => {
-        if (expandedSections.has(contentId)) {
-            expandedSections.delete(contentId);
-        } else {
-            expandedSections.add(contentId);
-        }
-        showDetails(currentStep); // Re-render with new expansion state
+    toggleButton.textContent = 'Show More';
+    toggleButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent event bubbling
+        openModal(label, text);
     });
 
     container.appendChild(toggleButton);

@@ -2,8 +2,7 @@
 
 > Gerador de personas sintéticas (Synths) com atributos demográficos, psicográficos, comportamentais e cognitivos realistas, baseados em dados do IBGE e pesquisas verificadas.
 
-[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## 🎯 Objetivo
 
@@ -17,17 +16,25 @@ Criar Synths representativos da população brasileira para:
 
 ## ✨ Características
 
-### Interface CLI Moderna
+### 🚀 API REST Moderna (NOVO!)
+- **FastAPI** standalone com documentação automática em `/docs`
+- **Arquitetura em 3 camadas**: Interface → Service → Database
+- **SQLite** com JSON1 para persistência de dados
+- **17 endpoints REST** para synths, research, topics e PR-FAQ
+- **Streaming SSE** para execução de pesquisas em tempo real
+- **Jobs assíncronos** para geração de relatórios
+- **Paginação** e filtros avançados
+- **CORS** configurado para desenvolvimento web
+
+### Interface CLI Simplificada
 - 🎨 **Saída colorida e formatada** com biblioteca Rich
-- ⚡ **Comandos intuitivos**: `synthlab gensynth`, `synthlab listsynth`, `synthlab research`, `synthlab research-batch`, `synthlab topic-guide`
+- ⚡ **Comando principal**: `synthlab gensynth` para geração de personas sintéticas
 - 🖼️ **Geração de avatares** via OpenAI API com controle de blocos (9 avatares por bloco)
-- 🎤 **Entrevistas de UX simuladas** com LLMs conversando (interviewer + synth)
-- 🔥 **Pesquisa em Batch** - Entrevistas paralelas com múltiplos synths e sumarização automática
-- 📚 **Topic Guides com IA** - Organize materiais de contexto (imagens, PDFs, documentos) e gere descrições automáticas para entrevistas
 - 📊 **Benchmark integrado** para análise de performance
 - 🔇 **Modo silencioso** para integração em pipelines
 - ✅ **Validação e análise** de distribuições demográficas
-- 🔍 **Consultas SQL** com DuckDB para análise de dados
+
+> 📝 **Nota**: Outras funcionalidades (pesquisas UX, topic guides, PR-FAQ) estão disponíveis via **REST API** - veja seção [API REST](#-api-rest-moderna-novo)
 
 ### Dados Realistas (Schema v2.0.0)
 - **Atributos Demográficos**: Idade, gênero, localização, escolaridade, renda, ocupação (IBGE Censo 2022, PNAD 2022/2023)
@@ -43,6 +50,7 @@ Criar Synths representativos da população brasileira para:
 
 - Python 3.13 ou superior
 - `uv` (gerenciador de pacotes)
+- OpenAI API Key (para geração de avatares e entrevistas)
 
 ### Setup
 
@@ -54,11 +62,27 @@ cd synth-lab
 # Instalar dependências (uv cria automaticamente o .venv)
 uv sync
 
+# Configurar variável de ambiente
+export OPENAI_API_KEY="sk-your-api-key-here"
+
 # Pronto! Use uv run para executar comandos
 uv run synthlab --help
 ```
 
 > **Nota**: Não é necessário ativar o ambiente virtual ou instalar o pacote. O `uv run` gerencia tudo automaticamente, executando comandos diretamente no ambiente isolado.
+
+### Iniciar API REST
+
+```bash
+# Iniciar servidor FastAPI
+./scripts/start_api.sh
+
+# Ou manualmente
+uv run uvicorn src.synth_lab.api.main:app --reload --host 0.0.0.0 --port 8000
+
+# Acessar documentação interativa
+open http://localhost:8000/docs
+```
 
 ## 📖 Uso
 
@@ -75,13 +99,11 @@ uv run synthlab --help
 # Ver versão
 uv run synthlab --version
 
-# Ver ajuda de um comando específico
+# Ver ajuda do comando gensynth
 uv run synthlab gensynth --help
-uv run synthlab listsynth --help
-uv run synthlab research --help
-uv run synthlab research-batch --help
-uv run synthlab topic-guide --help
 ```
+
+> 💡 **Para outras funcionalidades** (consultas, pesquisas UX, topic guides, PR-FAQ), use a **REST API** - veja [documentação da API](#api-rest)
 
 ### Comandos Disponíveis
 
@@ -186,108 +208,87 @@ uv run synthlab gensynth --analyze age
 uv run synthlab gensynth --analyze all
 ```
 
-#### Consultar Synths (Query)
+#### Consultar Synths (via REST API)
+
+> 📝 **Nota**: A funcionalidade de consulta de synths está disponível via **REST API**. Veja a [documentação completa da API](#-api-rest-moderna-novo).
 
 ```bash
-# Listar todos os Synths gerados
-uv run synthlab listsynth
+# Iniciar o servidor da API
+uv run python -m synth_lab.api.main
 
-# Filtrar com condição WHERE (use notação de ponto para campos aninhados)
-uv run synthlab listsynth --where "demografia.idade > 30"
-uv run synthlab listsynth --where "demografia.localizacao.cidade = 'São Paulo'"
+# Listar todos os Synths gerados (com paginação)
+curl http://localhost:8000/synths/list
 
-# Query SQL personalizada
-uv run synthlab listsynth --full-query "SELECT id, nome, demografia.idade FROM synths LIMIT 10"
-uv run synthlab listsynth --full-query "SELECT demografia.localizacao.cidade as cidade, COUNT(*) FROM synths GROUP BY cidade"
-uv run synthlab listsynth --full-query "SELECT nome, demografia.renda_mensal FROM synths WHERE demografia.renda_mensal > 5000"
+# Obter detalhes de um synth específico
+curl http://localhost:8000/synths/{synth_id}
+
+# Obter avatar de um synth
+curl http://localhost:8000/synths/{synth_id}/avatar
 ```
 
-> **Nota**: Use a notação de ponto (`.`) para acessar campos aninhados. Por exemplo: `demografia.idade`, `demografia.localizacao.regiao`, `capacidades_tecnologicas.alfabetizacao_digital`.
+**Endpoints disponíveis**:
+- `GET /synths/list` - Lista todos os synths com paginação
+- `GET /synths/{synth_id}` - Retorna dados completos de um synth
+- `GET /synths/{synth_id}/avatar` - Retorna caminho do avatar (se existir)
 
-#### Topic Guides (Materiais de Contexto)
+> **Nota**: Para consultas SQL personalizadas e filtros avançados, use o DuckDB CLI diretamente: `duckdb synths.duckdb "SELECT * FROM synths WHERE demografia.idade > 30"`
+
+#### Topic Guides (Materiais de Contexto) - via REST API
+
+> 📝 **Nota**: A funcionalidade de topic guides está disponível via **REST API**. Veja a [documentação completa da API](#-api-rest-moderna-novo).
 
 ```bash
-# Criar novo topic guide
-uv run synthlab topic-guide create --name amazon-ecommerce
-
-# Adicionar arquivos ao diretório criado
-# Copie imagens, PDFs, documentos para data/topic_guides/amazon-ecommerce/
-cp screenshots/*.png data/topic_guides/amazon-ecommerce/
-cp documentation/*.pdf data/topic_guides/amazon-ecommerce/
-
-# Gerar descrições automáticas com IA
-uv run synthlab topic-guide update --name amazon-ecommerce
-
-# Forçar re-processamento de todos os arquivos
-uv run synthlab topic-guide update --name amazon-ecommerce --force
+# Iniciar o servidor da API
+uv run python -m synth_lab.api.main
 
 # Listar todos os topic guides
-uv run synthlab topic-guide list
+curl http://localhost:8000/topics/list
 
-# Listar com detalhes (contagem de arquivos, paths)
-uv run synthlab topic-guide list --verbose
-
-# Visualizar conteúdo de um guide
-uv run synthlab topic-guide show --name amazon-ecommerce
+# Obter detalhes de um topic guide específico
+curl http://localhost:8000/topics/{topic_name}
 ```
+
+**Endpoints disponíveis**:
+- `GET /topics/list` - Lista todos os topic guides disponíveis
+- `GET /topics/{topic_name}` - Retorna detalhes completos de um topic guide
+
+**Gerenciamento manual de arquivos:**
+Topic guides são criados manualmente no diretório `data/topic_guides/`. Para criar um novo:
+
+1. Crie o diretório: `mkdir -p data/topic_guides/amazon-ecommerce`
+2. Adicione arquivos: `cp screenshots/*.png data/topic_guides/amazon-ecommerce/`
+3. A API detectará automaticamente o novo topic guide
 
 **Tipos de arquivos suportados:**
 - Imagens: PNG, JPEG (via OpenAI Vision API)
 - Documentos: PDF, Markdown (.md), Text (.txt)
 
-**Funcionamento:**
-1. `create` - Cria diretório e arquivo `summary.md` inicial
-2. Adicione manualmente arquivos ao diretório criado
-3. `update` - Escaneia arquivos e gera descrições com gpt-4o-mini (~$0.000054/arquivo)
-4. Hash-based change detection: apenas arquivos novos/modificados são reprocessados
-5. Descrições salvas em `summary.md` para uso nas entrevistas
+> **Nota**: As descrições dos arquivos são geradas com IA usando gpt-4o-mini e armazenadas em `summary.md` para uso nas entrevistas de pesquisa UX.
 
-> **Nota**: Requer `OPENAI_API_KEY` configurada. As descrições são geradas automaticamente e ajudam o LLM entrevistador a ter contexto sobre materiais visuais durante entrevistas.
+#### Entrevistas de Pesquisa UX - via REST API
 
-#### Entrevistas de Pesquisa UX
+> 📝 **Nota**: A funcionalidade de entrevistas de pesquisa UX está disponível via **REST API**. Veja a [documentação completa da API](#-api-rest-moderna-novo).
 
-**Entrevista Individual**:
 ```bash
-# Realizar entrevista com um synth usando topic guide
-uv run synthlab research abc123 compra-amazon
+# Iniciar o servidor da API
+uv run python -m synth_lab.api.main
 
-# Personalizar configurações
-uv run synthlab research abc123 compra-amazon \
-  --max-rounds 15 \
-  --model gpt-4o \
-  --output data/minhas-entrevistas
+# Listar todas as execuções de pesquisa
+curl http://localhost:8000/research/list
 
-# Ver transcrição salva
-cat data/transcripts/abc123_20251216_143052.json
+# Obter detalhes de uma execução específica
+curl http://localhost:8000/research/{execution_id}
+
+# Obter resumo de uma pesquisa (se disponível)
+curl http://localhost:8000/research/{execution_id}/summary
 ```
 
-**🔥 NOVO: Pesquisa em Batch com Múltiplos Synths**:
-```bash
-# Executar entrevistas com múltiplos synths (paralelização automática)
-uv run synthlab research-batch compra-amazon \
-  --synth-ids abc123,xyz789,def456 \
-  --max-rounds 15 \
-  --model gpt-4o-mini
+**Endpoints disponíveis**:
+- `GET /research/list` - Lista todas as execuções de pesquisa com paginação
+- `GET /research/{execution_id}` - Retorna detalhes completos de uma execução
+- `GET /research/{execution_id}/summary` - Retorna resumo agregado (se existir)
 
-# Pesquisa em batch com múltiplos synths (auto-detecta sintetizadores sem entrevista)
-uv run synthlab research-batch compra-amazon \
-  --limit 10  # Entrevista com os primeiros 10 synths sem transcrição
-
-# Executar com todas as opções
-uv run synthlab research-batch compra-amazon \
-  --synth-ids abc123,xyz789,def456,ghi012 \
-  --max-rounds 12 \
-  --model gpt-4o \
-  --output data/minhas-pesquisas/ \
-  --summary
-
-# Com indicadores de progresso e sumarização automática
-uv run synthlab research-batch amazon-ecommerce \
-  --limit 20 \
-  --summary  # Gera arquivo summary.json com insights agregados
-```
-
-**Características da Pesquisa em Batch**:
+**Características do Sistema de Pesquisa**:
 - ⚡ **Paralelização automática**: Múltiplas entrevistas simultâneas (com rate limiting)
 - 📊 **Sumarização automática**: Gera `batch_summary.json` com insights agregados
 - 🔄 **Retry automático**: Trata rate limits e erros transitórios
@@ -502,6 +503,15 @@ synth-lab/
 
 ## 🎓 Documentação
 
+### Documentação Principal
+
+- **[Requisitos](docs/requisitos.md)**: Requisitos funcionais e não-funcionais do projeto
+- **[Arquitetura](docs/arquitetura.md)**: Arquitetura em 3 camadas (Interface → Service → Database)
+- **[Modelo de Dados](docs/database_model.md)**: Esquema completo do banco de dados SQLite
+- **[API REST](docs/api.md)**: Documentação completa dos 17 endpoints REST
+- **[CLI](docs/cli.md)**: Guia completo da interface de linha de comando
+- **[Camada de Serviços](docs/services.md)**: Documentação da lógica de negócio
+
 ### Especificações Técnicas
 
 - **[spec.md](specs/001-generate-synths/spec.md)**: Requisitos completos, escopo e critérios de aceitação
@@ -565,29 +575,27 @@ Veja o notebook `first-lab.ipynb` para exemplos de análise exploratória dos Sy
 
 ### Casos de Uso
 
-**1. Pesquisa UX Qualitativa com Topic Guides e Batch Research**
+**1. Pesquisa UX Qualitativa com Topic Guides via REST API**
 ```bash
-# Criar topic guide com materiais de contexto
-uv run synthlab topic-guide create --name mobile-banking
+# Criar topic guide manualmente
+mkdir -p data/topic_guides/mobile-banking
 cp screens/*.png data/topic_guides/mobile-banking/
 cp user-flows/*.pdf data/topic_guides/mobile-banking/
 
-# Gerar descrições automáticas das telas e documentos
-uv run synthlab topic-guide update --name mobile-banking
+# Iniciar API server
+uv run python -m synth_lab.api.main
 
-# NOVO: Entrevistas em batch com múltiplos synths (paralelização automática)
-uv run synthlab research-batch mobile-banking \
-  --limit 15 \
-  --max-rounds 10 \
-  --summary  # Gera insights agregados automaticamente
+# Verificar topic guide criado
+curl http://localhost:8000/topics/mobile-banking
 
-# Ou com synths específicos
-uv run synthlab research-batch mobile-banking \
-  --synth-ids abc123,xyz789,def456,ghi012,jkl345 \
-  --summary
+# Listar execuções de pesquisa disponíveis
+curl http://localhost:8000/research/list
 
-# Ver resumo agregado
-cat data/transcripts/mobile-banking_batch_20251216_143052/batch_summary.json
+# Obter detalhes de uma execução específica
+curl http://localhost:8000/research/{execution_id}
+
+# Obter resumo agregado (se disponível)
+curl http://localhost:8000/research/{execution_id}/summary
 
 # Análise de transcrições (Python)
 import json
@@ -623,34 +631,36 @@ uv run synthlab gensynth -n 18 --avatar --analyze all --benchmark
 - 📁 Salvos em: `data/synths/avatar/{synth-id}.png`
 - 💰 ~$0.02 por bloco de 9 avatares usando OpenAI API
 
-**3. Análise Demográfica com SQL**
+**3. Análise Demográfica com DuckDB**
 ```bash
 # Distribuição por região
-uv run synthlab listsynth --full-query "SELECT demografia.localizacao.regiao as regiao, COUNT(*) as total FROM synths GROUP BY regiao ORDER BY total DESC"
+duckdb synths.duckdb "SELECT demografia.localizacao.regiao as regiao, COUNT(*) as total FROM synths GROUP BY regiao ORDER BY total DESC"
 
 # Média de renda por escolaridade
-uv run synthlab listsynth --full-query "SELECT demografia.escolaridade, AVG(demografia.renda_mensal) as media_renda FROM synths GROUP BY demografia.escolaridade"
+duckdb synths.duckdb "SELECT demografia.escolaridade, AVG(demografia.renda_mensal) as media_renda FROM synths GROUP BY demografia.escolaridade"
 
 # Perfis de alto poder aquisitivo
-uv run synthlab listsynth --where "demografia.renda_mensal > 10000 AND demografia.escolaridade = 'Superior completo'"
+duckdb synths.duckdb "SELECT * FROM synths WHERE demografia.renda_mensal > 10000 AND demografia.escolaridade = 'Superior completo'"
 ```
+
+> **Nota**: Use DuckDB CLI diretamente para consultas SQL avançadas, ou use a REST API para acesso via HTTP.
 
 **4. Testes de UX/UI**
 ```bash
 # Selecionar Synths com baixa alfabetização digital
-uv run synthlab listsynth --where "capacidades_tecnologicas.alfabetizacao_digital < 40"
+duckdb synths.duckdb "SELECT * FROM synths WHERE capacidades_tecnologicas.alfabetizacao_digital < 40"
 
 # Usuários com deficiências visuais
-uv run synthlab listsynth --full-query "SELECT nome, demografia.idade, demografia.localizacao.cidade FROM synths WHERE deficiencias.visual.tipo != 'nenhuma'"
+duckdb synths.duckdb "SELECT nome, demografia.idade, demografia.localizacao.cidade FROM synths WHERE deficiencias.visual.tipo != 'nenhuma'"
 ```
 
 **5. Segmentação de Mercado**
 ```bash
 # Jovens da região Sudeste
-uv run synthlab listsynth --where "demografia.idade BETWEEN 18 AND 35 AND demografia.localizacao.regiao = 'Sudeste'"
+duckdb synths.duckdb "SELECT * FROM synths WHERE demografia.idade BETWEEN 18 AND 35 AND demografia.localizacao.regiao = 'Sudeste'"
 
 # Perfil tecnológico e renda média-alta
-uv run synthlab listsynth --where "capacidades_tecnologicas.alfabetizacao_digital > 70 AND demografia.renda_mensal > 5000"
+duckdb synths.duckdb "SELECT * FROM synths WHERE capacidades_tecnologicas.alfabetizacao_digital > 70 AND demografia.renda_mensal > 5000"
 ```
 
 **6. Análise Comportamental**
