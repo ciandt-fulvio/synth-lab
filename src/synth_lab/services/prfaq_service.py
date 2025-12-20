@@ -21,14 +21,11 @@ from synth_lab.services.errors import (
 
 
 class MarkdownNotFoundError(Exception):
-    """Markdown file not found for PR-FAQ."""
+    """Markdown content not found for PR-FAQ."""
 
-    def __init__(self, exec_id: str, path: str | None = None):
+    def __init__(self, exec_id: str):
         self.exec_id = exec_id
-        self.path = path
-        message = f"Markdown file not found for PR-FAQ: {exec_id}"
-        if path:
-            message += f" (expected at {path})"
+        message = f"Markdown content not found for PR-FAQ: {exec_id}"
         super().__init__(message)
 
 
@@ -87,17 +84,14 @@ class PRFAQService:
 
         Raises:
             PRFAQNotFoundError: If PR-FAQ not found.
-            MarkdownNotFoundError: If markdown file doesn't exist.
+            MarkdownNotFoundError: If markdown content doesn't exist.
         """
-        markdown_path = self.prfaq_repo.get_markdown_path(exec_id)
+        markdown_content = self.prfaq_repo.get_markdown_content(exec_id)
 
-        if markdown_path is None:
+        if markdown_content is None:
             raise MarkdownNotFoundError(exec_id)
 
-        if not markdown_path.exists():
-            raise MarkdownNotFoundError(exec_id, str(markdown_path))
-
-        return markdown_path.read_text(encoding="utf-8")
+        return markdown_content
 
     def generate_prfaq(self, request: PRFAQGenerateRequest) -> PRFAQGenerateResponse:
         """
@@ -115,10 +109,7 @@ class PRFAQService:
         """
         from loguru import logger
 
-        from synth_lab.services.research_prfaq.generator import (
-            generate_prfaq_markdown,
-            save_prfaq_markdown,
-        )
+        from synth_lab.services.research_prfaq.generator import generate_prfaq_from_content
 
         # Verify execution exists and has summary
         research_repo = ResearchRepository()
@@ -130,15 +121,18 @@ class PRFAQService:
         if not execution.summary_available:
             raise SummaryNotFoundError(request.exec_id)
 
-        # Generate PR-FAQ markdown
+        # Get summary content from database
+        summary_content = research_repo.get_summary_content(request.exec_id)
+        if not summary_content:
+            raise SummaryNotFoundError(request.exec_id)
+
+        # Generate PR-FAQ markdown from summary content
         logger.info(f"Generating PR-FAQ for execution {request.exec_id}")
-        prfaq_markdown = generate_prfaq_markdown(
+        prfaq_markdown = generate_prfaq_from_content(
+            summary_content=summary_content,
             batch_id=request.exec_id,
             model=request.model,
         )
-
-        # Save to file
-        markdown_path = save_prfaq_markdown(prfaq_markdown, request.exec_id)
 
         # Extract headline from markdown (first # line)
         headline = None
@@ -147,11 +141,11 @@ class PRFAQService:
                 headline = line[2:].strip()
                 break
 
-        # Save metadata to database
+        # Save content to database
         self.prfaq_repo.create_prfaq_metadata(
             exec_id=request.exec_id,
             model=request.model,
-            markdown_path=str(markdown_path),
+            markdown_content=prfaq_markdown,
             headline=headline,
         )
 

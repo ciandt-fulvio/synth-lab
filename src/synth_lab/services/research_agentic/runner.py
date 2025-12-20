@@ -24,6 +24,7 @@ result = await run_interview(
 import asyncio
 import json
 import random
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -369,6 +370,8 @@ async def run_interview(
     use_mcp: bool = False,
     mcp_directory: str | None = None,
     verbose: bool = True,
+    exec_id: str | None = None,
+    message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
 ) -> InterviewResult:
     """
     Run an agentic interview with orchestrated turn-taking.
@@ -388,6 +391,9 @@ async def run_interview(
         use_mcp: Whether to enable MCP tools (filesystem access)
         mcp_directory: Directory for MCP filesystem server
         verbose: Whether to print conversation to console
+        exec_id: Execution ID for SSE streaming (optional)
+        message_callback: Async callback for real-time message streaming (optional)
+            Signature: (exec_id, synth_id, turn_number, message) -> None
 
     Returns:
         InterviewResult with conversation and metadata
@@ -607,6 +613,10 @@ async def run_interview(
                         should_end=should_end,
                     )
                     shared_memory.conversation.append(message)
+
+                    # Publish message in real-time via SSE callback
+                    if message_callback and exec_id:
+                        await message_callback(exec_id, synth_id, turns + 1, message)
 
                     # Log to console
                     if verbose:

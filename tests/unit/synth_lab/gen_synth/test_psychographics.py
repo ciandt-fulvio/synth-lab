@@ -40,24 +40,23 @@ def test_generate_big_five_distribution():
 
 
 def test_generate_psychographics_structure(config_data):
-    """Test that psychographics have correct structure (v2.0.0)."""
+    """Test that psychographics have correct structure."""
     big_five = psychographics.generate_big_five()
     psycho = psychographics.generate_psychographics(big_five, config_data)
 
     required_fields = [
         "personalidade_big_five",
         "interesses",
-        "inclinacao_politica",
-        "inclinacao_religiosa",
+        "contrato_cognitivo",
     ]
 
     for field in required_fields:
         assert field in psycho
 
-    # Verify removed fields are NOT present in v2.0.0
-    removed_fields = ["valores", "hobbies", "estilo_vida"]
+    # Verify removed fields are NOT present
+    removed_fields = ["valores", "hobbies", "estilo_vida", "inclinacao_politica", "inclinacao_religiosa"]
     for field in removed_fields:
-        assert field not in psycho, f"Field {field} should not be in v2.0.0 schema"
+        assert field not in psycho, f"Field {field} should not be in schema"
 
 
 def test_generate_psychographics_interesses(config_data):
@@ -71,60 +70,16 @@ def test_generate_psychographics_interesses(config_data):
     assert len(psycho["interesses"]) == len(set(psycho["interesses"]))
 
 
-def test_generate_psychographics_inclinacao_politica(config_data):
-    """Test political inclination range."""
+def test_generate_psychographics_contrato_cognitivo(config_data):
+    """Test contrato cognitivo generation."""
     big_five = psychographics.generate_big_five()
     psycho = psychographics.generate_psychographics(big_five, config_data)
 
-    assert isinstance(psycho["inclinacao_politica"], int)
-    assert -100 <= psycho["inclinacao_politica"] <= 100
-
-
-def test_generate_psychographics_inclinacao_religiosa(config_data):
-    """Test religious inclination is valid."""
-    big_five = psychographics.generate_big_five()
-    psycho = psychographics.generate_psychographics(big_five, config_data)
-
-    assert isinstance(psycho["inclinacao_religiosa"], str)
-    # Should be one of the valid options from IBGE data
-    valid_options = list(config_data["ibge"]["religiao"].keys())
-    assert psycho["inclinacao_religiosa"] in valid_options
-
-
-def test_generate_psychographics_religion_politics_correlation(config_data):
-    """Test that católicos/evangélicos tend to be more right-wing."""
-    # Generate many samples and check correlation
-    right_wing_count = {"católico": 0, "evangélico": 0, "outros": 0}
-    total_count = {"católico": 0, "evangélico": 0, "outros": 0}
-
-    for _ in range(100):
-        big_five = psychographics.generate_big_five()
-        psycho = psychographics.generate_psychographics(big_five, config_data)
-
-        religion = psycho["inclinacao_religiosa"]
-        politics = psycho["inclinacao_politica"]
-
-        # Classify religion
-        if religion in ["católico", "evangélico"]:
-            key = religion
-        else:
-            key = "outros"
-
-        total_count[key] += 1
-
-        # Right-wing is > 20
-        if politics > 20:
-            right_wing_count[key] += 1
-
-    # Verify that católicos and evangélicos have higher right-wing percentage
-    # We expect at least 50% to be right-wing for católicos/evangélicos
-    for religion in ["católico", "evangélico"]:
-        if total_count[religion] > 0:
-            percentage = right_wing_count[religion] / total_count[religion]
-            # Should be significantly higher than random (which would be ~33%)
-            assert percentage > 0.40, (
-                f"{religion} should have >40% right-wing tendency, got {percentage:.2%}"
-            )
+    assert isinstance(psycho["contrato_cognitivo"], dict)
+    assert "tipo" in psycho["contrato_cognitivo"]
+    assert "perfil_cognitivo" in psycho["contrato_cognitivo"]
+    assert "regras" in psycho["contrato_cognitivo"]
+    assert "efeito_esperado" in psycho["contrato_cognitivo"]
 
 
 def test_generate_psychographics_interesses_correlates_with_openness(config_data):

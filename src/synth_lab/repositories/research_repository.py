@@ -131,36 +131,27 @@ class ResearchRepository(BaseRepository):
 
         return self._row_to_transcript_detail(row)
 
-    def get_summary_path(self, exec_id: str) -> Path | None:
+    def get_summary_content(self, exec_id: str) -> str | None:
         """
-        Get the summary file path for an execution.
+        Get the summary content for an execution.
 
         Args:
             exec_id: Execution ID.
 
         Returns:
-            Path to summary markdown file, or None if not available.
+            Summary markdown content, or None if not available.
 
         Raises:
             ExecutionNotFoundError: If execution not found.
         """
         row = self.db.fetchone(
-            "SELECT summary_path FROM research_executions WHERE exec_id = ?",
+            "SELECT summary_content FROM research_executions WHERE exec_id = ?",
             (exec_id,),
         )
         if row is None:
             raise ExecutionNotFoundError(exec_id)
 
-        if row["summary_path"]:
-            return Path(row["summary_path"])
-
-        # Try to find summary in reports directory
-        from synth_lab.infrastructure.config import REPORTS_DIR
-        summary_path = REPORTS_DIR / f"{exec_id}_summary.md"
-        if summary_path.exists():
-            return summary_path
-
-        return None
+        return row["summary_content"]
 
     def _row_to_summary(self, row) -> ResearchExecutionSummary:
         """Convert a database row to ResearchExecutionSummary."""
@@ -191,10 +182,9 @@ class ResearchRepository(BaseRepository):
         if isinstance(completed_at, str):
             completed_at = datetime.fromisoformat(completed_at)
 
-        # Check if summary exists
-        summary_available = False
-        if row["summary_path"]:
-            summary_available = Path(row["summary_path"]).exists()
+        # Check if summary exists in database
+        summary_content = row["summary_content"] if "summary_content" in row.keys() else None
+        summary_available = summary_content is not None and len(summary_content) > 0
 
         # Check if PR-FAQ exists
         prfaq_row = self.db.fetchone(
@@ -212,11 +202,10 @@ class ResearchRepository(BaseRepository):
             completed_at=completed_at,
             successful_count=row["successful_count"] or 0,
             failed_count=row["failed_count"] or 0,
-            model=row["model"] or "gpt-4.1-mini",
+            model=row["model"] or "gpt-5-mini",
             max_turns=row["max_turns"] or 6,
             summary_available=summary_available,
             prfaq_available=prfaq_available,
-            summary_path=row["summary_path"],
         )
 
     def _row_to_transcript_summary(self, row) -> TranscriptSummary:
@@ -273,7 +262,7 @@ class ResearchRepository(BaseRepository):
         exec_id: str,
         topic_name: str,
         synth_count: int,
-        model: str = "gpt-4.1-mini",
+        model: str = "gpt-5-mini",
         max_turns: int = 6,
         status: ExecutionStatus = ExecutionStatus.PENDING,
     ) -> None:
@@ -304,7 +293,7 @@ class ResearchRepository(BaseRepository):
         status: ExecutionStatus,
         successful_count: int | None = None,
         failed_count: int | None = None,
-        summary_path: str | None = None,
+        summary_content: str | None = None,
     ) -> None:
         """
         Update execution status and counts.
@@ -314,7 +303,7 @@ class ResearchRepository(BaseRepository):
             status: New status.
             successful_count: Number of successful interviews.
             failed_count: Number of failed interviews.
-            summary_path: Path to summary markdown file.
+            summary_content: Summary markdown content.
         """
         updates = ["status = ?"]
         params: list = [status.value]
@@ -327,9 +316,9 @@ class ResearchRepository(BaseRepository):
             updates.append("failed_count = ?")
             params.append(failed_count)
 
-        if summary_path is not None:
-            updates.append("summary_path = ?")
-            params.append(summary_path)
+        if summary_content is not None:
+            updates.append("summary_content = ?")
+            params.append(summary_content)
 
         if status in (ExecutionStatus.COMPLETED, ExecutionStatus.FAILED):
             updates.append("completed_at = ?")

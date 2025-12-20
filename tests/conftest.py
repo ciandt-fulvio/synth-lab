@@ -33,15 +33,15 @@ def config_data() -> dict[str, Any]:
 
 @pytest.fixture
 def sample_synth() -> dict[str, Any]:
-    """Provide a minimal valid synth structure for testing."""
+    """Provide a minimal valid synth structure for testing (matches synth-schema-v1.json)."""
     return {
         "id": "test01",
         "nome": "Test User",
         "arquetipo": "Jovem Adulto Sudeste Criativo",
-        "descricao": "Pessoa de 25 anos para testes automatizados do sistema",
+        "descricao": "Pessoa de 25 anos para testes automatizados do sistema com descrição mais longa",
         "link_photo": "https://ui-avatars.com/api/?name=Test+User&size=256&background=random",
         "created_at": "2025-12-15T10:00:00Z",
-        "version": "2.0.0",
+        "version": "1.0.0",
         "demografia": {
             "idade": 25,
             "genero_biologico": "masculino",
@@ -71,8 +71,15 @@ def sample_synth() -> dict[str, Any]:
                 "neuroticismo": 40
             },
             "interesses": ["Tecnologia", "Leitura", "Música"],
-            "inclinacao_politica": 10,
-            "inclinacao_religiosa": "ateu/agnóstico"
+            "contrato_cognitivo": {
+                "tipo": "factual",
+                "perfil_cognitivo": "responde só ao que foi perguntado, evita abstrações",
+                "regras": [
+                    "Proibido dar opinião geral",
+                    "Sempre relatar um evento específico"
+                ],
+                "efeito_esperado": "respostas secas, muito factuais"
+            }
         },
         "comportamento": {
             "habitos_consumo": {
@@ -80,12 +87,12 @@ def sample_synth() -> dict[str, Any]:
                 "preferencia_canal": "e-commerce",
                 "categorias_preferidas": ["Eletrônicos", "Livros"]
             },
-            "padroes_midia": {
-                "tv_aberta": 5,
-                "streaming": 20,
-                "redes_sociais": 15
+            "uso_tecnologia": {
+                "smartphone": True,
+                "computador": True,
+                "tablet": False,
+                "smartwatch": False
             },
-            "fonte_noticias": ["Portais online", "Redes sociais"],
             "lealdade_marca": 60,
             "engajamento_redes_sociais": {
                 "plataformas": ["Instagram", "Twitter", "LinkedIn"],
@@ -115,15 +122,6 @@ def sample_synth() -> dict[str, Any]:
                 "banco_digital": 85,
                 "redes_sociais": 95
             }
-        },
-        "vieses": {
-            "aversao_perda": 50,
-            "desconto_hiperbolico": 45,
-            "suscetibilidade_chamariz": 40,
-            "ancoragem": 55,
-            "vies_confirmacao": 60,
-            "vies_status_quo": 50,
-            "sobrecarga_informacao": 55
         }
     }
 

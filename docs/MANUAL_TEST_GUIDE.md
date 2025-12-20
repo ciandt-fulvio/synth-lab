@@ -336,21 +336,357 @@ curl -s http://localhost:8000/topics/compra-amazon | python3 -m json.tool
 
 ### 6.4 Endpoints de Research
 
+#### POST /research/execute - Executar research
+
+Primeiro precisamos executar uma pesquisa com synths usando um topic guide:
+
 ```bash
-# Listar execuções
-curl -s http://localhost:8000/research/list | python3 -m json.tool
+# Executar research com 3 synths usando o topic guide compra-amazon
+curl -X POST "http://localhost:8000/research/execute" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic_name": "compra-amazon",
+    "synth_count": 3
+  }' | python3 -m json.tool
+
+# Salvar o exec_id retornado
+EXEC_ID=$(curl -s -X POST "http://localhost:8000/research/execute" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic_name": "compra-amazon",
+    "synth_count": 3
+  }' | python3 -c "import json, sys; print(json.load(sys.stdin)['exec_id'])")
+
+echo "Execution ID: $EXEC_ID"
 ```
 
-**Nota**: Se não houver execuções de research, retorna lista vazia.
+**Resultado esperado**:
+```json
+{
+  "exec_id": "batch_compra-amazon_20231215_143022",
+  "status": "running",
+  "topic_name": "compra-amazon",
+  "synth_count": 3,
+  "started_at": "2023-12-15T14:30:22"
+}
+```
+
+**Verificações**:
+- [ ] Retorna HTTP 200
+- [ ] Campo "status" é "running" (execução assíncrona)
+- [ ] Campo "exec_id" começa com "batch_"
+- [ ] Campo "synth_count" é 3
 
 ---
 
-### 6.5 Endpoints de PR-FAQ
+#### GET /research - Listar execuções
 
 ```bash
-# Listar PR-FAQs
+# Listar todas as execuções de research
+curl -s http://localhost:8000/research | python3 -m json.tool
+```
+
+**Resultado esperado**:
+```json
+{
+  "data": [
+    {
+      "exec_id": "batch_compra-amazon_20231215_143022",
+      "topic_name": "compra-amazon",
+      "synth_count": 3,
+      "status": "completed",
+      "started_at": "2023-12-15T14:30:22"
+    }
+  ],
+  "pagination": {
+    "total": 1,
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+**Verificações**:
+- [ ] Retorna HTTP 200
+- [ ] Lista contém a execução recém-criada
+- [ ] Campo "pagination.total" é pelo menos 1
+
+---
+
+#### GET /research/{exec_id} - Obter detalhes de execução
+
+```bash
+# Obter detalhes da execução
+curl -s "http://localhost:8000/research/$EXEC_ID" | python3 -m json.tool
+
+# Ver transcripts gerados
+curl -s "http://localhost:8000/research/$EXEC_ID" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+print(f'Exec ID: {data[\"exec_id\"]}')
+print(f'Topic: {data[\"topic_name\"]}')
+print(f'Synths: {data[\"synth_count\"]}')
+print(f'Status: {data[\"status\"]}')
+"
+```
+
+**Verificações**:
+- [ ] Retorna HTTP 200
+- [ ] Contém detalhes completos da execução
+- [ ] Lista de transcripts gerados
+
+---
+
+### 6.5 SSE - Streaming de Entrevistas em Tempo Real
+
+O endpoint SSE permite visualizar as mensagens das entrevistas em tempo real enquanto a execução está acontecendo.
+
+#### GET /research/{exec_id}/stream - Stream de mensagens via SSE
+
+**Conceito**: Server-Sent Events (SSE) é uma tecnologia que permite ao servidor enviar dados ao cliente em tempo real através de uma conexão HTTP persistente.
+
+##### Teste com curl (Terminal)
+
+```bash
+# 1. Primeiro, inicie uma execução de research (em outro terminal)
+EXEC_ID=$(curl -s -X POST "http://localhost:8000/research/execute" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic_name": "compra-amazon",
+    "synth_count": 3,
+    "max_turns": 4,
+    "max_concurrent": 2,
+    "generate_summary": false
+  }' | python3 -c "import json, sys; print(json.load(sys.stdin)['exec_id'])")
+
+echo "Execution ID: $EXEC_ID"
+
+# 2. Conectar ao stream SSE (use -N para desabilitar buffering)
+curl -N "http://localhost:8000/research/$EXEC_ID/stream"
+```
+
+**Resultado esperado** (eventos em tempo real):
+```
+event: message
+data: {"event_type":"message","exec_id":"batch_compra-amazon_20251220_150000","synth_id":"abc123","turn_number":1,"speaker":"Interviewer","text":"Olá! Gostaria de conversar sobre sua experiência...","timestamp":"2025-12-20T15:00:05","is_replay":false}
+
+event: message
+data: {"event_type":"message","exec_id":"batch_compra-amazon_20251220_150000","synth_id":"abc123","turn_number":2,"speaker":"Interviewee","text":"Claro! Eu costumo fazer compras online...","timestamp":"2025-12-20T15:00:10","is_replay":false}
+
+...
+
+event: execution_completed
+data: {}
+```
+
+##### Teste com JavaScript (Browser Console)
+
+Abra o console do navegador (F12) e execute:
+
+```javascript
+// Substitua pelo exec_id real
+const execId = 'batch_compra-amazon_20251220_150000';
+
+const events = new EventSource(`http://localhost:8000/research/${execId}/stream`);
+
+// Contador de mensagens
+let messageCount = 0;
+
+events.addEventListener('message', (e) => {
+    const data = JSON.parse(e.data);
+    messageCount++;
+    const prefix = data.is_replay ? '🔄 [replay]' : '🔴 [live]';
+    const speaker = data.speaker === 'Interviewer' ? '🎤' : '👤';
+    console.log(`${prefix} ${speaker} ${data.speaker} (${data.synth_id?.slice(0,6)}): ${data.text?.slice(0,80)}...`);
+});
+
+events.addEventListener('execution_completed', () => {
+    console.log(`✅ Execução concluída! Total de mensagens: ${messageCount}`);
+    events.close();
+});
+
+events.onerror = (e) => {
+    console.error('Erro no SSE:', e);
+};
+
+// Para encerrar manualmente: events.close();
+```
+
+##### Teste com Script Python
+
+```bash
+# Salvar como test_sse.py e executar com: uv run python test_sse.py <exec_id>
+cat > /tmp/test_sse.py << 'EOF'
+import sys
+import httpx
+
+exec_id = sys.argv[1] if len(sys.argv) > 1 else "batch_compra-amazon_20251220_150000"
+url = f"http://localhost:8000/research/{exec_id}/stream"
+
+print(f"Conectando ao stream: {url}")
+print("-" * 60)
+
+with httpx.Client(timeout=None) as client:
+    with client.stream("GET", url) as response:
+        buffer = ""
+        for chunk in response.iter_text():
+            buffer += chunk
+            while "\n\n" in buffer:
+                event_str, buffer = buffer.split("\n\n", 1)
+
+                event_type = "message"
+                event_data = "{}"
+
+                for line in event_str.split("\n"):
+                    if line.startswith("event:"):
+                        event_type = line[6:].strip()
+                    elif line.startswith("data:"):
+                        event_data = line[5:].strip()
+
+                if event_type == "execution_completed":
+                    print("\n✅ Execução concluída!")
+                    sys.exit(0)
+
+                if event_type == "message":
+                    import json
+                    data = json.loads(event_data)
+                    prefix = "[replay]" if data.get("is_replay") else "[live]"
+                    speaker = data.get("speaker", "?")
+                    text = (data.get("text") or "")[:60]
+                    synth = (data.get("synth_id") or "?")[:6]
+                    print(f"{prefix} [{speaker}] ({synth}): {text}...")
+EOF
+
+# Executar:
+uv run python /tmp/test_sse.py $EXEC_ID
+```
+
+##### Comportamento do SSE
+
+| Cenário | Comportamento |
+|---------|---------------|
+| Cliente conecta durante execução | Recebe replay das mensagens já salvas + mensagens live |
+| Cliente conecta após execução | Recebe replay completo + evento `execution_completed` |
+| Cliente conecta antes da execução | Aguarda até haver mensagens, então recebe live |
+| Execução falha | Recebe evento `execution_completed` (mesmo em falha) |
+
+##### Campos do Evento `message`
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `event_type` | string | Sempre "message" para mensagens de entrevista |
+| `exec_id` | string | ID da execução |
+| `synth_id` | string | ID do synth sendo entrevistado |
+| `turn_number` | int | Número do turno na conversa (1, 2, 3...) |
+| `speaker` | string | "Interviewer" ou "Interviewee" |
+| `text` | string | Conteúdo da mensagem |
+| `timestamp` | datetime | Momento da mensagem |
+| `is_replay` | boolean | `true` se veio do histórico, `false` se é tempo real |
+
+**Verificações**:
+- [ ] Conexão SSE estabelecida (curl não fecha imediatamente)
+- [ ] Mensagens chegam em tempo real durante execução
+- [ ] Campo `is_replay` diferencia histórico de live
+- [ ] Evento `execution_completed` chega ao final
+- [ ] Múltiplos clientes podem conectar simultaneamente
+
+---
+
+### 6.6 Endpoints de PR-FAQ
+
+#### POST /prfaq/generate - Gerar PR-FAQ
+
+Primeiro precisamos gerar um PR-FAQ a partir de um research:
+
+```bash
+# Usar o EXEC_ID da execução de research anterior
+# Gerar PR-FAQ
+curl -X POST "http://localhost:8000/prfaq/generate" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"exec_id\": \"$EXEC_ID\"
+  }" | python3 -m json.tool
+
+# Salvar o prfaq_id retornado
+PRFAQ_ID=$(curl -s -X POST "http://localhost:8000/prfaq/generate" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"exec_id\": \"$EXEC_ID\"
+  }" | python3 -c "import json, sys; print(json.load(sys.stdin)['prfaq_id'])")
+
+echo "PR-FAQ ID: $PRFAQ_ID"
+```
+
+**Resultado esperado**:
+```json
+{
+  "prfaq_id": "prfaq_20231215_144530",
+  "status": "running",
+  "exec_id": "batch_compra-amazon_20231215_143022"
+}
+```
+
+**Verificações**:
+- [ ] Retorna HTTP 200
+- [ ] Campo "status" é "completed"
+- [ ] Arquivo PR-FAQ gerado em `output/prfaq/`
+- [ ] Arquivo markdown contém seções: Press Release, FAQs
+
+---
+
+#### GET /prfaq/list - Listar PR-FAQs
+
+```bash
+# Listar todos os PR-FAQs gerados
 curl -s http://localhost:8000/prfaq/list | python3 -m json.tool
 ```
+
+**Resultado esperado**:
+```json
+{
+  "items": [
+    {
+      "prfaq_id": "prfaq_20231215_144530",
+      "product_name": "Amazon Shopping App",
+      "created_at": "2023-12-15T14:45:30"
+    }
+  ],
+  "total": 1
+}
+```
+
+**Verificações**:
+- [ ] Retorna HTTP 200
+- [ ] Lista contém o PR-FAQ recém-gerado
+- [ ] Campo "total" é pelo menos 1
+
+---
+
+#### GET /prfaq/{prfaq_id} - Obter PR-FAQ específico
+
+```bash
+# Obter detalhes do PR-FAQ
+curl -s "http://localhost:8000/prfaq/$PRFAQ_ID" | python3 -m json.tool
+
+# Ver conteúdo do arquivo gerado
+PRFAQ_PATH=$(curl -s "http://localhost:8000/prfaq/$PRFAQ_ID" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+print(data['file_path'])
+")
+
+if [ -f "$PRFAQ_PATH" ]; then
+    echo "PR-FAQ gerado em: $PRFAQ_PATH"
+    head -30 "$PRFAQ_PATH"
+else
+    echo "Arquivo não encontrado: $PRFAQ_PATH"
+fi
+```
+
+**Verificações**:
+- [ ] Retorna HTTP 200
+- [ ] Contém detalhes completos do PR-FAQ
+- [ ] Arquivo existe e contém conteúdo válido
 
 ---
 
@@ -375,8 +711,17 @@ curl -s http://localhost:8000/prfaq/list | python3 -m json.tool
 - [ ] GET /topics/list retorna topic guides
 - [ ] GET /topics/{name} retorna detalhes
 
-### Endpoints - Research/PR-FAQ
-- [ ] Endpoints não crasham sem dados
+### Endpoints - Research
+- [ ] POST /research/execute cria execução com 3 synths
+- [ ] GET /research retorna execuções criadas
+- [ ] GET /research/{exec_id} retorna detalhes completos
+- [ ] GET /research/{exec_id}/stream retorna eventos SSE
+
+### Endpoints - PR-FAQ
+- [ ] POST /prfaq/generate cria PR-FAQ a partir de research
+- [ ] GET /prfaq/list retorna PR-FAQs gerados
+- [ ] GET /prfaq/{prfaq_id} retorna detalhes do PR-FAQ
+- [ ] Arquivo markdown gerado em output/prfaq/
 
 ---
 

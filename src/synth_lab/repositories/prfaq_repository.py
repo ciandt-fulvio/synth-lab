@@ -98,35 +98,54 @@ class PRFAQRepository(BaseRepository):
 
         return self._row_to_summary(row)
 
-    def get_markdown_path(self, exec_id: str) -> Path | None:
+    def get_markdown_content(self, exec_id: str) -> str | None:
         """
-        Get the path to the PR-FAQ markdown file.
+        Get the PR-FAQ markdown content.
 
         Args:
             exec_id: Execution ID.
 
         Returns:
-            Path to markdown file, or None if not set.
+            Markdown content, or None if not set.
 
         Raises:
             PRFAQNotFoundError: If PR-FAQ not found.
         """
-        query = "SELECT markdown_path FROM prfaq_metadata WHERE exec_id = ?"
+        query = "SELECT markdown_content FROM prfaq_metadata WHERE exec_id = ?"
         row = self.db.fetchone(query, (exec_id,))
 
         if row is None:
             raise PRFAQNotFoundError(exec_id)
 
-        markdown_path = row["markdown_path"]
-        if markdown_path:
-            return Path(markdown_path)
-        return None
+        return row["markdown_content"]
+
+    def get_json_content(self, exec_id: str) -> str | None:
+        """
+        Get the PR-FAQ JSON content.
+
+        Args:
+            exec_id: Execution ID.
+
+        Returns:
+            JSON content string, or None if not set.
+
+        Raises:
+            PRFAQNotFoundError: If PR-FAQ not found.
+        """
+        query = "SELECT json_content FROM prfaq_metadata WHERE exec_id = ?"
+        row = self.db.fetchone(query, (exec_id,))
+
+        if row is None:
+            raise PRFAQNotFoundError(exec_id)
+
+        return row["json_content"]
 
     def create_prfaq_metadata(
         self,
         exec_id: str,
         model: str,
-        markdown_path: str,
+        markdown_content: str,
+        json_content: str | None = None,
         headline: str | None = None,
         one_liner: str | None = None,
         faq_count: int = 0,
@@ -139,7 +158,8 @@ class PRFAQRepository(BaseRepository):
         Args:
             exec_id: Execution ID.
             model: LLM model used.
-            markdown_path: Path to markdown file.
+            markdown_content: PR-FAQ markdown content.
+            json_content: PR-FAQ JSON content (optional).
             headline: Press release headline.
             one_liner: One-line summary.
             faq_count: Number of FAQ items.
@@ -149,9 +169,9 @@ class PRFAQRepository(BaseRepository):
         # Use REPLACE to handle both insert and update
         query = """
             INSERT OR REPLACE INTO prfaq_metadata
-            (exec_id, generated_at, model, markdown_path, headline, one_liner,
+            (exec_id, generated_at, model, markdown_content, json_content, headline, one_liner,
              faq_count, validation_status, confidence_score)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         self.db.execute(
             query,
@@ -159,7 +179,8 @@ class PRFAQRepository(BaseRepository):
                 exec_id,
                 datetime.now().isoformat(),
                 model,
-                markdown_path,
+                markdown_content,
+                json_content,
                 headline,
                 one_liner,
                 faq_count,
@@ -239,21 +260,19 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Wrong exception: {e}")
 
-    # Test 4: Get markdown path
+    # Test 4: Get markdown content
     total_tests += 1
     try:
         result = repo.list_prfaqs(PaginationParams(limit=1))
         if result.data:
             exec_id = result.data[0].exec_id
-            markdown_path = repo.get_markdown_path(exec_id)
-            if markdown_path:
-                print(f"  Markdown path: {markdown_path}")
-                if not markdown_path.exists():
-                    print("    (file does not exist)")
+            markdown_content = repo.get_markdown_content(exec_id)
+            if markdown_content:
+                print(f"  Markdown content: {len(markdown_content)} chars")
             else:
-                print(f"  No markdown path for {exec_id}")
+                print(f"  No markdown content for {exec_id}")
     except Exception as e:
-        all_validation_failures.append(f"Get markdown path failed: {e}")
+        all_validation_failures.append(f"Get markdown content failed: {e}")
 
     # Test 5: Pagination works
     total_tests += 1
