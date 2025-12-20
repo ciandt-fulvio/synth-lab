@@ -17,6 +17,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-15
 - SQLite with JSON1 extension (single file: `output/synthlab.db`) (010-rest-api)
 - Python 3.13+ + Typer (CLI framework), FastAPI (REST API), Pydantic>=2.5.0 (models), OpenAI SDK, DuckDB/SQLite (011-remove-cli-commands)
 - SQLite database (`output/synthlab.db`) + file system for reports (`output/reports/`) (011-remove-cli-commands)
+- TypeScript 5.5.3 + React 18.3.1 + Vite 6.3.4, shadcn/ui, TanStack React Query 5.56, React Router DOM 6.26, Tailwind CSS 3.4 (012-frontend-dashboard)
+- N/A (frontend consome API REST do backend) (012-frontend-dashboard)
 
 - Python 3.13+ + faker>=21.0.0, jsonschema>=4.20.0, rich (para output colorido) (002-synthlab-cli)
 
@@ -36,9 +38,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.13+: Follow standard conventions
 
 ## Recent Changes
+- 012-frontend-dashboard: Added TypeScript 5.5.3 + React 18.3.1 + Vite 6.3.4, shadcn/ui, TanStack React Query 5.56, React Router DOM 6.26, Tailwind CSS 3.4
 - 011-remove-cli-commands: Added Python 3.13+ + Typer (CLI framework), FastAPI (REST API), Pydantic>=2.5.0 (models), OpenAI SDK, DuckDB/SQLite
 - 010-rest-api: Added Python 3.13+ + FastAPI, uvicorn, SQLite (stdlib), openai>=2.8.0, openai-agents>=0.0.16, typer, rich, pydantic>=2.5.0
-- 008-synth-avatar-generation: Added Python 3.13+ + openai>=2.8.0 (API SDK), Pillow (image processing), rich (CLI output), existing synth-lab modules
 
 
 <!-- MANUAL ADDITIONS START -->
