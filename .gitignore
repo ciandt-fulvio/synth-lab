@@ -62,5 +62,11 @@ coverage.xml
 # Project specific
 *.log
 
+# SQLite database
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
 # Execution output data (synths, traces, transcripts, reports)
 output/

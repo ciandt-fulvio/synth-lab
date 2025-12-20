@@ -30,11 +30,11 @@ from typing import Optional
 import json
 import jsonschema
 
-from synth_lab.research_prfaq.models import (
+from .generation_models import (
     ResearchReport,
     PRFAQDocument,
 )
-from synth_lab.research_prfaq.prompts import get_json_schema
+from .prompts import get_json_schema
 
 
 @dataclass
@@ -234,7 +234,7 @@ def validate_prfaq(prfaq: PRFAQDocument) -> ValidationResult:
 if __name__ == "__main__":
     # Validation with real data
     import sys
-    from synth_lab.research_prfaq.models import (
+    from .generation_models import (
         PressRelease,
         FAQItem,
     )

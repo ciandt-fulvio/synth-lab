@@ -49,7 +49,6 @@ from synth_lab.research_prfaq.generator import (
     save_prfaq_markdown,
     load_prfaq_markdown,
 )
-from synth_lab.research_prfaq.exporter import export_to_pdf, export_to_markdown, export_to_html
 
 __all__ = [
     "setup_logging",
@@ -57,7 +56,4 @@ __all__ = [
     "generate_prfaq_markdown",
     "save_prfaq_markdown",
     "load_prfaq_markdown",
-    "export_to_pdf",
-    "export_to_markdown",
-    "export_to_html",
 ]
