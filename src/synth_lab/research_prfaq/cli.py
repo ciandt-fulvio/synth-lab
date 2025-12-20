@@ -27,7 +27,6 @@ from rich.markdown import Markdown
 
 from synth_lab.research_prfaq.models import setup_logging
 from synth_lab.research_prfaq.generator import generate_prfaq_markdown, save_prfaq_markdown, load_prfaq_markdown
-from synth_lab.research_prfaq.exporter import export_to_pdf, export_to_markdown, export_to_html
 
 app = typer.Typer()
 console = Console()

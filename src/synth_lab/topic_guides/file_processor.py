@@ -20,7 +20,7 @@ Expected Output:
 import hashlib
 from pathlib import Path
 
-from synth_lab.topic_guides.models import FileType
+from .internal_models import FileType
 from synth_lab.trace_visualizer import Tracer, SpanType, SpanStatus
 
 

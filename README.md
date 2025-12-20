@@ -2,8 +2,7 @@
 
 > Gerador de personas sintéticas (Synths) com atributos demográficos, psicográficos, comportamentais e cognitivos realistas, baseados em dados do IBGE e pesquisas verificadas.
 
-[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## 🎯 Objetivo
 
@@ -16,6 +15,16 @@ Criar Synths representativos da população brasileira para:
 - Desenvolvimento e validação de produtos
 
 ## ✨ Características
+
+### 🚀 API REST Moderna (NOVO!)
+- **FastAPI** standalone com documentação automática em `/docs`
+- **Arquitetura em 3 camadas**: Interface → Service → Database
+- **SQLite** com JSON1 para persistência de dados
+- **17 endpoints REST** para synths, research, topics e PR-FAQ
+- **Streaming SSE** para execução de pesquisas em tempo real
+- **Jobs assíncronos** para geração de relatórios
+- **Paginação** e filtros avançados
+- **CORS** configurado para desenvolvimento web
 
 ### Interface CLI Moderna
 - 🎨 **Saída colorida e formatada** com biblioteca Rich
@@ -43,6 +52,7 @@ Criar Synths representativos da população brasileira para:
 
 - Python 3.13 ou superior
 - `uv` (gerenciador de pacotes)
+- OpenAI API Key (para geração de avatares e entrevistas)
 
 ### Setup
 
@@ -54,11 +64,27 @@ cd synth-lab
 # Instalar dependências (uv cria automaticamente o .venv)
 uv sync
 
+# Configurar variável de ambiente
+export OPENAI_API_KEY="sk-your-api-key-here"
+
 # Pronto! Use uv run para executar comandos
 uv run synthlab --help
 ```
 
 > **Nota**: Não é necessário ativar o ambiente virtual ou instalar o pacote. O `uv run` gerencia tudo automaticamente, executando comandos diretamente no ambiente isolado.
+
+### Iniciar API REST
+
+```bash
+# Iniciar servidor FastAPI
+./scripts/start_api.sh
+
+# Ou manualmente
+uv run uvicorn src.synth_lab.api.main:app --reload --host 0.0.0.0 --port 8000
+
+# Acessar documentação interativa
+open http://localhost:8000/docs
+```
 
 ## 📖 Uso
 
@@ -501,6 +527,15 @@ synth-lab/
 ```
 
 ## 🎓 Documentação
+
+### Documentação Principal
+
+- **[Requisitos](docs/requisitos.md)**: Requisitos funcionais e não-funcionais do projeto
+- **[Arquitetura](docs/arquitetura.md)**: Arquitetura em 3 camadas (Interface → Service → Database)
+- **[Modelo de Dados](docs/database_model.md)**: Esquema completo do banco de dados SQLite
+- **[API REST](docs/api.md)**: Documentação completa dos 17 endpoints REST
+- **[CLI](docs/cli.md)**: Guia completo da interface de linha de comando
+- **[Camada de Serviços](docs/services.md)**: Documentação da lógica de negócio
 
 ### Especificações Técnicas
 

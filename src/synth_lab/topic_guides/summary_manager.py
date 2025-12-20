@@ -20,7 +20,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from synth_lab.topic_guides.models import FileDescription, SummaryFile
+from .internal_models import FileDescription, SummaryFile
 
 
 def create_initial_summary(guide_name: str, summary_path: Path) -> SummaryFile:

@@ -31,8 +31,8 @@ from typing import Optional
 from openai import OpenAI
 from loguru import logger
 
-from synth_lab.research_prfaq.models import parse_batch_summary
-from synth_lab.research_prfaq.prompts import get_system_prompt, get_few_shot_examples
+from .generation_models import parse_batch_summary
+from .prompts import get_system_prompt, get_few_shot_examples
 
 
 def generate_prfaq_markdown(

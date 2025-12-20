@@ -1,0 +1,881 @@
+openapi: 3.1.0
+info:
+  title: synth-lab API
+  description: REST API para gerenciamento de synths, pesquisas e PR-FAQs
+  version: 1.0.0
+  contact:
+    name: synth-lab
+servers:
+  - url: http://localhost:8000
+    description: Development server
+
+tags:
+  - name: Synths
+    description: Gerenciamento de personas sintéticas
+  - name: Topics
+    description: Topic guides para entrevistas
+  - name: Research
+    description: Execuções de pesquisa e transcrições
+  - name: PR-FAQ
+    description: Documentos PR-FAQ
+
+paths:
+  # ==================== SYNTHS ====================
+  /synths/list:
+    get:
+      tags: [Synths]
+      summary: Lista todos os synths
+      operationId: listSynths
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+        - name: fields
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          description: Campos a retornar
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            default: created_at
+        - name: sort_order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Lista paginada de synths
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SynthListResponse'
+
+  /synths/{id}:
+    get:
+      tags: [Synths]
+      summary: Detalhes de um synth
+      operationId: getSynth
+      parameters:
+        - $ref: '#/components/parameters/synthId'
+      responses:
+        '200':
+          description: Synth encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SynthDetail'
+        '404':
+          $ref: '#/components/responses/SynthNotFound'
+
+  /synths/search:
+    post:
+      tags: [Synths]
+      summary: Busca avançada de synths
+      operationId: searchSynths
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SynthSearchRequest'
+      responses:
+        '200':
+          description: Resultados da busca
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SynthListResponse'
+        '422':
+          $ref: '#/components/responses/InvalidQuery'
+
+  /synths/{id}/avatar:
+    get:
+      tags: [Synths]
+      summary: Avatar do synth
+      operationId: getSynthAvatar
+      parameters:
+        - $ref: '#/components/parameters/synthId'
+      responses:
+        '200':
+          description: Imagem do avatar
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/SynthNotFound'
+
+  /synths/{id}/research:
+    get:
+      tags: [Synths]
+      summary: Pesquisas do synth
+      operationId: getSynthResearch
+      parameters:
+        - $ref: '#/components/parameters/synthId'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: Lista de execuções
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SynthResearchResponse'
+        '404':
+          $ref: '#/components/responses/SynthNotFound'
+
+  # ==================== TOPICS ====================
+  /topics/list:
+    get:
+      tags: [Topics]
+      summary: Lista topic guides
+      operationId: listTopics
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: Lista de topic guides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicListResponse'
+
+  /topics/{name}:
+    get:
+      tags: [Topics]
+      summary: Detalhes do topic guide
+      operationId: getTopic
+      parameters:
+        - $ref: '#/components/parameters/topicName'
+      responses:
+        '200':
+          description: Topic guide encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicDetail'
+        '404':
+          $ref: '#/components/responses/TopicNotFound'
+
+  /topics/{name}/research:
+    get:
+      tags: [Topics]
+      summary: Pesquisas do tópico
+      operationId: getTopicResearch
+      parameters:
+        - $ref: '#/components/parameters/topicName'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: Lista de execuções
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicResearchResponse'
+        '404':
+          $ref: '#/components/responses/TopicNotFound'
+
+  # ==================== RESEARCH ====================
+  /research/{exec_id}:
+    get:
+      tags: [Research]
+      summary: Detalhes da execução
+      operationId: getExecution
+      parameters:
+        - $ref: '#/components/parameters/execId'
+      responses:
+        '200':
+          description: Execução encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionDetail'
+        '404':
+          $ref: '#/components/responses/ExecutionNotFound'
+
+  /research/{exec_id}/transcripts:
+    get:
+      tags: [Research]
+      summary: Lista transcrições
+      operationId: listTranscripts
+      parameters:
+        - $ref: '#/components/parameters/execId'
+      responses:
+        '200':
+          description: Lista de transcrições
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranscriptListResponse'
+        '404':
+          $ref: '#/components/responses/ExecutionNotFound'
+
+  /research/{exec_id}/transcripts/{synth_id}:
+    get:
+      tags: [Research]
+      summary: Transcrição específica
+      operationId: getTranscript
+      parameters:
+        - $ref: '#/components/parameters/execId'
+        - $ref: '#/components/parameters/synthId'
+      responses:
+        '200':
+          description: Transcrição encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranscriptDetail'
+        '404':
+          $ref: '#/components/responses/TranscriptNotFound'
+
+  /research/{exec_id}/summary:
+    get:
+      tags: [Research]
+      summary: Resumo da pesquisa
+      operationId: getSummary
+      parameters:
+        - $ref: '#/components/parameters/execId'
+      responses:
+        '200':
+          description: Resumo em Markdown
+          content:
+            text/markdown:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/ExecutionNotFound'
+
+  /research/{exec_id}/synths:
+    get:
+      tags: [Research]
+      summary: Synths da execução
+      operationId: getExecutionSynths
+      parameters:
+        - $ref: '#/components/parameters/execId'
+      responses:
+        '200':
+          description: Lista de synths
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionSynthsResponse'
+        '404':
+          $ref: '#/components/responses/ExecutionNotFound'
+
+  /research/{exec_id}/prfaq:
+    get:
+      tags: [Research]
+      summary: Status do PR-FAQ
+      operationId: getExecutionPRFAQ
+      parameters:
+        - $ref: '#/components/parameters/execId'
+      responses:
+        '200':
+          description: Status do PR-FAQ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PRFAQStatus'
+        '404':
+          $ref: '#/components/responses/PRFAQNotFound'
+
+  /research/execute:
+    post:
+      tags: [Research]
+      summary: Executa nova pesquisa
+      operationId: executeResearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteRequest'
+      responses:
+        '201':
+          description: Execução iniciada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecuteResponse'
+        '404':
+          $ref: '#/components/responses/TopicNotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  # ==================== PR-FAQ ====================
+  /prfaq/list:
+    get:
+      tags: [PR-FAQ]
+      summary: Lista PR-FAQs
+      operationId: listPRFAQs
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: Lista de PR-FAQs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PRFAQListResponse'
+
+  /prfaq/{exec_id}/markdown:
+    get:
+      tags: [PR-FAQ]
+      summary: PR-FAQ em Markdown
+      operationId: getPRFAQMarkdown
+      parameters:
+        - $ref: '#/components/parameters/execId'
+      responses:
+        '200':
+          description: PR-FAQ em Markdown
+          content:
+            text/markdown:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/PRFAQNotFound'
+
+  /prfaq/generate:
+    post:
+      tags: [PR-FAQ]
+      summary: Gera PR-FAQ
+      operationId: generatePRFAQ
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GeneratePRFAQRequest'
+      responses:
+        '201':
+          description: PR-FAQ gerado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneratePRFAQResponse'
+        '404':
+          $ref: '#/components/responses/ExecutionNotFound'
+        '422':
+          $ref: '#/components/responses/GenerationFailed'
+
+components:
+  parameters:
+    limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 50
+        minimum: 1
+        maximum: 200
+    offset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+    synthId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 6
+        maxLength: 6
+    topicName:
+      name: name
+      in: path
+      required: true
+      schema:
+        type: string
+    execId:
+      name: exec_id
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    # ===== Pagination =====
+    PaginationMeta:
+      type: object
+      required: [total, limit, offset, has_next]
+      properties:
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        has_next:
+          type: boolean
+
+    # ===== Error =====
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+
+    # ===== Synth =====
+    SynthSummary:
+      type: object
+      required: [id, nome, created_at]
+      properties:
+        id:
+          type: string
+        nome:
+          type: string
+        arquetipo:
+          type: string
+        descricao:
+          type: string
+        link_photo:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        version:
+          type: string
+
+    SynthDetail:
+      allOf:
+        - $ref: '#/components/schemas/SynthSummary'
+        - type: object
+          properties:
+            demografia:
+              type: object
+            psicografia:
+              type: object
+            deficiencias:
+              type: object
+            capacidades_tecnologicas:
+              type: object
+
+    SynthListResponse:
+      type: object
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SynthSummary'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    SynthSearchRequest:
+      type: object
+      properties:
+        where_clause:
+          type: string
+        query:
+          type: string
+        limit:
+          type: integer
+          default: 50
+        offset:
+          type: integer
+          default: 0
+        fields:
+          type: array
+          items:
+            type: string
+
+    SynthResearchResponse:
+      type: object
+      required: [synth_id, synth_name, executions, pagination]
+      properties:
+        synth_id:
+          type: string
+        synth_name:
+          type: string
+        executions:
+          type: array
+          items:
+            type: object
+            properties:
+              exec_id:
+                type: string
+              topic_name:
+                type: string
+              executed_at:
+                type: string
+                format: date-time
+              status:
+                type: string
+              has_transcript:
+                type: boolean
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # ===== Topic =====
+    TopicSummary:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        display_name:
+          type: string
+        description:
+          type: string
+        question_count:
+          type: integer
+        file_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TopicDetail:
+      allOf:
+        - $ref: '#/components/schemas/TopicSummary'
+        - type: object
+          properties:
+            summary:
+              type: object
+            script:
+              type: array
+              items:
+                type: object
+            metadata:
+              type: object
+
+    TopicListResponse:
+      type: object
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopicSummary'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    TopicResearchResponse:
+      type: object
+      required: [topic_name, executions, pagination]
+      properties:
+        topic_name:
+          type: string
+        executions:
+          type: array
+          items:
+            type: object
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # ===== Research =====
+    ExecutionDetail:
+      type: object
+      required: [exec_id, topic_name, metadata]
+      properties:
+        exec_id:
+          type: string
+        topic_name:
+          type: string
+        metadata:
+          type: object
+          properties:
+            synth_count:
+              type: integer
+            successful_count:
+              type: integer
+            failed_count:
+              type: integer
+            executed_at:
+              type: string
+              format: date-time
+            completed_at:
+              type: string
+              format: date-time
+            model:
+              type: string
+            max_turns:
+              type: integer
+            status:
+              type: string
+        summary_available:
+          type: boolean
+        prfaq_available:
+          type: boolean
+
+    TranscriptSummary:
+      type: object
+      properties:
+        synth_id:
+          type: string
+        synth_name:
+          type: string
+        turn_count:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+
+    TranscriptListResponse:
+      type: object
+      required: [exec_id, transcripts, total]
+      properties:
+        exec_id:
+          type: string
+        transcripts:
+          type: array
+          items:
+            $ref: '#/components/schemas/TranscriptSummary'
+        total:
+          type: integer
+
+    TranscriptDetail:
+      type: object
+      required: [metadata, messages]
+      properties:
+        metadata:
+          type: object
+        messages:
+          type: array
+          items:
+            type: object
+
+    ExecutionSynthsResponse:
+      type: object
+      required: [exec_id, synths, total]
+      properties:
+        exec_id:
+          type: string
+        synths:
+          type: array
+          items:
+            type: object
+        total:
+          type: integer
+
+    ExecuteRequest:
+      type: object
+      required: [topic_name]
+      properties:
+        topic_name:
+          type: string
+        synth_ids:
+          type: array
+          items:
+            type: string
+        synth_count:
+          type: integer
+        max_turns:
+          type: integer
+          default: 6
+        max_concurrent:
+          type: integer
+          default: 10
+        model:
+          type: string
+          default: gpt-5-mini
+        generate_summary:
+          type: boolean
+          default: true
+
+    ExecuteResponse:
+      type: object
+      required: [exec_id, status, topic_name, synth_count, started_at]
+      properties:
+        exec_id:
+          type: string
+        status:
+          type: string
+        topic_name:
+          type: string
+        synth_count:
+          type: integer
+        started_at:
+          type: string
+          format: date-time
+
+    # ===== PR-FAQ =====
+    PRFAQSummary:
+      type: object
+      properties:
+        exec_id:
+          type: string
+        topic_name:
+          type: string
+        press_release:
+          type: object
+          properties:
+            headline:
+              type: string
+            one_liner:
+              type: string
+        faq_count:
+          type: integer
+        generated_at:
+          type: string
+          format: date-time
+        validation_status:
+          type: string
+        confidence_score:
+          type: number
+
+    PRFAQListResponse:
+      type: object
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PRFAQSummary'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    PRFAQStatus:
+      type: object
+      properties:
+        exec_id:
+          type: string
+        prfaq_available:
+          type: boolean
+        generated_at:
+          type: string
+          format: date-time
+
+    GeneratePRFAQRequest:
+      type: object
+      required: [exec_id]
+      properties:
+        exec_id:
+          type: string
+        model:
+          type: string
+          default: gpt-5-mini
+
+    GeneratePRFAQResponse:
+      type: object
+      properties:
+        exec_id:
+          type: string
+        status:
+          type: string
+        generated_at:
+          type: string
+          format: date-time
+        validation_status:
+          type: string
+        confidence_score:
+          type: number
+
+  responses:
+    SynthNotFound:
+      description: Synth não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: SYNTH_NOT_FOUND
+              message: "Synth com ID 'xyz123' não encontrado"
+
+    TopicNotFound:
+      description: Topic guide não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: TOPIC_NOT_FOUND
+              message: "Topic guide 'compra-amazon' não encontrado"
+
+    ExecutionNotFound:
+      description: Execução não encontrada
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: EXECUTION_NOT_FOUND
+              message: "Execution 'batch_...' não encontrada"
+
+    TranscriptNotFound:
+      description: Transcrição não encontrada
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: TRANSCRIPT_NOT_FOUND
+              message: "Transcrição não encontrada para synth 'xyz123'"
+
+    PRFAQNotFound:
+      description: PR-FAQ não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: PRFAQ_NOT_FOUND
+              message: "PR-FAQ não encontrado para execução 'batch_...'"
+
+    InvalidQuery:
+      description: Query inválida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: INVALID_QUERY
+              message: "Query contém operações não permitidas"
+              details:
+                detected: DELETE
+
+    ValidationError:
+      description: Erro de validação
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: INVALID_REQUEST
+              message: "Deve fornecer 'synth_ids' ou 'synth_count'"
+
+    GenerationFailed:
+      description: Falha na geração
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: GENERATION_FAILED
+              message: "Falha ao gerar PR-FAQ: summary não encontrado"
+              details:
+                reason: missing_summary
