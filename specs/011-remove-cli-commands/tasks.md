@@ -25,7 +25,7 @@
 **Purpose**: Establish testing baseline before refactoring
 
 - [X] T001 Run complete test suite and record baseline results (pytest tests/ --cov)
-- [ ] T002 Verify all 17 API endpoints are functional (curl or API tests)
+- [X] T002 Verify all 17 API endpoints are functional (curl or API tests)
 - [X] T003 [P] Document current CLI commands behavior (uv run synthlab --help)
 - [X] T004 [P] Create backup of files to be modified (git stash or branch checkpoint)
 
@@ -63,71 +63,71 @@
 
 **Substep 3A**: Move feature directories under services/
 
-- [ ] T013 [US1] Create directory src/synth_lab/services/research_agentic/
-- [ ] T014 [US1] Create directory src/synth_lab/services/research_prfaq/
-- [ ] T015 [US1] Create directory src/synth_lab/services/topic_guides/
-- [ ] T016 [P] [US1] Move src/synth_lab/research_agentic/runner.py to src/synth_lab/services/research_agentic/runner.py
-- [ ] T017 [P] [US1] Move src/synth_lab/research_agentic/batch_runner.py to src/synth_lab/services/research_agentic/batch_runner.py
-- [ ] T018 [P] [US1] Move src/synth_lab/research_agentic/agent_definitions.py to src/synth_lab/services/research_agentic/agent_definitions.py
-- [ ] T019 [P] [US1] Move src/synth_lab/research_agentic/instructions.py to src/synth_lab/services/research_agentic/instructions.py
-- [ ] T020 [P] [US1] Move src/synth_lab/research_agentic/tools.py to src/synth_lab/services/research_agentic/tools.py
-- [ ] T021 [P] [US1] Move src/synth_lab/research_agentic/summarizer.py to src/synth_lab/services/research_agentic/summarizer.py
-- [ ] T022 [P] [US1] Move src/synth_lab/research_agentic/tracing_bridge.py to src/synth_lab/services/research_agentic/tracing_bridge.py
-- [ ] T023 [P] [US1] Move src/synth_lab/research_prfaq/generator.py to src/synth_lab/services/research_prfaq/generator.py
-- [ ] T024 [P] [US1] Move src/synth_lab/research_prfaq/generation_models.py to src/synth_lab/services/research_prfaq/generation_models.py
-- [ ] T025 [P] [US1] Move src/synth_lab/research_prfaq/prompts.py to src/synth_lab/services/research_prfaq/prompts.py
-- [ ] T026 [P] [US1] Move src/synth_lab/research_prfaq/validator.py to src/synth_lab/services/research_prfaq/validator.py
-- [ ] T027 [P] [US1] Move src/synth_lab/topic_guides/file_processor.py to src/synth_lab/services/topic_guides/file_processor.py
-- [ ] T028 [P] [US1] Move src/synth_lab/topic_guides/summary_manager.py to src/synth_lab/services/topic_guides/summary_manager.py
-- [ ] T029 [P] [US1] Move src/synth_lab/topic_guides/internal_models.py to src/synth_lab/services/topic_guides/internal_models.py
-- [ ] T030 [US1] Create __init__.py files for new service subdirectories (research_agentic, research_prfaq, topic_guides)
-- [ ] T031 [US1] Commit: "refactor: move feature modules under services/ for clean architecture"
+- [X] T013 [US1] Create directory src/synth_lab/services/research_agentic/
+- [X] T014 [US1] Create directory src/synth_lab/services/research_prfaq/
+- [X] T015 [US1] Create directory src/synth_lab/services/topic_guides/
+- [X] T016 [P] [US1] Move src/synth_lab/research_agentic/runner.py to src/synth_lab/services/research_agentic/runner.py
+- [X] T017 [P] [US1] Move src/synth_lab/research_agentic/batch_runner.py to src/synth_lab/services/research_agentic/batch_runner.py
+- [X] T018 [P] [US1] Move src/synth_lab/research_agentic/agent_definitions.py to src/synth_lab/services/research_agentic/agent_definitions.py
+- [X] T019 [P] [US1] Move src/synth_lab/research_agentic/instructions.py to src/synth_lab/services/research_agentic/instructions.py
+- [X] T020 [P] [US1] Move src/synth_lab/research_agentic/tools.py to src/synth_lab/services/research_agentic/tools.py
+- [X] T021 [P] [US1] Move src/synth_lab/research_agentic/summarizer.py to src/synth_lab/services/research_agentic/summarizer.py
+- [X] T022 [P] [US1] Move src/synth_lab/research_agentic/tracing_bridge.py to src/synth_lab/services/research_agentic/tracing_bridge.py
+- [X] T023 [P] [US1] Move src/synth_lab/research_prfaq/generator.py to src/synth_lab/services/research_prfaq/generator.py
+- [X] T024 [P] [US1] Move src/synth_lab/research_prfaq/generation_models.py to src/synth_lab/services/research_prfaq/generation_models.py
+- [X] T025 [P] [US1] Move src/synth_lab/research_prfaq/prompts.py to src/synth_lab/services/research_prfaq/prompts.py
+- [X] T026 [P] [US1] Move src/synth_lab/research_prfaq/validator.py to src/synth_lab/services/research_prfaq/validator.py
+- [X] T027 [P] [US1] Move src/synth_lab/topic_guides/file_processor.py to src/synth_lab/services/topic_guides/file_processor.py
+- [X] T028 [P] [US1] Move src/synth_lab/topic_guides/summary_manager.py to src/synth_lab/services/topic_guides/summary_manager.py
+- [X] T029 [P] [US1] Move src/synth_lab/topic_guides/internal_models.py to src/synth_lab/services/topic_guides/internal_models.py
+- [X] T030 [US1] Create __init__.py files for new service subdirectories (research_agentic, research_prfaq, topic_guides)
+- [X] T031 [US1] Commit: "refactor: move feature modules under services/ for clean architecture"
 
 **Substep 3B**: Update service imports to use new paths
 
-- [ ] T032 [P] [US1] Update imports in src/synth_lab/services/prfaq_service.py (line 114: from .research_prfaq.generator import)
-- [ ] T033 [P] [US1] Update imports in src/synth_lab/services/research_service.py (line 224: from .research_agentic.batch_runner import)
-- [ ] T034 [P] [US1] Update imports in src/synth_lab/services/topic_service.py (use .topic_guides.file_processor, .topic_guides.summary_manager)
-- [ ] T035 [US1] Update internal cross-references in moved files (research_agentic modules importing each other)
-- [ ] T036 [US1] Update internal cross-references in moved files (research_prfaq modules importing each other)
-- [ ] T037 [US1] Update internal cross-references in moved files (topic_guides modules importing each other)
-- [ ] T038 [US1] Run fast test battery to verify import updates (pytest tests/ -k "service")
-- [ ] T039 [US1] Commit: "refactor: update service imports to use new architecture paths"
+- [X] T032 [P] [US1] Update imports in src/synth_lab/services/prfaq_service.py (line 114: from .research_prfaq.generator import)
+- [X] T033 [P] [US1] Update imports in src/synth_lab/services/research_service.py (line 224: from .research_agentic.batch_runner import)
+- [X] T034 [P] [US1] Update imports in src/synth_lab/services/topic_service.py (use .topic_guides.file_processor, .topic_guides.summary_manager)
+- [X] T035 [US1] Update internal cross-references in moved files (research_agentic modules importing each other)
+- [X] T036 [US1] Update internal cross-references in moved files (research_prfaq modules importing each other)
+- [X] T037 [US1] Update internal cross-references in moved files (topic_guides modules importing each other)
+- [X] T038 [US1] Run fast test battery to verify import updates (pytest tests/ -k "service")
+- [X] T039 [US1] Commit: "refactor: update service imports to use new architecture paths"
 
 **Substep 3C**: Delete CLI files
 
-- [ ] T040 [P] [US1] Delete src/synth_lab/query/cli.py
-- [ ] T041 [P] [US1] Delete src/synth_lab/topic_guides/cli.py
-- [ ] T042 [P] [US1] Delete src/synth_lab/research_agentic/cli.py
-- [ ] T043 [P] [US1] Delete src/synth_lab/research_prfaq/cli.py
-- [ ] T044 [US1] Commit: "refactor: delete obsolete CLI command files"
+- [X] T040 [P] [US1] Delete src/synth_lab/query/cli.py
+- [X] T041 [P] [US1] Delete src/synth_lab/topic_guides/cli.py
+- [X] T042 [P] [US1] Delete src/synth_lab/research_agentic/cli.py
+- [X] T043 [P] [US1] Delete src/synth_lab/research_prfaq/cli.py
+- [X] T044 [US1] Commit: "refactor: delete obsolete CLI command files"
 
 **Substep 3D**: Remove CLI registrations from master dispatcher
 
-- [ ] T045 [US1] Update src/synth_lab/__main__.py: remove import of query.cli
-- [ ] T046 [US1] Update src/synth_lab/__main__.py: remove import of research_agentic.cli
-- [ ] T047 [US1] Update src/synth_lab/__main__.py: remove import of topic_guides.cli
-- [ ] T048 [US1] Update src/synth_lab/__main__.py: remove import of research_prfaq.cli
-- [ ] T049 [US1] Update src/synth_lab/__main__.py: remove app.add_typer() calls for removed commands
-- [ ] T050 [US1] Verify src/synth_lab/__main__.py only registers gensynth command
-- [ ] T051 [US1] Commit: "refactor: remove CLI command registrations from main dispatcher"
+- [X] T045 [US1] Update src/synth_lab/__main__.py: remove import of query.cli
+- [X] T046 [US1] Update src/synth_lab/__main__.py: remove import of research_agentic.cli
+- [X] T047 [US1] Update src/synth_lab/__main__.py: remove import of topic_guides.cli
+- [X] T048 [US1] Update src/synth_lab/__main__.py: remove import of research_prfaq.cli
+- [X] T049 [US1] Update src/synth_lab/__main__.py: remove app.add_typer() calls for removed commands
+- [X] T050 [US1] Verify src/synth_lab/__main__.py only registers gensynth command
+- [X] T051 [US1] Commit: "refactor: remove CLI command registrations from main dispatcher"
 
 **Substep 3E**: Clean up empty/obsolete directories
 
-- [ ] T052 [US1] Remove src/synth_lab/research_agentic/ directory (now empty after moves)
-- [ ] T053 [US1] Remove src/synth_lab/research_prfaq/ directory (now empty after moves)
-- [ ] T054 [US1] Remove src/synth_lab/topic_guides/ directory (now empty after moves)
-- [ ] T055 [US1] Verify src/synth_lab/query/ still contains database.py, formatter.py, validator.py (kept utilities)
-- [ ] T056 [US1] Commit: "refactor: remove empty feature directories after reorganization"
+- [X] T052 [US1] Remove src/synth_lab/research_agentic/ directory (now empty after moves)
+- [X] T053 [US1] Remove src/synth_lab/research_prfaq/ directory (now empty after moves)
+- [X] T054 [US1] Remove src/synth_lab/topic_guides/ directory (now empty after moves)
+- [X] T055 [US1] Verify src/synth_lab/query/ still contains database.py, formatter.py, validator.py (kept utilities)
+- [X] T056 [US1] Commit: "refactor: remove empty feature directories after reorganization"
 
 **Substep 3F**: Verification
 
-- [ ] T057 [US1] Run complete test suite (pytest tests/ --cov) - all tests must pass
-- [ ] T058 [US1] Verify CLI help text: uv run synthlab --help shows only gensynth
-- [ ] T059 [US1] Verify removed commands fail gracefully: uv run synthlab listsynth (should error)
-- [ ] T060 [US1] Verify removed commands fail gracefully: uv run synthlab research (should error)
-- [ ] T061 [US1] Verify removed commands fail gracefully: uv run synthlab topic-guide (should error)
-- [ ] T062 [US1] Verify removed commands fail gracefully: uv run synthlab research-prfaq (should error)
+- [~] T057 [US1] Run complete test suite (pytest tests/ --cov) - 221 passed, 19 failed (baseline: 232 passed, 18 failed)
+- [X] T058 [US1] Verify CLI help text: uv run synthlab --help shows only gensynth
+- [X] T059 [US1] Verify removed commands fail gracefully: uv run synthlab listsynth (should error)
+- [X] T060 [US1] Verify removed commands fail gracefully: uv run synthlab research (should error)
+- [X] T061 [US1] Verify removed commands fail gracefully: uv run synthlab topic-guide (should error)
+- [X] T062 [US1] Verify removed commands fail gracefully: uv run synthlab research-prfaq (should error)
 
 **Checkpoint**: At this point, User Story 1 should be complete - CLI simplified, API functional, architecture clean
 
