@@ -1,6 +1,7 @@
 """Unit tests for query validator module."""
 
 import pytest
+
 from synth_lab.query import QueryMode
 
 
@@ -17,9 +18,9 @@ def test_query_mode_basic():
 def test_query_request_basic_mode():
     """Test QueryRequest creation with BASIC mode."""
     from synth_lab.query.validator import QueryRequest
-    
+
     request = QueryRequest(mode=QueryMode.BASIC)
-    
+
     assert request.mode == QueryMode.BASIC
     assert request.where_clause is None
     assert request.full_query is None
@@ -30,10 +31,10 @@ def test_query_request_basic_mode():
 def test_query_request_to_sql_basic():
     """Test QueryRequest.to_sql() for BASIC mode."""
     from synth_lab.query.validator import QueryRequest
-    
+
     request = QueryRequest(mode=QueryMode.BASIC)
     sql = request.to_sql()
-    
+
     assert sql == "SELECT * FROM synths"
 
 
@@ -42,7 +43,7 @@ def test_query_request_to_sql_basic():
 def test_query_request_mutual_exclusivity():
     """Test that providing both where_clause and full_query raises error."""
     from synth_lab.query.validator import QueryRequest
-    
+
     with pytest.raises(ValueError, match="Cannot specify both"):
         QueryRequest(
             mode=QueryMode.WHERE,
@@ -56,9 +57,9 @@ def test_query_request_mutual_exclusivity():
 def test_query_request_basic_mode_no_clauses():
     """Test BASIC mode cannot have where_clause or full_query."""
     from synth_lab.query.validator import QueryRequest
-    
+
     with pytest.raises(ValueError, match="BASIC mode cannot have"):
         QueryRequest(mode=QueryMode.BASIC, where_clause="age > 30")
-    
+
     with pytest.raises(ValueError, match="BASIC mode cannot have"):
         QueryRequest(mode=QueryMode.BASIC, full_query="SELECT * FROM synths")

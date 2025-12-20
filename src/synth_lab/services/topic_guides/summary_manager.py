@@ -220,12 +220,14 @@ def load_topic_guide_context(topic_guide_name: str, base_dir: Path | None = None
         >>> "Available Context Materials:" in context
         True
     """
-    import os
-
     if base_dir is None:
-        base_dir = Path(os.environ.get("TOPIC_GUIDES_DIR", "data/topic_guides"))
+        from synth_lab.infrastructure.config import resolve_topic_guide_path
 
-    guide_path = base_dir / topic_guide_name
+        guide_path = resolve_topic_guide_path(topic_guide_name)
+        if guide_path is None:
+            return ""
+    else:
+        guide_path = base_dir / topic_guide_name
     summary_path = guide_path / "summary.md"
 
     if not summary_path.exists():
@@ -430,7 +432,7 @@ Just a context, no FILE DESCRIPTION section.
 
         if parsed.file_descriptions and parsed.file_descriptions[0].filename != "test.png":
             all_validation_failures.append(
-                f"Round-trip test: Filename mismatch after round-trip"
+                "Round-trip test: Filename mismatch after round-trip"
             )
 
     # Final validation result

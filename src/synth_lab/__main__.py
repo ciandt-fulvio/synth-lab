@@ -6,7 +6,9 @@ Command-line interface for generating synthetic Brazilian personas.
 
 import argparse
 import sys
+
 from synth_lab import __version__
+
 
 def create_parser() -> argparse.ArgumentParser:
     """Create the main argument parser with subcommands."""

@@ -20,8 +20,9 @@ Expected Output:
 import hashlib
 from pathlib import Path
 
+from synth_lab.trace_visualizer import SpanStatus, SpanType, Tracer
+
 from .internal_models import FileType
-from synth_lab.trace_visualizer import Tracer, SpanType, SpanStatus
 
 
 def detect_file_type(file_path: Path) -> FileType | None:
@@ -411,7 +412,7 @@ if __name__ == "__main__":
 
         if hash1 != hash2:
             all_validation_failures.append(
-                f"compute_file_hash consistency: Two hashes of same file don't match"
+                "compute_file_hash consistency: Two hashes of same file don't match"
             )
 
         if len(hash1) != 32:  # MD5 is always 32 hex chars

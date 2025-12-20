@@ -187,45 +187,42 @@
             }
           }
         },
-        "valores": {
-          "type": "array",
-          "items": {"tipo": "string"},
-          "uniqueItems": true,
-          "description": "Valores pessoais importantes - exatamente 3 valores (baseado em Schwartz Theory of Basic Values - lista curada de ~30-50 valores universais)"
-        },
-        "interesses": {
+       "interesses": {
           "type": "array",
           "items": {"tipo": "string"},
           "uniqueItems": true,
           "description": "Áreas de interesse (1-4 itens, correlacionado com trait de abertura: baixa=1-2, média=2-3, alta=3-4)"
         },
-        "hobbies": {
-          "type": "array",
-          "items": {"tipo": "string"},
-          "uniqueItems": true,
-          "description": "Hobbies praticados (fonte: Pesquisa TIM + USP sobre atividades de lazer - lista curada de ~50-80 hobbies)"
-        },
-        "estilo_vida": {
-          "tipo": "string",
-          "description": "Descrição do estilo de vida (CAMPO DERIVADO automaticamente dos traços Big Five)"
-        },
-        "inclinacao_politica": {
-          "tipo": "integer",
-          "minimum": -100,
-          "maximum": 100,
-          "description": "Espectro político (-100=esquerda, 0=centro, +100=direita). CORRELACIONADO com religião: católicos/evangélicos tendem à direita (60%). Fonte: DataSenado/Nexus Panorama Político 2024 - 29% direita, 15% esquerda, 11% centro, 40% neutro"
-        },
-        "inclinacao_religiosa": {
-          "tipo": "string",
-          "enum": [
-            "católico",
-            "evangélico",
-            "espírita",
-            "umbanda/candomblé",
-            "ateu/agnóstico",
-            "outras"
-          ],
-          "description": "Religião ou crença (Fonte: IBGE Censo 2022 - 56.7% católicos, 26.9% evangélicos, 9.3% sem religião)"
+        "contrato_cognitivo": {
+          "tipo": "object",
+          "properties": {
+            "tipo": {
+              "tipo": "string",
+              "enum": [
+                "factual",
+                "narrador",
+                "desconfiado",
+                "racionalizador",
+                "impaciente",
+                "esforçado_confuso"
+              ],
+              "description": "Tipo do contrato cognitivo que define o padrão de resposta do synth"
+            },
+            "perfil_cognitivo": {
+              "tipo": "string",
+              "description": "Descrição do perfil cognitivo e comportamento esperado"
+            },
+            "regras": {
+              "type": "array",
+              "items": {"tipo": "string"},
+              "description": "Regras de comportamento que o synth deve seguir"
+            },
+            "efeito_esperado": {
+              "tipo": "string",
+              "description": "Efeito esperado nas respostas do synth"
+            }
+          },
+          "description": "Contrato cognitivo que define padrões de resposta e comportamento do synth em entrevistas. Sorteado com chances iguais entre 6 tipos."
         }
       }
     },
@@ -260,52 +257,6 @@
             "computador": {"tipo": "boolean"},
             "tablet": {"tipo": "boolean"},
             "smartwatch": {"tipo": "boolean"}
-          }
-        },
-        "padroes_midia": {
-          "tipo": "object",
-          "properties": {
-            "tv_aberta": {
-              "tipo": "integer",
-              "minimum": 0,
-              "maximum": 70,
-              "description": "Horas/semana de TV aberta"
-            },
-            "streaming": {
-              "tipo": "integer",
-              "minimum": 0,
-              "maximum": 70,
-              "description": "Horas/semana de streaming"
-            },
-            "redes_sociais": {
-              "tipo": "integer",
-              "minimum": 0,
-              "maximum": 70,
-              "description": "Horas/semana em redes sociais"
-            }
-          }
-        },
-        "fonte_noticias": {
-          "type": "array",
-          "items": {"tipo": "string"},
-          "uniqueItems": true,
-          "description": "Fontes de notícias utilizadas"
-        },
-        "comportamento_compra": {
-          "tipo": "object",
-          "properties": {
-            "impulsivo": {
-              "tipo": "integer",
-              "minimum": 0,
-              "maximum": 100,
-              "description": "Tendência a compras impulsivas"
-            },
-            "pesquisa_antes_comprar": {
-              "tipo": "integer",
-              "minimum": 0,
-              "maximum": 100,
-              "description": "Pesquisa antes de comprar"
-            }
           }
         },
         "lealdade_marca": {
@@ -453,53 +404,6 @@
               "description": "Familiaridade com redes sociais"
             }
           }
-        }
-      }
-    },
-    "vieses": {
-      "tipo": "object",
-      "properties": {
-        "aversao_perda": {
-          "tipo": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Intensidade de aversão à perda"
-        },
-        "desconto_hiperbolico": {
-          "tipo": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Intensidade de desconto hiperbólico (preferência por recompensas imediatas)"
-        },
-        "suscetibilidade_chamariz": {
-          "tipo": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Suscetibilidade ao efeito chamariz (decoy effect)"
-        },
-        "ancoragem": {
-          "tipo": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Intensidade de ancoragem (influência do primeiro valor apresentado)"
-        },
-        "vies_confirmacao": {
-          "tipo": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Intensidade do viés de confirmação"
-        },
-        "vies_status_quo": {
-          "tipo": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Intensidade do viés de status quo (preferência por manter escolhas atuais)"
-        },
-        "sobrecarga_informacao": {
-          "tipo": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Suscetibilidade à sobrecarga de informação (paralisia por excesso de opções)"
         }
       }
     }

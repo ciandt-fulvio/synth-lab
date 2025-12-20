@@ -14,20 +14,30 @@ from synth_lab.infrastructure.database import DatabaseManager
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.synth import (
     AccessibilityPrefs,
+    Behavior,
+    BigFivePersonality,
+    CognitiveContract,
+    CognitiveDisability,
+    ConsumptionHabits,
     Demographics,
     DeviceInfo,
     Disabilities,
+    FamilyComposition,
+    HearingDisability,
     Location,
+    MotorDisability,
     PlatformFamiliarity,
     Psychographics,
+    SocialMediaEngagement,
     SynthDetail,
     SynthFieldInfo,
     SynthSummary,
     TechCapabilities,
+    TechUsage,
+    VisualDisability,
 )
 from synth_lab.repositories.base import BaseRepository
 from synth_lab.services.errors import InvalidQueryError, SynthNotFoundError
-
 
 # Dangerous SQL keywords that should not be in WHERE clauses
 BLOCKED_KEYWORDS = frozenset([
@@ -153,7 +163,7 @@ class SynthRepository(BaseRepository):
         return AVATARS_DIR / f"{synth_id}.png"
 
     def get_fields(self) -> list[SynthFieldInfo]:
-        """Get available synth field metadata."""
+        """Get available synth field metadata following schema v1."""
         return [
             SynthFieldInfo(name="id", type="string", description="6-character unique ID"),
             SynthFieldInfo(name="nome", type="string", description="Display name"),
@@ -163,20 +173,44 @@ class SynthRepository(BaseRepository):
             SynthFieldInfo(
                 name="demografia",
                 type="object",
-                description="Demographic data",
-                nested_fields=["idade", "genero", "localizacao", "educacao", "ocupacao", "renda_familiar"],
+                description="Demographic data (IBGE Censo 2022, PNAD 2023)",
+                nested_fields=[
+                    "idade",
+                    "genero_biologico",
+                    "identidade_genero",
+                    "raca_etnia",
+                    "localizacao",
+                    "escolaridade",
+                    "renda_mensal",
+                    "ocupacao",
+                    "estado_civil",
+                    "composicao_familiar",
+                ],
             ),
             SynthFieldInfo(
                 name="psicografia",
                 type="object",
                 description="Psychographic data",
-                nested_fields=["valores", "interesses", "estilo_vida", "personalidade"],
+                nested_fields=["personalidade_big_five", "interesses", "contrato_cognitivo"],
+            ),
+            SynthFieldInfo(
+                name="deficiencias",
+                type="object",
+                description="Disability information (IBGE PNS 2019)",
+                nested_fields=["visual", "auditiva", "motora", "cognitiva"],
             ),
             SynthFieldInfo(
                 name="capacidades_tecnologicas",
                 type="object",
-                description="Tech capabilities",
-                nested_fields=["nivel_geral", "dispositivos", "apps_frequentes", "comportamento_digital"],
+                description="Technology capabilities",
+                nested_fields=[
+                    "alfabetizacao_digital",
+                    "dispositivos",
+                    "preferencias_acessibilidade",
+                    "velocidade_digitacao",
+                    "frequencia_internet",
+                    "familiaridade_plataformas",
+                ],
             ),
         ]
 
@@ -239,71 +273,125 @@ class SynthRepository(BaseRepository):
         )
 
     def _row_to_detail(self, row) -> SynthDetail:
-        """Convert a database row to SynthDetail with nested objects."""
+        """Convert a database row to SynthDetail with nested objects following schema v1."""
         from datetime import datetime
 
         created_at = row["created_at"]
         if isinstance(created_at, str):
             created_at = datetime.fromisoformat(created_at)
 
-        # Parse JSON columns
+        # Parse JSON columns following schema v1
         demografia = None
         if row["demografia"]:
             demo_data = json.loads(row["demografia"])
+
+            # Location
             location_data = demo_data.get("localizacao")
             location = Location(**location_data) if location_data else None
+
+            # Family composition
+            family_data = demo_data.get("composicao_familiar")
+            family = FamilyComposition(**family_data) if family_data else None
+
             demografia = Demographics(
                 idade=demo_data.get("idade"),
-                genero=demo_data.get("genero"),
+                genero_biologico=demo_data.get("genero_biologico"),
+                identidade_genero=demo_data.get("identidade_genero"),
+                raca_etnia=demo_data.get("raca_etnia"),
                 localizacao=location,
-                educacao=demo_data.get("educacao"),
+                escolaridade=demo_data.get("escolaridade"),
+                renda_mensal=demo_data.get("renda_mensal"),
                 ocupacao=demo_data.get("ocupacao"),
-                renda_familiar=demo_data.get("renda_familiar"),
+                estado_civil=demo_data.get("estado_civil"),
+                composicao_familiar=family,
             )
 
         psicografia = None
         if row["psicografia"]:
             psico_data = json.loads(row["psicografia"])
+
+            # Big Five personality
+            big_five_data = psico_data.get("personalidade_big_five")
+            big_five = BigFivePersonality(**big_five_data) if big_five_data else None
+
+            # Cognitive contract
+            contract_data = psico_data.get("contrato_cognitivo")
+            contract = CognitiveContract(**contract_data) if contract_data else None
+
             psicografia = Psychographics(
-                valores=psico_data.get("valores", []),
+                personalidade_big_five=big_five,
                 interesses=psico_data.get("interesses", []),
-                estilo_vida=psico_data.get("estilo_vida"),
-                personalidade=psico_data.get("personalidade"),
+                contrato_cognitivo=contract,
+            )
+
+        # Comportamento (may not exist in current database)
+        comportamento = None
+        if "comportamento" in row.keys() and row["comportamento"]:
+            comp_data = json.loads(row["comportamento"])
+
+            # Consumption habits
+            habits_data = comp_data.get("habitos_consumo")
+            habits = ConsumptionHabits(**habits_data) if habits_data else None
+
+            # Tech usage
+            tech_usage_data = comp_data.get("uso_tecnologia")
+            tech_usage = TechUsage(**tech_usage_data) if tech_usage_data else None
+
+            # Social media
+            social_data = comp_data.get("engajamento_redes_sociais")
+            social = SocialMediaEngagement(**social_data) if social_data else None
+
+            comportamento = Behavior(
+                habitos_consumo=habits,
+                uso_tecnologia=tech_usage,
+                lealdade_marca=comp_data.get("lealdade_marca"),
+                engajamento_redes_sociais=social,
             )
 
         deficiencias = None
         if row["deficiencias"]:
             def_data = json.loads(row["deficiencias"])
+
+            # Visual disability
+            visual_data = def_data.get("visual")
+            visual = VisualDisability(**visual_data) if visual_data else None
+
+            # Hearing disability
+            hearing_data = def_data.get("auditiva")
+            hearing = HearingDisability(**hearing_data) if hearing_data else None
+
+            # Motor disability
+            motor_data = def_data.get("motora")
+            motor = MotorDisability(**motor_data) if motor_data else None
+
+            # Cognitive disability
+            cognitive_data = def_data.get("cognitiva")
+            cognitive = CognitiveDisability(**cognitive_data) if cognitive_data else None
+
             deficiencias = Disabilities(
-                tipo=def_data.get("tipo"),
-                descricao=def_data.get("descricao"),
-                nivel=def_data.get("nivel"),
+                visual=visual,
+                auditiva=hearing,
+                motora=motor,
+                cognitiva=cognitive,
             )
 
         capacidades_tecnologicas = None
         if row["capacidades_tecnologicas"]:
             tech_data = json.loads(row["capacidades_tecnologicas"])
 
-            # Handle dispositivos - can be dict, list, or None
-            dispositivos = tech_data.get("dispositivos")
-            if isinstance(dispositivos, dict):
-                dispositivos = DeviceInfo(**dispositivos)
-            elif isinstance(dispositivos, list):
-                pass  # Keep as list
+            # Device info
+            dispositivos_data = tech_data.get("dispositivos")
+            dispositivos = DeviceInfo(**dispositivos_data) if isinstance(dispositivos_data, dict) else None
 
-            # Handle nested objects
-            prefs = tech_data.get("preferencias_acessibilidade")
-            if isinstance(prefs, dict):
-                prefs = AccessibilityPrefs(**prefs)
+            # Accessibility preferences
+            prefs_data = tech_data.get("preferencias_acessibilidade")
+            prefs = AccessibilityPrefs(**prefs_data) if isinstance(prefs_data, dict) else None
 
-            familiarity = tech_data.get("familiaridade_plataformas")
-            if isinstance(familiarity, dict):
-                familiarity = PlatformFamiliarity(**familiarity)
+            # Platform familiarity
+            familiarity_data = tech_data.get("familiaridade_plataformas")
+            familiarity = PlatformFamiliarity(**familiarity_data) if isinstance(familiarity_data, dict) else None
 
             capacidades_tecnologicas = TechCapabilities(
-                nivel_geral=tech_data.get("nivel_geral"),
-                apps_frequentes=tech_data.get("apps_frequentes", []),
-                comportamento_digital=tech_data.get("comportamento_digital"),
                 alfabetizacao_digital=tech_data.get("alfabetizacao_digital"),
                 dispositivos=dispositivos,
                 preferencias_acessibilidade=prefs,
@@ -323,6 +411,7 @@ class SynthRepository(BaseRepository):
             version=row["version"] or "2.0.0",
             demografia=demografia,
             psicografia=psicografia,
+            comportamento=comportamento,
             deficiencias=deficiencias,
             capacidades_tecnologicas=capacidades_tecnologicas,
         )

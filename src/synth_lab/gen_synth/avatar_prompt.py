@@ -13,7 +13,6 @@ Saída: String formatada em português pronta para envio à API OpenAI
 import random
 from typing import Any
 
-
 # Filtros visuais disponíveis para os avatares (com probabilidade igual)
 VISUAL_FILTERS = [
     "não usar filtro",
@@ -196,6 +195,7 @@ if __name__ == "__main__":
     4. Prompt contém todos os elementos esperados em português
     """
     import sys
+
     from rich.console import Console
 
     console = Console()
@@ -237,7 +237,7 @@ if __name__ == "__main__":
             f"build_synth_description(): Descrição incompleta: {desc[:50]}..."
         )
     else:
-        console.print(f"[green]✓[/green] build_synth_description() gerou descrição válida")
+        console.print("[green]✓[/green] build_synth_description() gerou descrição válida")
 
     # Test 3: build_synth_description sem campo descricao (constrói a partir dos campos)
     total_tests += 1
@@ -267,7 +267,7 @@ if __name__ == "__main__":
             f"build_synth_description() (sem descricao): Construção incorreta: {desc[:80]}..."
         )
     else:
-        console.print(f"[green]✓[/green] build_synth_description() constrói descrição a partir de campos")
+        console.print("[green]✓[/green] build_synth_description() constrói descrição a partir de campos")
 
     # Test 4: build_prompt com 9 synths
     total_tests += 1
@@ -302,7 +302,7 @@ if __name__ == "__main__":
             )
         else:
             console.print(f"[green]✓[/green] build_prompt(9 synths) gerou prompt válido ({len(prompt)} chars)")
-            console.print(f"\n[dim]Preview do prompt:[/dim]")
+            console.print("\n[dim]Preview do prompt:[/dim]")
             console.print(f"[dim]{prompt[:500]}...[/dim]")
     except Exception as e:
         all_validation_failures.append(

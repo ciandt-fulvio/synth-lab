@@ -13,7 +13,11 @@ from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.prfaq import PRFAQGenerateRequest, PRFAQGenerateResponse, PRFAQSummary
 from synth_lab.repositories.prfaq_repository import PRFAQRepository
 from synth_lab.repositories.research_repository import ResearchRepository
-from synth_lab.services.errors import ExecutionNotFoundError, PRFAQNotFoundError, SummaryNotFoundError
+from synth_lab.services.errors import (
+    ExecutionNotFoundError,
+    PRFAQNotFoundError,
+    SummaryNotFoundError,
+)
 
 
 class MarkdownNotFoundError(Exception):
@@ -110,7 +114,11 @@ class PRFAQService:
             SummaryNotFoundError: If execution doesn't have a summary.
         """
         from loguru import logger
-        from synth_lab.services.research_prfaq.generator import generate_prfaq_markdown, save_prfaq_markdown
+
+        from synth_lab.services.research_prfaq.generator import (
+            generate_prfaq_markdown,
+            save_prfaq_markdown,
+        )
 
         # Verify execution exists and has summary
         research_repo = ResearchRepository()

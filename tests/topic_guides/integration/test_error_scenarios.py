@@ -7,7 +7,6 @@ Tests error handling for various failure modes:
 - Corrupted files
 """
 
-import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -19,7 +18,7 @@ class TestErrorHandling:
 
     def test_unsupported_files_are_skipped(self, tmp_path):
         """Test that unsupported file types are skipped with warning."""
-        from synth_lab.services.topic_guides.file_processor import scan_directory, is_supported_type
+        from synth_lab.services.topic_guides.file_processor import is_supported_type, scan_directory
 
         guide_dir = tmp_path / "test-guide"
         guide_dir.mkdir()
@@ -117,8 +116,9 @@ class TestErrorHandling:
     @patch("openai.OpenAI")
     def test_placeholder_added_on_api_failure(self, mock_openai_class, tmp_path):
         """Test that placeholder description is added when API fails."""
-        from synth_lab.services.topic_guides.internal_models import FileDescription
         from datetime import datetime
+
+        from synth_lab.services.topic_guides.internal_models import FileDescription
 
         # This test verifies the CLI behavior of adding placeholders
         # The actual implementation will be in cli.py update command

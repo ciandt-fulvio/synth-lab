@@ -1,6 +1,5 @@
 """Tests for psychographics module."""
 
-import pytest
 from synth_lab.gen_synth import psychographics
 
 

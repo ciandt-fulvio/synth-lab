@@ -12,20 +12,19 @@ Entrada: Lista de synths com dados demográficos
 Saída: Arquivos PNG salvos em output/synths/avatar/
 """
 
-import os
 import math
+import os
 import time
-import json
 from pathlib import Path
 from typing import Any
 
-from openai import OpenAI, APIError, APIConnectionError, RateLimitError, AuthenticationError
+from loguru import logger
+from openai import APIConnectionError, APIError, AuthenticationError, OpenAI, RateLimitError
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
-from loguru import logger
 
-from synth_lab.gen_synth.avatar_prompt import build_prompt
 from synth_lab.gen_synth.avatar_image import save_base64_image, split_grid_image
+from synth_lab.gen_synth.avatar_prompt import build_prompt
 
 console = Console()
 
@@ -35,16 +34,16 @@ BACKOFF_FACTOR = 2  # Segundos base para backoff exponencial
 INTER_BLOCK_DELAY = 1.5  # Delay entre blocos para evitar rate limits (T049)
 
 
-def load_synth_by_id(synth_id: str, synths_file: str | Path = "output/synths/synths.json") -> dict[str, Any] | None:
+def load_synth_by_id(synth_id: str, synths_file: str | Path | None = None) -> dict[str, Any] | None:
     """
-    Carrega dados de um synth por ID do arquivo synths.json.
+    Carrega dados de um synth por ID do banco de dados SQLite.
 
-    Busca um synth específico pelo ID no arquivo JSON de synths.
+    Busca um synth específico pelo ID no banco de dados.
     Útil para gerar avatares de synths existentes (User Story 3).
 
     Args:
         synth_id: ID do synth a carregar (ex: "syn001")
-        synths_file: Caminho para arquivo synths.json (padrão: output/synths/synths.json)
+        synths_file: Deprecated, ignorado (mantido para compatibilidade)
 
     Returns:
         dict | None: Dados do synth se encontrado, None caso contrário
@@ -56,29 +55,15 @@ def load_synth_by_id(synth_id: str, synths_file: str | Path = "output/synths/syn
         >>> load_synth_by_id("nonexistent")
         None
     """
-    synths_path = Path(synths_file)
-
-    # Verificar se arquivo existe
-    if not synths_path.exists():
-        logger.warning(f"Arquivo de synths não encontrado: {synths_path}")
-        return None
+    from synth_lab.gen_synth.storage import get_synth_by_id
 
     try:
-        with open(synths_path, "r", encoding="utf-8") as f:
-            synths = json.load(f)
-
-        # Buscar synth pelo ID
-        for synth in synths:
-            if synth.get("id") == synth_id:
-                logger.debug(f"Synth encontrado: {synth_id}")
-                return synth
-
-        logger.debug(f"Synth não encontrado: {synth_id}")
-        return None
-
-    except json.JSONDecodeError as e:
-        logger.error(f"Erro ao decodificar JSON de {synths_path}: {e}")
-        return None
+        synth = get_synth_by_id(synth_id)
+        if synth:
+            logger.debug(f"Synth encontrado: {synth_id}")
+        else:
+            logger.debug(f"Synth não encontrado: {synth_id}")
+        return synth
     except Exception as e:
         logger.error(f"Erro ao carregar synth {synth_id}: {e}")
         return None
@@ -86,17 +71,17 @@ def load_synth_by_id(synth_id: str, synths_file: str | Path = "output/synths/syn
 
 def load_synths_by_ids(
     synth_ids: list[str],
-    synths_file: str | Path = "output/synths/synths.json"
+    synths_file: str | Path | None = None
 ) -> list[dict[str, Any]]:
     """
-    Carrega múltiplos synths por lista de IDs.
+    Carrega múltiplos synths por lista de IDs do banco de dados.
 
     Carrega dados de vários synths de uma vez, filtrando IDs inexistentes.
     Útil para gerar avatares em lote para synths específicos (User Story 3).
 
     Args:
         synth_ids: Lista de IDs de synths a carregar (ex: ["syn001", "syn002"])
-        synths_file: Caminho para arquivo synths.json
+        synths_file: Deprecated, ignorado (mantido para compatibilidade)
 
     Returns:
         list[dict]: Lista de synths encontrados (pode ser menor que synth_ids se alguns não existirem)
@@ -116,7 +101,7 @@ def load_synths_by_ids(
     missing_ids = []
 
     for synth_id in synth_ids:
-        synth = load_synth_by_id(synth_id, synths_file)
+        synth = load_synth_by_id(synth_id)
         if synth:
             loaded_synths.append(synth)
         else:
@@ -130,17 +115,17 @@ def load_synths_by_ids(
 
 
 def find_synths_without_avatars(
-    synths_file: str | Path = "output/synths/synths.json",
+    synths_file: str | Path | None = None,
     avatar_dir: str | Path = "output/synths/avatar"
 ) -> list[dict[str, Any]]:
     """
     Encontra todos os synths que ainda não possuem arquivo de avatar.
 
-    Carrega todos os synths do arquivo JSON e verifica quais não têm
+    Carrega todos os synths do banco de dados e verifica quais não têm
     arquivo .png correspondente no diretório de avatares.
 
     Args:
-        synths_file: Caminho para arquivo synths.json
+        synths_file: Deprecated, ignorado (mantido para compatibilidade)
         avatar_dir: Diretório onde avatares são salvos
 
     Returns:
@@ -153,21 +138,16 @@ def find_synths_without_avatars(
         >>> synths[0]["id"]
         'syn001'
     """
-    synths_path = Path(synths_file)
-    avatar_path = Path(avatar_dir)
+    from synth_lab.gen_synth.storage import load_synths
 
-    # Verificar se arquivo de synths existe
-    if not synths_path.exists():
-        logger.warning(f"Arquivo de synths não encontrado: {synths_path}")
-        return []
+    avatar_path = Path(avatar_dir)
 
     # Criar diretório de avatares se não existir
     avatar_path.mkdir(parents=True, exist_ok=True)
 
     try:
-        # Carregar todos os synths
-        with open(synths_path, "r", encoding="utf-8") as f:
-            all_synths = json.load(f)
+        # Carregar todos os synths do banco
+        all_synths = load_synths()
 
         # Filtrar synths sem avatar
         synths_without_avatars = []
@@ -186,9 +166,6 @@ def find_synths_without_avatars(
         )
         return synths_without_avatars
 
-    except json.JSONDecodeError as e:
-        logger.error(f"Erro ao decodificar JSON de {synths_path}: {e}")
-        return []
     except Exception as e:
         logger.error(f"Erro ao buscar synths sem avatar: {e}")
         return []
@@ -382,6 +359,16 @@ def generate_avatar_block(
     # Dividir imagem
     logger.info("Dividindo grid em 9 avatares individuais")
     avatar_paths = split_grid_image(grid_image_path, str(avatar_dir), synth_ids)
+
+    # Atualizar avatar_path no banco de dados para cada synth
+    # Nota: avatar_paths pode ter menos de 9 itens se houver synths temporários
+    # Usamos o nome do arquivo para identificar o synth_id correto
+    from synth_lab.gen_synth.storage import update_avatar_path
+
+    for avatar_path in avatar_paths:
+        # Extrair synth_id do nome do arquivo (ex: "output/synths/avatar/abc123.png" -> "abc123")
+        synth_id = Path(avatar_path).stem
+        update_avatar_path(synth_id, avatar_path)
 
     # Limpar arquivo temporário
     Path(grid_image_path).unlink(missing_ok=True)

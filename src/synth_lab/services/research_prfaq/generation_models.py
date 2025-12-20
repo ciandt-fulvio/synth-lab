@@ -37,13 +37,14 @@ Expected output (prfaq):
     )
 """
 
-from datetime import datetime
-from typing import Optional, Dict, Any
-from pathlib import Path
 import json
 import re
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Optional
+
 from loguru import logger
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ResearchReport(BaseModel):
@@ -273,7 +274,7 @@ def _parse_batch_summary_json(batch_id: str, batch_path: Path) -> ResearchReport
     summary_content = data.get("summary_content", "")
 
     if not summary_content:
-        logger.error(f"Batch summary missing summary_content field")
+        logger.error("Batch summary missing summary_content field")
         raise ValueError("Batch summary must have summary_content field")
 
     # Parse Markdown sections using regex (English headers for legacy format)
@@ -343,7 +344,7 @@ def parse_batch_summary(batch_id: str, data_dir: str = "output/reports") -> Rese
         raise ValueError(f"Error reading batch summary: {e}")
 
     if not summary_content:
-        logger.error(f"Batch summary is empty")
+        logger.error("Batch summary is empty")
         raise ValueError("Batch summary must have content")
 
     # Parse Markdown sections using regex

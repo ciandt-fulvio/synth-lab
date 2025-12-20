@@ -11,7 +11,6 @@ Tests cover:
 - Conflicting rules when multiple traits affect the same bias
 """
 
-import pytest
 from synth_lab.gen_synth.biases import get_coherence_expectations
 
 

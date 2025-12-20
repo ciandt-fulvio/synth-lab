@@ -16,9 +16,8 @@ import uuid
 from pathlib import Path
 
 import requests
-from PIL import Image
-
 from loguru import logger
+from PIL import Image
 
 # Padrão para identificar synths temporários (ex: temp0100, temp0101)
 TEMP_SYNTH_PATTERN = re.compile(r"^temp\d+$")
@@ -185,6 +184,7 @@ if __name__ == "__main__":
     3. Validação de parâmetros
     """
     import sys
+
     from rich.console import Console
 
     console = Console()
@@ -251,7 +251,7 @@ if __name__ == "__main__":
                         )
                     else:
                         console.print(
-                            f"[green]✓[/green] split_grid_image() criou 9 avatares 341x341"
+                            "[green]✓[/green] split_grid_image() criou 9 avatares 341x341"
                         )
     except Exception as e:
         all_validation_failures.append(

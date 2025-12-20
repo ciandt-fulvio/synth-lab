@@ -8,19 +8,21 @@ Tests validate:
 - Error handling for corrupted/missing files
 """
 
-import pytest
-from datetime import datetime, timezone
-from pathlib import Path
 import json
 import tempfile
-from synth_lab.trace_visualizer.persistence import save_trace, load_trace
+from datetime import datetime, timezone
+from pathlib import Path
+
+import pytest
+
 from synth_lab.trace_visualizer.models import (
+    SpanStatus,
+    SpanType,
+    Step,
     Trace,
     Turn,
-    Step,
-    SpanType,
-    SpanStatus,
 )
+from synth_lab.trace_visualizer.persistence import load_trace, save_trace
 
 
 class TestSaveTrace:

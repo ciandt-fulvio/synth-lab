@@ -9,7 +9,6 @@ Tests cover:
 - Bias values are within valid ranges (0-100)
 """
 
-import pytest
 from synth_lab.gen_synth.biases import generate_biases_with_coherence
 
 

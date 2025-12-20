@@ -2,10 +2,11 @@
 Psychographics generation module for Synth Lab.
 
 This module generates psychographic attributes including Big Five personality traits,
-values, interests, hobbies, political and religious inclinations.
+values, interests, hobbies, and cognitive contracts.
 
 Functions:
 - generate_big_five(): Generate Big Five personality traits
+- generate_cognitive_contract(): Generate cognitive contract for interview behavior
 - generate_psychographics(): Generate complete psychographic profile
 
 Sample Input:
@@ -22,8 +23,12 @@ Expected Output:
             "neuroticismo": 42
         },
         "interesses": ["tecnologia", "esportes"],  # 1-4 itens, correlacionado com abertura
-        "inclinacao_politica": 45,  # Correlacionado com religião
-        "inclinacao_religiosa": "católico"  # Católicos/evangélicos tendem à direita
+        "contrato_cognitivo": {
+            "tipo": "factual",
+            "perfil_cognitivo": "responde só ao que foi perguntado, evita abstrações",
+            "regras": [...],
+            "efeito_esperado": "respostas secas, muito factuais"
+        }
     }
 
 Third-party packages:
@@ -33,7 +38,94 @@ Third-party packages:
 import random
 from typing import Any
 
-from .utils import normal_distribution, weighted_choice
+from .utils import normal_distribution
+
+# Definição dos 6 contratos cognitivos
+COGNITIVE_CONTRACTS = {
+    "factual": {
+        "tipo": "factual",
+        "perfil_cognitivo": "responde só ao que foi perguntado, evita abstrações",
+        "regras": [
+            "Proibido dar opinião geral",
+            "Proibido usar termos abstratos ('experiência', 'usabilidade', 'fluido')",
+            "Sempre relatar um evento específico",
+            "Respostas curtas e diretas",
+            "Se não lembrar, dizer 'não lembro direito'",
+        ],
+        "efeito_esperado": "respostas secas, muito factuais, ótimas para detectar pontos objetivos de fricção",
+    },
+    "narrador": {
+        "tipo": "narrador",
+        "perfil_cognitivo": "responde contando histórias, se perde no meio",
+        "regras": [
+            "Responder sempre com uma narrativa",
+            "Pode misturar eventos",
+            "Pode se contradizer levemente",
+            "Ordem temporal imperfeita",
+            "Detalhes irrelevantes são permitidos",
+        ],
+        "efeito_esperado": "respostas ricas em contexto, mas que exigem análise para extrair insights",
+    },
+    "desconfiado": {
+        "tipo": "desconfiado",
+        "perfil_cognitivo": "suspeita da entrevista e do sistema",
+        "regras": [
+            "Evitar respostas longas",
+            "Minimizar problemas ('não foi tão ruim assim')",
+            "Demonstrar cautela ao responder",
+            "Pode questionar a pergunta",
+            "Não se aprofundar espontaneamente",
+        ],
+        "efeito_esperado": "respostas evasivas que revelam desconfiança ou experiências negativas não verbalizadas",
+    },
+    "racionalizador": {
+        "tipo": "racionalizador",
+        "perfil_cognitivo": "primeiro relata, depois tenta explicar",
+        "regras": [
+            "Primeiro turno: só descrever o que aconteceu",
+            "Explicações só se perguntado explicitamente",
+            "Pode reformular respostas anteriores",
+            "Racionalização imperfeita",
+        ],
+        "efeito_esperado": "ótimo para observar construção de sentido pós-fato",
+    },
+    "impaciente": {
+        "tipo": "impaciente",
+        "perfil_cognitivo": "pouca tolerância, responde rápido e mal",
+        "regras": [
+            "Respostas curtas",
+            "Pode ignorar parte da pergunta",
+            "Pode demonstrar irritação leve",
+            "Não elabora sem follow-up direto",
+        ],
+        "efeito_esperado": "abandono, desistência, respostas truncadas - simula usuários impacientes",
+    },
+    "esforçado_confuso": {
+        "tipo": "esforçado_confuso",
+        "perfil_cognitivo": "quer ajudar, mas não sabe explicar bem",
+        "regras": [
+            "Tenta responder tudo",
+            "Usa exemplos simples",
+            "Pode se confundir ao explicar",
+            "Pode concordar com o entrevistador",
+        ],
+        "efeito_esperado": "respostas longas, mas pouco precisas — muito realista",
+    },
+}
+
+
+def generate_cognitive_contract() -> dict[str, Any]:
+    """
+    Gera um contrato cognitivo sorteado aleatoriamente com chances iguais.
+
+    O contrato cognitivo define como o synth se comporta em entrevistas,
+    simulando diferentes padrões de resposta humana.
+
+    Returns:
+        dict: Contrato cognitivo com tipo, perfil, regras e efeito esperado
+    """
+    tipo = random.choice(list(COGNITIVE_CONTRACTS.keys()))
+    return COGNITIVE_CONTRACTS[tipo].copy()
 
 
 def generate_big_five() -> dict[str, int]:
@@ -67,20 +159,19 @@ def generate_psychographics(
     big_five: dict[str, int], config_data: dict[str, Any]
 ) -> dict[str, Any]:
     """
-    Gera atributos psicográficos (interesses, política, religião).
+    Gera atributos psicográficos (interesses, contrato cognitivo).
 
     Correlações implementadas:
-    - Católicos e evangélicos têm maior probabilidade de serem de direita
     - Interesses correlacionados com abertura (1-4 itens)
+    - Contrato cognitivo sorteado com chances iguais
 
     Args:
         big_five: Dictionary with Big Five personality traits
-        config_data: Configuration data including IBGE and interests/hobbies
+        config_data: Configuration data including interests/hobbies
 
     Returns:
         dict[str, Any]: Complete psychographic profile
     """
-    ibge = config_data["ibge"]
     interests = config_data["interests_hobbies"]
 
     # Interesses (1-4 itens, correlacionados com abertura)
@@ -96,43 +187,13 @@ def generate_psychographics(
 
     interesses_list = random.sample(interests["interesses"], k=num_interesses)
 
-    # Inclinação religiosa primeiro (afeta política)
-    inclinacao_religiosa = weighted_choice(ibge["religiao"])
-
-    # Inclinação política correlacionada com religião
-    # Católicos e evangélicos têm maior probabilidade de serem de direita
-    if inclinacao_religiosa in ["católico", "evangélico"]:
-        # 60% direita, 20% centro, 10% esquerda, 10% outros
-        categoria_weights = {
-            "direita": 0.60,
-            "centro": 0.20,
-            "esquerda": 0.10,
-            "neutro": 0.05,
-            "nao_sabe": 0.05,
-        }
-        categoria = weighted_choice(categoria_weights)
-    else:
-        # Usa distribuição normal do IBGE para outras religiões
-        distribuicao = ibge["inclinacao_politica_distribuicao"]
-        categoria = weighted_choice(distribuicao)
-
-    # Gera valor numérico baseado na categoria
-    if categoria == "esquerda":
-        inclinacao_politica = random.randint(-100, -20)
-    elif categoria == "direita":
-        inclinacao_politica = random.randint(20, 100)
-    elif categoria == "centro":
-        inclinacao_politica = random.randint(-20, 20)
-    elif categoria == "neutro":
-        inclinacao_politica = random.randint(-10, 10)
-    else:  # nao_sabe
-        inclinacao_politica = 0
+    # Contrato cognitivo (sorteado com chances iguais entre 6 tipos)
+    contrato_cognitivo = generate_cognitive_contract()
 
     return {
         "personalidade_big_five": big_five,
         "interesses": interesses_list,
-        "inclinacao_politica": inclinacao_politica,
-        "inclinacao_religiosa": inclinacao_religiosa,
+        "contrato_cognitivo": contrato_cognitivo,
     }
 
 
@@ -192,19 +253,19 @@ if __name__ == "__main__":
             all_validation_failures.append(
                 f"Psychographics interesses should be 1-4: {psycho.get('interesses')}"
             )
-        if "inclinacao_politica" not in psycho:
-            all_validation_failures.append("Psychographics missing inclinacao_politica")
-        elif not (-100 <= psycho["inclinacao_politica"] <= 100):
-            all_validation_failures.append(
-                f"Inclinacao politica out of range: {psycho['inclinacao_politica']}"
-            )
-        if "inclinacao_religiosa" not in psycho:
-            all_validation_failures.append("Psychographics missing inclinacao_religiosa")
+        if "contrato_cognitivo" not in psycho:
+            all_validation_failures.append("Psychographics missing contrato_cognitivo")
+        else:
+            cc = psycho["contrato_cognitivo"]
+            if "tipo" not in cc or "perfil_cognitivo" not in cc or "regras" not in cc:
+                all_validation_failures.append(
+                    f"Contrato cognitivo missing required fields: {cc.keys()}"
+                )
 
         if not any(f.startswith("Test 2") for f in all_validation_failures):
             print(
                 f"Test 2: generate_psychographics(low openness) -> "
-                f"{len(psycho['interesses'])} interesses, politica={psycho['inclinacao_politica']}"
+                f"{len(psycho['interesses'])} interesses, contrato={psycho['contrato_cognitivo']['tipo']}"
             )
     except Exception as e:
         all_validation_failures.append(f"Test 2 (psychographics low openness): {str(e)}")
@@ -235,66 +296,53 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Test 3 (psychographics high openness): {str(e)}")
 
-    # Test 4: Verify political inclination categories
+    # Test 4: Verify cognitive contract generation
     total_tests += 1
     try:
-        test_big_five = generate_big_five()
-        political_counts = {
-            "esquerda": 0,
-            "direita": 0,
-            "centro": 0,
-            "neutro": 0,
-            "nao_sabe": 0,
-        }
+        contract = generate_cognitive_contract()
+        valid_types = ["factual", "narrador", "desconfiado", "racionalizador", "impaciente", "esforçado_confuso"]
 
-        for _ in range(50):
-            psycho = generate_psychographics(test_big_five, config)
-            pol = psycho["inclinacao_politica"]
-            if pol < -20:
-                political_counts["esquerda"] += 1
-            elif pol > 20:
-                political_counts["direita"] += 1
-            elif -20 <= pol <= 20 and pol != 0:
-                political_counts["centro"] += 1
-            elif pol == 0:
-                political_counts["nao_sabe"] += 1
-            else:
-                political_counts["neutro"] += 1
-
-        # Should have some distribution across categories
-        categories_with_values = sum(1 for v in political_counts.values() if v > 0)
-        if categories_with_values < 2:
+        if contract["tipo"] not in valid_types:
             all_validation_failures.append(
-                f"Political distribution too narrow: {political_counts}"
+                f"Cognitive contract invalid type: {contract['tipo']}"
             )
-        else:
-            print(f"Test 4: Political distribution across {categories_with_values} categories")
-    except Exception as e:
-        all_validation_failures.append(f"Test 4 (political distribution): {str(e)}")
+        if not isinstance(contract["regras"], list) or len(contract["regras"]) < 1:
+            all_validation_failures.append(
+                f"Cognitive contract regras should be non-empty list: {contract['regras']}"
+            )
+        if "perfil_cognitivo" not in contract or not contract["perfil_cognitivo"]:
+            all_validation_failures.append("Cognitive contract missing perfil_cognitivo")
 
-    # Test 5: Verify religious inclination
+        if not any("Test 4" in f for f in all_validation_failures):
+            print(f"Test 4: generate_cognitive_contract() -> tipo={contract['tipo']}")
+    except Exception as e:
+        all_validation_failures.append(f"Test 4 (cognitive contract generation): {str(e)}")
+
+    # Test 5: Verify cognitive contract distribution (should be roughly equal)
     total_tests += 1
     try:
-        test_big_five = generate_big_five()
-        religious_values = set()
-        for _ in range(20):
-            psycho = generate_psychographics(test_big_five, config)
-            religious_values.add(psycho["inclinacao_religiosa"])
+        contract_counts = {t: 0 for t in COGNITIVE_CONTRACTS.keys()}
 
-        # Should have at least 2 different religious values in 20 samples
-        if len(religious_values) < 2:
+        for _ in range(60):  # 60 samples for 6 types = ~10 per type expected
+            contract = generate_cognitive_contract()
+            contract_counts[contract["tipo"]] += 1
+
+        # Should have at least 3 different types in 60 samples (very high probability)
+        types_with_values = sum(1 for v in contract_counts.values() if v > 0)
+        if types_with_values < 3:
             all_validation_failures.append(
-                f"Religious distribution too narrow: {religious_values}"
+                f"Cognitive contract distribution too narrow: {contract_counts}"
             )
         else:
-            print(f"Test 5: Religious distribution has {len(religious_values)} different values")
+            print(f"Test 5: Cognitive contract distribution across {types_with_values} types: {contract_counts}")
     except Exception as e:
-        all_validation_failures.append(f"Test 5 (religious distribution): {str(e)}")
+        all_validation_failures.append(f"Test 5 (cognitive contract distribution): {str(e)}")
 
     # Test 6: Batch consistency test
     total_tests += 1
     try:
         batch_errors = []
+        valid_types = list(COGNITIVE_CONTRACTS.keys())
         for i in range(10):
             big_five = generate_big_five()
             psycho = generate_psychographics(big_five, config)
@@ -304,9 +352,11 @@ if __name__ == "__main__":
                 batch_errors.append(
                     f"Batch {i}: interesses should be 1-4: {len(psycho['interesses'])}"
                 )
-            if not (-100 <= psycho["inclinacao_politica"] <= 100):
+            if "contrato_cognitivo" not in psycho:
+                batch_errors.append(f"Batch {i}: missing contrato_cognitivo")
+            elif psycho["contrato_cognitivo"]["tipo"] not in valid_types:
                 batch_errors.append(
-                    f"Batch {i}: inclinacao_politica out of range: {psycho['inclinacao_politica']}"
+                    f"Batch {i}: invalid contrato_cognitivo tipo: {psycho['contrato_cognitivo']['tipo']}"
                 )
 
         if batch_errors:

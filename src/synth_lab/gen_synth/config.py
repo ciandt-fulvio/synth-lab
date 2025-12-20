@@ -4,10 +4,11 @@ Configuration module for Synth Lab.
 This module defines paths and loads configuration data from JSON files.
 
 Paths:
-- DATA_DIR: Base data directory
+- DATA_DIR: Base data directory (read-only config/schemas)
+- OUTPUT_DIR: Base output directory (generated files)
 - CONFIG_DIR: Configuration files directory
 - SCHEMAS_DIR: JSON schema files directory
-- SYNTHS_DIR: Generated synths output directory
+- SYNTHS_DIR: Generated synths output directory (in OUTPUT_DIR)
 - SCHEMA_PATH: Main synth schema file path
 
 Functions:
@@ -25,10 +26,11 @@ from typing import Any
 
 # Configuration paths
 DATA_DIR = Path(__file__).parent.parent.parent.parent / "data"
+OUTPUT_DIR = Path(__file__).parent.parent.parent.parent / "output"
 CONFIG_DIR = DATA_DIR / "config"
 SCHEMAS_DIR = DATA_DIR / "schemas"
-SYNTHS_DIR = DATA_DIR / "synths"
-SCHEMA_PATH = SCHEMAS_DIR / "synth-schema.json"
+SYNTHS_DIR = OUTPUT_DIR / "synths"
+SCHEMA_PATH = SCHEMAS_DIR / "synth-schema-v1.json"
 
 
 def load_config_data() -> dict[str, Any]:

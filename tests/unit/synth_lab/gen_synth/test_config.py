@@ -1,7 +1,5 @@
 """Tests for config module."""
 
-from pathlib import Path
-import pytest
 from synth_lab.gen_synth import config
 
 

@@ -5,11 +5,7 @@ Tests OpenAI API integration for generating file descriptions.
 Uses mocked responses to avoid actual API calls in tests.
 """
 
-import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 
 class TestLLMIntegration:

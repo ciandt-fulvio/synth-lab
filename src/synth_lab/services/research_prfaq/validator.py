@@ -27,11 +27,12 @@ Expected output:
 
 from dataclasses import dataclass
 from typing import Optional
+
 import jsonschema
 
 from .generation_models import (
-    ResearchReport,
     PRFAQDocument,
+    ResearchReport,
 )
 from .prompts import get_json_schema
 
@@ -233,9 +234,10 @@ def validate_prfaq(prfaq: PRFAQDocument) -> ValidationResult:
 if __name__ == "__main__":
     # Validation with real data
     import sys
+
     from .generation_models import (
-        PressRelease,
         FAQItem,
+        PressRelease,
     )
 
     validation_failures = []

@@ -1,6 +1,7 @@
 """Tests for synth_builder module."""
 
 import pytest
+
 from synth_lab.gen_synth import synth_builder
 
 

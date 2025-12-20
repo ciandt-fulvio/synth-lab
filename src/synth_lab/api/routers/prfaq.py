@@ -14,7 +14,6 @@ from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.prfaq import PRFAQGenerateRequest, PRFAQGenerateResponse, PRFAQSummary
 from synth_lab.services.prfaq_service import MarkdownNotFoundError, PRFAQService
 
-
 router = APIRouter()
 
 

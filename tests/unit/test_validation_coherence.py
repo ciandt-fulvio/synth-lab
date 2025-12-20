@@ -12,10 +12,11 @@ Tests cover:
 """
 
 import pytest
+
 from synth_lab.gen_synth.validation import (
+    CoherenceError,
     validate_coherence,
     validate_synth_full,
-    CoherenceError,
 )
 
 

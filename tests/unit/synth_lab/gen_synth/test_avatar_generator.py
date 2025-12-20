@@ -11,8 +11,8 @@ Entrada: Dados de synth mockados
 Saída: Validação das funções de geração
 """
 
+
 import pytest
-from unittest.mock import Mock, patch
 
 # Placeholder imports - will be implemented
 # from synth_lab.gen_synth.avatar_generator import (
@@ -315,6 +315,6 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"✅ VALIDATION PASSED - Test structure is correct")
+        print("✅ VALIDATION PASSED - Test structure is correct")
         print("Tests are ready to fail (TDD) - implement avatar_generator.py to make them pass")
         sys.exit(0)

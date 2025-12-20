@@ -25,9 +25,9 @@ For more examples, see: examples/trace_visualizer/
 For documentation, see: specs/008-trace-visualizer/quickstart.md
 """
 
-from .tracer import Tracer, Span
-from .models import SpanType, SpanStatus, Trace, Turn, Step
-from .persistence import save_trace, load_trace
+from .models import SpanStatus, SpanType, Step, Trace, Turn
+from .persistence import load_trace, save_trace
+from .tracer import Span, Tracer
 
 __all__ = [
     "Tracer",

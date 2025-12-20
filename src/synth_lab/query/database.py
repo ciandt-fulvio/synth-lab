@@ -21,17 +21,18 @@ Third-party Documentation:
 - DuckDB read_json_auto: https://duckdb.org/docs/data/json/overview
 """
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
+
 import duckdb
-import json
 from loguru import logger
 
 from synth_lab.query import (
-    QuerySyntaxError,
-    QueryExecutionError,
     DatabaseInitializationError,
     InvalidDataFileError,
+    QueryExecutionError,
+    QuerySyntaxError,
 )
 
 
@@ -107,32 +108,32 @@ def initialize_database(db_path: Path, json_path: Path) -> duckdb.DuckDBPyConnec
     """
     # Validate JSON file first
     validate_json_file(json_path)
-    
+
     try:
         # Create database directory if needed
         db_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Connect to database
         con = duckdb.connect(str(db_path))
         logger.info(f"Connected to database: {db_path}")
-        
+
         # Drop and recreate table to ensure fresh data
         con.execute("DROP TABLE IF EXISTS synths")
         logger.debug("Dropped existing synths table")
-        
+
         con.execute(f"""
             CREATE TABLE synths AS
             SELECT *
             FROM read_json_auto('{json_path}')
         """)
         logger.info(f"Created synths table from {json_path}")
-        
+
         # Log table stats
         count_result = con.execute("SELECT COUNT(*) FROM synths").fetchone()
         logger.info(f"Loaded {count_result[0]} records into synths table")
-        
+
         return con
-        
+
     except duckdb.IOException as e:
         raise DatabaseInitializationError(f"DuckDB could not read JSON file: {e}")
     except duckdb.Error as e:
@@ -163,7 +164,7 @@ def execute_query(
         result = con.execute(query)
         logger.debug("Query executed successfully")
         return result
-        
+
     except duckdb.ParserException as e:
         # SQL syntax errors
         raise QuerySyntaxError(
@@ -194,18 +195,18 @@ if __name__ == "__main__":
     """Validation block with real data."""
     import sys
     import tempfile
-    
+
     all_validation_failures = []
     total_tests = 0
-    
+
     # Create temporary test environment
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir)
-        
+
         # Create test JSON data
         test_json = tmp_path / "test_synths.json"
         test_json.write_text('[{"id": "t1", "name": "Test", "age": 25}]')
-        
+
         # Test 1: DatabaseConfig creation
         total_tests += 1
         try:
@@ -218,7 +219,7 @@ if __name__ == "__main__":
                 all_validation_failures.append("DatabaseConfig: table_name mismatch")
         except Exception as e:
             all_validation_failures.append(f"DatabaseConfig creation: {e}")
-        
+
         # Test 2: Database initialization
         total_tests += 1
         try:
@@ -235,11 +236,11 @@ if __name__ == "__main__":
                         all_validation_failures.append(f"Query execution: Expected 1 row, got {len(rows)}")
                 except Exception as e:
                     all_validation_failures.append(f"Query execution: {e}")
-                
+
                 con.close()
         except Exception as e:
             all_validation_failures.append(f"Database initialization: {e}")
-    
+
     # Final validation result
     if all_validation_failures:
         print(f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")

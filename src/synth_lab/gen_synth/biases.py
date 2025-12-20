@@ -45,7 +45,6 @@ See spec.md FR-003 for complete mapping definitions.
 
 from .utils import normal_distribution
 
-
 # Personality-Bias Coherence Rules (User Story 2)
 # Maps Big Five personality traits to expected cognitive bias ranges
 # Format: (trait_name, trait_range, bias_name, bias_range)
@@ -279,7 +278,7 @@ if __name__ == "__main__":
         if len(biases) != 7:
             all_validation_failures.append(f"Expected 7 biases, got {len(biases)}")
         else:
-            print(f"Test 2: All 7 biases present in output")
+            print("Test 2: All 7 biases present in output")
     except Exception as e:
         all_validation_failures.append(f"Test 2 (bias count): {str(e)}")
 

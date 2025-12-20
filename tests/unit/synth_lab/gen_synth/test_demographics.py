@@ -1,6 +1,5 @@
 """Tests for demographics module."""
 
-import pytest
 from synth_lab.gen_synth import demographics
 
 

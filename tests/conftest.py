@@ -2,12 +2,13 @@
 Pytest configuration and shared fixtures for Synth Lab tests.
 """
 
+import json
+import shutil
+import tempfile
 from pathlib import Path
 from typing import Any
-import json
+
 import pytest
-import tempfile
-import shutil
 
 
 @pytest.fixture

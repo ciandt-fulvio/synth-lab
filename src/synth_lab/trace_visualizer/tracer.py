@@ -28,12 +28,12 @@ tracer.save_trace("output/traces/weather.trace.json")
 ```
 """
 
+import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Generator
-import uuid
+from typing import Any, Dict, Generator, Optional
 
-from .models import Trace, Turn, Step, SpanType, SpanStatus
+from .models import SpanStatus, SpanType, Step, Trace, Turn
 
 
 class Span:

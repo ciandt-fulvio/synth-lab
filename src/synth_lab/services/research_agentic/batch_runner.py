@@ -71,14 +71,9 @@ def load_all_synths() -> list[dict[str, Any]]:
     Returns:
         List of synth dictionaries
     """
-    synths_path = Path("output/synths/synths.json")
-    if not synths_path.exists():
-        raise FileNotFoundError(f"Synths file not found: {synths_path}")
+    from synth_lab.gen_synth.storage import load_synths
 
-    with open(synths_path, encoding="utf-8") as f:
-        synths = json.load(f)
-
-    return synths
+    return load_synths()
 
 
 def get_timestamp_gmt3() -> str:
