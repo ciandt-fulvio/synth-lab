@@ -18,7 +18,7 @@ class TestLLMIntegration:
     @patch("openai.OpenAI")
     def test_generate_description_for_image(self, mock_openai_class, tmp_path):
         """Test generating description for image file."""
-        from synth_lab.topic_guides.file_processor import generate_file_description
+        from synth_lab.services.topic_guides.file_processor import generate_file_description
 
         # Create test image
         image_file = tmp_path / "test.png"
@@ -42,7 +42,7 @@ class TestLLMIntegration:
     @patch("openai.OpenAI")
     def test_generate_description_for_pdf(self, mock_openai_class, mock_extract_pdf, tmp_path):
         """Test generating description for PDF file."""
-        from synth_lab.topic_guides.file_processor import generate_file_description
+        from synth_lab.services.topic_guides.file_processor import generate_file_description
 
         # Create test PDF (just needs .pdf extension for this test)
         pdf_file = tmp_path / "test.pdf"
@@ -67,7 +67,7 @@ class TestLLMIntegration:
     @patch("openai.OpenAI")
     def test_generate_description_for_text_file(self, mock_openai_class, tmp_path):
         """Test generating description for text/markdown file."""
-        from synth_lab.topic_guides.file_processor import generate_file_description
+        from synth_lab.services.topic_guides.file_processor import generate_file_description
 
         # Create test text file
         text_file = tmp_path / "notes.md"
@@ -89,7 +89,7 @@ class TestLLMIntegration:
     @patch("openai.OpenAI")
     def test_api_retry_on_failure(self, mock_openai_class, tmp_path):
         """Test that API failures are retried with exponential backoff."""
-        from synth_lab.topic_guides.file_processor import generate_file_description
+        from synth_lab.services.topic_guides.file_processor import generate_file_description
 
         image_file = tmp_path / "test.png"
         image_file.write_bytes(b"\x89PNG\r\n\x1a\n")
@@ -116,7 +116,7 @@ class TestLLMIntegration:
     @patch("openai.OpenAI")
     def test_api_gives_up_after_max_retries(self, mock_openai_class, tmp_path):
         """Test that API gives up after maximum retries and returns None."""
-        from synth_lab.topic_guides.file_processor import generate_file_description
+        from synth_lab.services.topic_guides.file_processor import generate_file_description
 
         image_file = tmp_path / "test.png"
         image_file.write_bytes(b"\x89PNG\r\n\x1a\n")
@@ -134,7 +134,7 @@ class TestLLMIntegration:
     @patch("openai.OpenAI")
     def test_generate_context_overview_from_descriptions(self, mock_openai_class):
         """Test generating contextual overview from file descriptions."""
-        from synth_lab.topic_guides.file_processor import generate_context_overview
+        from synth_lab.services.topic_guides.file_processor import generate_context_overview
 
         # Mock OpenAI response
         mock_client = MagicMock()
@@ -163,7 +163,7 @@ class TestLLMIntegration:
     @patch("openai.OpenAI")
     def test_generate_context_overview_empty_list(self, mock_openai_class):
         """Test that empty description list returns empty string."""
-        from synth_lab.topic_guides.file_processor import generate_context_overview
+        from synth_lab.services.topic_guides.file_processor import generate_context_overview
 
         overview = generate_context_overview([], "fake-api-key")
 
@@ -172,7 +172,7 @@ class TestLLMIntegration:
     @patch("openai.OpenAI")
     def test_generate_context_overview_api_failure(self, mock_openai_class):
         """Test that API failure returns None."""
-        from synth_lab.topic_guides.file_processor import generate_context_overview
+        from synth_lab.services.topic_guides.file_processor import generate_context_overview
 
         # Mock client that fails
         mock_client = MagicMock()

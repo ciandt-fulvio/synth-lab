@@ -15,7 +15,7 @@ class TestFileScanning:
 
     def test_scan_directory_excludes_summary_md(self, tmp_path):
         """Test that scan_directory excludes summary.md file."""
-        from synth_lab.topic_guides.file_processor import scan_directory
+        from synth_lab.services.topic_guides.file_processor import scan_directory
 
         # Create test directory with files
         guide_dir = tmp_path / "test-guide"
@@ -34,7 +34,7 @@ class TestFileScanning:
 
     def test_scan_directory_returns_pathlib_paths(self, tmp_path):
         """Test that scan_directory returns Path objects."""
-        from synth_lab.topic_guides.file_processor import scan_directory
+        from synth_lab.services.topic_guides.file_processor import scan_directory
 
         guide_dir = tmp_path / "test-guide"
         guide_dir.mkdir()
@@ -48,7 +48,7 @@ class TestFileScanning:
 
     def test_scan_directory_empty_directory(self, tmp_path):
         """Test scanning empty directory returns empty list."""
-        from synth_lab.topic_guides.file_processor import scan_directory
+        from synth_lab.services.topic_guides.file_processor import scan_directory
 
         guide_dir = tmp_path / "empty-guide"
         guide_dir.mkdir()
@@ -59,7 +59,7 @@ class TestFileScanning:
 
     def test_is_supported_type_validates_extensions(self):
         """Test that is_supported_type correctly identifies supported file types."""
-        from synth_lab.topic_guides.file_processor import is_supported_type
+        from synth_lab.services.topic_guides.file_processor import is_supported_type
 
         # Supported types
         assert is_supported_type(Path("image.png")) is True
@@ -80,7 +80,7 @@ class TestHashDetection:
 
     def test_file_hash_changes_on_modification(self, tmp_path):
         """Test that compute_file_hash detects file changes."""
-        from synth_lab.topic_guides.file_processor import compute_file_hash
+        from synth_lab.services.topic_guides.file_processor import compute_file_hash
 
         test_file = tmp_path / "test.txt"
         test_file.write_text("original content")
@@ -96,7 +96,7 @@ class TestHashDetection:
 
     def test_file_hash_consistent_for_same_content(self, tmp_path):
         """Test that same content produces same hash."""
-        from synth_lab.topic_guides.file_processor import compute_file_hash
+        from synth_lab.services.topic_guides.file_processor import compute_file_hash
 
         file1 = tmp_path / "file1.txt"
         file2 = tmp_path / "file2.txt"
@@ -112,7 +112,7 @@ class TestHashDetection:
 
     def test_file_hash_different_for_different_content(self, tmp_path):
         """Test that different content produces different hashes."""
-        from synth_lab.topic_guides.file_processor import compute_file_hash
+        from synth_lab.services.topic_guides.file_processor import compute_file_hash
 
         file1 = tmp_path / "file1.txt"
         file2 = tmp_path / "file2.txt"
