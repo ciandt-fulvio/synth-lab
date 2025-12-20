@@ -37,7 +37,7 @@ class TestErrorHandling:
         assert len(supported) == 2  # png, pdf
         assert len(unsupported) == 2  # mp4, svg
 
-    @patch("synth_lab.topic_guides.file_processor.pdfplumber.open")
+    @patch("synth_lab.services.topic_guides.file_processor.pdfplumber.open")
     def test_corrupted_pdf_is_handled(self, mock_pdfplumber, tmp_path):
         """Test that corrupted PDF files are handled gracefully."""
         from synth_lab.services.topic_guides.file_processor import extract_pdf_text
@@ -57,7 +57,7 @@ class TestErrorHandling:
             # Or raise exception that can be caught by caller
             pass
 
-    @patch("synth_lab.topic_guides.file_processor.OpenAI")
+    @patch("synth_lab.services.topic_guides.file_processor.OpenAI")
     def test_api_failure_returns_none(self, mock_openai_class, tmp_path):
         """Test that API failures return None instead of crashing."""
         from synth_lab.services.topic_guides.file_processor import generate_file_description
@@ -115,7 +115,7 @@ class TestErrorHandling:
         with pytest.raises(FileNotFoundError):
             compute_file_hash(missing_file)
 
-    @patch("synth_lab.topic_guides.file_processor.OpenAI")
+    @patch("synth_lab.services.topic_guides.file_processor.OpenAI")
     def test_placeholder_added_on_api_failure(self, mock_openai_class, tmp_path):
         """Test that placeholder description is added when API fails."""
         from synth_lab.services.topic_guides.internal_models import FileDescription
