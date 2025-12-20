@@ -14,7 +14,6 @@ import re
 import tempfile
 import uuid
 from pathlib import Path
-from typing import Any
 
 import requests
 from PIL import Image

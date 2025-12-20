@@ -14,6 +14,8 @@ Added Sections:
 - III. Complete Test Battery Before Pull Requests
 - IV. Frequent Version Control Commits
 - V. Simplicity and Code Quality
+- VI. Language
+- VII. Architecture
 - Development Workflow section
 - Quality Gates section
 - Governance section
@@ -48,8 +50,6 @@ Follow-up TODOs:
 - BDD acceptance criteria MUST be defined in user story format (Given-When-Then)
 - Test coverage MUST address all acceptance criteria before code is written
 
-**Rationale:** Test-first development ensures that requirements are understood before implementation begins, prevents over-engineering, provides immediate feedback on design decisions, and creates a safety net for refactoring. BDD ensures that tests align with user value and business requirements.
-
 **Enforcement:** No code commits are accepted without corresponding tests. Tests must be committed and shown to fail before implementation commits are made.
 
 ### II. Fast Test Battery on Every Commit
@@ -62,8 +62,6 @@ A fast test battery MUST run on every commit to provide immediate feedback durin
 - Fast tests MUST cover core functionality and prevent obvious regressions
 - If fast test battery exceeds 5 seconds, tests must be optimized or moved to slow battery
 - Commits that fail fast tests MUST NOT be pushed to remote repository
-
-**Rationale:** Rapid feedback loops are essential for productive development. Developers need immediate confirmation that changes haven't broken core functionality. A 5-second limit ensures tests remain a helpful tool rather than a productivity impediment.
 
 **Enforcement:** Configure pre-commit hooks or CI/CD pipelines to enforce fast test execution. Fast test failures block commits.
 
@@ -106,8 +104,6 @@ Code MUST prioritize simplicity, readability, and maintainability over clevernes
 - Dependencies MUST be minimized and well-researched
 - Code MUST follow project style guidelines (enforced via linters)
 
-**Rationale:** Simple code is easier to understand, test, and modify. Clear code reduces onboarding time, decreases bug introduction, and improves long-term maintainability. Size limits prevent files from becoming unmaintainable monoliths.
-
 **Enforcement:** Code reviews reject unnecessary complexity. Linting tools enforce style standards. Files exceeding size limits trigger refactoring requirements.
 
 ### VI. Language
@@ -116,6 +112,41 @@ Code MUST prioritize simplicity, readability, and maintainability over clevernes
 - System must be i18n ready, with all user-facing strings externalized for localization and, initially, provided in English and Portuguese.
 
 **Enforcement:** Code reviews will check for adherence to language requirements in code and documentation.
+
+### VII. Architecture
+
+project/
+├── src/
+│   ├── api/                 # Camada de apresentação
+│   │   ├── routes/         # Endpoints REST
+│   │   ├── schemas/        # Pydantic models (request/response)
+│   │   └── dependencies.py # Injeção de dependências
+│   │
+│   ├── domain/             # Regras de negócio (agnóstico de infra)
+│   │   ├── entities/       # Modelos de domínio
+│   │   ├── services/       # Lógica de negócio
+│   │   └── ports/          # Interfaces/protocolos
+│   │
+│   ├── infrastructure/     # Implementações concretas
+│   │   ├── database/       # SQLAlchemy, migrations
+│   │   ├── external_apis/  # Clients de APIs externas
+│   │   ├── llm/           # Integração LLM (OpenAI, etc)
+│   │   └── repositories/   # Implementação dos ports
+│   │
+│   └── config.py          # Settings (Pydantic BaseSettings)
+│
+├── tests/
+│   ├── unit/              # Testa domain/services isolado
+│   ├── integration/       # Testa infra (DB, APIs externas)
+│   ├── api/               # Testa endpoints E2E
+│   ├── contract/          # Pact ou schema validation
+│   └── component/         # Testa subsistemas completos
+│
+├── pyproject.toml
+└── docker-compose.yml
+
+
+
 
 ## Development Workflow
 
@@ -195,18 +226,6 @@ Code MUST prioritize simplicity, readability, and maintainability over clevernes
 - Quickstart guide validated
 - Breaking changes documented
 
-## Governance
-
-### Amendment Process
-
-This constitution can be amended when necessary, but amendments require:
-1. Clear documentation of the reason for amendment
-2. Approval from project maintainers
-3. Migration plan for existing code if amendment affects current practices
-4. Version bump following semantic versioning rules:
-   - **MAJOR**: Backward-incompatible governance changes, principle removals/redefinitions
-   - **MINOR**: New principles added, materially expanded guidance
-   - **PATCH**: Clarifications, wording improvements, non-semantic refinements
 
 ### Compliance and Reviews
 

@@ -8,7 +8,6 @@ import argparse
 import sys
 from synth_lab import __version__
 
-
 def create_parser() -> argparse.ArgumentParser:
     """Create the main argument parser with subcommands."""
     parser = argparse.ArgumentParser(
@@ -25,21 +24,6 @@ def create_parser() -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(
         dest="command", help="Comandos disponíveis", required=False
-    )
-
-    # listsynth subcommand
-    listsynth_parser = subparsers.add_parser(
-        "listsynth", help="Consultar dados sintéticos"
-    )
-    listsynth_parser.add_argument(
-        "--where",
-        type=str,
-        help="Condição SQL WHERE (sem a palavra WHERE)",
-    )
-    listsynth_parser.add_argument(
-        "--full-query",
-        type=str,
-        help="Consulta SQL SELECT completa",
     )
 
     # gensynth subcommand
@@ -111,52 +95,19 @@ def create_parser() -> argparse.ArgumentParser:
         help="Gerar avatares para synths existentes (lista de IDs separados por vírgula)",
     )
 
-    # research subcommand (agentic multi-agent system)
-    # research has its own Typer sub-app with commands: research (single) and batch
-    # We use parse_known_args to pass remaining args to Typer
-    subparsers.add_parser(
-        "research", help="Realizar entrevistas de pesquisa UX com synths (sistema multi-agente)",
-        add_help=False  # Let Typer handle --help
-    )
-
-    # topic-guide subcommand
-    # topic-guide has its own Typer sub-app with multiple commands (create, update, list, show)
-    # We use parse_known_args to pass remaining args to Typer
-    subparsers.add_parser(
-        "topic-guide", help="Manage topic guides with multi-modal context materials",
-        add_help=False  # Let Typer handle --help
-    )
-
     return parser
-
 
 def main():
     """Main CLI entry point."""
     parser = create_parser()
 
-    # Use parse_known_args to handle topic-guide's sub-commands
-    args, unknown_args = parser.parse_known_args()
+    # Parse arguments
+    args = parser.parse_args()
 
     # If no command specified, show help
     if not args.command:
         parser.print_help()
         sys.exit(0)
-
-    # Handle listsynth command
-    if args.command == "listsynth":
-        from synth_lab.query.cli import listsynth
-
-        # Call listsynth with parsed arguments
-        sys.argv = ["synthlab listsynth"]
-        if args.where:
-            sys.argv.extend(["--where", args.where])
-        if args.full_query:
-            sys.argv.extend(["--full-query", args.full_query])
-
-        # Import and run Typer app
-        from synth_lab.query.cli import app as query_app
-        query_app()
-        return
 
     # Handle gensynth command
     if args.command == "gensynth":
@@ -191,27 +142,6 @@ def main():
             sys.argv.extend(["--synth-ids", args.synth_ids])
 
         gensynth_cli_main()
-
-    # Handle research command (agentic multi-agent system)
-    if args.command == "research":
-        # Import here to avoid circular imports and speed up --help
-        from synth_lab.research_agentic.cli import app as research_app
-
-        # Typer will handle all subcommands (research, batch)
-        # Reset sys.argv to pass remaining args to Typer
-        sys.argv = ["synthlab research"] + unknown_args
-        research_app()
-
-    # Handle topic-guide command
-    if args.command == "topic-guide":
-        # Import here to avoid circular imports and speed up --help
-        from synth_lab.topic_guides.cli import app as topic_guide_app
-
-        # Typer will handle all subcommands (create, update, list, show)
-        # Reset sys.argv to pass remaining args to Typer
-        sys.argv = ["synthlab topic-guide"] + unknown_args
-        topic_guide_app()
-
 
 if __name__ == "__main__":
     main()
