@@ -145,6 +145,15 @@ project/
 ├── pyproject.toml
 └── docker-compose.yml
 
+### VIII. Logging
+
+
+### IX. Ohter Principles
+- Follow DRY (Don't Repeat Yourself) principle to minimize code duplication.
+- Adhere to SOLID principles for object-oriented design.
+- Adhere to KISS (Keep It Simple, Stupid) and YAGNI (You Aren't Gonna Need It) principles.
+- Treat logging as first-class concerns.
+- Prefer using Makefiles or scripts for automation tasks instead of ad-hoc scripts.
 
 
 
@@ -185,10 +194,10 @@ project/
 - Data model documentation (data-model.md) if applicable
 
 **Every Code File Must Include:**
-- Clear documentation header describing purpose
+- Clear and short documentation header describing purpose
 - Links to relevant third-party package documentation
 - Type hints for functions (using Python typing library)
-- Docstrings for public functions and classes
+- Short docstrings for public functions and classes
 
 ## Quality Gates
 
@@ -198,6 +207,7 @@ project/
 - **Unit Tests**: Test individual functions/classes in isolation
 - **Integration Tests**: Test interactions between components
 - **Contract Tests**: Validate API contracts and interfaces
+- **API Tests**: Validate REST endpoints (not always existing)
 - **End-to-End Tests**: Validate complete user journeys
 
 **Coverage Thresholds:**
