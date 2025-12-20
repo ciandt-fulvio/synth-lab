@@ -1,22 +1,11 @@
 """Data models for PR-FAQ generation and storage.
 
 Pydantic v2 models for:
-- Research batch reports (input)
 - PR-FAQ documents (output)
 - Version tracking and metadata
 
 Third-party documentation:
 - Pydantic v2: https://docs.pydantic.dev/latest/
-
-Sample input (batch_summary):
-    ResearchReport(
-        batch_id="batch_001",
-        summary_content="Research findings...",
-        sections={
-            "executive_summary": "Summary...",
-            "recommendations": "Recommendations..."
-        }
-    )
 
 Expected output (prfaq):
     PRFAQDocument(
@@ -37,8 +26,6 @@ Expected output (prfaq):
     )
 """
 
-import json
-import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -247,141 +234,6 @@ def setup_logging(log_file: str = "logs/research_prfaq.log") -> None:
     )
 
     logger.info("PR-FAQ logging initialized")
-
-
-def _parse_batch_summary_json(batch_id: str, batch_path: Path) -> ResearchReport:
-    """Parse legacy JSON batch summary format.
-
-    Args:
-        batch_id: Research batch identifier
-        batch_path: Path to JSON file
-
-    Returns:
-        ResearchReport with parsed batch summary data
-
-    Raises:
-        ValueError: If JSON is malformed or missing required sections
-    """
-    try:
-        with open(batch_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        logger.debug(f"Loaded batch summary from {batch_path}")
-    except json.JSONDecodeError as e:
-        logger.error(f"Invalid JSON in batch summary: {e}")
-        raise ValueError(f"Malformed JSON in batch summary: {e}")
-
-    # Extract sections from summary_content (Markdown text)
-    summary_content = data.get("summary_content", "")
-
-    if not summary_content:
-        logger.error("Batch summary missing summary_content field")
-        raise ValueError("Batch summary must have summary_content field")
-
-    # Parse Markdown sections using regex (English headers for legacy format)
-    sections = {}
-    section_patterns = {
-        "executive_summary": r"##\s*Executive Summary\s*\n(.*?)(?=##|\Z)",
-        "recommendations": r"##\s*Recommendations\s*\n(.*?)(?=##|\Z)",
-        "recurrent_patterns": r"##\s*Recurrent Patterns\s*\n(.*?)(?=##|\Z)",
-        "relevant_divergences": r"##\s*Relevant Divergences\s*\n(.*?)(?=##|\Z)",
-        "identified_tensions": r"##\s*Identified Tensions\s*\n(.*?)(?=##|\Z)",
-        "notable_absences": r"##\s*Notable Absences\s*\n(.*?)(?=##|\Z)",
-        "key_quotes": r"##\s*Key Quotes\s*\n(.*?)(?=##|\Z)",
-    }
-
-    for section_name, pattern in section_patterns.items():
-        match = re.search(pattern, summary_content, re.DOTALL | re.IGNORECASE)
-        if match:
-            sections[section_name] = match.group(1).strip()
-
-    report = ResearchReport(
-        batch_id=batch_id,
-        summary_content=summary_content,
-        sections=sections
-    )
-
-    logger.info(f"Parsed JSON batch summary for {batch_id}: {len(sections)} sections found")
-    return report
-
-
-def parse_batch_summary(batch_id: str, data_dir: str = "output/reports") -> ResearchReport:
-    """Parse batch summary Markdown file and extract research report data.
-
-    Args:
-        batch_id: Research batch identifier (e.g., batch_compra-amazon_20251218_164204)
-        data_dir: Base directory for report data (default: output/reports)
-
-    Returns:
-        ResearchReport with parsed batch summary data
-
-    Raises:
-        FileNotFoundError: If batch summary file doesn't exist
-        ValueError: If batch summary is malformed or missing required sections
-    """
-    # Construct path to batch summary - try .md file first
-    batch_path = Path(data_dir) / f"{batch_id}.md"
-
-    # Fallback to old JSON format if MD not found
-    if not batch_path.exists():
-        batch_path_json = Path("data/transcripts") / batch_id / "batch_summary.json"
-        if batch_path_json.exists():
-            logger.debug(f"Using legacy JSON format from {batch_path_json}")
-            return _parse_batch_summary_json(batch_id, batch_path_json)
-
-        logger.error(f"Batch summary not found: {batch_path}")
-        raise FileNotFoundError(
-            f"Batch summary file not found: {batch_path}\n"
-            f"Also checked: {batch_path_json}"
-        )
-
-    # Load Markdown file
-    try:
-        with open(batch_path, "r", encoding="utf-8") as f:
-            summary_content = f.read()
-        logger.debug(f"Loaded batch summary from {batch_path}")
-    except Exception as e:
-        logger.error(f"Error reading batch summary: {e}")
-        raise ValueError(f"Error reading batch summary: {e}")
-
-    if not summary_content:
-        logger.error("Batch summary is empty")
-        raise ValueError("Batch summary must have content")
-
-    # Parse Markdown sections using regex
-    sections = {}
-
-    # Section headers in research reports (Portuguese)
-    section_patterns = {
-        "executive_summary": r"##\s*Resumo Executivo\s*\n(.*?)(?=##|\Z)",
-        "recommendations": r"##\s*Recomendações.*?\n(.*?)(?=##|\Z)",
-        "recurrent_patterns": r"##\s*Padrões Recorrentes\s*\n(.*?)(?=##|\Z)",
-        "relevant_divergences": r"##\s*Divergências Relevantes\s*\n(.*?)(?=##|\Z)",
-        "identified_tensions": r"##\s*Tensões Identificadas\s*\n(.*?)(?=##|\Z)",
-        "notable_absences": r"##\s*Ausências Notáveis\s*\n(.*?)(?=##|\Z)",
-        "key_quotes": r"##\s*Citações-Chave.*?\n(.*?)(?=##|\Z)",
-    }
-
-    for section_name, pattern in section_patterns.items():
-        match = re.search(pattern, summary_content, re.DOTALL | re.IGNORECASE)
-        if match:
-            sections[section_name] = match.group(1).strip()
-            logger.debug(f"Extracted section '{section_name}' ({len(sections[section_name])} chars)")
-
-    # Validate required sections
-    if "executive_summary" not in sections:
-        logger.warning("Missing Resumo Executivo section in batch summary")
-    if "recommendations" not in sections:
-        logger.warning("Missing Recomendações section in batch summary")
-
-    # Create ResearchReport
-    report = ResearchReport(
-        batch_id=batch_id,
-        summary_content=summary_content,
-        sections=sections
-    )
-
-    logger.info(f"Parsed batch summary for {batch_id}: {len(sections)} sections found")
-    return report
 
 
 if __name__ == "__main__":

@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# Git pre-commit hook: runs fast unit tests before each commit
+# Tests must pass for commit to proceed
+#
+
+set -e
+
+echo "Running fast tests before commit..."
+echo ""
+
+# Run fast unit tests
+if ! make test-fast; then
+    echo ""
+    echo "❌ Pre-commit tests failed!"
+    echo "   Fix the failing tests before committing."
+    echo ""
+    echo "   To bypass this check (not recommended):"
+    echo "   git commit --no-verify"
+    echo ""
+    exit 1
+fi
+
+echo ""
+echo "✅ Pre-commit tests passed!"
+echo ""

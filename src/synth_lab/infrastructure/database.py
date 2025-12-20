@@ -54,12 +54,12 @@ CREATE TABLE IF NOT EXISTS research_executions (
     synth_count INTEGER NOT NULL,
     successful_count INTEGER DEFAULT 0,
     failed_count INTEGER DEFAULT 0,
-    model TEXT DEFAULT 'gpt-4.1-mini',
+    model TEXT DEFAULT 'gpt-5-mini',
     max_turns INTEGER DEFAULT 6,
     started_at TEXT NOT NULL,
     completed_at TEXT,
-    summary_path TEXT,
-    CHECK(status IN ('pending', 'running', 'completed', 'failed'))
+    summary_content TEXT,
+    CHECK(status IN ('pending', 'running', 'generating_summary', 'completed', 'failed'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_executions_topic ON research_executions(topic_name);
@@ -71,10 +71,10 @@ CREATE TABLE IF NOT EXISTS transcripts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     exec_id TEXT NOT NULL,
     synth_id TEXT NOT NULL,
+    synth_name TEXT,
     status TEXT NOT NULL DEFAULT 'completed',
     turn_count INTEGER DEFAULT 0,
     timestamp TEXT NOT NULL,
-    file_path TEXT,
     messages TEXT CHECK(json_valid(messages) OR messages IS NULL),
     UNIQUE(exec_id, synth_id)
 );
@@ -86,14 +86,14 @@ CREATE INDEX IF NOT EXISTS idx_transcripts_synth ON transcripts(synth_id);
 CREATE TABLE IF NOT EXISTS prfaq_metadata (
     exec_id TEXT PRIMARY KEY,
     generated_at TEXT NOT NULL,
-    model TEXT DEFAULT 'gpt-4.1-mini',
+    model TEXT DEFAULT 'gpt-5-mini',
     validation_status TEXT DEFAULT 'valid',
     confidence_score REAL,
     headline TEXT,
     one_liner TEXT,
     faq_count INTEGER DEFAULT 0,
-    markdown_path TEXT,
-    json_path TEXT,
+    markdown_content TEXT,
+    json_content TEXT CHECK(json_valid(json_content) OR json_content IS NULL),
     CHECK(validation_status IN ('valid', 'invalid', 'pending'))
 );
 
@@ -162,9 +162,27 @@ class DatabaseManager:
 
     def _get_connection(self) -> sqlite3.Connection:
         """Get or create a thread-local connection."""
-        if not hasattr(self._local, "connection") or self._local.connection is None:
-            self.logger.debug(f"Creating new connection to {self.db_path}")
-            self._local.connection = self._create_connection()
+        # Check if we have a cached connection
+        if hasattr(self._local, "connection") and self._local.connection is not None:
+            # Verify connection is still valid
+            try:
+                self._local.connection.execute("SELECT 1")
+                # Execute a passive WAL checkpoint to see latest data
+                # This ensures we see changes made by other processes/connections
+                self._local.connection.execute("PRAGMA wal_checkpoint(PASSIVE)")
+                return self._local.connection
+            except (sqlite3.ProgrammingError, sqlite3.OperationalError):
+                # Connection is invalid, close and recreate
+                self.logger.debug("Connection invalid, recreating")
+                try:
+                    self._local.connection.close()
+                except Exception:
+                    pass
+                self._local.connection = None
+
+        # Create new connection
+        self.logger.debug(f"Creating new connection to {self.db_path}")
+        self._local.connection = self._create_connection()
         return self._local.connection
 
     def _create_connection(self) -> sqlite3.Connection:
@@ -308,6 +326,15 @@ class DatabaseManager:
             self._local.connection.close()
             self._local.connection = None
             self.logger.debug("Connection closed")
+
+    def refresh_connection(self) -> None:
+        """Force refresh of the thread-local connection.
+
+        This closes the current connection and forces a new one to be created
+        on the next request. Useful when the database has been modified externally.
+        """
+        self.close()
+        self.logger.debug("Connection refresh requested")
 
 
 # Global database manager instance

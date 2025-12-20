@@ -51,24 +51,23 @@ def test_assemble_synth_demographics(config_data):
 
 
 def test_assemble_synth_psychographics(config_data):
-    """Test psychographics section is complete (v2.0.0)."""
+    """Test psychographics section is complete with contrato_cognitivo."""
     synth = synth_builder.assemble_synth(config_data)
 
     psycho = synth["psicografia"]
     required_psycho_fields = [
         "personalidade_big_five",
         "interesses",
-        "inclinacao_politica",
-        "inclinacao_religiosa",
+        "contrato_cognitivo",
     ]
 
     for field in required_psycho_fields:
         assert field in psycho
 
-    # Verify removed fields are NOT present in v2.0.0
-    removed_fields = ["valores", "hobbies", "estilo_vida"]
+    # Verify removed fields are NOT present
+    removed_fields = ["valores", "hobbies", "estilo_vida", "inclinacao_politica", "inclinacao_religiosa"]
     for field in removed_fields:
-        assert field not in psycho, f"Field {field} should not be in v2.0.0 schema"
+        assert field not in psycho, f"Field {field} should not be in current schema"
 
 
 def test_assemble_synth_disabilities(config_data):

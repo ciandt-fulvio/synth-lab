@@ -18,6 +18,7 @@ class ExecutionStatus(str, Enum):
 
     PENDING = "pending"
     RUNNING = "running"
+    GENERATING_SUMMARY = "generating_summary"
     COMPLETED = "completed"
     FAILED = "failed"
 
@@ -52,11 +53,10 @@ class ResearchExecutionDetail(ResearchExecutionBase):
 
     successful_count: int = Field(default=0, description="Completed interviews")
     failed_count: int = Field(default=0, description="Failed interviews")
-    model: str = Field(default="gpt-4.1-mini", description="LLM model used")
+    model: str = Field(default="gpt-5-mini", description="LLM model used")
     max_turns: int = Field(default=6, description="Max interview turns")
     summary_available: bool = Field(default=False, description="Summary exists")
     prfaq_available: bool = Field(default=False, description="PR-FAQ exists")
-    summary_path: str | None = Field(default=None, description="Path to summary markdown")
 
 
 class TranscriptSummary(BaseModel):
@@ -100,7 +100,7 @@ class ResearchExecuteRequest(BaseModel):
         le=50,
         description="Max concurrent interviews",
     )
-    model: str = Field(default="gpt-4.1-mini", description="LLM model to use")
+    model: str = Field(default="gpt-5-mini", description="LLM model to use")
     generate_summary: bool = Field(default=True, description="Generate summary after completion")
 
 

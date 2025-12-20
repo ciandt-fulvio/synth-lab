@@ -8,7 +8,7 @@ References:
 """
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.research import (
@@ -24,6 +24,8 @@ from synth_lab.models.research import (
 from synth_lab.repositories.research_repository import ResearchRepository
 from synth_lab.repositories.topic_repository import TopicRepository
 from synth_lab.services.errors import SummaryNotFoundError, TopicNotFoundError
+from synth_lab.services.message_broker import BrokerMessage, MessageBroker
+from synth_lab.services.research_agentic.runner import ConversationMessage
 
 # GMT-3 timezone (São Paulo)
 TZ_GMT_MINUS_3 = timezone(timedelta(hours=-3))
@@ -121,14 +123,14 @@ class ResearchService:
 
         Raises:
             ExecutionNotFoundError: If execution not found.
-            SummaryNotFoundError: If summary file doesn't exist.
+            SummaryNotFoundError: If summary doesn't exist.
         """
-        summary_path = self.research_repo.get_summary_path(exec_id)
+        summary_content = self.research_repo.get_summary_content(exec_id)
 
-        if summary_path is None or not summary_path.exists():
+        if summary_content is None:
             raise SummaryNotFoundError(exec_id)
 
-        return summary_path.read_text(encoding="utf-8")
+        return summary_content
 
     async def execute_research(self, request: ResearchExecuteRequest) -> ResearchExecuteResponse:
         """
@@ -222,6 +224,43 @@ class ResearchService:
 
         from synth_lab.services.research_agentic.batch_runner import run_batch_interviews
 
+        # Setup message broker for SSE streaming
+        broker = MessageBroker()
+
+        async def on_message(
+            exec_id: str, synth_id: str, turn: int, msg: ConversationMessage
+        ) -> None:
+            """Publish interview message to SSE subscribers."""
+            await broker.publish(
+                exec_id,
+                BrokerMessage(
+                    event_type="message",
+                    data={
+                        "synth_id": synth_id,
+                        "turn_number": turn,
+                        "speaker": msg.speaker,
+                        "text": msg.text,
+                    },
+                    timestamp=datetime.now(UTC),
+                ),
+            )
+
+        async def on_transcription_complete(
+            exec_id: str, successful: int, failed: int
+        ) -> None:
+            """Publish transcription_completed event before summary generation."""
+            await broker.publish(
+                exec_id,
+                BrokerMessage(
+                    event_type="transcription_completed",
+                    data={
+                        "successful_count": successful,
+                        "failed_count": failed,
+                    },
+                    timestamp=datetime.now(UTC),
+                ),
+            )
+
         try:
             # Run the batch interviews
             result = await run_batch_interviews(
@@ -231,6 +270,9 @@ class ResearchService:
                 max_turns=max_turns,
                 model=model,
                 generate_summary=generate_summary,
+                exec_id=exec_id,
+                message_callback=on_message,
+                on_transcription_completed=on_transcription_complete,
             )
 
             # Save transcripts to database
@@ -257,10 +299,13 @@ class ResearchService:
                 status=ExecutionStatus.COMPLETED,
                 successful_count=result.total_completed,
                 failed_count=result.total_failed,
-                summary_path=result.summary_path,
+                summary_content=result.summary,
             )
 
             logger.info(f"Research execution {exec_id} completed successfully")
+
+            # Signal end of execution to SSE subscribers
+            await broker.close_execution(exec_id)
 
         except Exception as e:
             logger.error(f"Research execution {exec_id} failed: {e}")
@@ -269,6 +314,8 @@ class ResearchService:
                 status=ExecutionStatus.FAILED,
                 failed_count=synth_count,
             )
+            # Signal end of execution to SSE subscribers even on failure
+            await broker.close_execution(exec_id)
 
 
 if __name__ == "__main__":

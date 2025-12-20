@@ -1,4 +1,4 @@
-.PHONY: help install serve init-db validate-ui test lint-format clean
+.PHONY: help install setup-hooks serve init-db validate-ui test test-fast test-full test-unit test-integration test-contract lint-format clean
 
 # Default target
 help:
@@ -6,12 +6,20 @@ help:
 	@echo ""
 	@echo "Setup:"
 	@echo "  make install      Install dependencies with uv"
+	@echo "  make setup-hooks  Configure Git hooks for automated testing"
 	@echo "  make init-db      Initialize SQLite database with schema"
 	@echo ""
 	@echo "Development:"
 	@echo "  make serve        Start FastAPI REST API server (port 8000)"
-	@echo "  make test         Run pytest test suite"
 	@echo "  make lint-format  Run ruff linter and formatter"
+	@echo ""
+	@echo "Testing:"
+	@echo "  make test         Run all tests"
+	@echo "  make test-fast    Run fast unit tests only (<5s, for commits)"
+	@echo "  make test-full    Run comprehensive tests (for PRs)"
+	@echo "  make test-unit    Run unit tests only"
+	@echo "  make test-integration  Run integration tests only"
+	@echo "  make test-contract     Run contract tests only"
 	@echo ""
 	@echo "Validation:"
 	@echo "  make validate-ui  Validate trace visualizer UI files"
@@ -23,6 +31,19 @@ help:
 install:
 	uv sync
 
+setup-hooks:
+	@echo "Configuring Git hooks..."
+	@git config core.hooksPath .githooks
+	@echo "✅ Git hooks configured!"
+	@echo ""
+	@echo "Hooks installed:"
+	@echo "  - pre-commit: runs 'make test-fast' before each commit"
+	@echo "  - pre-push: runs 'make test-full' before each push"
+	@echo ""
+	@echo "To bypass hooks (not recommended):"
+	@echo "  git commit --no-verify"
+	@echo "  git push --no-verify"
+
 init-db:
 	uv run python scripts/init_db.py
 
@@ -33,8 +54,27 @@ serve:
 	@echo ""
 	uv run uvicorn synth_lab.api.main:app --host 127.0.0.1 --port 8000 --reload
 
+# Testing targets
 test:
 	uv run pytest
+
+# Fast unit tests (<5s) - run on every commit
+test-fast:
+	uv run pytest tests/unit/ -q --tb=short
+
+# Comprehensive tests - run before PRs
+test-full:
+	uv run pytest tests/ -v --tb=short
+
+# Individual test suites
+test-unit:
+	uv run pytest tests/unit/ -v
+
+test-integration:
+	uv run pytest tests/integration/ -v
+
+test-contract:
+	uv run pytest tests/contract/ -v
 
 lint-format:
 	uv run ruff check . --fix

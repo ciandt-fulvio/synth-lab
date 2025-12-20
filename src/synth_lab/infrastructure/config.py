@@ -6,7 +6,7 @@ Environment variables and default settings for database, logging, and LLM client
 Environment Variables:
     SYNTHLAB_DB_PATH: Path to SQLite database (default: output/synthlab.db)
     SYNTHLAB_LOG_LEVEL: Logging level (default: INFO)
-    SYNTHLAB_DEFAULT_MODEL: Default LLM model (default: gpt-4.1-mini)
+    SYNTHLAB_DEFAULT_MODEL: Default LLM model (default: gpt-5-mini)
     OPENAI_API_KEY: OpenAI API key (required for LLM operations)
 """
 
@@ -28,15 +28,13 @@ SYNTHS_DIR = OUTPUT_DIR / "synths"
 SYNTHS_JSON_PATH = SYNTHS_DIR / "synths.json"
 AVATARS_DIR = SYNTHS_DIR / "avatar"
 TOPIC_GUIDES_DIR = OUTPUT_DIR / "topic_guides"
-TRANSCRIPTS_DIR = OUTPUT_DIR / "transcripts"
-REPORTS_DIR = OUTPUT_DIR / "reports"
 TRACES_DIR = OUTPUT_DIR / "traces"
 
 # Logging configuration
 LOG_LEVEL = os.getenv("SYNTHLAB_LOG_LEVEL", "INFO")
 
 # LLM configuration
-DEFAULT_MODEL = os.getenv("SYNTHLAB_DEFAULT_MODEL", "gpt-4.1-mini")
+DEFAULT_MODEL = os.getenv("SYNTHLAB_DEFAULT_MODEL", "gpt-5-mini")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 LLM_TIMEOUT = float(os.getenv("SYNTHLAB_LLM_TIMEOUT", "120.0"))
 LLM_MAX_RETRIES = int(os.getenv("SYNTHLAB_LLM_MAX_RETRIES", "3"))
@@ -52,8 +50,6 @@ def ensure_directories() -> None:
     SYNTHS_DIR.mkdir(parents=True, exist_ok=True)
     AVATARS_DIR.mkdir(parents=True, exist_ok=True)
     TOPIC_GUIDES_DIR.mkdir(parents=True, exist_ok=True)
-    TRANSCRIPTS_DIR.mkdir(parents=True, exist_ok=True)
-    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     TRACES_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -105,8 +101,8 @@ if __name__ == "__main__":
 
     # Test 3: Default values are set
     total_tests += 1
-    if DEFAULT_MODEL != "gpt-4.1-mini":
-        all_validation_failures.append(f"DEFAULT_MODEL should be gpt-4.1-mini, got {DEFAULT_MODEL}")
+    if DEFAULT_MODEL != "gpt-5-mini":
+        all_validation_failures.append(f"DEFAULT_MODEL should be gpt-5-mini, got {DEFAULT_MODEL}")
 
     # Test 4: LOG_LEVEL is valid
     total_tests += 1

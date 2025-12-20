@@ -22,7 +22,7 @@ results, summary = await run_batch_interviews(
 """
 
 import asyncio
-import json
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -40,7 +40,7 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
-from .runner import InterviewResult, run_interview
+from .runner import ConversationMessage, InterviewResult, run_interview
 from .summarizer import summarize_interviews
 
 # GMT-3 timezone (São Paulo)
@@ -55,9 +55,7 @@ class BatchResult:
 
     successful_interviews: list[tuple[InterviewResult, dict[str, Any]]]
     failed_interviews: list[tuple[str, str, Exception]]  # (synth_id, synth_name, error)
-    transcript_paths: list[str]  # Paths to individual transcripts
     summary: str | None
-    summary_path: str | None
     batch_id: str
     total_requested: int
     total_completed: int
@@ -81,64 +79,6 @@ def get_timestamp_gmt3() -> str:
     return datetime.now(TZ_GMT_MINUS_3).strftime("%Y%m%d_%H%M%S")
 
 
-def save_individual_transcript(
-    result: InterviewResult,
-    synth: dict[str, Any],
-    topic_guide_name: str,
-    model: str,
-    max_turns: int,
-    batch_id: str,
-) -> str:
-    """
-    Save individual interview transcript to JSON file.
-
-    Args:
-        result: Interview result
-        synth: Synth data dictionary
-        topic_guide_name: Name of the topic guide
-        model: Model used
-        max_turns: Max turns configured
-        batch_id: Batch identifier for grouping
-
-    Returns:
-        Path where transcript was saved
-    """
-    timestamp = get_timestamp_gmt3()
-    transcript_path = f"output/transcripts/batch_{batch_id}/{result.synth_id}_{timestamp}.json"
-
-    # Ensure directory exists
-    Path(transcript_path).parent.mkdir(parents=True, exist_ok=True)
-
-    # Build transcript data
-    transcript_data = {
-        "metadata": {
-            "batch_id": batch_id,
-            "synth_id": result.synth_id,
-            "synth_name": result.synth_name,
-            "topic_guide": topic_guide_name,
-            "model": model,
-            "max_turns": max_turns,
-            "total_turns": result.total_turns,
-            "timestamp": datetime.now(TZ_GMT_MINUS_3).isoformat(),
-            "timezone": "GMT-3",
-        },
-        "messages": [
-            {
-                "speaker": msg.speaker,
-                "text": msg.text,
-                "internal_notes": msg.internal_notes,
-            }
-            for msg in result.messages
-        ],
-    }
-
-    with open(transcript_path, "w", encoding="utf-8") as f:
-        json.dump(transcript_data, f, ensure_ascii=False, indent=2)
-
-    logger.info(f"Saved transcript to {transcript_path}")
-    return transcript_path
-
-
 async def run_single_interview_safe(
     synth: dict[str, Any],
     topic_guide_name: str,
@@ -148,7 +88,9 @@ async def run_single_interview_safe(
     progress: Progress,
     task_id: TaskID,
     batch_id: str,
-) -> tuple[InterviewResult | None, dict[str, Any], str | None, Exception | None]:
+    exec_id: str | None = None,
+    message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
+) -> tuple[InterviewResult | None, dict[str, Any], Exception | None]:
     """
     Run a single interview with error handling and semaphore control.
 
@@ -161,9 +103,11 @@ async def run_single_interview_safe(
         progress: Rich progress bar
         task_id: Task ID for progress updates
         batch_id: Batch identifier for grouping outputs
+        exec_id: Execution ID for SSE streaming (optional)
+        message_callback: Async callback for real-time message streaming (optional)
 
     Returns:
-        Tuple of (result or None, synth_data, transcript_path or None, error or None)
+        Tuple of (result or None, synth_data, error or None)
     """
     synth_id = synth.get("id", "unknown")
     synth_name = synth.get("nome", "Unknown")
@@ -173,7 +117,7 @@ async def run_single_interview_safe(
         progress.update(task_id, description=f"[cyan]Entrevistando {synth_name}...")
 
         try:
-            # Generate trace path
+            # Generate trace path for debugging (still saved to filesystem)
             timestamp = get_timestamp_gmt3()
             trace_path = f"output/traces/batch_{batch_id}/{synth_id}_{timestamp}.trace.json"
 
@@ -187,26 +131,18 @@ async def run_single_interview_safe(
                 trace_path=trace_path,
                 model=model,
                 verbose=False,  # Suppress individual interview output in batch mode
-            )
-
-            # Save individual transcript
-            transcript_path = save_individual_transcript(
-                result=result,
-                synth=synth,
-                topic_guide_name=topic_guide_name,
-                model=model,
-                max_turns=max_turns,
-                batch_id=batch_id,
+                exec_id=exec_id,
+                message_callback=message_callback,
             )
 
             logger.info(f"Completed interview with {synth_name} ({synth_id})")
             progress.advance(task_id)
-            return result, synth, transcript_path, None
+            return result, synth, None
 
         except Exception as e:
             logger.error(f"Failed interview with {synth_name} ({synth_id}): {e}")
             progress.advance(task_id)
-            return None, synth, None, e
+            return None, synth, e
 
 
 async def run_batch_interviews(
@@ -216,6 +152,9 @@ async def run_batch_interviews(
     max_turns: int = 6,
     model: str = "gpt-5-mini",
     generate_summary: bool = True,
+    exec_id: str | None = None,
+    message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
+    on_transcription_completed: Callable[[str, int, int], Awaitable[None]] | None = None,
 ) -> BatchResult:
     """
     Run multiple interviews in parallel with progress tracking.
@@ -227,6 +166,11 @@ async def run_batch_interviews(
         max_turns: Maximum turns per interview
         model: LLM model to use
         generate_summary: Whether to generate a summary after all interviews
+        exec_id: Optional execution ID from caller. If not provided, generates one.
+        message_callback: Async callback for real-time message streaming (optional)
+            Signature: (exec_id, synth_id, turn_number, message) -> None
+        on_transcription_completed: Callback when all transcriptions done
+            Signature: (exec_id, successful_count, failed_count) -> None
 
     Returns:
         BatchResult with all interview results and summary
@@ -242,8 +186,8 @@ async def run_batch_interviews(
     print(result.summary)
     ```
     """
-    # Generate batch ID for grouping outputs
-    batch_id = f"{topic_guide_name}_{get_timestamp_gmt3()}"
+    # Use provided exec_id or generate batch ID for grouping outputs
+    batch_id = exec_id if exec_id else f"batch_{topic_guide_name}_{get_timestamp_gmt3()}"
 
     # Load synths
     all_synths = load_all_synths()
@@ -260,7 +204,6 @@ async def run_batch_interviews(
     # Track results
     successful_interviews: list[tuple[InterviewResult, dict[str, Any]]] = []
     failed_interviews: list[tuple[str, str, Exception]] = []
-    transcript_paths: list[str] = []
 
     # Run interviews with progress bar
     with Progress(
@@ -287,6 +230,8 @@ async def run_batch_interviews(
                 progress=progress,
                 task_id=task_id,
                 batch_id=batch_id,
+                exec_id=batch_id,
+                message_callback=message_callback,
             )
             for synth in synths_to_interview
         ]
@@ -295,11 +240,9 @@ async def run_batch_interviews(
         results = await asyncio.gather(*tasks, return_exceptions=False)
 
         # Process results
-        for result, synth, transcript_path, error in results:
+        for result, synth, error in results:
             if error is None and result is not None:
                 successful_interviews.append((result, synth))
-                if transcript_path:
-                    transcript_paths.append(transcript_path)
             else:
                 synth_id = synth.get("id", "unknown")
                 synth_name = synth.get("nome", "Unknown")
@@ -311,9 +254,16 @@ async def run_batch_interviews(
         f"{len(failed_interviews)} failed"
     )
 
+    # Notify that all transcriptions are complete (before summary generation)
+    if on_transcription_completed and batch_id:
+        await on_transcription_completed(
+            batch_id,
+            len(successful_interviews),
+            len(failed_interviews),
+        )
+
     # Generate summary if requested and we have successful interviews
     summary = None
-    summary_path = None
     if generate_summary and successful_interviews:
         console.print()
         console.print("[cyan]Gerando síntese das entrevistas...[/cyan]")
@@ -327,13 +277,6 @@ async def run_batch_interviews(
             )
             logger.info("Summary generated successfully")
 
-            # Save summary to file
-            summary_path = f"output/reports/batch_{batch_id}.md"
-            Path(summary_path).parent.mkdir(parents=True, exist_ok=True)
-            with open(summary_path, "w", encoding="utf-8") as f:
-                f.write(summary)
-            logger.info(f"Summary saved to {summary_path}")
-
         except Exception as e:
             logger.error(f"Failed to generate summary: {e}")
             summary = f"Erro ao gerar síntese: {e}"
@@ -341,9 +284,7 @@ async def run_batch_interviews(
     return BatchResult(
         successful_interviews=successful_interviews,
         failed_interviews=failed_interviews,
-        transcript_paths=transcript_paths,
         summary=summary,
-        summary_path=summary_path,
         batch_id=batch_id,
         total_requested=len(synths_to_interview),
         total_completed=len(successful_interviews),
@@ -358,6 +299,9 @@ def run_batch_interviews_sync(
     max_turns: int = 6,
     model: str = "gpt-5-mini",
     generate_summary: bool = True,
+    exec_id: str | None = None,
+    message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
+    on_transcription_completed: Callable[[str, int, int], Awaitable[None]] | None = None,
 ) -> BatchResult:
     """
     Synchronous wrapper for run_batch_interviews.
@@ -369,6 +313,9 @@ def run_batch_interviews_sync(
         max_turns: Maximum turns per interview
         model: LLM model to use
         generate_summary: Whether to generate summary
+        exec_id: Optional execution ID from caller.
+        message_callback: Async callback for real-time message streaming (optional)
+        on_transcription_completed: Callback when all transcriptions done (exec_id, success, failed)
 
     Returns:
         BatchResult with all interview results and summary
@@ -381,6 +328,9 @@ def run_batch_interviews_sync(
             max_turns=max_turns,
             model=model,
             generate_summary=generate_summary,
+            exec_id=exec_id,
+            message_callback=message_callback,
+            on_transcription_completed=on_transcription_completed,
         )
     )
 
@@ -426,12 +376,14 @@ if __name__ == "__main__":
             successful_interviews=[],
             failed_interviews=[],
             summary="Test summary",
+            batch_id="test_batch_001",
             total_requested=5,
             total_completed=3,
             total_failed=2,
         )
         assert result.total_requested == 5
         assert result.total_completed == 3
+        assert result.batch_id == "test_batch_001"
         print("✓ BatchResult dataclass works correctly")
     except Exception as e:
         all_validation_failures.append(f"BatchResult: {e}")
