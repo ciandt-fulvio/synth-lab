@@ -18,7 +18,7 @@ interface MarkdownPopupProps {
 const MarkdownPopup = ({ isOpen, onClose, title, markdownContent }: MarkdownPopupProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[60vw] h-[80vh] flex flex-col">
+      <DialogContent className="sm:max-w-[70vw] h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>

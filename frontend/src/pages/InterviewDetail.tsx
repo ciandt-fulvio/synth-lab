@@ -88,7 +88,7 @@ export default function InterviewDetail() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Informações da Execução</CardTitle>
+            <CardTitle>Informações da Entrevista</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div>
@@ -104,13 +104,7 @@ export default function InterviewDetail() {
               <span className="font-semibold">Bem-sucedidos:</span> {execution.successful_count}
             </div>
             <div>
-              <span className="font-semibold">Falhados:</span> {execution.failed_count}
-            </div>
-            <div>
-              <span className="font-semibold">Modelo:</span> {execution.model}
-            </div>
-            <div>
-              <span className="font-semibold">Max Turns:</span> {execution.max_turns}
+              <span className="font-semibold">Falhas:</span> {execution.failed_count}
             </div>
           </CardContent>
         </Card>
@@ -158,7 +152,7 @@ export default function InterviewDetail() {
       {transcripts && transcripts.data.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Synths Participantes ({transcripts.total})</CardTitle>
+            <CardTitle>Synths Entrevistados</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
