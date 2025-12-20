@@ -1,4 +1,4 @@
-.PHONY: help install setup-hooks serve init-db validate-ui test test-fast test-full test-unit test-integration test-contract lint-format clean
+.PHONY: help install setup-hooks serve serve-front init-db validate-ui test test-fast test-full test-unit test-integration test-contract lint-format clean
 
 # Default target
 help:
@@ -11,6 +11,7 @@ help:
 	@echo ""
 	@echo "Development:"
 	@echo "  make serve        Start FastAPI REST API server (port 8000)"
+	@echo "  make serve-front  Start frontend dev server (port 8080)"
 	@echo "  make lint-format  Run ruff linter and formatter"
 	@echo ""
 	@echo "Testing:"
@@ -53,6 +54,12 @@ serve:
 	@echo "OpenAPI docs: http://127.0.0.1:8000/docs"
 	@echo ""
 	uv run uvicorn synth_lab.api.main:app --host 127.0.0.1 --port 8000 --reload
+
+serve-front:
+	@echo "Starting frontend dev server on http://localhost:8080"
+	@echo "API proxy: http://localhost:8000"
+	@echo ""
+	@cd frontend && pnpm dev
 
 # Testing targets
 test:
