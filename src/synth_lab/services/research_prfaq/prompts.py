@@ -10,7 +10,7 @@ Third-party documentation:
 - Amazon Working Backwards: https://www.amazon.jobs/en/landing_pages/working-backwards
 
 Sample usage:
-    from synth_lab.research_prfaq.prompts import get_system_prompt, get_few_shot_examples
+    from .prompts import get_system_prompt, get_few_shot_examples
 
     system = get_system_prompt()
     examples = get_few_shot_examples()

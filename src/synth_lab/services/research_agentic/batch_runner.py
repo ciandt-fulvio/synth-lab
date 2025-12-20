@@ -10,7 +10,7 @@ References:
 
 Sample usage:
 ```python
-from synth_lab.research_agentic.batch_runner import run_batch_interviews
+from .batch_runner import run_batch_interviews
 
 results, summary = await run_batch_interviews(
     topic_guide_name="compra-amazon",
@@ -40,8 +40,8 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
-from synth_lab.research_agentic.runner import InterviewResult, run_interview
-from synth_lab.research_agentic.summarizer import summarize_interviews
+from .runner import InterviewResult, run_interview
+from .summarizer import summarize_interviews
 
 # GMT-3 timezone (São Paulo)
 TZ_GMT_MINUS_3 = timezone(timedelta(hours=-3))
@@ -402,7 +402,7 @@ if __name__ == "__main__":
     # Test 1: Import works
     total_tests += 1
     try:
-        from synth_lab.research_agentic.batch_runner import (
+        from .batch_runner import (
             BatchResult,
             load_all_synths,
             run_batch_interviews,

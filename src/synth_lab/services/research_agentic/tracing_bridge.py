@@ -12,7 +12,7 @@ References:
 Sample usage:
 ```python
 from agents import add_trace_processor
-from synth_lab.research_agentic.tracing_bridge import TraceVisualizerProcessor
+from .tracing_bridge import TraceVisualizerProcessor
 
 # Create processor with our tracer
 processor = TraceVisualizerProcessor(tracer)

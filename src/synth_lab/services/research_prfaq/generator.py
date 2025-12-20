@@ -11,8 +11,8 @@ Third-party documentation:
 - Amazon Working Backwards: https://www.amazon.jobs/en/landing_pages/working-backwards
 
 Sample usage:
-    from synth_lab.research_prfaq.generator import generate_prfaq_markdown
-    from synth_lab.research_prfaq.models import setup_logging
+    from .generator import generate_prfaq_markdown
+    from .models import setup_logging
 
     setup_logging()
     prfaq_md = generate_prfaq_markdown("batch_compra-amazon_20251218_164204")
@@ -194,7 +194,7 @@ def load_prfaq_markdown(
 if __name__ == "__main__":
     # Validation test with real batch summary
     import sys
-    from synth_lab.research_prfaq.models import setup_logging
+    from .models import setup_logging
 
     setup_logging()
 

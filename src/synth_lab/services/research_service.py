@@ -221,7 +221,7 @@ class ResearchService:
             generate_summary: Whether to generate summary.
         """
         from loguru import logger
-        from synth_lab.research_agentic.batch_runner import run_batch_interviews
+        from synth_lab.services.research_agentic.batch_runner import run_batch_interviews
 
         try:
             # Run the batch interviews

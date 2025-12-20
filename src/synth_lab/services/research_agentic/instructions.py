@@ -10,7 +10,7 @@ References:
 
 Sample usage:
 ```python
-from synth_lab.research_agentic.instructions import INTERVIEWER_INSTRUCTIONS
+from .instructions import INTERVIEWER_INSTRUCTIONS
 
 agent = Agent(
     name="Interviewer",
