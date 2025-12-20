@@ -5,13 +5,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useResearchDetail, useResearchTranscripts, useResearchSummary } from '@/hooks/use-research';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { generatePrfaq, getPrfaqMarkdown } from '@/services/prfaq-api';
+import { getSynthAvatarUrl } from '@/services/synths-api';
 import { queryKeys } from '@/lib/query-keys';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import MarkdownPopup from '@/components/shared/MarkdownPopup';
+import { SynthDetailDialog } from '@/components/synths/SynthDetailDialog';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, ArrowLeft, FileText, FileCheck } from 'lucide-react';
+import { Loader2, ArrowLeft, FileText, FileCheck, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -22,6 +25,7 @@ export default function InterviewDetail() {
 
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [prfaqOpen, setPrfaqOpen] = useState(false);
+  const [selectedSynthId, setSelectedSynthId] = useState<string | null>(null);
 
   const { data: execution, isLoading, error } = useResearchDetail(execId!);
   const { data: transcripts } = useResearchTranscripts(execId!);
@@ -157,12 +161,31 @@ export default function InterviewDetail() {
             <CardTitle>Synths Participantes ({transcripts.total})</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {transcripts.data.map((transcript) => (
-                <div key={transcript.synth_id} className="p-3 border rounded-md text-sm">
-                  <div className="font-semibold">{transcript.synth_name || transcript.synth_id}</div>
-                  <div className="text-muted-foreground">
-                    {transcript.turn_count} turnos - {transcript.status}
+                <div
+                  key={transcript.synth_id}
+                  className="p-3 border rounded-md hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => setSelectedSynthId(transcript.synth_id)}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage
+                        src={getSynthAvatarUrl(transcript.synth_id)}
+                        alt={transcript.synth_name || transcript.synth_id}
+                      />
+                      <AvatarFallback>
+                        <User className="h-6 w-6" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-sm truncate">
+                        {transcript.synth_name || transcript.synth_id}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {transcript.turn_count} turnos • {transcript.status}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -188,6 +211,14 @@ export default function InterviewDetail() {
           markdownContent={prfaqMarkdown}
         />
       )}
+
+      <SynthDetailDialog
+        synthId={selectedSynthId}
+        open={!!selectedSynthId}
+        onOpenChange={(open) => {
+          if (!open) setSelectedSynthId(null);
+        }}
+      />
     </div>
   );
 }
