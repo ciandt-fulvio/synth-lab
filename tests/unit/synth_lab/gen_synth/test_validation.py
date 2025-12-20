@@ -1,7 +1,8 @@
 """Tests for validation module."""
 
+
 import pytest
-from pathlib import Path
+
 from synth_lab.gen_synth import validation
 
 

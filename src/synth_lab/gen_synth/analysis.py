@@ -264,7 +264,7 @@ if __name__ == "__main__":
                     f"Wrong error message: {result['error']}"
                 )
             else:
-                print(f"Test 3: analyze_regional_distribution() handles empty directory")
+                print("Test 3: analyze_regional_distribution() handles empty directory")
     except Exception as e:
         all_validation_failures.append(f"Test 3 (empty directory regional): {str(e)}")
 
@@ -284,7 +284,7 @@ if __name__ == "__main__":
                     f"Wrong error message: {result['error']}"
                 )
             else:
-                print(f"Test 4: analyze_age_distribution() handles empty directory")
+                print("Test 4: analyze_age_distribution() handles empty directory")
     except Exception as e:
         all_validation_failures.append(f"Test 4 (empty directory age): {str(e)}")
 
@@ -384,7 +384,7 @@ if __name__ == "__main__":
                     )
 
             if not any(f.startswith("Test 6") for f in all_validation_failures):
-                print(f"Test 6: Age group boundaries correct")
+                print("Test 6: Age group boundaries correct")
     except Exception as e:
         all_validation_failures.append(f"Test 6 (age boundaries): {str(e)}")
 

@@ -10,13 +10,12 @@ Tests validate:
 - Tracer.save_trace() wrapper method
 """
 
-import pytest
-from datetime import datetime, timezone
-from pathlib import Path
 import json
 import tempfile
-from synth_lab.trace_visualizer.tracer import Tracer, Span
-from synth_lab.trace_visualizer.models import SpanType, SpanStatus
+from pathlib import Path
+
+from synth_lab.trace_visualizer.models import SpanStatus, SpanType
+from synth_lab.trace_visualizer.tracer import Span, Tracer
 
 
 class TestTracerInit:

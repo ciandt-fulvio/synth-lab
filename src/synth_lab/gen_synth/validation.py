@@ -497,7 +497,7 @@ if __name__ == "__main__":
         if not is_valid:
             all_validation_failures.append(f"Valid synth failed validation: {errors}")
         else:
-            print(f"Test 1: validate_synth() accepts valid synth")
+            print("Test 1: validate_synth() accepts valid synth")
     except Exception as e:
         all_validation_failures.append(f"Test 1 (validate valid synth): {str(e)}")
 
@@ -534,7 +534,7 @@ if __name__ == "__main__":
             # We can't easily capture print output, so just verify it doesn't crash
             validate_single_file(test_file)
 
-            print(f"Test 3: validate_single_file() completed without error")
+            print("Test 3: validate_single_file() completed without error")
     except Exception as e:
         all_validation_failures.append(f"Test 3 (validate_single_file): {str(e)}")
 
@@ -546,7 +546,7 @@ if __name__ == "__main__":
         # Should handle FileNotFoundError gracefully
         validate_single_file(nonexistent_file)
 
-        print(f"Test 4: validate_single_file() handles missing file gracefully")
+        print("Test 4: validate_single_file() handles missing file gracefully")
     except Exception as e:
         all_validation_failures.append(f"Test 4 (validate_single_file missing): {str(e)}")
 
@@ -605,7 +605,7 @@ if __name__ == "__main__":
                 )
 
             if not any(f.startswith("Test 6") for f in all_validation_failures):
-                print(f"Test 6: validate_batch() handles empty directory")
+                print("Test 6: validate_batch() handles empty directory")
     except Exception as e:
         all_validation_failures.append(f"Test 6 (validate_batch empty): {str(e)}")
 
@@ -624,7 +624,7 @@ if __name__ == "__main__":
                 f"Should have 'Schema não encontrado' error, got: {errors}"
             )
         else:
-            print(f"Test 7: validate_synth() handles missing schema gracefully")
+            print("Test 7: validate_synth() handles missing schema gracefully")
     except Exception as e:
         all_validation_failures.append(f"Test 7 (missing schema): {str(e)}")
 

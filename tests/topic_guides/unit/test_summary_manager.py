@@ -7,8 +7,6 @@ Tests the logic for creating, parsing, and writing summary.md files.
 from datetime import datetime
 from pathlib import Path
 
-import pytest
-
 
 class TestSummaryFileInitialization:
     """Unit tests for summary.md generation logic."""

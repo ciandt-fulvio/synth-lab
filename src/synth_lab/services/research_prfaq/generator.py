@@ -24,15 +24,15 @@ Expected output:
 """
 
 import os
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
-from openai import OpenAI
 from loguru import logger
+from openai import OpenAI
 
 from .generation_models import parse_batch_summary
-from .prompts import get_system_prompt, get_few_shot_examples
+from .prompts import get_few_shot_examples, get_system_prompt
 
 
 def generate_prfaq_markdown(
@@ -194,6 +194,7 @@ def load_prfaq_markdown(
 if __name__ == "__main__":
     # Validation test with real batch summary
     import sys
+
     from .models import setup_logging
 
     setup_logging()

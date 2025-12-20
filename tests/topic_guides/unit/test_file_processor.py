@@ -4,10 +4,7 @@ Unit Tests: File Processing Utilities
 Tests the logic for scanning directories, filtering files, and hash detection.
 """
 
-import tempfile
 from pathlib import Path
-
-import pytest
 
 
 class TestFileScanning:

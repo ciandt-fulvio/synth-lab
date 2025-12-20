@@ -41,7 +41,7 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
     1. Generating demographics (age, gender, location, education, income, occupation)
     2. Generating name based on demographics
     3. Generating Big Five personality traits
-    4. Generating psychographics (interests, political/religious inclinations)
+    4. Generating psychographics (interests, cognitive contract)
     5. Generating disabilities (if applicable)
     6. Generating tech capabilities (digital literacy, devices)
     7. Deriving archetype from demographics and personality
@@ -110,6 +110,7 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
 if __name__ == "__main__":
     """Validation with real data."""
     import sys
+
     from synth_lab.gen_synth.config import load_config_data
 
     print("=== Synth Builder Module Validation ===\n")
@@ -190,7 +191,7 @@ if __name__ == "__main__":
 
         required_psico_fields = [
             "personalidade_big_five", "interesses",
-            "inclinacao_politica", "inclinacao_religiosa"
+            "contrato_cognitivo"
         ]
 
         missing_psico = [f for f in required_psico_fields if f not in psico]
@@ -206,8 +207,14 @@ if __name__ == "__main__":
                 all_validation_failures.append(
                     f"Big Five: Missing traits: {missing_traits}"
                 )
+            # Verify cognitive contract structure
+            cc = psico.get("contrato_cognitivo", {})
+            if "tipo" not in cc or "perfil_cognitivo" not in cc or "regras" not in cc:
+                all_validation_failures.append(
+                    "Contrato cognitivo: Missing required fields"
+                )
             else:
-                print(f"✓ Psychographics complete with Big Five and lifestyle")
+                print(f"✓ Psychographics complete with Big Five and contrato_cognitivo ({cc['tipo']})")
 
     # Test 5: Verify disabilities structure
     total_tests += 1
@@ -257,7 +264,7 @@ if __name__ == "__main__":
                 f"Photo link: Invalid URL - '{synth['link_photo']}'"
             )
         if not all_validation_failures[-3:]:  # If no failures in this test
-            print(f"✓ Derivations correct: archetype, description, photo link")
+            print("✓ Derivations correct: archetype, description, photo link")
 
     # Test 8: Generate batch of 3 synths to verify uniqueness
     total_tests += 1
@@ -279,7 +286,7 @@ if __name__ == "__main__":
             )
 
         if not all_validation_failures[-2:]:  # If no failures in this test
-            print(f"✓ Batch of 3 synths: all unique IDs and diverse names")
+            print("✓ Batch of 3 synths: all unique IDs and diverse names")
     except Exception as e:
         all_validation_failures.append(f"Batch generation: Failed - {e}")
 
@@ -293,7 +300,7 @@ if __name__ == "__main__":
                     f"Schema validation: Synth failed schema validation: {errors}"
                 )
             else:
-                print(f"✓ Schema validation: synth passes JSON Schema")
+                print("✓ Schema validation: synth passes JSON Schema")
         except Exception as e:
             all_validation_failures.append(f"Schema validation: Error - {e}")
 

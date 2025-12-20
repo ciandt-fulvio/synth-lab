@@ -69,4 +69,8 @@ coverage.xml
 *.db-wal
 
 # Execution output data (synths, traces, transcripts, reports)
-output/
+# Note: output/topic_guides/examples/ is versioned (contains example guides)
+output/*
+!output/topic_guides/
+output/topic_guides/*
+!output/topic_guides/examples/

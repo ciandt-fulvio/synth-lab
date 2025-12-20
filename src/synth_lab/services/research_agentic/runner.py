@@ -21,14 +21,6 @@ result = await run_interview(
 ```
 """
 
-from .agent_definitions import (
-    create_interviewee,
-    create_interviewee_reviewer,
-    create_interviewer,
-    create_orchestrator,
-)
-from .tools import create_image_loader_tool, get_available_images
-from .tracing_bridge import TraceVisualizerProcessor
 import asyncio
 import json
 import random
@@ -42,6 +34,15 @@ from loguru import logger
 from rich.console import Console
 
 from synth_lab.trace_visualizer import SpanStatus, SpanType, Tracer
+
+from .agent_definitions import (
+    create_interviewee,
+    create_interviewee_reviewer,
+    create_interviewer,
+    create_orchestrator,
+)
+from .tools import create_image_loader_tool, get_available_images
+from .tracing_bridge import TraceVisualizerProcessor
 
 # Console for colored output
 _console = Console()
@@ -158,7 +159,7 @@ class InterviewResult:
 
 def load_synth(synth_id: str) -> dict[str, Any]:
     """
-    Load a synth by ID from the data file.
+    Load a synth by ID from the database.
 
     Args:
         synth_id: The synth identifier
@@ -169,18 +170,13 @@ def load_synth(synth_id: str) -> dict[str, Any]:
     Raises:
         ValueError: If synth not found
     """
-    synths_path = Path("output/synths/synths.json")
-    if not synths_path.exists():
-        raise FileNotFoundError(f"Synths file not found: {synths_path}")
+    from synth_lab.gen_synth.storage import get_synth_by_id
 
-    with open(synths_path, encoding="utf-8") as f:
-        synths = json.load(f)
+    synth = get_synth_by_id(synth_id)
+    if synth is None:
+        raise ValueError(f"Synth not found: {synth_id}")
 
-    for synth in synths:
-        if synth.get("id") == synth_id:
-            return synth
-
-    raise ValueError(f"Synth not found: {synth_id}")
+    return synth
 
 
 def load_topic_guide(topic_guide_name: str) -> str:
@@ -196,9 +192,11 @@ def load_topic_guide(topic_guide_name: str) -> str:
     Raises:
         FileNotFoundError: If topic guide not found
     """
-    topic_guide_path = Path(f"data/topic_guides/{topic_guide_name}")
-    if not topic_guide_path.exists():
-        raise FileNotFoundError(f"Topic guide not found: {topic_guide_path}")
+    from synth_lab.infrastructure.config import resolve_topic_guide_path
+
+    topic_guide_path = resolve_topic_guide_path(topic_guide_name)
+    if topic_guide_path is None:
+        raise FileNotFoundError(f"Topic guide not found: {topic_guide_name}")
 
     # Load script.json if it exists
     script_path = topic_guide_path / "script.json"
@@ -227,7 +225,13 @@ def load_context_examples(topic_guide_name: str) -> dict[str, str] | None:
     Returns:
         Dictionary with 'positive', 'negative', 'neutral' examples or None
     """
-    script_path = Path(f"data/topic_guides/{topic_guide_name}/script.json")
+    from synth_lab.infrastructure.config import resolve_topic_guide_path
+
+    topic_guide_path = resolve_topic_guide_path(topic_guide_name)
+    if topic_guide_path is None:
+        return None
+
+    script_path = topic_guide_path / "script.json"
     if not script_path.exists():
         return None
 
@@ -262,7 +266,8 @@ async def generate_initial_context(
     Returns:
         Generated initial context string
     """
-    from agents import Agent, Runner as AgentRunner
+    from agents import Agent
+    from agents import Runner as AgentRunner
 
     # Randomly choose sentiment
     sentiment = random.choice(["positive", "negative", "neutral"])

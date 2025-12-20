@@ -5,9 +5,8 @@ Tests verify that synths generated with v2.0.0 do not contain removed fields
 and pass schema validation.
 """
 
-import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))

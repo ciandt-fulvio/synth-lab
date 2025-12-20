@@ -23,10 +23,10 @@ Third-party Documentation:
 - Rich Console: https://rich.readthedocs.io/en/stable/console.html
 """
 
-from rich.console import Console
-from rich.table import Table
 import rich.box
 from loguru import logger
+from rich.console import Console
+from rich.table import Table
 
 
 def format_results(
@@ -61,7 +61,7 @@ def format_results(
     # Add rows
     for row in rows:
         table.add_row(*[str(val) for val in row])
-    
+
     logger.debug(f"Formatted table with {len(columns)} columns and {len(rows)} rows")
 
     return table
@@ -128,10 +128,10 @@ def display_results_with_truncation_warning(
 if __name__ == "__main__":
     """Validation block with real data."""
     import sys
-    
+
     all_validation_failures = []
     total_tests = 0
-    
+
     # Test 1: Format empty result
     total_tests += 1
     try:
@@ -144,7 +144,7 @@ if __name__ == "__main__":
             all_validation_failures.append(f"Empty result: Expected 3 columns, got {len(table.columns)}")
     except Exception as e:
         all_validation_failures.append(f"Empty result formatting: {e}")
-    
+
     # Test 2: Format normal result
     total_tests += 1
     try:
@@ -157,7 +157,7 @@ if __name__ == "__main__":
             all_validation_failures.append(f"Normal result: Expected 2 rows, got {table.row_count}")
     except Exception as e:
         all_validation_failures.append(f"Normal result formatting: {e}")
-    
+
     # Test 3: Unicode handling
     total_tests += 1
     try:
@@ -168,7 +168,7 @@ if __name__ == "__main__":
             all_validation_failures.append(f"Unicode test: Expected 2 rows, got {table.row_count}")
     except Exception as e:
         all_validation_failures.append(f"Unicode handling: {e}")
-    
+
     # Final validation result
     if all_validation_failures:
         print(f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")

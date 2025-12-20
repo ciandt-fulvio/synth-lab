@@ -74,7 +74,7 @@ async def root() -> dict:
 
 
 # Router imports
-from synth_lab.api.routers import synths, research, topics, prfaq
+from synth_lab.api.routers import prfaq, research, synths, topics
 
 # Register routers
 app.include_router(synths.router, prefix="/synths", tags=["synths"])

@@ -1,102 +1,255 @@
 """
 Storage module for Synth Lab.
 
-This module handles saving synth data to JSON files.
+This module handles saving synth data directly to SQLite database.
 
 Functions:
-- save_synth(): Save synth to consolidated file and optionally to individual files
-- load_consolidated_synths(): Load all synths from consolidated file
+- save_synth(): Save synth to database
+- load_synths(): Load all synths from database
+- get_synth_by_id(): Load a single synth by ID
 
 Sample Input:
     synth_dict = {"id": "abc123", "nome": "Maria Silva", ...}
-    save_synth(synth_dict)  # Saves to consolidated file only
-    save_synth(synth_dict, save_individual=True)  # Saves to both
+    save_synth(synth_dict)  # Saves to SQLite database
 
 Expected Output:
-    File saved at: output/synths/synths.json (consolidated)
-    File saved at: output/synths/abc123.json (if save_individual=True)
+    Synth saved to database with ID: abc123
 
 Third-party packages:
-- None (uses standard library only)
+- loguru: https://loguru.readthedocs.io/
 """
 
 import json
+import sqlite3
 from pathlib import Path
 from typing import Any
 
-from .config import SYNTHS_DIR
+from loguru import logger
 
-# Path to consolidated synths file
-CONSOLIDATED_FILE = "synths.json"
+import synth_lab.infrastructure.config as config_module
 
 
-def load_consolidated_synths(output_dir: Path = SYNTHS_DIR) -> list[dict[str, Any]]:
+def _get_db_path():
+    """Get current DB_PATH from config (allows runtime override for tests)."""
+    return config_module.DB_PATH
+
+
+def _ensure_database() -> None:
+    """Ensure database exists and has schema."""
+    db_path = _get_db_path()
+    if not db_path.exists():
+        from synth_lab.infrastructure.database import init_database
+
+        init_database(db_path)
+
+
+def _get_connection() -> sqlite3.Connection:
+    """Get database connection with proper settings."""
+    _ensure_database()
+
+    conn = sqlite3.connect(str(_get_db_path()))
+    conn.execute("PRAGMA foreign_keys=ON")
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def save_synth(synth_dict: dict[str, Any], output_dir: Path | None = None, save_individual: bool = False) -> None:
     """
-    Load all synths from the consolidated JSON file.
-
-    Args:
-        output_dir: Directory containing the consolidated file
-
-    Returns:
-        List of synth dictionaries (empty list if file doesn't exist)
-    """
-    consolidated_path = output_dir / CONSOLIDATED_FILE
-
-    if not consolidated_path.exists():
-        return []
-
-    with open(consolidated_path, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def save_consolidated_synths(synths: list[dict[str, Any]], output_dir: Path = SYNTHS_DIR) -> None:
-    """
-    Save list of synths to the consolidated JSON file.
-
-    Args:
-        synths: List of synth dictionaries
-        output_dir: Directory where consolidated file will be saved
-    """
-    output_dir.mkdir(parents=True, exist_ok=True)
-    consolidated_path = output_dir / CONSOLIDATED_FILE
-
-    with open(consolidated_path, "w", encoding="utf-8") as f:
-        json.dump(synths, f, ensure_ascii=False, indent=2)
-
-
-def save_synth(synth_dict: dict[str, Any], output_dir: Path = SYNTHS_DIR, save_individual: bool = False) -> None:
-    """
-    Salva Synth no arquivo consolidado e opcionalmente em arquivo individual.
-
-    By default, saves the synth to the consolidated synths.json file.
-    If save_individual=True, also saves to individual {id}.json file.
+    Save synth to SQLite database.
 
     Args:
         synth_dict: Dictionary containing complete synth data (must have "id" key)
-        output_dir: Directory path where synth JSON will be saved (default: output/synths/)
-        save_individual: If True, also save to individual file (default: False)
+        output_dir: Deprecated, ignored (kept for API compatibility)
+        save_individual: Deprecated, ignored (kept for API compatibility)
 
     Raises:
         KeyError: If synth_dict doesn't contain "id" key
     """
-    output_dir.mkdir(parents=True, exist_ok=True)
+    synth_id = synth_dict["id"]
 
-    # Load existing synths from consolidated file
-    synths = load_consolidated_synths(output_dir)
+    conn = _get_connection()
+    try:
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO synths
+            (id, nome, arquetipo, descricao, link_photo, avatar_path, created_at, version,
+             demografia, psicografia, deficiencias, capacidades_tecnologicas)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                synth_id,
+                synth_dict.get("nome", ""),
+                synth_dict.get("arquetipo"),
+                synth_dict.get("descricao"),
+                synth_dict.get("link_photo"),
+                synth_dict.get("avatar_path"),
+                synth_dict.get("created_at"),
+                synth_dict.get("version", "2.0.0"),
+                json.dumps(synth_dict.get("demografia")) if synth_dict.get("demografia") else None,
+                json.dumps(synth_dict.get("psicografia")) if synth_dict.get("psicografia") else None,
+                json.dumps(synth_dict.get("deficiencias")) if synth_dict.get("deficiencias") else None,
+                json.dumps(synth_dict.get("capacidades_tecnologicas"))
+                if synth_dict.get("capacidades_tecnologicas")
+                else None,
+            ),
+        )
+        conn.commit()
+        logger.debug(f"Synth saved: {synth_id}")
+    finally:
+        conn.close()
 
-    # Add new synth to the list
-    synths.append(synth_dict)
 
-    # Save consolidated file
-    save_consolidated_synths(synths, output_dir)
-    print(f"Synth salvo: {output_dir / CONSOLIDATED_FILE}")
+def load_synths() -> list[dict[str, Any]]:
+    """
+    Load all synths from database.
 
-    # Save individual file if requested
-    if save_individual:
-        individual_path = output_dir / f"{synth_dict['id']}.json"
-        with open(individual_path, "w", encoding="utf-8") as f:
-            json.dump(synth_dict, f, ensure_ascii=False, indent=2)
-        print(f"Synth individual salvo: {individual_path}")
+    Returns:
+        List of synth dictionaries
+    """
+    conn = _get_connection()
+    try:
+        cursor = conn.execute("SELECT * FROM synths ORDER BY created_at DESC")
+        rows = cursor.fetchall()
+
+        synths = []
+        for row in rows:
+            synth = _row_to_dict(row)
+            synths.append(synth)
+
+        return synths
+    finally:
+        conn.close()
+
+
+def get_synth_by_id(synth_id: str) -> dict[str, Any] | None:
+    """
+    Load a single synth by ID.
+
+    Args:
+        synth_id: The synth ID to load
+
+    Returns:
+        Synth dictionary or None if not found
+    """
+    conn = _get_connection()
+    try:
+        cursor = conn.execute("SELECT * FROM synths WHERE id = ?", (synth_id,))
+        row = cursor.fetchone()
+
+        if row is None:
+            return None
+
+        return _row_to_dict(row)
+    finally:
+        conn.close()
+
+
+def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
+    """Convert a database row to a synth dictionary."""
+    synth = {
+        "id": row["id"],
+        "nome": row["nome"],
+        "arquetipo": row["arquetipo"],
+        "descricao": row["descricao"],
+        "link_photo": row["link_photo"],
+        "avatar_path": row["avatar_path"],
+        "created_at": row["created_at"],
+        "version": row["version"],
+    }
+
+    # Parse JSON fields
+    if row["demografia"]:
+        synth["demografia"] = json.loads(row["demografia"])
+    if row["psicografia"]:
+        synth["psicografia"] = json.loads(row["psicografia"])
+    if row["deficiencias"]:
+        synth["deficiencias"] = json.loads(row["deficiencias"])
+    if row["capacidades_tecnologicas"]:
+        synth["capacidades_tecnologicas"] = json.loads(row["capacidades_tecnologicas"])
+
+    return synth
+
+
+def count_synths() -> int:
+    """
+    Count total synths in database.
+
+    Returns:
+        Number of synths
+    """
+    conn = _get_connection()
+    try:
+        cursor = conn.execute("SELECT COUNT(*) FROM synths")
+        return cursor.fetchone()[0]
+    finally:
+        conn.close()
+
+
+def update_avatar_path(synth_id: str, avatar_path: str | Path) -> bool:
+    """
+    Update the avatar_path field for a synth.
+
+    Called after avatar image is generated and saved to disk.
+
+    Args:
+        synth_id: The synth ID to update
+        avatar_path: Path to the avatar image file
+
+    Returns:
+        True if update was successful, False if synth not found
+
+    Example:
+        >>> update_avatar_path("abc123", "output/synths/avatar/abc123.png")
+        True
+    """
+    conn = _get_connection()
+    try:
+        cursor = conn.execute(
+            "UPDATE synths SET avatar_path = ? WHERE id = ?",
+            (str(avatar_path), synth_id),
+        )
+        conn.commit()
+
+        if cursor.rowcount > 0:
+            logger.debug(f"Avatar path updated for synth {synth_id}: {avatar_path}")
+            return True
+        else:
+            logger.warning(f"Synth not found for avatar_path update: {synth_id}")
+            return False
+    finally:
+        conn.close()
+
+
+# Deprecated functions kept for backward compatibility
+def load_consolidated_synths(output_dir: Path | None = None) -> list[dict[str, Any]]:
+    """
+    Deprecated: Use load_synths() instead.
+
+    Load all synths from database.
+
+    Args:
+        output_dir: Deprecated, ignored
+
+    Returns:
+        List of synth dictionaries
+    """
+    logger.warning("load_consolidated_synths is deprecated, use load_synths() instead")
+    return load_synths()
+
+
+def save_consolidated_synths(synths: list[dict[str, Any]], output_dir: Path | None = None) -> None:
+    """
+    Deprecated: Use save_synth() for each synth instead.
+
+    Save list of synths to database.
+
+    Args:
+        synths: List of synth dictionaries
+        output_dir: Deprecated, ignored
+    """
+    logger.warning("save_consolidated_synths is deprecated, use save_synth() for each synth")
+    for synth in synths:
+        save_synth(synth)
 
 
 if __name__ == "__main__":
@@ -109,162 +262,106 @@ if __name__ == "__main__":
     all_validation_failures = []
     total_tests = 0
 
-    # Test 1: Save synth to consolidated file (default behavior)
-    total_tests += 1
-    try:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            test_dir = Path(tmpdir)
+    # Use a temporary database for testing
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Override DB_PATH for testing
+        test_db_path = Path(tmpdir) / "test.db"
 
-            # Create test synths
+        # Patch the config module DB_PATH temporarily
+        original_db_path = config_module.DB_PATH
+        config_module.DB_PATH = test_db_path
+
+        # Initialize test database
+        from synth_lab.infrastructure.database import init_database
+
+        init_database(test_db_path)
+
+        # Test 1: Save synth to database
+        total_tests += 1
+        try:
             test_synth1 = {
                 "id": "test01",
                 "nome": "Test Person 1",
-                "idade": 30,
+                "created_at": "2024-01-01T00:00:00",
+                "version": "2.0.0",
+                "arquetipo": "Test Archetype",
+                "descricao": "Test description",
+                "link_photo": "https://example.com/photo.png",
+                "demografia": {"idade": 30, "genero": "masculino"},
+                "psicografia": {"personalidade": "extrovertido"},
             }
+
+            save_synth(test_synth1)
+
+            # Verify it was saved
+            loaded = get_synth_by_id("test01")
+            if loaded is None:
+                all_validation_failures.append("Test 1: Synth not found after save")
+            elif loaded["nome"] != "Test Person 1":
+                all_validation_failures.append(f"Test 1: Wrong nome: {loaded['nome']}")
+            elif loaded["demografia"]["idade"] != 30:
+                all_validation_failures.append(f"Test 1: Wrong idade: {loaded['demografia']}")
+            else:
+                print("Test 1: save_synth() saves to database correctly")
+        except Exception as e:
+            all_validation_failures.append(f"Test 1 (save synth): {str(e)}")
+
+        # Test 2: Save multiple synths and load all
+        total_tests += 1
+        try:
             test_synth2 = {
                 "id": "test02",
                 "nome": "Test Person 2",
-                "idade": 25,
+                "created_at": "2024-01-02T00:00:00",
+                "version": "2.0.0",
             }
+            save_synth(test_synth2)
 
-            # Save both synths
-            save_synth(test_synth1, test_dir)
-            save_synth(test_synth2, test_dir)
-
-            # Verify consolidated file was created
-            consolidated_path = test_dir / CONSOLIDATED_FILE
-            if not consolidated_path.exists():
-                all_validation_failures.append(f"Consolidated file not created: {consolidated_path}")
+            all_synths = load_synths()
+            if len(all_synths) != 2:
+                all_validation_failures.append(f"Test 2: Expected 2 synths, got {len(all_synths)}")
             else:
-                # Verify content
-                loaded_synths = load_consolidated_synths(test_dir)
-                if len(loaded_synths) != 2:
-                    all_validation_failures.append(
-                        f"Expected 2 synths in consolidated file, got {len(loaded_synths)}"
-                    )
-                elif loaded_synths[0]["id"] != "test01" or loaded_synths[1]["id"] != "test02":
-                    all_validation_failures.append(
-                        f"Synth IDs mismatch in consolidated file"
-                    )
+                print("Test 2: load_synths() loads all synths correctly")
+        except Exception as e:
+            all_validation_failures.append(f"Test 2 (load all): {str(e)}")
 
-            # Verify individual files were NOT created (default behavior)
-            if (test_dir / "test01.json").exists():
-                all_validation_failures.append("Individual file created when save_individual=False")
-
-        if not any(f.startswith("Test 1") for f in all_validation_failures):
-            print("Test 1: save_synth() saves to consolidated file by default")
-    except Exception as e:
-        all_validation_failures.append(f"Test 1 (consolidated save): {str(e)}")
-
-    # Test 2: Save synth with save_individual=True
-    total_tests += 1
-    try:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            test_dir = Path(tmpdir)
-
-            test_synth = {
-                "id": "test03",
-                "nome": "Individual Test",
-                "idade": 25,
+        # Test 3: Update existing synth (INSERT OR REPLACE)
+        total_tests += 1
+        try:
+            updated_synth = {
+                "id": "test01",
+                "nome": "Updated Name",
+                "created_at": "2024-01-01T00:00:00",
+                "version": "2.0.0",
             }
+            save_synth(updated_synth)
 
-            # Save with individual file enabled
-            save_synth(test_synth, test_dir, save_individual=True)
-
-            # Verify consolidated file exists
-            consolidated_path = test_dir / CONSOLIDATED_FILE
-            if not consolidated_path.exists():
-                all_validation_failures.append(
-                    f"Consolidated file not created: {consolidated_path}"
-                )
-
-            # Verify individual file exists
-            individual_path = test_dir / "test03.json"
-            if not individual_path.exists():
-                all_validation_failures.append(
-                    f"Individual file not created: {individual_path}"
-                )
+            loaded = get_synth_by_id("test01")
+            if loaded["nome"] != "Updated Name":
+                all_validation_failures.append(f"Test 3: Name not updated: {loaded['nome']}")
             else:
-                # Verify content
-                with open(individual_path, "r", encoding="utf-8") as f:
-                    loaded = json.load(f)
-                if loaded["id"] != "test03":
-                    all_validation_failures.append(
-                        f"Individual file has wrong id: {loaded['id']}"
-                    )
+                # Verify count is still 2
+                count = count_synths()
+                if count != 2:
+                    all_validation_failures.append(f"Test 3: Count changed to {count}, expected 2")
+                else:
+                    print("Test 3: save_synth() updates existing synth correctly")
+        except Exception as e:
+            all_validation_failures.append(f"Test 3 (update): {str(e)}")
 
-        if not any(f.startswith("Test 2") for f in all_validation_failures):
-            print("Test 2: save_synth() saves both consolidated and individual files when requested")
-    except Exception as e:
-        all_validation_failures.append(f"Test 2 (save_individual=True): {str(e)}")
+        # Test 4: Get non-existent synth
+        total_tests += 1
+        try:
+            result = get_synth_by_id("nonexistent")
+            if result is not None:
+                all_validation_failures.append("Test 4: Should return None for nonexistent ID")
+            else:
+                print("Test 4: get_synth_by_id() returns None for nonexistent ID")
+        except Exception as e:
+            all_validation_failures.append(f"Test 4 (nonexistent): {str(e)}")
 
-    # Test 3: Load existing consolidated file
-    total_tests += 1
-    try:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            test_dir = Path(tmpdir)
-
-            # Create initial synths
-            initial_synths = [
-                {"id": "existing01", "nome": "Existing 1"},
-                {"id": "existing02", "nome": "Existing 2"},
-            ]
-            save_consolidated_synths(initial_synths, test_dir)
-
-            # Add a new synth
-            new_synth = {"id": "test04", "nome": "New Synth"}
-            save_synth(new_synth, test_dir)
-
-            # Load and verify all synths
-            all_synths = load_consolidated_synths(test_dir)
-            if len(all_synths) != 3:
-                all_validation_failures.append(
-                    f"Expected 3 synths after adding to existing, got {len(all_synths)}"
-                )
-            elif all_synths[2]["id"] != "test04":
-                all_validation_failures.append(
-                    f"New synth not appended correctly: {all_synths[2]['id']}"
-                )
-
-        if not any(f.startswith("Test 3") for f in all_validation_failures):
-            print("Test 3: load_consolidated_synths() loads and appends correctly")
-    except Exception as e:
-        all_validation_failures.append(f"Test 3 (load consolidated): {str(e)}")
-
-    # Test 4: Verify JSON formatting (UTF-8 and indentation)
-    total_tests += 1
-    try:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            test_dir = Path(tmpdir)
-
-            # Create synth with Portuguese characters
-            test_synth = {
-                "id": "test05",
-                "nome": "José da Silva",
-                "descrição": "Pessoa com acentuação",
-            }
-
-            save_synth(test_synth, test_dir)
-
-            # Read raw file content
-            file_path = test_dir / CONSOLIDATED_FILE
-            with open(file_path, "r", encoding="utf-8") as f:
-                content = f.read()
-
-            # Verify UTF-8 characters are preserved (not escaped)
-            if "Jos\\u00e9" in content:
-                all_validation_failures.append(
-                    "JSON should use ensure_ascii=False (found escaped UTF-8)"
-                )
-
-            # Verify array structure with indentation
-            if '"id"' not in content:
-                all_validation_failures.append("JSON should contain id field")
-
-        if not any(f.startswith("Test 4") for f in all_validation_failures):
-            print("Test 4: JSON formatting correct (UTF-8, indented)")
-    except Exception as e:
-        all_validation_failures.append(f"Test 4 (JSON formatting): {str(e)}")
+        # Restore original DB_PATH
+        config_module.DB_PATH = original_db_path
 
     # Final validation result
     print(f"\n{'='*60}")

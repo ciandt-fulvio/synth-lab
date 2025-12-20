@@ -38,18 +38,30 @@ from synth_lab.gen_synth import (
     validation,
 )
 
-# Main API
-from synth_lab.gen_synth.gen_synth import cli_main, main
+# Analysis
+from synth_lab.gen_synth.analysis import (
+    analyze_age_distribution,
+    analyze_regional_distribution,
+)
 
 # Configuration
 from synth_lab.gen_synth.config import (
     CONFIG_DIR,
     DATA_DIR,
-    SCHEMAS_DIR,
     SCHEMA_PATH,
+    SCHEMAS_DIR,
     SYNTHS_DIR,
     load_config_data,
 )
+
+# Main API
+from synth_lab.gen_synth.gen_synth import cli_main, main
+
+# Storage
+from synth_lab.gen_synth.storage import save_synth
+
+# Synth Builder (main orchestrator)
+from synth_lab.gen_synth.synth_builder import assemble_synth
 
 # Utilities
 from synth_lab.gen_synth.utils import (
@@ -61,23 +73,11 @@ from synth_lab.gen_synth.utils import (
     weighted_choice,
 )
 
-# Synth Builder (main orchestrator)
-from synth_lab.gen_synth.synth_builder import assemble_synth
-
-# Storage
-from synth_lab.gen_synth.storage import save_synth
-
 # Validation
 from synth_lab.gen_synth.validation import (
     validate_batch,
     validate_single_file,
     validate_synth,
-)
-
-# Analysis
-from synth_lab.gen_synth.analysis import (
-    analyze_age_distribution,
-    analyze_regional_distribution,
 )
 
 __all__ = [

@@ -130,7 +130,7 @@ def cli_main():
         return
 
     if args.validate_all:
-        console.print(f"[bold blue]=== Validando todos os Synths ===[/bold blue]\n")
+        console.print("[bold blue]=== Validando todos os Synths ===[/bold blue]\n")
         stats = validation.validate_batch(SYNTHS_DIR)
         console.print(f"\n{'='*60}")
         console.print(f"Total: {stats['total']} arquivo(s)")
@@ -139,11 +139,11 @@ def cli_main():
             console.print(f"[red]Inválidos: {stats['invalid']}[/red]")
             sys.exit(1)
         else:
-            console.print(f"\n[green]✓ Todos os arquivos passaram na validação![/green]")
+            console.print("\n[green]✓ Todos os arquivos passaram na validação![/green]")
         return
 
     if args.analyze:
-        console.print(f"[bold blue]=== Análise de Distribuição Demográfica ===[/bold blue]\n")
+        console.print("[bold blue]=== Análise de Distribuição Demográfica ===[/bold blue]\n")
 
         if args.analyze in ["region", "all"]:
             console.print("[bold]--- Distribuição Regional ---[/bold]")
@@ -209,7 +209,7 @@ def cli_main():
             return
 
         if not args.quiet:
-            console.print(f"\n[bold blue]═══ Modo Auto-Detect: Synths Existentes ═══[/bold blue]")
+            console.print("\n[bold blue]═══ Modo Auto-Detect: Synths Existentes ═══[/bold blue]")
             console.print(f"[blue]Encontrados {len(synths)} synth(s) sem avatar:[/blue]")
             for i, s in enumerate(synths[:5], 1):
                 console.print(f"  {i}. [cyan]{s.get('id')}[/cyan]: {s.get('descricao', 'sem descrição')[:60]}...")
@@ -255,7 +255,7 @@ def cli_main():
     if args.benchmark:
         elapsed = time.time() - start_time
         rate = args.quantidade / elapsed if elapsed > 0 else 0
-        console.print(f"\n[bold blue]=== Benchmark ===[/bold blue]")
+        console.print("\n[bold blue]=== Benchmark ===[/bold blue]")
         console.print(f"Tempo total: {elapsed:.2f}s")
         console.print(f"Taxa: {rate:.1f} synths/segundo")
 

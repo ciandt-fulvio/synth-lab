@@ -14,7 +14,6 @@ from synth_lab.models.research import ResearchExecutionSummary
 from synth_lab.models.topic import TopicDetail, TopicSummary
 from synth_lab.services.topic_service import TopicService
 
-
 router = APIRouter()
 
 

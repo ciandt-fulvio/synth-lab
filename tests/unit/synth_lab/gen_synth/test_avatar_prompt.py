@@ -11,10 +11,11 @@ Saída: Validação das funções de prompt
 """
 
 import pytest
+
 from synth_lab.gen_synth.avatar_prompt import (
+    VISUAL_FILTERS,
     assign_random_filters,
     build_prompt,
-    VISUAL_FILTERS,
 )
 
 
@@ -136,5 +137,5 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"✅ VALIDATION PASSED - All tests passed")
+        print("✅ VALIDATION PASSED - All tests passed")
         sys.exit(0)

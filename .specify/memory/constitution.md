@@ -34,7 +34,7 @@ Follow-up TODOs:
 - None
 -->
 
-# Nexus Planner Constitution
+# My Great Constitution
 
 ## Core Principles
 
@@ -88,8 +88,6 @@ Commits MUST be made frequently to capture incremental progress and maintain cle
 - Commit messages MUST clearly describe what was accomplished
 - Commits MUST be atomic (single logical change per commit)
 - Each commit MUST represent working code (tests passing at commit time)
-
-**Rationale:** Frequent commits provide detailed development history, enable easier debugging through git bisect, facilitate code review by showing incremental changes, and reduce risk of work loss. Atomic commits make it easier to revert problematic changes without losing valuable work.
 
 **Enforcement:** Task completion requires corresponding commit. Code reviews verify appropriate commit granularity.
 

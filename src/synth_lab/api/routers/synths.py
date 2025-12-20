@@ -14,7 +14,6 @@ from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.synth import SynthDetail, SynthFieldInfo, SynthSearchRequest, SynthSummary
 from synth_lab.services.synth_service import SynthService
 
-
 router = APIRouter()
 
 

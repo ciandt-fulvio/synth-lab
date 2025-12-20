@@ -42,8 +42,15 @@ def load_image_base64(filename: str, topic_guide_name: str) -> str:
     Raises:
         FileNotFoundError: If image file doesn't exist
     """
-    base_dir = Path(os.environ.get("TOPIC_GUIDES_DIR", "data/topic_guides"))
-    guide_path = base_dir / topic_guide_name
+    from synth_lab.infrastructure.config import resolve_topic_guide_path
+
+    guide_path = resolve_topic_guide_path(topic_guide_name)
+    if guide_path is None:
+        logger.error(f"Topic guide not found: {topic_guide_name}")
+        raise FileNotFoundError(
+            f"Topic guide '{topic_guide_name}' not found"
+        )
+
     image_path = guide_path / filename
 
     if not image_path.exists():
@@ -141,11 +148,12 @@ def get_available_images(topic_guide_name: str) -> list[str]:
     # Returns: ["01_homepage.PNG", "02_cart.PNG", ...]
     ```
     """
-    base_dir = Path(os.environ.get("TOPIC_GUIDES_DIR", "data/topic_guides"))
-    guide_path = base_dir / topic_guide_name
+    from synth_lab.infrastructure.config import resolve_topic_guide_path
 
-    if not guide_path.exists():
-        logger.warning(f"Topic guide directory not found: {guide_path}")
+    guide_path = resolve_topic_guide_path(topic_guide_name)
+
+    if guide_path is None:
+        logger.warning(f"Topic guide directory not found: {topic_guide_name}")
         return []
 
     image_extensions = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
@@ -201,7 +209,7 @@ if __name__ == "__main__":
         available = get_available_images("compra-amazon")
         tool = create_image_loader_tool("compra-amazon", available)
         if isinstance(tool, FunctionTool):
-            print(f"✓ create_image_loader_tool returns FunctionTool")
+            print("✓ create_image_loader_tool returns FunctionTool")
             print(f"  Tool name: {tool.name}")
         else:
             all_validation_failures.append(

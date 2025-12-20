@@ -145,7 +145,7 @@ def validate_trace_data(trace: dict) -> bool:
         print(f"❌ FAIL: Slowest step should be {expected_slowest['duration_ms']}ms, is {slowest_step['duration_ms']}ms")
         all_checks_passed = False
     else:
-        print(f"✅ PASS: Slowest step correct (tool_call: get_weather, 1002ms)")
+        print("✅ PASS: Slowest step correct (tool_call: get_weather, 1002ms)")
 
     # Check Turn 3 has error
     turn3 = trace["turns"][2]

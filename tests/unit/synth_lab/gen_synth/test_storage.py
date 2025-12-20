@@ -1,123 +1,154 @@
-"""Tests for storage module."""
+"""Tests for storage module (SQLite-based)."""
 
-import json
-import pytest
+import tempfile
 from pathlib import Path
+
+import pytest
+
+import synth_lab.infrastructure.config as config_module
 from synth_lab.gen_synth import storage
 
 
-def test_save_synth_consolidated_only(temp_output_dir, sample_synth):
-    """Test saving synth to consolidated file only."""
-    storage.save_synth(sample_synth, output_dir=temp_output_dir, save_individual=False)
+@pytest.fixture
+def temp_db():
+    """Create a temporary database for testing."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        test_db_path = Path(tmpdir) / "test.db"
 
-    # Check consolidated file exists
-    consolidated_path = temp_output_dir / "synths.json"
-    assert consolidated_path.exists()
+        # Temporarily override DB_PATH
+        original_db_path = config_module.DB_PATH
+        config_module.DB_PATH = test_db_path
 
-    # Check individual file does NOT exist
-    individual_path = temp_output_dir / f"{sample_synth['id']}.json"
-    assert not individual_path.exists()
+        # Initialize the test database
+        from synth_lab.infrastructure.database import init_database
+        init_database(test_db_path)
 
-    # Verify content
-    with open(consolidated_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    assert len(data) == 1
-    assert data[0]["id"] == sample_synth["id"]
+        yield test_db_path
 
-
-def test_save_synth_with_individual(temp_output_dir, sample_synth):
-    """Test saving synth to both consolidated and individual files."""
-    storage.save_synth(sample_synth, output_dir=temp_output_dir, save_individual=True)
-
-    # Check both files exist
-    consolidated_path = temp_output_dir / "synths.json"
-    individual_path = temp_output_dir / f"{sample_synth['id']}.json"
-    assert consolidated_path.exists()
-    assert individual_path.exists()
-
-    # Verify content in both files
-    with open(consolidated_path, "r", encoding="utf-8") as f:
-        consolidated_data = json.load(f)
-    assert len(consolidated_data) == 1
-
-    with open(individual_path, "r", encoding="utf-8") as f:
-        individual_data = json.load(f)
-    assert individual_data["id"] == sample_synth["id"]
+        # Restore original DB_PATH
+        config_module.DB_PATH = original_db_path
 
 
-def test_save_synth_multiple_consolidated(temp_output_dir, sample_synth):
-    """Test saving multiple synths to consolidated file."""
+def test_save_synth_to_database(temp_db, sample_synth):
+    """Test saving synth to database."""
+    storage.save_synth(sample_synth)
+
+    # Verify it was saved
+    loaded = storage.get_synth_by_id(sample_synth["id"])
+    assert loaded is not None
+    assert loaded["id"] == sample_synth["id"]
+    assert loaded["nome"] == sample_synth["nome"]
+
+
+def test_save_synth_with_json_fields(temp_db, sample_synth):
+    """Test saving synth with JSON fields (demografia, psicografia, etc.)."""
+    storage.save_synth(sample_synth)
+
+    loaded = storage.get_synth_by_id(sample_synth["id"])
+    assert loaded is not None
+
+    # Check JSON fields are properly stored and loaded
+    assert loaded["demografia"]["idade"] == sample_synth["demografia"]["idade"]
+    assert loaded["psicografia"]["personalidade_big_five"]["abertura"] == \
+           sample_synth["psicografia"]["personalidade_big_five"]["abertura"]
+
+
+def test_save_multiple_synths(temp_db, sample_synth):
+    """Test saving multiple synths to database."""
     # Save first synth
     synth1 = sample_synth.copy()
     synth1["id"] = "synth01"
-    storage.save_synth(synth1, output_dir=temp_output_dir)
+    storage.save_synth(synth1)
 
     # Save second synth
     synth2 = sample_synth.copy()
     synth2["id"] = "synth02"
-    storage.save_synth(synth2, output_dir=temp_output_dir)
+    synth2["nome"] = "Another Person"
+    storage.save_synth(synth2)
 
-    # Verify consolidated file has both
-    consolidated_path = temp_output_dir / "synths.json"
-    with open(consolidated_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    assert len(data) == 2
-    assert data[0]["id"] == "synth01"
-    assert data[1]["id"] == "synth02"
+    # Verify both exist
+    count = storage.count_synths()
+    assert count == 2
+
+    synths = storage.load_synths()
+    assert len(synths) == 2
+
+    ids = [s["id"] for s in synths]
+    assert "synth01" in ids
+    assert "synth02" in ids
 
 
-def test_load_consolidated_synths_existing(temp_output_dir, sample_synth):
-    """Test loading synths from existing consolidated file."""
+def test_load_synths_from_database(temp_db, sample_synth):
+    """Test loading all synths from database."""
     # Save some synths first
-    storage.save_synth(sample_synth, output_dir=temp_output_dir)
+    storage.save_synth(sample_synth)
 
     # Load them back
-    synths = storage.load_consolidated_synths(output_dir=temp_output_dir)
+    synths = storage.load_synths()
     assert len(synths) == 1
     assert synths[0]["id"] == sample_synth["id"]
 
 
-def test_load_consolidated_synths_nonexistent(temp_output_dir):
-    """Test loading synths when consolidated file doesn't exist."""
-    synths = storage.load_consolidated_synths(output_dir=temp_output_dir)
-    assert synths == []
+def test_get_synth_by_id_found(temp_db, sample_synth):
+    """Test getting a synth by ID when it exists."""
+    storage.save_synth(sample_synth)
+
+    synth = storage.get_synth_by_id(sample_synth["id"])
+    assert synth is not None
+    assert synth["id"] == sample_synth["id"]
 
 
-def test_save_synth_creates_directory(sample_synth):
-    """Test that save_synth creates output directory if it doesn't exist."""
-    import tempfile
-    import shutil
-
-    temp_parent = Path(tempfile.mkdtemp())
-    try:
-        new_dir = temp_parent / "new_synths_dir"
-        assert not new_dir.exists()
-
-        storage.save_synth(sample_synth, output_dir=new_dir)
-        assert new_dir.exists()
-
-        # Verify file was saved
-        consolidated_path = new_dir / "synths.json"
-        assert consolidated_path.exists()
-    finally:
-        shutil.rmtree(temp_parent, ignore_errors=True)
+def test_get_synth_by_id_not_found(temp_db):
+    """Test getting a synth by ID when it doesn't exist."""
+    synth = storage.get_synth_by_id("nonexistent")
+    assert synth is None
 
 
-def test_save_synth_preserves_existing_data(temp_output_dir, sample_synth):
-    """Test that saving new synth preserves existing synths in consolidated file."""
-    # Create initial synth
+def test_count_synths_empty(temp_db):
+    """Test counting synths when database is empty."""
+    count = storage.count_synths()
+    assert count == 0
+
+
+def test_count_synths_with_data(temp_db, sample_synth):
+    """Test counting synths with data in database."""
+    # Save some synths
     synth1 = sample_synth.copy()
-    synth1["id"] = "existing01"
-    storage.save_synth(synth1, output_dir=temp_output_dir)
+    synth1["id"] = "synth01"
+    storage.save_synth(synth1)
 
-    # Add new synth
     synth2 = sample_synth.copy()
-    synth2["id"] = "new02"
-    storage.save_synth(synth2, output_dir=temp_output_dir)
+    synth2["id"] = "synth02"
+    storage.save_synth(synth2)
 
-    # Verify both exist
-    synths = storage.load_consolidated_synths(output_dir=temp_output_dir)
-    assert len(synths) == 2
-    ids = [s["id"] for s in synths]
-    assert "existing01" in ids
-    assert "new02" in ids
+    count = storage.count_synths()
+    assert count == 2
+
+
+def test_save_synth_update_existing(temp_db, sample_synth):
+    """Test that saving a synth with existing ID updates it."""
+    # Save original
+    storage.save_synth(sample_synth)
+
+    # Update with same ID
+    updated = sample_synth.copy()
+    updated["nome"] = "Updated Name"
+    storage.save_synth(updated)
+
+    # Verify update
+    loaded = storage.get_synth_by_id(sample_synth["id"])
+    assert loaded["nome"] == "Updated Name"
+
+    # Verify count is still 1 (not 2)
+    count = storage.count_synths()
+    assert count == 1
+
+
+def test_deprecated_functions_work(temp_db, sample_synth):
+    """Test that deprecated functions still work for backwards compatibility."""
+    # These should work but log warnings
+    storage.save_synth(sample_synth)
+
+    synths = storage.load_consolidated_synths()
+    assert len(synths) == 1
+    assert synths[0]["id"] == sample_synth["id"]

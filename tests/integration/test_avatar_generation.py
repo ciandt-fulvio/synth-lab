@@ -11,11 +11,12 @@ Entrada: Dados de synth mockados e imagens de teste
 Saída: Validação do fluxo completo
 """
 
-import pytest
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
-import tempfile
 import shutil
+import tempfile
+from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
 
 # Placeholder imports - will be implemented
 # from synth_lab.gen_synth.avatar_generator import generate_avatars
@@ -217,6 +218,7 @@ class TestRealOpenAIIntegration:
         Tempo estimado: 5-10 segundos
         """
         import os
+
         from synth_lab.gen_synth.avatar_generator import generate_avatars
 
         # Verificar se API key está configurada
@@ -437,6 +439,6 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"✅ VALIDATION PASSED - Integration test structure is correct")
+        print("✅ VALIDATION PASSED - Integration test structure is correct")
         print("Tests ready for avatar_generator.py implementation")
         sys.exit(0)

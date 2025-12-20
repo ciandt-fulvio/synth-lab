@@ -25,11 +25,11 @@ print(f"Loaded trace: {trace.trace_id}")
 """
 
 import json
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict
 
-from .models import Trace, Turn, Step, SpanType, SpanStatus
+from .models import SpanStatus, SpanType, Step, Trace, Turn
 
 
 def save_trace(trace: Trace, path: str) -> None:

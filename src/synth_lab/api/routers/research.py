@@ -21,7 +21,6 @@ from synth_lab.models.research import (
 )
 from synth_lab.services.research_service import ResearchService
 
-
 router = APIRouter()
 
 

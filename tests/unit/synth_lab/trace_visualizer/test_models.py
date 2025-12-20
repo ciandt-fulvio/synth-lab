@@ -8,14 +8,14 @@ Tests validate:
 - Invariants (durations, timestamps, cardinality)
 """
 
-import pytest
 from datetime import datetime, timezone
+
 from synth_lab.trace_visualizer.models import (
-    SpanType,
     SpanStatus,
+    SpanType,
     Step,
-    Turn,
     Trace,
+    Turn,
 )
 
 

@@ -28,6 +28,7 @@ Third-party Documentation:
 
 from dataclasses import dataclass
 from typing import Optional
+
 from synth_lab.query import QueryMode, QuerySyntaxError
 
 
@@ -111,10 +112,10 @@ def validate_query_security(sql: str) -> None:
 if __name__ == "__main__":
     """Validation block with real data."""
     import sys
-    
+
     all_validation_failures = []
     total_tests = 0
-    
+
     # Test 1: Basic mode query building
     total_tests += 1
     try:
@@ -125,7 +126,7 @@ if __name__ == "__main__":
             all_validation_failures.append(f"Basic mode: Expected {expected}, got {sql}")
     except Exception as e:
         all_validation_failures.append(f"Basic mode: Exception {e}")
-    
+
     # Test 2: WHERE mode query building
     total_tests += 1
     try:
@@ -136,7 +137,7 @@ if __name__ == "__main__":
             all_validation_failures.append(f"WHERE mode: Expected {expected}, got {sql}")
     except Exception as e:
         all_validation_failures.append(f"WHERE mode: Exception {e}")
-    
+
     # Test 3: Mutual exclusivity validation
     total_tests += 1
     try:
@@ -147,7 +148,7 @@ if __name__ == "__main__":
         pass
     except Exception as e:
         all_validation_failures.append(f"Mutual exclusivity: Expected ValueError, got {type(e).__name__}")
-    
+
     # Test 4: Security validation (reject INSERT)
     total_tests += 1
     try:
@@ -158,7 +159,7 @@ if __name__ == "__main__":
         pass
     except Exception as e:
         all_validation_failures.append(f"Security: Expected QuerySyntaxError, got {type(e).__name__}")
-    
+
     # Final validation result
     if all_validation_failures:
         print(f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")

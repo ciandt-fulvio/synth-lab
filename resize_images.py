@@ -12,8 +12,9 @@ Expected output: Resized PNG files (30% of original size) in the same location
 """
 
 from pathlib import Path
-from PIL import Image
+
 from loguru import logger
+from PIL import Image
 
 
 def resize_image(image_path: Path, scale_factor: float = 0.3) -> None:

@@ -13,7 +13,6 @@ Environment Variables:
 import os
 from pathlib import Path
 
-
 # Base paths
 # __file__ is src/synth_lab/infrastructure/config.py
 # parent chain: infrastructure -> synth_lab -> src -> project_root
@@ -24,13 +23,14 @@ DATA_DIR = PROJECT_ROOT / "data"
 # Database configuration
 DB_PATH = Path(os.getenv("SYNTHLAB_DB_PATH", str(OUTPUT_DIR / "synthlab.db")))
 
-# Data sources (for migration)
-SYNTHS_JSON_PATH = OUTPUT_DIR / "synths" / "synths.json"
-TOPIC_GUIDES_DIR = DATA_DIR / "topic_guides"
+# Output directories (execution data, not versioned)
+SYNTHS_DIR = OUTPUT_DIR / "synths"
+SYNTHS_JSON_PATH = SYNTHS_DIR / "synths.json"
+AVATARS_DIR = SYNTHS_DIR / "avatar"
+TOPIC_GUIDES_DIR = OUTPUT_DIR / "topic_guides"
 TRANSCRIPTS_DIR = OUTPUT_DIR / "transcripts"
 REPORTS_DIR = OUTPUT_DIR / "reports"
 TRACES_DIR = OUTPUT_DIR / "traces"
-AVATARS_DIR = OUTPUT_DIR / "synths" / "avatar"
 
 # Logging configuration
 LOG_LEVEL = os.getenv("SYNTHLAB_LOG_LEVEL", "INFO")
@@ -49,10 +49,39 @@ API_PORT = int(os.getenv("SYNTHLAB_API_PORT", "8000"))
 def ensure_directories() -> None:
     """Ensure all required directories exist."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    SYNTHS_DIR.mkdir(parents=True, exist_ok=True)
     AVATARS_DIR.mkdir(parents=True, exist_ok=True)
+    TOPIC_GUIDES_DIR.mkdir(parents=True, exist_ok=True)
     TRANSCRIPTS_DIR.mkdir(parents=True, exist_ok=True)
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     TRACES_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def resolve_topic_guide_path(topic_guide_name: str) -> Path | None:
+    """
+    Resolve topic guide path with fallback to examples directory.
+
+    Searches for the topic guide in:
+    1. TOPIC_GUIDES_DIR / topic_guide_name (user-created guides)
+    2. TOPIC_GUIDES_DIR / "examples" / topic_guide_name (versioned examples)
+
+    Args:
+        topic_guide_name: Name of the topic guide directory
+
+    Returns:
+        Path to the topic guide directory, or None if not found
+    """
+    # Try user-created guides first
+    user_path = TOPIC_GUIDES_DIR / topic_guide_name
+    if user_path.exists():
+        return user_path
+
+    # Fall back to examples directory
+    examples_path = TOPIC_GUIDES_DIR / "examples" / topic_guide_name
+    if examples_path.exists():
+        return examples_path
+
+    return None
 
 
 if __name__ == "__main__":
@@ -91,6 +120,29 @@ if __name__ == "__main__":
         ensure_directories()
     except Exception as e:
         all_validation_failures.append(f"ensure_directories failed: {e}")
+
+    # Test 6: resolve_topic_guide_path returns None for non-existent
+    total_tests += 1
+    result = resolve_topic_guide_path("nonexistent-guide-xyz")
+    if result is not None:
+        all_validation_failures.append(
+            f"resolve_topic_guide_path should return None for non-existent, got {result}"
+        )
+
+    # Test 7: resolve_topic_guide_path finds examples directory
+    total_tests += 1
+    examples_dir = TOPIC_GUIDES_DIR / "examples"
+    if examples_dir.exists():
+        # Find any existing example
+        existing_examples = [d.name for d in examples_dir.iterdir() if d.is_dir()]
+        if existing_examples:
+            example_name = existing_examples[0]
+            result = resolve_topic_guide_path(example_name)
+            expected = examples_dir / example_name
+            if result != expected:
+                all_validation_failures.append(
+                    f"resolve_topic_guide_path({example_name}): expected {expected}, got {result}"
+                )
 
     # Final validation result
     if all_validation_failures:

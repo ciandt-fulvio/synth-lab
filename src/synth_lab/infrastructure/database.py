@@ -19,6 +19,131 @@ from loguru import logger
 
 from synth_lab.infrastructure.config import DB_PATH
 
+# Database schema SQL
+SCHEMA_SQL = """
+-- Enable recommended settings
+PRAGMA journal_mode=WAL;
+PRAGMA foreign_keys=ON;
+PRAGMA synchronous=NORMAL;
+
+-- Synths table
+CREATE TABLE IF NOT EXISTS synths (
+    id TEXT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    arquetipo TEXT,
+    descricao TEXT,
+    link_photo TEXT,
+    avatar_path TEXT,
+    created_at TEXT NOT NULL,
+    version TEXT DEFAULT '2.0.0',
+    demografia TEXT CHECK(json_valid(demografia) OR demografia IS NULL),
+    psicografia TEXT CHECK(json_valid(psicografia) OR psicografia IS NULL),
+    deficiencias TEXT CHECK(json_valid(deficiencias) OR deficiencias IS NULL),
+    capacidades_tecnologicas TEXT CHECK(json_valid(capacidades_tecnologicas) OR capacidades_tecnologicas IS NULL)
+);
+
+CREATE INDEX IF NOT EXISTS idx_synths_arquetipo ON synths(arquetipo);
+CREATE INDEX IF NOT EXISTS idx_synths_created_at ON synths(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_synths_nome ON synths(nome);
+
+-- Research executions table
+CREATE TABLE IF NOT EXISTS research_executions (
+    exec_id TEXT PRIMARY KEY,
+    topic_name TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'completed',
+    synth_count INTEGER NOT NULL,
+    successful_count INTEGER DEFAULT 0,
+    failed_count INTEGER DEFAULT 0,
+    model TEXT DEFAULT 'gpt-4.1-mini',
+    max_turns INTEGER DEFAULT 6,
+    started_at TEXT NOT NULL,
+    completed_at TEXT,
+    summary_path TEXT,
+    CHECK(status IN ('pending', 'running', 'completed', 'failed'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_executions_topic ON research_executions(topic_name);
+CREATE INDEX IF NOT EXISTS idx_executions_status ON research_executions(status);
+CREATE INDEX IF NOT EXISTS idx_executions_started ON research_executions(started_at DESC);
+
+-- Transcripts table
+CREATE TABLE IF NOT EXISTS transcripts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    exec_id TEXT NOT NULL,
+    synth_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'completed',
+    turn_count INTEGER DEFAULT 0,
+    timestamp TEXT NOT NULL,
+    file_path TEXT,
+    messages TEXT CHECK(json_valid(messages) OR messages IS NULL),
+    UNIQUE(exec_id, synth_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_transcripts_exec ON transcripts(exec_id);
+CREATE INDEX IF NOT EXISTS idx_transcripts_synth ON transcripts(synth_id);
+
+-- PR-FAQ metadata table
+CREATE TABLE IF NOT EXISTS prfaq_metadata (
+    exec_id TEXT PRIMARY KEY,
+    generated_at TEXT NOT NULL,
+    model TEXT DEFAULT 'gpt-4.1-mini',
+    validation_status TEXT DEFAULT 'valid',
+    confidence_score REAL,
+    headline TEXT,
+    one_liner TEXT,
+    faq_count INTEGER DEFAULT 0,
+    markdown_path TEXT,
+    json_path TEXT,
+    CHECK(validation_status IN ('valid', 'invalid', 'pending'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_prfaq_generated ON prfaq_metadata(generated_at DESC);
+
+-- Topic guides cache table
+CREATE TABLE IF NOT EXISTS topic_guides_cache (
+    name TEXT PRIMARY KEY,
+    display_name TEXT,
+    description TEXT,
+    question_count INTEGER DEFAULT 0,
+    file_count INTEGER DEFAULT 0,
+    script_hash TEXT,
+    created_at TEXT,
+    updated_at TEXT
+);
+
+-- Schema migrations table
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version INTEGER PRIMARY KEY,
+    applied_at TEXT NOT NULL,
+    description TEXT
+);
+
+INSERT OR IGNORE INTO schema_migrations (version, applied_at, description)
+VALUES (1, datetime('now'), 'Initial schema creation');
+"""
+
+
+def init_database(db_path: Path | None = None) -> None:
+    """
+    Initialize database with schema.
+
+    Args:
+        db_path: Path to database file. Defaults to config.DB_PATH.
+    """
+    target_path = db_path or DB_PATH
+
+    logger.info(f"Initializing database at {target_path}")
+
+    # Ensure parent directory exists
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+
+    conn = sqlite3.connect(target_path)
+    try:
+        conn.executescript(SCHEMA_SQL)
+        logger.info("Database schema created successfully")
+    finally:
+        conn.close()
+
 
 class DatabaseManager:
     """Thread-safe SQLite connection manager with connection pooling."""

@@ -249,7 +249,7 @@ if __name__ == "__main__":
             if markdown_path:
                 print(f"  Markdown path: {markdown_path}")
                 if not markdown_path.exists():
-                    print(f"    (file does not exist)")
+                    print("    (file does not exist)")
             else:
                 print(f"  No markdown path for {exec_id}")
     except Exception as e:
