@@ -24,7 +24,7 @@ class TestTopicGuideDirectoryCreation:
         """
         # This will be implemented after we create the actual functions
         # For now, this is a placeholder that should FAIL
-        from synth_lab.topic_guides.cli import create_topic_guide
+        from synth_lab.services.topic_guides.cli import create_topic_guide
 
         guide_name = "test-guide"
         guides_dir = tmp_path / "topic_guides"
@@ -48,7 +48,7 @@ class TestTopicGuideDirectoryCreation:
 
         ## FILE DESCRIPTION
         """
-        from synth_lab.topic_guides.cli import create_topic_guide
+        from synth_lab.services.topic_guides.cli import create_topic_guide
 
         guide_name = "content-test"
         guides_dir = tmp_path / "topic_guides"
@@ -63,7 +63,7 @@ class TestTopicGuideDirectoryCreation:
 
     def test_duplicate_creation_raises_error(self, tmp_path):
         """Test that creating duplicate topic guide raises appropriate error."""
-        from synth_lab.topic_guides.cli import create_topic_guide
+        from synth_lab.services.topic_guides.cli import create_topic_guide
 
         guide_name = "duplicate-test"
         guides_dir = tmp_path / "topic_guides"
@@ -77,7 +77,7 @@ class TestTopicGuideDirectoryCreation:
 
     def test_nested_directory_creation(self, tmp_path):
         """Test that parent directories are created if they don't exist."""
-        from synth_lab.topic_guides.cli import create_topic_guide
+        from synth_lab.services.topic_guides.cli import create_topic_guide
 
         # Use a path that doesn't exist yet
         guides_dir = tmp_path / "deep" / "nested" / "topic_guides"
