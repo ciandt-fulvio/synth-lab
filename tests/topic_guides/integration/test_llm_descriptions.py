@@ -38,7 +38,7 @@ class TestLLMIntegration:
         assert description == "Screenshot of a test interface"
         assert mock_client.chat.completions.create.called
 
-    @patch("synth_lab.topic_guides.file_processor.extract_pdf_text")
+    @patch("synth_lab.services.topic_guides.file_processor.extract_pdf_text")
     @patch("openai.OpenAI")
     def test_generate_description_for_pdf(self, mock_openai_class, mock_extract_pdf, tmp_path):
         """Test generating description for PDF file."""
