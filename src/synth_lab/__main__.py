@@ -8,7 +8,6 @@ import argparse
 import sys
 from synth_lab import __version__
 
-
 def create_parser() -> argparse.ArgumentParser:
     """Create the main argument parser with subcommands."""
     parser = argparse.ArgumentParser(
@@ -137,7 +136,6 @@ def create_parser() -> argparse.ArgumentParser:
 
     return parser
 
-
 def main():
     """Main CLI entry point."""
     parser = create_parser()
@@ -229,7 +227,6 @@ def main():
         # Reset sys.argv to pass remaining args to Typer
         sys.argv = ["synthlab research-prfaq"] + unknown_args
         research_prfaq_app()
-
 
 if __name__ == "__main__":
     main()
