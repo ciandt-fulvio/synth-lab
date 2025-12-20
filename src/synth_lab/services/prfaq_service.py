@@ -8,7 +8,6 @@ References:
 """
 
 from datetime import datetime
-from pathlib import Path
 
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.prfaq import PRFAQGenerateRequest, PRFAQGenerateResponse, PRFAQSummary

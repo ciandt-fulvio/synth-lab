@@ -23,9 +23,8 @@ agent = Agent(name="Interviewee", tools=[tool])
 import base64
 import os
 from pathlib import Path
-from typing import Any
 
-from agents import FunctionTool, RunContextWrapper, function_tool
+from agents import FunctionTool, function_tool
 from loguru import logger
 
 

@@ -8,11 +8,10 @@ References:
 """
 
 import json
-import re
 from pathlib import Path
 
 from synth_lab.infrastructure.database import DatabaseManager
-from synth_lab.models.pagination import PaginatedResponse, PaginationMeta, PaginationParams
+from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.synth import (
     AccessibilityPrefs,
     Demographics,

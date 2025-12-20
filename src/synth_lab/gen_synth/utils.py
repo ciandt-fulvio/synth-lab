@@ -6,7 +6,6 @@ Common helper functions used across the synth generation system.
 
 import random
 import string
-from typing import Any
 
 # Escolaridade order for comparison
 ESCOLARIDADE_ORDEM = [

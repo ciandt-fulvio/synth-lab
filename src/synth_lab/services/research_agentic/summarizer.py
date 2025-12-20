@@ -21,7 +21,6 @@ print(summary)
 ```
 """
 
-import json
 from typing import Any
 
 from agents import Agent, ModelSettings, Runner

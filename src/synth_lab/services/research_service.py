@@ -9,7 +9,6 @@ References:
 
 import asyncio
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.research import (
@@ -23,7 +22,6 @@ from synth_lab.models.research import (
     TranscriptSummary,
 )
 from synth_lab.repositories.research_repository import ResearchRepository
-from synth_lab.repositories.synth_repository import SynthRepository
 from synth_lab.repositories.topic_repository import TopicRepository
 from synth_lab.services.errors import SummaryNotFoundError, TopicNotFoundError
 
