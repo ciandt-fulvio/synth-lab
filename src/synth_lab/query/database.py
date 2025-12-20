@@ -23,7 +23,6 @@ Third-party Documentation:
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 import duckdb
 import json
 from loguru import logger
@@ -195,7 +194,6 @@ if __name__ == "__main__":
     """Validation block with real data."""
     import sys
     import tempfile
-    import shutil
     
     all_validation_failures = []
     total_tests = 0

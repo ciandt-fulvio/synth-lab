@@ -39,7 +39,7 @@ from typing import Any
 
 from faker import Faker
 
-from .utils import escolaridade_compativel, escolaridade_index, weighted_choice
+from .utils import escolaridade_compativel, weighted_choice
 
 # Initialize Faker with Brazilian locale
 fake = Faker("pt_BR")

@@ -27,7 +27,6 @@ Expected output:
 
 from dataclasses import dataclass
 from typing import Optional
-import json
 import jsonschema
 
 from .generation_models import (
