@@ -10,7 +10,7 @@ References:
 
 Sample usage:
 ```python
-from synth_lab.research_agentic.runner import run_interview
+from .runner import run_interview
 
 result = await run_interview(
     synth_id="abc123",

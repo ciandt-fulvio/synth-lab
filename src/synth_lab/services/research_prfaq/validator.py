@@ -9,7 +9,7 @@ Third-party documentation:
 - jsonschema: https://python-jsonschema.readthedocs.io/
 
 Sample usage:
-    from synth_lab.research_prfaq.validator import validate_research_report, validate_prfaq
+    from .validator import validate_research_report, validate_prfaq
 
     report = ResearchReport(batch_id="b1", summary_content="...", sections={...})
     is_valid = validate_research_report(report)

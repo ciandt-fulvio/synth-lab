@@ -10,7 +10,7 @@ References:
 
 Sample usage:
 ```python
-from synth_lab.research_agentic.tools import create_image_loader_tool
+from .tools import create_image_loader_tool
 
 tool = create_image_loader_tool(
     topic_guide_name="compra-amazon",

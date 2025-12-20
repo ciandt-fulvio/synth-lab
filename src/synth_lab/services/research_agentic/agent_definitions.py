@@ -10,7 +10,7 @@ References:
 
 Sample usage:
 ```python
-from synth_lab.research_agentic.agent_definitions import create_interviewer
+from .agent_definitions import create_interviewer
 
 interviewer = create_interviewer(
     topic_guide="...",

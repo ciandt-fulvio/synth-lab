@@ -10,7 +10,7 @@ References:
 
 Sample usage:
 ```python
-from synth_lab.research_agentic.summarizer import summarize_interviews
+from .summarizer import summarize_interviews
 
 summary = await summarize_interviews(
     interview_results=results,
@@ -28,7 +28,7 @@ from agents import Agent, ModelSettings, Runner
 from loguru import logger
 from openai.types.shared import Reasoning
 
-from synth_lab.research_agentic.runner import InterviewResult
+from .runner import InterviewResult
 
 # Summarizer system prompt based on user requirements
 SUMMARIZER_INSTRUCTIONS = """
@@ -251,7 +251,7 @@ if __name__ == "__main__":
     # Test 1: Import works
     total_tests += 1
     try:
-        from synth_lab.research_agentic.summarizer import (
+        from .summarizer import (
             create_summarizer_agent,
             format_interview_for_summary,
         )
@@ -262,7 +262,7 @@ if __name__ == "__main__":
     # Test 2: format_interview_for_summary works
     total_tests += 1
     try:
-        from synth_lab.research_agentic.runner import ConversationMessage, InterviewResult
+        from .runner import ConversationMessage, InterviewResult
 
         mock_result = InterviewResult(
             messages=[
