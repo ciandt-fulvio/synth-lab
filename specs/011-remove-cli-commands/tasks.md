@@ -37,14 +37,14 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Rename src/synth_lab/research_prfaq/models.py to generation_models.py
-- [ ] T006 Update imports in src/synth_lab/research_prfaq/generator.py (use relative import from .generation_models)
-- [ ] T007 Update imports in src/synth_lab/research_prfaq/validator.py (use relative import from .generation_models)
-- [ ] T008 Rename src/synth_lab/topic_guides/models.py to internal_models.py
-- [ ] T009 Update imports in src/synth_lab/topic_guides/file_processor.py (use relative import from .internal_models)
-- [ ] T010 Update imports in src/synth_lab/topic_guides/summary_manager.py (use relative import from .internal_models)
-- [ ] T011 Run fast test battery to verify model renames don't break anything (pytest tests/ -k "model")
-- [ ] T012 Commit: "refactor: rename conflicting model files to avoid collisions"
+- [X] T005 Rename src/synth_lab/research_prfaq/models.py to generation_models.py
+- [X] T006 Update imports in src/synth_lab/research_prfaq/generator.py (use relative import from .generation_models)
+- [X] T007 Update imports in src/synth_lab/research_prfaq/validator.py (use relative import from .generation_models)
+- [X] T008 Rename src/synth_lab/topic_guides/models.py to internal_models.py
+- [X] T009 Update imports in src/synth_lab/topic_guides/file_processor.py (use relative import from .internal_models)
+- [X] T010 Update imports in src/synth_lab/topic_guides/summary_manager.py (use relative import from .internal_models)
+- [X] T011 Run fast test battery to verify model renames don't break anything (pytest tests/ -k "model")
+- [X] T012 Commit: "refactor: rename conflicting model files to avoid collisions"
 
 **Checkpoint**: Foundation ready - model conflicts resolved, imports updated, tests passing
 
