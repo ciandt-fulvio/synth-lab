@@ -130,28 +130,48 @@ def generate_cognitive_contract() -> dict[str, Any]:
 
 def generate_big_five() -> dict[str, int]:
     """
-    Gera traços de personalidade Big Five com distribuição baseada em dados brasileiros.
+    Gera traços de personalidade Big Five com perfis distintivos.
 
     Big Five personality traits are the most scientifically validated
     personality model, measuring: Openness, Conscientiousness, Extraversion,
     Agreeableness, and Neuroticism.
 
-    Distribuição baseada em: International Sexuality Description Project (Brazil)
-    - Abertura (Openness): μ=49.16, σ=9.37
-    - Conscienciosidade (Conscientiousness): μ=45.38, σ=9.28
-    - Extroversao (Extraversion): μ=45.89, σ=9.36
-    - Amabilidade (Agreeableness): μ=45.86, σ=8.82
-    - Neuroticismo (Neuroticism): μ=53.14, σ=9.07
+    Regras de geração:
+    - Exatamente 1 trait com valor > 80 (característica dominante forte)
+    - Exatamente 1 trait com valor < 30 (característica muito fraca)
+    - Os 3 restantes variam entre 45 e 55 (neutros/moderados)
+
+    Isso cria perfis mais distintivos e interessantes, facilitando a
+    identificação de padrões de comportamento e personalidade.
 
     Returns:
         dict[str, int]: Dictionary with 5 personality traits (0-100 scale)
     """
+    traits = ["abertura", "conscienciosidade", "extroversao", "amabilidade", "neuroticismo"]
+
+    # Embaralhar para sortear quais traits receberão valores extremos
+    shuffled_traits = random.sample(traits, len(traits))
+
+    # Criar dicionário de valores
+    values = {}
+
+    # Primeiro trait: valor alto (81-95)
+    values[shuffled_traits[0]] = random.randint(81, 95)
+
+    # Segundo trait: valor baixo (5-29)
+    values[shuffled_traits[1]] = random.randint(5, 29)
+
+    # Três traits restantes: valores neutros (45-55)
+    for trait in shuffled_traits[2:]:
+        values[trait] = random.randint(45, 55)
+
+    # Retornar em ordem padrão
     return {
-        "abertura": normal_distribution(49.16, 9.37, 0, 100),
-        "conscienciosidade": normal_distribution(45.38, 9.28, 0, 100),
-        "extroversao": normal_distribution(45.89, 9.36, 0, 100),
-        "amabilidade": normal_distribution(45.86, 8.82, 0, 100),
-        "neuroticismo": normal_distribution(53.14, 9.07, 0, 100),
+        "abertura": values["abertura"],
+        "conscienciosidade": values["conscienciosidade"],
+        "extroversao": values["extroversao"],
+        "amabilidade": values["amabilidade"],
+        "neuroticismo": values["neuroticismo"],
     }
 
 
