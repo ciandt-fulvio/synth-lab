@@ -102,6 +102,10 @@ class ResearchExecuteRequest(BaseModel):
     )
     model: str = Field(default="gpt-5-mini", description="LLM model to use")
     generate_summary: bool = Field(default=True, description="Generate summary after completion")
+    skip_interviewee_review: bool = Field(
+        default=True,
+        description="Skip interviewee response reviewer for faster execution",
+    )
 
 
 class ResearchExecuteResponse(BaseModel):
