@@ -183,6 +183,7 @@ class ResearchService:
                 max_turns=request.max_turns,
                 model=request.model,
                 generate_summary=request.generate_summary,
+                skip_interviewee_review=request.skip_interviewee_review,
             )
         )
 
@@ -204,6 +205,7 @@ class ResearchService:
         max_turns: int,
         model: str,
         generate_summary: bool,
+        skip_interviewee_review: bool = True,
     ) -> None:
         """
         Run batch interviews and save results to database.
@@ -217,6 +219,7 @@ class ResearchService:
             synth_count: Number of synths to interview.
             max_concurrent: Max concurrent interviews.
             max_turns: Max turns per interview.
+            skip_interviewee_review: Whether to skip interviewee response reviewer.
             model: LLM model to use.
             generate_summary: Whether to generate summary.
         """
@@ -271,8 +274,10 @@ class ResearchService:
                 model=model,
                 generate_summary=generate_summary,
                 exec_id=exec_id,
+                synth_ids=synth_ids,
                 message_callback=on_message,
                 on_transcription_completed=on_transcription_complete,
+                skip_interviewee_review=skip_interviewee_review,
             )
 
             # Save transcripts to database

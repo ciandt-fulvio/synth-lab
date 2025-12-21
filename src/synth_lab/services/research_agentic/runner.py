@@ -372,6 +372,7 @@ async def run_interview(
     verbose: bool = True,
     exec_id: str | None = None,
     message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
+    skip_interviewee_review: bool = True,
 ) -> InterviewResult:
     """
     Run an agentic interview with orchestrated turn-taking.
@@ -394,6 +395,8 @@ async def run_interview(
         exec_id: Execution ID for SSE streaming (optional)
         message_callback: Async callback for real-time message streaming (optional)
             Signature: (exec_id, synth_id, turn_number, message) -> None
+        skip_interviewee_review: Whether to skip the interviewee response reviewer.
+            If True, uses raw interviewee response without humanization review.
 
     Returns:
         InterviewResult with conversation and metadata
@@ -574,28 +577,33 @@ async def run_interview(
                             raw_response = raw_result.final_output
                             span.set_attribute("response", raw_response)
 
-                        # Review interviewee response
-                        reviewer_input = "Revise esta resposta para maior autenticidade."
-                        with tracer.start_span(SpanType.LLM_CALL, {
-                            "speaker": "interviewee_reviewer",
-                            "turn_number": turns + 1,
-                        }) as span:
-                            reviewer = create_interviewee_reviewer(
-                                synth=shared_memory.synth,
-                                raw_response=raw_response,
-                                model=model,
-                            )
+                        # Review interviewee response (optional)
+                        if skip_interviewee_review:
+                            # Skip reviewer, use raw response directly
+                            final_response = raw_response
+                            logger.debug("Skipping interviewee reviewer")
+                        else:
+                            reviewer_input = "Revise esta resposta para maior autenticidade."
+                            with tracer.start_span(SpanType.LLM_CALL, {
+                                "speaker": "interviewee_reviewer",
+                                "turn_number": turns + 1,
+                            }) as span:
+                                reviewer = create_interviewee_reviewer(
+                                    synth=shared_memory.synth,
+                                    raw_response=raw_response,
+                                    model=model,
+                                )
 
-                            # Log request (system prompt + input)
-                            span.set_attribute("request", f"[System Prompt]\n{reviewer.instructions}\n\n[Input]\n{reviewer_input}")
+                                # Log request (system prompt + input)
+                                span.set_attribute("request", f"[System Prompt]\n{reviewer.instructions}\n\n[Input]\n{reviewer_input}")
 
-                            review_result = await Runner.run(
-                                reviewer,
-                                input=reviewer_input
-                            )
-                            final_response = review_result.final_output
-                            span.set_attribute("response", final_response)
-                            span.set_status(SpanStatus.SUCCESS)
+                                review_result = await Runner.run(
+                                    reviewer,
+                                    input=reviewer_input
+                                )
+                                final_response = review_result.final_output
+                                span.set_attribute("response", final_response)
+                                span.set_status(SpanStatus.SUCCESS)
 
                         speaker = "Interviewee"
 
