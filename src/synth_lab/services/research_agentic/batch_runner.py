@@ -337,9 +337,15 @@ async def run_batch_interviews(
 
     # Generate summary if requested and we have successful interviews
     summary = None
+    logger.info(
+        f"Summary generation check: generate_summary={generate_summary}, "
+        f"successful_interviews count={len(successful_interviews)}"
+    )
+
     if generate_summary and successful_interviews:
         console.print()
         console.print("[cyan]Gerando síntese das entrevistas...[/cyan]")
+        logger.info(f"Starting summary generation for {len(successful_interviews)} interviews")
 
         try:
             # Summarizer always uses gpt-5 with reasoning medium for better analysis
@@ -348,11 +354,16 @@ async def run_batch_interviews(
                 topic_guide_name=topic_guide_name,
                 model="gpt-5",
             )
-            logger.info("Summary generated successfully")
+            logger.info(f"Summary generated successfully. Length: {len(summary) if summary else 0} chars")
 
         except Exception as e:
-            logger.error(f"Failed to generate summary: {e}")
+            logger.error(f"Failed to generate summary: {e}", exc_info=True)
             summary = f"Erro ao gerar síntese: {e}"
+    else:
+        logger.warning(
+            f"Skipping summary generation: generate_summary={generate_summary}, "
+            f"successful_interviews={len(successful_interviews)}"
+        )
 
     return BatchResult(
         successful_interviews=successful_interviews,

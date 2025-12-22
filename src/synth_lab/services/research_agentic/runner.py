@@ -216,6 +216,35 @@ def load_topic_guide(topic_guide_name: str) -> str:
         f"No script.json or summary.md in {topic_guide_path}")
 
 
+def load_context_definition(topic_guide_name: str) -> str | None:
+    """
+    Load context definition from the topic guide script.json.
+
+    Args:
+        topic_guide_name: Name of the topic guide directory
+
+    Returns:
+        Context definition string or None if not found
+    """
+    from synth_lab.infrastructure.config import resolve_topic_guide_path
+
+    topic_guide_path = resolve_topic_guide_path(topic_guide_name)
+    if topic_guide_path is None:
+        return None
+
+    script_path = topic_guide_path / "script.json"
+    if not script_path.exists():
+        return None
+
+    with open(script_path, encoding="utf-8") as f:
+        script = json.load(f)
+
+    # Get context_definition from first item in script
+    if script and isinstance(script, list) and len(script) > 0:
+        return script[0].get("context_definition")
+
+    return None
+
 def load_context_examples(topic_guide_name: str) -> dict[str, str] | None:
     """
     Load context examples from the topic guide script.json.
@@ -251,6 +280,7 @@ async def generate_initial_context(
     context_examples: dict[str, str],
     topic_guide: str,
     model: str = "gpt-5-mini",
+    context_definition: str | None = None,
 ) -> str:
     """
     Generate initial context for the interviewee based on examples.
@@ -263,6 +293,7 @@ async def generate_initial_context(
         context_examples: Dict with 'positive', 'negative', 'neutral' examples
         topic_guide: Topic guide content for context
         model: LLM model to use
+        context_definition: Optional definition/purpose of the context
 
     Returns:
         Generated initial context string
@@ -284,7 +315,18 @@ async def generate_initial_context(
     ocupacao = demo.get("ocupacao", "não informada")
     cidade = demo.get("localizacao", {}).get("cidade", "não informada")
 
+    # Build context definition section
+    context_def_section = ""
+    if context_definition:
+        context_def_section = f"""
+CONTEXTO:
+{context_definition}
+"""
+
     prompt = f"""Você deve gerar uma experiência pessoal para {nome}, {idade} anos, {ocupacao}, de {cidade}.
+
+RELATIVO A:
+{context_def_section}
 
 TIPO DE EXPERIÊNCIA: {sentiment.upper()}
 
@@ -418,6 +460,8 @@ async def run_interview(
     topic_guide = load_topic_guide(topic_guide_name)
     synth_name = synth.get("nome", "Participante")
 
+    context_definition = load_context_definition(topic_guide_name)
+
     # Load context examples for generating initial context
     context_examples = load_context_examples(topic_guide_name)
 
@@ -529,6 +573,7 @@ async def run_interview(
                                     context_examples=context_examples,
                                     topic_guide=topic_guide,
                                     model=model,
+                                    context_definition=context_definition,
                                 )
                                 raw_result, initial_context = await asyncio.gather(
                                     interviewer_task, context_task

@@ -243,16 +243,21 @@ def format_interviewee_instructions(
     interesses_str = ", ".join(interesses) if interesses else "Vários"
 
     # Cognitive contract (contrato cognitivo)
-    contrato = psicografia.get("contratos_cognitivos", {})
+    contrato = psicografia.get("contrato_cognitivo", {})
     if contrato:
-        contract_nome = contrato.get("nome", "Perfil Desconhecido")
-        contract_descricao = contrato.get("descricao", "")
+        contract_tipo = contrato.get("tipo", "Perfil Desconhecido")
+        # perfil_cognitivo is a string, not an object
+        contract_perfil = contrato.get("perfil_cognitivo", "")
+        # regras is directly in contrato_cognitivo
         contract_regras = contrato.get("regras", [])
+        contract_efeito = contrato.get("efeito_esperado", "")
+
         regras_formatadas = "\n".join([f"  • {regra}" for regra in contract_regras])
-        cognitive_contract_str = f"""PERFIL: {contract_nome}
-DESCRIÇÃO: {contract_descricao}
+        cognitive_contract_str = f"""TIPO: {contract_tipo}
+PERFIL: {contract_perfil}
 REGRAS A SEGUIR:
-{regras_formatadas}"""
+{regras_formatadas}
+EFEITO ESPERADO: {contract_efeito}"""
     else:
         cognitive_contract_str = "Não informado"
 
