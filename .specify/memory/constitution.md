@@ -143,8 +143,6 @@ project/
 ├── pyproject.toml
 └── docker-compose.yml
 
-### VIII. Logging
-
 
 ### IX. Ohter Principles
 - Follow DRY (Don't Repeat Yourself) principle to minimize code duplication.
@@ -152,7 +150,7 @@ project/
 - Adhere to KISS (Keep It Simple, Stupid) and YAGNI (You Aren't Gonna Need It) principles.
 - Treat logging as first-class concerns.
 - Prefer using Makefiles or scripts for automation tasks instead of ad-hoc scripts.
-
+- if in a python project, use alembic for database migrations.
 
 
 ## Development Workflow
