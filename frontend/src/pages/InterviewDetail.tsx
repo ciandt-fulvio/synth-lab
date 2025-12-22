@@ -1,6 +1,6 @@
 // src/pages/InterviewDetail.tsx
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useResearchDetail, useResearchTranscripts, useResearchSummary } from '@/hooks/use-research';
 import { useArtifactStatesWithPolling } from '@/hooks/use-artifact-states';
@@ -31,19 +31,60 @@ export default function InterviewDetail() {
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [prfaqOpen, setPrfaqOpen] = useState(false);
   const [selectedSynthId, setSelectedSynthId] = useState<string | null>(null);
+  const [aggressivePolling, setAggressivePolling] = useState(false);
+  const aggressivePollingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: execution, isLoading, error } = useResearchDetail(execId!);
   const { data: transcripts } = useResearchTranscripts(execId!);
   const { data: artifactStates } = useArtifactStatesWithPolling(execId!);
 
-  // Handle execution completion: refetch all data
+  // Handle execution completion: refetch all data and start aggressive polling
   const handleExecutionCompleted = () => {
-    console.log('[InterviewDetail] Execution completed, refreshing data...');
+    console.log('[InterviewDetail] Execution completed, starting aggressive polling...');
+
     // Invalidate all related queries to refetch fresh data
     queryClient.invalidateQueries({ queryKey: queryKeys.researchDetail(execId!) });
     queryClient.invalidateQueries({ queryKey: queryKeys.researchTranscripts(execId!) });
     queryClient.invalidateQueries({ queryKey: queryKeys.artifactStates(execId!) });
+
+    // Enable aggressive polling for 60 seconds to catch state transitions
+    setAggressivePolling(true);
+
+    // Clear any existing timer
+    if (aggressivePollingTimerRef.current) {
+      clearTimeout(aggressivePollingTimerRef.current);
+    }
+
+    // Stop aggressive polling after 60 seconds
+    aggressivePollingTimerRef.current = setTimeout(() => {
+      console.log('[InterviewDetail] Stopping aggressive polling');
+      setAggressivePolling(false);
+    }, 60000);
   };
+
+  // Aggressive polling effect - refetch artifact states every 2 seconds
+  useEffect(() => {
+    if (!aggressivePolling || !execId) return;
+
+    console.log('[InterviewDetail] Aggressive polling active');
+    const interval = setInterval(() => {
+      console.log('[InterviewDetail] Aggressive refetch...');
+      queryClient.invalidateQueries({ queryKey: queryKeys.artifactStates(execId) });
+    }, 2000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [aggressivePolling, execId, queryClient]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (aggressivePollingTimerRef.current) {
+        clearTimeout(aggressivePollingTimerRef.current);
+      }
+    };
+  }, []);
 
   // Fetch content based on artifact states
   const summaryAvailable = artifactStates?.summary.state === 'available';
