@@ -1,0 +1,300 @@
+# SSE Events Contract: Live Interview Cards
+
+# API Contract for Server-Sent Events (SSE) streaming endpoint
+# This document defines the event types, data structures, and behaviors
+# for the /research/{exec_id}/stream endpoint used by Live Interview Cards.
+
+openapi: 3.1.0
+info:
+  title: Research Interview SSE Stream
+  version: 1.0.0
+  description: |
+    Server-Sent Events (SSE) API for streaming real-time interview messages
+    from research executions. Provides both historical replay and live updates.
+
+servers:
+  - url: /api
+    description: Frontend API proxy
+
+paths:
+  /research/{exec_id}/stream:
+    get:
+      summary: Stream interview messages in real-time
+      description: |
+        Opens an SSE connection to receive interview messages for all interviews
+        in a research execution. The endpoint follows this behavior:
+
+        1. **Historical Replay**: Sends all existing messages from completed
+           interviews with `is_replay: true`
+        2. **Live Streaming**: Sends new messages as they arrive during active
+           interviews with `is_replay: false`
+        3. **Completion Events**: Signals when transcription and execution complete
+
+        The connection remains open until:
+        - `execution_completed` event is sent
+        - Client closes the connection
+        - Network error occurs (auto-reconnect handled by client)
+
+      operationId: streamResearchMessages
+      tags:
+        - Research
+        - SSE
+
+      parameters:
+        - name: exec_id
+          in: path
+          required: true
+          description: Research execution identifier (UUID format)
+          schema:
+            type: string
+            format: uuid
+          example: "exec-abc-123-def-456"
+
+      responses:
+        '200':
+          description: SSE stream successfully opened
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  SSE formatted events. Each event follows the format:
+                  ```
+                  event: <event_type>
+                  data: <JSON payload>
+
+                  ```
+              examples:
+                message_event:
+                  summary: Interview message event
+                  value: |
+                    event: message
+                    data: {"event_type":"message","exec_id":"exec-123","synth_id":"synth-456","turn_number":1,"speaker":"Interviewer","text":"Olá! Obrigado por participar.","timestamp":"2025-12-21T14:30:45.123Z","is_replay":false}
+
+                transcription_completed_event:
+                  summary: Transcription completed event
+                  value: |
+                    event: transcription_completed
+                    data: {"successful_count":8,"failed_count":2}
+
+                execution_completed_event:
+                  summary: Execution completed event
+                  value: |
+                    event: execution_completed
+                    data: {}
+
+          headers:
+            Cache-Control:
+              description: Prevents caching of event stream
+              schema:
+                type: string
+                example: "no-cache"
+            Connection:
+              description: Keeps connection alive
+              schema:
+                type: string
+                example: "keep-alive"
+            X-Accel-Buffering:
+              description: Disables buffering in nginx
+              schema:
+                type: string
+                example: "no"
+
+        '404':
+          description: Research execution not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "Execution not found"
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "Internal server error"
+
+components:
+  schemas:
+    InterviewMessageEvent:
+      type: object
+      description: |
+        Event representing a single turn in an interview (either interviewer
+        question or interviewee response). Sent via SSE with event type "message".
+      required:
+        - event_type
+        - exec_id
+        - synth_id
+        - turn_number
+        - speaker
+        - text
+        - timestamp
+        - is_replay
+      properties:
+        event_type:
+          type: string
+          enum: ["message"]
+          description: Always "message" for interview turns
+          example: "message"
+
+        exec_id:
+          type: string
+          format: uuid
+          description: Research execution identifier
+          example: "exec-abc-123-def-456"
+
+        synth_id:
+          type: string
+          format: uuid
+          description: Synthetic person (interviewee) identifier
+          example: "synth-xyz-789-ghi-012"
+
+        turn_number:
+          type: integer
+          minimum: 1
+          description: Sequential turn number in the interview (1-indexed)
+          example: 3
+
+        speaker:
+          type: string
+          enum: ["Interviewer", "Interviewee"]
+          description: |
+            Role of the speaker:
+            - "Interviewer": SynthLab system asking questions
+            - "Interviewee": Synthetic person responding
+          example: "Interviewee"
+
+        text:
+          type: string
+          minLength: 1
+          description: |
+            Message text content. May be plain text or JSON-formatted string
+            like `{"message": "...", "should_end": false}`. Frontend must use
+            `extractMessageText()` utility to parse and extract human-readable text.
+          example: '{"message": "Eu prefiro comprar na Amazon pela conveniência.", "should_end": false}'
+
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 datetime when message was generated
+          example: "2025-12-21T14:30:45.123456Z"
+
+        is_replay:
+          type: boolean
+          description: |
+            Indicates if this is a historical message (replayed on connection)
+            or a new live message:
+            - `true`: Historical message from database (sent during initial replay)
+            - `false`: New live message just generated
+          example: false
+
+    TranscriptionCompletedEvent:
+      type: object
+      description: |
+        Event signaling that all interviews in the execution have finished
+        transcription. Sent via SSE with event type "transcription_completed".
+        Summary generation may begin after this event.
+      required:
+        - successful_count
+        - failed_count
+      properties:
+        successful_count:
+          type: integer
+          minimum: 0
+          description: Number of interviews that completed successfully
+          example: 8
+
+        failed_count:
+          type: integer
+          minimum: 0
+          description: Number of interviews that failed (errors, timeout, etc.)
+          example: 2
+
+    ExecutionCompletedEvent:
+      type: object
+      description: |
+        Event signaling that all processing (interviews + summary generation)
+        has completed. Sent via SSE with event type "execution_completed".
+        Client should close the connection after receiving this event.
+      properties: {}
+      example: {}
+
+  examples:
+    historical_replay_sequence:
+      summary: Historical replay sequence (3 messages)
+      description: |
+        When client connects, backend replays all existing messages from database
+        before streaming live messages. All replay messages have `is_replay: true`.
+      value: |
+        event: message
+        data: {"event_type":"message","exec_id":"exec-123","synth_id":"synth-456","turn_number":1,"speaker":"Interviewer","text":"Olá! Obrigado por participar — vou fazer algumas perguntas sobre suas experiências de compra online, especialmente na Amazon.","timestamp":"2025-12-21T14:30:00.000Z","is_replay":true}
+
+        event: message
+        data: {"event_type":"message","exec_id":"exec-123","synth_id":"synth-456","turn_number":2,"speaker":"Interviewee","text":"Oi! Tudo bem, pode perguntar.","timestamp":"2025-12-21T14:30:05.000Z","is_replay":true}
+
+        event: message
+        data: {"event_type":"message","exec_id":"exec-123","synth_id":"synth-456","turn_number":3,"speaker":"Interviewer","text":"Para começar, você pode me contar sobre a última vez que comprou algo na Amazon?","timestamp":"2025-12-21T14:30:10.000Z","is_replay":true}
+
+    live_message_sequence:
+      summary: Live message sequence (new messages arriving)
+      description: |
+        After historical replay completes, new messages arrive in real-time as
+        interviews progress. Live messages have `is_replay: false`.
+      value: |
+        event: message
+        data: {"event_type":"message","exec_id":"exec-123","synth_id":"synth-456","turn_number":4,"speaker":"Interviewee","text":"{\"message\": \"Comprei um adubo e uma enxada na Amazon em agosto de 2023. Procurei os produtos no site, encontrei as opções, adicionei ao carrinho e finalizei a compra.\", \"should_end\": false}","timestamp":"2025-12-21T14:30:15.000Z","is_replay":false}
+
+        event: message
+        data: {"event_type":"message","exec_id":"exec-123","synth_id":"synth-789","turn_number":1,"speaker":"Interviewer","text":"Olá! Obrigado por participar — vou fazer algumas perguntas sobre suas experiências de compra online, especialmente na Amazon.","timestamp":"2025-12-21T14:30:16.000Z","is_replay":false}
+
+    completion_sequence:
+      summary: Completion event sequence
+      description: |
+        When all interviews finish, backend sends `transcription_completed` event
+        followed by `execution_completed` when summary generation finishes.
+      value: |
+        event: transcription_completed
+        data: {"successful_count":10,"failed_count":0}
+
+        event: execution_completed
+        data: {}
+
+# Event Timing Characteristics
+
+# Historical Replay:
+#   - Duration: Depends on number of existing messages (typically 0.1-2 seconds)
+#   - Rate: Sent as fast as possible (backend iterates through all transcripts)
+#   - Ordering: Messages from each interview are in chronological order,
+#               but interleaving across interviews is not guaranteed
+
+# Live Streaming:
+#   - Duration: Continues until all interviews complete (typically 2-10 minutes)
+#   - Rate: Variable (depends on LLM response times, typically 5-30 seconds per message)
+#   - Ordering: Messages arrive in real-time as generated
+
+# Connection Behavior:
+#   - Auto-Reconnect: EventSource automatically reconnects on network interruption
+#   - Idle Timeout: No server-side timeout (connection kept alive indefinitely)
+#   - Closure: Client closes after `execution_completed` or on user navigation
+
+# Error Handling:
+#   - Network errors: EventSource.onerror triggered, auto-reconnect initiated
+#   - Server errors: 500 response, client should retry with exponential backoff
+#   - Not found (404): Client should stop retrying (execution doesn't exist)
+
+# Browser Compatibility:
+#   - All modern browsers support EventSource (Chrome 6+, Firefox 6+, Safari 5+, Edge 79+)
+#   - No polyfill required for target browsers
+
+# Security Considerations:
+#   - No authentication in current implementation (consider adding in production)
+#   - CORS headers must allow frontend domain
+#   - Rate limiting may be needed for production (prevent DoS via many connections)

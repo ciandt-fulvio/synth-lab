@@ -21,6 +21,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-15
 - N/A (frontend consome API REST do backend) (012-frontend-dashboard)
 - Python 3.13+ (backend), TypeScript 5.5.3 (frontend) + FastAPI 0.109.0+, Pydantic 2.5.0+, React 18.3.1, TanStack React Query 5.56.2 (013-summary-prfaq-states)
 - SQLite 3 with WAL mode (`output/synthlab.db`) (013-summary-prfaq-states)
+- TypeScript 5.5.3 + React 18.3.1, shadcn/ui, TanStack React Query 5.56, React Router DOM 6.26 (014-live-interview-cards)
+- N/A (frontend-only feature, consumes existing backend API) (014-live-interview-cards)
 
 - Python 3.13+ + faker>=21.0.0, jsonschema>=4.20.0, rich (para output colorido) (002-synthlab-cli)
 
@@ -40,9 +42,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.13+: Follow standard conventions
 
 ## Recent Changes
+- 014-live-interview-cards: Added TypeScript 5.5.3 + React 18.3.1, shadcn/ui, TanStack React Query 5.56, React Router DOM 6.26
 - 013-summary-prfaq-states: Added Python 3.13+ (backend), TypeScript 5.5.3 (frontend) + FastAPI 0.109.0+, Pydantic 2.5.0+, React 18.3.1, TanStack React Query 5.56.2
 - 012-frontend-dashboard: Added TypeScript 5.5.3 + React 18.3.1 + Vite 6.3.4, shadcn/ui, TanStack React Query 5.56, React Router DOM 6.26, Tailwind CSS 3.4
-- 011-remove-cli-commands: Added Python 3.13+ + Typer (CLI framework), FastAPI (REST API), Pydantic>=2.5.0 (models), OpenAI SDK, DuckDB/SQLite
 
 
 <!-- MANUAL ADDITIONS START -->
