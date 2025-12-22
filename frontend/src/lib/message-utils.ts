@@ -38,8 +38,12 @@ export function extractMessageText(text: string): string {
       if (parsed && typeof parsed.message === 'string') {
         return parsed.message;
       }
-    } catch {
+      // If parsed successfully but no message field, return original
+      console.warn('[extractMessageText] JSON parsed but no message field:', parsed);
+    } catch (parseError) {
       // JSON parse failed - likely has unescaped newlines inside strings
+      console.log('[extractMessageText] JSON parse failed, trying regex extraction');
+
       // Use regex to extract the message field directly
       // Match: "message": "..." where the value can contain anything until we hit
       // the pattern for the next field or end of object
@@ -54,7 +58,7 @@ export function extractMessageText(text: string): string {
 
       // Alternative: try to find message field ending with ", "should_end" or similar
       const altMatch = trimmed.match(
-        /"message"\s*:\s*"([\s\S]*?)"\s*,\s*"(?:should_end|internal_notes)/
+        /"message"\s*:\s*"([\s\S]*?)"\s*,[\s\n]*"(?:should_end|internal_notes)/
       );
       if (altMatch && altMatch[1]) {
         return altMatch[1]
@@ -62,6 +66,8 @@ export function extractMessageText(text: string): string {
           .replace(/\\"/g, '"')
           .replace(/\\\\/g, '\\');
       }
+
+      console.warn('[extractMessageText] Could not extract message from JSON-like text:', trimmed.substring(0, 100) + '...');
     }
   }
   return text;
