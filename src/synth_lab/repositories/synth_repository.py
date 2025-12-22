@@ -163,7 +163,11 @@ class SynthRepository(BaseRepository):
         return AVATARS_DIR / f"{synth_id}.png"
 
     def get_fields(self) -> list[SynthFieldInfo]:
-        """Get available synth field metadata following schema v1."""
+        """Get available synth field metadata following schema v1.
+
+        Note: All nested fields are stored in a single 'data' JSON column.
+        Use json_extract(data, '$.demografia.idade') for SQL queries.
+        """
         return [
             SynthFieldInfo(name="id", type="string", description="6-character unique ID"),
             SynthFieldInfo(name="nome", type="string", description="Display name"),
@@ -171,9 +175,9 @@ class SynthRepository(BaseRepository):
             SynthFieldInfo(name="descricao", type="string", description="Brief description"),
             SynthFieldInfo(name="created_at", type="datetime", description="Creation timestamp"),
             SynthFieldInfo(
-                name="demografia",
+                name="data.demografia",
                 type="object",
-                description="Demographic data (IBGE Censo 2022, PNAD 2023)",
+                description="Demographic data (IBGE Censo 2022, PNAD 2023). Access via json_extract(data, '$.demografia...')",
                 nested_fields=[
                     "idade",
                     "genero_biologico",
@@ -188,21 +192,21 @@ class SynthRepository(BaseRepository):
                 ],
             ),
             SynthFieldInfo(
-                name="psicografia",
+                name="data.psicografia",
                 type="object",
-                description="Psychographic data",
+                description="Psychographic data. Access via json_extract(data, '$.psicografia...')",
                 nested_fields=["personalidade_big_five", "interesses", "contrato_cognitivo"],
             ),
             SynthFieldInfo(
-                name="deficiencias",
+                name="data.deficiencias",
                 type="object",
-                description="Disability information (IBGE PNS 2019)",
+                description="Disability information (IBGE PNS 2019). Access via json_extract(data, '$.deficiencias...')",
                 nested_fields=["visual", "auditiva", "motora", "cognitiva"],
             ),
             SynthFieldInfo(
-                name="capacidades_tecnologicas",
+                name="data.capacidades_tecnologicas",
                 type="object",
-                description="Technology capabilities",
+                description="Technology capabilities. Access via json_extract(data, '$.capacidades_tecnologicas...')",
                 nested_fields=[
                     "alfabetizacao_digital",
                     "dispositivos",
@@ -280,11 +284,15 @@ class SynthRepository(BaseRepository):
         if isinstance(created_at, str):
             created_at = datetime.fromisoformat(created_at)
 
-        # Parse JSON columns following schema v1
-        demografia = None
-        if row["demografia"]:
-            demo_data = json.loads(row["demografia"])
+        # Parse the consolidated 'data' JSON field
+        data = {}
+        if row["data"]:
+            data = json.loads(row["data"])
 
+        # Parse demographics from data
+        demografia = None
+        demo_data = data.get("demografia")
+        if demo_data:
             # Location
             location_data = demo_data.get("localizacao")
             location = Location(**location_data) if location_data else None
@@ -306,10 +314,10 @@ class SynthRepository(BaseRepository):
                 composicao_familiar=family,
             )
 
+        # Parse psychographics from data
         psicografia = None
-        if row["psicografia"]:
-            psico_data = json.loads(row["psicografia"])
-
+        psico_data = data.get("psicografia")
+        if psico_data:
             # Big Five personality
             big_five_data = psico_data.get("personalidade_big_five")
             big_five = BigFivePersonality(**big_five_data) if big_five_data else None
@@ -324,11 +332,10 @@ class SynthRepository(BaseRepository):
                 contrato_cognitivo=contract,
             )
 
-        # Comportamento (may not exist in current database)
+        # Parse behavior from data (if exists)
         comportamento = None
-        if "comportamento" in row.keys() and row["comportamento"]:
-            comp_data = json.loads(row["comportamento"])
-
+        comp_data = data.get("comportamento")
+        if comp_data:
             # Consumption habits
             habits_data = comp_data.get("habitos_consumo")
             habits = ConsumptionHabits(**habits_data) if habits_data else None
@@ -348,10 +355,10 @@ class SynthRepository(BaseRepository):
                 engajamento_redes_sociais=social,
             )
 
+        # Parse disabilities from data
         deficiencias = None
-        if row["deficiencias"]:
-            def_data = json.loads(row["deficiencias"])
-
+        def_data = data.get("deficiencias")
+        if def_data:
             # Visual disability
             visual_data = def_data.get("visual")
             visual = VisualDisability(**visual_data) if visual_data else None
@@ -375,10 +382,10 @@ class SynthRepository(BaseRepository):
                 cognitiva=cognitive,
             )
 
+        # Parse tech capabilities from data
         capacidades_tecnologicas = None
-        if row["capacidades_tecnologicas"]:
-            tech_data = json.loads(row["capacidades_tecnologicas"])
-
+        tech_data = data.get("capacidades_tecnologicas")
+        if tech_data:
             # Device info
             dispositivos_data = tech_data.get("dispositivos")
             dispositivos = DeviceInfo(**dispositivos_data) if isinstance(dispositivos_data, dict) else None

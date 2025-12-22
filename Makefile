@@ -1,4 +1,4 @@
-.PHONY: help install setup-hooks serve serve-front serve-traced phoenix init-db validate-ui test test-fast test-full test-unit test-integration test-contract lint-format clean
+.PHONY: help install setup-hooks serve serve-front serve-traced phoenix init-db reset-db validate-ui test test-fast test-full test-unit test-integration test-contract lint-format clean
 
 # Default target
 help:
@@ -8,6 +8,7 @@ help:
 	@echo "  make install      Install dependencies with uv"
 	@echo "  make setup-hooks  Configure Git hooks for automated testing"
 	@echo "  make init-db      Initialize SQLite database with schema"
+	@echo "  make reset-db     Delete and recreate database from scratch"
 	@echo ""
 	@echo "Development:"
 	@echo "  make serve        Start FastAPI REST API server (port 8000)"
@@ -49,6 +50,13 @@ setup-hooks:
 
 init-db:
 	uv run python scripts/init_db.py
+
+reset-db:
+	@echo "Deleting existing database..."
+	rm -f output/synthlab.db output/synthlab.db-wal output/synthlab.db-shm
+	@echo "Creating new database..."
+	uv run python scripts/init_db.py
+	@echo "Database reset complete!"
 
 # Development
 serve:

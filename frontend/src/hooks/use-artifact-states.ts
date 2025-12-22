@@ -35,8 +35,13 @@ export function useArtifactStates(
  * Conditional polling hook for artifact states.
  * Automatically polls when any artifact is in 'generating' state.
  *
+ * Polls at different rates:
+ * - Fast (2s): When any artifact is generating
+ * - Slow (10s): When artifacts might start generating (to catch state transitions)
+ * - Off: When both artifacts are available or unavailable with unmet prerequisites
+ *
  * @param execId - Execution ID
- * @param pollingInterval - Polling interval in ms (default: 2000)
+ * @param pollingInterval - Fast polling interval in ms (default: 2000)
  * @returns Query result with artifact states
  */
 export function useArtifactStatesWithPolling(
@@ -48,12 +53,27 @@ export function useArtifactStatesWithPolling(
       const data = query.state.data;
       if (!data) return false;
 
-      // Poll if any artifact is generating
+      // Fast poll if any artifact is generating
       const isGenerating =
         data.summary.state === 'generating' ||
         data.prfaq.state === 'generating';
 
-      return isGenerating ? pollingInterval : false;
+      if (isGenerating) {
+        return pollingInterval; // Fast: 2s
+      }
+
+      // Slow poll if artifacts might start generating soon
+      // (prerequisites are met but not yet available)
+      const mightStartGenerating =
+        (data.summary.state === 'unavailable' && data.summary.prerequisite_met) ||
+        (data.prfaq.state === 'unavailable' && data.prfaq.prerequisite_met);
+
+      if (mightStartGenerating) {
+        return pollingInterval * 5; // Slow: 10s
+      }
+
+      // Stop polling if both are available or can't generate
+      return false;
     },
   });
 
