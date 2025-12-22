@@ -1,11 +1,15 @@
 // src/types/common.ts
 
-export interface PaginatedResponse<T> {
-  data: T[];
+export interface PaginationMeta {
   total: number;
   limit: number;
   offset: number;
-  has_more: boolean;
+  has_next: boolean;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: PaginationMeta;
 }
 
 export interface PaginationParams {

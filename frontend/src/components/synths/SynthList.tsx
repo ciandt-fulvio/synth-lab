@@ -57,7 +57,7 @@ export function SynthList() {
     );
   }
 
-  const totalPages = Math.ceil(data.total / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(data.pagination.total / ITEMS_PER_PAGE);
   const hasPrevious = currentPage > 0;
   const hasNext = currentPage < totalPages - 1;
 
@@ -154,7 +154,7 @@ export function SynthList() {
           </Pagination>
 
           <div className="text-center mt-4 text-sm text-muted-foreground">
-            Mostrando {data.offset + 1} a {Math.min(data.offset + data.limit, data.total)} de {data.total} synths
+            Mostrando {data.pagination.offset + 1} a {Math.min(data.pagination.offset + data.pagination.limit, data.pagination.total)} de {data.pagination.total} synths
           </div>
         </div>
       )}

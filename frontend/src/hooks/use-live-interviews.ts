@@ -26,6 +26,7 @@ import type {
  *
  * @param execId - Research execution ID to stream messages from
  * @param onExecutionCompleted - Optional callback when execution completes
+ * @param onTranscriptionCompleted - Optional callback when transcription completes
  * @returns State with messagesBySynth, synthIds, connection status
  *
  * @example
@@ -44,7 +45,8 @@ import type {
  */
 export function useLiveInterviews(
   execId: string,
-  onExecutionCompleted?: () => void
+  onExecutionCompleted?: () => void,
+  onTranscriptionCompleted?: (data: import('@/types/sse-events').TranscriptionCompletedEvent) => void
 ): LiveInterviewsHookState {
   const [messagesBySynth, setMessagesBySynth] = useState<LiveInterviewMessages>({});
 
@@ -66,7 +68,8 @@ export function useLiveInterviews(
     execId,
     true,
     handleMessage,
-    onExecutionCompleted
+    onExecutionCompleted,
+    onTranscriptionCompleted
   );
 
   // Derive synthIds from messagesBySynth keys
