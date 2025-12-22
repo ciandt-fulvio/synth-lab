@@ -14,6 +14,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { ArtifactButton } from '@/components/shared/ArtifactButton';
 import MarkdownPopup from '@/components/shared/MarkdownPopup';
 import { TranscriptDialog } from '@/components/shared/TranscriptDialog';
+import { LiveInterviewGrid } from '@/components/interviews/LiveInterviewGrid';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -148,6 +149,18 @@ export default function InterviewDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Live Interview Cards - Real-time monitoring */}
+      {execution.status === 'in_progress' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Entrevistas ao Vivo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <LiveInterviewGrid execId={execId!} />
+          </CardContent>
+        </Card>
+      )}
 
       {transcripts && transcripts.data.length > 0 && (
         <Card>
