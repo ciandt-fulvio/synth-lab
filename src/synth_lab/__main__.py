@@ -8,6 +8,7 @@ import argparse
 import sys
 
 from synth_lab import __version__
+from synth_lab.infrastructure.phoenix_tracing import maybe_setup_tracing, shutdown_tracing
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -101,6 +102,9 @@ def create_parser() -> argparse.ArgumentParser:
 
 def main():
     """Main CLI entry point."""
+    # Setup Phoenix tracing if PHOENIX_ENABLED=true
+    maybe_setup_tracing()
+
     parser = create_parser()
 
     # Parse arguments
@@ -143,7 +147,11 @@ def main():
         if args.synth_ids:
             sys.argv.extend(["--synth-ids", args.synth_ids])
 
-        gensynth_cli_main()
+        try:
+            gensynth_cli_main()
+        finally:
+            shutdown_tracing()
+
 
 if __name__ == "__main__":
     main()

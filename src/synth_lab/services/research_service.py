@@ -7,8 +7,14 @@ References:
     - API spec: specs/010-rest-api/contracts/openapi.yaml
 """
 
+from __future__ import annotations
+
 import asyncio
 from datetime import UTC, datetime, timedelta, timezone
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from synth_lab.domain.entities.artifact_state import ArtifactStateModel
 
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.research import (
@@ -132,6 +138,144 @@ class ResearchService:
 
         return summary_content
 
+    def get_artifact_states(
+        self, exec_id: str
+    ) -> tuple["ArtifactStateModel", "ArtifactStateModel"]:
+        """
+        Get the current state of summary and PR-FAQ artifacts.
+
+        Computes artifact states based on execution data and prfaq metadata.
+
+        Args:
+            exec_id: Execution ID.
+
+        Returns:
+            Tuple of (summary_state, prfaq_state) as ArtifactStateModel instances.
+
+        Raises:
+            ExecutionNotFoundError: If execution not found.
+        """
+        from loguru import logger
+
+        from synth_lab.domain.entities.artifact_state import (
+            compute_prfaq_state,
+            compute_summary_state,
+        )
+
+        # Get execution to check summary availability
+        execution = self.research_repo.get_execution(exec_id)
+        execution_status = execution.status.value
+        summary_available = execution.summary_available
+
+        # Get summary content for state computation
+        summary_content = self.research_repo.get_summary_content(exec_id)
+
+        # Check if transcripts exist
+        transcripts = self.research_repo.get_transcripts(exec_id)
+        has_transcripts = len(transcripts.data) > 0
+
+        # Compute summary state
+        summary_state = compute_summary_state(execution_status, summary_content, has_transcripts)
+        logger.debug(
+            f"[{exec_id}] Summary state computed: {summary_state.state.value} "
+            f"(status={execution_status}, has_content={summary_content is not None}, "
+            f"has_transcripts={has_transcripts})"
+        )
+
+        # Get prfaq metadata if exists
+        prfaq_metadata = self.research_repo.get_prfaq_metadata(exec_id)
+
+        # Compute prfaq state
+        prfaq_state = compute_prfaq_state(summary_available, prfaq_metadata)
+        logger.debug(
+            f"[{exec_id}] PR-FAQ state computed: {prfaq_state.state.value} "
+            f"(status={prfaq_metadata.get('status') if prfaq_metadata else 'none'})"
+        )
+
+        return summary_state, prfaq_state
+
+    async def generate_summary(self, exec_id: str, model: str = "gpt-5") -> str:
+        """
+        Generate a summary for a completed execution.
+
+        This is used when interviews completed but summary was not generated
+        (e.g., generate_summary was False during execution).
+
+        Args:
+            exec_id: Execution ID.
+            model: LLM model to use for summarization.
+
+        Returns:
+            Generated summary markdown content.
+
+        Raises:
+            ExecutionNotFoundError: If execution not found.
+            ValueError: If execution is not completed or has no transcripts.
+        """
+        from loguru import logger
+
+        from synth_lab.gen_synth.storage import load_synths
+        from synth_lab.services.research_agentic.runner import ConversationMessage, InterviewResult
+        from synth_lab.services.research_agentic.summarizer import summarize_interviews
+
+        # Get execution and verify it's completed
+        execution = self.research_repo.get_execution(exec_id)
+        if execution.status.value not in ("completed", "failed"):
+            raise ValueError(f"Execution {exec_id} is not completed (status: {execution.status.value})")
+
+        # Get transcripts
+        transcripts = self.research_repo.get_transcripts(exec_id)
+        if not transcripts.data:
+            raise ValueError(f"Execution {exec_id} has no transcripts")
+
+        logger.info(f"Generating summary for {exec_id} with {len(transcripts.data)} transcripts")
+
+        # Load synths for enrichment
+        all_synths = load_synths()
+        synths_by_id = {s["id"]: s for s in all_synths}
+
+        # Convert transcripts to InterviewResult format
+        interview_results: list[tuple[InterviewResult, dict]] = []
+        for transcript_summary in transcripts.data:
+            transcript = self.research_repo.get_transcript(exec_id, transcript_summary.synth_id)
+
+            # Convert messages to ConversationMessage
+            messages = [
+                ConversationMessage(
+                    speaker=msg.speaker,
+                    text=msg.text,
+                    internal_notes=msg.internal_notes,
+                )
+                for msg in transcript.messages
+            ]
+
+            interview_result = InterviewResult(
+                messages=messages,
+                synth_id=transcript.synth_id,
+                synth_name=transcript.synth_name or transcript.synth_id,
+                topic_guide_name=execution.topic_name,
+                trace_path=None,
+                total_turns=transcript.turn_count,
+            )
+
+            # Get synth data for enrichment
+            synth_data = synths_by_id.get(transcript.synth_id, {"id": transcript.synth_id, "nome": transcript.synth_name})
+
+            interview_results.append((interview_result, synth_data))
+
+        # Generate summary
+        summary = await summarize_interviews(
+            interview_results=interview_results,
+            topic_guide_name=execution.topic_name,
+            model=model,
+        )
+
+        # Save to database
+        self.research_repo.update_summary_content(exec_id, summary)
+        logger.info(f"Summary generated and saved for {exec_id}: {len(summary)} chars")
+
+        return summary
+
     async def execute_research(self, request: ResearchExecuteRequest) -> ResearchExecuteResponse:
         """
         Execute a new research session.
@@ -177,12 +321,14 @@ class ResearchService:
             self._run_batch_and_save(
                 exec_id=exec_id,
                 topic_name=request.topic_name,
+                additional_context=request.additional_context,
                 synth_ids=request.synth_ids,
                 synth_count=synth_count,
                 max_concurrent=request.max_concurrent,
                 max_turns=request.max_turns,
                 model=request.model,
                 generate_summary=request.generate_summary,
+                skip_interviewee_review=request.skip_interviewee_review,
             )
         )
 
@@ -198,12 +344,14 @@ class ResearchService:
         self,
         exec_id: str,
         topic_name: str,
+        additional_context: str | None,
         synth_ids: list[str] | None,
         synth_count: int,
         max_concurrent: int,
         max_turns: int,
         model: str,
         generate_summary: bool,
+        skip_interviewee_review: bool = True,
     ) -> None:
         """
         Run batch interviews and save results to database.
@@ -213,10 +361,12 @@ class ResearchService:
         Args:
             exec_id: Execution ID.
             topic_name: Topic guide name.
+            additional_context: Optional additional context to complement the research scenario.
             synth_ids: Optional specific synth IDs.
             synth_count: Number of synths to interview.
             max_concurrent: Max concurrent interviews.
             max_turns: Max turns per interview.
+            skip_interviewee_review: Whether to skip interviewee response reviewer.
             model: LLM model to use.
             generate_summary: Whether to generate summary.
         """
@@ -271,8 +421,11 @@ class ResearchService:
                 model=model,
                 generate_summary=generate_summary,
                 exec_id=exec_id,
+                synth_ids=synth_ids,
                 message_callback=on_message,
                 on_transcription_completed=on_transcription_complete,
+                skip_interviewee_review=skip_interviewee_review,
+                additional_context=additional_context,
             )
 
             # Save transcripts to database

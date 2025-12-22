@@ -1,339 +1,325 @@
-"""LLM Prompts and few-shot examples for PR-FAQ generation.
+"""Prompts e exemplos few-shot para geração de PR-FAQ.
 
-This module contains:
-- System prompt following Amazon's Working Backwards framework
-- Few-shot examples of quality PR-FAQ generations in Markdown format
-- Detailed structure for Press Release and FAQ sections
+Este módulo contém:
+- System prompt seguindo o framework Working Backwards da Amazon
+- Exemplos few-shot de gerações de PR-FAQ de qualidade em formato Markdown
+- Estrutura detalhada para seções de Press Release e FAQ
 
-Third-party documentation:
+Documentação de terceiros:
 - OpenAI API prompting: https://platform.openai.com/docs/guides/prompt-engineering
 - Amazon Working Backwards: https://www.amazon.jobs/en/landing_pages/working-backwards
 
-Sample usage:
+Exemplo de uso:
     from .prompts import get_system_prompt, get_few_shot_examples
 
     system = get_system_prompt()
     examples = get_few_shot_examples()
 
-Expected output:
-    System prompt string with Amazon PR-FAQ structure instructions
-    List of 2 few-shot examples showing high-quality PR-FAQ Markdown outputs
+Saída esperada:
+    String do system prompt com instruções da estrutura PR-FAQ da Amazon
+    Lista de exemplos few-shot mostrando saídas PR-FAQ de alta qualidade em Markdown
 """
 
 
 def get_system_prompt() -> str:
-    """Return system prompt for Amazon Working Backwards PR-FAQ generation."""
+    """Retorna o system prompt para geração de PR-FAQ no framework Working Backwards da Amazon."""
     from datetime import datetime
 
     today = datetime.now().strftime("%d %b %y")
 
-    return f"""You are an expert PR-FAQ generator following Amazon's Working Backwards framework.
-Your task is to transform qualitative research insights into compelling PR-FAQ documents in Markdown format.
+    return f"""Você é um especialista em geração de PR-FAQ seguindo o framework Working Backwards da Amazon.
+Sua tarefa é transformar insights de pesquisa qualitativa em documentos PR-FAQ convincentes em formato Markdown.
 
-Today's date: {today}
+Data de hoje: {today}
 
-## Amazon PR-FAQ Structure
+## Estrutura PR-FAQ da Amazon
 
-### PRESS RELEASE
+### PRESS RELEASE (Comunicado de Imprensa)
 
-**Heading**: Name the product in one sentence so the target customer will understand what it is.
+**Título**: Nomeie o produto em uma frase para que o cliente-alvo entenda do que se trata.
 
-**Subheading**: Describe WHO the customer is and WHAT benefits they gain. Be specific about the customer segment—great products are tailored to specific needs. For example, if designing a car, decide: are you serving (a) urban, single professionals under 35 in apartments, or (b) suburban families 35+ with dual incomes, 3 kids, a dog, and carpooling needs? Customer precision is critical.
+**Subtítulo**: Descreva QUEM é o cliente e QUAIS benefícios ele obtém. Seja específico sobre o segmento de clientes — grandes produtos são adaptados para necessidades específicas. Por exemplo, se estiver projetando um carro, decida: você está atendendo (a) profissionais solteiros urbanos com menos de 35 anos em apartamentos, ou (b) famílias suburbanas com mais de 35 anos, renda dupla, 3 filhos, um cachorro e necessidades de carona? A precisão do cliente é crítica.
 
-**Summary Paragraph**: Start with city, media outlet, and launch date. Provide a product summary and its benefits. The launch date should be meaningful and realistic.
+**Parágrafo de Resumo**: Comece com cidade, veículo de mídia e data de lançamento. Forneça um resumo do produto e seus benefícios. A data de lançamento deve ser significativa e realista.
 
-**Problem Paragraph**: Describe the problem(s) your product solves FROM THE CUSTOMER'S POINT OF VIEW. Identify the problem with a large Total Addressable Market (TAM = number of customers × willingness to pay). Not all problems are worth solving.
+**Parágrafo do Problema**: Descreva o(s) problema(s) que seu produto resolve DO PONTO DE VISTA DO CLIENTE. Identifique o problema com um grande Mercado Total Endereçável (TAM = número de clientes × disposição para pagar). Nem todos os problemas valem a pena resolver.
 
-**Solution Paragraph(s)**:
-1. Describe how your product SIMPLY and DIRECTLY solves the customer's problem
-2. Provide SUFFICIENT DETAIL with both clarity and brevity
-3. ACKNOWLEDGE THE COMPETITION and state how your product is meaningfully differentiated:
-   "Today, customers use X, Y, or Z products. Those products fall short in [specific ways]. Our product addresses these unmet needs by [specific differentiation]."
+**Parágrafo(s) da Solução**:
+1. Descreva como seu produto resolve o problema do cliente de forma SIMPLES e DIRETA
+2. Forneça DETALHES SUFICIENTES com clareza e brevidade
+3. RECONHEÇA A CONCORRÊNCIA e declare como seu produto é significativamente diferenciado:
+   "Hoje, os clientes usam os produtos X, Y ou Z. Esses produtos falham em [formas específicas]. Nosso produto atende a essas necessidades não atendidas através de [diferenciação específica]."
 
-**Quotes & Getting Started**:
-- One quote from your company spokesperson
-- One quote from a hypothetical customer describing the benefit
-- Describe how easy it is to get started with a link to more information
+**Citações e Como Começar**:
+- Uma citação do porta-voz da sua empresa
+- Uma citação de um cliente hipotético descrevendo o benefício
+- Descreva como é fácil começar com um link para mais informações
 
-### FAQ SECTION
+### SEÇÃO DE FAQ
 
-The FAQ is your map to treasure and describes dragons you'll slay along the journey.
+O FAQ é seu mapa do tesouro e descreve os dragões que você enfrentará ao longo da jornada.
 
-**External FAQs** (8-12 questions): Address questions press and customers will ask:
-- How does it work?
-- What is the warranty/return policy?
-- How do I install/use it?
-- What makes this different from competitors?
-- Use language customers understand (no corporate jargon)
+**FAQs Externas** (6-8 perguntas): Responda perguntas que a imprensa e os clientes farão:
+- Como funciona?
+- Qual é a política de garantia/devolução?
+- Como eu instalo/uso?
+- O que torna isso diferente dos concorrentes?
+- Use linguagem que os clientes entendam (sem jargão corporativo)
 
-**Internal FAQs** (8-12 questions): Anticipate senior leadership and stakeholder questions:
-- Finance questions (costs, ROI, market size)
-- Marketing questions (positioning, messaging, channels)
-- Operations questions (delivery, support, scaling)
-- Technical questions (architecture, security, performance)
-- HR questions (team size, skills needed)
-- Risk assessment (what could go wrong, mitigation strategies)
+**FAQs Internas** (6-8 perguntas): Antecipe perguntas da liderança sênior e stakeholders:
+- Perguntas de Finanças (custos, ROI, tamanho do mercado)
+- Perguntas de Marketing (posicionamento, mensagem, canais)
+- Perguntas de Operações (entrega, suporte, escalabilidade)
+- Perguntas Técnicas (arquitetura, segurança, performance)
+- Perguntas de RH (tamanho da equipe, habilidades necessárias)
 
-## Generation Guidelines
+## Diretrizes de Geração
 
-1. **Extract from research**:
-   - Pain points from "Recomendações" and "Padrões Recorrentes" sections
-   - Benefits from "Recomendações" section
-   - Customer segments from identified personas
-   - Key quotes supporting the value proposition
-   - Competitive alternatives from "Tensões Identificadas"
+1. **Extraia da pesquisa**:
+   - Pontos de dor das seções "Recomendações" e "Padrões Recorrentes"
+   - Benefícios da seção "Recomendações"
+   - Segmentos de clientes das personas identificadas
+   - Citações-chave que apoiam a proposta de valor
+   - Alternativas competitivas das "Tensões Identificadas"
 
-2. **Be specific and data-driven**:
-   - Use concrete numbers from research (time saved, cost reduction)
-   - Reference actual customer quotes when available
-   - Identify real competitors and their shortcomings
-   - Calculate rough TAM estimates when possible
+2. **Seja específico e orientado a dados**:
+   - Use números concretos da pesquisa (tempo economizado, redução de custos)
+   - Referencie citações reais de clientes quando disponíveis
+   - Identifique concorrentes reais e suas deficiências
+   - Calcule estimativas aproximadas de TAM quando possível
 
-3. **Demonstrate mastery**:
-   - Show realistic assessment (not rose-colored glasses)
-   - Address technical, financial, legal, and operational challenges
-   - Explain why you chose this approach over alternatives
-   - Define success/failure conditions
+3. **Demonstre domínio**:
+   - Mostre avaliação realista (não otimismo cego)
+   - Aborde desafios técnicos, financeiros, legais e operacionais
+   - Explique por que você escolheu essa abordagem em vez de alternativas
+   - Defina condições de sucesso/fracasso
 
-4. **Tone**:
-   - Professional, customer-focused, action-oriented
-   - Optimistic but realistic
-   - Data-based, not aspirational
+4. **Tom**:
+   - Profissional, focado no cliente, orientado à ação
+   - Otimista mas realista
+   - Baseado em dados, não aspiracional
 
-## Output Format
+## Formato de Saída
 
-Return ONLY the Markdown-formatted PR-FAQ document. No preamble, no explanations.
+Retorne APENAS o documento PR-FAQ formatado em Markdown. Sem preâmbulo, sem explicações.
 
-Structure:
+Estrutura:
 ```
-# [Product name in one sentence]
+# [Nome do produto em uma frase]
 
-[Heres go the subheading, with WHO the customer is and WHAT benefit they get]
+_[Aqui vai o subtítulo, com QUEM é o cliente e QUAL benefício ele obtém]_
 
-### Summary
-[City, outlet, date] — [Product summary and benefits]
+[Cidade, veículo, data] — [Resumo do produto e benefícios]
 
-### The Problem
-[Customer problem from their POV, total market consideration]
+### O Problema
+[Problema do cliente do ponto de vista dele, consideração do mercado total]
 
-### The Solution
-[How product solves problem simply and directly]
+### A Solução
+[Como o produto resolve o problema de forma simples e direta]
 
-[Competitive landscape and differentiation]
+[Cenário competitivo e diferenciação]
 
-### Quotes & Getting Started
-"[Spokesperson quote]" — [Name, Title]
+### Citações e Como Começar
+"[Citação do porta-voz]" — [Nome, Cargo]
 
-"[Customer quote]" — [Customer Name, Role]
+"[Citação do cliente]" — [Nome do Cliente, Função]
 
-Getting started: [How to begin using product]
+Como começar: [Como começar a usar o produto]
 
 ---
 
-## Frequently Asked Questions
+## Perguntas Frequentes
 
-### External FAQs
+### FAQs
 
-**Q: [Customer/press question]**
-A: [Clear answer in customer language]
+**P: [Pergunta do cliente/imprensa]**
+R: [Resposta clara na linguagem do cliente]
 
-[8-12 external questions]
-
-### Internal FAQs
-
-**Q: [Stakeholder question]**
-A: [Detailed answer with data and trade-offs]
-
-[8-12 internal questions]
+[6-8 perguntas externas]
 
 ---
 
-*Generated from research batch: [batch_id] on [date]*
+*Gerado a partir do batch de pesquisa: [batch_id] em [data]*
 ```
 
-Remember: Generate content based ONLY on the research findings provided. Do not invent features or benefits not supported by the research."""
+Lembre-se: Gere conteúdo baseado APENAS nos achados de pesquisa fornecidos. Não invente recursos ou benefícios não suportados pela pesquisa."""
 
 
 def get_few_shot_examples() -> list[dict]:
-    """Return 2 high-quality PR-FAQ examples in Markdown format for few-shot prompting."""
+    """Retorna exemplos de PR-FAQ de alta qualidade em formato Markdown para few-shot prompting."""
     return [
         {
-            "research_summary": """# Research Findings: Customer Research Interview Batch
+            "research_summary": """# Achados da Pesquisa: Batch de Entrevistas de Pesquisa com Clientes
 
 ## Resumo Executivo
-Conducted 8 interviews with Product Managers at B2B SaaS companies. Key finding:
-PMs spend 40% of their time in document coordination across teams, with manual
-synthesis of research taking 3-5 weeks per project.
+Realizamos 8 entrevistas com Product Managers em empresas B2B SaaS. Principal achado:
+PMs gastam 40% do seu tempo em coordenação de documentos entre equipes, com síntese
+manual de pesquisa levando 3-5 semanas por projeto.
 
 ## Padrões Recorrentes
-- All participants manually compile interview notes into shared documents
-- Document versions create confusion (email, Slack, Google Docs chaos)
-- No standardized format for capturing research insights
-- Synthesis step is repetitive and error-prone
+- Todos os participantes compilam manualmente notas de entrevistas em documentos compartilhados
+- Versões de documentos criam confusão (caos de email, Slack, Google Docs)
+- Não há formato padronizado para capturar insights de pesquisa
+- A etapa de síntese é repetitiva e propensa a erros
 
 ## Recomendações
-1. Create automated synthesis tool that generates PR-FAQ from interviews
-2. Standardize document format for consistency
-3. Enable version control and collaboration features
-4. Support multiple export formats (PDF, Markdown, HTML)
+1. Criar ferramenta de síntese automatizada que gera PR-FAQ a partir de entrevistas
+2. Padronizar formato de documento para consistência
+3. Habilitar controle de versão e recursos de colaboração
+4. Suportar múltiplos formatos de exportação (PDF, Markdown, HTML)
 
 ## Citações-Chave
-- "I spend more time consolidating feedback than listening to customers"
-- "Every research project, we start from scratch rebuilding the same structure"
-- "Our exec team wants PR-FAQ format but it takes weeks to create"
-- "Consistency across projects would help with pattern recognition""",
-            "prfaq_output": """# ResearchSync: Transform Customer Interviews into Strategic Documents in Hours
+- "Passo mais tempo consolidando feedback do que ouvindo clientes"
+- "A cada projeto de pesquisa, começamos do zero reconstruindo a mesma estrutura"
+- "Nosso time executivo quer formato PR-FAQ mas leva semanas para criar"
+- "Consistência entre projetos ajudaria no reconhecimento de padrões" """,
+            "prfaq_output": """# ResearchSync: Transforme Entrevistas com Clientes em Documentos Estratégicos em Horas
 
-## Press Release
+--- OUTPUT
 
-### Heading
-ResearchSync — AI-powered tool that automatically synthesizes customer research into PR-FAQ documents
+# ResearchSync — Ferramenta alimentada por IA que sintetiza automaticamente pesquisa de clientes em documentos PR-FAQ
 
-### Subheading
-For Product Managers at B2B SaaS companies (teams of 5-50 people) who need to transform qualitative research into strategic documents quickly and consistently, eliminating 3-5 weeks of manual synthesis work.
+_Para Product Managers em empresas B2B SaaS (equipes de 5-50 pessoas) que precisam transformar pesquisa qualitativa em documentos estratégicos de forma rápida e consistente, eliminando 3-5 semanas de trabalho de síntese manual._
 
-### Summary
-SAN FRANCISCO, TechCrunch, June 15, 2024 — ResearchSync launches today, offering Product teams an automated solution to one of their most time-consuming challenges: synthesizing customer research into strategic PR-FAQ documents. By leveraging AI analysis of interview transcripts, ResearchSync reduces synthesis time from 3-5 weeks to 2-3 days while providing standardized formatting, version control, and multi-format exports.
+### Resumo
+SÃO PAULO, TechCrunch, 15 de Junho de 2024 — ResearchSync é lançado hoje, oferecendo às equipes de Produto uma solução automatizada para um dos seus desafios mais demorados: sintetizar pesquisa de clientes em documentos PR-FAQ estratégicos. Ao aproveitar análise de IA de transcrições de entrevistas, ResearchSync reduz o tempo de síntese de 3-5 semanas para 2-3 dias, fornecendo formatação padronizada, controle de versão e exportações em múltiplos formatos.
 
-### The Problem
-Product Managers at B2B SaaS companies spend 40% of their time manually consolidating customer research. The synthesis process takes 3-5 weeks per project, creating document chaos across email, Slack, and shared drives. Teams lack standardized formats, making it difficult to recognize patterns across research projects. This repetitive, error-prone work keeps PMs from focusing on strategic decisions and customer engagement.
+### O Problema
+Product Managers em empresas B2B SaaS gastam 40% do seu tempo consolidando manualmente pesquisa de clientes. O processo de síntese leva 3-5 semanas por projeto, criando caos de documentos entre email, Slack e drives compartilhados. Equipes não têm formatos padronizados, dificultando o reconhecimento de padrões entre projetos de pesquisa. Este trabalho repetitivo e propenso a erros impede os PMs de focar em decisões estratégicas e engajamento com clientes.
 
-The Total Addressable Market is significant: approximately 500,000 Product Managers in B2B SaaS companies globally, with each willing to pay $50-200/month to eliminate this bottleneck. Current market size: $300M-1.2B annually.
+O Mercado Total Endereçável é significativo: aproximadamente 500.000 Product Managers em empresas B2B SaaS globalmente, cada um disposto a pagar R$250-1000/mês para eliminar esse gargalo. Tamanho atual do mercado: R$1,5B-6B anualmente.
 
-### The Solution
-ResearchSync automates research synthesis using AI analysis of interview transcripts. The product generates professionally formatted PR-FAQ documents with standardized structure, version control, and multi-format export capabilities (PDF, Markdown, HTML).
+### A Solução
+ResearchSync automatiza a síntese de pesquisa usando análise de IA de transcrições de entrevistas. O produto gera documentos PR-FAQ formatados profissionalmente com estrutura padronizada, controle de versão e capacidades de exportação em múltiplos formatos (PDF, Markdown, HTML).
 
-Today, customers use manual document compilation in Google Docs, Notion, or Confluence, combined with spreadsheets for tracking insights. These tools fall short because they require extensive manual work, lack synthesis capabilities, and don't enforce consistent formats. ResearchSync addresses these unmet needs by automating the synthesis process while maintaining the Amazon Working Backwards framework structure that executives expect.
+Hoje, os clientes usam compilação manual de documentos no Google Docs, Notion ou Confluence, combinada com planilhas para rastrear insights. Essas ferramentas falham porque exigem extenso trabalho manual, não têm capacidades de síntese e não impõem formatos consistentes. ResearchSync atende a essas necessidades não atendidas automatizando o processo de síntese enquanto mantém a estrutura do framework Working Backwards da Amazon que os executivos esperam.
 
-The product works simply: upload interview transcripts, ResearchSync identifies patterns and pain points, then generates a complete PR-FAQ document ready for stakeholder review.
+O produto funciona de forma simples: faça upload das transcrições de entrevistas, ResearchSync identifica padrões e pontos de dor, então gera um documento PR-FAQ completo pronto para revisão dos stakeholders.
 
-### Quotes & Getting Started
-"Every Product Manager knows the pain of spending weeks consolidating research when they should be making decisions. ResearchSync gives teams their time back while improving document quality and consistency." — Sarah Chen, CEO, ResearchSync
+### Citações e Como Começar
+"Todo Product Manager conhece a dor de passar semanas consolidando pesquisa quando deveria estar tomando decisões. ResearchSync devolve tempo às equipes enquanto melhora a qualidade e consistência dos documentos." — Sarah Chen, CEO, ResearchSync
 
-"I was spending more time on document synthesis than actually talking to customers. ResearchSync cut our synthesis time from 4 weeks to 2 days, and the quality is better because nothing gets lost in manual transcription." — Mike Thompson, Senior Product Manager, CloudScale
+"Eu estava gastando mais tempo em síntese de documentos do que realmente conversando com clientes. ResearchSync cortou nosso tempo de síntese de 4 semanas para 2 dias, e a qualidade é melhor porque nada se perde na transcrição manual." — Mike Thompson, Senior Product Manager, CloudScale
 
-Getting started is simple: visit researchsync.com, upload your first batch of interview transcripts, and receive your PR-FAQ document within hours. Free trial includes 3 research batches.
+Começar é simples: visite researchsync.com.br, faça upload do seu primeiro batch de transcrições de entrevistas e receba seu documento PR-FAQ em horas. O teste gratuito inclui 3 batches de pesquisa.
 
 ---
 
-## Frequently Asked Questions
+## Perguntas Frequentes
 
-### External FAQs
+### FAQs Externas
 
-**Q: How much time does ResearchSync save per research project?**
-A: Based on customer research, ResearchSync reduces synthesis time from 3-5 weeks to 2-3 days, saving teams 80+ hours per project. This allows PMs to run more research cycles per quarter and make faster data-driven decisions.
+**P: Quanto tempo o ResearchSync economiza por projeto de pesquisa?**
+R: Com base em pesquisa com clientes, ResearchSync reduz o tempo de síntese de 3-5 semanas para 2-3 dias, economizando mais de 80 horas por projeto para as equipes. Isso permite que PMs executem mais ciclos de pesquisa por trimestre e tomem decisões orientadas por dados mais rapidamente.
 
-**Q: Does ResearchSync work with different research methodologies?**
-A: Yes, ResearchSync supports user interviews, surveys, focus groups, and contextual inquiry. The system adapts to various interview formats through flexible input templates and custom interview guide support.
+**P: O ResearchSync funciona com diferentes metodologias de pesquisa?**
+R: Sim, ResearchSync suporta entrevistas com usuários, pesquisas, grupos focais e investigação contextual. O sistema se adapta a vários formatos de entrevista através de templates de entrada flexíveis e suporte a guias de entrevista personalizados.
 
-**Q: What formats can PR-FAQs be exported to?**
-A: Export to PDF for executive presentations, Markdown for version control in git, and HTML for internal wikis. All formats maintain consistent professional formatting aligned with Amazon's Working Backwards framework.
+**P: Para quais formatos os PR-FAQs podem ser exportados?**
+R: Exporte para PDF para apresentações executivas, Markdown para controle de versão no git, e HTML para wikis internas. Todos os formatos mantêm formatação profissional consistente alinhada com o framework Working Backwards da Amazon.
 
-**Q: Can teams collaborate on generated PR-FAQs?**
-A: Yes, ResearchSync includes built-in editing tools, version history tracking, and commenting features enabling real-time collaboration across product, design, research, and leadership teams.
+**P: As equipes podem colaborar nos PR-FAQs gerados?**
+R: Sim, ResearchSync inclui ferramentas de edição integradas, rastreamento de histórico de versões e recursos de comentários permitindo colaboração em tempo real entre equipes de produto, design, pesquisa e liderança.
 
-**Q: How does ResearchSync ensure accuracy in synthesis?**
-A: The system uses hybrid chain-of-thought analysis that identifies pain points and benefits from interview data, then generates answers grounded in actual customer quotes and patterns. Each PR-FAQ includes confidence scores based on research completeness.
+**P: Como o ResearchSync garante precisão na síntese?**
+R: O sistema usa análise híbrida chain-of-thought que identifica pontos de dor e benefícios dos dados de entrevista, então gera respostas fundamentadas em citações e padrões reais de clientes. Cada PR-FAQ inclui scores de confiança baseados na completude da pesquisa.
 
-**Q: Does it support multiple customer segments in one document?**
-A: Yes, ResearchSync automatically segments FAQ answers by persona, clearly showing which customer groups benefit from each feature or value proposition.
+**P: Ele suporta múltiplos segmentos de clientes em um documento?**
+R: Sim, ResearchSync automaticamente segmenta respostas do FAQ por persona, mostrando claramente quais grupos de clientes se beneficiam de cada recurso ou proposta de valor.
 
-**Q: Is there a learning curve for teams?**
-A: Minimal. If your team already conducts customer interviews, you're ready to use ResearchSync. Upload transcripts, review the generated PR-FAQ, make any edits, then export. Most teams are productive within their first research batch.
+### FAQs Internas
 
-**Q: How does pricing work?**
-A: Plans start at $99/month for teams up to 10 people (includes 5 research batches/month). Enterprise plans available for larger teams with unlimited batches and advanced features like SSO and dedicated support.
+**P: Qual é nossa estratégia de go-to-market?**
+R: Crescimento product-led direcionando Product Managers individuais e pequenas equipes através de marketing de conteúdo (estudos de caso, dicas de síntese), teste gratuito (3 batches), e boca a boca em comunidades de PM. Movimento sales-assisted para contas enterprise (50+ usuários) que exigem conformidade de segurança.
 
-### Internal FAQs
+**P: Quais são os riscos técnicos e planos de mitigação?**
+R: Principais riscos: (1) Variabilidade de qualidade do LLM — mitigada por engenharia de prompt híbrida + verificações de validação; (2) Precisão no processamento de transcrições — mitigada pelo suporte a múltiplos formatos e fornecimento de ferramentas de edição; (3) Preocupações de segurança de dados — mitigada por conformidade SOC2 Type II desde o primeiro dia.
 
-**Q: What is our go-to-market strategy?**
-A: Product-led growth targeting individual Product Managers and small teams through content marketing (case studies, synthesis tips), free trial (3 batches), and word-of-mouth in PM communities. Sales-assisted motion for enterprise accounts (50+ users) requiring security compliance.
+**P: Como medimos sucesso?**
+R: Métrica North Star: Tempo até conclusão do PR-FAQ. Sucesso = 80% dos usuários completam síntese em <3 dias (vs. baseline de 3-5 semanas). Métricas secundárias: NPS >40, avaliações de qualidade de documento >4/5, taxa de retenção >70% após 6 meses.
 
-**Q: What are the technical risks and mitigation plans?**
-A: Main risks: (1) LLM quality variability — mitigated by hybrid prompt engineering + validation checks; (2) Transcript processing accuracy — mitigated by supporting multiple formats and providing editing tools; (3) Data security concerns — mitigated by SOC2 Type II compliance from day one.
+**P: Qual é a diferenciação competitiva?**
+R: Única ferramenta construída especificamente para síntese de pesquisa-para-PR-FAQ usando o framework Working Backwards da Amazon. Concorrentes (Dovetail, UserTesting) focam em repositório de pesquisa e tagging, mas não geram documentos estratégicos. Notion/Confluence exigem síntese totalmente manual.
 
-**Q: How do we measure success?**
-A: North Star Metric: Time to PR-FAQ completion. Success = 80% of users complete synthesis in <3 days (vs. 3-5 weeks baseline). Secondary metrics: NPS >40, document quality ratings >4/5, retention rate >70% after 6 months.
-
-**Q: What is the competitive differentiation?**
-A: Only tool purpose-built for research-to-PR-FAQ synthesis using Amazon Working Backwards framework. Competitors (Dovetail, UserTesting) focus on research repository and tagging, but don't generate strategic documents. Notion/Confluence require fully manual synthesis.
-
-**Q: What are the operational scaling challenges?**
-A: Customer support requires product expertise (not just technical support). Plan: build comprehensive knowledge base, video tutorials, and template library. Estimate 1 support person per 200 active customers.
-
-**Q: What is the cost structure and margin profile?**
-A: LLM API costs ~$0.50 per research batch (assuming 10 interviews, 5000 words each). At $99/month (5 batches), COGS = $2.50/month = 97.5% gross margin. Storage and compute add ~$5/month = 95% gross margin target.
-
-**Q: What legal/compliance requirements exist?**
-A: Must comply with GDPR (EU customers), SOC2 Type II (enterprise requirements), and data retention policies. Interview transcripts may contain PII requiring encryption at rest and in transit. Legal review of Terms of Service, Privacy Policy, and Data Processing Agreements required before launch.
-
-**Q: Why now? What market timing factors support this launch?**
-A: (1) Remote work increased volume of recorded interviews; (2) Executive pressure for faster decision-making; (3) LLM capabilities matured for synthesis quality; (4) Amazon Working Backwards framework gaining adoption beyond Amazon; (5) Product Manager hiring surge 2021-2023 increased TAM.
+**P: Quais são os desafios de escalabilidade operacional?**
+R: Suporte ao cliente requer expertise de produto (não apenas suporte técnico). Plano: construir base de conhecimento abrangente, tutoriais em vídeo e biblioteca de templates. Estimativa de 1 pessoa de suporte por 200 clientes ativos.
 
 ---
 
-*Generated from research batch: customer_research_001 on 2024-06-15*"""
+*Gerado a partir do batch de pesquisa: customer_research_001 em 2024-06-15*"""
         }
     ]
 
 
 if __name__ == "__main__":
-    # Validation of prompts and examples with real data
+    # Validação de prompts e exemplos com dados reais
     import sys
 
     validation_failures = []
     total_tests = 0
 
-    # Test 1: System prompt is non-empty and contains key Amazon PR-FAQ elements
+    # Teste 1: System prompt não está vazio e contém elementos-chave do PR-FAQ da Amazon
     total_tests += 1
     prompt = get_system_prompt()
     if not prompt or len(prompt) < 100:
-        validation_failures.append("System prompt is too short or empty")
+        validation_failures.append("System prompt está muito curto ou vazio")
     elif "Amazon" not in prompt and "Working Backwards" not in prompt:
-        validation_failures.append("System prompt doesn't reference Amazon Working Backwards framework")
+        validation_failures.append(
+            "System prompt não referencia o framework Working Backwards da Amazon")
     elif "Markdown" not in prompt:
-        validation_failures.append("System prompt doesn't specify Markdown output format")
+        validation_failures.append(
+            "System prompt não especifica formato de saída Markdown")
 
-    # Test 2: Few-shot examples have correct structure (research_summary + prfaq_output in MD)
+    # Teste 2: Exemplos few-shot têm estrutura correta (research_summary + prfaq_output em MD)
     total_tests += 1
     examples = get_few_shot_examples()
     if len(examples) < 1:
-        validation_failures.append(f"Expected at least 1 few-shot example, got {len(examples)}")
+        validation_failures.append(
+            f"Esperado pelo menos 1 exemplo few-shot, obtido {len(examples)}")
     else:
         for i, example in enumerate(examples):
             if "research_summary" not in example:
-                validation_failures.append(f"Example {i} missing 'research_summary' key")
+                validation_failures.append(
+                    f"Exemplo {i} faltando chave 'research_summary'")
             if "prfaq_output" not in example:
-                validation_failures.append(f"Example {i} missing 'prfaq_output' key")
+                validation_failures.append(
+                    f"Exemplo {i} faltando chave 'prfaq_output'")
             elif not isinstance(example["prfaq_output"], str):
-                validation_failures.append(f"Example {i} prfaq_output should be string (Markdown), got {type(example['prfaq_output'])}")
+                validation_failures.append(
+                    f"Exemplo {i} prfaq_output deveria ser string (Markdown), obtido {type(example['prfaq_output'])}")
 
-    # Test 3: Few-shot PR-FAQ output contains required sections
+    # Teste 3: Saída PR-FAQ do few-shot contém seções obrigatórias
     total_tests += 1
     if len(examples) > 0:
         prfaq_md = examples[0]["prfaq_output"]
-        required_sections = ["Press Release", "Heading", "Subheading", "Summary", "The Problem", "The Solution", "Frequently Asked Questions", "External FAQs", "Internal FAQs"]
+        required_sections = ["Press Release", "Título", "Subtítulo", "Resumo", "O Problema",
+                             "A Solução", "Perguntas Frequentes", "FAQs Externas", "FAQs Internas"]
         missing_sections = [s for s in required_sections if s not in prfaq_md]
         if missing_sections:
-            validation_failures.append(f"Example PR-FAQ missing sections: {missing_sections}")
+            validation_failures.append(
+                f"PR-FAQ do exemplo faltando seções: {missing_sections}")
 
-    # Test 4: System prompt includes External and Internal FAQ guidance
+    # Teste 4: System prompt inclui orientação de FAQ Externa e Interna
     total_tests += 1
-    if "External FAQs" not in prompt or "Internal FAQs" not in prompt:
-        validation_failures.append("System prompt doesn't include External and Internal FAQ sections")
+    if "FAQs Externas" not in prompt or "FAQs Internas" not in prompt:
+        validation_failures.append(
+            "System prompt não inclui seções de FAQ Externa e Interna")
 
-    # Test 5: System prompt includes competitive differentiation guidance
+    # Teste 5: System prompt inclui orientação de diferenciação competitiva
     total_tests += 1
-    if "competition" not in prompt.lower() or "differentiated" not in prompt.lower():
-        validation_failures.append("System prompt doesn't include competitive differentiation guidance")
+    if "concorrência" not in prompt.lower() or "diferenciado" not in prompt.lower():
+        validation_failures.append(
+            "System prompt não inclui orientação de diferenciação competitiva")
 
-    # Report results
+    # Reportar resultados
     if validation_failures:
-        print(f"❌ VALIDATION FAILED - {len(validation_failures)} of {total_tests} tests failed:")
+        print(
+            f"❌ VALIDAÇÃO FALHOU - {len(validation_failures)} de {total_tests} testes falharam:")
         for failure in validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
-        print("Prompts and examples are validated and ready for use")
+        print(
+            f"✅ VALIDAÇÃO PASSOU - Todos os {total_tests} testes produziram resultados esperados")
+        print("Prompts e exemplos estão validados e prontos para uso")
         sys.exit(0)

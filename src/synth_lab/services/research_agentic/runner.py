@@ -216,6 +216,35 @@ def load_topic_guide(topic_guide_name: str) -> str:
         f"No script.json or summary.md in {topic_guide_path}")
 
 
+def load_context_definition(topic_guide_name: str) -> str | None:
+    """
+    Load context definition from the topic guide script.json.
+
+    Args:
+        topic_guide_name: Name of the topic guide directory
+
+    Returns:
+        Context definition string or None if not found
+    """
+    from synth_lab.infrastructure.config import resolve_topic_guide_path
+
+    topic_guide_path = resolve_topic_guide_path(topic_guide_name)
+    if topic_guide_path is None:
+        return None
+
+    script_path = topic_guide_path / "script.json"
+    if not script_path.exists():
+        return None
+
+    with open(script_path, encoding="utf-8") as f:
+        script = json.load(f)
+
+    # Get context_definition from first item in script
+    if script and isinstance(script, list) and len(script) > 0:
+        return script[0].get("context_definition")
+
+    return None
+
 def load_context_examples(topic_guide_name: str) -> dict[str, str] | None:
     """
     Load context examples from the topic guide script.json.
@@ -251,6 +280,8 @@ async def generate_initial_context(
     context_examples: dict[str, str],
     topic_guide: str,
     model: str = "gpt-5-mini",
+    context_definition: str | None = None,
+    additional_context: str | None = None,
 ) -> str:
     """
     Generate initial context for the interviewee based on examples.
@@ -263,6 +294,8 @@ async def generate_initial_context(
         context_examples: Dict with 'positive', 'negative', 'neutral' examples
         topic_guide: Topic guide content for context
         model: LLM model to use
+        context_definition: Optional definition/purpose of the context
+        additional_context: Optional additional context to complement the scenario
 
     Returns:
         Generated initial context string
@@ -284,7 +317,27 @@ async def generate_initial_context(
     ocupacao = demo.get("ocupacao", "não informada")
     cidade = demo.get("localizacao", {}).get("cidade", "não informada")
 
+    # Build context definition section
+    context_def_section = ""
+    if context_definition:
+        context_def_section = f"""
+CONTEXTO:
+{context_definition}
+"""
+
+    # Build additional context section
+    additional_context_section = ""
+    if additional_context:
+        additional_context_section = f"""
+CONTEXTO ADICIONAL:
+{additional_context}
+"""
+
     prompt = f"""Você deve gerar uma experiência pessoal para {nome}, {idade} anos, {ocupacao}, de {cidade}.
+
+RELATIVO A:
+{context_def_section}
+{additional_context_section}
 
 TIPO DE EXPERIÊNCIA: {sentiment.upper()}
 
@@ -372,6 +425,8 @@ async def run_interview(
     verbose: bool = True,
     exec_id: str | None = None,
     message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
+    skip_interviewee_review: bool = True,
+    additional_context: str | None = None,
 ) -> InterviewResult:
     """
     Run an agentic interview with orchestrated turn-taking.
@@ -394,6 +449,9 @@ async def run_interview(
         exec_id: Execution ID for SSE streaming (optional)
         message_callback: Async callback for real-time message streaming (optional)
             Signature: (exec_id, synth_id, turn_number, message) -> None
+        skip_interviewee_review: Whether to skip the interviewee response reviewer.
+            If True, uses raw interviewee response without humanization review.
+        additional_context: Optional additional context to complement the research scenario
 
     Returns:
         InterviewResult with conversation and metadata
@@ -414,6 +472,8 @@ async def run_interview(
     synth = load_synth(synth_id)
     topic_guide = load_topic_guide(topic_guide_name)
     synth_name = synth.get("nome", "Participante")
+
+    context_definition = load_context_definition(topic_guide_name)
 
     # Load context examples for generating initial context
     context_examples = load_context_examples(topic_guide_name)
@@ -509,6 +569,7 @@ async def run_interview(
                                 conversation_history=shared_memory.format_history(),
                                 mcp_servers=mcp_servers,
                                 model=model,
+                                additional_context=additional_context,
                             )
 
                             # Log request (system prompt + input)
@@ -526,6 +587,8 @@ async def run_interview(
                                     context_examples=context_examples,
                                     topic_guide=topic_guide,
                                     model=model,
+                                    context_definition=context_definition,
+                                    additional_context=additional_context,
                                 )
                                 raw_result, initial_context = await asyncio.gather(
                                     interviewer_task, context_task
@@ -574,28 +637,33 @@ async def run_interview(
                             raw_response = raw_result.final_output
                             span.set_attribute("response", raw_response)
 
-                        # Review interviewee response
-                        reviewer_input = "Revise esta resposta para maior autenticidade."
-                        with tracer.start_span(SpanType.LLM_CALL, {
-                            "speaker": "interviewee_reviewer",
-                            "turn_number": turns + 1,
-                        }) as span:
-                            reviewer = create_interviewee_reviewer(
-                                synth=shared_memory.synth,
-                                raw_response=raw_response,
-                                model=model,
-                            )
+                        # Review interviewee response (optional)
+                        if skip_interviewee_review:
+                            # Skip reviewer, use raw response directly
+                            final_response = raw_response
+                            logger.debug("Skipping interviewee reviewer")
+                        else:
+                            reviewer_input = "Revise esta resposta para maior autenticidade."
+                            with tracer.start_span(SpanType.LLM_CALL, {
+                                "speaker": "interviewee_reviewer",
+                                "turn_number": turns + 1,
+                            }) as span:
+                                reviewer = create_interviewee_reviewer(
+                                    synth=shared_memory.synth,
+                                    raw_response=raw_response,
+                                    model=model,
+                                )
 
-                            # Log request (system prompt + input)
-                            span.set_attribute("request", f"[System Prompt]\n{reviewer.instructions}\n\n[Input]\n{reviewer_input}")
+                                # Log request (system prompt + input)
+                                span.set_attribute("request", f"[System Prompt]\n{reviewer.instructions}\n\n[Input]\n{reviewer_input}")
 
-                            review_result = await Runner.run(
-                                reviewer,
-                                input=reviewer_input
-                            )
-                            final_response = review_result.final_output
-                            span.set_attribute("response", final_response)
-                            span.set_status(SpanStatus.SUCCESS)
+                                review_result = await Runner.run(
+                                    reviewer,
+                                    input=reviewer_input
+                                )
+                                final_response = review_result.final_output
+                                span.set_attribute("response", final_response)
+                                span.set_status(SpanStatus.SUCCESS)
 
                         speaker = "Interviewee"
 

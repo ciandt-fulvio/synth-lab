@@ -362,6 +362,61 @@ class ResearchRepository(BaseRepository):
             (exec_id, synth_id, synth_name, turn_count, datetime.now().isoformat(), status, messages_json),
         )
 
+    def update_summary_content(self, exec_id: str, summary_content: str) -> None:
+        """
+        Update only the summary content for an execution.
+
+        Args:
+            exec_id: Execution ID.
+            summary_content: Summary markdown content.
+
+        Raises:
+            ExecutionNotFoundError: If execution not found.
+        """
+        # Verify execution exists
+        self.get_execution(exec_id)
+
+        query = "UPDATE research_executions SET summary_content = ? WHERE exec_id = ?"
+        self.db.execute(query, (summary_content, exec_id))
+
+    def get_prfaq_metadata(self, exec_id: str) -> dict | None:
+        """
+        Get PR-FAQ metadata for an execution.
+
+        Args:
+            exec_id: Execution ID.
+
+        Returns:
+            Dict with prfaq_metadata fields or None if not found.
+
+        Note:
+            This returns raw dict for use with compute_prfaq_state.
+            The dict includes: status, error_message, started_at, generated_at
+        """
+        row = self.db.fetchone(
+            """
+            SELECT exec_id, status, error_message, started_at, generated_at,
+                   headline, markdown_content, validation_status, confidence_score
+            FROM prfaq_metadata
+            WHERE exec_id = ?
+            """,
+            (exec_id,),
+        )
+        if row is None:
+            return None
+
+        return {
+            "exec_id": row["exec_id"],
+            "status": row["status"] or "completed",  # Default for legacy records
+            "error_message": row["error_message"],
+            "started_at": row["started_at"],
+            "generated_at": row["generated_at"],
+            "headline": row["headline"],
+            "markdown_content": row["markdown_content"],
+            "validation_status": row["validation_status"],
+            "confidence_score": row["confidence_score"],
+        }
+
 
 if __name__ == "__main__":
     import sys
