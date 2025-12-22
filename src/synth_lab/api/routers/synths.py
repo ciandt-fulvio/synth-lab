@@ -7,11 +7,12 @@ References:
     - OpenAPI spec: specs/010-rest-api/contracts/openapi.yaml
 """
 
-from fastapi import APIRouter, Query
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import FileResponse, RedirectResponse
 
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.synth import SynthDetail, SynthFieldInfo, SynthSearchRequest, SynthSummary
+from synth_lab.services.errors import AvatarNotFoundError
 from synth_lab.services.synth_service import SynthService
 
 router = APIRouter()
@@ -70,20 +71,37 @@ async def get_synth(synth_id: str) -> SynthDetail:
     return service.get_synth(synth_id)
 
 
-@router.get("/{synth_id}/avatar")
-async def get_avatar(synth_id: str) -> FileResponse:
+@router.get("/{synth_id}/avatar", response_model=None)
+async def get_avatar(synth_id: str) -> FileResponse | RedirectResponse:
     """
     Get avatar image for a synth.
 
     Returns the PNG avatar image for the specified synth.
+    If no avatar file exists, redirects to the link_photo URL as fallback.
     """
     service = get_synth_service()
-    avatar_path = service.get_avatar(synth_id)
-    return FileResponse(
-        path=avatar_path,
-        media_type="image/png",
-        filename=f"{synth_id}.png",
-    )
+
+    try:
+        # Try to get the local avatar file
+        avatar_path = service.get_avatar(synth_id)
+        return FileResponse(
+            path=avatar_path,
+            media_type="image/png",
+            filename=f"{synth_id}.png",
+        )
+    except AvatarNotFoundError:
+        # Fallback: try to use link_photo
+        synth = service.get_synth(synth_id)
+
+        if synth.link_photo:
+            # Redirect to the dynamic photo generation service
+            return RedirectResponse(url=synth.link_photo, status_code=307)
+
+        # No avatar file and no link_photo available
+        raise HTTPException(
+            status_code=404,
+            detail=f"Avatar not found for synth {synth_id} and no fallback link_photo available",
+        )
 
 
 @router.post("/search", response_model=PaginatedResponse[SynthSummary])
