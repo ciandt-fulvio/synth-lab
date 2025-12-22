@@ -19,7 +19,9 @@ from loguru import logger
 
 from synth_lab.infrastructure.config import DB_PATH
 
-# Database schema SQL
+# Database schema SQL - Version 4 (2024-12)
+# Changes:
+#   - synths.data: single JSON field for all nested data (demografia, psicografia, etc.)
 SCHEMA_SQL = """
 -- Enable recommended settings
 PRAGMA journal_mode=WAL;
@@ -36,10 +38,7 @@ CREATE TABLE IF NOT EXISTS synths (
     avatar_path TEXT,
     created_at TEXT NOT NULL,
     version TEXT DEFAULT '2.0.0',
-    demografia TEXT CHECK(json_valid(demografia) OR demografia IS NULL),
-    psicografia TEXT CHECK(json_valid(psicografia) OR psicografia IS NULL),
-    deficiencias TEXT CHECK(json_valid(deficiencias) OR deficiencias IS NULL),
-    capacidades_tecnologicas TEXT CHECK(json_valid(capacidades_tecnologicas) OR capacidades_tecnologicas IS NULL)
+    data TEXT CHECK(json_valid(data) OR data IS NULL)
 );
 
 CREATE INDEX IF NOT EXISTS idx_synths_arquetipo ON synths(arquetipo);
@@ -115,172 +114,7 @@ CREATE TABLE IF NOT EXISTS topic_guides_cache (
     created_at TEXT,
     updated_at TEXT
 );
-
--- Schema migrations table
-CREATE TABLE IF NOT EXISTS schema_migrations (
-    version INTEGER PRIMARY KEY,
-    applied_at TEXT NOT NULL,
-    description TEXT
-);
-
-INSERT OR IGNORE INTO schema_migrations (version, applied_at, description)
-VALUES (1, datetime('now'), 'Initial schema creation');
-
-INSERT OR IGNORE INTO schema_migrations (version, applied_at, description)
-VALUES (2, datetime('now'), 'Add status, error_message, started_at to prfaq_metadata');
 """
-
-
-# Migration SQL for existing databases
-MIGRATION_V2_SQL = """
--- Migration V2: Add status columns to prfaq_metadata
--- This handles existing databases that don't have these columns
-
--- Add status column if not exists
-ALTER TABLE prfaq_metadata ADD COLUMN status TEXT DEFAULT 'completed';
-
--- Add error_message column if not exists
-ALTER TABLE prfaq_metadata ADD COLUMN error_message TEXT;
-
--- Add started_at column if not exists
-ALTER TABLE prfaq_metadata ADD COLUMN started_at TEXT;
-
--- Update existing records to have 'completed' status
-UPDATE prfaq_metadata SET status = 'completed' WHERE status IS NULL;
-
--- Create index on status
-CREATE INDEX IF NOT EXISTS idx_prfaq_status ON prfaq_metadata(status);
-
--- Record migration
-INSERT OR IGNORE INTO schema_migrations (version, applied_at, description)
-VALUES (2, datetime('now'), 'Add status, error_message, started_at to prfaq_metadata');
-"""
-
-
-def apply_migrations(db_path: Path | None = None) -> None:
-    """
-    Apply pending database migrations.
-
-    Args:
-        db_path: Path to database file. Defaults to config.DB_PATH.
-    """
-    import sqlite3
-
-    target_path = db_path or DB_PATH
-
-    if not target_path.exists():
-        logger.info(f"Database not found at {target_path}, initializing...")
-        init_database(db_path)
-        return
-
-    logger.info(f"Checking migrations for {target_path}")
-
-    conn = sqlite3.connect(target_path)
-    try:
-        # Check current version
-        try:
-            cursor = conn.execute("SELECT MAX(version) FROM schema_migrations")
-            current_version = cursor.fetchone()[0] or 0
-        except sqlite3.OperationalError:
-            # schema_migrations table doesn't exist, run init
-            conn.executescript(SCHEMA_SQL)
-            return
-
-        logger.info(f"Current schema version: {current_version}")
-
-        # Apply V2 migration if needed
-        if current_version < 2:
-            logger.info("Applying migration V2: Add prfaq_metadata status columns")
-            try:
-                # Try to add columns (may fail if already exist)
-                conn.execute(
-                    "ALTER TABLE prfaq_metadata ADD COLUMN status TEXT DEFAULT 'completed'"
-                )
-            except sqlite3.OperationalError:
-                pass  # Column already exists
-
-            try:
-                conn.execute("ALTER TABLE prfaq_metadata ADD COLUMN error_message TEXT")
-            except sqlite3.OperationalError:
-                pass  # Column already exists
-
-            try:
-                conn.execute("ALTER TABLE prfaq_metadata ADD COLUMN started_at TEXT")
-            except sqlite3.OperationalError:
-                pass  # Column already exists
-
-            # Update existing records
-            conn.execute("UPDATE prfaq_metadata SET status = 'completed' WHERE status IS NULL")
-
-            # Create index
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_prfaq_status ON prfaq_metadata(status)"
-            )
-
-            # Record migration
-            conn.execute(
-                "INSERT OR IGNORE INTO schema_migrations (version, applied_at, description) "
-                "VALUES (2, datetime('now'), 'Add status, error_message, started_at to prfaq_metadata')"
-            )
-            conn.commit()
-            logger.info("Migration V2 applied successfully")
-            current_version = 2
-
-        # Apply V3 migration if needed - Remove NOT NULL constraint from generated_at
-        if current_version < 3:
-            logger.info("Applying migration V3: Remove NOT NULL constraint from prfaq_metadata.generated_at")
-            try:
-                # SQLite doesn't support ALTER COLUMN, need to recreate table
-                conn.executescript("""
-                    -- Create new table without NOT NULL on generated_at
-                    CREATE TABLE IF NOT EXISTS prfaq_metadata_new (
-                        exec_id TEXT PRIMARY KEY,
-                        generated_at TEXT,
-                        model TEXT DEFAULT 'gpt-5-mini',
-                        validation_status TEXT DEFAULT 'valid',
-                        confidence_score REAL,
-                        headline TEXT,
-                        one_liner TEXT,
-                        faq_count INTEGER DEFAULT 0,
-                        markdown_content TEXT,
-                        json_content TEXT CHECK(json_valid(json_content) OR json_content IS NULL),
-                        status TEXT DEFAULT 'completed',
-                        error_message TEXT,
-                        started_at TEXT,
-                        CHECK(validation_status IN ('valid', 'invalid', 'pending')),
-                        CHECK(status IN ('generating', 'completed', 'failed'))
-                    );
-
-                    -- Copy data from old table
-                    INSERT OR IGNORE INTO prfaq_metadata_new
-                    SELECT exec_id, generated_at, model, validation_status, confidence_score,
-                           headline, one_liner, faq_count, markdown_content, json_content,
-                           status, error_message, started_at
-                    FROM prfaq_metadata;
-
-                    -- Drop old table
-                    DROP TABLE prfaq_metadata;
-
-                    -- Rename new table
-                    ALTER TABLE prfaq_metadata_new RENAME TO prfaq_metadata;
-
-                    -- Recreate indexes
-                    CREATE INDEX IF NOT EXISTS idx_prfaq_generated ON prfaq_metadata(generated_at DESC);
-                    CREATE INDEX IF NOT EXISTS idx_prfaq_status ON prfaq_metadata(status);
-                """)
-
-                # Record migration
-                conn.execute(
-                    "INSERT OR IGNORE INTO schema_migrations (version, applied_at, description) "
-                    "VALUES (3, datetime('now'), 'Remove NOT NULL constraint from prfaq_metadata.generated_at')"
-                )
-                conn.commit()
-                logger.info("Migration V3 applied successfully")
-            except sqlite3.OperationalError as e:
-                logger.warning(f"Migration V3 warning (may be already applied): {e}")
-
-    finally:
-        conn.close()
 
 
 def init_database(db_path: Path | None = None) -> None:

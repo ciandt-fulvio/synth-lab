@@ -27,46 +27,23 @@ PRAGMA temp_store=MEMORY;       -- Usa memória para tabelas temporárias
 
 ```
 ┌─────────────┐
-│   synths    │◄──────┐
-└─────────────┘       │
-       ▲              │
-       │              │
-       │              │
-┌──────┴──────────┐   │
-│ synth_avatars   │   │
-└─────────────────┘   │
-                      │
-┌─────────────────┐   │
-│ topic_guides    │   │
-└─────────────────┘   │
-       ▲              │
-       │              │
-┌──────┴──────────────┐
-│topic_guide_files    │
-└─────────────────────┘
+│   synths    │
+└─────────────┘
 
 ┌────────────────────────┐
 │ research_executions    │◄──────┐
 └────────────────────────┘       │
        ▲                         │
        │                         │
-       ├───────┐                 │
-       │       │                 │
-┌──────┴────┐  │  ┌──────────────┴───┐
-│transcripts│  │  │ research_traces  │
-└───────────┘  │  └──────────────────┘
-               │
-        ┌──────┴──────────┐
-        │ research_reports│
-        └─────────────────┘
-               │
-        ┌──────┴──────────┐
-        │ prfaq_metadata  │
-        └─────────────────┘
+       ├─────────────────────────┤
+       │                         │
+┌──────┴────┐          ┌─────────┴────────┐
+│transcripts│          │ prfaq_metadata   │
+└───────────┘          └──────────────────┘
 
-┌─────────────┐
-│ async_jobs  │
-└─────────────┘
+┌───────────────────┐
+│ topic_guides_cache│
+└───────────────────┘
 ```
 
 ## Tabelas
@@ -84,13 +61,8 @@ CREATE TABLE synths (
     link_photo TEXT,                    -- URL do avatar online
     avatar_path TEXT,                   -- Path para avatar local (PNG)
     created_at TEXT NOT NULL,           -- ISO 8601 timestamp
-    version TEXT DEFAULT '2.0.0',      -- Versão do schema
-
-    -- Campos JSON
-    demografia TEXT CHECK(json_valid(demografia)),
-    psicografia TEXT CHECK(json_valid(psicografia)),
-    deficiencias TEXT CHECK(json_valid(deficiencias)),
-    capacidades_tecnologicas TEXT CHECK(json_valid(capacidades_tecnologicas))
+    version TEXT DEFAULT '2.0.0',       -- Versão do schema
+    data TEXT CHECK(json_valid(data) OR data IS NULL)  -- Todos os dados aninhados
 );
 
 CREATE INDEX idx_synths_arquetipo ON synths(arquetipo);
@@ -98,79 +70,67 @@ CREATE INDEX idx_synths_created_at ON synths(created_at DESC);
 CREATE INDEX idx_synths_nome ON synths(nome);
 ```
 
-#### Campos JSON
+#### Campo `data` (JSON)
 
-**demografia** (JSON):
+O campo `data` contém todos os dados aninhados do synth em um único JSON:
+
 ```json
 {
-  "idade": 28,
-  "genero_biologico": "feminino",
-  "identidade_genero": "mulher cis",
-  "raca_etnia": "parda",
-  "localizacao": {
-    "pais": "Brasil",
-    "regiao": "Sudeste",
-    "estado": "SP",
-    "cidade": "São Paulo"
+  "demografia": {
+    "idade": 28,
+    "genero_biologico": "feminino",
+    "identidade_genero": "mulher cis",
+    "raca_etnia": "parda",
+    "localizacao": {
+      "pais": "Brasil",
+      "regiao": "Sudeste",
+      "estado": "SP",
+      "cidade": "São Paulo"
+    },
+    "escolaridade": "Superior completo",
+    "renda_mensal": 4500.00,
+    "ocupacao": "Designer gráfico",
+    "estado_civil": "solteiro",
+    "composicao_familiar": {
+      "tipo": "unipessoal",
+      "numero_pessoas": 1
+    }
   },
-  "escolaridade": "Superior completo",
-  "renda_mensal": 4500.00,
-  "ocupacao": "Designer gráfico",
-  "estado_civil": "solteiro",
-  "composicao_familiar": {
-    "tipo": "unipessoal",
-    "numero_pessoas": 1
-  }
-}
-```
-
-**psicografia** (JSON):
-```json
-{
-  "personalidade_big_five": {
-    "abertura": 78,
-    "conscienciosidade": 62,
-    "extroversao": 55,
-    "amabilidade": 71,
-    "neuroticismo": 42
+  "psicografia": {
+    "personalidade_big_five": {
+      "abertura": 78,
+      "conscienciosidade": 62,
+      "extroversao": 55,
+      "amabilidade": 71,
+      "neuroticismo": 42
+    },
+    "interesses": ["design", "arte", "tecnologia"],
+    "inclinacao_politica": -25,
+    "inclinacao_religiosa": "católico"
   },
-  "valores": ["criatividade", "autonomia", "justiça social"],
-  "interesses": ["design", "arte", "tecnologia"],
-  "hobbies": ["desenho", "fotografia", "videogames"],
-  "estilo_vida": "Criativo e explorador",
-  "inclinacao_politica": -25,
-  "inclinacao_religiosa": "católico"
-}
-```
-
-**deficiencias** (JSON):
-```json
-{
-  "visual": {"tipo": "nenhuma"},
-  "auditiva": {"tipo": "nenhuma"},
-  "motora": {"tipo": "nenhuma", "usa_cadeira_rodas": false},
-  "cognitiva": {"tipo": "nenhuma"}
-}
-```
-
-**capacidades_tecnologicas** (JSON):
-```json
-{
-  "alfabetizacao_digital": 85,
-  "dispositivos": {
-    "principal": "computador",
-    "qualidade": "novo"
+  "deficiencias": {
+    "visual": {"tipo": "nenhuma"},
+    "auditiva": {"tipo": "nenhuma"},
+    "motora": {"tipo": "nenhuma", "usa_cadeira_rodas": false},
+    "cognitiva": {"tipo": "nenhuma"}
   },
-  "preferencias_acessibilidade": {
-    "zoom_fonte": 100,
-    "alto_contraste": false
-  },
-  "velocidade_digitacao": 70,
-  "frequencia_internet": "diária",
-  "familiaridade_plataformas": {
-    "e_commerce": 90,
-    "banco_digital": 85,
-    "redes_sociais": 95
+  "capacidades_tecnologicas": {
+    "alfabetizacao_digital": 85,
+    "dispositivos": {
+      "principal": "computador",
+      "qualidade": "novo"
+    },
+    "preferencias_acessibilidade": {
+      "zoom_fonte": 100,
+      "alto_contraste": false
+    },
+    "velocidade_digitacao": 70,
+    "frequencia_internet": "diária",
+    "familiaridade_plataformas": {
+      "e_commerce": 90,
+      "banco_digital": 85,
+      "redes_sociais": 95
+    }
   }
 }
 ```
@@ -179,211 +139,80 @@ CREATE INDEX idx_synths_nome ON synths(nome);
 
 ```sql
 -- Buscar synths por idade
-SELECT * FROM synths WHERE json_extract(demografia, '$.idade') > 30;
+SELECT * FROM synths WHERE json_extract(data, '$.demografia.idade') > 30;
 
 -- Buscar por cidade
-SELECT * FROM synths WHERE json_extract(demografia, '$.localizacao.cidade') = 'São Paulo';
+SELECT * FROM synths WHERE json_extract(data, '$.demografia.localizacao.cidade') = 'São Paulo';
 
--- Buscar por alfabetização digital
+-- Buscar por alfabetização digital baixa
 SELECT * FROM synths
-WHERE json_extract(capacidades_tecnologicas, '$.alfabetizacao_digital') < 40;
+WHERE json_extract(data, '$.capacidades_tecnologicas.alfabetizacao_digital') < 40;
 
 -- Buscar por personalidade (abertura alta)
 SELECT * FROM synths
-WHERE json_extract(psicografia, '$.personalidade_big_five.abertura') > 70;
+WHERE json_extract(data, '$.psicografia.personalidade_big_five.abertura') > 70;
+
+-- Buscar por região
+SELECT * FROM synths
+WHERE json_extract(data, '$.demografia.localizacao.regiao') = 'Nordeste';
 ```
 
 ---
 
-### 2. synth_avatars
-
-Registra avatares gerados para synths (opcional).
-
-```sql
-CREATE TABLE synth_avatars (
-    synth_id TEXT PRIMARY KEY REFERENCES synths(id) ON DELETE CASCADE,
-    file_path TEXT NOT NULL,           -- ex: "output/synths/avatar/ynnasw.png"
-    generated_at TEXT NOT NULL,        -- ISO 8601 timestamp
-    model TEXT DEFAULT 'dall-e-3',     -- Modelo usado (OpenAI)
-    prompt_hash TEXT                   -- MD5 do prompt usado
-);
-
-CREATE INDEX idx_avatars_generated_at ON synth_avatars(generated_at DESC);
-```
-
-#### Exemplo de Registro
-
-```sql
-INSERT INTO synth_avatars (synth_id, file_path, generated_at, model, prompt_hash)
-VALUES (
-    'ynnasw',
-    'output/synths/avatar/ynnasw.png',
-    '2025-12-19T10:30:00Z',
-    'dall-e-3',
-    'a3f7b9c2d1e4f5a6b7c8d9e0f1a2b3c4'
-);
-```
-
----
-
-### 3. topic_guides
-
-Metadados de topic guides (materiais de contexto para entrevistas).
-
-```sql
-CREATE TABLE topic_guides (
-    name TEXT PRIMARY KEY,             -- ex: "compra-amazon"
-    display_name TEXT,                 -- Nome formatado
-    description TEXT,                  -- Descrição do topic
-    script_path TEXT,                  -- Path para script.json
-    question_count INTEGER DEFAULT 0,  -- Número de perguntas
-    file_count INTEGER DEFAULT 0,      -- Número de arquivos
-    created_at TEXT NOT NULL,          -- ISO 8601 timestamp
-    updated_at TEXT NOT NULL           -- ISO 8601 timestamp
-);
-
-CREATE INDEX idx_topics_updated_at ON topic_guides(updated_at DESC);
-```
-
-#### Exemplo de Registro
-
-```sql
-INSERT INTO topic_guides (
-    name, display_name, description, script_path, question_count, file_count,
-    created_at, updated_at
-)
-VALUES (
-    'compra-amazon',
-    'Compra na Amazon',
-    'Entrevista sobre experiência de compra no e-commerce Amazon',
-    'data/topic_guides/compra-amazon/script.json',
-    12,
-    8,
-    '2025-12-15T10:00:00Z',
-    '2025-12-19T14:30:00Z'
-);
-```
-
----
-
-### 4. topic_guide_files
-
-Arquivos associados a topic guides (imagens, PDFs, documentos).
-
-```sql
-CREATE TABLE topic_guide_files (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    topic_name TEXT NOT NULL REFERENCES topic_guides(name) ON DELETE CASCADE,
-    filename TEXT NOT NULL,            -- Nome do arquivo
-    file_path TEXT NOT NULL,           -- Path completo
-    file_type TEXT,                    -- PNG, JPEG, PDF, MD, TXT
-    content_hash TEXT,                 -- MD5 do conteúdo (cache)
-    description TEXT,                  -- Descrição IA do arquivo
-    size_bytes INTEGER,                -- Tamanho em bytes
-    created_at TEXT NOT NULL           -- ISO 8601 timestamp
-);
-
-CREATE INDEX idx_topic_files_topic ON topic_guide_files(topic_name);
-CREATE INDEX idx_topic_files_hash ON topic_guide_files(content_hash);
-```
-
-#### Exemplo de Registro
-
-```sql
-INSERT INTO topic_guide_files (
-    topic_name, filename, file_path, file_type, content_hash,
-    description, size_bytes, created_at
-)
-VALUES (
-    'compra-amazon',
-    'home-page.png',
-    'data/topic_guides/compra-amazon/home-page.png',
-    'PNG',
-    'e4d909c290d0fb1ca068ffaddf22cbd0',
-    'Página inicial da Amazon mostrando categorias de produtos...',
-    245680,
-    '2025-12-15T10:30:00Z'
-);
-```
-
----
-
-### 5. research_executions
+### 2. research_executions
 
 Registra execuções de pesquisas (batch de entrevistas).
 
 ```sql
 CREATE TABLE research_executions (
     exec_id TEXT PRIMARY KEY,          -- ex: "batch_compra-amazon_20251219_110534"
-    topic_name TEXT REFERENCES topic_guides(name),
+    topic_name TEXT NOT NULL,          -- Nome do topic guide
+    status TEXT NOT NULL DEFAULT 'completed',
     synth_count INTEGER NOT NULL,      -- Total de synths
     successful_count INTEGER DEFAULT 0,-- Entrevistas bem-sucedidas
     failed_count INTEGER DEFAULT 0,    -- Entrevistas falhadas
-    model TEXT,                        -- ex: "gpt-5-mini"
-    max_turns INTEGER,                 -- Máx. de turnos por entrevista
-    status TEXT NOT NULL,              -- 'pending', 'running', 'completed', 'failed'
+    model TEXT DEFAULT 'gpt-5-mini',   -- Modelo LLM usado
+    max_turns INTEGER DEFAULT 6,       -- Máx. de turnos por entrevista
     started_at TEXT NOT NULL,          -- ISO 8601 timestamp
     completed_at TEXT,                 -- ISO 8601 timestamp (nullable)
-    summary_path TEXT                  -- Path para summary.md (nullable)
+    summary_content TEXT,              -- Conteúdo do summary em markdown
+    CHECK(status IN ('pending', 'running', 'generating_summary', 'completed', 'failed'))
 );
 
 CREATE INDEX idx_executions_topic ON research_executions(topic_name);
 CREATE INDEX idx_executions_status ON research_executions(status);
-CREATE INDEX idx_executions_started_at ON research_executions(started_at DESC);
+CREATE INDEX idx_executions_started ON research_executions(started_at DESC);
 ```
 
 #### Status Possíveis
 
 - `pending` - Aguardando execução
 - `running` - Em execução
+- `generating_summary` - Gerando resumo
 - `completed` - Completado com sucesso
 - `failed` - Falhou
 
-#### Exemplo de Registro
-
-```sql
-INSERT INTO research_executions (
-    exec_id, topic_name, synth_count, successful_count, failed_count,
-    model, max_turns, status, started_at, completed_at, summary_path
-)
-VALUES (
-    'batch_compra-amazon_20251219_110534',
-    'compra-amazon',
-    10,
-    9,
-    1,
-    'gpt-5-mini',
-    6,
-    'completed',
-    '2025-12-19T11:05:34Z',
-    '2025-12-19T11:12:45Z',
-    'output/reports/batch_compra-amazon_20251219_110534_summary.md'
-);
-```
-
 ---
 
-### 6. transcripts
+### 3. transcripts
 
 Armazena transcrições individuais de entrevistas.
 
 ```sql
 CREATE TABLE transcripts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    exec_id TEXT NOT NULL REFERENCES research_executions(exec_id) ON DELETE CASCADE,
-    synth_id TEXT NOT NULL REFERENCES synths(id),
-    status TEXT NOT NULL,              -- 'completed', 'failed'
-    turn_count INTEGER,                -- Número de turnos
+    exec_id TEXT NOT NULL,             -- FK para research_executions
+    synth_id TEXT NOT NULL,            -- FK para synths
+    synth_name TEXT,                   -- Nome do synth (cache)
+    status TEXT NOT NULL DEFAULT 'completed',
+    turn_count INTEGER DEFAULT 0,      -- Número de turnos
     timestamp TEXT NOT NULL,           -- ISO 8601 timestamp
-    file_path TEXT NOT NULL,           -- Path para arquivo JSON
-    messages TEXT CHECK(json_valid(messages)), -- JSON array de mensagens
-
-    UNIQUE(exec_id, synth_id)          -- Única transcrição por synth em cada exec
+    messages TEXT CHECK(json_valid(messages) OR messages IS NULL),
+    UNIQUE(exec_id, synth_id)
 );
 
 CREATE INDEX idx_transcripts_exec ON transcripts(exec_id);
 CREATE INDEX idx_transcripts_synth ON transcripts(synth_id);
-CREATE INDEX idx_transcripts_timestamp ON transcripts(timestamp DESC);
 ```
 
 #### Campo messages (JSON)
@@ -393,244 +222,80 @@ CREATE INDEX idx_transcripts_timestamp ON transcripts(timestamp DESC);
   {
     "turn_number": 1,
     "speaker": "Interviewer",
-    "text": "Como você se sente ao fazer compras online?",
-    "internal_notes": null
+    "text": "Como você se sente ao fazer compras online?"
   },
   {
     "turn_number": 1,
     "speaker": "Interviewee",
-    "text": "Eu me sinto bem confortável, uso bastante...",
-    "internal_notes": "Demonstra confiança (abertura alta)"
+    "text": "Eu me sinto bem confortável, uso bastante..."
   },
   {
     "turn_number": 2,
     "speaker": "Interviewer",
-    "text": "O que você mais valoriza em um e-commerce?",
-    "internal_notes": null
+    "text": "O que você mais valoriza em um e-commerce?"
   }
 ]
 ```
 
-#### Exemplo de Registro
-
-```sql
-INSERT INTO transcripts (
-    exec_id, synth_id, status, turn_count, timestamp, file_path, messages
-)
-VALUES (
-    'batch_compra-amazon_20251219_110534',
-    'ynnasw',
-    'completed',
-    6,
-    '2025-12-19T11:08:23Z',
-    'output/transcripts/batch_compra-amazon_20251219_110534/ynnasw_20251219_110823.json',
-    '[{"turn_number": 1, "speaker": "Interviewer", "text": "..."}, ...]'
-);
-```
-
 ---
 
-### 7. research_traces
+### 4. prfaq_metadata
 
-Rastreamento de execuções para debugging e análise de performance.
-
-```sql
-CREATE TABLE research_traces (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    exec_id TEXT NOT NULL REFERENCES research_executions(exec_id) ON DELETE CASCADE,
-    synth_id TEXT REFERENCES synths(id),
-    trace_id TEXT,                     -- ID de trace (opcional)
-    file_path TEXT NOT NULL,           -- Path para arquivo de trace
-    duration_ms INTEGER,               -- Duração em milissegundos
-    start_time TEXT,                   -- ISO 8601 timestamp
-    end_time TEXT                      -- ISO 8601 timestamp
-);
-
-CREATE INDEX idx_traces_exec ON research_traces(exec_id);
-CREATE INDEX idx_traces_synth ON research_traces(synth_id);
-```
-
----
-
-### 8. research_reports
-
-Relatórios gerados a partir de research executions (summary, PR-FAQ).
-
-```sql
-CREATE TABLE research_reports (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    exec_id TEXT NOT NULL REFERENCES research_executions(exec_id) ON DELETE CASCADE,
-    report_type TEXT NOT NULL,         -- 'summary' ou 'prfaq'
-    file_path_markdown TEXT,           -- Path para .md
-    file_path_json TEXT,               -- Path para .json (PR-FAQ)
-    file_path_pdf TEXT,                -- Path para .pdf (futuro)
-    generated_at TEXT NOT NULL,        -- ISO 8601 timestamp
-    validation_status TEXT,            -- 'validated', 'pending', 'failed'
-    confidence_score REAL,             -- 0.0 - 1.0
-    version INTEGER DEFAULT 1          -- Versão do relatório
-);
-
-CREATE INDEX idx_reports_exec ON research_reports(exec_id);
-CREATE INDEX idx_reports_type ON research_reports(report_type);
-CREATE INDEX idx_reports_generated_at ON research_reports(generated_at DESC);
-```
-
-#### Report Types
-
-- `summary` - Resumo executivo da research execution
-- `prfaq` - Press Release + FAQ gerado por IA
-
----
-
-### 9. prfaq_metadata
-
-Metadados específicos de PR-FAQ para listagem rápida.
+Metadados de PR-FAQ gerados.
 
 ```sql
 CREATE TABLE prfaq_metadata (
-    exec_id TEXT PRIMARY KEY REFERENCES research_executions(exec_id) ON DELETE CASCADE,
+    exec_id TEXT PRIMARY KEY,          -- FK para research_executions
+    generated_at TEXT,                 -- ISO 8601 timestamp
+    model TEXT DEFAULT 'gpt-5-mini',   -- Modelo LLM usado
+    validation_status TEXT DEFAULT 'valid',
+    confidence_score REAL,             -- 0.0 - 1.0
     headline TEXT,                     -- Manchete do Press Release
     one_liner TEXT,                    -- Resumo de uma linha
-    faq_count INTEGER,                 -- Número de perguntas no FAQ
-    confidence_score REAL,             -- 0.0 - 1.0
-    validation_status TEXT,            -- 'validated', 'pending', 'failed'
-    model TEXT,                        -- Modelo LLM usado
-    generated_at TEXT NOT NULL,        -- ISO 8601 timestamp
-    markdown_path TEXT,                -- Path para .md
-    json_path TEXT                     -- Path para .json
+    faq_count INTEGER DEFAULT 0,       -- Número de perguntas no FAQ
+    markdown_content TEXT,             -- Conteúdo em markdown
+    json_content TEXT CHECK(json_valid(json_content) OR json_content IS NULL),
+    status TEXT DEFAULT 'completed',
+    error_message TEXT,
+    started_at TEXT,
+    CHECK(validation_status IN ('valid', 'invalid', 'pending')),
+    CHECK(status IN ('generating', 'completed', 'failed'))
 );
 
-CREATE INDEX idx_prfaq_generated_at ON prfaq_metadata(generated_at DESC);
-CREATE INDEX idx_prfaq_validation ON prfaq_metadata(validation_status);
-```
-
-#### Exemplo de Registro
-
-```sql
-INSERT INTO prfaq_metadata (
-    exec_id, headline, one_liner, faq_count, confidence_score,
-    validation_status, model, generated_at, markdown_path, json_path
-)
-VALUES (
-    'batch_compra-amazon_20251219_110534',
-    'Amazon lança novo sistema de recomendações personalizadas',
-    'Usuários agora recebem sugestões baseadas em preferências individuais',
-    12,
-    0.87,
-    'validated',
-    'gpt-5-mini',
-    '2025-12-19T11:20:00Z',
-    'output/reports/batch_compra-amazon_20251219_110534_prfaq.md',
-    'output/reports/batch_compra-amazon_20251219_110534_prfaq.json'
-);
+CREATE INDEX idx_prfaq_generated ON prfaq_metadata(generated_at DESC);
+CREATE INDEX idx_prfaq_status ON prfaq_metadata(status);
 ```
 
 ---
 
-### 10. async_jobs
+### 5. topic_guides_cache
 
-Rastreamento de jobs assíncronos (summary, PR-FAQ).
-
-```sql
-CREATE TABLE async_jobs (
-    job_id TEXT PRIMARY KEY,           -- UUID v4
-    job_type TEXT NOT NULL,            -- 'generate_summary', 'generate_prfaq'
-    exec_id TEXT REFERENCES research_executions(exec_id),
-    status TEXT NOT NULL,              -- 'pending', 'running', 'completed', 'failed'
-    created_at TEXT NOT NULL,          -- ISO 8601 timestamp
-    started_at TEXT,                   -- ISO 8601 timestamp (nullable)
-    completed_at TEXT,                 -- ISO 8601 timestamp (nullable)
-    error_message TEXT,                -- Mensagem de erro (nullable)
-    result_data TEXT                   -- JSON com resultado (nullable)
-);
-
-CREATE INDEX idx_jobs_status ON async_jobs(status);
-CREATE INDEX idx_jobs_type ON async_jobs(job_type);
-CREATE INDEX idx_jobs_exec ON async_jobs(exec_id);
-CREATE INDEX idx_jobs_created_at ON async_jobs(created_at DESC);
-```
-
-#### Job Types
-
-- `generate_summary` - Gerar resumo executivo
-- `generate_prfaq` - Gerar PR-FAQ
-
-#### Status Possíveis
-
-- `pending` - Aguardando processamento
-- `running` - Em processamento
-- `completed` - Completado com sucesso
-- `failed` - Falhou
-
-#### Exemplo de Registro
+Cache de metadados de topic guides.
 
 ```sql
-INSERT INTO async_jobs (
-    job_id, job_type, exec_id, status, created_at, started_at, completed_at, result_data
-)
-VALUES (
-    'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-    'generate_summary',
-    'batch_compra-amazon_20251219_110534',
-    'completed',
-    '2025-12-19T11:12:50Z',
-    '2025-12-19T11:12:51Z',
-    '2025-12-19T11:15:23Z',
-    '{"file_path": "output/reports/batch_compra-amazon_20251219_110534_summary.md"}'
+CREATE TABLE topic_guides_cache (
+    name TEXT PRIMARY KEY,             -- ex: "compra-amazon"
+    display_name TEXT,                 -- Nome formatado
+    description TEXT,                  -- Descrição do topic
+    question_count INTEGER DEFAULT 0,  -- Número de perguntas
+    file_count INTEGER DEFAULT 0,      -- Número de arquivos
+    script_hash TEXT,                  -- Hash do script.json
+    created_at TEXT,                   -- ISO 8601 timestamp
+    updated_at TEXT                    -- ISO 8601 timestamp
 );
 ```
-
----
-
-## Relacionamentos
-
-### Chaves Estrangeiras
-
-```
-synths
-  └─> synth_avatars (synth_id)
-  └─> transcripts (synth_id)
-  └─> research_traces (synth_id)
-
-topic_guides
-  └─> topic_guide_files (topic_name)
-  └─> research_executions (topic_name)
-
-research_executions
-  └─> transcripts (exec_id)
-  └─> research_traces (exec_id)
-  └─> research_reports (exec_id)
-  └─> prfaq_metadata (exec_id)
-  └─> async_jobs (exec_id)
-```
-
-### Cascading Deletes
-
-- Deletar `synth` → deleta `synth_avatar` associado
-- Deletar `topic_guide` → deleta `topic_guide_files` associados
-- Deletar `research_execution` → deleta:
-  - Todos os `transcripts`
-  - Todos os `research_traces`
-  - Todos os `research_reports`
-  - Metadata `prfaq_metadata`
-  - Jobs `async_jobs` associados
 
 ---
 
 ## Inicialização do Banco
 
-### Script de Migração
+### Criar Novo Banco
 
-```bash
-# Executar script de migração
-uv run python scripts/migrate_to_sqlite.py
+```python
+from synth_lab.infrastructure.database import init_database
+
+init_database()  # Cria em output/synthlab.db
 ```
-
-O script:
-1. Cria arquivo `output/synthlab.db`
-2. Aplica schema SQL completo
-3. Configura WAL mode e foreign keys
-4. Cria todos os índices
 
 ### Validação
 
@@ -664,19 +329,22 @@ ORDER BY total DESC;
 -- Distribuição por faixa etária
 SELECT
     CASE
-        WHEN json_extract(demografia, '$.idade') BETWEEN 18 AND 30 THEN '18-30'
-        WHEN json_extract(demografia, '$.idade') BETWEEN 31 AND 45 THEN '31-45'
-        WHEN json_extract(demografia, '$.idade') BETWEEN 46 AND 60 THEN '46-60'
+        WHEN json_extract(data, '$.demografia.idade') BETWEEN 18 AND 30 THEN '18-30'
+        WHEN json_extract(data, '$.demografia.idade') BETWEEN 31 AND 45 THEN '31-45'
+        WHEN json_extract(data, '$.demografia.idade') BETWEEN 46 AND 60 THEN '46-60'
         ELSE '60+'
     END as faixa_etaria,
     COUNT(*) as total
 FROM synths
 GROUP BY faixa_etaria;
 
--- Synths com avatares gerados
-SELECT COUNT(*) as synths_com_avatar
-FROM synths s
-INNER JOIN synth_avatars a ON s.id = a.synth_id;
+-- Distribuição por região
+SELECT
+    json_extract(data, '$.demografia.localizacao.regiao') as regiao,
+    COUNT(*) as total
+FROM synths
+GROUP BY regiao
+ORDER BY total DESC;
 ```
 
 ### Estatísticas de Research
@@ -707,32 +375,13 @@ GROUP BY topic_name
 ORDER BY num_executions DESC;
 ```
 
-### Estatísticas de Jobs
-
-```sql
--- Jobs por status
-SELECT status, COUNT(*) as total
-FROM async_jobs
-GROUP BY status;
-
--- Tempo médio de processamento de jobs completados
-SELECT
-    job_type,
-    AVG(
-        (julianday(completed_at) - julianday(started_at)) * 86400
-    ) as avg_duration_seconds
-FROM async_jobs
-WHERE status = 'completed'
-GROUP BY job_type;
-```
-
 ---
 
 ## Performance
 
-### Índices Criados
+### Índices
 
-Total: **17 índices** em 10 tabelas
+Total: **7 índices** em 4 tabelas principais
 
 **Synths**:
 - `idx_synths_arquetipo` - Filtragem por arquétipo
@@ -742,39 +391,24 @@ Total: **17 índices** em 10 tabelas
 **Executions**:
 - `idx_executions_topic` - Filtragem por topic
 - `idx_executions_status` - Filtragem por status
-- `idx_executions_started_at` - Ordenação por data
+- `idx_executions_started` - Ordenação por data
 
 **Transcripts**:
 - `idx_transcripts_exec` - JOIN com executions
 - `idx_transcripts_synth` - JOIN com synths
-- `idx_transcripts_timestamp` - Ordenação por data
 
-**Jobs**:
-- `idx_jobs_status` - Filtragem por status
-- `idx_jobs_type` - Filtragem por tipo
-- `idx_jobs_exec` - JOIN com executions
-- `idx_jobs_created_at` - Ordenação por data
+### Otimizações JSON
 
-### Otimizações
-
-1. **WAL Mode**: Permite leituras concorrentes
-2. **Row Factory**: Acesso dict-like a colunas
-3. **JSON Indexes**: Criar índices em campos JSON frequentes:
+Para queries frequentes em campos JSON, criar índices:
 
 ```sql
 -- Criar índice em idade (JSON)
 CREATE INDEX idx_synths_idade
-ON synths(json_extract(demografia, '$.idade'));
+ON synths(json_extract(data, '$.demografia.idade'));
 
--- Criar índice em cidade (JSON)
-CREATE INDEX idx_synths_cidade
-ON synths(json_extract(demografia, '$.localizacao.cidade'));
-```
-
-4. **ANALYZE**: Atualizar estatísticas para query planner
-
-```sql
-ANALYZE;
+-- Criar índice em região (JSON)
+CREATE INDEX idx_synths_regiao
+ON synths(json_extract(data, '$.demografia.localizacao.regiao'));
 ```
 
 ---
@@ -805,13 +439,11 @@ PRAGMA foreign_key_check;
 ### Limpeza
 
 ```sql
--- Remover jobs completados antigos (> 30 dias)
-DELETE FROM async_jobs
-WHERE status IN ('completed', 'failed')
-AND datetime(completed_at) < datetime('now', '-30 days');
-
 -- Vacuum para recuperar espaço
 VACUUM;
+
+-- Atualizar estatísticas para query planner
+ANALYZE;
 ```
 
 ---
@@ -828,41 +460,4 @@ VACUUM;
 
 - **Performance**: Queries em JSON são mais lentas que colunas nativas
 - **Índices**: Criar índices explícitos em campos JSON frequentes
-- **Validação**: JSON_CHECK valida sintaxe, não schema
-
-### Escalabilidade
-
-- **Atual**: ~10k synths, ~1k executions
-- **Futuro**: Migrar para PostgreSQL quando:
-  - Synths > 100k
-  - Executions > 10k
-  - Writes concorrentes > 10/s
-
----
-
-## Migração Futura
-
-### Para PostgreSQL
-
-```sql
--- Schema equivalente em PostgreSQL
-CREATE TABLE synths (
-    id TEXT PRIMARY KEY,
-    nome TEXT NOT NULL,
-    ...
-    demografia JSONB,  -- JSONB para queries rápidas
-    psicografia JSONB,
-    ...
-);
-
--- Índices em campos JSON (GIN)
-CREATE INDEX idx_synths_demografia_gin ON synths USING GIN (demografia);
-```
-
-**Benefícios**:
-- Writes concorrentes ilimitados
-- JSONB indexes (GIN) muito rápidos
-- Replicação e high availability
-- Full-text search nativo
-
-**Compatibilidade**: Repositories abstraem DB, migração transparente para services.
+- **Validação**: `json_valid()` valida sintaxe, não schema
