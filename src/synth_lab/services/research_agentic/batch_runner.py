@@ -149,6 +149,7 @@ async def run_single_interview_safe(
     exec_id: str | None = None,
     message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
     skip_interviewee_review: bool = True,
+    additional_context: str | None = None,
 ) -> tuple[InterviewResult | None, dict[str, Any], Exception | None]:
     """
     Run a single interview with error handling and semaphore control.
@@ -165,6 +166,7 @@ async def run_single_interview_safe(
         exec_id: Execution ID for SSE streaming (optional)
         message_callback: Async callback for real-time message streaming (optional)
         skip_interviewee_review: Whether to skip the interviewee response reviewer.
+        additional_context: Optional additional context to complement the research scenario.
 
     Returns:
         Tuple of (result or None, synth_data, error or None)
@@ -308,6 +310,7 @@ async def run_batch_interviews(
                 exec_id=batch_id,
                 message_callback=message_callback,
                 skip_interviewee_review=skip_interviewee_review,
+                additional_context=additional_context,
             )
             for synth in synths_to_interview
         ]
