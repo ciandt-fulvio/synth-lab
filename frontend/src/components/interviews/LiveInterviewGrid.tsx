@@ -29,10 +29,15 @@ import type { LiveInterviewGridProps } from '@/types/sse-events';
  * @param props - Component props
  * @param props.execId - Research execution ID to stream interviews from
  * @param props.onExecutionCompleted - Optional callback when execution completes
+ * @param props.onTranscriptionCompleted - Optional callback when transcription completes
  */
-export function LiveInterviewGrid({ execId, onExecutionCompleted }: LiveInterviewGridProps) {
+export function LiveInterviewGrid({
+  execId,
+  onExecutionCompleted,
+  onTranscriptionCompleted
+}: LiveInterviewGridProps) {
   const { messagesBySynth, synthIds, isConnected, error } =
-    useLiveInterviews(execId, onExecutionCompleted);
+    useLiveInterviews(execId, onExecutionCompleted, onTranscriptionCompleted);
   const [selectedSynthId, setSelectedSynthId] = useState<string | null>(null);
 
   // Handle card click to open transcript dialog

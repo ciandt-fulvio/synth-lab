@@ -38,16 +38,15 @@ export default function InterviewDetail() {
   const { data: transcripts } = useResearchTranscripts(execId!);
   const { data: artifactStates } = useArtifactStatesWithPolling(execId!);
 
-  // Handle execution completion: refetch all data and start aggressive polling
-  const handleExecutionCompleted = () => {
-    console.log('[InterviewDetail] Execution completed, starting aggressive polling...');
+  // Handle transcription completion: start aggressive polling for summary generation
+  const handleTranscriptionCompleted = (data: import('@/types/sse-events').TranscriptionCompletedEvent) => {
+    console.log('[InterviewDetail] Transcription completed, summary will start generating...', data);
+    console.log(`[InterviewDetail] Successful: ${data.successful_count}, Failed: ${data.failed_count}`);
 
-    // Invalidate all related queries to refetch fresh data
-    queryClient.invalidateQueries({ queryKey: queryKeys.researchDetail(execId!) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.researchTranscripts(execId!) });
+    // Invalidate artifact states immediately to check if generating started
     queryClient.invalidateQueries({ queryKey: queryKeys.artifactStates(execId!) });
 
-    // Enable aggressive polling for 60 seconds to catch state transitions
+    // Start aggressive polling to catch the 'generating' state
     setAggressivePolling(true);
 
     // Clear any existing timer
@@ -60,6 +59,16 @@ export default function InterviewDetail() {
       console.log('[InterviewDetail] Stopping aggressive polling');
       setAggressivePolling(false);
     }, 60000);
+  };
+
+  // Handle execution completion: refetch all data
+  const handleExecutionCompleted = () => {
+    console.log('[InterviewDetail] Execution completed, refreshing data...');
+
+    // Invalidate all related queries to refetch fresh data
+    queryClient.invalidateQueries({ queryKey: queryKeys.researchDetail(execId!) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.researchTranscripts(execId!) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.artifactStates(execId!) });
   };
 
   // Aggressive polling effect - refetch artifact states every 2 seconds
@@ -211,6 +220,7 @@ export default function InterviewDetail() {
             <LiveInterviewGrid
               execId={execId}
               onExecutionCompleted={handleExecutionCompleted}
+              onTranscriptionCompleted={handleTranscriptionCompleted}
             />
           </CardContent>
         </Card>
