@@ -484,18 +484,6 @@ synth-lab/
 │   │   └── occupations_structured.json
 │   └── schemas/                  # JSON Schema para validação
 │       └── synth-schema.json
-├── specs/
-│   ├── 001-generate-synths/      # Feature 1: Geração de Synths
-│   ├── 002-synthlab-cli/         # Feature 2: CLI SynthLab
-│   ├── 003-synth-query/          # Feature 3: Query de Synths
-│   └── 005-ux-research-interviews/ # Feature 5: Entrevistas UX
-│       ├── spec.md               # Especificação da feature
-│       ├── plan.md               # Plano de implementação
-│       ├── tasks.md              # Tarefas e progresso
-│       ├── data-model.md         # Modelos de dados
-│       ├── research.md           # Metodologia UX research
-│       ├── quickstart.md         # Guia rápido
-│       └── contracts/            # Schemas JSON para LLM responses
 ├── pyproject.toml                # Configuração do projeto
 ├── pytest.ini                    # Configuração pytest
 └── README.md                     # Este arquivo

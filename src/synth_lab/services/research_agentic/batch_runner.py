@@ -22,6 +22,7 @@ results, summary = await run_batch_interviews(
 """
 
 import asyncio
+import random
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -79,6 +80,63 @@ def get_timestamp_gmt3() -> str:
     return datetime.now(TZ_GMT_MINUS_3).strftime("%Y%m%d_%H%M%S")
 
 
+def _select_synths_for_interview(
+    all_synths: list[dict[str, Any]],
+    synth_ids: list[str] | None,
+    max_interviews: int,
+) -> list[dict[str, Any]]:
+    """
+    Select synths for interview based on provided IDs or random sampling.
+
+    Selection logic:
+    1. If synth_ids is provided:
+       - Filter synths to only those in the provided list
+       - If filtered count <= max_interviews: use all filtered synths
+       - If filtered count > max_interviews: randomly sample max_interviews
+    2. If synth_ids is not provided:
+       - Randomly sample max_interviews from all available synths
+
+    Args:
+        all_synths: All available synths loaded from database
+        synth_ids: Optional list of specific synth IDs to include
+        max_interviews: Maximum number of synths to select
+
+    Returns:
+        List of selected synth dictionaries
+    """
+    if synth_ids is not None:
+        # Filter synths to only those in the provided list
+        synth_id_set = set(synth_ids)
+        filtered_synths = [s for s in all_synths if s.get("id") in synth_id_set]
+
+        if len(filtered_synths) <= max_interviews:
+            # Use all synths from the filtered list
+            logger.info(
+                f"Using all {len(filtered_synths)} synths from provided list "
+                f"(max_interviews={max_interviews})"
+            )
+            return filtered_synths
+        else:
+            # Randomly sample max_interviews from the filtered list
+            selected = random.sample(filtered_synths, max_interviews)
+            logger.info(
+                f"Randomly selected {max_interviews} synths from {len(filtered_synths)} "
+                f"in provided list"
+            )
+            return selected
+    else:
+        # No specific IDs provided - randomly sample from all synths
+        if len(all_synths) <= max_interviews:
+            logger.info(f"Using all {len(all_synths)} available synths")
+            return all_synths
+        else:
+            selected = random.sample(all_synths, max_interviews)
+            logger.info(
+                f"Randomly selected {max_interviews} synths from {len(all_synths)} available"
+            )
+            return selected
+
+
 async def run_single_interview_safe(
     synth: dict[str, Any],
     topic_guide_name: str,
@@ -90,6 +148,7 @@ async def run_single_interview_safe(
     batch_id: str,
     exec_id: str | None = None,
     message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
+    skip_interviewee_review: bool = True,
 ) -> tuple[InterviewResult | None, dict[str, Any], Exception | None]:
     """
     Run a single interview with error handling and semaphore control.
@@ -105,6 +164,7 @@ async def run_single_interview_safe(
         batch_id: Batch identifier for grouping outputs
         exec_id: Execution ID for SSE streaming (optional)
         message_callback: Async callback for real-time message streaming (optional)
+        skip_interviewee_review: Whether to skip the interviewee response reviewer.
 
     Returns:
         Tuple of (result or None, synth_data, error or None)
@@ -133,6 +193,8 @@ async def run_single_interview_safe(
                 verbose=False,  # Suppress individual interview output in batch mode
                 exec_id=exec_id,
                 message_callback=message_callback,
+                skip_interviewee_review=skip_interviewee_review,
+                additional_context=additional_context,
             )
 
             logger.info(f"Completed interview with {synth_name} ({synth_id})")
@@ -153,8 +215,11 @@ async def run_batch_interviews(
     model: str = "gpt-5-mini",
     generate_summary: bool = True,
     exec_id: str | None = None,
+    synth_ids: list[str] | None = None,
     message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
     on_transcription_completed: Callable[[str, int, int], Awaitable[None]] | None = None,
+    skip_interviewee_review: bool = True,
+    additional_context: str | None = None,
 ) -> BatchResult:
     """
     Run multiple interviews in parallel with progress tracking.
@@ -167,10 +232,16 @@ async def run_batch_interviews(
         model: LLM model to use
         generate_summary: Whether to generate a summary after all interviews
         exec_id: Optional execution ID from caller. If not provided, generates one.
+        synth_ids: Optional list of specific synth IDs to interview.
+            If provided and len(synth_ids) <= max_interviews: uses all synths from list.
+            If provided and len(synth_ids) > max_interviews: randomly samples max_interviews.
+            If not provided: randomly samples max_interviews from all available synths.
         message_callback: Async callback for real-time message streaming (optional)
             Signature: (exec_id, synth_id, turn_number, message) -> None
         on_transcription_completed: Callback when all transcriptions done
             Signature: (exec_id, successful_count, failed_count) -> None
+        skip_interviewee_review: Whether to skip the interviewee response reviewer.
+        additional_context: Optional additional context to complement the research scenario.
 
     Returns:
         BatchResult with all interview results and summary
@@ -189,9 +260,13 @@ async def run_batch_interviews(
     # Use provided exec_id or generate batch ID for grouping outputs
     batch_id = exec_id if exec_id else f"batch_{topic_guide_name}_{get_timestamp_gmt3()}"
 
-    # Load synths
+    # Load synths and select which ones to interview
     all_synths = load_all_synths()
-    synths_to_interview = all_synths[:max_interviews]
+    synths_to_interview = _select_synths_for_interview(
+        all_synths=all_synths,
+        synth_ids=synth_ids,
+        max_interviews=max_interviews,
+    )
 
     logger.info(
         f"Starting batch {batch_id}: {len(synths_to_interview)} synths, "
@@ -232,6 +307,7 @@ async def run_batch_interviews(
                 batch_id=batch_id,
                 exec_id=batch_id,
                 message_callback=message_callback,
+                skip_interviewee_review=skip_interviewee_review,
             )
             for synth in synths_to_interview
         ]
@@ -264,9 +340,15 @@ async def run_batch_interviews(
 
     # Generate summary if requested and we have successful interviews
     summary = None
+    logger.info(
+        f"Summary generation check: generate_summary={generate_summary}, "
+        f"successful_interviews count={len(successful_interviews)}"
+    )
+
     if generate_summary and successful_interviews:
         console.print()
         console.print("[cyan]Gerando síntese das entrevistas...[/cyan]")
+        logger.info(f"Starting summary generation for {len(successful_interviews)} interviews")
 
         try:
             # Summarizer always uses gpt-5 with reasoning medium for better analysis
@@ -275,11 +357,16 @@ async def run_batch_interviews(
                 topic_guide_name=topic_guide_name,
                 model="gpt-5",
             )
-            logger.info("Summary generated successfully")
+            logger.info(f"Summary generated successfully. Length: {len(summary) if summary else 0} chars")
 
         except Exception as e:
-            logger.error(f"Failed to generate summary: {e}")
+            logger.error(f"Failed to generate summary: {e}", exc_info=True)
             summary = f"Erro ao gerar síntese: {e}"
+    else:
+        logger.warning(
+            f"Skipping summary generation: generate_summary={generate_summary}, "
+            f"successful_interviews={len(successful_interviews)}"
+        )
 
     return BatchResult(
         successful_interviews=successful_interviews,
@@ -300,8 +387,10 @@ def run_batch_interviews_sync(
     model: str = "gpt-5-mini",
     generate_summary: bool = True,
     exec_id: str | None = None,
+    synth_ids: list[str] | None = None,
     message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
     on_transcription_completed: Callable[[str, int, int], Awaitable[None]] | None = None,
+    skip_interviewee_review: bool = True,
 ) -> BatchResult:
     """
     Synchronous wrapper for run_batch_interviews.
@@ -314,8 +403,10 @@ def run_batch_interviews_sync(
         model: LLM model to use
         generate_summary: Whether to generate summary
         exec_id: Optional execution ID from caller.
+        synth_ids: Optional list of specific synth IDs to interview.
         message_callback: Async callback for real-time message streaming (optional)
         on_transcription_completed: Callback when all transcriptions done (exec_id, success, failed)
+        skip_interviewee_review: Whether to skip the interviewee response reviewer.
 
     Returns:
         BatchResult with all interview results and summary
@@ -329,8 +420,10 @@ def run_batch_interviews_sync(
             model=model,
             generate_summary=generate_summary,
             exec_id=exec_id,
+            synth_ids=synth_ids,
             message_callback=message_callback,
             on_transcription_completed=on_transcription_completed,
+            skip_interviewee_review=skip_interviewee_review,
         )
     )
 
@@ -397,6 +490,60 @@ if __name__ == "__main__":
         print(f"✓ get_timestamp_gmt3 returns valid timestamp: {timestamp}")
     except Exception as e:
         all_validation_failures.append(f"get_timestamp_gmt3: {e}")
+
+    # Test 5: _select_synths_for_interview - no synth_ids (random sampling)
+    total_tests += 1
+    try:
+        mock_synths = [{"id": f"s{i}", "nome": f"Synth {i}"} for i in range(10)]
+
+        # Case 1: No synth_ids, max_interviews < total synths (should random sample)
+        result = _select_synths_for_interview(mock_synths, None, 5)
+        assert len(result) == 5, f"Expected 5 synths, got {len(result)}"
+        assert all(s in mock_synths for s in result), "Selected synths not in original list"
+        print("✓ _select_synths_for_interview: random sampling works")
+    except Exception as e:
+        all_validation_failures.append(f"_select_synths (random): {e}")
+
+    # Test 6: _select_synths_for_interview - synth_ids with less than max
+    total_tests += 1
+    try:
+        mock_synths = [{"id": f"s{i}", "nome": f"Synth {i}"} for i in range(10)]
+
+        # Case 2: synth_ids provided with fewer than max_interviews
+        result = _select_synths_for_interview(mock_synths, ["s1", "s3", "s5"], 10)
+        assert len(result) == 3, f"Expected 3 synths (all from list), got {len(result)}"
+        ids = {s["id"] for s in result}
+        assert ids == {"s1", "s3", "s5"}, f"Expected s1,s3,s5, got {ids}"
+        print("✓ _select_synths_for_interview: uses all from list when less than max")
+    except Exception as e:
+        all_validation_failures.append(f"_select_synths (list < max): {e}")
+
+    # Test 7: _select_synths_for_interview - synth_ids with more than max
+    total_tests += 1
+    try:
+        mock_synths = [{"id": f"s{i}", "nome": f"Synth {i}"} for i in range(10)]
+
+        # Case 3: synth_ids provided with more than max_interviews (should sample)
+        result = _select_synths_for_interview(mock_synths, ["s1", "s2", "s3", "s4", "s5"], 3)
+        assert len(result) == 3, f"Expected 3 synths (sampled), got {len(result)}"
+        valid_ids = {"s1", "s2", "s3", "s4", "s5"}
+        result_ids = {s["id"] for s in result}
+        assert result_ids.issubset(valid_ids), f"Selected IDs {result_ids} not in {valid_ids}"
+        print("✓ _select_synths_for_interview: randomly samples when list > max")
+    except Exception as e:
+        all_validation_failures.append(f"_select_synths (list > max): {e}")
+
+    # Test 8: _select_synths_for_interview - all synths when max >= total
+    total_tests += 1
+    try:
+        mock_synths = [{"id": f"s{i}", "nome": f"Synth {i}"} for i in range(5)]
+
+        # Case 4: No synth_ids and max_interviews >= total synths (use all)
+        result = _select_synths_for_interview(mock_synths, None, 10)
+        assert len(result) == 5, f"Expected all 5 synths, got {len(result)}"
+        print("✓ _select_synths_for_interview: uses all synths when max >= total")
+    except Exception as e:
+        all_validation_failures.append(f"_select_synths (max >= total): {e}")
 
     # Final validation result
     print()

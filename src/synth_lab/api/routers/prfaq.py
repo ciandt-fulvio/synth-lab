@@ -12,7 +12,11 @@ from fastapi.responses import PlainTextResponse
 
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.prfaq import PRFAQGenerateRequest, PRFAQGenerateResponse, PRFAQSummary
-from synth_lab.services.prfaq_service import MarkdownNotFoundError, PRFAQService
+from synth_lab.services.prfaq_service import (
+    MarkdownNotFoundError,
+    PRFAQAlreadyGeneratingError,
+    PRFAQService,
+)
 
 router = APIRouter()
 
@@ -86,9 +90,22 @@ async def generate_prfaq(request: PRFAQGenerateRequest) -> PRFAQGenerateResponse
 
     Returns:
         Generation status and metadata.
+
+    Raises:
+        409 Conflict: If PR-FAQ is already being generated for this execution.
     """
     service = get_prfaq_service()
-    return service.generate_prfaq(request)
+    try:
+        return service.generate_prfaq(request)
+    except PRFAQAlreadyGeneratingError as e:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "PRFAQ_ALREADY_GENERATING",
+                "message": str(e),
+                "exec_id": e.exec_id,
+            },
+        ) from e
 
 
 if __name__ == "__main__":

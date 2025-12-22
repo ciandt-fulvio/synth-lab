@@ -1,4 +1,4 @@
-.PHONY: help install setup-hooks serve init-db validate-ui test test-fast test-full test-unit test-integration test-contract lint-format clean
+.PHONY: help install setup-hooks serve serve-front serve-traced phoenix init-db validate-ui test test-fast test-full test-unit test-integration test-contract lint-format clean
 
 # Default target
 help:
@@ -11,6 +11,9 @@ help:
 	@echo ""
 	@echo "Development:"
 	@echo "  make serve        Start FastAPI REST API server (port 8000)"
+	@echo "  make serve-front  Start frontend dev server (port 8080)"
+	@echo "  make serve-traced Start API with Phoenix tracing enabled"
+	@echo "  make phoenix      Start Phoenix observability server (port 6006)"
 	@echo "  make lint-format  Run ruff linter and formatter"
 	@echo ""
 	@echo "Testing:"
@@ -53,6 +56,26 @@ serve:
 	@echo "OpenAPI docs: http://127.0.0.1:8000/docs"
 	@echo ""
 	uv run uvicorn synth_lab.api.main:app --host 127.0.0.1 --port 8000 --reload
+
+serve-front:
+	@echo "Starting frontend dev server on http://localhost:8080"
+	@echo "API proxy: http://localhost:8000"
+	@echo ""
+	@cd frontend && pnpm dev
+
+serve-traced:
+	@echo "Starting synth-lab API with Phoenix tracing on http://127.0.0.1:8000"
+	@echo "OpenAPI docs: http://127.0.0.1:8000/docs"
+	@echo "Phoenix dashboard: http://127.0.0.1:6006"
+	@echo ""
+	@echo "TIP: Run 'make phoenix' in another terminal first!"
+	@echo ""
+	PHOENIX_ENABLED=true uv run uvicorn synth_lab.api.main:app --host 127.0.0.1 --port 8000 --reload
+
+phoenix:
+	@echo "Starting Phoenix observability server on http://127.0.0.1:6006"
+	@echo ""
+	uv run python -m phoenix.server.main serve
 
 # Testing targets
 test:
