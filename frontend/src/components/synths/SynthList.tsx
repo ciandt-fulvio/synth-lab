@@ -6,10 +6,26 @@ import { SynthDetailDialog } from './SynthDetailDialog';
 import { useSynthsList } from '@/hooks/use-synths';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Users } from 'lucide-react';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from '@/components/ui/pagination';
+
+const ITEMS_PER_PAGE = 45;
 
 export function SynthList() {
   const [selectedSynthId, setSelectedSynthId] = useState<string | null>(null);
-  const { data, isLoading, error } = useSynthsList();
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const { data, isLoading, error } = useSynthsList({
+    limit: ITEMS_PER_PAGE,
+    offset: currentPage * ITEMS_PER_PAGE,
+  });
 
   if (isLoading) {
     return (
@@ -41,6 +57,52 @@ export function SynthList() {
     );
   }
 
+  const totalPages = Math.ceil(data.pagination.total / ITEMS_PER_PAGE);
+  const hasPrevious = currentPage > 0;
+  const hasNext = currentPage < totalPages - 1;
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages: (number | 'ellipsis')[] = [];
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible) {
+      // Show all pages if total is small
+      for (let i = 0; i < totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always show first page
+      pages.push(0);
+
+      // Calculate range around current page
+      let start = Math.max(1, currentPage - 1);
+      let end = Math.min(totalPages - 2, currentPage + 1);
+
+      // Add ellipsis after first page if needed
+      if (start > 1) {
+        pages.push('ellipsis');
+      }
+
+      // Add pages around current
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      // Add ellipsis before last page if needed
+      if (end < totalPages - 2) {
+        pages.push('ellipsis');
+      }
+
+      // Always show last page
+      pages.push(totalPages - 1);
+    }
+
+    return pages;
+  };
+
+  const pageNumbers = getPageNumbers();
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -52,6 +114,50 @@ export function SynthList() {
           />
         ))}
       </div>
+
+      {totalPages > 1 && (
+        <div className="mt-8">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => hasPrevious && setCurrentPage(currentPage - 1)}
+                  className={!hasPrevious ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+
+              {pageNumbers.map((page, idx) =>
+                page === 'ellipsis' ? (
+                  <PaginationItem key={`ellipsis-${idx}`}>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                ) : (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(page)}
+                      isActive={currentPage === page}
+                      className="cursor-pointer"
+                    >
+                      {page + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              )}
+
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => hasNext && setCurrentPage(currentPage + 1)}
+                  className={!hasNext ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+
+          <div className="text-center mt-4 text-sm text-muted-foreground">
+            Mostrando {data.pagination.offset + 1} a {Math.min(data.pagination.offset + data.pagination.limit, data.pagination.total)} de {data.pagination.total} synths
+          </div>
+        </div>
+      )}
 
       <SynthDetailDialog
         synthId={selectedSynthId}

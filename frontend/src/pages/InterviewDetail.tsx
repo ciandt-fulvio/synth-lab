@@ -1,12 +1,12 @@
 // src/pages/InterviewDetail.tsx
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useResearchDetail, useResearchTranscripts, useResearchSummary } from '@/hooks/use-research';
 import { useArtifactStatesWithPolling } from '@/hooks/use-artifact-states';
 import { usePrfaqGenerate } from '@/hooks/use-prfaq-generate';
 import { useSummaryGenerate } from '@/hooks/use-summary-generate';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPrfaqMarkdown } from '@/services/prfaq-api';
 import { getSynthAvatarUrl } from '@/services/synths-api';
 import { queryKeys } from '@/lib/query-keys';
@@ -14,6 +14,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { ArtifactButton } from '@/components/shared/ArtifactButton';
 import MarkdownPopup from '@/components/shared/MarkdownPopup';
 import { TranscriptDialog } from '@/components/shared/TranscriptDialog';
+import { LiveInterviewGrid } from '@/components/interviews/LiveInterviewGrid';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -25,14 +26,74 @@ import { ptBR } from 'date-fns/locale';
 export default function InterviewDetail() {
   const { execId } = useParams<{ execId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [prfaqOpen, setPrfaqOpen] = useState(false);
   const [selectedSynthId, setSelectedSynthId] = useState<string | null>(null);
+  const [aggressivePolling, setAggressivePolling] = useState(false);
+  const aggressivePollingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: execution, isLoading, error } = useResearchDetail(execId!);
   const { data: transcripts } = useResearchTranscripts(execId!);
   const { data: artifactStates } = useArtifactStatesWithPolling(execId!);
+
+  // Handle transcription completion: start aggressive polling for summary generation
+  const handleTranscriptionCompleted = (data: import('@/types/sse-events').TranscriptionCompletedEvent) => {
+    console.log('[InterviewDetail] Transcription completed, summary will start generating...', data);
+    console.log(`[InterviewDetail] Successful: ${data.successful_count}, Failed: ${data.failed_count}`);
+
+    // Invalidate artifact states immediately to check if generating started
+    queryClient.invalidateQueries({ queryKey: queryKeys.artifactStates(execId!) });
+
+    // Start aggressive polling to catch the 'generating' state
+    setAggressivePolling(true);
+
+    // Clear any existing timer
+    if (aggressivePollingTimerRef.current) {
+      clearTimeout(aggressivePollingTimerRef.current);
+    }
+
+    // Stop aggressive polling after 60 seconds
+    aggressivePollingTimerRef.current = setTimeout(() => {
+      console.log('[InterviewDetail] Stopping aggressive polling');
+      setAggressivePolling(false);
+    }, 60000);
+  };
+
+  // Handle execution completion: refetch all data
+  const handleExecutionCompleted = () => {
+    console.log('[InterviewDetail] Execution completed, refreshing data...');
+
+    // Invalidate all related queries to refetch fresh data
+    queryClient.invalidateQueries({ queryKey: queryKeys.researchDetail(execId!) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.researchTranscripts(execId!) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.artifactStates(execId!) });
+  };
+
+  // Aggressive polling effect - refetch artifact states every 2 seconds
+  useEffect(() => {
+    if (!aggressivePolling || !execId) return;
+
+    console.log('[InterviewDetail] Aggressive polling active');
+    const interval = setInterval(() => {
+      console.log('[InterviewDetail] Aggressive refetch...');
+      queryClient.invalidateQueries({ queryKey: queryKeys.artifactStates(execId) });
+    }, 2000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [aggressivePolling, execId, queryClient]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (aggressivePollingTimerRef.current) {
+        clearTimeout(aggressivePollingTimerRef.current);
+      }
+    };
+  }, []);
 
   // Fetch content based on artifact states
   const summaryAvailable = artifactStates?.summary.state === 'available';
@@ -148,6 +209,22 @@ export default function InterviewDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Live Interview Cards - Real-time monitoring */}
+      {execution.status === 'running' && execId && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Entrevistas ao Vivo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <LiveInterviewGrid
+              execId={execId}
+              onExecutionCompleted={handleExecutionCompleted}
+              onTranscriptionCompleted={handleTranscriptionCompleted}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {transcripts && transcripts.data.length > 0 && (
         <Card>

@@ -27,7 +27,7 @@ export function SynthCard({ synth, onClick }: SynthCardProps) {
       <CardHeader className="flex flex-row items-center gap-4">
         <Avatar className="h-16 w-16">
           <AvatarImage
-            src={synth.avatar_path ? getSynthAvatarUrl(synth.id) : undefined}
+            src={getSynthAvatarUrl(synth.id)}
             alt={synth.nome}
           />
           <AvatarFallback>
