@@ -207,17 +207,20 @@ async def summarize_interviews(
     print(summary)
     ```
     """
-    logger.info(f"Summarizing {len(interview_results)} interviews")
+    logger.info(f"Summarizing {len(interview_results)} interviews with model={model}")
 
     # Format all interviews
     interviews_content_parts = []
-    for result, synth_data in interview_results:
+    for i, (result, synth_data) in enumerate(interview_results):
+        logger.debug(f"Formatting interview {i+1}/{len(interview_results)}")
         formatted = format_interview_for_summary(result, synth_data)
         interviews_content_parts.append(formatted)
 
     interviews_content = "\n".join(interviews_content_parts)
+    logger.info(f"Formatted interviews content length: {len(interviews_content)} chars")
 
     # Create summarizer agent
+    logger.info("Creating summarizer agent...")
     summarizer = create_summarizer_agent(
         topic_guide_name=topic_guide_name,
         interviews_content=interviews_content,
