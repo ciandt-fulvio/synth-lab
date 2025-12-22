@@ -67,14 +67,24 @@ def save_synth(synth_dict: dict[str, Any], output_dir: Path | None = None, save_
     """
     synth_id = synth_dict["id"]
 
+    # Build data object with nested fields
+    data = {}
+    if synth_dict.get("demografia"):
+        data["demografia"] = synth_dict["demografia"]
+    if synth_dict.get("psicografia"):
+        data["psicografia"] = synth_dict["psicografia"]
+    if synth_dict.get("deficiencias"):
+        data["deficiencias"] = synth_dict["deficiencias"]
+    if synth_dict.get("capacidades_tecnologicas"):
+        data["capacidades_tecnologicas"] = synth_dict["capacidades_tecnologicas"]
+
     conn = _get_connection()
     try:
         conn.execute(
             """
             INSERT OR REPLACE INTO synths
-            (id, nome, arquetipo, descricao, link_photo, avatar_path, created_at, version,
-             demografia, psicografia, deficiencias, capacidades_tecnologicas)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (id, nome, arquetipo, descricao, link_photo, avatar_path, created_at, version, data)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 synth_id,
@@ -85,12 +95,7 @@ def save_synth(synth_dict: dict[str, Any], output_dir: Path | None = None, save_
                 synth_dict.get("avatar_path"),
                 synth_dict.get("created_at"),
                 synth_dict.get("version", "2.0.0"),
-                json.dumps(synth_dict.get("demografia")) if synth_dict.get("demografia") else None,
-                json.dumps(synth_dict.get("psicografia")) if synth_dict.get("psicografia") else None,
-                json.dumps(synth_dict.get("deficiencias")) if synth_dict.get("deficiencias") else None,
-                json.dumps(synth_dict.get("capacidades_tecnologicas"))
-                if synth_dict.get("capacidades_tecnologicas")
-                else None,
+                json.dumps(data) if data else None,
             ),
         )
         conn.commit()
@@ -157,15 +162,17 @@ def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
         "version": row["version"],
     }
 
-    # Parse JSON fields
-    if row["demografia"]:
-        synth["demografia"] = json.loads(row["demografia"])
-    if row["psicografia"]:
-        synth["psicografia"] = json.loads(row["psicografia"])
-    if row["deficiencias"]:
-        synth["deficiencias"] = json.loads(row["deficiencias"])
-    if row["capacidades_tecnologicas"]:
-        synth["capacidades_tecnologicas"] = json.loads(row["capacidades_tecnologicas"])
+    # Parse data JSON field (contains all nested data)
+    if row["data"]:
+        data = json.loads(row["data"])
+        if data.get("demografia"):
+            synth["demografia"] = data["demografia"]
+        if data.get("psicografia"):
+            synth["psicografia"] = data["psicografia"]
+        if data.get("deficiencias"):
+            synth["deficiencias"] = data["deficiencias"]
+        if data.get("capacidades_tecnologicas"):
+            synth["capacidades_tecnologicas"] = data["capacidades_tecnologicas"]
 
     return synth
 
