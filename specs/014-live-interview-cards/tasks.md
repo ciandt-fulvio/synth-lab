@@ -24,9 +24,9 @@
 
 **Purpose**: TypeScript type definitions and utility functions that all components will use
 
-- [ ] T001 Create SSE event type definitions in frontend/src/types/sse-events.ts (InterviewMessageEvent, TranscriptionCompletedEvent, ExecutionCompletedEvent)
-- [ ] T002 [P] Extract extractMessageText utility function from TranscriptDialog to frontend/src/lib/message-utils.ts
-- [ ] T003 [P] Export new SSE types from frontend/src/types/sse-events.ts
+- [X] T001 Create SSE event type definitions in frontend/src/types/sse-events.ts (InterviewMessageEvent, TranscriptionCompletedEvent, ExecutionCompletedEvent)
+- [X] T002 [P] Extract extractMessageText utility function from TranscriptDialog to frontend/src/lib/message-utils.ts
+- [X] T003 [P] Export new SSE types from frontend/src/types/sse-events.ts
 
 ---
 
