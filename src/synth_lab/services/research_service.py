@@ -411,6 +411,14 @@ class ResearchService:
                 ),
             )
 
+        async def on_summary_start(exec_id: str) -> None:
+            """Update execution status to generating_summary when summary starts."""
+            logger.info(f"Updating execution {exec_id} status to generating_summary")
+            self.research_repo.update_execution_status(
+                exec_id=exec_id,
+                status=ExecutionStatus.GENERATING_SUMMARY,
+            )
+
         try:
             # Run the batch interviews
             result = await run_batch_interviews(
@@ -424,6 +432,7 @@ class ResearchService:
                 synth_ids=synth_ids,
                 message_callback=on_message,
                 on_transcription_completed=on_transcription_complete,
+                on_summary_start=on_summary_start,
                 skip_interviewee_review=skip_interviewee_review,
                 additional_context=additional_context,
             )

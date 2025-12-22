@@ -220,6 +220,7 @@ async def run_batch_interviews(
     synth_ids: list[str] | None = None,
     message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
     on_transcription_completed: Callable[[str, int, int], Awaitable[None]] | None = None,
+    on_summary_start: Callable[[str], Awaitable[None]] | None = None,
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
 ) -> BatchResult:
@@ -242,6 +243,8 @@ async def run_batch_interviews(
             Signature: (exec_id, synth_id, turn_number, message) -> None
         on_transcription_completed: Callback when all transcriptions done
             Signature: (exec_id, successful_count, failed_count) -> None
+        on_summary_start: Callback when summary generation starts
+            Signature: (exec_id) -> None
         skip_interviewee_review: Whether to skip the interviewee response reviewer.
         additional_context: Optional additional context to complement the research scenario.
 
@@ -349,6 +352,10 @@ async def run_batch_interviews(
     )
 
     if generate_summary and successful_interviews:
+        # Notify that summary generation is starting
+        if on_summary_start and batch_id:
+            await on_summary_start(batch_id)
+
         console.print()
         console.print("[cyan]Gerando síntese das entrevistas...[/cyan]")
         logger.info(f"Starting summary generation for {len(successful_interviews)} interviews")
@@ -393,6 +400,7 @@ def run_batch_interviews_sync(
     synth_ids: list[str] | None = None,
     message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
     on_transcription_completed: Callable[[str, int, int], Awaitable[None]] | None = None,
+    on_summary_start: Callable[[str], Awaitable[None]] | None = None,
     skip_interviewee_review: bool = True,
 ) -> BatchResult:
     """
@@ -409,6 +417,7 @@ def run_batch_interviews_sync(
         synth_ids: Optional list of specific synth IDs to interview.
         message_callback: Async callback for real-time message streaming (optional)
         on_transcription_completed: Callback when all transcriptions done (exec_id, success, failed)
+        on_summary_start: Callback when summary generation starts
         skip_interviewee_review: Whether to skip the interviewee response reviewer.
 
     Returns:
@@ -426,6 +435,7 @@ def run_batch_interviews_sync(
             synth_ids=synth_ids,
             message_callback=message_callback,
             on_transcription_completed=on_transcription_completed,
+            on_summary_start=on_summary_start,
             skip_interviewee_review=skip_interviewee_review,
         )
     )

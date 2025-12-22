@@ -58,12 +58,12 @@
   },
   "escolaridade": {
     "Sem instrução": 0.064,
-    "Fundamental incompleto": 0.292,
+    "Fundamental incompleto": 0.212,
     "Fundamental completo": 0.080,
     "Médio incompleto": 0.041,
-    "Médio completo": 0.274,
-    "Superior incompleto": 0.047,
-    "Superior completo": 0.152,
+    "Médio completo": 0.184,
+    "Superior incompleto": 0.067,
+    "Superior completo": 0.232,
     "Pós-graduação": 0.050
   },
   "renda_mensal_faixas": {
