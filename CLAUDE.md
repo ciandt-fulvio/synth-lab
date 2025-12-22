@@ -1,51 +1,107 @@
 # synth-lab Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2025-12-15
+Auto-generated from all feature plans. Last updated: 2025-12-22
 
 ## Active Technologies
-- Python 3.13+ + duckdb>=0.9.0, rich>=13.0.0 (already installed), typer>=0.9.0 (for CLI) (003-synth-query)
-- DuckDB database file (`synths.duckdb`) created from JSON source (`data/synths/synths.json`) (003-synth-query)
-- Python 3.13 + jsonschema>=4.20.0 (schema validation), faker>=21.0.0 (data generation), rich>=13.0.0 (output), typer>=0.9.0 (CLI) (004-simplify-synth-schema)
-- JSON files (`data/schemas/synth-schema-cleaned.json` for schema definition, `data/synths/synths.json` for generated synths), DuckDB database (`synths.duckdb`) (004-simplify-synth-schema)
-- Python 3.13+ (aligning with existing project) (005-ux-research-interviews)
-- JSON files for transcripts (`data/transcripts/`), synths loaded from `data/synths/synths.json` (005-ux-research-interviews)
-- Python 3.13 (matching project requirement) (006-topic-guides)
-- File system (directories under `data/topic_guides/`), markdown files (`summary.md`) (006-topic-guides)
-- Python 3.13+ + openai>=2.8.0 (API SDK), Pillow (image processing), rich (CLI output), existing synth-lab modules (008-synth-avatar-generation)
-- File system (`data/synths/avatar/` directory for PNG files) (008-synth-avatar-generation)
-- Python 3.13+ + FastAPI, uvicorn, SQLite (stdlib), openai>=2.8.0, openai-agents>=0.0.16, typer, rich, pydantic>=2.5.0 (010-rest-api)
-- SQLite with JSON1 extension (single file: `output/synthlab.db`) (010-rest-api)
-- Python 3.13+ + Typer (CLI framework), FastAPI (REST API), Pydantic>=2.5.0 (models), OpenAI SDK, DuckDB/SQLite (011-remove-cli-commands)
-- SQLite database (`output/synthlab.db`) + file system for reports (`output/reports/`) (011-remove-cli-commands)
-- TypeScript 5.5.3 + React 18.3.1 + Vite 6.3.4, shadcn/ui, TanStack React Query 5.56, React Router DOM 6.26, Tailwind CSS 3.4 (012-frontend-dashboard)
-- N/A (frontend consome API REST do backend) (012-frontend-dashboard)
-- Python 3.13+ (backend), TypeScript 5.5.3 (frontend) + FastAPI 0.109.0+, Pydantic 2.5.0+, React 18.3.1, TanStack React Query 5.56.2 (013-summary-prfaq-states)
-- SQLite 3 with WAL mode (`output/synthlab.db`) (013-summary-prfaq-states)
-- TypeScript 5.5.3 + React 18.3.1, shadcn/ui, TanStack React Query 5.56, React Router DOM 6.26 (014-live-interview-cards)
-- N/A (frontend-only feature, consumes existing backend API) (014-live-interview-cards)
 
-- Python 3.13+ + faker>=21.0.0, jsonschema>=4.20.0, rich (para output colorido) (002-synthlab-cli)
+### Backend
+- **Python**: 3.13+
+- **Framework**: FastAPI 0.109.0+, Uvicorn, Pydantic 2.5.0+
+- **Database**: SQLite 3 with JSON1 extension and WAL mode (`output/synthlab.db`)
+- **AI/LLM**: OpenAI SDK 2.8.0+, OpenAI Agents 0.0.16+
+- **Core Libraries**:
+  - Data generation: Faker 21.0.0+
+  - Schema validation: jsonschema 4.20.0+
+  - CLI: Typer 0.9.0+
+  - Logging: Loguru 0.7.0+
+  - Image processing: Pillow 10.0.0+
+- **Observability**: Arize Phoenix 5.0.0+, OpenTelemetry
+
+### Frontend
+- **Runtime**: TypeScript 5.5.3, React 18.3.1
+- **Build**: Vite 6.3.4
+- **UI Framework**: shadcn/ui, Tailwind CSS 3.4
+- **Data Fetching**: TanStack React Query 5.56
+- **Routing**: React Router DOM 6.26
 
 ## Project Structure
 
 ```text
-src/
-tests/
+synth-lab/
+├── src/synth_lab/          # Backend Python package
+│   ├── api/                # FastAPI REST API
+│   ├── domain/             # Business logic models
+│   ├── gen_synth/          # Synth generation
+│   ├── infrastructure/     # Database, config
+│   ├── repositories/       # Data access layer
+│   └── services/           # Business services
+├── frontend/               # React TypeScript app
+│   └── src/
+│       ├── components/     # React components
+│       ├── hooks/          # Custom React hooks
+│       ├── pages/          # Page components
+│       ├── services/       # API clients
+│       └── types/          # TypeScript types
+├── tests/                  # Test suite
+│   ├── unit/              # Unit tests
+│   └── integration/       # Integration tests
+├── output/                 # Runtime data
+│   └── synthlab.db        # SQLite database
+└── data/                   # Static data files
 ```
 
 ## Commands
 
-cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLOGIES] pytest [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLOGIES] ruff check .
+### Backend
+```bash
+# Start API server
+uv run uvicorn synth_lab.api.main:app --reload
+
+# Run tests
+pytest tests/
+
+# Run linter
+ruff check .
+
+# Format code
+ruff format .
+```
+
+### Frontend
+```bash
+cd frontend
+
+# Start dev server
+npm run dev
+
+# Build for production
+npm run build
+
+# Run type check
+npm run type-check
+```
 
 ## Code Style
 
-Python 3.13+: Follow standard conventions
+- **Backend**: Python 3.13+, follow PEP 8, use Ruff for linting/formatting
+- **Frontend**: TypeScript strict mode, ESLint + Prettier
+- **API**: RESTful conventions, OpenAPI/Swagger documentation
+- **Database**: SQLite with proper migrations and WAL mode
+
+## Data Storage
+
+- **Database**: `output/synthlab.db` (SQLite with JSON1 extension)
+- **Avatars**: `output/synths/avatar/*.png` (local) or fallback to `link_photo` URL
+- **Reports**: `output/reports/`
 
 ## Recent Changes
-- 014-live-interview-cards: Added TypeScript 5.5.3 + React 18.3.1, shadcn/ui, TanStack React Query 5.56, React Router DOM 6.26
-- 013-summary-prfaq-states: Added Python 3.13+ (backend), TypeScript 5.5.3 (frontend) + FastAPI 0.109.0+, Pydantic 2.5.0+, React 18.3.1, TanStack React Query 5.56.2
-- 012-frontend-dashboard: Added TypeScript 5.5.3 + React 18.3.1 + Vite 6.3.4, shadcn/ui, TanStack React Query 5.56, React Router DOM 6.26, Tailwind CSS 3.4
 
+- **2025-12-22**: Removed DuckDB dependency, migrated fully to SQLite
+- **2025-12-22**: Added avatar fallback to `link_photo` when local file missing
+- **2025-12-22**: Added pagination to synth list (45 items per page)
+- **014-live-interview-cards**: Live interview features with SSE
+- **013-summary-prfaq-states**: Summary generation and PR-FAQ artifact states
+- **012-frontend-dashboard**: React frontend dashboard with shadcn/ui
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
