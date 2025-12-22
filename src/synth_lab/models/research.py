@@ -85,6 +85,10 @@ class ResearchExecuteRequest(BaseModel):
     """Request model for executing research."""
 
     topic_name: str = Field(..., description="Topic guide name")
+    additional_context: str | None = Field(
+        default=None,
+        description="Additional context to complement the research scenario",
+    )
     synth_ids: list[str] | None = Field(
         default=None,
         description="Specific synth IDs to interview",
@@ -116,6 +120,21 @@ class ResearchExecuteResponse(BaseModel):
     topic_name: str = Field(..., description="Topic guide name")
     synth_count: int = Field(..., description="Number of synths")
     started_at: datetime = Field(..., description="Start timestamp")
+
+
+class SummaryGenerateRequest(BaseModel):
+    """Request model for generating summary."""
+
+    model: str = Field(default="gpt-5", description="LLM model to use for summarization")
+
+
+class SummaryGenerateResponse(BaseModel):
+    """Response model for summary generation."""
+
+    exec_id: str = Field(..., description="Execution ID")
+    status: str = Field(..., description="Generation status (generating, completed, failed)")
+    message: str | None = Field(default=None, description="Status message")
+    generated_at: datetime | None = Field(default=None, description="Completion timestamp")
 
 
 if __name__ == "__main__":

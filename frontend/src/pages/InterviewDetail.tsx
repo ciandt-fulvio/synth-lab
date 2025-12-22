@@ -3,25 +3,28 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useResearchDetail, useResearchTranscripts, useResearchSummary } from '@/hooks/use-research';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { generatePrfaq, getPrfaqMarkdown } from '@/services/prfaq-api';
+import { useArtifactStatesWithPolling } from '@/hooks/use-artifact-states';
+import { usePrfaqGenerate } from '@/hooks/use-prfaq-generate';
+import { useSummaryGenerate } from '@/hooks/use-summary-generate';
+import { useQuery } from '@tanstack/react-query';
+import { getPrfaqMarkdown } from '@/services/prfaq-api';
 import { getSynthAvatarUrl } from '@/services/synths-api';
 import { queryKeys } from '@/lib/query-keys';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { ArtifactButton } from '@/components/shared/ArtifactButton';
 import MarkdownPopup from '@/components/shared/MarkdownPopup';
-import { SynthDetailDialog } from '@/components/synths/SynthDetailDialog';
+import { TranscriptDialog } from '@/components/shared/TranscriptDialog';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, ArrowLeft, FileText, FileCheck, User } from 'lucide-react';
+import { Loader2, ArrowLeft, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function InterviewDetail() {
   const { execId } = useParams<{ execId: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [prfaqOpen, setPrfaqOpen] = useState(false);
@@ -29,23 +32,21 @@ export default function InterviewDetail() {
 
   const { data: execution, isLoading, error } = useResearchDetail(execId!);
   const { data: transcripts } = useResearchTranscripts(execId!);
-  const { data: summaryMarkdown } = useResearchSummary(
-    execId!,
-    execution?.summary_available || false
-  );
+  const { data: artifactStates } = useArtifactStatesWithPolling(execId!);
+
+  // Fetch content based on artifact states
+  const summaryAvailable = artifactStates?.summary.state === 'available';
+  const prfaqAvailable = artifactStates?.prfaq.state === 'available';
+
+  const { data: summaryMarkdown } = useResearchSummary(execId!, summaryAvailable);
   const { data: prfaqMarkdown } = useQuery({
     queryKey: queryKeys.prfaqMarkdown(execId!),
     queryFn: () => getPrfaqMarkdown(execId!),
-    enabled: execution?.prfaq_available || false,
+    enabled: prfaqAvailable,
   });
 
-  const generatePrfaqMutation = useMutation({
-    mutationFn: () => generatePrfaq({ exec_id: execId! }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.researchDetail(execId!) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.prfaqMarkdown(execId!) });
-    },
-  });
+  const generatePrfaqMutation = usePrfaqGenerate(execId!);
+  const generateSummaryMutation = useSummaryGenerate(execId!);
 
   if (isLoading) {
     return (
@@ -111,39 +112,38 @@ export default function InterviewDetail() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Ações</CardTitle>
+            <CardTitle>Artefatos</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <Button
-              onClick={() => setSummaryOpen(true)}
-              disabled={!execution.summary_available}
-              className="w-full"
-              variant="outline"
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              {execution.summary_available ? 'Ver Summary' : 'Summary não disponível'}
-            </Button>
-
-            {execution.prfaq_available ? (
-              <Button
-                onClick={() => setPrfaqOpen(true)}
-                className="w-full"
-                variant="outline"
-              >
-                <FileCheck className="h-4 w-4 mr-2" />
-                Ver PR/FAQ
-              </Button>
+          <CardContent className="flex flex-col gap-3">
+            {artifactStates ? (
+              <>
+                <ArtifactButton
+                  state={artifactStates.summary.state}
+                  artifactType="summary"
+                  prerequisiteMessage={artifactStates.summary.prerequisite_message ?? undefined}
+                  errorMessage={artifactStates.summary.error_message ?? undefined}
+                  onGenerate={() => generateSummaryMutation.mutate()}
+                  onView={() => setSummaryOpen(true)}
+                  onRetry={() => generateSummaryMutation.mutate()}
+                  isPending={generateSummaryMutation.isPending}
+                  className="w-full"
+                />
+                <ArtifactButton
+                  state={artifactStates.prfaq.state}
+                  artifactType="prfaq"
+                  prerequisiteMessage={artifactStates.prfaq.prerequisite_message ?? undefined}
+                  errorMessage={artifactStates.prfaq.error_message ?? undefined}
+                  onGenerate={() => generatePrfaqMutation.mutate()}
+                  onView={() => setPrfaqOpen(true)}
+                  onRetry={() => generatePrfaqMutation.mutate()}
+                  isPending={generatePrfaqMutation.isPending}
+                  className="w-full"
+                />
+              </>
             ) : (
-              <Button
-                onClick={() => generatePrfaqMutation.mutate()}
-                disabled={!execution.summary_available || generatePrfaqMutation.isPending}
-                className="w-full"
-              >
-                {generatePrfaqMutation.isPending && (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                )}
-                Gerar PR/FAQ
-              </Button>
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
             )}
           </CardContent>
         </Card>
@@ -201,12 +201,17 @@ export default function InterviewDetail() {
         <MarkdownPopup
           isOpen={prfaqOpen}
           onClose={() => setPrfaqOpen(false)}
-          title={`PR/FAQ - ${execution.topic_name}`}
+          title={`PR/FAQ - ${execution.topic_name}${
+            artifactStates?.prfaq.completed_at
+              ? ` (${format(new Date(artifactStates.prfaq.completed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })})`
+              : ''
+          }`}
           markdownContent={prfaqMarkdown}
         />
       )}
 
-      <SynthDetailDialog
+      <TranscriptDialog
+        execId={execId!}
         synthId={selectedSynthId}
         open={!!selectedSynthId}
         onOpenChange={(open) => {

@@ -281,6 +281,7 @@ async def generate_initial_context(
     topic_guide: str,
     model: str = "gpt-5-mini",
     context_definition: str | None = None,
+    additional_context: str | None = None,
 ) -> str:
     """
     Generate initial context for the interviewee based on examples.
@@ -294,6 +295,7 @@ async def generate_initial_context(
         topic_guide: Topic guide content for context
         model: LLM model to use
         context_definition: Optional definition/purpose of the context
+        additional_context: Optional additional context to complement the scenario
 
     Returns:
         Generated initial context string
@@ -323,10 +325,19 @@ CONTEXTO:
 {context_definition}
 """
 
+    # Build additional context section
+    additional_context_section = ""
+    if additional_context:
+        additional_context_section = f"""
+CONTEXTO ADICIONAL:
+{additional_context}
+"""
+
     prompt = f"""Você deve gerar uma experiência pessoal para {nome}, {idade} anos, {ocupacao}, de {cidade}.
 
 RELATIVO A:
 {context_def_section}
+{additional_context_section}
 
 TIPO DE EXPERIÊNCIA: {sentiment.upper()}
 
@@ -415,6 +426,7 @@ async def run_interview(
     exec_id: str | None = None,
     message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
     skip_interviewee_review: bool = True,
+    additional_context: str | None = None,
 ) -> InterviewResult:
     """
     Run an agentic interview with orchestrated turn-taking.
@@ -439,6 +451,7 @@ async def run_interview(
             Signature: (exec_id, synth_id, turn_number, message) -> None
         skip_interviewee_review: Whether to skip the interviewee response reviewer.
             If True, uses raw interviewee response without humanization review.
+        additional_context: Optional additional context to complement the research scenario
 
     Returns:
         InterviewResult with conversation and metadata
@@ -556,6 +569,7 @@ async def run_interview(
                                 conversation_history=shared_memory.format_history(),
                                 mcp_servers=mcp_servers,
                                 model=model,
+                                additional_context=additional_context,
                             )
 
                             # Log request (system prompt + input)
@@ -574,6 +588,7 @@ async def run_interview(
                                     topic_guide=topic_guide,
                                     model=model,
                                     context_definition=context_definition,
+                                    additional_context=additional_context,
                                 )
                                 raw_result, initial_context = await asyncio.gather(
                                     interviewer_task, context_task

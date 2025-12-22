@@ -8,7 +8,8 @@ References:
 """
 
 from datetime import datetime
-from pathlib import Path
+
+from loguru import logger
 
 from synth_lab.infrastructure.config import DB_PATH
 from synth_lab.infrastructure.database import DatabaseManager
@@ -139,6 +140,173 @@ class PRFAQRepository(BaseRepository):
             raise PRFAQNotFoundError(exec_id)
 
         return row["json_content"]
+
+    def create_pending_prfaq(self, exec_id: str, model: str = "gpt-4o-mini") -> bool:
+        """
+        Create a pending PR-FAQ record to track generation state.
+
+        This method checks if a PR-FAQ is already being generated to prevent
+        concurrent generation requests.
+
+        Args:
+            exec_id: Execution ID.
+            model: LLM model to use (default: gpt-4o-mini).
+
+        Returns:
+            True if pending record created successfully.
+            False if already generating (status='generating').
+        """
+        # Check if already generating
+        existing = self.db.fetchone(
+            "SELECT status FROM prfaq_metadata WHERE exec_id = ?",
+            (exec_id,),
+        )
+
+        if existing and existing["status"] == "generating":
+            logger.warning(
+                f"[{exec_id}] PR-FAQ state transition blocked: "
+                f"already in 'generating' state"
+            )
+            return False  # Already generating, prevent concurrent request
+
+        previous_status = existing["status"] if existing else None
+
+        # Create or update to generating status
+        # Use INSERT...ON CONFLICT to preserve existing fields when updating
+        if existing:
+            # Update existing record - preserve generated_at and content fields
+            query = """
+                UPDATE prfaq_metadata
+                SET status = 'generating', started_at = ?, model = ?, error_message = NULL
+                WHERE exec_id = ?
+            """
+            self.db.execute(query, (datetime.now().isoformat(), model, exec_id))
+        else:
+            # Insert new record
+            query = """
+                INSERT INTO prfaq_metadata
+                (exec_id, status, started_at, model)
+                VALUES (?, 'generating', ?, ?)
+            """
+            self.db.execute(query, (exec_id, datetime.now().isoformat(), model))
+
+        logger.info(
+            f"[{exec_id}] PR-FAQ state transition: "
+            f"{previous_status or 'none'} -> generating"
+        )
+        return True
+
+    def update_prfaq_status(
+        self,
+        exec_id: str,
+        status: str,
+        error_message: str | None = None,
+        markdown_content: str | None = None,
+        json_content: str | None = None,
+        headline: str | None = None,
+        one_liner: str | None = None,
+        faq_count: int | None = None,
+        validation_status: str | None = None,
+        confidence_score: float | None = None,
+    ) -> None:
+        """
+        Update PR-FAQ status and optionally set content on completion.
+
+        Args:
+            exec_id: Execution ID.
+            status: New status ('completed', 'failed').
+            error_message: Error message if failed.
+            markdown_content: Generated markdown content if completed.
+            json_content: Generated JSON content if completed.
+            headline: Press release headline.
+            one_liner: One-line summary.
+            faq_count: Number of FAQ items.
+            validation_status: Validation status.
+            confidence_score: Confidence score.
+        """
+        # Get current status for logging
+        current = self.db.fetchone(
+            "SELECT status FROM prfaq_metadata WHERE exec_id = ?",
+            (exec_id,),
+        )
+        previous_status = current["status"] if current else "unknown"
+
+        updates = ["status = ?"]
+        params: list = [status]
+
+        if status == "completed":
+            updates.append("generated_at = ?")
+            params.append(datetime.now().isoformat())
+
+        if error_message is not None:
+            updates.append("error_message = ?")
+            params.append(error_message)
+
+        if markdown_content is not None:
+            updates.append("markdown_content = ?")
+            params.append(markdown_content)
+
+        if json_content is not None:
+            updates.append("json_content = ?")
+            params.append(json_content)
+
+        if headline is not None:
+            updates.append("headline = ?")
+            params.append(headline)
+
+        if one_liner is not None:
+            updates.append("one_liner = ?")
+            params.append(one_liner)
+
+        if faq_count is not None:
+            updates.append("faq_count = ?")
+            params.append(faq_count)
+
+        if validation_status is not None:
+            updates.append("validation_status = ?")
+            params.append(validation_status)
+
+        if confidence_score is not None:
+            updates.append("confidence_score = ?")
+            params.append(confidence_score)
+
+        params.append(exec_id)
+        query = f"UPDATE prfaq_metadata SET {', '.join(updates)} WHERE exec_id = ?"
+        self.db.execute(query, tuple(params))
+
+        # Log state transition
+        if status == "completed":
+            content_size = len(markdown_content) if markdown_content else 0
+            logger.info(
+                f"[{exec_id}] PR-FAQ state transition: "
+                f"{previous_status} -> {status} (content: {content_size} chars)"
+            )
+        elif status == "failed":
+            logger.warning(
+                f"[{exec_id}] PR-FAQ state transition: "
+                f"{previous_status} -> {status} (error: {error_message})"
+            )
+        else:
+            logger.info(
+                f"[{exec_id}] PR-FAQ state transition: "
+                f"{previous_status} -> {status}"
+            )
+
+    def get_prfaq_status(self, exec_id: str) -> str | None:
+        """
+        Get the current PR-FAQ generation status.
+
+        Args:
+            exec_id: Execution ID.
+
+        Returns:
+            Status string ('generating', 'completed', 'failed') or None if not found.
+        """
+        row = self.db.fetchone(
+            "SELECT status FROM prfaq_metadata WHERE exec_id = ?",
+            (exec_id,),
+        )
+        return row["status"] if row else None
 
     def create_prfaq_metadata(
         self,

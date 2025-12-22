@@ -16,6 +16,10 @@ from loguru import logger
 
 from synth_lab.api.errors import register_exception_handlers
 from synth_lab.infrastructure.config import API_HOST, API_PORT, ensure_directories
+from synth_lab.infrastructure.phoenix_tracing import (
+    maybe_setup_tracing,
+    shutdown_tracing,
+)
 
 
 @asynccontextmanager
@@ -28,10 +32,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Startup
     logger.info("Starting synth-lab API...")
     ensure_directories()
+    # Setup Phoenix tracing if PHOENIX_ENABLED=true
+    maybe_setup_tracing()
     logger.info(f"API ready at http://{API_HOST}:{API_PORT}")
     yield
     # Shutdown
     logger.info("Shutting down synth-lab API...")
+    shutdown_tracing()
 
 
 app = FastAPI(

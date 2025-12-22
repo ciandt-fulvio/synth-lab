@@ -58,7 +58,7 @@ Você é um especialista em síntese de pesquisa UX qualitativa. Sua tarefa é a
   - tipo de persona
   - contrato cognitivo
   - situação específica
-- Ex: "Usuário com baixo letramento + contrato defensivo relatou…"
+- Ex: "João citou que …"
 
 ### 5) Tensões, Não Médias
 - Identifique onde os usuários discordam

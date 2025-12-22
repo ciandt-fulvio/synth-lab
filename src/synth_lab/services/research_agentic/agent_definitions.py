@@ -45,6 +45,7 @@ def create_interviewer(
     mcp_servers: list[Any] | None = None,
     model: str = "gpt-5-mini",
     reasoning_effort: str = "low",
+    additional_context: str | None = None,
 ) -> Agent:
     """
     Create an interviewer agent.
@@ -58,12 +59,13 @@ def create_interviewer(
         mcp_servers: Optional MCP servers for tool access (filesystem, browser)
         model: LLM model to use
         reasoning_effort: Reasoning effort level ("low", "medium", "high")
+        additional_context: Optional additional context to complement the research scenario
 
     Returns:
         Configured Agent instance
     """
     instructions = format_interviewer_instructions(
-        topic_guide, conversation_history)
+        topic_guide, conversation_history, additional_context)
 
     return Agent(
         name="Interviewer",

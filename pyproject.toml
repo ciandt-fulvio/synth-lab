@@ -23,6 +23,13 @@ dependencies = [
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
     "pydantic>=2.5.0",
+    # Observability (Phoenix/OpenTelemetry)
+    "arize-phoenix>=5.0.0",
+    "arize-phoenix-otel>=0.6.0",
+    "openinference-instrumentation-openai>=0.1.0",
+    "openinference-instrumentation-openai-agents>=0.1.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-exporter-otlp>=1.20.0",
 ]
 
 [project.optional-dependencies]

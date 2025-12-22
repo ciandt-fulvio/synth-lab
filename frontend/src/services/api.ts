@@ -49,7 +49,14 @@ export async function fetchAPI<T>(
       return null as T;
     }
 
-    return JSON.parse(text) as T;
+    // Check content type to determine how to parse response
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      return JSON.parse(text) as T;
+    }
+
+    // Return text as-is for non-JSON responses (markdown, plain text, etc.)
+    return text as T;
   } catch (error) {
     if (error instanceof APIError) {
       throw error;
