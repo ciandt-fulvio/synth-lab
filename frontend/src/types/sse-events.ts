@@ -73,6 +73,7 @@ export interface LiveInterviewCardProps {
 
 export interface LiveInterviewGridProps {
   execId: string; // Research execution to display interviews for
+  onExecutionCompleted?: () => void; // Optional callback when execution completes
 }
 
 /**

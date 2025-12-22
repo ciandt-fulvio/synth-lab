@@ -25,10 +25,13 @@ import type {
  * in chronological order.
  *
  * @param execId - Research execution ID to stream messages from
+ * @param onExecutionCompleted - Optional callback when execution completes
  * @returns State with messagesBySynth, synthIds, connection status
  *
  * @example
- * const { messagesBySynth, synthIds, isConnected } = useLiveInterviews('exec-123');
+ * const { messagesBySynth, synthIds, isConnected } = useLiveInterviews('exec-123', () => {
+ *   console.log('Execution completed!');
+ * });
  *
  * // Render cards for each synth
  * synthIds.map(synthId => (
@@ -39,7 +42,10 @@ import type {
  *   />
  * ))
  */
-export function useLiveInterviews(execId: string): LiveInterviewsHookState {
+export function useLiveInterviews(
+  execId: string,
+  onExecutionCompleted?: () => void
+): LiveInterviewsHookState {
   const [messagesBySynth, setMessagesBySynth] = useState<LiveInterviewMessages>({});
 
   // Callback to handle incoming messages
@@ -56,7 +62,12 @@ export function useLiveInterviews(execId: string): LiveInterviewsHookState {
   }, []);
 
   // Establish SSE connection
-  const { isConnected, error } = useSSE(execId, true, handleMessage);
+  const { isConnected, error } = useSSE(
+    execId,
+    true,
+    handleMessage,
+    onExecutionCompleted
+  );
 
   // Derive synthIds from messagesBySynth keys
   const synthIds = Object.keys(messagesBySynth);

@@ -10,7 +10,7 @@
 // - Type definitions: src/types/sse-events.ts
 
 import { useEffect, useRef, useState } from 'react';
-import type { InterviewMessageEvent } from '@/types/sse-events';
+import type { InterviewMessageEvent, ExecutionCompletedEvent, TranscriptionCompletedEvent } from '@/types/sse-events';
 
 /**
  * Hook for managing Server-Sent Events connection to interview stream.
@@ -18,19 +18,24 @@ import type { InterviewMessageEvent } from '@/types/sse-events';
  * @param execId - Research execution ID to stream messages from
  * @param enabled - Whether to establish SSE connection (false = disconnected)
  * @param onMessage - Callback invoked when 'message' event received
+ * @param onExecutionCompleted - Optional callback when execution completes
+ * @param onTranscriptionCompleted - Optional callback when transcription completes
  * @returns Connection state (isConnected, error)
  *
  * @example
  * const { isConnected, error } = useSSE(
  *   'exec-123',
  *   true,
- *   (event) => console.log('Message:', event.text)
+ *   (event) => console.log('Message:', event.text),
+ *   () => console.log('Execution completed!')
  * );
  */
 export function useSSE(
   execId: string,
   enabled: boolean,
-  onMessage: (event: InterviewMessageEvent) => void
+  onMessage: (event: InterviewMessageEvent) => void,
+  onExecutionCompleted?: () => void,
+  onTranscriptionCompleted?: (data: TranscriptionCompletedEvent) => void
 ): {
   isConnected: boolean;
   error: Error | null;
@@ -39,11 +44,21 @@ export function useSSE(
   const [error, setError] = useState<Error | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const onMessageRef = useRef(onMessage);
+  const onExecutionCompletedRef = useRef(onExecutionCompleted);
+  const onTranscriptionCompletedRef = useRef(onTranscriptionCompleted);
 
-  // Keep onMessage ref updated
+  // Keep callback refs updated
   useEffect(() => {
     onMessageRef.current = onMessage;
   }, [onMessage]);
+
+  useEffect(() => {
+    onExecutionCompletedRef.current = onExecutionCompleted;
+  }, [onExecutionCompleted]);
+
+  useEffect(() => {
+    onTranscriptionCompletedRef.current = onTranscriptionCompleted;
+  }, [onTranscriptionCompleted]);
 
   useEffect(() => {
     // Don't connect if disabled or no execId
@@ -86,6 +101,31 @@ export function useSSE(
           onMessageRef.current(data);
         } catch (err) {
           console.error('[useSSE] Failed to parse SSE message:', err);
+        }
+      });
+
+      // Listen for 'execution_completed' events
+      eventSource.addEventListener('execution_completed', (event: MessageEvent) => {
+        try {
+          console.log('[useSSE] Execution completed event received');
+          if (onExecutionCompletedRef.current) {
+            onExecutionCompletedRef.current();
+          }
+        } catch (err) {
+          console.error('[useSSE] Failed to handle execution_completed event:', err);
+        }
+      });
+
+      // Listen for 'transcription_completed' events
+      eventSource.addEventListener('transcription_completed', (event: MessageEvent) => {
+        try {
+          console.log('[useSSE] Transcription completed event received:', event.data);
+          const data = JSON.parse(event.data) as TranscriptionCompletedEvent;
+          if (onTranscriptionCompletedRef.current) {
+            onTranscriptionCompletedRef.current(data);
+          }
+        } catch (err) {
+          console.error('[useSSE] Failed to parse transcription_completed event:', err);
         }
       });
     } catch (err) {

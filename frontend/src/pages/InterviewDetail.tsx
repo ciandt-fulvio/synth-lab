@@ -6,7 +6,7 @@ import { useResearchDetail, useResearchTranscripts, useResearchSummary } from '@
 import { useArtifactStatesWithPolling } from '@/hooks/use-artifact-states';
 import { usePrfaqGenerate } from '@/hooks/use-prfaq-generate';
 import { useSummaryGenerate } from '@/hooks/use-summary-generate';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPrfaqMarkdown } from '@/services/prfaq-api';
 import { getSynthAvatarUrl } from '@/services/synths-api';
 import { queryKeys } from '@/lib/query-keys';
@@ -26,6 +26,7 @@ import { ptBR } from 'date-fns/locale';
 export default function InterviewDetail() {
   const { execId } = useParams<{ execId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [prfaqOpen, setPrfaqOpen] = useState(false);
@@ -34,6 +35,15 @@ export default function InterviewDetail() {
   const { data: execution, isLoading, error } = useResearchDetail(execId!);
   const { data: transcripts } = useResearchTranscripts(execId!);
   const { data: artifactStates } = useArtifactStatesWithPolling(execId!);
+
+  // Handle execution completion: refetch all data
+  const handleExecutionCompleted = () => {
+    console.log('[InterviewDetail] Execution completed, refreshing data...');
+    // Invalidate all related queries to refetch fresh data
+    queryClient.invalidateQueries({ queryKey: queryKeys.researchDetail(execId!) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.researchTranscripts(execId!) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.artifactStates(execId!) });
+  };
 
   // Fetch content based on artifact states
   const summaryAvailable = artifactStates?.summary.state === 'available';
@@ -157,7 +167,10 @@ export default function InterviewDetail() {
             <CardTitle>Entrevistas ao Vivo</CardTitle>
           </CardHeader>
           <CardContent>
-            <LiveInterviewGrid execId={execId} />
+            <LiveInterviewGrid
+              execId={execId}
+              onExecutionCompleted={handleExecutionCompleted}
+            />
           </CardContent>
         </Card>
       )}
