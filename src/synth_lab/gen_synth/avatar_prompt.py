@@ -146,7 +146,7 @@ def build_prompt(synths: list[dict[str, Any]]) -> str:
     Constrói prompt completo em português para geração de avatares em grid 3x3.
 
     Gera um prompt detalhado que instrui a API a criar uma imagem dividida
-    em 9 partes iguais (3x3), cada uma com um avatar brasileiro baseado
+    em 9 partes iguais (3x3), cada uma com um avatar baseado
     nas descrições dos synths fornecidos.
 
     Args:
@@ -186,21 +186,26 @@ def build_prompt(synths: list[dict[str, Any]]) -> str:
     descricoes_texto = "\n".join(descricoes_numeradas)
 
     # Construir filtros numerados
-    filtros_texto = ", ".join([f"bloco{i+1}: {f}" for i, f in enumerate(filters)])
+    filtros_texto = ", ".join(
+        [f"bloco{i+1}: {f}" for i, f in enumerate(filters)])
+
+    from rich.console import Console
+
+    console = Console()
 
     framing_texto = ", ".join(
-        [f"{i+1}: {d}" for i, d in enumerate(framing)])
+        [f"bloco{i+1}: {d}" for i, d in enumerate(framing)])
     console.print(framing_texto)
 
     # Montar prompt completo em português
-    prompt = f"""Faça uma imagem que será dividida em 9 partes iguais, sendo 3 linhas e 3 colunas, cada uma delas deve ter um avatar de uma pessoaque corresponde às descrições abaixo:
+    prompt = f"""Faça uma imagem que será dividida em 9 blocos iguais, sendo 3 linhas e 3 colunas, cada uma delas deve ter um avatar de uma pessoa que corresponde às descrições abaixo:
 
 {descricoes_texto}
 
 Para cada um dos 9 blocos, aplicar o filtro correspondente:
 {filtros_texto}
 
-Use o seguinte enquadramento:
+Para cada um dos 9 blocos, aplicar o seguinte enquadramento:
 {framing_texto}
 
 Em cada um dos 9 espaços, faça diferentes fundos, de acordo com a profissão da pessoa, preferencialmente imagens levemente desfocadas (bokeh).
@@ -322,7 +327,6 @@ if __name__ == "__main__":
         checks = [
             ("9 partes iguais" in prompt, "9 partes iguais"),
             ("3 linhas" in prompt, "3 linhas"),
-            ("brasileiro" in prompt.lower(), "brasileiro"),
             ('1. "descricao"' in prompt, "descrição numerada"),
             ("bokeh" in prompt.lower(), "bokeh"),
             ("filtro" in prompt.lower(), "filtro")
