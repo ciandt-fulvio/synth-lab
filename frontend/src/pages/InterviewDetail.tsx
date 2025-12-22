@@ -151,7 +151,7 @@ export default function InterviewDetail() {
       </div>
 
       {/* Live Interview Cards - Real-time monitoring */}
-      {execution.status === 'in_progress' && execId && (
+      {execution.status === 'running' && execId && (
         <Card>
           <CardHeader>
             <CardTitle>Entrevistas ao Vivo</CardTitle>
