@@ -20,7 +20,21 @@ VISUAL_FILTERS = [
     "usar filtro sépia",
     "usar filtro warm",
     "usar filtro cold",
-    "estilo 3D movie character"
+    "usar filtro dramatic/high contrast",
+    "usar filtro soft/pastel",
+    "estilo 3D movie character",
+    "usar filtro cinematic/teal & orange",
+    "usar filtro vintage film grain",
+    "usar filtro noir/low-key"
+]
+
+FRAMING_TYPE = [
+    "close-up",
+    "headshot",
+    "busto",
+    "meio corpo",
+    "plano americano",
+    "plano médio",
 ]
 
 
@@ -123,6 +137,10 @@ def build_synth_description(synth: dict[str, Any]) -> str:
     return descricao.strip()
 
 
+def assign_random_framing(count: int = 9) -> list[str]:
+    return [random.choice(FRAMING_TYPE) for _ in range(count)]
+
+
 def build_prompt(synths: list[dict[str, Any]]) -> str:
     """
     Constrói prompt completo em português para geração de avatares em grid 3x3.
@@ -151,10 +169,13 @@ def build_prompt(synths: list[dict[str, Any]]) -> str:
         True
     """
     if len(synths) != 9:
-        raise ValueError(f"Esperado exatamente 9 synths, recebido {len(synths)}")
+        raise ValueError(
+            f"Esperado exatamente 9 synths, recebido {len(synths)}")
 
     # Atribuir filtros aleatórios
     filters = assign_random_filters(9)
+
+    framing = assign_random_framing(9)
 
     # Construir descrições numeradas
     descricoes_numeradas = []
@@ -165,21 +186,28 @@ def build_prompt(synths: list[dict[str, Any]]) -> str:
     descricoes_texto = "\n".join(descricoes_numeradas)
 
     # Construir filtros numerados
-    filtros_texto = ", ".join([f"{i+1}: {f}" for i, f in enumerate(filters)])
+    filtros_texto = ", ".join([f"bloco{i+1}: {f}" for i, f in enumerate(filters)])
+
+    framing_texto = ", ".join(
+        [f"{i+1}: {d}" for i, d in enumerate(framing)])
+    console.print(framing_texto)
 
     # Montar prompt completo em português
-    prompt = f"""Faça uma imagem que será dividida em 9 partes iguais, sendo 3 linhas e 3 colunas, cada uma delas deve ter um avatar de um brasileiro ou brasileira que corresponde às descrições abaixo:
+    prompt = f"""Faça uma imagem que será dividida em 9 partes iguais, sendo 3 linhas e 3 colunas, cada uma delas deve ter um avatar de uma pessoaque corresponde às descrições abaixo:
 
 {descricoes_texto}
 
 Para cada um dos 9 blocos, aplicar o filtro correspondente:
 {filtros_texto}
 
+Use o seguinte enquadramento:
+{framing_texto}
+
 Em cada um dos 9 espaços, faça diferentes fundos, de acordo com a profissão da pessoa, preferencialmente imagens levemente desfocadas (bokeh).
 
 As cores e estampas de roupa, acessórios (óculos, brincos, coisas no cabelo, etc) devem variar. Uma ou outra vez pode ter algo relacionado com a profissão.
 
-Estilo: retratos profissionais tipo headshot, fotorrealistas, com diversidade visual."""
+Estilo: fotorrealistas."""
 
     return prompt
 
@@ -202,7 +230,8 @@ if __name__ == "__main__":
     all_validation_failures = []
     total_tests = 0
 
-    console.print("[bold blue]=== Validação: avatar_prompt.py ===[/bold blue]\n")
+    console.print(
+        "[bold blue]=== Validação: avatar_prompt.py ===[/bold blue]\n")
 
     # Test 1: assign_random_filters retorna 9 filtros
     total_tests += 1
@@ -216,7 +245,8 @@ if __name__ == "__main__":
             f"assign_random_filters(9): Filtros inválidos encontrados: {filters}"
         )
     else:
-        console.print(f"[green]✓[/green] assign_random_filters(9) retornou {len(filters)} filtros válidos")
+        console.print(
+            f"[green]✓[/green] assign_random_filters(9) retornou {len(filters)} filtros válidos")
 
     # Test 2: build_synth_description com synth completo
     total_tests += 1
@@ -237,7 +267,8 @@ if __name__ == "__main__":
             f"build_synth_description(): Descrição incompleta: {desc[:50]}..."
         )
     else:
-        console.print("[green]✓[/green] build_synth_description() gerou descrição válida")
+        console.print(
+            "[green]✓[/green] build_synth_description() gerou descrição válida")
 
     # Test 3: build_synth_description sem campo descricao (constrói a partir dos campos)
     total_tests += 1
@@ -267,7 +298,8 @@ if __name__ == "__main__":
             f"build_synth_description() (sem descricao): Construção incorreta: {desc[:80]}..."
         )
     else:
-        console.print("[green]✓[/green] build_synth_description() constrói descrição a partir de campos")
+        console.print(
+            "[green]✓[/green] build_synth_description() constrói descrição a partir de campos")
 
     # Test 4: build_prompt com 9 synths
     total_tests += 1
@@ -301,7 +333,8 @@ if __name__ == "__main__":
                 f"build_prompt(): Faltam elementos: {failed_checks}"
             )
         else:
-            console.print(f"[green]✓[/green] build_prompt(9 synths) gerou prompt válido ({len(prompt)} chars)")
+            console.print(
+                f"[green]✓[/green] build_prompt(9 synths) gerou prompt válido ({len(prompt)} chars)")
             console.print("\n[dim]Preview do prompt:[/dim]")
             console.print(f"[dim]{prompt[:500]}...[/dim]")
     except Exception as e:
@@ -318,7 +351,8 @@ if __name__ == "__main__":
         )
     except ValueError as e:
         if "exatamente 9 synths" in str(e).lower():
-            console.print("[green]✓[/green] build_prompt rejeita lista com != 9 synths (ValueError)")
+            console.print(
+                "[green]✓[/green] build_prompt rejeita lista com != 9 synths (ValueError)")
         else:
             all_validation_failures.append(
                 f"build_prompt(5 synths): Mensagem de erro incorreta: {e}"
