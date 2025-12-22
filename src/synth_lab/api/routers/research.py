@@ -13,6 +13,7 @@ from collections.abc import AsyncGenerator
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import PlainTextResponse, StreamingResponse
 
+from synth_lab.api.schemas.artifact_state import ArtifactState, ArtifactStatesResponse
 from synth_lab.models.events import InterviewMessageEvent
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.research import (
@@ -20,6 +21,8 @@ from synth_lab.models.research import (
     ResearchExecuteResponse,
     ResearchExecutionDetail,
     ResearchExecutionSummary,
+    SummaryGenerateRequest,
+    SummaryGenerateResponse,
     TranscriptDetail,
     TranscriptSummary,
 )
@@ -95,6 +98,23 @@ async def get_transcript(exec_id: str, synth_id: str) -> TranscriptDetail:
     return service.get_transcript(exec_id, synth_id)
 
 
+@router.get("/{exec_id}/artifacts", response_model=ArtifactStatesResponse)
+async def get_artifact_states(exec_id: str) -> ArtifactStatesResponse:
+    """
+    Get artifact states for a research execution.
+
+    Returns the current state of summary and PR-FAQ artifacts, including
+    whether they can be generated or viewed, and any error messages.
+    """
+    service = get_research_service()
+    summary_state, prfaq_state = service.get_artifact_states(exec_id)
+    return ArtifactStatesResponse(
+        exec_id=exec_id,
+        summary=ArtifactState.from_domain(summary_state),
+        prfaq=ArtifactState.from_domain(prfaq_state),
+    )
+
+
 @router.get("/{exec_id}/summary")
 async def get_summary(exec_id: str) -> PlainTextResponse:
     """
@@ -105,6 +125,50 @@ async def get_summary(exec_id: str) -> PlainTextResponse:
     service = get_research_service()
     summary = service.get_summary(exec_id)
     return PlainTextResponse(content=summary, media_type="text/markdown")
+
+
+@router.post("/{exec_id}/summary/generate", response_model=SummaryGenerateResponse)
+async def generate_summary(
+    exec_id: str,
+    request: SummaryGenerateRequest | None = None,
+) -> SummaryGenerateResponse:
+    """
+    Generate a summary for a completed research execution.
+
+    This is used when interviews completed but summary was not generated
+    (e.g., generate_summary was False during execution).
+
+    Args:
+        exec_id: Execution ID.
+        request: Optional generation parameters.
+
+    Returns:
+        Generation status and completion timestamp.
+
+    Raises:
+        404: If execution not found.
+        400: If execution is not completed or has no transcripts.
+    """
+    from datetime import datetime
+
+    service = get_research_service()
+
+    # Use default request if none provided
+    if request is None:
+        request = SummaryGenerateRequest()
+
+    try:
+        await service.generate_summary(exec_id, model=request.model)
+        return SummaryGenerateResponse(
+            exec_id=exec_id,
+            status="completed",
+            message="Summary generated successfully",
+            generated_at=datetime.now(),
+        )
+    except ExecutionNotFoundError:
+        raise HTTPException(status_code=404, detail="Execution not found")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/execute", response_model=ResearchExecuteResponse)
@@ -252,7 +316,9 @@ if __name__ == "__main__":
             "/{exec_id}",
             "/{exec_id}/transcripts",
             "/{exec_id}/transcripts/{synth_id}",
+            "/{exec_id}/artifacts",  # Artifact states endpoint
             "/{exec_id}/summary",
+            "/{exec_id}/summary/generate",  # Summary generation endpoint
             "/execute",
             "/{exec_id}/stream",  # SSE endpoint
         ]

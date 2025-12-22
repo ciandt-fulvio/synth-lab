@@ -3,7 +3,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -17,16 +16,15 @@ interface MarkdownPopupProps {
 
 const MarkdownPopup = ({ isOpen, onClose, title, markdownContent }: MarkdownPopupProps) => {
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[70vw] h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            Conteúdo detalhado em formato Markdown.
-          </DialogDescription>
         </DialogHeader>
-        <div className="flex-grow overflow-y-auto p-4 border rounded-md prose prose-sm max-w-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdownContent}</ReactMarkdown>
+        <div className="flex-grow overflow-y-auto px-6 py-4 bg-gray-50 rounded-md">
+          <article className="markdown-content">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdownContent}</ReactMarkdown>
+          </article>
         </div>
       </DialogContent>
     </Dialog>

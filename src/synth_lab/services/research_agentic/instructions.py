@@ -53,6 +53,7 @@ Comportamento de entrevista e investigação:
 ## Roteiro da Pesquisa
 {topic_guide}
 
+{additional_context_section}
 ## Histórico da Conversa
 {conversation_history}
 
@@ -196,10 +197,32 @@ Não adicione explicações ou texto adicional.
 """
 
 
-def format_interviewer_instructions(topic_guide: str, conversation_history: str) -> str:
-    """Format interviewer instructions with context."""
+def format_interviewer_instructions(
+    topic_guide: str,
+    conversation_history: str,
+    additional_context: str | None = None,
+) -> str:
+    """
+    Format interviewer instructions with context.
+
+    Args:
+        topic_guide: Topic guide content
+        conversation_history: Formatted conversation history
+        additional_context: Optional additional context to complement the research scenario
+
+    Returns:
+        Formatted instructions string
+    """
+    additional_context_section = ""
+    if additional_context:
+        additional_context_section = f"""
+## Contexto Adicional
+{additional_context}
+"""
+
     return INTERVIEWER_INSTRUCTIONS.format(
         topic_guide=topic_guide,
+        additional_context_section=additional_context_section,
         conversation_history=conversation_history,
     )
 

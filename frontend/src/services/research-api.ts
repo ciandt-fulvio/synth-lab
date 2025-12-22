@@ -11,6 +11,7 @@ import type {
   ResearchExecuteRequest,
   ResearchExecuteResponse,
 } from '@/types';
+import type { ArtifactStatesResponse } from '@/types/artifact-state';
 
 export async function listExecutions(
   params?: PaginationParams
@@ -64,6 +65,12 @@ export async function getSummary(execId: string): Promise<string> {
   return fetchAPI<string>(`/research/${execId}/summary`);
 }
 
+export async function getArtifactStates(
+  execId: string
+): Promise<ArtifactStatesResponse> {
+  return fetchAPI<ArtifactStatesResponse>(`/research/${execId}/artifacts`);
+}
+
 export async function executeResearch(
   request: ResearchExecuteRequest
 ): Promise<ResearchExecuteResponse> {
@@ -75,4 +82,25 @@ export async function executeResearch(
 
 export function getStreamUrl(execId: string): string {
   return `/api/research/${execId}/stream`;
+}
+
+export interface SummaryGenerateRequest {
+  model?: string;
+}
+
+export interface SummaryGenerateResponse {
+  exec_id: string;
+  status: string;
+  message?: string;
+  generated_at?: string;
+}
+
+export async function generateSummary(
+  execId: string,
+  request?: SummaryGenerateRequest
+): Promise<SummaryGenerateResponse> {
+  return fetchAPI<SummaryGenerateResponse>(`/research/${execId}/summary/generate`, {
+    method: 'POST',
+    body: JSON.stringify(request ?? {}),
+  });
 }

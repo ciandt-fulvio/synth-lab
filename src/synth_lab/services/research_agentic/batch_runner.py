@@ -194,6 +194,7 @@ async def run_single_interview_safe(
                 exec_id=exec_id,
                 message_callback=message_callback,
                 skip_interviewee_review=skip_interviewee_review,
+                additional_context=additional_context,
             )
 
             logger.info(f"Completed interview with {synth_name} ({synth_id})")
@@ -218,6 +219,7 @@ async def run_batch_interviews(
     message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
     on_transcription_completed: Callable[[str, int, int], Awaitable[None]] | None = None,
     skip_interviewee_review: bool = True,
+    additional_context: str | None = None,
 ) -> BatchResult:
     """
     Run multiple interviews in parallel with progress tracking.
@@ -239,6 +241,7 @@ async def run_batch_interviews(
         on_transcription_completed: Callback when all transcriptions done
             Signature: (exec_id, successful_count, failed_count) -> None
         skip_interviewee_review: Whether to skip the interviewee response reviewer.
+        additional_context: Optional additional context to complement the research scenario.
 
     Returns:
         BatchResult with all interview results and summary

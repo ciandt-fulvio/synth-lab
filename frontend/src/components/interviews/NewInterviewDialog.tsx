@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
@@ -48,9 +49,9 @@ export function NewInterviewDialog({ open, onOpenChange }: NewInterviewDialogPro
     resolver: zodResolver(newInterviewSchema),
     defaultValues: {
       topic_name: '',
+      additional_context: '',
       synth_count: 5,
       max_turns: 6,
-      model: 'gpt-4o-mini',
       generate_summary: true,
     },
   });
@@ -116,10 +117,31 @@ export function NewInterviewDialog({ open, onOpenChange }: NewInterviewDialogPro
 
             <FormField
               control={form.control}
+              name="additional_context"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contexto Adicional (Opcional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Adicione informações complementares sobre o cenário da pesquisa..."
+                      rows={2}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Complemente o tópico com contexto adicional para a pesquisa
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="synth_count"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Número de Synths</FormLabel>
+                  <FormLabel>Entrevistar quantos Synths</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -147,29 +169,6 @@ export function NewInterviewDialog({ open, onOpenChange }: NewInterviewDialogPro
                     />
                   </FormControl>
                   <FormDescription>Número máximo de perguntas por synth (1-20)</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="model"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Modelo</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
-                      <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                      <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
-                    </SelectContent>
-                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

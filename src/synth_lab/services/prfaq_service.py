@@ -20,6 +20,15 @@ from synth_lab.services.errors import (
 )
 
 
+class PRFAQAlreadyGeneratingError(Exception):
+    """PR-FAQ is already being generated for this execution."""
+
+    def __init__(self, exec_id: str):
+        self.exec_id = exec_id
+        message = f"PR-FAQ is already being generated for execution: {exec_id}"
+        super().__init__(message)
+
+
 class MarkdownNotFoundError(Exception):
     """Markdown content not found for PR-FAQ."""
 
@@ -97,6 +106,11 @@ class PRFAQService:
         """
         Generate a PR-FAQ from a research execution.
 
+        This method uses optimistic locking to prevent concurrent generation:
+        1. Create a 'generating' record (fails if already generating)
+        2. Generate the PR-FAQ
+        3. Update with content or error
+
         Args:
             request: Generation request with exec_id and model.
 
@@ -106,6 +120,7 @@ class PRFAQService:
         Raises:
             ExecutionNotFoundError: If execution doesn't exist.
             SummaryNotFoundError: If execution doesn't have a summary.
+            PRFAQAlreadyGeneratingError: If already generating (409 Conflict).
         """
         from loguru import logger
 
@@ -121,42 +136,63 @@ class PRFAQService:
         if not execution.summary_available:
             raise SummaryNotFoundError(request.exec_id)
 
-        # Get summary content from database
-        summary_content = research_repo.get_summary_content(request.exec_id)
-        if not summary_content:
-            raise SummaryNotFoundError(request.exec_id)
+        # Try to create pending record - prevents concurrent requests
+        if not self.prfaq_repo.create_pending_prfaq(request.exec_id, request.model):
+            raise PRFAQAlreadyGeneratingError(request.exec_id)
 
-        # Generate PR-FAQ markdown from summary content
-        logger.info(f"Generating PR-FAQ for execution {request.exec_id}")
-        prfaq_markdown = generate_prfaq_from_content(
-            summary_content=summary_content,
-            batch_id=request.exec_id,
-            model=request.model,
-        )
+        try:
+            # Get summary content from database
+            summary_content = research_repo.get_summary_content(request.exec_id)
+            if not summary_content:
+                self.prfaq_repo.update_prfaq_status(
+                    request.exec_id,
+                    status="failed",
+                    error_message="Summary content not found",
+                )
+                raise SummaryNotFoundError(request.exec_id)
 
-        # Extract headline from markdown (first # line)
-        headline = None
-        for line in prfaq_markdown.split("\n"):
-            if line.startswith("# "):
-                headline = line[2:].strip()
-                break
+            # Generate PR-FAQ markdown from summary content
+            logger.info(f"Generating PR-FAQ for execution {request.exec_id}")
+            prfaq_markdown = generate_prfaq_from_content(
+                summary_content=summary_content,
+                batch_id=request.exec_id,
+                model=request.model,
+            )
 
-        # Save content to database
-        self.prfaq_repo.create_prfaq_metadata(
-            exec_id=request.exec_id,
-            model=request.model,
-            markdown_content=prfaq_markdown,
-            headline=headline,
-        )
+            # Extract headline from markdown (first # line)
+            headline = None
+            for line in prfaq_markdown.split("\n"):
+                if line.startswith("# "):
+                    headline = line[2:].strip()
+                    break
 
-        logger.info(f"PR-FAQ generated and saved for {request.exec_id}")
+            # Update with completed content
+            self.prfaq_repo.update_prfaq_status(
+                request.exec_id,
+                status="completed",
+                markdown_content=prfaq_markdown,
+                headline=headline,
+            )
 
-        return PRFAQGenerateResponse(
-            exec_id=request.exec_id,
-            status="generated",
-            generated_at=datetime.now(),
-            validation_status="valid",
-        )
+            logger.info(f"PR-FAQ generated and saved for {request.exec_id}")
+
+            return PRFAQGenerateResponse(
+                exec_id=request.exec_id,
+                status="generated",
+                generated_at=datetime.now(),
+                validation_status="valid",
+            )
+
+        except Exception as e:
+            # Update with error status
+            error_msg = str(e)[:500]  # Limit error message length
+            logger.error(f"PR-FAQ generation failed for {request.exec_id}: {error_msg}")
+            self.prfaq_repo.update_prfaq_status(
+                request.exec_id,
+                status="failed",
+                error_message=error_msg,
+            )
+            raise
 
 
 if __name__ == "__main__":
