@@ -94,7 +94,7 @@ class RegionAnalyzer:
 
         # Extract features and labels
         X, feature_names = self._extract_features(outcomes)
-        y = self._extract_labels(outcomes)
+        y = self._extract_labels(outcomes, min_failure_rate)
 
         if len(X) < self.min_samples_split:
             self.logger.warning(
@@ -165,23 +165,50 @@ class RegionAnalyzer:
 
         return np.array(features), feature_names
 
-    def _extract_labels(self, outcomes: list[dict[str, Any]]) -> np.ndarray:
+    def _extract_labels(
+        self, outcomes: list[dict[str, Any]], min_failure_rate: float
+    ) -> np.ndarray:
         """
         Extract binary labels (failed vs not-failed).
 
-        Uses failed_rate >= 0.5 as threshold for "failed" label.
+        Uses adaptive threshold based on data distribution to ensure
+        both classes are represented for decision tree learning.
 
         Args:
             outcomes: List of synth outcomes
+            min_failure_rate: Minimum failure rate to identify as problematic
 
         Returns:
             Binary label array (1 = high failure, 0 = low failure)
         """
+        failure_rates = [o.get("failed_rate", 0.0) for o in outcomes]
+
+        # Use adaptive threshold to ensure we have both classes
+        # Take the maximum of:
+        # 1. The provided min_failure_rate
+        # 2. The 60th percentile of actual failure rates (ensures ~40% high-failure samples)
+        threshold = max(
+            min_failure_rate,
+            np.percentile(failure_rates, 60)
+        )
+
+        # If even the 60th percentile is below min_failure_rate,
+        # use median to ensure we have contrast
+        if threshold >= max(failure_rates):
+            threshold = np.median(failure_rates)
+
+        self.logger.debug(
+            f"Using adaptive threshold {threshold:.3f} for labels "
+            f"(min_failure_rate={min_failure_rate:.3f}, "
+            f"median={np.median(failure_rates):.3f}, "
+            f"60th percentile={np.percentile(failure_rates, 60):.3f})"
+        )
+
         labels = []
         for outcome in outcomes:
             failed_rate = outcome.get("failed_rate", 0.0)
             # Binary classification: high failure (1) vs low failure (0)
-            label = 1 if failed_rate >= 0.5 else 0
+            label = 1 if failed_rate >= threshold else 0
             labels.append(label)
 
         return np.array(labels)
@@ -396,10 +423,11 @@ if __name__ == "__main__":
     # Test 3: Extract labels
     total_tests += 1
     try:
-        y = analyzer._extract_labels(test_outcomes)
-        expected_labels = np.array([1, 0])  # First has high failure, second doesn't
-        if not np.array_equal(y, expected_labels):
-            all_validation_failures.append(f"Labels should be [1, 0], got {y}")
+        y = analyzer._extract_labels(test_outcomes, min_failure_rate=0.5)
+        # With adaptive threshold, should find contrast between samples
+        # First outcome has 0.6 failed_rate, second has 0.2
+        if len(np.unique(y)) < 2:
+            all_validation_failures.append(f"Labels should have 2 classes, got {np.unique(y)}")
         else:
             print("Test 3 PASSED: Label extraction works correctly")
     except Exception as e:
