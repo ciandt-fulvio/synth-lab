@@ -91,6 +91,7 @@ class LLMClient:
         model: str | None = None,
         temperature: float = 1.0,
         max_tokens: int | None = None,
+        operation_name: str | None = None,
         **kwargs: Any,
     ) -> str:
         """
@@ -101,6 +102,7 @@ class LLMClient:
             model: Model to use. Defaults to default_model.
             temperature: Sampling temperature. Defaults to 1.0.
             max_tokens: Maximum tokens in response.
+            operation_name: Custom name for tracing span. Defaults to "LLM Completion: {model}".
             **kwargs: Additional OpenAI API parameters.
 
         Returns:
@@ -112,9 +114,11 @@ class LLMClient:
         model = model or self.default_model
         self.logger.debug(f"Completion request: model={model}, messages={len(messages)}")
 
+        span_name = operation_name or f"LLM Completion: {model}"
         with _tracer.start_as_current_span(
-            "llm_completion",
+            span_name,
             attributes={
+                "openinference.span.kind": "LLM",
                 "model": model,
                 "message_count": len(messages),
                 "temperature": temperature,
@@ -157,6 +161,7 @@ class LLMClient:
         model: str | None = None,
         temperature: float = 1.0,
         max_tokens: int | None = None,
+        operation_name: str | None = None,
         **kwargs: Any,
     ):
         """
@@ -167,6 +172,7 @@ class LLMClient:
             model: Model to use. Defaults to default_model.
             temperature: Sampling temperature. Defaults to 1.0.
             max_tokens: Maximum tokens in response.
+            operation_name: Custom name for tracing span. Defaults to "LLM Stream: {model}".
             **kwargs: Additional OpenAI API parameters.
 
         Yields:
@@ -187,9 +193,11 @@ class LLMClient:
         if max_tokens:
             api_kwargs["max_tokens"] = max_tokens
 
+        span_name = operation_name or f"LLM Stream: {model}"
         with _tracer.start_as_current_span(
-            "llm_completion_stream",
+            span_name,
             attributes={
+                "openinference.span.kind": "LLM",
                 "model": model,
                 "message_count": len(messages),
                 "temperature": temperature,
@@ -253,8 +261,9 @@ class LLMClient:
         self.logger.debug(f"Image generation: prompt={prompt[:50]}...")
 
         with _tracer.start_as_current_span(
-            "llm_image_generation",
+            f"LLM Image: {model}",
             attributes={
+                "openinference.span.kind": "LLM",
                 "model": model,
                 "size": size,
                 "quality": quality,

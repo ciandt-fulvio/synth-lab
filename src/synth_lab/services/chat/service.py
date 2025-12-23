@@ -30,7 +30,7 @@ class ChatService:
         self.synths_repo = SynthRepository()
         self.logger = logger.bind(component="chat_service")
 
-    def _build_messages(self, synth_id: str, request: ChatRequest) -> list[dict]:
+    def _build_messages(self, synth_id: str, request: ChatRequest) -> tuple[list[dict], str]:
         """
         Build LLM messages with synth context.
 
@@ -39,10 +39,11 @@ class ChatService:
             request: Chat request with message and history.
 
         Returns:
-            List of message dicts for LLM.
+            Tuple of (messages list, synth first name).
         """
         # Load synth profile
         synth = self.synths_repo.get_by_id(synth_id)
+        synth_first_name = synth.nome.split()[0] if synth.nome else "Synth"
 
         # Load interview transcript
         transcript = self.research_repo.get_transcript(request.exec_id, synth_id)
@@ -71,7 +72,7 @@ class ChatService:
         # Add current message
         messages.append({"role": "user", "content": request.message})
 
-        return messages
+        return messages, synth_first_name
 
     def generate_response(self, synth_id: str, request: ChatRequest) -> ChatResponse:
         """
@@ -88,12 +89,13 @@ class ChatService:
             f"Generating chat response for synth {synth_id}, exec {request.exec_id}"
         )
 
-        messages = self._build_messages(synth_id, request)
+        messages, synth_name = self._build_messages(synth_id, request)
 
-        # Generate response
+        # Generate response with custom operation name for tracing
         response_text = self.llm_client.complete(
             messages=messages,
             temperature=0.8,
+            operation_name=f"ChatCompl with {synth_name}",
         )
 
         self.logger.info(f"Generated response: {len(response_text)} chars")
@@ -118,12 +120,13 @@ class ChatService:
             f"Generating streaming chat response for synth {synth_id}, exec {request.exec_id}"
         )
 
-        messages = self._build_messages(synth_id, request)
+        messages, synth_name = self._build_messages(synth_id, request)
 
-        # Generate streaming response
+        # Generate streaming response with custom operation name for tracing
         for chunk in self.llm_client.complete_stream(
             messages=messages,
             temperature=0.8,
+            operation_name=f"ChatCompl with {synth_name}",
         ):
             yield chunk
 
