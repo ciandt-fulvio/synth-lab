@@ -86,19 +86,31 @@ export function TranscriptDialog({
     return '#16a34a'; // Green-600
   };
 
-  // Handle opening chat dialog
+  // Handle opening chat dialog - closes transcript and opens chat
   const handleOpenChat = () => {
     setChatOpen(true);
   };
 
-  // Handle closing chat dialog (returns to transcript)
+  // Handle closing chat dialog - closes everything
   const handleCloseChat = (open: boolean) => {
-    setChatOpen(open);
+    if (!open) {
+      // When chat is closed, close everything
+      setChatOpen(false);
+      onOpenChange(false);
+    }
+  };
+
+  // Handle closing transcript dialog
+  const handleTranscriptClose = (open: boolean) => {
+    if (!open) {
+      setChatOpen(false);
+    }
+    onOpenChange(open);
   };
 
   return (
     <>
-      <Dialog open={open && !chatOpen} onOpenChange={onOpenChange}>
+      <Dialog open={open && !chatOpen} onOpenChange={handleTranscriptClose}>
         <DialogContent className="sm:max-w-[70vw] h-[80vh] flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <div className="flex items-center gap-3">
