@@ -184,7 +184,7 @@
 
 - [ ] T042 Update Index.tsx with Interviews and Synths tabs using InterviewList and SynthList in frontend/src/pages/Index.tsx
 - [ ] T043 Update App.tsx to include all routes (/interviews/:execId) in frontend/src/App.tsx
-- [ ] T044 Add header with application title "Synth Lab" and description in frontend/src/pages/Index.tsx
+- [ ] T044 Add header with application title "SynthLab" and description in frontend/src/pages/Index.tsx
 - [ ] T045 Ensure SynthDetailDialog can be opened from InterviewDetail synth list in frontend/src/pages/InterviewDetail.tsx
 
 ---

@@ -1,5 +1,5 @@
 """
-Synth Lab - Gerador de Personas Sintéticas Brasileiras.
+SynthLab - Gerador de Personas Sintéticas Brasileiras.
 
 Este pacote fornece ferramentas para gerar personas sintéticas brasileiras
 com atributos demográficos, psicográficos e comportamentais realistas

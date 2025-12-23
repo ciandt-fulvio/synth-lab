@@ -20,7 +20,7 @@ export default function Index() {
               className="h-8 w-auto"
             />
             <h1 className="text-3xl font-bold text-gray-900">
-              Synth Lab
+              SynthLab
             </h1>
           </div>
           <p className="mt-2 text-sm text-gray-600 mb-6">

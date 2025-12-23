@@ -1,5 +1,5 @@
 """
-Psychographics generation module for Synth Lab.
+Psychographics generation module for SynthLab.
 
 This module generates psychographic attributes including Big Five personality traits,
 values, interests, hobbies, and cognitive contracts.
@@ -147,7 +147,8 @@ def generate_big_five() -> dict[str, int]:
     Returns:
         dict[str, int]: Dictionary with 5 personality traits (0-100 scale)
     """
-    traits = ["abertura", "conscienciosidade", "extroversao", "amabilidade", "neuroticismo"]
+    traits = ["abertura", "conscienciosidade",
+              "extroversao", "amabilidade", "neuroticismo"]
 
     # Embaralhar para sortear quais traits receberão valores extremos
     shuffled_traits = random.sample(traits, len(traits))
@@ -239,10 +240,12 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         big_five = generate_big_five()
-        required_traits = ["abertura", "conscienciosidade", "extroversao", "amabilidade", "neuroticismo"]
+        required_traits = ["abertura", "conscienciosidade",
+                           "extroversao", "amabilidade", "neuroticismo"]
         for trait in required_traits:
             if trait not in big_five:
-                all_validation_failures.append(f"Big Five missing trait: {trait}")
+                all_validation_failures.append(
+                    f"Big Five missing trait: {trait}")
             elif not (0 <= big_five[trait] <= 100):
                 all_validation_failures.append(
                     f"Big Five trait {trait} out of range: {big_five[trait]}"
@@ -268,13 +271,15 @@ if __name__ == "__main__":
         psycho = generate_psychographics(low_openness, config)
 
         if "personalidade_big_five" not in psycho:
-            all_validation_failures.append("Psychographics missing personalidade_big_five")
+            all_validation_failures.append(
+                "Psychographics missing personalidade_big_five")
         if "interesses" not in psycho or len(psycho["interesses"]) < 1 or len(psycho["interesses"]) > 4:
             all_validation_failures.append(
                 f"Psychographics interesses should be 1-4: {psycho.get('interesses')}"
             )
         if "contrato_cognitivo" not in psycho:
-            all_validation_failures.append("Psychographics missing contrato_cognitivo")
+            all_validation_failures.append(
+                "Psychographics missing contrato_cognitivo")
         else:
             cc = psycho["contrato_cognitivo"]
             if "tipo" not in cc or "perfil_cognitivo" not in cc or "regras" not in cc:
@@ -288,7 +293,8 @@ if __name__ == "__main__":
                 f"{len(psycho['interesses'])} interesses, contrato={psycho['contrato_cognitivo']['tipo']}"
             )
     except Exception as e:
-        all_validation_failures.append(f"Test 2 (psychographics low openness): {str(e)}")
+        all_validation_failures.append(
+            f"Test 2 (psychographics low openness): {str(e)}")
 
     # Test 3: Generate psychographics with high openness
     total_tests += 1
@@ -314,13 +320,15 @@ if __name__ == "__main__":
                 f"{num_interests} interesses (expected 3-4)"
             )
     except Exception as e:
-        all_validation_failures.append(f"Test 3 (psychographics high openness): {str(e)}")
+        all_validation_failures.append(
+            f"Test 3 (psychographics high openness): {str(e)}")
 
     # Test 4: Verify cognitive contract generation
     total_tests += 1
     try:
         contract = generate_cognitive_contract()
-        valid_types = ["factual", "narrador", "desconfiado", "racionalizador", "impaciente", "esforçado_confuso"]
+        valid_types = ["factual", "narrador", "desconfiado",
+                       "racionalizador", "impaciente", "esforçado_confuso"]
 
         if contract["tipo"] not in valid_types:
             all_validation_failures.append(
@@ -331,12 +339,15 @@ if __name__ == "__main__":
                 f"Cognitive contract regras should be non-empty list: {contract['regras']}"
             )
         if "perfil_cognitivo" not in contract or not contract["perfil_cognitivo"]:
-            all_validation_failures.append("Cognitive contract missing perfil_cognitivo")
+            all_validation_failures.append(
+                "Cognitive contract missing perfil_cognitivo")
 
         if not any("Test 4" in f for f in all_validation_failures):
-            print(f"Test 4: generate_cognitive_contract() -> tipo={contract['tipo']}")
+            print(
+                f"Test 4: generate_cognitive_contract() -> tipo={contract['tipo']}")
     except Exception as e:
-        all_validation_failures.append(f"Test 4 (cognitive contract generation): {str(e)}")
+        all_validation_failures.append(
+            f"Test 4 (cognitive contract generation): {str(e)}")
 
     # Test 5: Verify cognitive contract distribution (should be roughly equal)
     total_tests += 1
@@ -354,9 +365,11 @@ if __name__ == "__main__":
                 f"Cognitive contract distribution too narrow: {contract_counts}"
             )
         else:
-            print(f"Test 5: Cognitive contract distribution across {types_with_values} types: {contract_counts}")
+            print(
+                f"Test 5: Cognitive contract distribution across {types_with_values} types: {contract_counts}")
     except Exception as e:
-        all_validation_failures.append(f"Test 5 (cognitive contract distribution): {str(e)}")
+        all_validation_failures.append(
+            f"Test 5 (cognitive contract distribution): {str(e)}")
 
     # Test 6: Batch consistency test
     total_tests += 1
@@ -389,11 +402,13 @@ if __name__ == "__main__":
     # Final validation result
     print(f"\n{'='*60}")
     if all_validation_failures:
-        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(
+            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Function is validated and formal tests can now be written")
         sys.exit(0)

@@ -1,5 +1,5 @@
 """
-Storage module for Synth Lab.
+Storage module for SynthLab.
 
 This module handles saving synth data directly to SQLite database.
 
@@ -218,10 +218,12 @@ def update_avatar_path(synth_id: str, avatar_path: str | Path) -> bool:
         conn.commit()
 
         if cursor.rowcount > 0:
-            logger.debug(f"Avatar path updated for synth {synth_id}: {avatar_path}")
+            logger.debug(
+                f"Avatar path updated for synth {synth_id}: {avatar_path}")
             return True
         else:
-            logger.warning(f"Synth not found for avatar_path update: {synth_id}")
+            logger.warning(
+                f"Synth not found for avatar_path update: {synth_id}")
             return False
     finally:
         conn.close()
@@ -240,7 +242,8 @@ def load_consolidated_synths(output_dir: Path | None = None) -> list[dict[str, A
     Returns:
         List of synth dictionaries
     """
-    logger.warning("load_consolidated_synths is deprecated, use load_synths() instead")
+    logger.warning(
+        "load_consolidated_synths is deprecated, use load_synths() instead")
     return load_synths()
 
 
@@ -254,7 +257,8 @@ def save_consolidated_synths(synths: list[dict[str, Any]], output_dir: Path | No
         synths: List of synth dictionaries
         output_dir: Deprecated, ignored
     """
-    logger.warning("save_consolidated_synths is deprecated, use save_synth() for each synth")
+    logger.warning(
+        "save_consolidated_synths is deprecated, use save_synth() for each synth")
     for synth in synths:
         save_synth(synth)
 
@@ -303,11 +307,14 @@ if __name__ == "__main__":
             # Verify it was saved
             loaded = get_synth_by_id("test01")
             if loaded is None:
-                all_validation_failures.append("Test 1: Synth not found after save")
+                all_validation_failures.append(
+                    "Test 1: Synth not found after save")
             elif loaded["nome"] != "Test Person 1":
-                all_validation_failures.append(f"Test 1: Wrong nome: {loaded['nome']}")
+                all_validation_failures.append(
+                    f"Test 1: Wrong nome: {loaded['nome']}")
             elif loaded["demografia"]["idade"] != 30:
-                all_validation_failures.append(f"Test 1: Wrong idade: {loaded['demografia']}")
+                all_validation_failures.append(
+                    f"Test 1: Wrong idade: {loaded['demografia']}")
             else:
                 print("Test 1: save_synth() saves to database correctly")
         except Exception as e:
@@ -326,7 +333,8 @@ if __name__ == "__main__":
 
             all_synths = load_synths()
             if len(all_synths) != 2:
-                all_validation_failures.append(f"Test 2: Expected 2 synths, got {len(all_synths)}")
+                all_validation_failures.append(
+                    f"Test 2: Expected 2 synths, got {len(all_synths)}")
             else:
                 print("Test 2: load_synths() loads all synths correctly")
         except Exception as e:
@@ -345,12 +353,14 @@ if __name__ == "__main__":
 
             loaded = get_synth_by_id("test01")
             if loaded["nome"] != "Updated Name":
-                all_validation_failures.append(f"Test 3: Name not updated: {loaded['nome']}")
+                all_validation_failures.append(
+                    f"Test 3: Name not updated: {loaded['nome']}")
             else:
                 # Verify count is still 2
                 count = count_synths()
                 if count != 2:
-                    all_validation_failures.append(f"Test 3: Count changed to {count}, expected 2")
+                    all_validation_failures.append(
+                        f"Test 3: Count changed to {count}, expected 2")
                 else:
                     print("Test 3: save_synth() updates existing synth correctly")
         except Exception as e:
@@ -361,7 +371,8 @@ if __name__ == "__main__":
         try:
             result = get_synth_by_id("nonexistent")
             if result is not None:
-                all_validation_failures.append("Test 4: Should return None for nonexistent ID")
+                all_validation_failures.append(
+                    "Test 4: Should return None for nonexistent ID")
             else:
                 print("Test 4: get_synth_by_id() returns None for nonexistent ID")
         except Exception as e:
@@ -373,11 +384,13 @@ if __name__ == "__main__":
     # Final validation result
     print(f"\n{'='*60}")
     if all_validation_failures:
-        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(
+            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Function is validated and formal tests can now be written")
         sys.exit(0)

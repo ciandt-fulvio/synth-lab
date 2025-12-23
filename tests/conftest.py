@@ -1,5 +1,5 @@
 """
-Pytest configuration and shared fixtures for Synth Lab tests.
+Pytest configuration and shared fixtures for SynthLab tests.
 """
 
 import json

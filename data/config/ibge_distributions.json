@@ -50,20 +50,20 @@
     "60+": 0.157
   },
   "raca_etnia": {
+    "pardo": 0.473,
     "branco": 0.435,
-    "pardo": 0.373,
-    "preto": 0.182,
+    "preto": 0.082,
     "amarelo": 0.005,
     "indígena": 0.005
   },
   "escolaridade": {
     "Sem instrução": 0.064,
-    "Fundamental incompleto": 0.212,
+    "Fundamental incompleto": 0.292,
     "Fundamental completo": 0.080,
     "Médio incompleto": 0.041,
-    "Médio completo": 0.184,
-    "Superior incompleto": 0.067,
-    "Superior completo": 0.232,
+    "Médio completo": 0.274,
+    "Superior incompleto": 0.047,
+    "Superior completo": 0.152,
     "Pós-graduação": 0.050
   },
   "renda_mensal_faixas": {

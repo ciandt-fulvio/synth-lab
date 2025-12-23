@@ -8,7 +8,7 @@
 
 1. **OpenAI API Key**: You need an active OpenAI API key with image generation access
 2. **Python 3.13+**: Ensure you have the correct Python version
-3. **Synth Lab Installed**: Follow main README for installation
+3. **SynthLab Installed**: Follow main README for installation
 
 ## Setup
 

@@ -1,5 +1,5 @@
 """
-Behavioral biases generation module for Synth Lab.
+Behavioral biases generation module for SynthLab.
 
 This module generates behavioral/cognitive biases based on behavioral economics
 and psychology research. Includes 7 key biases that affect decision-making.
@@ -259,7 +259,8 @@ if __name__ == "__main__":
             if bias not in biases:
                 all_validation_failures.append(f"Missing bias: {bias}")
             elif not (0 <= biases[bias] <= 100):
-                all_validation_failures.append(f"Bias {bias} out of range: {biases[bias]}")
+                all_validation_failures.append(
+                    f"Bias {bias} out of range: {biases[bias]}")
 
         if not all_validation_failures:
             print(
@@ -269,14 +270,16 @@ if __name__ == "__main__":
                 f"vies_confirmacao={biases['vies_confirmacao']}"
             )
     except Exception as e:
-        all_validation_failures.append(f"Test 1 (generate_behavioral_biases): {str(e)}")
+        all_validation_failures.append(
+            f"Test 1 (generate_behavioral_biases): {str(e)}")
 
     # Test 2: Verify all 7 biases are present
     total_tests += 1
     try:
         biases = generate_behavioral_biases()
         if len(biases) != 7:
-            all_validation_failures.append(f"Expected 7 biases, got {len(biases)}")
+            all_validation_failures.append(
+                f"Expected 7 biases, got {len(biases)}")
         else:
             print("Test 2: All 7 biases present in output")
     except Exception as e:
@@ -286,7 +289,8 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         samples = [generate_behavioral_biases() for _ in range(100)]
-        avg_aversao_perda = sum(s["aversao_perda"] for s in samples) / len(samples)
+        avg_aversao_perda = sum(s["aversao_perda"]
+                                for s in samples) / len(samples)
 
         # Average should be roughly around 50 (allow 40-60 range for 100 samples)
         if not (40 <= avg_aversao_perda <= 60):
@@ -294,9 +298,11 @@ if __name__ == "__main__":
                 f"Distribution not centered: avg aversao_perda={avg_aversao_perda} (expected 40-60)"
             )
         else:
-            print(f"Test 3: Distribution centered around mean -> avg={avg_aversao_perda:.1f}")
+            print(
+                f"Test 3: Distribution centered around mean -> avg={avg_aversao_perda:.1f}")
     except Exception as e:
-        all_validation_failures.append(f"Test 3 (distribution center): {str(e)}")
+        all_validation_failures.append(
+            f"Test 3 (distribution center): {str(e)}")
 
     # Test 4: Verify biases have variety (not all the same value)
     total_tests += 1
@@ -310,7 +316,8 @@ if __name__ == "__main__":
                 f"Biases lack variety: only {unique_values} unique values"
             )
         else:
-            print(f"Test 4: Biases have variety -> {unique_values} unique values")
+            print(
+                f"Test 4: Biases have variety -> {unique_values} unique values")
     except Exception as e:
         all_validation_failures.append(f"Test 4 (bias variety): {str(e)}")
 
@@ -346,7 +353,8 @@ if __name__ == "__main__":
                 f"ancoragem has {len(bias_ranges['ancoragem'])} values"
             )
     except Exception as e:
-        all_validation_failures.append(f"Test 5 (individual bias variety): {str(e)}")
+        all_validation_failures.append(
+            f"Test 5 (individual bias variety): {str(e)}")
 
     # Test 6: Batch consistency test
     total_tests += 1
@@ -358,11 +366,13 @@ if __name__ == "__main__":
             # Verify each bias is in valid range
             for bias_name, value in biases.items():
                 if not (0 <= value <= 100):
-                    batch_errors.append(f"Batch {i}: {bias_name} out of range: {value}")
+                    batch_errors.append(
+                        f"Batch {i}: {bias_name} out of range: {value}")
 
             # Verify we have exactly 7 biases
             if len(biases) != 7:
-                batch_errors.append(f"Batch {i}: Expected 7 biases, got {len(biases)}")
+                batch_errors.append(
+                    f"Batch {i}: Expected 7 biases, got {len(biases)}")
 
         if batch_errors:
             all_validation_failures.extend(batch_errors)
@@ -374,11 +384,13 @@ if __name__ == "__main__":
     # Final validation result
     print(f"\n{'='*60}")
     if all_validation_failures:
-        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(
+            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Function is validated and formal tests can now be written")
         sys.exit(0)
