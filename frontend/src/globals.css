@@ -250,3 +250,26 @@
 .transcript-content p {
   margin-bottom: 0;
 }
+
+/* [HEADER-LOGO-PULSE] Animação de "respiro" a cada 5.5s (3s parado + 0.5s inspiração + 2s expiração) */
+@keyframes logo-breathe {
+  /* 0-55% = 3s parado */
+  0%, 55% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  /* 64% = pico do "respiro" (inspiração rápida 0.5s) */
+  64% {
+    transform: scale(1.1);
+    filter: brightness(1.4);
+  }
+  /* 100% = volta ao normal (expiração lenta 2s) */
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+.logo-pulse-loop {
+  animation: logo-breathe 5.5s ease-in-out infinite;
+}
