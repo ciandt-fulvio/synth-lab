@@ -1,0 +1,27 @@
+{
+  "faixas_etarias": {
+    "15-29": 0.10,
+    "30-44": 0.35,
+    "45-59": 0.40,
+    "60+": 0.15
+  },
+  "escolaridade": {
+    "Sem instrução": 0.01,
+    "Fundamental incompleto": 0.10,
+    "Fundamental completo": 0.10,
+    "Médio incompleto": 0.01,
+    "Médio completo": 0.28,
+    "Superior incompleto": 0.15,
+    "Superior completo": 0.30,
+    "Pós-graduação": 0.05
+  },
+  "renda_mensal_faixas": {
+    "0-1320": 0.05,
+    "1320-2640": 0.15,
+    "2640-3960": 0.15,
+    "3960-6600": 0.10,
+    "6600-13200": 0.15,
+    "13200-26400": 0.20,
+    "26400+": 0.20
+  }
+}
