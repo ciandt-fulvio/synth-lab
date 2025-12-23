@@ -8,6 +8,7 @@ import argparse
 import sys
 
 from synth_lab import __version__
+from synth_lab.infrastructure.config import configure_logging
 from synth_lab.infrastructure.phoenix_tracing import maybe_setup_tracing, shutdown_tracing
 
 
@@ -15,7 +16,7 @@ def create_parser() -> argparse.ArgumentParser:
     """Create the main argument parser with subcommands."""
     parser = argparse.ArgumentParser(
         prog="synthlab",
-        description="Synth Lab - Gerador de Personas Sintéticas Brasileiras",
+        description="SynthLab - Gerador de Personas Sintéticas Brasileiras",
         epilog="Use 'synthlab <comando> --help' para mais informações sobre um comando específico.",
     )
     parser.add_argument(
@@ -100,8 +101,10 @@ def create_parser() -> argparse.ArgumentParser:
 
     return parser
 
+
 def main():
     """Main CLI entry point."""
+    configure_logging()
     # Setup Phoenix tracing if PHOENIX_ENABLED=true
     maybe_setup_tracing()
 

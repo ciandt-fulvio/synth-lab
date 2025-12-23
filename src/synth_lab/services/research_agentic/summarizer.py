@@ -27,7 +27,12 @@ from agents import Agent, ModelSettings, Runner
 from loguru import logger
 from openai.types.shared import Reasoning
 
+from synth_lab.infrastructure.phoenix_tracing import get_tracer
+
 from .runner import InterviewResult
+
+# Phoenix/OpenTelemetry tracer for observability
+_tracer = get_tracer("summarizer")
 
 # Summarizer system prompt based on user requirements
 SUMMARIZER_INSTRUCTIONS = """
@@ -209,36 +214,50 @@ async def summarize_interviews(
     """
     logger.info(f"Summarizing {len(interview_results)} interviews with model={model}")
 
-    # Format all interviews
-    interviews_content_parts = []
-    for i, (result, synth_data) in enumerate(interview_results):
-        logger.debug(f"Formatting interview {i+1}/{len(interview_results)}")
-        formatted = format_interview_for_summary(result, synth_data)
-        interviews_content_parts.append(formatted)
+    with _tracer.start_as_current_span(
+        "summarize_interviews",
+        attributes={
+            "topic_guide": topic_guide_name,
+            "interview_count": len(interview_results),
+            "model": model,
+        },
+    ) as span:
+        # Format all interviews
+        interviews_content_parts = []
+        for i, (result, synth_data) in enumerate(interview_results):
+            logger.debug(f"Formatting interview {i+1}/{len(interview_results)}")
+            formatted = format_interview_for_summary(result, synth_data)
+            interviews_content_parts.append(formatted)
 
-    interviews_content = "\n".join(interviews_content_parts)
-    logger.info(f"Formatted interviews content length: {len(interviews_content)} chars")
+        interviews_content = "\n".join(interviews_content_parts)
+        logger.info(f"Formatted interviews content length: {len(interviews_content)} chars")
 
-    # Create summarizer agent
-    logger.info("Creating summarizer agent...")
-    summarizer = create_summarizer_agent(
-        topic_guide_name=topic_guide_name,
-        interviews_content=interviews_content,
-        model=model,
-        reasoning_effort="medium",
-    )
+        if span:
+            span.set_attribute("content_length", len(interviews_content))
 
-    # Run summarization
-    logger.info("Running summarizer agent...")
-    result = await Runner.run(
-        summarizer,
-        input="Analise as entrevistas fornecidas e gere o relatório de síntese conforme as diretrizes.",
-    )
+        # Create summarizer agent
+        logger.info("Creating summarizer agent...")
+        summarizer = create_summarizer_agent(
+            topic_guide_name=topic_guide_name,
+            interviews_content=interviews_content,
+            model=model,
+            reasoning_effort="medium",
+        )
 
-    summary = result.final_output
-    logger.info(f"Summary generated: {len(summary)} characters")
+        # Run summarization
+        logger.info("Running summarizer agent...")
+        result = await Runner.run(
+            summarizer,
+            input="Analise as entrevistas fornecidas e gere o relatório de síntese conforme as diretrizes.",
+        )
 
-    return summary
+        summary = result.final_output
+        logger.info(f"Summary generated: {len(summary)} characters")
+
+        if span:
+            span.set_attribute("summary_length", len(summary))
+
+        return summary
 
 
 if __name__ == "__main__":

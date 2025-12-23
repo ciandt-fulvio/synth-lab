@@ -188,6 +188,44 @@ def shutdown_tracing() -> None:
     _tracing_enabled = False
 
 
+def get_tracer(name: str = "synth-lab") -> Any:
+    """
+    Get an OpenTelemetry tracer for manual span creation.
+
+    Use this to add custom spans around operations for better visibility in Phoenix.
+    If tracing is not enabled, returns a no-op tracer.
+
+    Args:
+        name: Name for the tracer (appears in spans)
+
+    Returns:
+        OpenTelemetry Tracer instance
+
+    Sample usage:
+        tracer = get_tracer("my-service")
+        with tracer.start_as_current_span("operation_name") as span:
+            span.set_attribute("key", "value")
+            # do work
+    """
+    if _tracer_provider is not None:
+        return _tracer_provider.get_tracer(name)
+
+    # Return no-op tracer if tracing not enabled
+    try:
+        from opentelemetry import trace
+
+        return trace.get_tracer(name)
+    except ImportError:
+        # Return a dummy object that does nothing
+        class NoOpTracer:
+            def start_as_current_span(self, name: str, **kwargs: Any) -> Any:
+                from contextlib import nullcontext
+
+                return nullcontext()
+
+        return NoOpTracer()
+
+
 def maybe_setup_tracing() -> bool:
     """
     Setup tracing if PHOENIX_ENABLED environment variable is set.

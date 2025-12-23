@@ -31,6 +31,10 @@ from synth_lab.infrastructure.config import (
     LLM_TIMEOUT,
     OPENAI_API_KEY,
 )
+from synth_lab.infrastructure.phoenix_tracing import get_tracer
+
+# Phoenix/OpenTelemetry tracer for observability
+_tracer = get_tracer("llm-client")
 
 
 class LLMClient:
@@ -108,26 +112,39 @@ class LLMClient:
         model = model or self.default_model
         self.logger.debug(f"Completion request: model={model}, messages={len(messages)}")
 
-        @self._create_retry_decorator()
-        def _call() -> str:
-            response = self.client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_completion_tokens=max_tokens,
-                **kwargs,
-            )
+        with _tracer.start_as_current_span(
+            "llm_completion",
+            attributes={
+                "model": model,
+                "message_count": len(messages),
+                "temperature": temperature,
+            },
+        ) as span:
+            @self._create_retry_decorator()
+            def _call() -> str:
+                response = self.client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_completion_tokens=max_tokens,
+                    **kwargs,
+                )
 
-            # Track token usage
-            if response.usage:
-                self._total_prompt_tokens += response.usage.prompt_tokens
-                self._total_completion_tokens += response.usage.completion_tokens
+                # Track token usage
+                if response.usage:
+                    self._total_prompt_tokens += response.usage.prompt_tokens
+                    self._total_completion_tokens += response.usage.completion_tokens
+                    if span:
+                        span.set_attribute("prompt_tokens", response.usage.prompt_tokens)
+                        span.set_attribute("completion_tokens", response.usage.completion_tokens)
 
-            content = response.choices[0].message.content
-            self.logger.debug(f"Completion response: {len(content or '')} chars")
-            return content or ""
+                content = response.choices[0].message.content
+                self.logger.debug(f"Completion response: {len(content or '')} chars")
+                if span:
+                    span.set_attribute("response_length", len(content or ""))
+                return content or ""
 
-        return _call()
+            return _call()
 
     def complete_json(
         self,
@@ -180,28 +197,39 @@ class LLMClient:
         """
         self.logger.debug(f"Image generation: prompt={prompt[:50]}...")
 
-        @retry(
-            stop=stop_after_attempt(self.max_retries),
-            wait=wait_exponential(multiplier=2, min=2, max=30),
-            retry=retry_if_exception_type((Exception,)),
-            before_sleep=lambda rs: self.logger.warning(
-                f"Image generation retry {rs.attempt_number}"
-            ),
-        )
-        def _call() -> bytes:
-            response = self.client.images.generate(
-                model=model,
-                prompt=prompt,
-                size=size,
-                quality=quality,
-                n=1,
-                response_format="b64_json",
+        with _tracer.start_as_current_span(
+            "llm_image_generation",
+            attributes={
+                "model": model,
+                "size": size,
+                "quality": quality,
+                "prompt_preview": prompt[:100],
+            },
+        ) as span:
+            @retry(
+                stop=stop_after_attempt(self.max_retries),
+                wait=wait_exponential(multiplier=2, min=2, max=30),
+                retry=retry_if_exception_type((Exception,)),
+                before_sleep=lambda rs: self.logger.warning(
+                    f"Image generation retry {rs.attempt_number}"
+                ),
             )
-            image_data = base64.b64decode(response.data[0].b64_json)
-            self.logger.debug(f"Image generated: {len(image_data)} bytes")
-            return image_data
+            def _call() -> bytes:
+                response = self.client.images.generate(
+                    model=model,
+                    prompt=prompt,
+                    size=size,
+                    quality=quality,
+                    n=1,
+                    response_format="b64_json",
+                )
+                image_data = base64.b64decode(response.data[0].b64_json)
+                self.logger.debug(f"Image generated: {len(image_data)} bytes")
+                if span:
+                    span.set_attribute("image_bytes", len(image_data))
+                return image_data
 
-        return _call()
+            return _call()
 
     @property
     def total_tokens(self) -> dict[str, int]:

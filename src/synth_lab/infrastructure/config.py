@@ -5,12 +5,13 @@ Environment variables and default settings for database, logging, and LLM client
 
 Environment Variables:
     SYNTHLAB_DB_PATH: Path to SQLite database (default: output/synthlab.db)
-    SYNTHLAB_LOG_LEVEL: Logging level (default: INFO)
+    LOG_LEVEL: Logging level (default: INFO) - set by Makefile based on ENV
     SYNTHLAB_DEFAULT_MODEL: Default LLM model (default: gpt-5-mini)
     OPENAI_API_KEY: OpenAI API key (required for LLM operations)
 """
 
 import os
+import sys
 from pathlib import Path
 
 # Base paths
@@ -31,7 +32,33 @@ TOPIC_GUIDES_DIR = OUTPUT_DIR / "topic_guides"
 TRACES_DIR = OUTPUT_DIR / "traces"
 
 # Logging configuration
-LOG_LEVEL = os.getenv("SYNTHLAB_LOG_LEVEL", "INFO")
+# LOG_LEVEL from Makefile (ENV-based), fallback to SYNTHLAB_LOG_LEVEL
+LOG_LEVEL = os.getenv("LOG_LEVEL", os.getenv("SYNTHLAB_LOG_LEVEL", "INFO")).upper()
+
+
+def configure_logging() -> None:
+    """
+    Configure loguru with the LOG_LEVEL from environment.
+
+    Removes default handler and adds a new one with proper level and format.
+    Should be called once at application startup.
+    """
+    from loguru import logger
+
+    # Remove default handler
+    logger.remove()
+
+    # Add handler with configured level
+    logger.add(
+        sys.stderr,
+        level=LOG_LEVEL,
+        format="<level>{level: <8}</level> | "
+        "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
+        "<level>{message}</level>",
+        colorize=True,
+    )
+
+    logger.debug(f"Logging configured with level: {LOG_LEVEL}")
 
 # LLM configuration
 DEFAULT_MODEL = os.getenv("SYNTHLAB_DEFAULT_MODEL", "gpt-5-mini")
