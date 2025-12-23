@@ -18,7 +18,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { User, X, AlertCircle } from 'lucide-react';
+import { User, AlertCircle } from 'lucide-react';
 import { getSynthAvatarUrl } from '@/services/synths-api';
 import { useSynthChat } from '@/hooks/use-synth-chat';
 import { ChatInput } from './ChatInput';
@@ -72,24 +72,14 @@ export function SynthChatDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[70vw] h-[80vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={avatarUrl} alt={firstName} />
-                <AvatarFallback>
-                  <User className="h-5 w-5" />
-                </AvatarFallback>
-              </Avatar>
-              <DialogTitle>{title}</DialogTitle>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onOpenChange(false)}
-              className="h-8 w-8"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={avatarUrl} alt={firstName} />
+              <AvatarFallback>
+                <User className="h-5 w-5" />
+              </AvatarFallback>
+            </Avatar>
+            <DialogTitle>{title}</DialogTitle>
           </div>
         </DialogHeader>
 
