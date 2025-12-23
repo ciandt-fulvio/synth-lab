@@ -6,7 +6,7 @@ Environment variables and default settings for database, logging, and LLM client
 Environment Variables:
     SYNTHLAB_DB_PATH: Path to SQLite database (default: output/synthlab.db)
     LOG_LEVEL: Logging level (default: INFO) - set by Makefile based on ENV
-    SYNTHLAB_DEFAULT_MODEL: Default LLM model (default: gpt-5-mini)
+    SYNTHLAB_DEFAULT_MODEL: Default LLM model (default: gpt-4o-mini)
     OPENAI_API_KEY: OpenAI API key (required for LLM operations)
 """
 
@@ -61,7 +61,7 @@ def configure_logging() -> None:
     logger.debug(f"Logging configured with level: {LOG_LEVEL}")
 
 # LLM configuration
-DEFAULT_MODEL = os.getenv("SYNTHLAB_DEFAULT_MODEL", "gpt-5-mini")
+DEFAULT_MODEL = os.getenv("SYNTHLAB_DEFAULT_MODEL", "gpt-4o-mini")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 LLM_TIMEOUT = float(os.getenv("SYNTHLAB_LLM_TIMEOUT", "120.0"))
 LLM_MAX_RETRIES = int(os.getenv("SYNTHLAB_LLM_MAX_RETRIES", "3"))
@@ -128,8 +128,8 @@ if __name__ == "__main__":
 
     # Test 3: Default values are set
     total_tests += 1
-    if DEFAULT_MODEL != "gpt-5-mini":
-        all_validation_failures.append(f"DEFAULT_MODEL should be gpt-5-mini, got {DEFAULT_MODEL}")
+    if DEFAULT_MODEL != "gpt-4o-mini":
+        all_validation_failures.append(f"DEFAULT_MODEL should be gpt-4o-mini, got {DEFAULT_MODEL}")
 
     # Test 4: LOG_LEVEL is valid
     total_tests += 1

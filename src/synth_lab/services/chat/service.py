@@ -30,21 +30,17 @@ class ChatService:
         self.synths_repo = SynthRepository()
         self.logger = logger.bind(component="chat_service")
 
-    def generate_response(self, synth_id: str, request: ChatRequest) -> ChatResponse:
+    def _build_messages(self, synth_id: str, request: ChatRequest) -> list[dict]:
         """
-        Generate a response from the synth.
+        Build LLM messages with synth context.
 
         Args:
             synth_id: ID of the synth to chat with.
             request: Chat request with message and history.
 
         Returns:
-            ChatResponse with synth's message.
+            List of message dicts for LLM.
         """
-        self.logger.info(
-            f"Generating chat response for synth {synth_id}, exec {request.exec_id}"
-        )
-
         # Load synth profile
         synth = self.synths_repo.get_by_id(synth_id)
 
@@ -53,9 +49,6 @@ class ChatService:
 
         # Format interview history for context
         interview_history = self._format_transcript(transcript)
-
-        # Format chat history
-        chat_history = self._format_chat_history(request.chat_history)
 
         # Build system prompt
         system_prompt = format_chat_instructions(
@@ -78,6 +71,25 @@ class ChatService:
         # Add current message
         messages.append({"role": "user", "content": request.message})
 
+        return messages
+
+    def generate_response(self, synth_id: str, request: ChatRequest) -> ChatResponse:
+        """
+        Generate a response from the synth.
+
+        Args:
+            synth_id: ID of the synth to chat with.
+            request: Chat request with message and history.
+
+        Returns:
+            ChatResponse with synth's message.
+        """
+        self.logger.info(
+            f"Generating chat response for synth {synth_id}, exec {request.exec_id}"
+        )
+
+        messages = self._build_messages(synth_id, request)
+
         # Generate response
         response_text = self.llm_client.complete(
             messages=messages,
@@ -90,6 +102,30 @@ class ChatService:
             message=response_text,
             timestamp=datetime.now(),
         )
+
+    def generate_response_stream(self, synth_id: str, request: ChatRequest):
+        """
+        Generate a streaming response from the synth.
+
+        Args:
+            synth_id: ID of the synth to chat with.
+            request: Chat request with message and history.
+
+        Yields:
+            str: Chunks of the response text.
+        """
+        self.logger.info(
+            f"Generating streaming chat response for synth {synth_id}, exec {request.exec_id}"
+        )
+
+        messages = self._build_messages(synth_id, request)
+
+        # Generate streaming response
+        for chunk in self.llm_client.complete_stream(
+            messages=messages,
+            temperature=0.8,
+        ):
+            yield chunk
 
     def _format_transcript(self, transcript) -> str:
         """Format transcript messages for context."""

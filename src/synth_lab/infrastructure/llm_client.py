@@ -122,13 +122,18 @@ class LLMClient:
         ) as span:
             @self._create_retry_decorator()
             def _call() -> str:
-                response = self.client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    temperature=temperature,
-                    max_completion_tokens=max_tokens,
+                # Build kwargs for API call
+                api_kwargs = {
+                    "model": model,
+                    "messages": messages,
+                    "temperature": temperature,
                     **kwargs,
-                )
+                }
+                # Only add max_tokens if specified
+                if max_tokens:
+                    api_kwargs["max_tokens"] = max_tokens
+
+                response = self.client.chat.completions.create(**api_kwargs)
 
                 # Track token usage
                 if response.usage:
@@ -145,6 +150,56 @@ class LLMClient:
                 return content or ""
 
             return _call()
+
+    def complete_stream(
+        self,
+        messages: list[dict[str, str]],
+        model: str | None = None,
+        temperature: float = 1.0,
+        max_tokens: int | None = None,
+        **kwargs: Any,
+    ):
+        """
+        Generate a streaming chat completion.
+
+        Args:
+            messages: List of message dicts with 'role' and 'content'.
+            model: Model to use. Defaults to default_model.
+            temperature: Sampling temperature. Defaults to 1.0.
+            max_tokens: Maximum tokens in response.
+            **kwargs: Additional OpenAI API parameters.
+
+        Yields:
+            str: Chunks of the completion text.
+        """
+        model = model or self.default_model
+        self.logger.debug(f"Streaming completion request: model={model}, messages={len(messages)}")
+
+        # Build kwargs for API call
+        api_kwargs = {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature,
+            "stream": True,
+            **kwargs,
+        }
+        # Only add max_tokens if specified
+        if max_tokens:
+            api_kwargs["max_tokens"] = max_tokens
+
+        with _tracer.start_as_current_span(
+            "llm_completion_stream",
+            attributes={
+                "model": model,
+                "message_count": len(messages),
+                "temperature": temperature,
+            },
+        ):
+            response = self.client.chat.completions.create(**api_kwargs)
+
+            for chunk in response:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
 
     def complete_json(
         self,
