@@ -45,17 +45,17 @@ class RegionAnalyzer:
 
     def __init__(
         self,
-        max_depth: int = 4,
-        min_samples_leaf: int = 20,
-        min_samples_split: int = 40,
+        max_depth: int = 3,
+        min_samples_leaf: int = 50,
+        min_samples_split: int = 100,
     ) -> None:
         """
         Initialize RegionAnalyzer.
 
         Args:
             max_depth: Maximum depth of decision tree (avoids overfitting)
-            min_samples_leaf: Minimum samples per leaf node (4% of 500)
-            min_samples_split: Minimum samples to split a node (8% of 500)
+            min_samples_leaf: Minimum samples per leaf node (10% of 500)
+            min_samples_split: Minimum samples to split a node (20% of 500)
         """
         self.max_depth = max_depth
         self.min_samples_leaf = min_samples_leaf
@@ -367,8 +367,8 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         analyzer = RegionAnalyzer()
-        if analyzer.max_depth != 4:
-            all_validation_failures.append(f"max_depth should be 4, got {analyzer.max_depth}")
+        if analyzer.max_depth != 3:
+            all_validation_failures.append(f"max_depth should be 3, got {analyzer.max_depth}")
         else:
             print("Test 1 PASSED: Analyzer initialized with correct defaults")
     except Exception as e:
@@ -454,7 +454,7 @@ if __name__ == "__main__":
     # Test 5: Analyze regions with insufficient data
     total_tests += 1
     try:
-        # Not enough samples (< min_samples_split=40)
+        # Not enough samples (< min_samples_split=100)
         small_outcomes = test_outcomes[:2]
         regions = analyzer.analyze_regions(
             outcomes=small_outcomes,
