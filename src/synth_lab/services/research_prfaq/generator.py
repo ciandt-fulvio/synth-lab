@@ -28,7 +28,12 @@ from typing import Optional
 from loguru import logger
 from openai import OpenAI
 
+from synth_lab.infrastructure.phoenix_tracing import get_tracer
+
 from .prompts import get_few_shot_examples, get_system_prompt
+
+# Phoenix/OpenTelemetry tracer for observability
+_tracer = get_tracer("prfaq-generator")
 
 
 def generate_prfaq_from_content(
@@ -53,31 +58,39 @@ def generate_prfaq_from_content(
     """
     logger.info(f"Starting PR-FAQ Markdown generation for batch {batch_id}")
 
-    # Initialize OpenAI client
-    client = OpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"))
+    with _tracer.start_as_current_span(
+        "generate_prfaq",
+        attributes={
+            "batch_id": batch_id,
+            "model": model,
+            "summary_length": len(summary_content),
+        },
+    ) as span:
+        # Initialize OpenAI client
+        client = OpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"))
 
-    # Build prompt with system prompt + few-shot examples + user content
-    system_prompt = get_system_prompt()
-    few_shot_examples = get_few_shot_examples()
+        # Build prompt with system prompt + few-shot examples + user content
+        system_prompt = get_system_prompt()
+        few_shot_examples = get_few_shot_examples()
 
-    # Format few-shot examples as conversation
-    messages = [
-        {"role": "system", "content": system_prompt}
-    ]
+        # Format few-shot examples as conversation
+        messages = [
+            {"role": "system", "content": system_prompt}
+        ]
 
-    # Add few-shot examples (user research → assistant PR-FAQ MD)
-    for example in few_shot_examples:
-        messages.append({
-            "role": "user",
-            "content": f"Research Report:\n\n{example['research_summary']}"
-        })
-        messages.append({
-            "role": "assistant",
-            "content": example['prfaq_output']
-        })
+        # Add few-shot examples (user research → assistant PR-FAQ MD)
+        for example in few_shot_examples:
+            messages.append({
+                "role": "user",
+                "content": f"Research Report:\n\n{example['research_summary']}"
+            })
+            messages.append({
+                "role": "assistant",
+                "content": example['prfaq_output']
+            })
 
-    # Add current research report
-    user_prompt = f"""Research Report:
+        # Add current research report
+        user_prompt = f"""Research Report:
 
 {summary_content}
 
@@ -95,33 +108,39 @@ Extract insights from the "Recomendações" and "Padrões Recorrentes" sections.
 
 Return ONLY the Markdown-formatted PR-FAQ document."""
 
-    messages.append({"role": "user", "content": user_prompt})
+        messages.append({"role": "user", "content": user_prompt})
 
-    logger.debug(f"Calling OpenAI API with model {model}")
+        logger.debug(f"Calling OpenAI API with model {model}")
 
-    # Call OpenAI API for Markdown generation
-    # Note: gpt-5-mini is a reasoning model - needs extra tokens for internal reasoning
-    # before producing output. 16000 allows ~4000 reasoning + ~12000 output tokens.
-    try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            max_completion_tokens=16000
-        )
+        # Call OpenAI API for Markdown generation
+        # Note: gpt-5-mini is a reasoning model - needs extra tokens for internal reasoning
+        # before producing output. 16000 allows ~4000 reasoning + ~12000 output tokens.
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                max_completion_tokens=16000
+            )
 
-        logger.info(f"OpenAI API call successful. Tokens used: {response.usage.total_tokens}")
+            logger.info(f"OpenAI API call successful. Tokens used: {response.usage.total_tokens}")
 
-        # Extract Markdown response
-        prfaq_markdown = response.choices[0].message.content.strip()
+            # Extract Markdown response
+            prfaq_markdown = response.choices[0].message.content.strip()
 
-        logger.info(f"PR-FAQ Markdown generation successful for {batch_id} ({len(prfaq_markdown)} characters)")
+            logger.info(f"PR-FAQ Markdown generation successful for {batch_id} ({len(prfaq_markdown)} characters)")
 
-        return prfaq_markdown
+            if span:
+                span.set_attribute("tokens_used", response.usage.total_tokens)
+                span.set_attribute("prfaq_length", len(prfaq_markdown))
 
-    except Exception as e:
-        error_msg = f"LLM generation failed: {str(e)}"
-        logger.error(error_msg)
-        raise RuntimeError(error_msg) from e
+            return prfaq_markdown
+
+        except Exception as e:
+            error_msg = f"LLM generation failed: {str(e)}"
+            logger.error(error_msg)
+            if span:
+                span.set_attribute("error", error_msg)
+            raise RuntimeError(error_msg) from e
 
 
 if __name__ == "__main__":

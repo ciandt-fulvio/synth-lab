@@ -41,8 +41,13 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
+from synth_lab.infrastructure.phoenix_tracing import get_tracer
+
 from .runner import ConversationMessage, InterviewResult, run_interview
 from .summarizer import summarize_interviews
+
+# Phoenix/OpenTelemetry tracer for observability
+_tracer = get_tracer("batch-runner")
 
 # GMT-3 timezone (São Paulo)
 TZ_GMT_MINUS_3 = timezone(timedelta(hours=-3))
@@ -175,38 +180,53 @@ async def run_single_interview_safe(
     synth_name = synth.get("nome", "Unknown")
 
     async with semaphore:
-        logger.info(f"Starting interview with {synth_name} ({synth_id})")
-        progress.update(task_id, description=f"[cyan]Entrevistando {synth_name}...")
+        with _tracer.start_as_current_span(
+            "single_interview",
+            attributes={
+                "synth_id": synth_id,
+                "synth_name": synth_name,
+                "topic_guide": topic_guide_name,
+                "model": model,
+            },
+        ) as span:
+            logger.info(f"Starting interview with {synth_name} ({synth_id})")
+            progress.update(task_id, description=f"[cyan]Entrevistando {synth_name}...")
 
-        try:
-            # Generate trace path for debugging (still saved to filesystem)
-            timestamp = get_timestamp_gmt3()
-            trace_path = f"output/traces/batch_{batch_id}/{synth_id}_{timestamp}.trace.json"
+            try:
+                # Generate trace path for debugging (still saved to filesystem)
+                timestamp = get_timestamp_gmt3()
+                trace_path = f"output/traces/batch_{batch_id}/{synth_id}_{timestamp}.trace.json"
 
-            # Ensure trace directory exists
-            Path(trace_path).parent.mkdir(parents=True, exist_ok=True)
+                # Ensure trace directory exists
+                Path(trace_path).parent.mkdir(parents=True, exist_ok=True)
 
-            result = await run_interview(
-                synth_id=synth_id,
-                topic_guide_name=topic_guide_name,
-                max_turns=max_turns,
-                trace_path=trace_path,
-                model=model,
-                verbose=False,  # Suppress individual interview output in batch mode
-                exec_id=exec_id,
-                message_callback=message_callback,
-                skip_interviewee_review=skip_interviewee_review,
-                additional_context=additional_context,
-            )
+                result = await run_interview(
+                    synth_id=synth_id,
+                    topic_guide_name=topic_guide_name,
+                    max_turns=max_turns,
+                    trace_path=trace_path,
+                    model=model,
+                    verbose=False,  # Suppress individual interview output in batch mode
+                    exec_id=exec_id,
+                    message_callback=message_callback,
+                    skip_interviewee_review=skip_interviewee_review,
+                    additional_context=additional_context,
+                )
 
-            logger.info(f"Completed interview with {synth_name} ({synth_id})")
-            progress.advance(task_id)
-            return result, synth, None
+                logger.info(f"Completed interview with {synth_name} ({synth_id})")
+                progress.advance(task_id)
+                if span:
+                    span.set_attribute("status", "success")
+                    span.set_attribute("total_turns", result.total_turns)
+                return result, synth, None
 
-        except Exception as e:
-            logger.error(f"Failed interview with {synth_name} ({synth_id}): {e}")
-            progress.advance(task_id)
-            return None, synth, e
+            except Exception as e:
+                logger.error(f"Failed interview with {synth_name} ({synth_id}): {e}")
+                progress.advance(task_id)
+                if span:
+                    span.set_attribute("status", "error")
+                    span.set_attribute("error", str(e))
+                return None, synth, e
 
 
 async def run_batch_interviews(

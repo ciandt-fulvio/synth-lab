@@ -1,8 +1,27 @@
-.PHONY: help install setup-hooks serve serve-front serve-traced phoenix init-db reset-db validate-ui test test-fast test-full test-unit test-integration test-contract lint-format clean
+.PHONY: help install setup-hooks serve serve-front gensynth phoenix init-db reset-db validate-ui test test-fast test-full test-unit test-integration test-contract lint-format clean
+
+# =============================================================================
+# Environment Configuration
+# =============================================================================
+# Change to 'prod' to disable dev features (tracing, debug, reload)
+ENV ?= dev
+
+# Auto-configure based on ENV
+ifeq ($(ENV),dev)
+    PHOENIX_ENABLED := true
+    LOG_LEVEL := DEBUG
+    UVICORN_RELOAD := --reload
+else
+    PHOENIX_ENABLED := false
+    LOG_LEVEL := INFO
+    UVICORN_RELOAD :=
+endif
 
 # Default target
 help:
 	@echo "synth-lab Development Commands"
+	@echo ""
+	@echo "Current: ENV=$(ENV) → PHOENIX_ENABLED=$(PHOENIX_ENABLED)"
 	@echo ""
 	@echo "Setup:"
 	@echo "  make install      Install dependencies with uv"
@@ -11,9 +30,9 @@ help:
 	@echo "  make reset-db     Delete and recreate database from scratch"
 	@echo ""
 	@echo "Development:"
-	@echo "  make serve        Start FastAPI REST API server (port 8000)"
+	@echo "  make serve        Start FastAPI API (tracing auto-enabled in dev)"
 	@echo "  make serve-front  Start frontend dev server (port 8080)"
-	@echo "  make serve-traced Start API with Phoenix tracing enabled"
+	@echo "  make gensynth     Run CLI: make gensynth ARGS='-n 3 --avatar'"
 	@echo "  make phoenix      Start Phoenix observability server (port 6006)"
 	@echo "  make lint-format  Run ruff linter and formatter"
 	@echo ""
@@ -30,6 +49,10 @@ help:
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean        Remove cache files and build artifacts"
+	@echo ""
+	@echo "Environment (change ENV at top of Makefile or override with ENV=prod):"
+	@echo "  ENV=dev   tracing=on,  log=DEBUG, reload=on"
+	@echo "  ENV=prod  tracing=off, log=INFO,  reload=off"
 
 # Setup
 install:
@@ -62,8 +85,12 @@ reset-db:
 serve:
 	@echo "Starting synth-lab API on http://127.0.0.1:8000"
 	@echo "OpenAPI docs: http://127.0.0.1:8000/docs"
+	@echo "ENV=$(ENV) → tracing=$(PHOENIX_ENABLED), log=$(LOG_LEVEL), reload=$(if $(UVICORN_RELOAD),on,off)"
+ifeq ($(PHOENIX_ENABLED),true)
+	@echo "Phoenix dashboard: http://127.0.0.1:6006 (run 'make phoenix' first)"
+endif
 	@echo ""
-	uv run uvicorn synth_lab.api.main:app --host 127.0.0.1 --port 8000 --reload
+	PHOENIX_ENABLED=$(PHOENIX_ENABLED) LOG_LEVEL=$(LOG_LEVEL) uv run uvicorn synth_lab.api.main:app --host 127.0.0.1 --port 8000 $(UVICORN_RELOAD)
 
 serve-front:
 	@echo "Starting frontend dev server on http://localhost:8080"
@@ -71,14 +98,11 @@ serve-front:
 	@echo ""
 	@cd frontend && pnpm dev
 
-serve-traced:
-	@echo "Starting synth-lab API with Phoenix tracing on http://127.0.0.1:8000"
-	@echo "OpenAPI docs: http://127.0.0.1:8000/docs"
-	@echo "Phoenix dashboard: http://127.0.0.1:6006"
+# CLI commands (respect ENV settings)
+gensynth:
+	@echo "ENV=$(ENV) → tracing=$(PHOENIX_ENABLED), log=$(LOG_LEVEL)"
 	@echo ""
-	@echo "TIP: Run 'make phoenix' in another terminal first!"
-	@echo ""
-	PHOENIX_ENABLED=true uv run uvicorn synth_lab.api.main:app --host 127.0.0.1 --port 8000 --reload
+	PHOENIX_ENABLED=$(PHOENIX_ENABLED) LOG_LEVEL=$(LOG_LEVEL) uv run synthlab gensynth $(ARGS)
 
 phoenix:
 	@echo "Starting Phoenix observability server on http://127.0.0.1:6006"

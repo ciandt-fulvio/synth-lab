@@ -25,6 +25,10 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from synth_lab.gen_synth.avatar_image import save_base64_image, split_grid_image
 from synth_lab.gen_synth.avatar_prompt import build_prompt
+from synth_lab.infrastructure.phoenix_tracing import get_tracer
+
+# Phoenix/OpenTelemetry tracer for observability
+_tracer = get_tracer("avatar-generator")
 
 console = Console()
 
@@ -289,93 +293,113 @@ def generate_avatar_block(
     if len(synths) != 9:
         raise ValueError(f"Esperado 9 synths, recebido {len(synths)}")
 
-    # Validar todos os synths
-    for synth in synths:
-        if not validate_synth_for_avatar(synth):
-            synth_id = synth.get("id", "unknown")
-            logger.warning(f"Synth {synth_id} possui dados incompletos para avatar")
-            raise ValueError(f"Synth {synth_id} não possui campos demográficos obrigatórios")
+    synth_ids = [s.get("id", "unknown") for s in synths]
 
-    # Construir prompt
-    logger.info(f"Construindo prompt para bloco {block_num}")
-    prompt = build_prompt(synths)
-    logger.debug(f"Prompt gerado: {prompt}")
+    with _tracer.start_as_current_span(
+        "generate_avatar_block",
+        attributes={
+            "block_num": block_num,
+            "synth_count": len(synths),
+            "synth_ids": ",".join(synth_ids),
+        },
+    ) as span:
+        # Validar todos os synths
+        for synth in synths:
+            if not validate_synth_for_avatar(synth):
+                synth_id = synth.get("id", "unknown")
+                logger.warning(f"Synth {synth_id} possui dados incompletos para avatar")
+                raise ValueError(f"Synth {synth_id} não possui campos demográficos obrigatórios")
 
-    # Chamar API OpenAI com retry e exponential backoff (T043)
-    logger.info(f"Chamando OpenAI API para bloco {block_num}")
+        # Construir prompt
+        logger.info(f"Construindo prompt para bloco {block_num}")
+        prompt = build_prompt(synths)
+        logger.debug(f"Prompt gerado: {prompt}")
 
-    response = None
-    for attempt in range(MAX_RETRIES):
-        try:
-            response = client.images.generate(
-                model="gpt-image-1",  # Modelo gpt-image-1 (mini não suporta response_format)
-                prompt=prompt,
-                n=1,
-                size="1024x1024"
-                # Nota: gpt-image-1 retorna b64_json por padrão
-            )
-            break  # Sucesso, sair do loop
+        # Chamar API OpenAI com retry e exponential backoff (T043)
+        logger.info(f"Chamando OpenAI API para bloco {block_num}")
 
-        except RateLimitError as e:
-            if attempt < MAX_RETRIES - 1:
-                wait_time = BACKOFF_FACTOR ** attempt  # 1s, 2s, 4s
-                logger.warning(f"Rate limit excedido, tentando novamente em {wait_time}s... (tentativa {attempt + 1}/{MAX_RETRIES})")
-                time.sleep(wait_time)
-            else:
-                logger.error(f"Rate limit excedido após {MAX_RETRIES} tentativas: {e}")
+        response = None
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = client.images.generate(
+                    model="gpt-image-1",  # Modelo gpt-image-1 (mini não suporta response_format)
+                    prompt=prompt,
+                    n=1,
+                    size="1024x1024"
+                    # Nota: gpt-image-1 retorna b64_json por padrão
+                )
+                break  # Sucesso, sair do loop
+
+            except RateLimitError as e:
+                if attempt < MAX_RETRIES - 1:
+                    wait_time = BACKOFF_FACTOR ** attempt  # 1s, 2s, 4s
+                    logger.warning(f"Rate limit excedido, tentando novamente em {wait_time}s... (tentativa {attempt + 1}/{MAX_RETRIES})")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"Rate limit excedido após {MAX_RETRIES} tentativas: {e}")
+                    if span:
+                        span.set_attribute("error", f"Rate limit: {e}")
+                    raise
+
+            except APIConnectionError as e:
+                if attempt < MAX_RETRIES - 1:
+                    wait_time = BACKOFF_FACTOR ** attempt
+                    logger.warning(f"Erro de conexão, tentando novamente em {wait_time}s... (tentativa {attempt + 1}/{MAX_RETRIES})")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"Erro de conexão após {MAX_RETRIES} tentativas: {e}")
+                    if span:
+                        span.set_attribute("error", f"Connection error: {e}")
+                    raise
+
+            except APIError as e:
+                # Erros de API geralmente não são recuperáveis, não retentar
+                logger.error(f"Erro na API OpenAI: {e}")
+                if span:
+                    span.set_attribute("error", f"API error: {e}")
                 raise
 
-        except APIConnectionError as e:
-            if attempt < MAX_RETRIES - 1:
-                wait_time = BACKOFF_FACTOR ** attempt
-                logger.warning(f"Erro de conexão, tentando novamente em {wait_time}s... (tentativa {attempt + 1}/{MAX_RETRIES})")
-                time.sleep(wait_time)
-            else:
-                logger.error(f"Erro de conexão após {MAX_RETRIES} tentativas: {e}")
-                raise
+        if response is None:
+            raise APIError("Falha ao obter resposta da API após todas as tentativas")
 
-        except APIError as e:
-            # Erros de API geralmente não são recuperáveis, não retentar
-            logger.error(f"Erro na API OpenAI: {e}")
-            raise
+        # Obter dados base64 da imagem (gpt-image-1 retorna b64_json por padrão)
+        image_base64 = response.data[0].b64_json
+        if image_base64 is None:
+            raise APIError("API retornou resposta sem dados de imagem (b64_json é None)")
+        logger.info(f"Imagem gerada, base64 length: {len(image_base64)} chars")
 
-    if response is None:
-        raise APIError("Falha ao obter resposta da API após todas as tentativas")
+        # Salvar imagem base64 em arquivo temporário
+        logger.info("Salvando imagem do grid 3x3")
+        grid_image_path = save_base64_image(image_base64)
+        logger.debug(f"Imagem salva em: {grid_image_path}")
 
-    # Obter dados base64 da imagem (gpt-image-1 retorna b64_json por padrão)
-    image_base64 = response.data[0].b64_json
-    if image_base64 is None:
-        raise APIError("API retornou resposta sem dados de imagem (b64_json é None)")
-    logger.info(f"Imagem gerada, base64 length: {len(image_base64)} chars")
+        # Extrair IDs dos synths
+        synth_ids_for_split = [synth["id"] for synth in synths]
 
-    # Salvar imagem base64 em arquivo temporário
-    logger.info("Salvando imagem do grid 3x3")
-    grid_image_path = save_base64_image(image_base64)
-    logger.debug(f"Imagem salva em: {grid_image_path}")
+        # Dividir imagem
+        logger.info("Dividindo grid em 9 avatares individuais")
+        avatar_paths = split_grid_image(grid_image_path, str(avatar_dir), synth_ids_for_split)
 
-    # Extrair IDs dos synths
-    synth_ids = [synth["id"] for synth in synths]
+        # Atualizar avatar_path no banco de dados para cada synth
+        # Nota: avatar_paths pode ter menos de 9 itens se houver synths temporários
+        # Usamos o nome do arquivo para identificar o synth_id correto
+        from synth_lab.gen_synth.storage import update_avatar_path
 
-    # Dividir imagem
-    logger.info("Dividindo grid em 9 avatares individuais")
-    avatar_paths = split_grid_image(grid_image_path, str(avatar_dir), synth_ids)
+        for avatar_path in avatar_paths:
+            # Extrair synth_id do nome do arquivo (ex: "output/synths/avatar/abc123.png" -> "abc123")
+            synth_id = Path(avatar_path).stem
+            update_avatar_path(synth_id, avatar_path)
 
-    # Atualizar avatar_path no banco de dados para cada synth
-    # Nota: avatar_paths pode ter menos de 9 itens se houver synths temporários
-    # Usamos o nome do arquivo para identificar o synth_id correto
-    from synth_lab.gen_synth.storage import update_avatar_path
+        # Limpar arquivo temporário
+        Path(grid_image_path).unlink(missing_ok=True)
+        logger.debug(f"Arquivo temporário removido: {grid_image_path}")
 
-    for avatar_path in avatar_paths:
-        # Extrair synth_id do nome do arquivo (ex: "output/synths/avatar/abc123.png" -> "abc123")
-        synth_id = Path(avatar_path).stem
-        update_avatar_path(synth_id, avatar_path)
+        logger.info(f"Bloco {block_num} completo: {len(avatar_paths)} avatares gerados")
 
-    # Limpar arquivo temporário
-    Path(grid_image_path).unlink(missing_ok=True)
-    logger.debug(f"Arquivo temporário removido: {grid_image_path}")
+        if span:
+            span.set_attribute("avatars_generated", len(avatar_paths))
 
-    logger.info(f"Bloco {block_num} completo: {len(avatar_paths)} avatares gerados")
-    return avatar_paths
+        return avatar_paths
 
 
 def generate_avatars(
