@@ -1,5 +1,6 @@
 // src/components/shared/TranscriptDialog.tsx
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Dialog,
@@ -8,11 +9,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Loader2, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, MessageCircle, User } from 'lucide-react';
 import { getTranscript } from '@/services/research-api';
 import { getSynth, getSynthAvatarUrl } from '@/services/synths-api';
 import { queryKeys } from '@/lib/query-keys';
 import { extractMessageText } from '@/lib/message-utils';
+import { SynthChatDialog } from '@/components/chat/SynthChatDialog';
 
 interface TranscriptDialogProps {
   execId: string;
@@ -27,6 +30,9 @@ export function TranscriptDialog({
   open,
   onOpenChange,
 }: TranscriptDialogProps) {
+  // State for chat dialog
+  const [chatOpen, setChatOpen] = useState(false);
+
   // Fetch transcript
   const { data: transcript, isLoading: transcriptLoading } = useQuery({
     queryKey: queryKeys.researchTranscript(execId, synthId!),
@@ -52,6 +58,12 @@ export function TranscriptDialog({
     ? `Entrevista com ${firstName}, ${age} anos`
     : `Entrevista com ${firstName}`;
 
+  // Check if interview is completed (has messages and status is 'completed')
+  const isInterviewCompleted =
+    transcript?.messages &&
+    transcript.messages.length > 0 &&
+    transcript.status === 'completed';
+
   // Map speaker to display name
   const getSpeakerName = (speaker: string): string => {
     if (speaker.toLowerCase() === 'interviewer') return 'SynthLab';
@@ -74,54 +86,92 @@ export function TranscriptDialog({
     return '#16a34a'; // Green-600
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[70vw] h-[80vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <div className="flex items-center gap-3">
-            {synthId && (
-              <Avatar className="h-10 w-10">
-                <AvatarImage
-                  src={getSynthAvatarUrl(synthId)}
-                  alt={firstName}
-                />
-                <AvatarFallback>
-                  <User className="h-5 w-5" />
-                </AvatarFallback>
-              </Avatar>
-            )}
-            <DialogTitle>{title}</DialogTitle>
-          </div>
-        </DialogHeader>
+  // Handle opening chat dialog
+  const handleOpenChat = () => {
+    setChatOpen(true);
+  };
 
-        <div className="flex-grow overflow-y-auto px-6 py-4 bg-gray-50 rounded-md">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+  // Handle closing chat dialog (returns to transcript)
+  const handleCloseChat = (open: boolean) => {
+    setChatOpen(open);
+  };
+
+  return (
+    <>
+      <Dialog open={open && !chatOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[70vw] h-[80vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <div className="flex items-center gap-3">
+              {synthId && (
+                <Avatar className="h-10 w-10">
+                  <AvatarImage
+                    src={getSynthAvatarUrl(synthId)}
+                    alt={firstName}
+                  />
+                  <AvatarFallback>
+                    <User className="h-5 w-5" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+              <DialogTitle>{title}</DialogTitle>
             </div>
-          ) : transcript?.messages && transcript.messages.length > 0 ? (
-            <div className="transcript-content space-y-5">
-              {transcript.messages.map((message, index) => (
-                <p key={index} className="leading-relaxed">
-                  <span
-                    className={getSpeakerStyle(message.speaker)}
-                    style={{ color: getSpeakerColor(message.speaker) }}
-                  >
-                    {getSpeakerName(message.speaker)}:
-                  </span>{' '}
-                  <span className="text-gray-700">
-                    {extractMessageText(message.text)}
-                  </span>
-                </p>
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              Nenhuma mensagem encontrada
+          </DialogHeader>
+
+          <div className="flex-grow overflow-y-auto px-6 py-4 bg-gray-50 rounded-md">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              </div>
+            ) : transcript?.messages && transcript.messages.length > 0 ? (
+              <div className="transcript-content space-y-5">
+                {transcript.messages.map((message, index) => (
+                  <p key={index} className="leading-relaxed">
+                    <span
+                      className={getSpeakerStyle(message.speaker)}
+                      style={{ color: getSpeakerColor(message.speaker) }}
+                    >
+                      {getSpeakerName(message.speaker)}:
+                    </span>{' '}
+                    <span className="text-gray-700">
+                      {extractMessageText(message.text)}
+                    </span>
+                  </p>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                Nenhuma mensagem encontrada
+              </div>
+            )}
+          </div>
+
+          {/* "Conversar com {nome}" button - only shown when interview is completed */}
+          {isInterviewCompleted && (
+            <div className="flex-shrink-0 pt-4 border-t">
+              <Button
+                onClick={handleOpenChat}
+                className="w-full"
+                variant="default"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Conversar com {firstName}
+              </Button>
             </div>
           )}
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      {/* Chat dialog - opens when "Conversar" button is clicked */}
+      {synthId && synth && (
+        <SynthChatDialog
+          synthId={synthId}
+          synthName={synth.nome}
+          synthAge={synth.demografia?.idade}
+          execId={execId}
+          open={chatOpen}
+          onOpenChange={handleCloseChat}
+        />
+      )}
+    </>
   );
 }
