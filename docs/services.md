@@ -592,7 +592,7 @@ async def execute_research_stream(
     synth_count: int | None,
     max_turns: int,
     max_concurrent: int,
-    model: str,
+    model: str | None = None,
     generate_summary: bool = True
 ) -> AsyncGenerator[dict, None]:
     """
@@ -604,7 +604,7 @@ async def execute_research_stream(
         synth_count: Quantidade aleatória (alternativa)
         max_turns: Máx. de turnos por entrevista
         max_concurrent: Entrevistas paralelas simultâneas
-        model: Modelo LLM (ex: "gpt-5-mini")
+        model: Modelo LLM
         generate_summary: Gerar summary ao final
 
     Yields:

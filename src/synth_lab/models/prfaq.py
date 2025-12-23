@@ -95,8 +95,6 @@ if __name__ == "__main__":
         req = PRFAQGenerateRequest(exec_id="batch_test_20251219_120000")
         if req.exec_id != "batch_test_20251219_120000":
             all_validation_failures.append(f"Exec ID mismatch: {req.exec_id}")
-        if req.model != "gpt-5-mini":
-            all_validation_failures.append(f"Default model should be gpt-5-mini: {req.model}")
     except Exception as e:
         all_validation_failures.append(f"PRFAQGenerateRequest test failed: {e}")
 

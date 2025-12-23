@@ -67,6 +67,7 @@ class ConversationMessage:
     # Internal notes (not shown to other agents)
     internal_notes: str | None = None
     should_end: bool = False  # Whether agent wants to end the interview
+    sentiment: int | None = None  # 1-5 sentiment score (only set by Interviewer)
 
 
 def parse_agent_response(response: str) -> tuple[str, str | None, bool]:
@@ -244,6 +245,7 @@ def load_context_definition(topic_guide_name: str) -> str | None:
 
     return None
 
+
 def load_context_examples(topic_guide_name: str) -> dict[str, str] | None:
     """
     Load context examples from the topic guide script.json.
@@ -278,7 +280,7 @@ async def generate_initial_context(
     synth: dict[str, Any],
     context_examples: dict[str, str],
     topic_guide: str,
-    model: str = "gpt-5-mini",
+    model: str = "gpt-4.1-mini",
     context_definition: str | None = None,
     additional_context: str | None = None,
 ) -> str:
@@ -361,7 +363,8 @@ Responda APENAS com a experiência gerada, sem explicações adicionais."""
     result = await AgentRunner.run(context_agent, input=prompt)
     generated_context = result.final_output.strip()
 
-    logger.info(f"Generated {sentiment} context for {nome}: {generated_context[:100]}...")
+    logger.info(
+        f"Generated {sentiment} context for {nome}: {generated_context[:100]}...")
 
     return f"[EXPERIÊNCIA PRÉVIA - {sentiment.upper()}]: {generated_context}"
 
@@ -418,12 +421,13 @@ async def run_interview(
     topic_guide_name: str,
     max_turns: int = 6,
     trace_path: str | None = None,
-    model: str = "gpt-5-mini",
+    model: str = "gpt-4.1-mini",
     use_mcp: bool = False,
     mcp_directory: str | None = None,
     verbose: bool = True,
     exec_id: str | None = None,
-    message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
+    message_callback: Callable[[
+        str, str, int, ConversationMessage], Awaitable[None]] | None = None,
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
 ) -> InterviewResult:
@@ -546,13 +550,15 @@ async def run_interview(
                         interviewer = create_interviewer(
                             topic_guide=topic_guide,
                             conversation_history=shared_memory.format_history(),
+                            max_turns=max_turns,
                             mcp_servers=mcp_servers,
                             model=model,
                             additional_context=additional_context,
                         )
 
                         # Log request (system prompt + input)
-                        span.set_attribute("request", f"[System Prompt]\n{interviewer.instructions}\n\n[Input]\n{interviewer_input}")
+                        span.set_attribute(
+                            "request", f"[System Prompt]\n{interviewer.instructions}\n\n[Input]\n{interviewer_input}")
 
                         # On first turn, generate context in parallel with interviewer
                         if turns == 0 and context_examples:
@@ -572,7 +578,8 @@ async def run_interview(
                             raw_result, initial_context = await asyncio.gather(
                                 interviewer_task, context_task
                             )
-                            logger.info(f"Generated initial context: {initial_context[:80]}...")
+                            logger.info(
+                                f"Generated initial context: {initial_context[:80]}...")
                         else:
                             raw_result = await Runner.run(
                                 interviewer,
@@ -623,7 +630,8 @@ async def run_interview(
                         )
 
                         # Log request (system prompt + input)
-                        span.set_attribute("request", f"[System Prompt]\n{interviewee.instructions}\n\n[Input]\n{interviewee_input}")
+                        span.set_attribute(
+                            "request", f"[System Prompt]\n{interviewee.instructions}\n\n[Input]\n{interviewee_input}")
 
                         raw_result = await Runner.run(
                             interviewee,
@@ -649,14 +657,16 @@ async def run_interview(
                                 model=model,
                             )
 
-                            span.set_attribute("request", f"[System Prompt]\n{reviewer.instructions}\n\n[Input]\n{reviewer_input}")
+                            span.set_attribute(
+                                "request", f"[System Prompt]\n{reviewer.instructions}\n\n[Input]\n{reviewer_input}")
 
                             review_result = await Runner.run(
                                 reviewer,
                                 input=reviewer_input
                             )
                             interviewee_response = review_result.final_output
-                            span.set_attribute("response", interviewee_response)
+                            span.set_attribute(
+                                "response", interviewee_response)
                             span.set_status(SpanStatus.SUCCESS)
 
                     # Parse and add interviewee message
@@ -708,7 +718,7 @@ async def run_interview_simple(
     synth_id: str | None = None,
     persona_description: str | None = None,
     max_turns: int = 4,
-    model: str = "gpt-5-mini",
+    model: str = "gpt-4.1-mini",
     verbose: bool = True,
 ) -> list[ConversationMessage]:
     """
@@ -760,13 +770,15 @@ async def run_interview_simple(
         interviewer = create_interviewer(
             topic_guide=shared_memory.topic_guide,
             conversation_history=shared_memory.format_history(),
+            max_turns=max_turns,
             model=model,
         )
 
         result = await Runner.run(interviewer, input="Ask your question.")
         response = result.final_output
 
-        visible_message, internal_notes, should_end = parse_agent_response(response)
+        visible_message, internal_notes, should_end = parse_agent_response(
+            response)
         interviewer_msg = ConversationMessage(
             speaker="Interviewer",
             text=visible_message,
@@ -790,7 +802,8 @@ async def run_interview_simple(
         result = await Runner.run(interviewee, input="Answer the question.")
         response = result.final_output
 
-        visible_message, internal_notes, should_end = parse_agent_response(response)
+        visible_message, internal_notes, should_end = parse_agent_response(
+            response)
         interviewee_msg = ConversationMessage(
             speaker="Interviewee",
             text=visible_message,
@@ -816,7 +829,7 @@ def run_interview_sync(
     topic_guide_name: str,
     max_turns: int = 6,
     trace_path: str | None = None,
-    model: str = "gpt-5-mini",
+    model: str = "gpt-4.1-mini",
     verbose: bool = True,
 ) -> InterviewResult:
     """
