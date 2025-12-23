@@ -67,15 +67,15 @@ class TestBuildPrompt:
     def test_prompt_contains_grid_layout(self, mock_synths):
         """Dado 9 synths, quando construir prompt, então contém instruções de grid 3x3"""
         result = build_prompt(mock_synths)
-        # Verifica que menciona a divisão em 9 partes/3 linhas e 3 colunas
-        assert "9 partes" in result or "3 linhas" in result
+        # Verifica que menciona a divisão em grade 3x3 com 9 blocos
+        assert "3x3" in result or "9 blocos" in result
 
     def test_prompt_contains_all_positions(self, mock_synths):
         """Dado 9 synths, quando construir prompt, então contém todas as 9 posições"""
         result = build_prompt(mock_synths)
-        # O prompt usa formato "1. descricao", "2. descricao", etc.
+        # O prompt usa formato "Bloco 1:", "Bloco 2:", etc.
         for i in range(1, 10):
-            assert f"{i}." in result
+            assert f"Bloco {i}:" in result
 
     def test_prompt_contains_demographic_data(self, mock_synths):
         """Dado 9 synths, quando construir prompt, então contém dados demográficos"""
@@ -95,14 +95,14 @@ class TestBuildPrompt:
         assert filter_found, "Nenhum filtro visual encontrado no prompt"
 
     def test_prompt_length_reasonable(self, mock_synths):
-        """Dado 9 synths, quando construir prompt, então tamanho é razoável (<2000 chars)"""
+        """Dado 9 synths, quando construir prompt, então tamanho é razoável (<4000 chars)"""
         result = build_prompt(mock_synths)
-        # gpt-image-1 suporta prompts maiores que gpt-image-1-mini
+        # gpt-image-1 suporta prompts maiores - limite aumentado para acomodar descrições detalhadas
         assert len(
-            result) < 2000, f"Prompt muito longo: {len(result)} caracteres"
+            result) < 4000, f"Prompt muito longo: {len(result)} caracteres"
         # Mas deve ter conteúdo suficiente
         assert len(
-            result) > 200, f"Prompt muito curto: {len(result)} caracteres"
+            result) > 500, f"Prompt muito curto: {len(result)} caracteres"
 
 
 if __name__ == "__main__":

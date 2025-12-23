@@ -296,8 +296,9 @@ def generate_avatar_block(
     synth_ids = [s.get("id", "unknown") for s in synths]
 
     with _tracer.start_as_current_span(
-        "generate_avatar_block",
+        f"Generate avatar block {block_num}",
         attributes={
+            "openinference.span.kind": "CHAIN",
             "block_num": block_num,
             "synth_count": len(synths),
             "synth_ids": ",".join(synth_ids),
