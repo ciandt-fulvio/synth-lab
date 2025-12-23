@@ -232,6 +232,11 @@ class RegionAnalyzer:
                     return
 
                 # Count high-failure samples (y=1)
+                # Handle case where leaf might only have one class
+                if len(samples_in_leaf) < 2:
+                    # Only one class in tree - skip this leaf
+                    return
+
                 high_failure_count = samples_in_leaf[1]
                 failure_rate = high_failure_count / total_samples
 
