@@ -40,18 +40,17 @@ export function SynthDetailDialog({ synthId, open, onOpenChange }: SynthDetailDi
                 </Avatar>
                 <div>
                   <DialogTitle className="text-2xl">{synth.nome}</DialogTitle>
-                  {synth.arquetipo && (
-                    <p className="text-sm text-muted-foreground">{synth.arquetipo}</p>
+                  {synth.descricao && (
+                    <p className="text-sm text-muted-foreground">{synth.descricao}</p>
                   )}
                 </div>
               </div>
             </DialogHeader>
 
             <Tabs defaultValue="demographics" className="mt-4">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="demographics">Demografia</TabsTrigger>
                 <TabsTrigger value="psychographics">Psicografia</TabsTrigger>
-                <TabsTrigger value="behavior">Comportamento</TabsTrigger>
                 <TabsTrigger value="tech">Tecnologia</TabsTrigger>
               </TabsList>
 
@@ -150,112 +149,16 @@ export function SynthDetailDialog({ synthId, open, onOpenChange }: SynthDetailDi
                 )}
               </TabsContent>
 
-              <TabsContent value="behavior" className="space-y-4">
-                {synth.comportamento?.habitos_consumo && (
+              <TabsContent value="tech" className="space-y-4">
+                {synth.capacidades_tecnologicas?.alfabetizacao_digital !== undefined && (
                   <Card>
                     <CardHeader>
-                      <CardTitle>Hábitos de Consumo</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
-                      {synth.comportamento.habitos_consumo.frequencia_compras && (
-                        <div><span className="font-semibold">Frequência:</span> {synth.comportamento.habitos_consumo.frequencia_compras}</div>
-                      )}
-                      {synth.comportamento.habitos_consumo.preferencia_canal && (
-                        <div><span className="font-semibold">Canal Preferido:</span> {synth.comportamento.habitos_consumo.preferencia_canal}</div>
-                      )}
-                      {synth.comportamento.habitos_consumo.categorias_preferidas && (
-                        <div>
-                          <span className="font-semibold">Categorias:</span>{' '}
-                          {synth.comportamento.habitos_consumo.categorias_preferidas.join(', ')}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
-
-                {synth.comportamento?.engajamento_redes_sociais && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Redes Sociais</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
-                      {synth.comportamento.engajamento_redes_sociais.plataformas && (
-                        <div>
-                          <span className="font-semibold">Plataformas:</span>{' '}
-                          {synth.comportamento.engajamento_redes_sociais.plataformas.join(', ')}
-                        </div>
-                      )}
-                      {synth.comportamento.engajamento_redes_sociais.frequencia_posts && (
-                        <div>
-                          <span className="font-semibold">Frequência de Posts:</span>{' '}
-                          {synth.comportamento.engajamento_redes_sociais.frequencia_posts}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
-
-                {synth.comportamento?.lealdade_marca !== undefined && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Lealdade de Marca</CardTitle>
+                      <CardTitle>Alfabetização Digital</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{synth.comportamento.lealdade_marca}/100</div>
+                      <div className="text-2xl font-bold">{synth.capacidades_tecnologicas.alfabetizacao_digital}/100</div>
                     </CardContent>
                   </Card>
-                )}
-              </TabsContent>
-
-              <TabsContent value="tech" className="space-y-4">
-                {synth.capacidades_tecnologicas && (
-                  <>
-                    {synth.capacidades_tecnologicas.alfabetizacao_digital !== undefined && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Alfabetização Digital</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold">{synth.capacidades_tecnologicas.alfabetizacao_digital}/100</div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {synth.capacidades_tecnologicas.dispositivos && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Dispositivos</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-2 text-sm">
-                          {synth.capacidades_tecnologicas.dispositivos.principal && (
-                            <div><span className="font-semibold">Principal:</span> {synth.capacidades_tecnologicas.dispositivos.principal}</div>
-                          )}
-                          {synth.capacidades_tecnologicas.dispositivos.qualidade && (
-                            <div><span className="font-semibold">Qualidade:</span> {synth.capacidades_tecnologicas.dispositivos.qualidade}</div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {synth.capacidades_tecnologicas.familiaridade_plataformas && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Familiaridade com Plataformas</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-2 text-sm">
-                          {synth.capacidades_tecnologicas.familiaridade_plataformas.e_commerce !== undefined && (
-                            <div><span className="font-semibold">E-commerce:</span> {synth.capacidades_tecnologicas.familiaridade_plataformas.e_commerce}/100</div>
-                          )}
-                          {synth.capacidades_tecnologicas.familiaridade_plataformas.banco_digital !== undefined && (
-                            <div><span className="font-semibold">Banco Digital:</span> {synth.capacidades_tecnologicas.familiaridade_plataformas.banco_digital}/100</div>
-                          )}
-                          {synth.capacidades_tecnologicas.familiaridade_plataformas.redes_sociais !== undefined && (
-                            <div><span className="font-semibold">Redes Sociais:</span> {synth.capacidades_tecnologicas.familiaridade_plataformas.redes_sociais}/100</div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    )}
-                  </>
                 )}
               </TabsContent>
             </Tabs>

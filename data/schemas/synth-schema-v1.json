@@ -14,10 +14,6 @@
       "type": "string",
       "description": "Nome completo brasileiro"
     },
-    "arquetipo": {
-      "type": "string",
-      "description": "Resumo do perfil: {Faixa Etária} {Região} {Perfil Psicográfico}"
-    },
     "descricao": {
       "type": "string",
       "description": "Descrição textual resumida do Synth"
@@ -226,63 +222,6 @@
         }
       }
     },
-    "comportamento": {
-      "type": "object",
-      "properties": {
-        "habitos_consumo": {
-          "type": "object",
-          "properties": {
-            "frequencia_compras": {
-              "type": "string",
-              "enum": ["diária", "semanal", "quinzenal", "mensal", "esporádica"],
-              "description": "Frequência de compras"
-            },
-            "preferencia_canal": {
-              "type": "string",
-              "enum": ["loja física", "e-commerce", "híbrido"],
-              "description": "Canal de compra preferido"
-            },
-            "categorias_preferidas": {
-              "type": "array",
-              "items": {"type": "string"},
-              "uniqueItems": true,
-              "description": "Categorias de produtos preferidas"
-            }
-          }
-        },
-        "uso_tecnologia": {
-          "type": "object",
-          "properties": {
-            "smartphone": {"type": "boolean"},
-            "computador": {"type": "boolean"},
-            "tablet": {"type": "boolean"},
-            "smartwatch": {"type": "boolean"}
-          }
-        },
-        "lealdade_marca": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Lealdade a marcas (0=troca fácil, 100=muito fiel)"
-        },
-        "engajamento_redes_sociais": {
-          "type": "object",
-          "properties": {
-            "plataformas": {
-              "type": "array",
-              "items": {"type": "string"},
-              "uniqueItems": true,
-              "description": "Plataformas de redes sociais usadas"
-            },
-            "frequencia_posts": {
-              "type": "string",
-              "enum": ["nunca", "raro", "ocasional", "frequente", "muito frequente"],
-              "description": "Frequência de posts"
-            }
-          }
-        }
-      }
-    },
     "deficiencias": {
       "type": "object",
       "properties": {
@@ -340,73 +279,9 @@
           "minimum": 0,
           "maximum": 100,
           "description": "Nível de alfabetização digital"
-        },
-        "dispositivos": {
-          "type": "object",
-          "properties": {
-            "principal": {
-              "type": "string",
-              "enum": ["smartphone", "computador", "tablet", "nenhum"],
-              "description": "Dispositivo principal"
-            },
-            "qualidade": {
-              "type": "string",
-              "enum": ["novo", "intermediário", "antigo"],
-              "description": "Qualidade do dispositivo"
-            }
-          }
-        },
-        "preferencias_acessibilidade": {
-          "type": "object",
-          "properties": {
-            "zoom_fonte": {
-              "type": "integer",
-              "minimum": 100,
-              "maximum": 300,
-              "description": "Nível de zoom/fonte em porcentagem"
-            },
-            "alto_contraste": {
-              "type": "boolean",
-              "description": "Usa modo de alto contraste"
-            }
-          }
-        },
-        "velocidade_digitacao": {
-          "type": "integer",
-          "minimum": 10,
-          "maximum": 120,
-          "description": "Velocidade de digitação em palavras por minuto"
-        },
-        "frequencia_internet": {
-          "type": "string",
-          "enum": ["diária", "semanal", "mensal", "rara"],
-          "description": "Frequência de acesso à internet"
-        },
-        "familiaridade_plataformas": {
-          "type": "object",
-          "properties": {
-            "e_commerce": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 100,
-              "description": "Familiaridade com e-commerce"
-            },
-            "banco_digital": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 100,
-              "description": "Familiaridade com banco digital"
-            },
-            "redes_sociais": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 100,
-              "description": "Familiaridade com redes sociais"
-            }
-          }
         }
       }
     }
   },
-  "required": ["id", "nome", "arquetipo", "descricao", "link_photo", "created_at", "version", "demografia", "psicografia", "deficiencias", "capacidades_tecnologicas"]
+  "required": ["id", "nome", "descricao", "link_photo", "created_at", "version", "demografia", "psicografia", "deficiencias", "capacidades_tecnologicas"]
 }

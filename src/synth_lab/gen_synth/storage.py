@@ -83,13 +83,12 @@ def save_synth(synth_dict: dict[str, Any], output_dir: Path | None = None, save_
         conn.execute(
             """
             INSERT OR REPLACE INTO synths
-            (id, nome, arquetipo, descricao, link_photo, avatar_path, created_at, version, data)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (id, nome, descricao, link_photo, avatar_path, created_at, version, data)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 synth_id,
                 synth_dict.get("nome", ""),
-                synth_dict.get("arquetipo"),
                 synth_dict.get("descricao"),
                 synth_dict.get("link_photo"),
                 synth_dict.get("avatar_path"),
@@ -154,7 +153,6 @@ def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
     synth = {
         "id": row["id"],
         "nome": row["nome"],
-        "arquetipo": row["arquetipo"],
         "descricao": row["descricao"],
         "link_photo": row["link_photo"],
         "avatar_path": row["avatar_path"],
@@ -295,7 +293,6 @@ if __name__ == "__main__":
                 "nome": "Test Person 1",
                 "created_at": "2024-01-01T00:00:00",
                 "version": "2.0.0",
-                "arquetipo": "Test Archetype",
                 "descricao": "Test description",
                 "link_photo": "https://example.com/photo.png",
                 "demografia": {"idade": 30, "genero": "masculino"},

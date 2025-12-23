@@ -31,6 +31,12 @@ class InterviewMessageEvent(BaseModel):
         default=None, description="Speaker role"
     )
     text: str | None = Field(default=None, description="Message text")
+    sentiment: int | None = Field(
+        default=None,
+        ge=1,
+        le=5,
+        description="Sentiment score 1-5 (only for Interviewer messages)",
+    )
     timestamp: datetime = Field(..., description="Event timestamp")
     is_replay: bool = Field(default=False, description="True if from history replay")
 

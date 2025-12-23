@@ -1,8 +1,8 @@
 // src/components/synths/SynthCard.tsx
 
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { MapPin, User } from 'lucide-react';
+import { User } from 'lucide-react';
 import { getSynthAvatarUrl } from '@/services/synths-api';
 import type { SynthSummary } from '@/types';
 
@@ -36,16 +36,11 @@ export function SynthCard({ synth, onClick }: SynthCardProps) {
         </Avatar>
         <div className="flex-1">
           <CardTitle className="text-lg">{synth.nome}</CardTitle>
-          {synth.arquetipo && (
-            <CardDescription className="text-sm">{synth.arquetipo}</CardDescription>
+          {synth.descricao && (
+            <CardDescription className="text-sm line-clamp-2">{synth.descricao}</CardDescription>
           )}
         </div>
       </CardHeader>
-      {synth.descricao && (
-        <CardContent>
-          <p className="text-sm text-muted-foreground line-clamp-2">{synth.descricao}</p>
-        </CardContent>
-      )}
     </Card>
   );
 }

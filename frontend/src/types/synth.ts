@@ -46,31 +46,6 @@ export interface Psychographics {
   contrato_cognitivo?: CognitiveContract;
 }
 
-export interface ConsumptionHabits {
-  frequencia_compras?: string;
-  preferencia_canal?: string;
-  categorias_preferidas?: string[];
-}
-
-export interface TechUsage {
-  smartphone?: boolean;
-  computador?: boolean;
-  tablet?: boolean;
-  smartwatch?: boolean;
-}
-
-export interface SocialMediaEngagement {
-  plataformas?: string[];
-  frequencia_posts?: string;
-}
-
-export interface Behavior {
-  habitos_consumo?: ConsumptionHabits;
-  uso_tecnologia?: TechUsage;
-  lealdade_marca?: number;
-  engajamento_redes_sociais?: SocialMediaEngagement;
-}
-
 export interface VisualDisability {
   tipo?: string;
 }
@@ -95,35 +70,13 @@ export interface Disabilities {
   cognitiva?: CognitiveDisability;
 }
 
-export interface DeviceInfo {
-  principal?: string;
-  qualidade?: string;
-}
-
-export interface AccessibilityPrefs {
-  zoom_fonte?: number;
-  alto_contraste?: boolean;
-}
-
-export interface PlatformFamiliarity {
-  e_commerce?: number;
-  banco_digital?: number;
-  redes_sociais?: number;
-}
-
 export interface TechCapabilities {
   alfabetizacao_digital?: number;
-  dispositivos?: DeviceInfo;
-  preferencias_acessibilidade?: AccessibilityPrefs;
-  velocidade_digitacao?: number;
-  frequencia_internet?: string;
-  familiaridade_plataformas?: PlatformFamiliarity;
 }
 
 export interface SynthSummary {
   id: string;
   nome: string;
-  arquetipo?: string;
   descricao?: string;
   link_photo?: string;
   avatar_path?: string;
@@ -134,7 +87,6 @@ export interface SynthSummary {
 export interface SynthDetail extends SynthSummary {
   demografia?: Demographics;
   psicografia?: Psychographics;
-  comportamento?: Behavior;
   deficiencias?: Disabilities;
   capacidades_tecnologicas?: TechCapabilities;
 }

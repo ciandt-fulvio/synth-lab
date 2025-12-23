@@ -10,7 +10,7 @@
 // - Type definitions: src/types/sse-events.ts
 
 import { useEffect, useRef, useState } from 'react';
-import type { InterviewMessageEvent, ExecutionCompletedEvent, TranscriptionCompletedEvent } from '@/types/sse-events';
+import type { InterviewMessageEvent, InterviewCompletedEvent, TranscriptionCompletedEvent } from '@/types/sse-events';
 
 /**
  * Hook for managing Server-Sent Events connection to interview stream.
@@ -20,6 +20,7 @@ import type { InterviewMessageEvent, ExecutionCompletedEvent, TranscriptionCompl
  * @param onMessage - Callback invoked when 'message' event received
  * @param onExecutionCompleted - Optional callback when execution completes
  * @param onTranscriptionCompleted - Optional callback when transcription completes
+ * @param onInterviewCompleted - Optional callback when a single interview completes
  * @returns Connection state (isConnected, error)
  *
  * @example
@@ -35,7 +36,8 @@ export function useSSE(
   enabled: boolean,
   onMessage: (event: InterviewMessageEvent) => void,
   onExecutionCompleted?: () => void,
-  onTranscriptionCompleted?: (data: TranscriptionCompletedEvent) => void
+  onTranscriptionCompleted?: (data: TranscriptionCompletedEvent) => void,
+  onInterviewCompleted?: (data: InterviewCompletedEvent) => void
 ): {
   isConnected: boolean;
   error: Error | null;
@@ -46,6 +48,7 @@ export function useSSE(
   const onMessageRef = useRef(onMessage);
   const onExecutionCompletedRef = useRef(onExecutionCompleted);
   const onTranscriptionCompletedRef = useRef(onTranscriptionCompleted);
+  const onInterviewCompletedRef = useRef(onInterviewCompleted);
 
   // Keep callback refs updated
   useEffect(() => {
@@ -59,6 +62,10 @@ export function useSSE(
   useEffect(() => {
     onTranscriptionCompletedRef.current = onTranscriptionCompleted;
   }, [onTranscriptionCompleted]);
+
+  useEffect(() => {
+    onInterviewCompletedRef.current = onInterviewCompleted;
+  }, [onInterviewCompleted]);
 
   useEffect(() => {
     // Don't connect if disabled or no execId
@@ -128,6 +135,19 @@ export function useSSE(
           console.error('[useSSE] Failed to parse transcription_completed event:', err);
         }
       });
+
+      // Listen for 'interview_completed' events (single interview finished)
+      eventSource.addEventListener('interview_completed', (event: MessageEvent) => {
+        try {
+          console.log('[useSSE] Interview completed event received:', event.data);
+          const data = JSON.parse(event.data) as InterviewCompletedEvent;
+          if (onInterviewCompletedRef.current) {
+            onInterviewCompletedRef.current(data);
+          }
+        } catch (err) {
+          console.error('[useSSE] Failed to parse interview_completed event:', err);
+        }
+      });
     } catch (err) {
       console.error('[useSSE] Failed to create EventSource:', err);
       setError(err instanceof Error ? err : new Error('Failed to create EventSource'));
@@ -143,7 +163,6 @@ export function useSSE(
         setIsConnected(false);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [execId, enabled]);
 
   return { isConnected, error };

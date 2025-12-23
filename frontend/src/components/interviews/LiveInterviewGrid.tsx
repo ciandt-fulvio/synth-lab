@@ -36,7 +36,7 @@ export function LiveInterviewGrid({
   onExecutionCompleted,
   onTranscriptionCompleted
 }: LiveInterviewGridProps) {
-  const { messagesBySynth, synthIds, isConnected, error } =
+  const { messagesBySynth, completedSynthIds, synthIds, isConnected, error } =
     useLiveInterviews(execId, onExecutionCompleted, onTranscriptionCompleted);
   const [selectedSynthId, setSelectedSynthId] = useState<string | null>(null);
 
@@ -98,6 +98,7 @@ export function LiveInterviewGrid({
             execId={execId}
             synthId={synthId}
             messages={messagesBySynth[synthId]}
+            isCompleted={completedSynthIds.has(synthId)}
             onClick={handleCardClick}
           />
         ))}

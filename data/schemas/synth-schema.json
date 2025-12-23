@@ -7,7 +7,6 @@
   "required": [
     "id",
     "nome",
-    "arquetipo",
     "descricao",
     "link_photo",
     "created_at",
@@ -26,10 +25,6 @@
     "nome": {
       "type": "string",
       "description": "Nome completo brasileiro"
-    },
-    "arquetipo": {
-      "type": "string",
-      "description": "Resumo do perfil: {Faixa Etária} {Região} {Perfil Psicográfico}"
     },
     "descricao": {
       "type": "string",
@@ -284,70 +279,6 @@
           "minimum": 0,
           "maximum": 100,
           "description": "Nível de alfabetização digital"
-        },
-        "dispositivos": {
-          "type": "object",
-          "properties": {
-            "principal": {
-              "type": "string",
-              "enum": ["smartphone", "computador", "tablet", "nenhum"],
-              "description": "Dispositivo principal"
-            },
-            "qualidade": {
-              "type": "string",
-              "enum": ["novo", "intermediário", "antigo"],
-              "description": "Qualidade do dispositivo"
-            }
-          }
-        },
-        "preferencias_acessibilidade": {
-          "type": "object",
-          "properties": {
-            "zoom_fonte": {
-              "type": "integer",
-              "minimum": 100,
-              "maximum": 300,
-              "description": "Nível de zoom/fonte em porcentagem"
-            },
-            "alto_contraste": {
-              "type": "boolean",
-              "description": "Usa modo de alto contraste"
-            }
-          }
-        },
-        "velocidade_digitacao": {
-          "type": "integer",
-          "minimum": 10,
-          "maximum": 120,
-          "description": "Velocidade de digitação em palavras por minuto"
-        },
-        "frequencia_internet": {
-          "type": "string",
-          "enum": ["diária", "semanal", "mensal", "rara"],
-          "description": "Frequência de acesso à internet"
-        },
-        "familiaridade_plataformas": {
-          "type": "object",
-          "properties": {
-            "e_commerce": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 100,
-              "description": "Familiaridade com e-commerce"
-            },
-            "banco_digital": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 100,
-              "description": "Familiaridade com banco digital"
-            },
-            "redes_sociais": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 100,
-              "description": "Familiaridade com redes sociais"
-            }
-          }
         }
       }
     }
