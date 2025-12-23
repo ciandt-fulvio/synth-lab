@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useResearchDetail, useResearchTranscripts, useResearchSummary } from '@/hooks/use-research';
+import { useTopicDetail } from '@/hooks/use-topics';
 import { useArtifactStatesWithPolling } from '@/hooks/use-artifact-states';
 import { usePrfaqGenerate } from '@/hooks/use-prfaq-generate';
 import { useSummaryGenerate } from '@/hooks/use-summary-generate';
@@ -19,7 +20,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, ArrowLeft, User } from 'lucide-react';
+import { Loader2, ArrowLeft, User, FileText, Users, CheckCircle2, XCircle, Clock, Calendar, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -37,6 +38,14 @@ export default function InterviewDetail() {
   const { data: execution, isLoading, error } = useResearchDetail(execId!);
   const { data: transcripts } = useResearchTranscripts(execId!);
   const { data: artifactStates } = useArtifactStatesWithPolling(execId!);
+
+  // [INTERVIEW-HEADER] Fetch topic details for question preview
+  const { data: topicDetail } = useTopicDetail(execution?.topic_name ?? null);
+
+  // [MOCK-ADDITIONAL-CONTEXT] Mock additional context - will be replaced when backend supports it
+  const additionalContext = execution?.topic_name === 'compra-amazon'
+    ? 'Focar em experiências de compra mobile e comparação de preços'
+    : null;
 
   // Handle transcription completion: start aggressive polling for summary generation
   const handleTranscriptionCompleted = (data: import('@/types/sse-events').TranscriptionCompletedEvent) => {
@@ -135,11 +144,21 @@ export default function InterviewDetail() {
 
   const formattedEnd = execution.completed_at
     ? format(new Date(execution.completed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-    : 'Em andamento';
+    : null;
+
+  // Calculate duration
+  const durationMinutes = execution.completed_at
+    ? Math.round((new Date(execution.completed_at).getTime() - new Date(execution.started_at).getTime()) / 60000)
+    : null;
+
+  // Get script data from topic
+  const firstScript = topicDetail?.script?.[0];
+  const contextDefinition = firstScript?.context_definition;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-4">
+      {/* [INTERVIEW-HEADER] Redesigned header with topic guide preview */}
+      <div className="flex items-center gap-4 mb-2">
         <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -147,33 +166,67 @@ export default function InterviewDetail() {
         <StatusBadge status={execution.status} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Informações da Entrevista</CardTitle>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Topic Guide + Execution - 2/3 width */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4 text-blue-600" />
+              Topic Guide
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div>
-              <span className="font-semibold">Iniciado:</span> {formattedStart}
-            </div>
-            <div>
-              <span className="font-semibold">Concluído:</span> {formattedEnd}
-            </div>
-            <div>
-              <span className="font-semibold">Total de Synths:</span> {execution.synth_count}
-            </div>
-            <div>
-              <span className="font-semibold">Bem-sucedidos:</span> {execution.successful_count}
-            </div>
-            <div>
-              <span className="font-semibold">Falhas:</span> {execution.failed_count}
+          <CardContent className="space-y-3">
+            {contextDefinition ? (
+              <p className="text-sm text-gray-600 leading-relaxed">{contextDefinition}</p>
+            ) : firstScript?.ask ? (
+              <p className="text-sm text-gray-600 leading-relaxed line-clamp-3">{firstScript.ask}</p>
+            ) : (
+              <p className="text-sm text-gray-400 italic">Carregando...</p>
+            )}
+
+            {additionalContext && (
+              <div className="p-2.5 bg-purple-50 rounded-md border border-purple-100">
+                <p className="text-xs font-medium text-purple-700 mb-0.5">Contexto adicional</p>
+                <p className="text-sm text-purple-600">{additionalContext}</p>
+              </div>
+            )}
+
+            <div className="pt-2 border-t">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Execução</p>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
+                <div className="flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5 text-gray-400" />
+                  <span>{execution.synth_count} synths</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                  <span>{execution.successful_count} ok</span>
+                </div>
+                {execution.failed_count > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <XCircle className="h-3.5 w-3.5 text-red-400" />
+                    <span>{execution.failed_count} falhas</span>
+                  </div>
+                )}
+                {durationMinutes !== null && (
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-gray-400" />
+                    <span>{durationMinutes}min</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                  <span className="text-xs">{formattedStart}</span>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Artefatos</CardTitle>
+        {/* Artifacts - 1/3 width */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Artefatos</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             {artifactStates ? (
