@@ -32,7 +32,6 @@ PRAGMA synchronous=NORMAL;
 CREATE TABLE IF NOT EXISTS synths (
     id TEXT PRIMARY KEY,
     nome TEXT NOT NULL,
-    arquetipo TEXT,
     descricao TEXT,
     link_photo TEXT,
     avatar_path TEXT,
@@ -41,7 +40,6 @@ CREATE TABLE IF NOT EXISTS synths (
     data TEXT CHECK(json_valid(data) OR data IS NULL)
 );
 
-CREATE INDEX IF NOT EXISTS idx_synths_arquetipo ON synths(arquetipo);
 CREATE INDEX IF NOT EXISTS idx_synths_created_at ON synths(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_synths_nome ON synths(nome);
 

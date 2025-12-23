@@ -13,6 +13,7 @@ import { useCallback, useState } from 'react';
 import { useSSE } from './use-sse';
 import type {
   InterviewMessageEvent,
+  InterviewCompletedEvent,
   LiveInterviewMessages,
   LiveInterviewsHookState,
 } from '@/types/sse-events';
@@ -49,6 +50,7 @@ export function useLiveInterviews(
   onTranscriptionCompleted?: (data: import('@/types/sse-events').TranscriptionCompletedEvent) => void
 ): LiveInterviewsHookState {
   const [messagesBySynth, setMessagesBySynth] = useState<LiveInterviewMessages>({});
+  const [completedSynthIds, setCompletedSynthIds] = useState<Set<string>>(new Set());
 
   // Callback to handle incoming messages
   const handleMessage = useCallback((event: InterviewMessageEvent) => {
@@ -63,13 +65,23 @@ export function useLiveInterviews(
     });
   }, []);
 
+  // Callback to handle interview completion
+  const handleInterviewCompleted = useCallback((event: InterviewCompletedEvent) => {
+    setCompletedSynthIds((prev) => {
+      const newSet = new Set(prev);
+      newSet.add(event.synth_id);
+      return newSet;
+    });
+  }, []);
+
   // Establish SSE connection
   const { isConnected, error } = useSSE(
     execId,
     true,
     handleMessage,
     onExecutionCompleted,
-    onTranscriptionCompleted
+    onTranscriptionCompleted,
+    handleInterviewCompleted
   );
 
   // Derive synthIds from messagesBySynth keys
@@ -77,6 +89,7 @@ export function useLiveInterviews(
 
   return {
     messagesBySynth,
+    completedSynthIds,
     synthIds,
     isConnected,
     error,

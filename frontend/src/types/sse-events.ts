@@ -23,10 +23,20 @@ export interface InterviewMessageEvent {
   // Message content
   speaker: 'Interviewer' | 'Interviewee';
   text: string; // May contain JSON-formatted response, requires extractMessageText()
+  sentiment?: number | null; // 1-5 sentiment score (only from Interviewer messages)
 
   // Timing
   timestamp: string; // ISO 8601 datetime string
   is_replay: boolean; // true for historical messages, false for new live messages
+}
+
+/**
+ * Event signaling that a single interview has finished.
+ * Sent via SSE with event type "interview_completed".
+ */
+export interface InterviewCompletedEvent {
+  synth_id: string; // Synth ID of the completed interview
+  total_turns: number; // Total turns in the interview
 }
 
 /**
@@ -43,15 +53,15 @@ export interface TranscriptionCompletedEvent {
  * Sent via SSE with event type "execution_completed".
  * Empty payload - event type itself is the signal.
  */
-export interface ExecutionCompletedEvent {
-  // Empty object
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface ExecutionCompletedEvent {}
 
 /**
  * Union type for all possible SSE event types
  */
 export type SSEEventType =
   | 'message'
+  | 'interview_completed'
   | 'transcription_completed'
   | 'execution_completed';
 
@@ -66,6 +76,9 @@ export interface LiveInterviewCardProps {
 
   // Message data
   messages: InterviewMessageEvent[];
+
+  // State
+  isCompleted: boolean; // Whether this interview has finished
 
   // Interaction
   onClick: (synthId: string) => void;
@@ -106,6 +119,9 @@ export interface SSEHookState {
 export interface LiveInterviewsHookState {
   // Aggregated messages
   messagesBySynth: LiveInterviewMessages;
+
+  // Completed interviews
+  completedSynthIds: Set<string>; // Set of synth IDs that have completed
 
   // Connection status (from SSE hook)
   isConnected: boolean;

@@ -266,6 +266,17 @@ async def stream_research_messages(exec_id: str) -> StreamingResponse:
                     )
                     continue
 
+                # Handle interview_completed event (single interview finished)
+                if message.event_type == "interview_completed":
+                    yield (
+                        f"event: interview_completed\n"
+                        f"data: {{"
+                        f'"synth_id": "{message.data.get("synth_id", "")}", '
+                        f'"total_turns": {message.data.get("total_turns", 0)}'
+                        f"}}\n\n"
+                    )
+                    continue
+
                 # Handle message events
                 event = InterviewMessageEvent(
                     event_type=message.event_type,
@@ -274,6 +285,7 @@ async def stream_research_messages(exec_id: str) -> StreamingResponse:
                     turn_number=message.data.get("turn_number"),
                     speaker=message.data.get("speaker"),
                     text=message.data.get("text"),
+                    sentiment=message.data.get("sentiment"),
                     timestamp=message.timestamp,
                     is_replay=False,
                 )

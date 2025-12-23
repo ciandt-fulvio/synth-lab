@@ -101,50 +101,6 @@ class Psychographics(BaseModel):
 
 
 # ============================================================================
-# Comportamento models
-# ============================================================================
-
-
-class ConsumptionHabits(BaseModel):
-    """Consumer behavior patterns."""
-
-    frequencia_compras: str | None = Field(
-        default=None, description="Frequência: diária, semanal, quinzenal, mensal, esporádica"
-    )
-    preferencia_canal: str | None = Field(
-        default=None, description="Canal preferido: loja física, e-commerce, híbrido"
-    )
-    categorias_preferidas: list[str] = Field(default_factory=list, description="Categorias de produtos preferidas")
-
-
-class TechUsage(BaseModel):
-    """Technology device usage."""
-
-    smartphone: bool | None = None
-    computador: bool | None = None
-    tablet: bool | None = None
-    smartwatch: bool | None = None
-
-
-class SocialMediaEngagement(BaseModel):
-    """Social media engagement patterns."""
-
-    plataformas: list[str] = Field(default_factory=list, description="Plataformas usadas")
-    frequencia_posts: str | None = Field(
-        default=None, description="Frequência: nunca, raro, ocasional, frequente, muito frequente"
-    )
-
-
-class Behavior(BaseModel):
-    """Behavioral data for a synth."""
-
-    habitos_consumo: ConsumptionHabits | None = None
-    uso_tecnologia: TechUsage | None = None
-    lealdade_marca: int | None = Field(default=None, ge=0, le=100, description="Lealdade a marcas (0-100)")
-    engajamento_redes_sociais: SocialMediaEngagement | None = None
-
-
-# ============================================================================
 # Deficiências models
 # ============================================================================
 
@@ -188,37 +144,10 @@ class Disabilities(BaseModel):
 # ============================================================================
 
 
-class DeviceInfo(BaseModel):
-    """Device information."""
-
-    principal: str | None = Field(default=None, description="Dispositivo principal: smartphone, computador, tablet, nenhum")
-    qualidade: str | None = Field(default=None, description="Qualidade: novo, intermediário, antigo")
-
-
-class AccessibilityPrefs(BaseModel):
-    """Accessibility preferences."""
-
-    zoom_fonte: int | None = Field(default=None, ge=100, le=300, description="Nível de zoom/fonte em %")
-    alto_contraste: bool | None = Field(default=None, description="Usa modo de alto contraste")
-
-
-class PlatformFamiliarity(BaseModel):
-    """Platform familiarity scores (0-100)."""
-
-    e_commerce: int | None = Field(default=None, ge=0, le=100, description="Familiaridade com e-commerce")
-    banco_digital: int | None = Field(default=None, ge=0, le=100, description="Familiaridade com banco digital")
-    redes_sociais: int | None = Field(default=None, ge=0, le=100, description="Familiaridade com redes sociais")
-
-
 class TechCapabilities(BaseModel):
     """Technology capabilities for a synth."""
 
     alfabetizacao_digital: int | None = Field(default=None, ge=0, le=100, description="Nível de alfabetização digital")
-    dispositivos: DeviceInfo | None = None
-    preferencias_acessibilidade: AccessibilityPrefs | None = None
-    velocidade_digitacao: int | None = Field(default=None, ge=10, le=120, description="Velocidade em palavras/min")
-    frequencia_internet: str | None = Field(default=None, description="Frequência: diária, semanal, mensal, rara")
-    familiaridade_plataformas: PlatformFamiliarity | None = None
 
 
 class SynthBase(BaseModel):
@@ -226,7 +155,6 @@ class SynthBase(BaseModel):
 
     id: str = Field(..., min_length=6, max_length=6, description="6-character unique ID")
     nome: str = Field(..., description="Display name")
-    arquetipo: str | None = Field(default=None, description="Archetype classification")
     descricao: str | None = Field(default=None, description="Brief description")
     link_photo: str | None = Field(default=None, description="External photo URL")
     avatar_path: str | None = Field(default=None, description="Local avatar file path")
@@ -245,7 +173,6 @@ class SynthDetail(SynthBase):
 
     demografia: Demographics | None = None
     psicografia: Psychographics | None = None
-    comportamento: Behavior | None = None
     deficiencias: Disabilities | None = None
     capacidades_tecnologicas: TechCapabilities | None = None
 

@@ -402,11 +402,10 @@ if __name__ == "__main__":
         valid_synth = {
             "id": "test01",
             "nome": "Test Person",
-            "arquetipo": "Adulto Sudeste Criativo",
             "descricao": "Test description that is longer than 50 characters to meet the minimum requirement.",
             "link_photo": "https://ui-avatars.com/api/?name=Test+Person&size=256",
             "created_at": "2024-01-01T00:00:00Z",
-            "version": "1.0.0",
+            "version": "2.0.0",
             "demografia": {
                 "idade": 30,
                 "genero_biologico": "feminino",
@@ -432,37 +431,7 @@ if __name__ == "__main__":
                     "amabilidade": 50,
                     "neuroticismo": 50,
                 },
-                "valores": ["honestidade", "família", "liberdade"],
                 "interesses": ["tecnologia", "esportes"],
-                "hobbies": ["leitura", "corrida"],
-                "estilo_vida": "Equilibrado e moderado",
-                "inclinacao_politica": 0,
-                "inclinacao_religiosa": "católica",
-            },
-            "comportamento": {
-                "habitos_consumo": {
-                    "frequencia_compras": "semanal",
-                    "preferencia_canal": "híbrido",
-                    "categorias_preferidas": ["eletrônicos", "livros"],
-                },
-                "uso_tecnologia": {
-                    "smartphone": True,
-                    "computador": True,
-                    "tablet": False,
-                    "smartwatch": False,
-                },
-                "padroes_midia": {
-                    "tv_aberta": 10,
-                    "streaming": 30,
-                    "redes_sociais": 40,
-                },
-                "fonte_noticias": ["portais online", "redes sociais"],
-                "comportamento_compra": {"impulsivo": 50, "pesquisa_antes_comprar": 60},
-                "lealdade_marca": 50,
-                "engajamento_redes_sociais": {
-                    "plataformas": ["Instagram", "WhatsApp"],
-                    "frequencia_posts": "ocasional",
-                },
             },
             "deficiencias": {
                 "visual": {"tipo": "nenhuma"},
@@ -472,27 +441,6 @@ if __name__ == "__main__":
             },
             "capacidades_tecnologicas": {
                 "alfabetizacao_digital": 75,
-                "dispositivos": {"principal": "smartphone", "qualidade": "novo"},
-                "preferencias_acessibilidade": {
-                    "zoom_fonte": 100,
-                    "alto_contraste": False,
-                },
-                "velocidade_digitacao": 60,
-                "frequencia_internet": "diária",
-                "familiaridade_plataformas": {
-                    "e_commerce": 70,
-                    "banco_digital": 65,
-                    "redes_sociais": 80,
-                },
-            },
-            "vieses": {
-                "aversao_perda": 50,
-                "desconto_hiperbolico": 50,
-                "suscetibilidade_chamariz": 50,
-                "ancoragem": 50,
-                "vies_confirmacao": 50,
-                "vies_status_quo": 50,
-                "sobrecarga_informacao": 50,
             },
         }
 

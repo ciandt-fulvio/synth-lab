@@ -13,27 +13,20 @@ from pathlib import Path
 from synth_lab.infrastructure.database import DatabaseManager
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.synth import (
-    AccessibilityPrefs,
-    Behavior,
     BigFivePersonality,
     CognitiveContract,
     CognitiveDisability,
-    ConsumptionHabits,
     Demographics,
-    DeviceInfo,
     Disabilities,
     FamilyComposition,
     HearingDisability,
     Location,
     MotorDisability,
-    PlatformFamiliarity,
     Psychographics,
-    SocialMediaEngagement,
     SynthDetail,
     SynthFieldInfo,
     SynthSummary,
     TechCapabilities,
-    TechUsage,
     VisualDisability,
 )
 from synth_lab.repositories.base import BaseRepository
@@ -171,7 +164,6 @@ class SynthRepository(BaseRepository):
         return [
             SynthFieldInfo(name="id", type="string", description="6-character unique ID"),
             SynthFieldInfo(name="nome", type="string", description="Display name"),
-            SynthFieldInfo(name="arquetipo", type="string", description="Archetype classification"),
             SynthFieldInfo(name="descricao", type="string", description="Brief description"),
             SynthFieldInfo(name="created_at", type="datetime", description="Creation timestamp"),
             SynthFieldInfo(
@@ -207,14 +199,7 @@ class SynthRepository(BaseRepository):
                 name="data.capacidades_tecnologicas",
                 type="object",
                 description="Technology capabilities. Access via json_extract(data, '$.capacidades_tecnologicas...')",
-                nested_fields=[
-                    "alfabetizacao_digital",
-                    "dispositivos",
-                    "preferencias_acessibilidade",
-                    "velocidade_digitacao",
-                    "frequencia_internet",
-                    "familiaridade_plataformas",
-                ],
+                nested_fields=["alfabetizacao_digital"],
             ),
         ]
 
@@ -268,7 +253,6 @@ class SynthRepository(BaseRepository):
         return SynthSummary(
             id=row["id"],
             nome=row["nome"] if "nome" in row.keys() else "",
-            arquetipo=row["arquetipo"] if "arquetipo" in row.keys() else None,
             descricao=row["descricao"] if "descricao" in row.keys() else None,
             link_photo=row["link_photo"] if "link_photo" in row.keys() else None,
             avatar_path=row["avatar_path"] if "avatar_path" in row.keys() else None,
@@ -332,29 +316,6 @@ class SynthRepository(BaseRepository):
                 contrato_cognitivo=contract,
             )
 
-        # Parse behavior from data (if exists)
-        comportamento = None
-        comp_data = data.get("comportamento")
-        if comp_data:
-            # Consumption habits
-            habits_data = comp_data.get("habitos_consumo")
-            habits = ConsumptionHabits(**habits_data) if habits_data else None
-
-            # Tech usage
-            tech_usage_data = comp_data.get("uso_tecnologia")
-            tech_usage = TechUsage(**tech_usage_data) if tech_usage_data else None
-
-            # Social media
-            social_data = comp_data.get("engajamento_redes_sociais")
-            social = SocialMediaEngagement(**social_data) if social_data else None
-
-            comportamento = Behavior(
-                habitos_consumo=habits,
-                uso_tecnologia=tech_usage,
-                lealdade_marca=comp_data.get("lealdade_marca"),
-                engajamento_redes_sociais=social,
-            )
-
         # Parse disabilities from data
         deficiencias = None
         def_data = data.get("deficiencias")
@@ -386,31 +347,13 @@ class SynthRepository(BaseRepository):
         capacidades_tecnologicas = None
         tech_data = data.get("capacidades_tecnologicas")
         if tech_data:
-            # Device info
-            dispositivos_data = tech_data.get("dispositivos")
-            dispositivos = DeviceInfo(**dispositivos_data) if isinstance(dispositivos_data, dict) else None
-
-            # Accessibility preferences
-            prefs_data = tech_data.get("preferencias_acessibilidade")
-            prefs = AccessibilityPrefs(**prefs_data) if isinstance(prefs_data, dict) else None
-
-            # Platform familiarity
-            familiarity_data = tech_data.get("familiaridade_plataformas")
-            familiarity = PlatformFamiliarity(**familiarity_data) if isinstance(familiarity_data, dict) else None
-
             capacidades_tecnologicas = TechCapabilities(
                 alfabetizacao_digital=tech_data.get("alfabetizacao_digital"),
-                dispositivos=dispositivos,
-                preferencias_acessibilidade=prefs,
-                velocidade_digitacao=tech_data.get("velocidade_digitacao"),
-                frequencia_internet=tech_data.get("frequencia_internet"),
-                familiaridade_plataformas=familiarity,
             )
 
         return SynthDetail(
             id=row["id"],
             nome=row["nome"],
-            arquetipo=row["arquetipo"],
             descricao=row["descricao"],
             link_photo=row["link_photo"],
             avatar_path=row["avatar_path"],
@@ -418,7 +361,6 @@ class SynthRepository(BaseRepository):
             version=row["version"] or "2.0.0",
             demografia=demografia,
             psicografia=psicografia,
-            comportamento=comportamento,
             deficiencias=deficiencias,
             capacidades_tecnologicas=capacidades_tecnologicas,
         )

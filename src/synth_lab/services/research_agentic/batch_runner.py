@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from loguru import logger
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 from rich.console import Console
 from rich.progress import (
     BarColumn,
@@ -40,8 +41,6 @@ from rich.progress import (
     TextColumn,
     TimeElapsedColumn,
 )
-
-from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
 
@@ -158,6 +157,8 @@ async def run_single_interview_safe(
     exec_id: str | None = None,
     message_callback: Callable[[
         str, str, int, ConversationMessage], Awaitable[None]] | None = None,
+    on_interview_completed: Callable[[
+        str, str, int], Awaitable[None]] | None = None,
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
 ) -> tuple[InterviewResult | None, dict[str, Any], Exception | None]:
@@ -175,6 +176,8 @@ async def run_single_interview_safe(
         batch_id: Batch identifier for grouping outputs
         exec_id: Execution ID for SSE streaming (optional)
         message_callback: Async callback for real-time message streaming (optional)
+        on_interview_completed: Async callback when interview completes (optional)
+            Signature: (exec_id, synth_id, total_turns) -> None
         skip_interviewee_review: Whether to skip the interviewee response reviewer.
         additional_context: Optional additional context to complement the research scenario.
 
@@ -226,6 +229,11 @@ async def run_single_interview_safe(
                 if span:
                     span.set_attribute("status", "success")
                     span.set_attribute("total_turns", result.total_turns)
+
+                # Notify that this individual interview completed
+                if on_interview_completed and exec_id:
+                    await on_interview_completed(exec_id, synth_id, result.total_turns)
+
                 return result, synth, None
 
             except Exception as e:
@@ -249,6 +257,8 @@ async def run_batch_interviews(
     synth_ids: list[str] | None = None,
     message_callback: Callable[[
         str, str, int, ConversationMessage], Awaitable[None]] | None = None,
+    on_interview_completed: Callable[[
+        str, str, int], Awaitable[None]] | None = None,
     on_transcription_completed: Callable[[
         str, int, int], Awaitable[None]] | None = None,
     on_summary_start: Callable[[str], Awaitable[None]] | None = None,
@@ -272,6 +282,8 @@ async def run_batch_interviews(
             If not provided: randomly samples max_interviews from all available synths.
         message_callback: Async callback for real-time message streaming (optional)
             Signature: (exec_id, synth_id, turn_number, message) -> None
+        on_interview_completed: Callback when a single interview completes
+            Signature: (exec_id, synth_id, total_turns) -> None
         on_transcription_completed: Callback when all transcriptions done
             Signature: (exec_id, successful_count, failed_count) -> None
         on_summary_start: Callback when summary generation starts
@@ -343,6 +355,7 @@ async def run_batch_interviews(
                 batch_id=batch_id,
                 exec_id=batch_id,
                 message_callback=message_callback,
+                on_interview_completed=on_interview_completed,
                 skip_interviewee_review=skip_interviewee_review,
                 additional_context=additional_context,
             )

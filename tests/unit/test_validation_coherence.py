@@ -353,7 +353,6 @@ class TestValidateSynthFull:
         synth = {
             "id": "test12",  # 6 chars
             "nome": "Test Person",
-            "arquetipo": "Test Archetype",
             "descricao": "A test description that is longer than 50 characters to meet the minimum requirement.",
             "link_photo": "https://ui-avatars.com/api/?name=Test",
             "created_at": "2024-01-01T00:00:00Z",
@@ -362,7 +361,7 @@ class TestValidateSynthFull:
                 "idade": 30,
                 "genero_biologico": "feminino",
                 "identidade_genero": "mulher cis",
-                "raca_etnia": "branco",  # Fixed
+                "raca_etnia": "branco",
                 "localizacao": {
                     "pais": "Brasil",
                     "regiao": "Sudeste",
@@ -384,22 +383,6 @@ class TestValidateSynthFull:
                     "neuroticismo": 50,
                 },
                 "interesses": ["tecnologia"],
-                "inclinacao_politica": 0,
-                "inclinacao_religiosa": "católico",
-            },
-            "comportamento": {
-                "habitos_consumo": {
-                    "frequencia_compras": "semanal",
-                    "preferencia_canal": "híbrido",
-                    "categorias_preferidas": ["eletrônicos"],
-                },
-                "padroes_midia": {"tv_aberta": 10, "streaming": 30, "redes_sociais": 40},
-                "fonte_noticias": ["portais online"],
-                "lealdade_marca": 50,
-                "engajamento_redes_sociais": {
-                    "plataformas": ["Instagram"],
-                    "frequencia_posts": "ocasional",
-                },
             },
             "deficiencias": {
                 "visual": {"tipo": "nenhuma"},
@@ -409,15 +392,6 @@ class TestValidateSynthFull:
             },
             "capacidades_tecnologicas": {
                 "alfabetizacao_digital": 75,
-                "dispositivos": {"principal": "smartphone", "qualidade": "novo"},
-                "preferencias_acessibilidade": {"zoom_fonte": 100, "alto_contraste": False},
-                "velocidade_digitacao": 60,
-                "frequencia_internet": "diária",
-                "familiaridade_plataformas": {
-                    "e_commerce": 70,
-                    "banco_digital": 65,
-                    "redes_sociais": 80,
-                },
             },
             "vieses": {
                 "aversao_perda": 50,
@@ -441,7 +415,6 @@ class TestValidateSynthFull:
         synth = {
             "id": "test12",  # 6 chars
             "nome": "Test Person",
-            "arquetipo": "Test Archetype",
             "descricao": "A test description that is longer than 50 characters to meet the minimum requirement.",
             "link_photo": "https://ui-avatars.com/api/?name=Test",
             "created_at": "2024-01-01T00:00:00Z",
@@ -450,7 +423,7 @@ class TestValidateSynthFull:
                 "idade": 30,
                 "genero_biologico": "feminino",
                 "identidade_genero": "mulher cis",
-                "raca_etnia": "branco",  # Fixed to match enum
+                "raca_etnia": "branco",
                 "localizacao": {
                     "pais": "Brasil",
                     "regiao": "Sudeste",
@@ -472,22 +445,6 @@ class TestValidateSynthFull:
                     "neuroticismo": 50,
                 },
                 "interesses": ["tecnologia"],
-                "inclinacao_politica": 0,
-                "inclinacao_religiosa": "católico",
-            },
-            "comportamento": {
-                "habitos_consumo": {
-                    "frequencia_compras": "semanal",
-                    "preferencia_canal": "híbrido",
-                    "categorias_preferidas": ["eletrônicos"],
-                },
-                "padroes_midia": {"tv_aberta": 10, "streaming": 30, "redes_sociais": 40},
-                "fonte_noticias": ["portais online"],
-                "lealdade_marca": 50,
-                "engajamento_redes_sociais": {
-                    "plataformas": ["Instagram"],
-                    "frequencia_posts": "ocasional",
-                },
             },
             "deficiencias": {
                 "visual": {"tipo": "nenhuma"},
@@ -497,15 +454,6 @@ class TestValidateSynthFull:
             },
             "capacidades_tecnologicas": {
                 "alfabetizacao_digital": 75,
-                "dispositivos": {"principal": "smartphone", "qualidade": "novo"},
-                "preferencias_acessibilidade": {"zoom_fonte": 100, "alto_contraste": False},
-                "velocidade_digitacao": 60,
-                "frequencia_internet": "diária",
-                "familiaridade_plataformas": {
-                    "e_commerce": 70,
-                    "banco_digital": 65,
-                    "redes_sociais": 80,
-                },
             },
             "vieses": {
                 "aversao_perda": 50,

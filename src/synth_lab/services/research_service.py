@@ -397,6 +397,7 @@ class ResearchService:
                         "turn_number": turn,
                         "speaker": msg.speaker,
                         "text": msg.text,
+                        "sentiment": msg.sentiment,
                     },
                     timestamp=datetime.now(UTC),
                 ),
@@ -427,25 +428,54 @@ class ResearchService:
                 status=ExecutionStatus.GENERATING_SUMMARY,
             )
 
+        async def on_interview_complete(
+            exec_id: str, synth_id: str, total_turns: int
+        ) -> None:
+            """Publish interview_completed event for a single interview."""
+            await broker.publish(
+                exec_id,
+                BrokerMessage(
+                    event_type="interview_completed",
+                    data={
+                        "synth_id": synth_id,
+                        "total_turns": total_turns,
+                    },
+                    timestamp=datetime.now(UTC),
+                ),
+            )
+            logger.debug(f"Published interview_completed for {synth_id}")
+
         try:
-            # Run the batch interviews
+            # Callback to save transcripts immediately when interviews complete
+            # This ensures transcripts are available during summary generation
+            async def on_transcription_complete_with_save(
+                exec_id: str, successful: int, failed: int
+            ) -> None:
+                """Save transcripts and notify SSE subscribers."""
+                # First, call the original callback to notify SSE subscribers
+                await on_transcription_complete(exec_id, successful, failed)
+
+            # Run the batch interviews (without summary generation first)
+            # We'll generate summary separately after saving transcripts
             result = await run_batch_interviews(
                 topic_guide_name=topic_name,
                 max_interviews=synth_count,
                 max_concurrent=max_concurrent,
                 max_turns=max_turns,
                 model=model,
-                generate_summary=generate_summary,
+                generate_summary=False,  # Don't generate summary yet
                 exec_id=exec_id,
                 synth_ids=synth_ids,
                 message_callback=on_message,
-                on_transcription_completed=on_transcription_complete,
-                on_summary_start=on_summary_start,
+                on_interview_completed=on_interview_complete,
+                on_transcription_completed=on_transcription_complete_with_save,
+                on_summary_start=None,  # Not used since we're not generating summary here
                 skip_interviewee_review=skip_interviewee_review,
                 additional_context=additional_context,
             )
 
-            # Save transcripts to database
+            # Save transcripts to database IMMEDIATELY after interviews complete
+            # This allows viewing transcripts while summary is being generated
             for interview_result, synth in result.successful_interviews:
                 messages = [
                     Message(
@@ -463,13 +493,43 @@ class ResearchService:
                     status="completed",
                 )
 
+            logger.info(
+                f"Saved {len(result.successful_interviews)} transcripts for {exec_id}"
+            )
+
+            # Now generate summary if requested
+            summary_content = None
+            if generate_summary and result.successful_interviews:
+                # Notify that summary generation is starting
+                await on_summary_start(exec_id)
+
+                from synth_lab.services.research_agentic.summarizer import (
+                    summarize_interviews,
+                )
+
+                logger.info(
+                    f"Generating summary for {len(result.successful_interviews)} interviews"
+                )
+                try:
+                    summary_content = await summarize_interviews(
+                        interview_results=result.successful_interviews,
+                        topic_guide_name=topic_name,
+                        model="gpt-5",
+                    )
+                    logger.info(
+                        f"Summary generated: {len(summary_content) if summary_content else 0} chars"
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to generate summary: {e}")
+                    summary_content = f"Erro ao gerar síntese: {e}"
+
             # Update execution status
             self.research_repo.update_execution_status(
                 exec_id=exec_id,
                 status=ExecutionStatus.COMPLETED,
                 successful_count=result.total_completed,
                 failed_count=result.total_failed,
-                summary_content=result.summary,
+                summary_content=summary_content,
             )
 
             logger.info(f"Research execution {exec_id} completed successfully")

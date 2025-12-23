@@ -70,7 +70,7 @@ class ConversationMessage:
     sentiment: int | None = None  # 1-5 sentiment score (only set by Interviewer)
 
 
-def parse_agent_response(response: str) -> tuple[str, str | None, bool]:
+def parse_agent_response(response: str) -> tuple[str, str | None, bool, int | None]:
     """
     Parse an agent's JSON response and extract the message.
 
@@ -78,15 +78,16 @@ def parse_agent_response(response: str) -> tuple[str, str | None, bool]:
     {
         "message": "visible message",
         "should_end": false,
-        "internal_notes": "private thoughts"
+        "internal_notes": "private thoughts",
+        "sentiment": 3
     }
 
     Args:
         response: Raw response string from agent
 
     Returns:
-        Tuple of (message, internal_notes, should_end)
-        If parsing fails, returns (original response, None, False)
+        Tuple of (message, internal_notes, should_end, sentiment)
+        If parsing fails, returns (original response, None, False, None)
     """
     try:
         # Try to parse as JSON
@@ -94,10 +95,14 @@ def parse_agent_response(response: str) -> tuple[str, str | None, bool]:
         message = data.get("message", response)
         internal_notes = data.get("internal_notes")
         should_end = data.get("should_end", False)
-        return message, internal_notes, should_end
+        sentiment = data.get("sentiment")
+        # Validate sentiment is in range 1-5
+        if sentiment is not None:
+            sentiment = max(1, min(5, int(sentiment)))
+        return message, internal_notes, should_end, sentiment
     except json.JSONDecodeError:
         # If not valid JSON, return the raw response
-        return response, None, False
+        return response, None, False, None
 
 
 @dataclass
@@ -591,7 +596,7 @@ async def run_interview(
                         span.set_status(SpanStatus.SUCCESS)
 
                     # Parse and add interviewer message
-                    visible_message, internal_notes, should_end = parse_agent_response(
+                    visible_message, internal_notes, should_end, sentiment = parse_agent_response(
                         interviewer_response
                     )
                     interviewer_msg = ConversationMessage(
@@ -600,6 +605,7 @@ async def run_interview(
                         raw_text=interviewer_response,
                         internal_notes=internal_notes,
                         should_end=should_end,
+                        sentiment=sentiment,
                     )
                     shared_memory.conversation.append(interviewer_msg)
 
@@ -669,8 +675,8 @@ async def run_interview(
                                 "response", interviewee_response)
                             span.set_status(SpanStatus.SUCCESS)
 
-                    # Parse and add interviewee message
-                    visible_message, internal_notes, should_end = parse_agent_response(
+                    # Parse and add interviewee message (sentiment not used for interviewee)
+                    visible_message, internal_notes, should_end, _ = parse_agent_response(
                         interviewee_response
                     )
                     interviewee_msg = ConversationMessage(
@@ -777,7 +783,7 @@ async def run_interview_simple(
         result = await Runner.run(interviewer, input="Ask your question.")
         response = result.final_output
 
-        visible_message, internal_notes, should_end = parse_agent_response(
+        visible_message, internal_notes, should_end, sentiment = parse_agent_response(
             response)
         interviewer_msg = ConversationMessage(
             speaker="Interviewer",
@@ -785,6 +791,7 @@ async def run_interview_simple(
             raw_text=response,
             internal_notes=internal_notes,
             should_end=should_end,
+            sentiment=sentiment,
         )
         messages.append(interviewer_msg)
         shared_memory.conversation.append(interviewer_msg)
@@ -802,7 +809,7 @@ async def run_interview_simple(
         result = await Runner.run(interviewee, input="Answer the question.")
         response = result.final_output
 
-        visible_message, internal_notes, should_end = parse_agent_response(
+        visible_message, internal_notes, should_end, _ = parse_agent_response(
             response)
         interviewee_msg = ConversationMessage(
             speaker="Interviewee",

@@ -13,7 +13,6 @@ def test_assemble_synth_structure(config_data):
     required_fields = [
         "id",
         "nome",
-        "arquetipo",
         "descricao",
         "link_photo",
         "created_at",
@@ -83,21 +82,13 @@ def test_assemble_synth_disabilities(config_data):
 
 
 def test_assemble_synth_tech_capabilities(config_data):
-    """Test tech capabilities section is complete."""
+    """Test tech capabilities section has alfabetizacao_digital."""
     synth = synth_builder.assemble_synth(config_data)
 
     tech = synth["capacidades_tecnologicas"]
-    required_tech_fields = [
-        "alfabetizacao_digital",
-        "dispositivos",
-        "preferencias_acessibilidade",
-        "velocidade_digitacao",
-        "frequencia_internet",
-        "familiaridade_plataformas",
-    ]
-
-    for field in required_tech_fields:
-        assert field in tech
+    assert "alfabetizacao_digital" in tech
+    assert isinstance(tech["alfabetizacao_digital"], int)
+    assert 0 <= tech["alfabetizacao_digital"] <= 100
 
 
 def test_assemble_synth_id_unique(config_data):
@@ -138,15 +129,6 @@ def test_assemble_synth_link_photo(config_data):
     assert "link_photo" in synth
     assert isinstance(synth["link_photo"], str)
     assert synth["link_photo"].startswith("http")
-
-
-def test_assemble_synth_arquetipo(config_data):
-    """Test that arquetipo is generated and non-empty."""
-    synth = synth_builder.assemble_synth(config_data)
-
-    assert "arquetipo" in synth
-    assert isinstance(synth["arquetipo"], str)
-    assert len(synth["arquetipo"]) > 0
 
 
 def test_assemble_synth_descricao(config_data):

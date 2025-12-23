@@ -33,15 +33,14 @@ def config_data() -> dict[str, Any]:
 
 @pytest.fixture
 def sample_synth() -> dict[str, Any]:
-    """Provide a minimal valid synth structure for testing (matches synth-schema-v1.json)."""
+    """Provide a minimal valid synth structure for testing (matches synth-schema v2.0.0)."""
     return {
         "id": "test01",
         "nome": "Test User",
-        "arquetipo": "Jovem Adulto Sudeste Criativo",
         "descricao": "Pessoa de 25 anos para testes automatizados do sistema com descrição mais longa",
         "link_photo": "https://ui-avatars.com/api/?name=Test+User&size=256&background=random",
         "created_at": "2025-12-15T10:00:00Z",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "demografia": {
             "idade": 25,
             "genero_biologico": "masculino",
@@ -81,24 +80,6 @@ def sample_synth() -> dict[str, Any]:
                 "efeito_esperado": "respostas secas, muito factuais"
             }
         },
-        "comportamento": {
-            "habitos_consumo": {
-                "frequencia_compras": "semanal",
-                "preferencia_canal": "e-commerce",
-                "categorias_preferidas": ["Eletrônicos", "Livros"]
-            },
-            "uso_tecnologia": {
-                "smartphone": True,
-                "computador": True,
-                "tablet": False,
-                "smartwatch": False
-            },
-            "lealdade_marca": 60,
-            "engajamento_redes_sociais": {
-                "plataformas": ["Instagram", "Twitter", "LinkedIn"],
-                "frequencia_posts": "ocasional"
-            }
-        },
         "deficiencias": {
             "visual": {"tipo": "nenhuma"},
             "auditiva": {"tipo": "nenhuma"},
@@ -106,22 +87,7 @@ def sample_synth() -> dict[str, Any]:
             "cognitiva": {"tipo": "nenhuma"}
         },
         "capacidades_tecnologicas": {
-            "alfabetizacao_digital": 90,
-            "dispositivos": {
-                "principal": "computador",
-                "qualidade": "novo"
-            },
-            "preferencias_acessibilidade": {
-                "zoom_fonte": 100,
-                "alto_contraste": False
-            },
-            "velocidade_digitacao": 80,
-            "frequencia_internet": "diária",
-            "familiaridade_plataformas": {
-                "e_commerce": 90,
-                "banco_digital": 85,
-                "redes_sociais": 95
-            }
+            "alfabetizacao_digital": 90
         }
     }
 

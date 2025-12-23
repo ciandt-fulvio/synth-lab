@@ -1,8 +1,8 @@
 """
 Synth Builder - Orchestrates synth assembly from all generation modules.
 
-This module combines demographics, psychographics, behavior, disabilities,
-tech capabilities, biases, and derivations to create complete synthetic personas.
+This module combines demographics, psychographics, disabilities,
+tech capabilities, and derivations to create complete synthetic personas.
 
 Functions:
 - assemble_synth(): Generate a complete synth by orchestrating all modules
@@ -13,7 +13,7 @@ Sample usage:
 
     config = load_config_data()
     synth = assemble_synth(config)
-    print(synth['nome'], synth['arquetipo'])
+    print(synth['nome'], synth['descricao'])
 
 Expected output:
     Complete synth dict with all fields populated and validated
@@ -43,11 +43,10 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
     3. Generating Big Five personality traits
     4. Generating psychographics (interests, cognitive contract)
     5. Generating disabilities (if applicable)
-    6. Generating tech capabilities (digital literacy, devices)
-    7. Deriving archetype from demographics and personality
-    8. Generating photo link from name
-    9. Assembling complete synth
-    10. Deriving description from complete synth
+    6. Generating tech capabilities (digital literacy)
+    7. Generating photo link from name
+    8. Assembling complete synth
+    9. Deriving description from complete synth
 
     Args:
         config: Configuration dict with 'ibge', 'occupations', 'interests_hobbies'
@@ -79,17 +78,13 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
         deficiencias
     )
 
-    # 7. Derive archetype
-    arquetipo = derivations.derive_archetype(demografia, big_five)
-
-    # 8. Generate photo link
+    # 7. Generate photo link
     link_photo = derivations.generate_photo_link(nome)
 
-    # 9. Assemble complete synth (needed for description)
+    # 8. Assemble complete synth (needed for description)
     synth = {
         "id": synth_id,
         "nome": nome,
-        "arquetipo": arquetipo,
         "descricao": "",  # Placeholder, will be filled after
         "link_photo": link_photo,
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -100,7 +95,7 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
         "capacidades_tecnologicas": capacidades_tecnologicas,
     }
 
-    # 10. Derive description (needs complete synth)
+    # 9. Derive description (needs complete synth)
     descricao = derivations.derive_description(synth)
     synth["descricao"] = descricao
 
@@ -134,7 +129,7 @@ if __name__ == "__main__":
 
         # Verify all top-level fields exist
         required_fields = [
-            "id", "nome", "arquetipo", "descricao", "link_photo",
+            "id", "nome", "descricao", "link_photo",
             "created_at", "version", "demografia", "psicografia",
             "deficiencias", "capacidades_tecnologicas"
         ]
@@ -145,7 +140,7 @@ if __name__ == "__main__":
                 f"Single synth: Missing top-level fields: {missing_fields}"
             )
         else:
-            print(f"✓ Single synth generated: {synth['nome']} ({synth['arquetipo']})")
+            print(f"✓ Single synth generated: {synth['nome']}")
     except Exception as e:
         traceback.print_exc()
         all_validation_failures.append(f"Single synth: Failed to generate - {e}")
@@ -235,15 +230,9 @@ if __name__ == "__main__":
     if "synth" in locals():
         tech = synth["capacidades_tecnologicas"]
 
-        required_tech_fields = [
-            "alfabetizacao_digital", "dispositivos", "preferencias_acessibilidade",
-            "velocidade_digitacao", "frequencia_internet", "familiaridade_plataformas"
-        ]
-
-        missing_tech = [f for f in required_tech_fields if f not in tech]
-        if missing_tech:
+        if "alfabetizacao_digital" not in tech:
             all_validation_failures.append(
-                f"Tech capabilities: Missing fields: {missing_tech}"
+                "Tech capabilities: Missing alfabetizacao_digital field"
             )
         else:
             print(f"✓ Tech capabilities complete: digital literacy {tech['alfabetizacao_digital']}")
@@ -251,20 +240,19 @@ if __name__ == "__main__":
     # Test 7: Verify derivations
     total_tests += 1
     if "synth" in locals():
-        if len(synth["arquetipo"]) < 10:
-            all_validation_failures.append(
-                f"Archetype: Too short - '{synth['arquetipo']}'"
-            )
+        derivation_failures = []
         if len(synth["descricao"]) < 50:
-            all_validation_failures.append(
+            derivation_failures.append(
                 f"Description: Too short (< 50 chars) - '{synth['descricao']}'"
             )
         if not synth["link_photo"].startswith("https://ui-avatars.com/api/"):
-            all_validation_failures.append(
+            derivation_failures.append(
                 f"Photo link: Invalid URL - '{synth['link_photo']}'"
             )
-        if not all_validation_failures[-3:]:  # If no failures in this test
-            print("✓ Derivations correct: archetype, description, photo link")
+        if derivation_failures:
+            all_validation_failures.extend(derivation_failures)
+        else:
+            print("✓ Derivations correct: description, photo link")
 
     # Test 8: Generate batch of 3 synths to verify uniqueness
     total_tests += 1

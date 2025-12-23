@@ -154,9 +154,6 @@ class ChatService:
 
         parts.append(f"Nome: {synth.nome}")
 
-        if synth.arquetipo:
-            parts.append(f"Arquétipo: {synth.arquetipo}")
-
         if synth.descricao:
             parts.append(f"Descrição: {synth.descricao}")
 

@@ -76,8 +76,8 @@ export function SynthList() {
       pages.push(0);
 
       // Calculate range around current page
-      let start = Math.max(1, currentPage - 1);
-      let end = Math.min(totalPages - 2, currentPage + 1);
+      const start = Math.max(1, currentPage - 1);
+      const end = Math.min(totalPages - 2, currentPage + 1);
 
       // Add ellipsis after first page if needed
       if (start > 1) {
