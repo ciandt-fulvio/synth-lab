@@ -1,5 +1,5 @@
 """
-Demographics generation module for Synth Lab.
+Demographics generation module for SynthLab.
 
 This module generates coherent demographic attributes for synthetic personas,
 including gender, family composition, occupation, location, and other IBGE-based
@@ -68,12 +68,14 @@ def generate_coherent_gender(ibge_data: dict[str, Any]) -> tuple[str, str]:
         elif genero_biologico == "masculino":
             identidade_genero = "homem cis"
         else:  # intersexo
-            identidade_genero = random.choice(["mulher cis", "homem cis", "não-binário"])
+            identidade_genero = random.choice(
+                ["mulher cis", "homem cis", "não-binário"])
     else:
         # 2% são trans ou não-binário
         opcoes_trans = ["mulher trans", "homem trans", "não-binário", "outro"]
         pesos_trans = [0.35, 0.35, 0.25, 0.05]
-        identidade_genero = random.choices(opcoes_trans, weights=pesos_trans, k=1)[0]
+        identidade_genero = random.choices(
+            opcoes_trans, weights=pesos_trans, k=1)[0]
 
     return genero_biologico, identidade_genero
 
@@ -107,7 +109,8 @@ def generate_coherent_family(
     # Definir composição familiar baseada no estado civil
     if estado_civil == "solteiro":
         if idade < 25:
-            tipo_opcoes = {"multigeracional": 0.6, "unipessoal": 0.25, "outros": 0.15}
+            tipo_opcoes = {"multigeracional": 0.6,
+                           "unipessoal": 0.25, "outros": 0.15}
         else:
             tipo_opcoes = {
                 "unipessoal": 0.4,
@@ -121,9 +124,11 @@ def generate_coherent_family(
         else:
             tipo_opcoes = {"casal sem filhos": 0.25, "casal com filhos": 0.75}
     elif estado_civil == "divorciado":
-        tipo_opcoes = {"unipessoal": 0.35, "monoparental": 0.4, "multigeracional": 0.25}
+        tipo_opcoes = {"unipessoal": 0.35,
+                       "monoparental": 0.4, "multigeracional": 0.25}
     else:  # viúvo
-        tipo_opcoes = {"unipessoal": 0.5, "monoparental": 0.2, "multigeracional": 0.3}
+        tipo_opcoes = {"unipessoal": 0.5,
+                       "monoparental": 0.2, "multigeracional": 0.3}
 
     tipo_familia = weighted_choice(tipo_opcoes)
 
@@ -218,7 +223,8 @@ def generate_coherent_occupation(
             }
         elif idade < 18:
             # Adolescentes: estudante ou trabalhos básicos permitidos (jovem aprendiz)
-            opcoes_jovem = [o for o in ocupacoes_compativeis if o["categoria"] == "estudante"]
+            opcoes_jovem = [
+                o for o in ocupacoes_compativeis if o["categoria"] == "estudante"]
             if not opcoes_jovem:
                 opcoes_jovem = [
                     o
@@ -346,7 +352,8 @@ def generate_demographics(config_data: dict[str, Any]) -> dict[str, Any]:
     if idade < 7:
         escolaridade = "Sem instrução"
     elif idade < 11:
-        escolaridade = random.choice(["Sem instrução", "Fundamental incompleto"])
+        escolaridade = random.choice(
+            ["Sem instrução", "Fundamental incompleto"])
     elif idade < 15:
         escolaridade = random.choice(
             ["Fundamental incompleto", "Fundamental completo"]
@@ -358,7 +365,8 @@ def generate_demographics(config_data: dict[str, Any]) -> dict[str, Any]:
     elif idade < 22:
         # Não pode ter pós-graduação
         if escolaridade == "Pós-graduação":
-            escolaridade = random.choice(["Superior incompleto", "Superior completo"])
+            escolaridade = random.choice(
+                ["Superior incompleto", "Superior completo"])
 
     # Gênero coerente
     genero_biologico, identidade_genero = generate_coherent_gender(ibge_data)
@@ -439,15 +447,19 @@ if __name__ == "__main__":
                 all_validation_failures.append(
                     f"Gender coherence: homem cis with genero_biologico={genero_bio}"
                 )
-        print(f"Test 1: generate_coherent_gender() -> ({genero_bio}, {identidade})")
+        print(
+            f"Test 1: generate_coherent_gender() -> ({genero_bio}, {identidade})")
     except Exception as e:
-        all_validation_failures.append(f"Test 1 (generate_coherent_gender): {str(e)}")
+        all_validation_failures.append(
+            f"Test 1 (generate_coherent_gender): {str(e)}")
 
     # Test 2: Generate coherent family
     total_tests += 1
     try:
-        estado_civil, comp_familiar = generate_coherent_family(config["ibge"], 30, "solteiro")
-        assert estado_civil in ["solteiro", "casado", "união estável", "divorciado", "viúvo"]
+        estado_civil, comp_familiar = generate_coherent_family(
+            config["ibge"], 30, "solteiro")
+        assert estado_civil in ["solteiro", "casado",
+                                "união estável", "divorciado", "viúvo"]
         assert "tipo" in comp_familiar
         assert "numero_pessoas" in comp_familiar
         assert comp_familiar["numero_pessoas"] > 0
@@ -461,7 +473,8 @@ if __name__ == "__main__":
             f"{comp_familiar['tipo']}, {comp_familiar['numero_pessoas']} pessoas"
         )
     except Exception as e:
-        all_validation_failures.append(f"Test 2 (generate_coherent_family): {str(e)}")
+        all_validation_failures.append(
+            f"Test 2 (generate_coherent_family): {str(e)}")
 
     # Test 3: Generate coherent occupation
     total_tests += 1
@@ -472,9 +485,11 @@ if __name__ == "__main__":
         assert "nome" in ocupacao
         assert "faixa_salarial" in ocupacao
         assert "escolaridade_minima" in ocupacao
-        print(f"Test 3: generate_coherent_occupation() -> {ocupacao['nome']}, esc={esc}")
+        print(
+            f"Test 3: generate_coherent_occupation() -> {ocupacao['nome']}, esc={esc}")
     except Exception as e:
-        all_validation_failures.append(f"Test 3 (generate_coherent_occupation): {str(e)}")
+        all_validation_failures.append(
+            f"Test 3 (generate_coherent_occupation): {str(e)}")
 
     # Test 4: Generate name
     total_tests += 1
@@ -507,7 +522,8 @@ if __name__ == "__main__":
             f"ocupacao={demo['ocupacao']}, renda=R${demo['renda_mensal']:.2f}"
         )
     except Exception as e:
-        all_validation_failures.append(f"Test 5 (generate_demographics): {str(e)}")
+        all_validation_failures.append(
+            f"Test 5 (generate_demographics): {str(e)}")
 
     # Test 6: Batch consistency test
     total_tests += 1
@@ -546,11 +562,13 @@ if __name__ == "__main__":
     # Final validation result
     print(f"\n{'='*60}")
     if all_validation_failures:
-        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(
+            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Function is validated and formal tests can now be written")
         sys.exit(0)

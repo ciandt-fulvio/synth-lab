@@ -1,5 +1,5 @@
 """
-Analysis module for Synth Lab.
+Analysis module for SynthLab.
 
 This module analyzes demographic distributions of generated synths
 and compares them against IBGE reference data.
@@ -169,13 +169,17 @@ if __name__ == "__main__":
             result = analyze_regional_distribution(test_dir)
 
             if "error" in result:
-                all_validation_failures.append(f"Analysis returned error: {result['error']}")
+                all_validation_failures.append(
+                    f"Analysis returned error: {result['error']}")
             elif "total" not in result:
-                all_validation_failures.append("Analysis missing 'total' field")
+                all_validation_failures.append(
+                    "Analysis missing 'total' field")
             elif result["total"] != 5:
-                all_validation_failures.append(f"Expected total=5, got {result['total']}")
+                all_validation_failures.append(
+                    f"Expected total=5, got {result['total']}")
             elif "regions" not in result:
-                all_validation_failures.append("Analysis missing 'regions' field")
+                all_validation_failures.append(
+                    "Analysis missing 'regions' field")
             else:
                 # Verify Sudeste has 2 synths (40%)
                 if result["regions"]["Sudeste"]["count"] != 2:
@@ -224,13 +228,17 @@ if __name__ == "__main__":
             result = analyze_age_distribution(test_dir)
 
             if "error" in result:
-                all_validation_failures.append(f"Age analysis returned error: {result['error']}")
+                all_validation_failures.append(
+                    f"Age analysis returned error: {result['error']}")
             elif "total" not in result:
-                all_validation_failures.append("Age analysis missing 'total' field")
+                all_validation_failures.append(
+                    "Age analysis missing 'total' field")
             elif result["total"] != 5:
-                all_validation_failures.append(f"Expected total=5, got {result['total']}")
+                all_validation_failures.append(
+                    f"Expected total=5, got {result['total']}")
             elif "age_groups" not in result:
-                all_validation_failures.append("Age analysis missing 'age_groups' field")
+                all_validation_failures.append(
+                    "Age analysis missing 'age_groups' field")
             else:
                 # Verify each age group has 1 synth (20%)
                 for faixa in expected_groups:
@@ -258,7 +266,8 @@ if __name__ == "__main__":
             result = analyze_regional_distribution(empty_dir)
 
             if "error" not in result:
-                all_validation_failures.append("Empty directory should return error")
+                all_validation_failures.append(
+                    "Empty directory should return error")
             elif result["error"] != "Nenhum Synth encontrado":
                 all_validation_failures.append(
                     f"Wrong error message: {result['error']}"
@@ -266,7 +275,8 @@ if __name__ == "__main__":
             else:
                 print("Test 3: analyze_regional_distribution() handles empty directory")
     except Exception as e:
-        all_validation_failures.append(f"Test 3 (empty directory regional): {str(e)}")
+        all_validation_failures.append(
+            f"Test 3 (empty directory regional): {str(e)}")
 
     # Test 4: Handle empty directory for age analysis
     total_tests += 1
@@ -278,7 +288,8 @@ if __name__ == "__main__":
             result = analyze_age_distribution(empty_dir)
 
             if "error" not in result:
-                all_validation_failures.append("Empty directory should return error")
+                all_validation_failures.append(
+                    "Empty directory should return error")
             elif result["error"] != "Nenhum Synth encontrado":
                 all_validation_failures.append(
                     f"Wrong error message: {result['error']}"
@@ -286,7 +297,8 @@ if __name__ == "__main__":
             else:
                 print("Test 4: analyze_age_distribution() handles empty directory")
     except Exception as e:
-        all_validation_failures.append(f"Test 4 (empty directory age): {str(e)}")
+        all_validation_failures.append(
+            f"Test 4 (empty directory age): {str(e)}")
 
     # Test 5: Verify error calculation
     total_tests += 1
@@ -375,7 +387,8 @@ if __name__ == "__main__":
             result = analyze_age_distribution(test_dir)
 
             # Verify counts for each expected group
-            expected_counts = {"0-14": 1, "15-29": 2, "30-44": 2, "45-59": 2, "60+": 2}
+            expected_counts = {"0-14": 1, "15-29": 2,
+                               "30-44": 2, "45-59": 2, "60+": 2}
             for group, expected_count in expected_counts.items():
                 actual_count = result["age_groups"][group]["count"]
                 if actual_count != expected_count:
@@ -391,11 +404,13 @@ if __name__ == "__main__":
     # Final validation result
     print(f"\n{'='*60}")
     if all_validation_failures:
-        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(
+            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Function is validated and formal tests can now be written")
         sys.exit(0)

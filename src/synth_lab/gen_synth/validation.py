@@ -1,5 +1,5 @@
 """
-Validation module for Synth Lab.
+Validation module for SynthLab.
 
 This module validates synth data against JSON Schema and validates
 individual files or batches of synth files. Also includes personality-bias
@@ -212,7 +212,8 @@ def validate_synth_full(
             coherence_errors = []
 
         if not coherence_valid:
-            all_errors.extend([f"[Coherence] {err}" for err in coherence_errors])
+            all_errors.extend(
+                [f"[Coherence] {err}" for err in coherence_errors])
     except CoherenceError as e:
         # This shouldn't happen since strict=False, but handle it anyway
         all_errors.append(f"[Coherence] {str(e)}")
@@ -294,7 +295,8 @@ def validate_synth(
         errors = []
 
         for error in validator.iter_errors(synth_dict):
-            path = " -> ".join(str(p) for p in error.path) if error.path else "root"
+            path = " -> ".join(str(p)
+                               for p in error.path) if error.path else "root"
             errors.append(f"{path}: {error.message}")
 
         return (len(errors) == 0, errors)
@@ -370,13 +372,15 @@ def validate_batch(
                 print(f"✗ {file_path.name}")
                 for error in errors:
                     print(f"  - {error}")
-                stats["errors"].append({"file": file_path.name, "errors": errors})
+                stats["errors"].append(
+                    {"file": file_path.name, "errors": errors})
 
         except Exception as e:
             stats["invalid"] += 1
             error_msg = f"Erro ao processar {file_path.name}: {str(e)}"
             print(f"✗ {error_msg}")
-            stats["errors"].append({"file": file_path.name, "errors": [error_msg]})
+            stats["errors"].append(
+                {"file": file_path.name, "errors": [error_msg]})
 
     return stats
 
@@ -495,11 +499,13 @@ if __name__ == "__main__":
         is_valid, errors = validate_synth(valid_synth)
 
         if not is_valid:
-            all_validation_failures.append(f"Valid synth failed validation: {errors}")
+            all_validation_failures.append(
+                f"Valid synth failed validation: {errors}")
         else:
             print("Test 1: validate_synth() accepts valid synth")
     except Exception as e:
-        all_validation_failures.append(f"Test 1 (validate valid synth): {str(e)}")
+        all_validation_failures.append(
+            f"Test 1 (validate valid synth): {str(e)}")
 
     # Test 2: Validate an invalid synth (missing required field)
     total_tests += 1
@@ -509,13 +515,17 @@ if __name__ == "__main__":
         is_valid, errors = validate_synth(invalid_synth)
 
         if is_valid:
-            all_validation_failures.append("Invalid synth should fail validation")
+            all_validation_failures.append(
+                "Invalid synth should fail validation")
         elif len(errors) == 0:
-            all_validation_failures.append("Invalid synth should have error messages")
+            all_validation_failures.append(
+                "Invalid synth should have error messages")
         else:
-            print(f"Test 2: validate_synth() rejects invalid synth ({len(errors)} errors)")
+            print(
+                f"Test 2: validate_synth() rejects invalid synth ({len(errors)} errors)")
     except Exception as e:
-        all_validation_failures.append(f"Test 2 (validate invalid synth): {str(e)}")
+        all_validation_failures.append(
+            f"Test 2 (validate invalid synth): {str(e)}")
 
     # Test 3: Validate single file
     total_tests += 1
@@ -536,7 +546,8 @@ if __name__ == "__main__":
 
             print("Test 3: validate_single_file() completed without error")
     except Exception as e:
-        all_validation_failures.append(f"Test 3 (validate_single_file): {str(e)}")
+        all_validation_failures.append(
+            f"Test 3 (validate_single_file): {str(e)}")
 
     # Test 4: Validate single file - file not found
     total_tests += 1
@@ -548,7 +559,8 @@ if __name__ == "__main__":
 
         print("Test 4: validate_single_file() handles missing file gracefully")
     except Exception as e:
-        all_validation_failures.append(f"Test 4 (validate_single_file missing): {str(e)}")
+        all_validation_failures.append(
+            f"Test 4 (validate_single_file missing): {str(e)}")
 
     # Test 5: Validate batch with mixed valid/invalid files
     total_tests += 1
@@ -563,7 +575,8 @@ if __name__ == "__main__":
                 json.dump(valid_synth, f)
 
             # Create invalid file
-            invalid_synth = {"id": "invalid01", "nome": "Missing required fields"}
+            invalid_synth = {"id": "invalid01",
+                             "nome": "Missing required fields"}
             invalid_file = test_dir / "invalid01.json"
             with open(invalid_file, "w", encoding="utf-8") as f:
                 json.dump(invalid_synth, f)
@@ -572,11 +585,14 @@ if __name__ == "__main__":
             stats = validate_batch(test_dir)
 
             if stats["total"] != 2:
-                all_validation_failures.append(f"Expected 2 total files, got {stats['total']}")
+                all_validation_failures.append(
+                    f"Expected 2 total files, got {stats['total']}")
             if stats["valid"] != 1:
-                all_validation_failures.append(f"Expected 1 valid file, got {stats['valid']}")
+                all_validation_failures.append(
+                    f"Expected 1 valid file, got {stats['valid']}")
             if stats["invalid"] != 1:
-                all_validation_failures.append(f"Expected 1 invalid file, got {stats['invalid']}")
+                all_validation_failures.append(
+                    f"Expected 1 invalid file, got {stats['invalid']}")
 
             if not any(f.startswith("Test 5") for f in all_validation_failures):
                 print(
@@ -584,7 +600,8 @@ if __name__ == "__main__":
                     f"valid={stats['valid']}, invalid={stats['invalid']}"
                 )
     except Exception as e:
-        all_validation_failures.append(f"Test 5 (validate_batch mixed): {str(e)}")
+        all_validation_failures.append(
+            f"Test 5 (validate_batch mixed): {str(e)}")
 
     # Test 6: Validate batch with empty directory
     total_tests += 1
@@ -607,7 +624,8 @@ if __name__ == "__main__":
             if not any(f.startswith("Test 6") for f in all_validation_failures):
                 print("Test 6: validate_batch() handles empty directory")
     except Exception as e:
-        all_validation_failures.append(f"Test 6 (validate_batch empty): {str(e)}")
+        all_validation_failures.append(
+            f"Test 6 (validate_batch empty): {str(e)}")
 
     # Test 7: Test error handling for missing schema
     total_tests += 1
@@ -618,7 +636,8 @@ if __name__ == "__main__":
         is_valid, errors = validate_synth(test_synth, nonexistent_schema)
 
         if is_valid:
-            all_validation_failures.append("Should return False when schema not found")
+            all_validation_failures.append(
+                "Should return False when schema not found")
         if not any("Schema não encontrado" in err for err in errors):
             all_validation_failures.append(
                 f"Should have 'Schema não encontrado' error, got: {errors}"
@@ -631,11 +650,13 @@ if __name__ == "__main__":
     # Final validation result
     print(f"\n{'='*60}")
     if all_validation_failures:
-        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(
+            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Function is validated and formal tests can now be written")
         sys.exit(0)

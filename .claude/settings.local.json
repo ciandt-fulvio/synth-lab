@@ -3,7 +3,19 @@
     "allow": [
       "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
       "Bash(.specify/scripts/bash/setup-plan.sh:*)",
-      "Bash(.specify/scripts/bash/update-agent-context.sh:*)"
+      "Bash(.specify/scripts/bash/update-agent-context.sh:*)",
+      "Bash(LOG_LEVEL=DEBUG uv run python:*)",
+      "Bash(LOG_LEVEL=INFO uv run python:*)",
+      "Bash(Makefile )",
+      "Bash(src/synth_lab/__main__.py )",
+      "Bash(src/synth_lab/api/main.py )",
+      "Bash(src/synth_lab/infrastructure/config.py )",
+      "Bash(src/synth_lab/infrastructure/llm_client.py )",
+      "Bash(src/synth_lab/infrastructure/phoenix_tracing.py )",
+      "Bash(src/synth_lab/services/research_agentic/batch_runner.py )",
+      "Bash(src/synth_lab/services/research_agentic/summarizer.py )",
+      "Bash(src/synth_lab/services/research_prfaq/generator.py )",
+      "Bash(src/synth_lab/gen_synth/avatar_generator.py)"
     ]
   }
 }

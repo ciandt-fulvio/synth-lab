@@ -145,13 +145,12 @@ project/
 
 
 ### IX. Ohter Principles
+- Treat tracing as first-class concerns. Use Phoenix for all tracing needs, specially LLM calls tracing.
 - Follow DRY (Don't Repeat Yourself) principle to minimize code duplication.
 - Adhere to SOLID principles for object-oriented design.
 - Adhere to KISS (Keep It Simple, Stupid) and YAGNI (You Aren't Gonna Need It) principles.
-- Treat logging as first-class concerns.
 - Prefer using Makefiles or scripts for automation tasks instead of ad-hoc scripts.
 - if in a python project, use alembic for database migrations.
-
 
 ## Development Workflow
 
