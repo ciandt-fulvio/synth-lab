@@ -22,19 +22,23 @@ VISUAL_FILTERS = [
     "usar filtro cold",
     "usar filtro dramatic/high contrast",
     "usar filtro soft/pastel",
-    "estilo 3D movie character",
     "usar filtro cinematic/teal & orange",
     "usar filtro vintage film grain",
     "usar filtro noir/low-key"
 ]
 
 FRAMING_TYPE = [
-    "close-up",
-    "headshot",
-    "busto",
-    "meio corpo",
-    "plano americano",
-    "plano médio",
+    # Aberto / contexto (35mm)
+    "medium-wide framing, torso fully visible, camera at chest level, 35mm lens.",
+    "upper-body framing, arms fully visible, camera at chest level, 35mm lens.",
+    "waist-up framing, hands visible, torso fully visible, camera at chest level, 35mm lens.",
+
+    # Padrão seguro (50mm)
+    "mid-shot framing, torso fully visible, camera at chest level, 50mm lens.",
+    "upper-body framing, arms fully visible, camera at chest level, 50mm lens.",
+
+    # Fechado / retrato (85mm)
+    "tight headshot, face centered, 85mm portrait lens.",
 ]
 
 
@@ -177,17 +181,11 @@ def build_prompt(synths: list[dict[str, Any]]) -> str:
 
     framing = assign_random_framing(9)
 
-    # Construir descrições numeradas
-    descricoes_numeradas = []
-    for i, synth in enumerate(synths, start=1):
-        descricao = build_synth_description(synth)
-        descricoes_numeradas.append(f'{i}. "descricao": "{descricao}"')
-
-    descricoes_texto = "\n".join(descricoes_numeradas)
-
-    # Construir filtros numerados
-    filtros_texto = ", ".join(
-        [f"bloco{i+1}: {f}" for i, f in enumerate(filters)])
+    # Construir descrições numeradas dos blocos
+    descricoes_blocos = "\n".join([
+        f"Bloco {i+1}:\n{framing[i]}\n{build_synth_description(synths[i])}\n{filters[i]}\n"
+        for i in range(9)
+    ])
 
     from rich.console import Console
 
@@ -198,21 +196,22 @@ def build_prompt(synths: list[dict[str, Any]]) -> str:
     console.print(framing_texto)
 
     # Montar prompt completo em português
-    prompt = f"""Faça uma imagem que será dividida em 9 blocos iguais, sendo 3 linhas e 3 colunas, cada uma delas deve ter um avatar de uma pessoa que corresponde às descrições abaixo:
+    prompt = f"""Crie uma imagem dividida em uma grade 3x3, com 9 blocos iguais.
+Crie uma imagem dividida em uma grade 3x3, com 9 blocos iguais.
+Cada bloco representa uma fotografia independente.
+Cada bloco deve respeitar estritamente o enquadramento indicado.
+Estilo fotorrealista.
 
-{descricoes_texto}
+Regras globais de variação visual:
+Cada bloco deve ter fundo diferente, coerente com a profissão da pessoa, preferencialmente levemente desfocado (bokeh).
+Cores, estampas de roupa e acessórios (óculos, brincos, itens no cabelo, etc.) devem variar entre os blocos.
+Ocasionalmente, incluir um elemento visual sutil relacionado à profissão.
 
-Para cada um dos 9 blocos, aplicar o filtro correspondente:
-{filtros_texto}
+{descricoes_blocos}
 
-Para cada um dos 9 blocos, aplicar o seguinte enquadramento:
-{framing_texto}
-
-Em cada um dos 9 espaços, faça diferentes fundos, de acordo com a profissão da pessoa, preferencialmente imagens levemente desfocadas (bokeh).
-
-As cores e estampas de roupa, acessórios (óculos, brincos, coisas no cabelo, etc) devem variar. Uma ou outra vez pode ter algo relacionado com a profissão.
-
-Estilo: fotorrealistas."""
+Restrição adicional:
+Não gerar close-ups fora dos blocos explicitamente marcados como headshot.
+"""
 
     return prompt
 

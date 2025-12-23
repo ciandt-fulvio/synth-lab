@@ -80,7 +80,7 @@ class LLMClient:
     def __init__(
         self,
         api_key: str | None = None,
-        default_model: str = "gpt-5-mini",
+        default_model: str = "gpt-xxxx",
         default_timeout: float = 120.0,
     ):
         self.client = OpenAI(

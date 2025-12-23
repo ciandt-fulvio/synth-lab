@@ -263,7 +263,7 @@ During migration, existing CLI commands continue to work:
 class LLMClient:
     """Single source of truth for all LLM operations."""
 
-    def __init__(self, api_key: str | None = None, default_model: str = "gpt-5-mini"):
+    def __init__(self, api_key: str | None = None, default_model: str = "gpt-xxxx"):
         self.client = OpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"))
         self.default_model = default_model
 

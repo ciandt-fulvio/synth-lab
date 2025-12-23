@@ -13,7 +13,7 @@ Third-party documentation:
 Sample usage:
     from .generator import generate_prfaq_from_content
 
-    prfaq_md = generate_prfaq_from_content(summary_content, "batch_id", "gpt-5-mini")
+    prfaq_md = generate_prfaq_from_content(summary_content, "batch_id", "gpt-xxxx")
 
 Expected output:
     String containing Markdown-formatted PR-FAQ document with:
@@ -27,6 +27,7 @@ from typing import Optional
 
 from loguru import logger
 from openai import OpenAI
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
 
@@ -39,7 +40,7 @@ _tracer = get_tracer("prfaq-generator")
 def generate_prfaq_from_content(
     summary_content: str,
     batch_id: str,
-    model: str = "gpt-5-mini",
+    model: str = "gpt-4o-mini",
     api_key: Optional[str] = None,
 ) -> str:
     """Generate PR-FAQ Markdown from research summary content using OpenAI API.
@@ -59,8 +60,9 @@ def generate_prfaq_from_content(
     logger.info(f"Starting PR-FAQ Markdown generation for batch {batch_id}")
 
     with _tracer.start_as_current_span(
-        "generate_prfaq",
+        f"Generate PR-FAQ: {batch_id}",
         attributes={
+            SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
             "batch_id": batch_id,
             "model": model,
             "summary_length": len(summary_content),
@@ -122,12 +124,14 @@ Return ONLY the Markdown-formatted PR-FAQ document."""
                 max_completion_tokens=16000
             )
 
-            logger.info(f"OpenAI API call successful. Tokens used: {response.usage.total_tokens}")
+            logger.info(
+                f"OpenAI API call successful. Tokens used: {response.usage.total_tokens}")
 
             # Extract Markdown response
             prfaq_markdown = response.choices[0].message.content.strip()
 
-            logger.info(f"PR-FAQ Markdown generation successful for {batch_id} ({len(prfaq_markdown)} characters)")
+            logger.info(
+                f"PR-FAQ Markdown generation successful for {batch_id} ({len(prfaq_markdown)} characters)")
 
             if span:
                 span.set_attribute("tokens_used", response.usage.total_tokens)
@@ -183,11 +187,13 @@ if __name__ == "__main__":
                 batch_id="test_validation",
                 model="gpt-5-mini",
             )
-            logger.info(f"Generated PR-FAQ Markdown ({len(prfaq_md)} characters)")
+            logger.info(
+                f"Generated PR-FAQ Markdown ({len(prfaq_md)} characters)")
 
             # Verify structure
             if "Press Release" not in prfaq_md and "FAQ" not in prfaq_md:
-                validation_failures.append("Generated PR-FAQ missing key sections")
+                validation_failures.append(
+                    "Generated PR-FAQ missing key sections")
             else:
                 print(f"✓ Generated PR-FAQ with {len(prfaq_md)} characters")
 
@@ -198,15 +204,18 @@ if __name__ == "__main__":
 
     # Report results
     if validation_failures:
-        print(f"\n❌ VALIDATION FAILED - {len(validation_failures)} of {total_tests} tests failed:")
+        print(
+            f"\n❌ VALIDATION FAILED - {len(validation_failures)} of {total_tests} tests failed:")
         for failure in validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
         if api_key and total_tests > 2:
-            print(f"\n✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
+            print(
+                f"\n✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
             print("Generator is validated and ready for use")
         else:
-            print(f"\n⚠️  PARTIAL VALIDATION - {total_tests} basic test(s) passed")
+            print(
+                f"\n⚠️  PARTIAL VALIDATION - {total_tests} basic test(s) passed")
             print("   Set OPENAI_API_KEY to run full validation")
         sys.exit(0)

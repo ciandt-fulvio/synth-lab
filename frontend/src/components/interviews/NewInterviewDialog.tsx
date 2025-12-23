@@ -51,7 +51,7 @@ export function NewInterviewDialog({ open, onOpenChange }: NewInterviewDialogPro
       topic_name: '',
       additional_context: '',
       synth_count: 5,
-      max_turns: 6,
+      max_turns: 4,
       generate_summary: true,
     },
   });

@@ -99,7 +99,8 @@ class ResearchRepository(BaseRepository):
             LEFT JOIN synths s ON t.synth_id = s.id
             WHERE t.exec_id = ?
         """
-        rows, meta = self._paginate_query(base_query, params, query_params=(exec_id,))
+        rows, meta = self._paginate_query(
+            base_query, params, query_params=(exec_id,))
         transcripts = [self._row_to_transcript_summary(row) for row in rows]
         return PaginatedResponse(data=transcripts, pagination=meta)
 
@@ -183,8 +184,10 @@ class ResearchRepository(BaseRepository):
             completed_at = datetime.fromisoformat(completed_at)
 
         # Check if summary exists in database
-        summary_content = row["summary_content"] if "summary_content" in row.keys() else None
-        summary_available = summary_content is not None and len(summary_content) > 0
+        summary_content = row["summary_content"] if "summary_content" in row.keys(
+        ) else None
+        summary_available = summary_content is not None and len(
+            summary_content) > 0
 
         # Check if PR-FAQ exists
         prfaq_row = self.db.fetchone(
@@ -262,7 +265,7 @@ class ResearchRepository(BaseRepository):
         exec_id: str,
         topic_name: str,
         synth_count: int,
-        model: str = "gpt-5-mini",
+        model: str = "gpt-4o-mini",
         max_turns: int = 6,
         status: ExecutionStatus = ExecutionStatus.PENDING,
     ) -> None:
@@ -284,7 +287,8 @@ class ResearchRepository(BaseRepository):
         """
         self.db.execute(
             query,
-            (exec_id, topic_name, synth_count, model, max_turns, status.value, datetime.now().isoformat()),
+            (exec_id, topic_name, synth_count, model, max_turns,
+             status.value, datetime.now().isoformat()),
         )
 
     def update_execution_status(
@@ -347,7 +351,8 @@ class ResearchRepository(BaseRepository):
             status: Transcript status.
         """
         messages_json = json.dumps(
-            [{"speaker": m.speaker, "text": m.text, "internal_notes": m.internal_notes} for m in messages],
+            [{"speaker": m.speaker, "text": m.text,
+                "internal_notes": m.internal_notes} for m in messages],
             ensure_ascii=False,
         )
         # A turn is a complete exchange (question + answer), so divide by 2
@@ -360,7 +365,8 @@ class ResearchRepository(BaseRepository):
         """
         self.db.execute(
             query,
-            (exec_id, synth_id, synth_name, turn_count, datetime.now().isoformat(), status, messages_json),
+            (exec_id, synth_id, synth_name, turn_count,
+             datetime.now().isoformat(), status, messages_json),
         )
 
     def update_summary_content(self, exec_id: str, summary_content: str) -> None:
@@ -408,7 +414,8 @@ class ResearchRepository(BaseRepository):
 
         return {
             "exec_id": row["exec_id"],
-            "status": row["status"] or "completed",  # Default for legacy records
+            # Default for legacy records
+            "status": row["status"] or "completed",
             "error_message": row["error_message"],
             "started_at": row["started_at"],
             "generated_at": row["generated_at"],
@@ -454,7 +461,8 @@ if __name__ == "__main__":
             exec_id = result.data[0].exec_id
             execution = repo.get_execution(exec_id)
             if execution.exec_id != exec_id:
-                all_validation_failures.append(f"Exec ID mismatch: {execution.exec_id}")
+                all_validation_failures.append(
+                    f"Exec ID mismatch: {execution.exec_id}")
             print(f"  Got execution: {execution.topic_name}")
     except Exception as e:
         all_validation_failures.append(f"Get execution failed: {e}")
@@ -490,7 +498,8 @@ if __name__ == "__main__":
             if transcripts.data:
                 synth_id = transcripts.data[0].synth_id
                 transcript = repo.get_transcript(exec_id, synth_id)
-                print(f"  Got transcript with {len(transcript.messages)} messages")
+                print(
+                    f"  Got transcript with {len(transcript.messages)} messages")
     except Exception as e:
         all_validation_failures.append(f"Get transcript failed: {e}")
 
@@ -498,10 +507,12 @@ if __name__ == "__main__":
 
     # Final validation result
     if all_validation_failures:
-        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(
+            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         sys.exit(0)

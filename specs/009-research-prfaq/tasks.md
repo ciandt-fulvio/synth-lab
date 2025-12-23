@@ -281,7 +281,7 @@ Complete documentation, integration, performance optimization, and final testing
   - exporter.export_*() → log file creation + format-specific details
   - cli commands → log command execution + results
 - [ ] T058 Create `src/synth_lab/research_prfaq/constants.py` with:
-  - DEFAULT_MODEL = "gpt-5-mini"
+  - DEFAULT_MODEL = "gpt-xxxx"
   - CONFIDENCE_THRESHOLD = 0.75
   - FAQ_MIN_COUNT, FAQ_MAX_COUNT = 8, 12
   - OUTPUT_DIR = "data/outputs/prfaq/"

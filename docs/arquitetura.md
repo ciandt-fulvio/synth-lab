@@ -199,7 +199,7 @@ class ResearchService:
         synth_count: int | None,
         max_turns: int,
         max_concurrent: int,
-        model: str,
+        model: str | None = None,
         generate_summary: bool
     ) -> AsyncGenerator[dict, None]
 

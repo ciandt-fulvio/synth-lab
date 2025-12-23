@@ -319,7 +319,7 @@ class ResearchExecutionBase(BaseModel):
 class ResearchExecutionDetail(ResearchExecutionBase):
     successful_count: int = 0
     failed_count: int = 0
-    model: str = "gpt-5-mini"
+    model: str = "gpt-xxxx"
     max_turns: int = 6
     summary_available: bool = False
     prfaq_available: bool = False
@@ -341,7 +341,7 @@ class ResearchExecuteRequest(BaseModel):
     synth_count: int | None = None
     max_turns: int = Field(default=6, ge=1, le=20)
     max_concurrent: int = Field(default=10, ge=1, le=50)
-    model: str = "gpt-5-mini"
+    model: str = "gpt-xxxx"
     generate_summary: bool = True
 ```
 
@@ -396,7 +396,7 @@ class PRFAQSummary(BaseModel):
 
 class PRFAQGenerateRequest(BaseModel):
     exec_id: str
-    model: str = "gpt-5-mini"
+    model: str = "gpt-xxxx"
 
 class PRFAQGenerateResponse(BaseModel):
     exec_id: str

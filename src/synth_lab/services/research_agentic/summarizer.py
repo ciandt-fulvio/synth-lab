@@ -15,7 +15,7 @@ from .summarizer import summarize_interviews
 summary = await summarize_interviews(
     interview_results=results,
     topic_guide_name="compra-amazon",
-    model="gpt-5-mini"
+    model="gpt-xxxx"
 )
 print(summary)
 ```
@@ -26,6 +26,7 @@ from typing import Any
 from agents import Agent, ModelSettings, Runner
 from loguru import logger
 from openai.types.shared import Reasoning
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
 
@@ -215,8 +216,9 @@ async def summarize_interviews(
     logger.info(f"Summarizing {len(interview_results)} interviews with model={model}")
 
     with _tracer.start_as_current_span(
-        "summarize_interviews",
+        f"Summarize {len(interview_results)} interviews: {topic_guide_name}",
         attributes={
+            SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.AGENT.value,
             "topic_guide": topic_guide_name,
             "interview_count": len(interview_results),
             "model": model,

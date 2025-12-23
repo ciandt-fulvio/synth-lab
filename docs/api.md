@@ -600,7 +600,7 @@ Executa research com múltiplos synths e transmite progresso via Server-Sent Eve
   "synth_count": 10,                  // Ou quantidade aleatória
   "max_turns": 6,
   "max_concurrent": 5,
-  "model": "gpt-5-mini",
+  "model": "gpt-xxxx",
   "generate_summary": true
 }
 ```
@@ -687,7 +687,7 @@ payload = {
     "topic_name": "compra-amazon",
     "synth_count": 5,
     "max_turns": 6,
-    "model": "gpt-5-mini",
+    "model": "gpt-xxxx",
     "generate_summary": True
 }
 
@@ -725,7 +725,7 @@ Lista research executions com filtros opcionais.
       "synth_count": 10,
       "successful_count": 9,
       "failed_count": 1,
-      "model": "gpt-5-mini",
+      "model": "gpt-xxxx",
       "max_turns": 6,
       "status": "completed",
       "started_at": "2025-12-19T11:05:34Z",
@@ -767,7 +767,7 @@ Retorna detalhes de uma research execution.
   "synth_count": 10,
   "successful_count": 9,
   "failed_count": 1,
-  "model": "gpt-5-mini",
+  "model": "gpt-xxxx",
   "max_turns": 6,
   "status": "completed",
   "started_at": "2025-12-19T11:05:34Z",
@@ -998,7 +998,7 @@ Retorna metadata de um PR-FAQ.
   "faq_count": 12,
   "confidence_score": 0.87,
   "validation_status": "validated",
-  "model": "gpt-5-mini",
+  "model": "gpt-xxxx",
   "generated_at": "2025-12-19T11:20:00Z",
   "markdown_path": "output/reports/batch_compra-amazon_20251219_110534_prfaq.md",
   "json_path": "output/reports/batch_compra-amazon_20251219_110534_prfaq.json"
@@ -1320,7 +1320,7 @@ with requests.post(
         "topic_name": "compra-amazon",
         "synth_count": 5,
         "max_turns": 6,
-        "model": "gpt-5-mini"
+        "model": "gpt-xxxx"
     },
     stream=True
 ) as response:

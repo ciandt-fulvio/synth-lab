@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2025-12-22
 
 ## Active Technologies
+- Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, OpenAI SDK, React 18, TanStack Query, shadcn/ui (015-synth-chat)
+- SQLite (leitura apenas - sem persistência de chat) (015-synth-chat)
 
 ### Backend
 - **Python**: 3.13+
@@ -95,13 +97,10 @@ npm run type-check
 - **Reports**: `output/reports/`
 
 ## Recent Changes
+- 015-synth-chat: Added Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, OpenAI SDK, React 18, TanStack Query, shadcn/ui
 
 - **2025-12-22**: Removed DuckDB dependency, migrated fully to SQLite
 - **2025-12-22**: Added avatar fallback to `link_photo` when local file missing
-- **2025-12-22**: Added pagination to synth list (45 items per page)
-- **014-live-interview-cards**: Live interview features with SSE
-- **013-summary-prfaq-states**: Summary generation and PR-FAQ artifact states
-- **012-frontend-dashboard**: React frontend dashboard with shadcn/ui
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
