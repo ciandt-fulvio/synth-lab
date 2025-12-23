@@ -97,7 +97,12 @@ class ResearchExecuteRequest(BaseModel):
         default=None,
         description="Number of random synths (if synth_ids not provided)",
     )
-    max_turns: int = Field(default=6, ge=1, le=20, description="Max interview turns")
+    max_turns: int = Field(
+        default=6,
+        ge=1,
+        le=20,
+        description="Max interview turns (each turn = 1 question + 1 answer)",
+    )
     max_concurrent: int = Field(
         default=10,
         ge=1,
