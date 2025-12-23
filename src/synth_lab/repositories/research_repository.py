@@ -350,7 +350,8 @@ class ResearchRepository(BaseRepository):
             [{"speaker": m.speaker, "text": m.text, "internal_notes": m.internal_notes} for m in messages],
             ensure_ascii=False,
         )
-        turn_count = len(messages)
+        # A turn is a complete exchange (question + answer), so divide by 2
+        turn_count = len(messages) // 2
 
         query = """
             INSERT INTO transcripts

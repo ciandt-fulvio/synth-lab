@@ -40,7 +40,6 @@ from .agent_definitions import (
     create_interviewee,
     create_interviewee_reviewer,
     create_interviewer,
-    create_orchestrator,
 )
 from .tools import create_image_loader_tool, get_available_images
 from .tracing_bridge import TraceVisualizerProcessor
@@ -532,164 +531,155 @@ async def run_interview(
             # mcp_servers.append(mcp_server)  # Enable when async context is implemented
 
         # Main interview loop
+        # Each "turn" is a complete exchange: interviewer question + interviewee answer
         turns = 0
 
         with trace(f"Interview with {synth_name}"):
             while turns < max_turns:
                 with tracer.start_turn(turn_number=turns + 1):
-                    # Log turn start
-                    with tracer.start_span(SpanType.LOGIC, {
-                        "operation": "determine_speaker",
+                    # === PART 1: Interviewer asks a question ===
+                    interviewer_input = "Faça sua próxima pergunta ou comentário."
+                    with tracer.start_span(SpanType.LLM_CALL, {
+                        "speaker": "interviewer",
                         "turn_number": turns + 1,
                     }) as span:
-                        # Determine who speaks next
-                        orchestrator = create_orchestrator(
+                        interviewer = create_interviewer(
+                            topic_guide=topic_guide,
                             conversation_history=shared_memory.format_history(),
-                            last_message=shared_memory.last_message(),
+                            mcp_servers=mcp_servers,
                             model=model,
+                            additional_context=additional_context,
                         )
 
-                        decision_result = await Runner.run(
-                            orchestrator,
-                            input=f"Turn {turns + 1}: Who speaks next?"
-                        )
-                        decision = decision_result.final_output.strip()
-                        span.set_attribute("decision", decision)
-                        span.set_status(SpanStatus.SUCCESS)
+                        # Log request (system prompt + input)
+                        span.set_attribute("request", f"[System Prompt]\n{interviewer.instructions}\n\n[Input]\n{interviewer_input}")
 
-                    if "Interviewer" in decision:
-                        # Interviewer's turn
-                        interviewer_input = "Faça sua próxima pergunta ou comentário."
-                        with tracer.start_span(SpanType.LLM_CALL, {
-                            "speaker": "interviewer",
-                            "turn_number": turns + 1,
-                        }) as span:
-                            interviewer = create_interviewer(
+                        # On first turn, generate context in parallel with interviewer
+                        if turns == 0 and context_examples:
+                            # Run both in parallel
+                            interviewer_task = Runner.run(
+                                interviewer,
+                                input=interviewer_input
+                            )
+                            context_task = generate_initial_context(
+                                synth=synth,
+                                context_examples=context_examples,
                                 topic_guide=topic_guide,
-                                conversation_history=shared_memory.format_history(),
-                                mcp_servers=mcp_servers,
                                 model=model,
+                                context_definition=context_definition,
                                 additional_context=additional_context,
                             )
-
-                            # Log request (system prompt + input)
-                            span.set_attribute("request", f"[System Prompt]\n{interviewer.instructions}\n\n[Input]\n{interviewer_input}")
-
-                            # On first turn, generate context in parallel with interviewer
-                            if turns == 0 and context_examples:
-                                # Run both in parallel
-                                interviewer_task = Runner.run(
-                                    interviewer,
-                                    input=interviewer_input
-                                )
-                                context_task = generate_initial_context(
-                                    synth=synth,
-                                    context_examples=context_examples,
-                                    topic_guide=topic_guide,
-                                    model=model,
-                                    context_definition=context_definition,
-                                    additional_context=additional_context,
-                                )
-                                raw_result, initial_context = await asyncio.gather(
-                                    interviewer_task, context_task
-                                )
-                                logger.info(f"Generated initial context: {initial_context[:80]}...")
-                            else:
-                                raw_result = await Runner.run(
-                                    interviewer,
-                                    input=interviewer_input
-                                )
-
-                            final_response = raw_result.final_output
-                            span.set_attribute("response", final_response)
-                            span.set_status(SpanStatus.SUCCESS)
-
-                        speaker = "Interviewer"
-
-                    else:
-                        # Interviewee's turn
-                        interviewee_input = "Responda à última pergunta."
-                        with tracer.start_span(SpanType.LLM_CALL, {
-                            "speaker": "interviewee",
-                            "turn_number": turns + 1,
-                        }) as span:
-                            # Prepare tools for interviewee (image access)
-                            interviewee_tools = [
-                                image_tool] if image_tool else []
-
-                            interviewee = create_interviewee(
-                                synth=shared_memory.synth,
-                                conversation_history=shared_memory.format_history(),
-                                mcp_servers=mcp_servers,
-                                tools=interviewee_tools,
-                                available_images=available_images,
-                                initial_context=initial_context,
-                                model=model,
+                            raw_result, initial_context = await asyncio.gather(
+                                interviewer_task, context_task
                             )
-
-                            # Log request (system prompt + input)
-                            span.set_attribute("request", f"[System Prompt]\n{interviewee.instructions}\n\n[Input]\n{interviewee_input}")
-
-                            raw_result = await Runner.run(
-                                interviewee,
-                                input=interviewee_input
-                            )
-                            raw_response = raw_result.final_output
-                            span.set_attribute("response", raw_response)
-
-                        # Review interviewee response (optional)
-                        if skip_interviewee_review:
-                            # Skip reviewer, use raw response directly
-                            final_response = raw_response
-                            logger.debug("Skipping interviewee reviewer")
+                            logger.info(f"Generated initial context: {initial_context[:80]}...")
                         else:
-                            reviewer_input = "Revise esta resposta para maior autenticidade."
-                            with tracer.start_span(SpanType.LLM_CALL, {
-                                "speaker": "interviewee_reviewer",
-                                "turn_number": turns + 1,
-                            }) as span:
-                                reviewer = create_interviewee_reviewer(
-                                    synth=shared_memory.synth,
-                                    raw_response=raw_response,
-                                    model=model,
-                                )
+                            raw_result = await Runner.run(
+                                interviewer,
+                                input=interviewer_input
+                            )
 
-                                # Log request (system prompt + input)
-                                span.set_attribute("request", f"[System Prompt]\n{reviewer.instructions}\n\n[Input]\n{reviewer_input}")
+                        interviewer_response = raw_result.final_output
+                        span.set_attribute("response", interviewer_response)
+                        span.set_status(SpanStatus.SUCCESS)
 
-                                review_result = await Runner.run(
-                                    reviewer,
-                                    input=reviewer_input
-                                )
-                                final_response = review_result.final_output
-                                span.set_attribute("response", final_response)
-                                span.set_status(SpanStatus.SUCCESS)
-
-                        speaker = "Interviewee"
-
-                    # Parse JSON response to extract only the message
+                    # Parse and add interviewer message
                     visible_message, internal_notes, should_end = parse_agent_response(
-                        final_response
+                        interviewer_response
                     )
-
-                    # Add to shared memory (only visible message goes to history)
-                    message = ConversationMessage(
-                        speaker=speaker,
+                    interviewer_msg = ConversationMessage(
+                        speaker="Interviewer",
                         text=visible_message,
-                        raw_text=final_response,
+                        raw_text=interviewer_response,
                         internal_notes=internal_notes,
                         should_end=should_end,
                     )
-                    shared_memory.conversation.append(message)
+                    shared_memory.conversation.append(interviewer_msg)
 
-                    # Publish message in real-time via SSE callback
+                    # Publish interviewer message in real-time
                     if message_callback and exec_id:
-                        await message_callback(exec_id, synth_id, turns + 1, message)
+                        await message_callback(exec_id, synth_id, turns + 1, interviewer_msg)
 
-                    # Log to console
                     if verbose:
-                        _print_speaker(speaker, visible_message)
+                        _print_speaker("Interviewer", visible_message)
 
+                    # === PART 2: Interviewee responds ===
+                    interviewee_input = "Responda à última pergunta."
+                    with tracer.start_span(SpanType.LLM_CALL, {
+                        "speaker": "interviewee",
+                        "turn_number": turns + 1,
+                    }) as span:
+                        # Prepare tools for interviewee (image access)
+                        interviewee_tools = [image_tool] if image_tool else []
+
+                        interviewee = create_interviewee(
+                            synth=shared_memory.synth,
+                            conversation_history=shared_memory.format_history(),
+                            mcp_servers=mcp_servers,
+                            tools=interviewee_tools,
+                            available_images=available_images,
+                            initial_context=initial_context,
+                            model=model,
+                        )
+
+                        # Log request (system prompt + input)
+                        span.set_attribute("request", f"[System Prompt]\n{interviewee.instructions}\n\n[Input]\n{interviewee_input}")
+
+                        raw_result = await Runner.run(
+                            interviewee,
+                            input=interviewee_input
+                        )
+                        raw_response = raw_result.final_output
+                        span.set_attribute("response", raw_response)
+                        span.set_status(SpanStatus.SUCCESS)
+
+                    # Review interviewee response (optional)
+                    if skip_interviewee_review:
+                        interviewee_response = raw_response
+                        logger.debug("Skipping interviewee reviewer")
+                    else:
+                        reviewer_input = "Revise esta resposta para maior autenticidade."
+                        with tracer.start_span(SpanType.LLM_CALL, {
+                            "speaker": "interviewee_reviewer",
+                            "turn_number": turns + 1,
+                        }) as span:
+                            reviewer = create_interviewee_reviewer(
+                                synth=shared_memory.synth,
+                                raw_response=raw_response,
+                                model=model,
+                            )
+
+                            span.set_attribute("request", f"[System Prompt]\n{reviewer.instructions}\n\n[Input]\n{reviewer_input}")
+
+                            review_result = await Runner.run(
+                                reviewer,
+                                input=reviewer_input
+                            )
+                            interviewee_response = review_result.final_output
+                            span.set_attribute("response", interviewee_response)
+                            span.set_status(SpanStatus.SUCCESS)
+
+                    # Parse and add interviewee message
+                    visible_message, internal_notes, should_end = parse_agent_response(
+                        interviewee_response
+                    )
+                    interviewee_msg = ConversationMessage(
+                        speaker="Interviewee",
+                        text=visible_message,
+                        raw_text=interviewee_response,
+                        internal_notes=internal_notes,
+                        should_end=should_end,
+                    )
+                    shared_memory.conversation.append(interviewee_msg)
+
+                    # Publish interviewee message in real-time
+                    if message_callback and exec_id:
+                        await message_callback(exec_id, synth_id, turns + 1, interviewee_msg)
+
+                    if verbose:
+                        _print_speaker("Interviewee", visible_message)
+
+                # Turn complete (1 turn = 1 question + 1 answer)
                 turns += 1
 
     finally:
@@ -764,58 +754,57 @@ async def run_interview_simple(
     messages: list[ConversationMessage] = []
     turns = 0
 
+    # Each turn = 1 question + 1 answer
     while turns < max_turns:
-        # Determine speaker
-        orchestrator = create_orchestrator(
+        # === PART 1: Interviewer asks ===
+        interviewer = create_interviewer(
+            topic_guide=shared_memory.topic_guide,
             conversation_history=shared_memory.format_history(),
-            last_message=shared_memory.last_message(),
             model=model,
         )
 
-        decision_result = await Runner.run(orchestrator, input="Who speaks next?")
-        decision = decision_result.final_output.strip()
+        result = await Runner.run(interviewer, input="Ask your question.")
+        response = result.final_output
 
-        if "Interviewer" in decision:
-            # Interviewer speaks
-            interviewer = create_interviewer(
-                topic_guide=shared_memory.topic_guide,
-                conversation_history=shared_memory.format_history(),
-                model=model,
-            )
-
-            result = await Runner.run(interviewer, input="Ask your question.")
-            response = result.final_output
-            speaker = "Interviewer"
-
-        else:
-            # Interviewee speaks
-            interviewee = create_interviewee(
-                synth=shared_memory.synth,
-                conversation_history=shared_memory.format_history(),
-                model=model,
-            )
-
-            result = await Runner.run(interviewee, input="Answer the question.")
-            response = result.final_output
-            speaker = "Interviewee"
-
-        # Parse JSON response to extract only the message
-        visible_message, internal_notes, should_end = parse_agent_response(
-            response)
-
-        message = ConversationMessage(
-            speaker=speaker,
+        visible_message, internal_notes, should_end = parse_agent_response(response)
+        interviewer_msg = ConversationMessage(
+            speaker="Interviewer",
             text=visible_message,
             raw_text=response,
             internal_notes=internal_notes,
             should_end=should_end,
         )
-        messages.append(message)
-        shared_memory.conversation.append(message)
+        messages.append(interviewer_msg)
+        shared_memory.conversation.append(interviewer_msg)
 
         if verbose:
-            _print_speaker(speaker, visible_message)
+            _print_speaker("Interviewer", visible_message)
 
+        # === PART 2: Interviewee responds ===
+        interviewee = create_interviewee(
+            synth=shared_memory.synth,
+            conversation_history=shared_memory.format_history(),
+            model=model,
+        )
+
+        result = await Runner.run(interviewee, input="Answer the question.")
+        response = result.final_output
+
+        visible_message, internal_notes, should_end = parse_agent_response(response)
+        interviewee_msg = ConversationMessage(
+            speaker="Interviewee",
+            text=visible_message,
+            raw_text=response,
+            internal_notes=internal_notes,
+            should_end=should_end,
+        )
+        messages.append(interviewee_msg)
+        shared_memory.conversation.append(interviewee_msg)
+
+        if verbose:
+            _print_speaker("Interviewee", visible_message)
+
+        # Turn complete (1 turn = 1 question + 1 answer)
         turns += 1
 
     return messages
