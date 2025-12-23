@@ -1,0 +1,170 @@
+openapi: 3.0.3
+info:
+  title: SynthLab Chat API
+  description: API para chat com synths entrevistados
+  version: 1.0.0
+
+paths:
+  /api/synths/{synth_id}/chat:
+    post:
+      summary: Enviar mensagem para synth
+      description: |
+        Envia uma mensagem do usuário para o synth e recebe a resposta.
+        O synth mantém contexto da entrevista original e da conversa atual.
+      operationId: sendChatMessage
+      tags:
+        - Chat
+      parameters:
+        - name: synth_id
+          in: path
+          required: true
+          description: ID único do synth
+          schema:
+            type: string
+            example: "synth_abc123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+            example:
+              exec_id: "batch_compra-amazon_20251223_085259"
+              message: "Você ainda usa a panela de pressão?"
+              chat_history:
+                - role: "user"
+                  content: "Oi, tudo bem?"
+                  timestamp: "2025-12-23T10:25:00Z"
+                - role: "synth"
+                  content: "Olá! Tudo ótimo, prazer em conversar com você!"
+                  timestamp: "2025-12-23T10:25:05Z"
+      responses:
+        '200':
+          description: Resposta do synth gerada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+              example:
+                message: "Sim, uso quase todos os dias! Comprei ela em agosto passado na Amazon, lembra? Facilitou muito a minha vida no restaurante, principalmente pra preparar feijão e carne mais rápido."
+                timestamp: "2025-12-23T10:30:00Z"
+        '400':
+          description: Requisição inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                empty_message:
+                  summary: Mensagem vazia
+                  value:
+                    detail: "Message cannot be empty"
+                message_too_long:
+                  summary: Mensagem muito longa
+                  value:
+                    detail: "Message exceeds maximum length of 2000 characters"
+        '404':
+          description: Synth ou execução não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                synth_not_found:
+                  summary: Synth não encontrado
+                  value:
+                    detail: "Synth not found: synth_abc123"
+                execution_not_found:
+                  summary: Execução não encontrada
+                  value:
+                    detail: "Execution not found: batch_xxx"
+        '422':
+          description: Entrevista não concluída
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Interview not completed. Chat is only available after interview completion."
+        '500':
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Failed to generate response from LLM"
+
+components:
+  schemas:
+    ChatMessage:
+      type: object
+      required:
+        - role
+        - content
+        - timestamp
+      properties:
+        role:
+          type: string
+          enum: [user, synth]
+          description: Remetente da mensagem
+        content:
+          type: string
+          minLength: 1
+          description: Texto da mensagem
+        timestamp:
+          type: string
+          format: date-time
+          description: Momento do envio (ISO 8601)
+
+    ChatRequest:
+      type: object
+      required:
+        - exec_id
+        - message
+      properties:
+        exec_id:
+          type: string
+          pattern: '^batch_'
+          description: ID da execução/entrevista de origem
+          example: "batch_compra-amazon_20251223_085259"
+        message:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: Mensagem do usuário
+          example: "Você ainda usa a panela de pressão?"
+        chat_history:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+          description: Histórico de mensagens anteriores do chat atual
+          default: []
+
+    ChatResponse:
+      type: object
+      required:
+        - message
+        - timestamp
+      properties:
+        message:
+          type: string
+          description: Resposta gerada pelo synth
+        timestamp:
+          type: string
+          format: date-time
+          description: Momento da geração da resposta (ISO 8601)
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Descrição do erro
+
+tags:
+  - name: Chat
+    description: Endpoints para chat com synths entrevistados
