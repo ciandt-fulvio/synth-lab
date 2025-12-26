@@ -7,6 +7,56 @@
 
 **Organization**: Tasks agrupadas por User Story para permitir implementação e teste independente de cada história.
 
+---
+
+## 📊 Progress Summary
+
+**Status**: MVP Completed (Phases 1-4) ✅
+
+| Phase | Status | Tasks | Description |
+|-------|--------|-------|-------------|
+| Phase 1: Setup | ✅ DONE | 3/3 | Dependencies and infrastructure |
+| Phase 2: Foundational | ✅ DONE | 5/5 | Entities and helpers |
+| Phase 3: US1 - Visão Geral | ✅ DONE | 10/10 | Try vs Success, Distribution, Sankey |
+| Phase 4: US2 - Localização | ✅ DONE | 13/13 | Heatmap, Scatter, Tornado, Box Plot |
+| Phase 5: US3 - Segmentação | ⏳ TODO | 0/19 | K-Means, Hierarchical Clustering |
+| Phase 6: US4 - Casos Especiais | ⏳ TODO | 0/12 | Extreme Cases, Outliers |
+| Phase 7: US5 - Explicabilidade | ⏳ TODO | 0/16 | SHAP, PDP |
+| Phase 8: US6 - Insights LLM | ⏳ TODO | 0/12 | Captions, Insights |
+| Phase 9: Polish | ⏳ TODO | 0/7 | Cross-cutting concerns |
+
+**Completed**: 31/97 tasks (32%)
+**Remaining**: 66/97 tasks (68%)
+
+### MVP Delivered (commit a58873f)
+
+✅ **6 Analysis Endpoints**:
+- `GET /simulation/simulations/{id}/charts/try-vs-success` - Quadrant scatter plot
+- `GET /simulation/simulations/{id}/charts/distribution` - Outcome distribution
+- `GET /simulation/simulations/{id}/charts/sankey` - User flow diagram
+- `GET /simulation/simulations/{id}/charts/failure-heatmap` - 2D binned heatmap
+- `GET /simulation/simulations/{id}/charts/scatter` - Correlation with Pearson stats
+- `GET /simulation/simulations/{id}/charts/tornado` - Sensitivity diagram
+
+✅ **Core Infrastructure**:
+- ChartDataService with 7 methods
+- Feature extraction utilities
+- 18 Pydantic entities
+- 13 API schemas
+- Complete documentation
+
+### Next Steps
+
+**Priority 2** (US3 + US4):
+1. Implement Clustering (K-Means, Hierarchical)
+2. Implement Outlier Detection (Extreme Cases, Isolation Forest)
+
+**Priority 3** (US5 + US6):
+3. Implement Explainability (SHAP, PDP)
+4. Implement LLM Insights with database cache (Caption + Insight generation)
+
+---
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Pode executar em paralelo (arquivos diferentes, sem dependências)
@@ -24,33 +74,33 @@
 
 ---
 
-## Phase 1: Setup (Infraestrutura Compartilhada)
+## Phase 1: Setup (Infraestrutura Compartilhada) ✅ COMPLETED
 
 **Purpose**: Adicionar dependências e estrutura base para análise
 
-- [ ] T001 Adicionar scikit-learn>=1.4.0 e shap>=0.44.0 ao pyproject.toml
-- [ ] T002 Criar estrutura de diretórios para novos arquivos de análise
-- [ ] T003 [P] Criar arquivo src/synth_lab/api/schemas/analysis.py com imports base
+- [x] T001 Adicionar scikit-learn>=1.4.0 e shap>=0.44.0 ao pyproject.toml
+- [x] T002 Criar estrutura de diretórios para novos arquivos de análise
+- [x] T003 [P] Criar arquivo src/synth_lab/api/schemas/analysis.py com imports base
 
 ---
 
-## Phase 2: Foundational (Pré-requisitos Bloqueantes)
+## Phase 2: Foundational (Pré-requisitos Bloqueantes) ✅ COMPLETED
 
 **Purpose**: Entidades e helpers que TODAS as User Stories precisam
 
 **⚠️ CRITICAL**: Nenhum trabalho de User Story pode começar até esta fase estar completa
 
-- [ ] T004 [P] Criar entidades base de chart_data em src/synth_lab/domain/entities/chart_data.py (TryVsSuccessPoint, TryVsSuccessChart, SynthDistribution, OutcomeDistributionChart, SankeyNode, SankeyLink, SankeyChart)
-- [ ] T005 [P] Adicionar entidades de heatmap/boxplot/scatter em src/synth_lab/domain/entities/chart_data.py (HeatmapCell, FailureHeatmapChart, BoxPlotStats, RegionBoxPlot, BoxPlotChart, CorrelationPoint, CorrelationStats, ScatterCorrelationChart, TornadoBar, TornadoChart)
-- [ ] T006 [P] Criar helper extract_features() em src/synth_lab/services/simulation/feature_extraction.py para extrair numpy arrays de synth_outcomes
-- [ ] T007 Criar schemas de request/response em src/synth_lab/api/schemas/analysis.py (TryVsSuccessParams, DistributionParams, HeatmapParams, etc.)
-- [ ] T008 Exportar novas entidades em src/synth_lab/domain/entities/__init__.py
+- [x] T004 [P] Criar entidades base de chart_data em src/synth_lab/domain/entities/chart_data.py (TryVsSuccessPoint, TryVsSuccessChart, SynthDistribution, OutcomeDistributionChart, SankeyNode, SankeyLink, SankeyChart)
+- [x] T005 [P] Adicionar entidades de heatmap/boxplot/scatter em src/synth_lab/domain/entities/chart_data.py (HeatmapCell, FailureHeatmapChart, BoxPlotStats, RegionBoxPlot, BoxPlotChart, CorrelationPoint, CorrelationStats, ScatterCorrelationChart, TornadoBar, TornadoChart)
+- [x] T006 [P] Criar helper extract_features() em src/synth_lab/services/simulation/feature_extraction.py para extrair numpy arrays de synth_outcomes
+- [x] T007 Criar schemas de request/response em src/synth_lab/api/schemas/analysis.py (TryVsSuccessParams, DistributionParams, HeatmapParams, etc.)
+- [x] T008 Exportar novas entidades em src/synth_lab/domain/entities/__init__.py
 
-**Checkpoint**: Fundação pronta - implementação de User Stories pode começar
+**Checkpoint**: ✅ Fundação pronta - implementação de User Stories pode começar
 
 ---
 
-## Phase 3: User Story 1 - Visão Geral da Simulação (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 - Visão Geral da Simulação (Priority: P1) 🎯 MVP ✅ COMPLETED
 
 **Goal**: UX Researcher obtém visão rápida dos resultados via Try vs Success, Outcome Distribution e Sankey
 
@@ -58,25 +108,25 @@
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Unit test para get_try_vs_success() em tests/unit/services/simulation/test_chart_data_service.py
-- [ ] T010 [P] [US1] Unit test para get_outcome_distribution() em tests/unit/services/simulation/test_chart_data_service.py
-- [ ] T011 [P] [US1] Unit test para get_sankey() em tests/unit/services/simulation/test_chart_data_service.py
+- [x] T009 [P] [US1] Unit test para get_try_vs_success() em tests/unit/services/simulation/test_chart_data_service.py
+- [x] T010 [P] [US1] Unit test para get_outcome_distribution() em tests/unit/services/simulation/test_chart_data_service.py
+- [x] T011 [P] [US1] Unit test para get_sankey() em tests/unit/services/simulation/test_chart_data_service.py
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Implementar ChartDataService.get_try_vs_success() em src/synth_lab/services/simulation/chart_data_service.py
-- [ ] T013 [US1] Implementar ChartDataService.get_outcome_distribution() em src/synth_lab/services/simulation/chart_data_service.py
-- [ ] T014 [US1] Implementar ChartDataService.get_sankey() em src/synth_lab/services/simulation/chart_data_service.py
-- [ ] T015 [P] [US1] Adicionar endpoint GET /simulation/simulations/{id}/charts/try-vs-success em src/synth_lab/api/routers/simulation.py
-- [ ] T016 [P] [US1] Adicionar endpoint GET /simulation/simulations/{id}/charts/distribution em src/synth_lab/api/routers/simulation.py
-- [ ] T017 [P] [US1] Adicionar endpoint GET /simulation/simulations/{id}/charts/sankey em src/synth_lab/api/routers/simulation.py
-- [ ] T018 [US1] Integration test para endpoints da Fase 1 em tests/integration/api/test_analysis_endpoints.py
+- [x] T012 [US1] Implementar ChartDataService.get_try_vs_success() em src/synth_lab/services/simulation/chart_data_service.py
+- [x] T013 [US1] Implementar ChartDataService.get_outcome_distribution() em src/synth_lab/services/simulation/chart_data_service.py
+- [x] T014 [US1] Implementar ChartDataService.get_sankey() em src/synth_lab/services/simulation/chart_data_service.py
+- [x] T015 [P] [US1] Adicionar endpoint GET /simulation/simulations/{id}/charts/try-vs-success em src/synth_lab/api/routers/simulation.py
+- [x] T016 [P] [US1] Adicionar endpoint GET /simulation/simulations/{id}/charts/distribution em src/synth_lab/api/routers/simulation.py
+- [x] T017 [P] [US1] Adicionar endpoint GET /simulation/simulations/{id}/charts/sankey em src/synth_lab/api/routers/simulation.py
+- [x] T018 [US1] Integration test para endpoints da Fase 1 em tests/integration/api/test_analysis_endpoints.py
 
-**Checkpoint**: User Story 1 funcional - Try vs Success, Distribution e Sankey disponíveis
+**Checkpoint**: ✅ User Story 1 funcional - Try vs Success, Distribution e Sankey disponíveis
 
 ---
 
-## Phase 4: User Story 2 - Localização de Problemas (Priority: P1)
+## Phase 4: User Story 2 - Localização de Problemas (Priority: P1) ✅ COMPLETED
 
 **Goal**: UX Researcher identifica onde a experiência quebra via Heatmap, Box Plot, Scatter e Tornado
 
@@ -84,24 +134,24 @@
 
 ### Tests for User Story 2
 
-- [ ] T019 [P] [US2] Unit test para get_failure_heatmap() em tests/unit/services/simulation/test_chart_data_service.py
-- [ ] T020 [P] [US2] Unit test para get_box_plot() em tests/unit/services/simulation/test_chart_data_service.py
-- [ ] T021 [P] [US2] Unit test para get_scatter_correlation() em tests/unit/services/simulation/test_chart_data_service.py
-- [ ] T022 [P] [US2] Unit test para get_tornado() em tests/unit/services/simulation/test_chart_data_service.py
+- [x] T019 [P] [US2] Unit test para get_failure_heatmap() em tests/unit/services/simulation/test_chart_data_service.py
+- [x] T020 [P] [US2] Unit test para get_box_plot() em tests/unit/services/simulation/test_chart_data_service.py
+- [x] T021 [P] [US2] Unit test para get_scatter_correlation() em tests/unit/services/simulation/test_chart_data_service.py
+- [x] T022 [P] [US2] Unit test para get_tornado() em tests/unit/services/simulation/test_chart_data_service.py
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] Implementar ChartDataService.get_failure_heatmap() com binning configurável em src/synth_lab/services/simulation/chart_data_service.py
-- [ ] T024 [US2] Implementar ChartDataService.get_box_plot() usando region_analysis existente em src/synth_lab/services/simulation/chart_data_service.py
-- [ ] T025 [US2] Implementar ChartDataService.get_scatter_correlation() com Pearson via scipy em src/synth_lab/services/simulation/chart_data_service.py
-- [ ] T026 [US2] Implementar ChartDataService.get_tornado() usando sensitivity_result existente em src/synth_lab/services/simulation/chart_data_service.py
-- [ ] T027 [P] [US2] Adicionar endpoint GET /simulation/simulations/{id}/charts/failure-heatmap em src/synth_lab/api/routers/simulation.py
-- [ ] T028 [P] [US2] Adicionar endpoint GET /simulation/simulations/{id}/charts/box-plot em src/synth_lab/api/routers/simulation.py
-- [ ] T029 [P] [US2] Adicionar endpoint GET /simulation/simulations/{id}/charts/scatter em src/synth_lab/api/routers/simulation.py
-- [ ] T030 [P] [US2] Adicionar endpoint GET /simulation/simulations/{id}/charts/tornado em src/synth_lab/api/routers/simulation.py
-- [ ] T031 [US2] Integration test para endpoints da Fase 2 em tests/integration/api/test_analysis_endpoints.py
+- [x] T023 [US2] Implementar ChartDataService.get_failure_heatmap() com binning configurável em src/synth_lab/services/simulation/chart_data_service.py
+- [x] T024 [US2] Implementar ChartDataService.get_box_plot() usando region_analysis existente em src/synth_lab/services/simulation/chart_data_service.py
+- [x] T025 [US2] Implementar ChartDataService.get_scatter_correlation() com Pearson via scipy em src/synth_lab/services/simulation/chart_data_service.py
+- [x] T026 [US2] Implementar ChartDataService.get_tornado() usando sensitivity_result existente em src/synth_lab/services/simulation/chart_data_service.py
+- [x] T027 [P] [US2] Adicionar endpoint GET /simulation/simulations/{id}/charts/failure-heatmap em src/synth_lab/api/routers/simulation.py
+- [x] T028 [P] [US2] Adicionar endpoint GET /simulation/simulations/{id}/charts/box-plot em src/synth_lab/api/routers/simulation.py
+- [x] T029 [P] [US2] Adicionar endpoint GET /simulation/simulations/{id}/charts/scatter em src/synth_lab/api/routers/simulation.py
+- [x] T030 [P] [US2] Adicionar endpoint GET /simulation/simulations/{id}/charts/tornado em src/synth_lab/api/routers/simulation.py
+- [x] T031 [US2] Integration test para endpoints da Fase 2 em tests/integration/api/test_analysis_endpoints.py
 
-**Checkpoint**: User Stories 1 e 2 funcionais - Visão Geral + Localização disponíveis
+**Checkpoint**: ✅ User Stories 1 e 2 funcionais - Visão Geral + Localização disponíveis
 
 ---
 
@@ -202,27 +252,29 @@
 
 ## Phase 8: User Story 6 - Insights Gerados por LLM (Priority: P3)
 
-**Goal**: UX Researcher obtém legendas curtas e insights explicativos gerados automaticamente
+**Goal**: UX Researcher obtém insights explicativos gerados automaticamente para cada gráfico (com captions incluídos), facilitando a comunicação com stakeholders não-técnicos.
 
-**Independent Test**: Verificar se captions são factuais, ≤20 tokens e focadas no insight principal
+**Independent Test**: Verificar se insights são gerados com captions factuais (≤20 tokens) e explicações úteis, e se são corretamente armazenados em banco como cache.
+
+**Architecture**: Não há endpoint separado para caption. O endpoint de insight chama internamente _generate_caption() primeiro, depois usa o caption para gerar o insight completo. Ambos (caption + insight) são persistidos no banco associados a {simulation_id, chart_type} para servir como cache em requisições futuras.
 
 ### Tests for User Story 6
 
-- [ ] T079 [P] [US6] Unit test para generate_caption() em tests/unit/services/simulation/test_insight_service.py
-- [ ] T080 [P] [US6] Unit test para generate_insight() em tests/unit/services/simulation/test_insight_service.py
-- [ ] T081 [P] [US6] Unit test para cache de insights em tests/unit/services/simulation/test_insight_service.py
+- [ ] T079 [P] [US6] Unit test para _generate_caption() interno em tests/unit/services/simulation/test_insight_service.py
+- [ ] T080 [P] [US6] Unit test para generate_insight() que chama _generate_caption() internamente em tests/unit/services/simulation/test_insight_service.py
+- [ ] T081 [P] [US6] Unit test para persistência e cache de insights em banco em tests/unit/services/simulation/test_insight_service.py
 
 ### Implementation for User Story 6
 
 - [ ] T082 [P] [US6] Criar entidades de insight em src/synth_lab/domain/entities/chart_insight.py (ChartCaption, ChartInsight, SimulationInsights)
-- [ ] T083 [US6] Implementar InsightService com cache em memória em src/synth_lab/services/simulation/insight_service.py
-- [ ] T084 [US6] Implementar InsightService.generate_caption() com prompts por chart_type em src/synth_lab/services/simulation/insight_service.py
-- [ ] T085 [US6] Implementar InsightService.generate_insight() com evidências e recomendações em src/synth_lab/services/simulation/insight_service.py
-- [ ] T086 [US6] Implementar InsightService.get_all_insights() para executive summary em src/synth_lab/services/simulation/insight_service.py
-- [ ] T087 [P] [US6] Adicionar endpoint GET /simulation/simulations/{id}/charts/{chart_type}/caption em src/synth_lab/api/routers/simulation.py
-- [ ] T088 [P] [US6] Adicionar endpoint GET /simulation/simulations/{id}/charts/{chart_type}/insight em src/synth_lab/api/routers/simulation.py
-- [ ] T089 [P] [US6] Adicionar endpoint GET /simulation/simulations/{id}/insights em src/synth_lab/api/routers/simulation.py
-- [ ] T090 [US6] Integration test para endpoints de insights LLM em tests/integration/api/test_analysis_endpoints.py
+- [ ] T083 [US6] Criar tabela chart_insights no banco (simulation_id, chart_type, caption_text, insight_text, created_at) via migration ou schema
+- [ ] T084 [US6] Implementar InsightService._generate_caption() como método privado com prompts por chart_type em src/synth_lab/services/simulation/insight_service.py
+- [ ] T085 [US6] Implementar InsightService.generate_insight() que chama _generate_caption() internamente, depois gera insight baseado no caption em src/synth_lab/services/simulation/insight_service.py
+- [ ] T086 [US6] Implementar InsightService._save_to_db() e _load_from_db() para persistir e recuperar insights do banco em src/synth_lab/services/simulation/insight_service.py
+- [ ] T087 [US6] Implementar InsightService.get_all_insights() para executive summary recuperando insights de todos os chart_types do banco em src/synth_lab/services/simulation/insight_service.py
+- [ ] T088 [P] [US6] Adicionar endpoint GET /simulation/simulations/{id}/charts/{chart_type}/insight em src/synth_lab/api/routers/simulation.py (verifica cache no banco antes de gerar)
+- [ ] T089 [P] [US6] Adicionar endpoint GET /simulation/simulations/{id}/insights em src/synth_lab/api/routers/simulation.py (retorna todos os insights armazenados)
+- [ ] T090 [US6] Integration test para endpoints de insights LLM verificando cache em banco em tests/integration/api/test_analysis_endpoints.py
 
 **Checkpoint**: Todas as User Stories funcionais - Feature completa
 
@@ -289,7 +341,7 @@
 
 **US5 (16 tasks)**: T063-T066 em paralelo → T067 → T068-T073 → T074-T077 em paralelo → T078
 
-**US6 (12 tasks)**: T079-T081 em paralelo → T082 → T083-T086 → T087-T089 em paralelo → T090
+**US6 (12 tasks)**: T079-T081 em paralelo → T082 → T083 → T084-T087 → T088-T089 em paralelo → T090
 
 ---
 
