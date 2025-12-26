@@ -33,6 +33,19 @@ from synth_lab.domain.entities.chart_data import (
     TryVsSuccessChart,
     TryVsSuccessPoint,
 )
+from synth_lab.domain.entities.cluster_result import (
+    ClusterProfile,
+    ClusterRadar,
+    DendrogramBranch,
+    DendrogramChart,
+    DendrogramNode,
+    ElbowDataPoint,
+    HierarchicalResult,
+    KMeansResult,
+    RadarAxis,
+    RadarChart,
+    SuggestedCut,
+)
 from synth_lab.domain.entities.feature_scorecard import (
     FeatureScorecard,
     ScorecardDimension,
@@ -98,6 +111,18 @@ __all__ = [
     "TrendlinePoint",
     "TryVsSuccessChart",
     "TryVsSuccessPoint",
+    # Cluster result
+    "ClusterProfile",
+    "ClusterRadar",
+    "DendrogramBranch",
+    "DendrogramChart",
+    "DendrogramNode",
+    "ElbowDataPoint",
+    "HierarchicalResult",
+    "KMeansResult",
+    "RadarAxis",
+    "RadarChart",
+    "SuggestedCut",
     # Feature scorecard
     "FeatureScorecard",
     "ScorecardDimension",

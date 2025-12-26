@@ -163,20 +163,20 @@
 
 ### Tests for User Story 3
 
-- [ ] T032 [P] [US3] Unit test para cluster_kmeans() em tests/unit/services/simulation/test_clustering_service.py
-- [ ] T033 [P] [US3] Unit test para cluster_hierarchical() em tests/unit/services/simulation/test_clustering_service.py
-- [ ] T034 [P] [US3] Unit test para calculate_elbow() em tests/unit/services/simulation/test_clustering_service.py
-- [ ] T035 [P] [US3] Unit test para get_radar_chart() em tests/unit/services/simulation/test_clustering_service.py
+- [x] T032 [P] [US3] Unit test para cluster_kmeans() em tests/unit/services/simulation/test_clustering_service.py
+- [x] T033 [P] [US3] Unit test para cluster_hierarchical() em tests/unit/services/simulation/test_clustering_service.py
+- [x] T034 [P] [US3] Unit test para calculate_elbow() em tests/unit/services/simulation/test_clustering_service.py
+- [x] T035 [P] [US3] Unit test para get_radar_chart() em tests/unit/services/simulation/test_clustering_service.py
 
 ### Implementation for User Story 3
 
-- [ ] T036 [P] [US3] Criar entidades de cluster em src/synth_lab/domain/entities/cluster_result.py (ClusterProfile, ElbowDataPoint, KMeansResult, DendrogramNode, SuggestedCut, HierarchicalResult, RadarAxis, ClusterRadar, RadarChart, DendrogramChart)
-- [ ] T037 [US3] Implementar ClusteringService.cluster_kmeans() com normalização via StandardScaler em src/synth_lab/services/simulation/clustering_service.py
-- [ ] T038 [US3] Implementar ClusteringService._calculate_elbow() para K de 2 a 10 em src/synth_lab/services/simulation/clustering_service.py
-- [ ] T039 [US3] Implementar ClusteringService._suggest_label() para nomes de clusters em src/synth_lab/services/simulation/clustering_service.py
-- [ ] T040 [US3] Implementar ClusteringService.cluster_hierarchical() com scipy.cluster.hierarchy em src/synth_lab/services/simulation/clustering_service.py
-- [ ] T041 [US3] Implementar ClusteringService.cut_dendrogram() para cortar em N clusters em src/synth_lab/services/simulation/clustering_service.py
-- [ ] T042 [US3] Implementar ClusteringService.get_radar_chart() para visualização de clusters em src/synth_lab/services/simulation/clustering_service.py
+- [x] T036 [P] [US3] Criar entidades de cluster em src/synth_lab/domain/entities/cluster_result.py (ClusterProfile, ElbowDataPoint, KMeansResult, DendrogramNode, SuggestedCut, HierarchicalResult, RadarAxis, ClusterRadar, RadarChart, DendrogramChart)
+- [x] T037 [US3] Implementar ClusteringService.cluster_kmeans() com normalização via StandardScaler em src/synth_lab/services/simulation/clustering_service.py
+- [x] T038 [US3] Implementar ClusteringService._calculate_elbow() para K de 2 a 10 em src/synth_lab/services/simulation/clustering_service.py
+- [x] T039 [US3] Implementar ClusteringService._suggest_label() para nomes de clusters em src/synth_lab/services/simulation/clustering_service.py
+- [x] T040 [US3] Implementar ClusteringService.cluster_hierarchical() com scipy.cluster.hierarchy em src/synth_lab/services/simulation/clustering_service.py
+- [x] T041 [US3] Implementar ClusteringService.cut_dendrogram() para cortar em N clusters em src/synth_lab/services/simulation/clustering_service.py
+- [x] T042 [US3] Implementar ClusteringService.get_radar_chart() para visualização de clusters em src/synth_lab/services/simulation/clustering_service.py
 - [ ] T043 [P] [US3] Adicionar endpoint POST /simulation/simulations/{id}/clusters em src/synth_lab/api/routers/simulation.py
 - [ ] T044 [P] [US3] Adicionar endpoint GET /simulation/simulations/{id}/clusters em src/synth_lab/api/routers/simulation.py
 - [ ] T045 [P] [US3] Adicionar endpoint GET /simulation/simulations/{id}/clusters/elbow em src/synth_lab/api/routers/simulation.py
