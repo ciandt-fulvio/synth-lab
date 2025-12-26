@@ -13,9 +13,15 @@ Main components:
 - scorecard_llm: LLM integration for insights
 - chart_data_service: UX Research analysis chart data generation
 - feature_extraction: Feature extraction utilities for ML algorithms
+- clustering_service: K-Means and Hierarchical clustering
+- outlier_service: Extreme cases and outlier detection
+- explainability_service: SHAP and PDP analysis
+- insight_service: LLM-generated chart insights
 """
 
 from synth_lab.services.simulation.chart_data_service import ChartDataService
+from synth_lab.services.simulation.clustering_service import ClusteringService
+from synth_lab.services.simulation.explainability_service import ExplainabilityService
 from synth_lab.services.simulation.feature_extraction import (
     DEFAULT_FEATURES,
     extract_features,
@@ -23,6 +29,11 @@ from synth_lab.services.simulation.feature_extraction import (
     get_available_attributes,
     get_outcome_value,
 )
+from synth_lab.services.simulation.insight_service import (
+    InsightGenerationError,
+    InsightService,
+)
+from synth_lab.services.simulation.outlier_service import OutlierService
 from synth_lab.services.simulation.scorecard_llm import ScorecardLLM
 from synth_lab.services.simulation.scorecard_service import (
     ScorecardNotFoundError,
@@ -47,6 +58,12 @@ __all__ = [
     "get_scenario",
     # Analysis (UX Research)
     "ChartDataService",
+    "ClusteringService",
+    "OutlierService",
+    "ExplainabilityService",
+    "InsightService",
+    "InsightGenerationError",
+    # Feature extraction
     "DEFAULT_FEATURES",
     "extract_features",
     "get_attribute_value",

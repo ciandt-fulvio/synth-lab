@@ -964,7 +964,7 @@ def get_chart_data_service() -> ChartDataService:
 
 
 def get_simulation_outcomes_as_entities(
-    service: SimulationService, simulation_id: str
+    service: SimulationService, simulation_id: str, min_outcomes: int = 0
 ) -> list[SynthOutcome]:
     """
     Get all simulation outcomes as SynthOutcome entities.
@@ -972,9 +972,13 @@ def get_simulation_outcomes_as_entities(
     Args:
         service: SimulationService instance.
         simulation_id: ID of the simulation.
+        min_outcomes: Minimum number of outcomes required. Raises HTTPException if not met.
 
     Returns:
         List of SynthOutcome entities.
+
+    Raises:
+        HTTPException: If fewer than min_outcomes outcomes are found.
     """
     from synth_lab.domain.entities import SimulationAttributes
 
@@ -992,6 +996,13 @@ def get_simulation_outcomes_as_entities(
             synth_attributes=SimulationAttributes.model_validate(item["synth_attributes"]),
         )
         outcomes.append(outcome)
+
+    if len(outcomes) < min_outcomes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Simulation {simulation_id} has {len(outcomes)} outcomes, "
+            f"but at least {min_outcomes} are required for this operation",
+        )
 
     return outcomes
 
