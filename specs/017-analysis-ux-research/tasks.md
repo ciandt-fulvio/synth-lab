@@ -11,7 +11,7 @@
 
 ## 📊 Progress Summary
 
-**Status**: MVP Completed (Phases 1-4) ✅
+**Status**: MVP + Phase 5 Completed (Phases 1-5) ✅
 
 | Phase | Status | Tasks | Description |
 |-------|--------|-------|-------------|
@@ -19,14 +19,14 @@
 | Phase 2: Foundational | ✅ DONE | 5/5 | Entities and helpers |
 | Phase 3: US1 - Visão Geral | ✅ DONE | 10/10 | Try vs Success, Distribution, Sankey |
 | Phase 4: US2 - Localização | ✅ DONE | 13/13 | Heatmap, Scatter, Tornado, Box Plot |
-| Phase 5: US3 - Segmentação | ⏳ TODO | 0/19 | K-Means, Hierarchical Clustering |
+| Phase 5: US3 - Segmentação | ✅ DONE | 19/19 | K-Means, Hierarchical Clustering |
 | Phase 6: US4 - Casos Especiais | ⏳ TODO | 0/12 | Extreme Cases, Outliers |
 | Phase 7: US5 - Explicabilidade | ⏳ TODO | 0/16 | SHAP, PDP |
 | Phase 8: US6 - Insights LLM | ⏳ TODO | 0/12 | Captions, Insights |
 | Phase 9: Polish | ⏳ TODO | 0/7 | Cross-cutting concerns |
 
-**Completed**: 31/97 tasks (32%)
-**Remaining**: 66/97 tasks (68%)
+**Completed**: 50/97 tasks (52%)
+**Remaining**: 47/97 tasks (48%)
 
 ### MVP Delivered (commit a58873f)
 
@@ -177,14 +177,14 @@
 - [x] T040 [US3] Implementar ClusteringService.cluster_hierarchical() com scipy.cluster.hierarchy em src/synth_lab/services/simulation/clustering_service.py
 - [x] T041 [US3] Implementar ClusteringService.cut_dendrogram() para cortar em N clusters em src/synth_lab/services/simulation/clustering_service.py
 - [x] T042 [US3] Implementar ClusteringService.get_radar_chart() para visualização de clusters em src/synth_lab/services/simulation/clustering_service.py
-- [ ] T043 [P] [US3] Adicionar endpoint POST /simulation/simulations/{id}/clusters em src/synth_lab/api/routers/simulation.py
-- [ ] T044 [P] [US3] Adicionar endpoint GET /simulation/simulations/{id}/clusters em src/synth_lab/api/routers/simulation.py
-- [ ] T045 [P] [US3] Adicionar endpoint GET /simulation/simulations/{id}/clusters/elbow em src/synth_lab/api/routers/simulation.py
-- [ ] T046 [P] [US3] Adicionar endpoint GET /simulation/simulations/{id}/clusters/dendrogram em src/synth_lab/api/routers/simulation.py
-- [ ] T047 [P] [US3] Adicionar endpoint GET /simulation/simulations/{id}/clusters/{cluster_id}/radar em src/synth_lab/api/routers/simulation.py
-- [ ] T048 [P] [US3] Adicionar endpoint GET /simulation/simulations/{id}/clusters/radar-comparison em src/synth_lab/api/routers/simulation.py
-- [ ] T049 [P] [US3] Adicionar endpoint POST /simulation/simulations/{id}/clusters/cut em src/synth_lab/api/routers/simulation.py
-- [ ] T050 [US3] Integration test para endpoints de clustering em tests/integration/api/test_analysis_endpoints.py
+- [x] T043 [P] [US3] Adicionar endpoint POST /simulation/simulations/{id}/clusters em src/synth_lab/api/routers/simulation.py
+- [x] T044 [P] [US3] Adicionar endpoint GET /simulation/simulations/{id}/clusters em src/synth_lab/api/routers/simulation.py
+- [x] T045 [P] [US3] Adicionar endpoint GET /simulation/simulations/{id}/clusters/elbow em src/synth_lab/api/routers/simulation.py
+- [x] T046 [P] [US3] Adicionar endpoint GET /simulation/simulations/{id}/clusters/dendrogram em src/synth_lab/api/routers/simulation.py
+- [x] T047 [P] [US3] Adicionar endpoint GET /simulation/simulations/{id}/clusters/{cluster_id}/radar em src/synth_lab/api/routers/simulation.py
+- [x] T048 [P] [US3] Adicionar endpoint GET /simulation/simulations/{id}/clusters/radar-comparison em src/synth_lab/api/routers/simulation.py
+- [x] T049 [P] [US3] Adicionar endpoint POST /simulation/simulations/{id}/clusters/cut em src/synth_lab/api/routers/simulation.py
+- [x] T050 [US3] Integration test para endpoints de clustering em tests/integration/api/test_clustering_endpoints.py
 
 **Checkpoint**: User Stories 1, 2 e 3 funcionais - Segmentação disponível
 

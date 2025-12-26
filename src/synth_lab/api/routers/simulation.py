@@ -18,7 +18,10 @@ from pydantic import BaseModel, Field
 from synth_lab.domain.entities import (
     FailureHeatmapChart,
     FeatureScorecard,
+    HierarchicalResult,
+    KMeansResult,
     OutcomeDistributionChart,
+    RadarChart,
     RegionAnalysis,
     SankeyChart,
     Scenario,
@@ -36,7 +39,9 @@ from synth_lab.services.simulation.scorecard_service import (
     ValidationError,
 )
 from synth_lab.services.simulation.chart_data_service import ChartDataService
+from synth_lab.services.simulation.clustering_service import ClusteringService
 from synth_lab.services.simulation.simulation_service import SimulationService
+from synth_lab.api.schemas.analysis import ClusterRequest, CutDendrogramRequest
 
 router = APIRouter()
 
@@ -1247,6 +1252,314 @@ async def get_tornado_chart(
         simulation_id=simulation_id,
         sensitivity_result=sensitivity_result,
     )
+
+
+# --- Clustering Endpoints (User Story 3) ---
+
+
+def get_clustering_service() -> ClusteringService:
+    """Get clustering service instance."""
+    return ClusteringService()
+
+
+# Cache for clustering results (in-memory, per simulation)
+# In production, consider using Redis or database storage
+_clustering_cache: dict[str, KMeansResult | HierarchicalResult] = {}
+
+
+@router.post(
+    "/simulations/{simulation_id}/clusters",
+    response_model=KMeansResult | HierarchicalResult,
+)
+async def create_clustering(
+    simulation_id: str,
+    request: ClusterRequest,
+) -> KMeansResult | HierarchicalResult:
+    """
+    Create clustering analysis for simulation.
+
+    Supports both K-Means and Hierarchical clustering.
+    Results are cached for subsequent requests.
+
+    Args:
+        simulation_id: ID of the simulation.
+        request: Clustering parameters.
+
+    Returns:
+        KMeansResult or HierarchicalResult depending on method.
+    """
+    sim_service = get_simulation_service()
+    clustering_service = get_clustering_service()
+
+    # Verify simulation exists and is completed
+    run = sim_service.get_simulation(simulation_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404, detail=f"Simulation {simulation_id} not found"
+        )
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
+        )
+
+    # Get outcomes
+    outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
+
+    if len(outcomes) < 10:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Clustering requires at least 10 synths, got {len(outcomes)}",
+        )
+
+    # Perform clustering
+    if request.method == "kmeans":
+        result = clustering_service.cluster_kmeans(
+            simulation_id=simulation_id,
+            outcomes=outcomes,
+            n_clusters=request.n_clusters,
+            features=request.features,
+        )
+    else:  # hierarchical
+        result = clustering_service.cluster_hierarchical(
+            simulation_id=simulation_id,
+            outcomes=outcomes,
+            features=request.features,
+            linkage_method=request.linkage,
+        )
+
+    # Cache result
+    cache_key = f"{simulation_id}:{request.method}"
+    _clustering_cache[cache_key] = result
+
+    return result
+
+
+@router.get(
+    "/simulations/{simulation_id}/clusters",
+    response_model=KMeansResult | HierarchicalResult,
+)
+async def get_clustering(
+    simulation_id: str,
+) -> KMeansResult | HierarchicalResult:
+    """
+    Get cached clustering result for simulation.
+
+    Returns the most recent clustering analysis (either K-Means or Hierarchical).
+
+    Raises:
+        404: If no clustering has been created yet.
+    """
+    # Try to find cached result (check both methods)
+    kmeans_key = f"{simulation_id}:kmeans"
+    hierarchical_key = f"{simulation_id}:hierarchical"
+
+    if kmeans_key in _clustering_cache:
+        return _clustering_cache[kmeans_key]
+    elif hierarchical_key in _clustering_cache:
+        return _clustering_cache[hierarchical_key]
+    else:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No clustering found for simulation {simulation_id}. "
+            "Create clustering first via POST /clusters",
+        )
+
+
+@router.get(
+    "/simulations/{simulation_id}/clusters/elbow",
+    response_model=list,
+)
+async def get_elbow_data(
+    simulation_id: str,
+) -> list:
+    """
+    Get elbow method data for determining optimal number of clusters.
+
+    Returns elbow data from the most recent K-Means clustering.
+    If no K-Means clustering exists, returns empty list.
+    """
+    cache_key = f"{simulation_id}:kmeans"
+
+    if cache_key not in _clustering_cache:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No K-Means clustering found for simulation {simulation_id}. "
+            "Create K-Means clustering first via POST /clusters with method='kmeans'",
+        )
+
+    result = _clustering_cache[cache_key]
+    if isinstance(result, KMeansResult):
+        return result.elbow_data
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Elbow data only available for K-Means clustering",
+        )
+
+
+@router.get(
+    "/simulations/{simulation_id}/clusters/dendrogram",
+    response_model=HierarchicalResult,
+)
+async def get_dendrogram(
+    simulation_id: str,
+) -> HierarchicalResult:
+    """
+    Get dendrogram data for hierarchical clustering.
+
+    Returns the hierarchical clustering result with full dendrogram.
+    """
+    cache_key = f"{simulation_id}:hierarchical"
+
+    if cache_key not in _clustering_cache:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No hierarchical clustering found for simulation {simulation_id}. "
+            "Create hierarchical clustering first via POST /clusters with method='hierarchical'",
+        )
+
+    result = _clustering_cache[cache_key]
+    if isinstance(result, HierarchicalResult):
+        return result
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Dendrogram only available for hierarchical clustering",
+        )
+
+
+@router.get(
+    "/simulations/{simulation_id}/clusters/{cluster_id}/radar",
+    response_model=RadarChart,
+)
+async def get_cluster_radar(
+    simulation_id: str,
+    cluster_id: int,
+) -> RadarChart:
+    """
+    Get radar chart for a specific cluster.
+
+    Shows the feature profile of a single cluster compared to baseline.
+    """
+    clustering_service = get_clustering_service()
+
+    # Get K-Means result from cache
+    cache_key = f"{simulation_id}:kmeans"
+    if cache_key not in _clustering_cache:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No K-Means clustering found for simulation {simulation_id}",
+        )
+
+    kmeans_result = _clustering_cache[cache_key]
+    if not isinstance(kmeans_result, KMeansResult):
+        raise HTTPException(
+            status_code=400,
+            detail="Radar chart only available for K-Means clustering",
+        )
+
+    # Verify cluster exists
+    if cluster_id < 0 or cluster_id >= kmeans_result.n_clusters:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Cluster {cluster_id} not found. "
+            f"Valid cluster IDs: 0 to {kmeans_result.n_clusters - 1}",
+        )
+
+    # Generate radar chart for all clusters, then filter
+    full_radar = clustering_service.get_radar_chart(
+        simulation_id=simulation_id,
+        kmeans_result=kmeans_result,
+    )
+
+    # Return chart with only the requested cluster
+    filtered_clusters = [c for c in full_radar.clusters if c.cluster_id == cluster_id]
+
+    return RadarChart(
+        simulation_id=simulation_id,
+        clusters=filtered_clusters,
+        axis_labels=full_radar.axis_labels,
+        baseline=full_radar.baseline,
+    )
+
+
+@router.get(
+    "/simulations/{simulation_id}/clusters/radar-comparison",
+    response_model=RadarChart,
+)
+async def get_radar_comparison(
+    simulation_id: str,
+) -> RadarChart:
+    """
+    Get radar chart comparing all clusters.
+
+    Shows feature profiles of all clusters side-by-side.
+    """
+    clustering_service = get_clustering_service()
+
+    # Get K-Means result from cache
+    cache_key = f"{simulation_id}:kmeans"
+    if cache_key not in _clustering_cache:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No K-Means clustering found for simulation {simulation_id}",
+        )
+
+    kmeans_result = _clustering_cache[cache_key]
+    if not isinstance(kmeans_result, KMeansResult):
+        raise HTTPException(
+            status_code=400,
+            detail="Radar chart only available for K-Means clustering",
+        )
+
+    return clustering_service.get_radar_chart(
+        simulation_id=simulation_id,
+        kmeans_result=kmeans_result,
+    )
+
+
+@router.post(
+    "/simulations/{simulation_id}/clusters/cut",
+    response_model=HierarchicalResult,
+)
+async def cut_dendrogram(
+    simulation_id: str,
+    request: CutDendrogramRequest,
+) -> HierarchicalResult:
+    """
+    Cut hierarchical clustering dendrogram at specified number of clusters.
+
+    Updates the cached hierarchical result with cluster assignments.
+    """
+    clustering_service = get_clustering_service()
+
+    # Get hierarchical result from cache
+    cache_key = f"{simulation_id}:hierarchical"
+    if cache_key not in _clustering_cache:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No hierarchical clustering found for simulation {simulation_id}. "
+            "Create hierarchical clustering first.",
+        )
+
+    hierarchical_result = _clustering_cache[cache_key]
+    if not isinstance(hierarchical_result, HierarchicalResult):
+        raise HTTPException(
+            status_code=400,
+            detail="Cut operation only available for hierarchical clustering",
+        )
+
+    # Cut the dendrogram
+    cut_result = clustering_service.cut_dendrogram(
+        hierarchical_result=hierarchical_result,
+        n_clusters=request.n_clusters,
+    )
+
+    # Update cache with cut result
+    _clustering_cache[cache_key] = cut_result
+
+    return cut_result
 
 
 if __name__ == "__main__":
