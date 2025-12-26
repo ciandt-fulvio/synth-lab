@@ -11,8 +11,18 @@ Main components:
 - simulation_service: Simulation orchestration and execution
 - scorecard_service: Feature scorecard management
 - scorecard_llm: LLM integration for insights
+- chart_data_service: UX Research analysis chart data generation
+- feature_extraction: Feature extraction utilities for ML algorithms
 """
 
+from synth_lab.services.simulation.chart_data_service import ChartDataService
+from synth_lab.services.simulation.feature_extraction import (
+    DEFAULT_FEATURES,
+    extract_features,
+    get_attribute_value,
+    get_available_attributes,
+    get_outcome_value,
+)
 from synth_lab.services.simulation.scorecard_llm import ScorecardLLM
 from synth_lab.services.simulation.scorecard_service import (
     ScorecardNotFoundError,
@@ -26,11 +36,20 @@ from synth_lab.services.simulation.simulation_service import (
 )
 
 __all__ = [
+    # Scorecard
     "ScorecardService",
     "ScorecardNotFoundError",
     "ValidationError",
     "ScorecardLLM",
+    # Simulation
     "SimulationService",
     "list_scenarios",
     "get_scenario",
+    # Analysis (UX Research)
+    "ChartDataService",
+    "DEFAULT_FEATURES",
+    "extract_features",
+    "get_attribute_value",
+    "get_available_attributes",
+    "get_outcome_value",
 ]

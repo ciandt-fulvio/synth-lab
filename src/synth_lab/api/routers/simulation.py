@@ -16,9 +16,16 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from synth_lab.domain.entities import (
+    FailureHeatmapChart,
     FeatureScorecard,
+    OutcomeDistributionChart,
     RegionAnalysis,
+    SankeyChart,
     Scenario,
+    ScatterCorrelationChart,
+    SynthOutcome,
+    TornadoChart,
+    TryVsSuccessChart,
 )
 from synth_lab.infrastructure.database import get_database
 from synth_lab.repositories.scorecard_repository import ScorecardRepository
@@ -28,6 +35,7 @@ from synth_lab.services.simulation.scorecard_service import (
     ScorecardService,
     ValidationError,
 )
+from synth_lab.services.simulation.chart_data_service import ChartDataService
 from synth_lab.services.simulation.simulation_service import SimulationService
 
 router = APIRouter()
@@ -912,6 +920,333 @@ async def analyze_sensitivity(
         raise HTTPException(
             status_code=500, detail=f"Sensitivity analysis failed: {str(e)}"
         )
+
+
+# --- Analysis Chart Endpoints (User Story 1 & 2) ---
+
+
+def get_chart_data_service() -> ChartDataService:
+    """Get chart data service instance."""
+    return ChartDataService()
+
+
+def get_simulation_outcomes_as_entities(
+    service: SimulationService, simulation_id: str
+) -> list[SynthOutcome]:
+    """
+    Get all simulation outcomes as SynthOutcome entities.
+
+    Args:
+        service: SimulationService instance.
+        simulation_id: ID of the simulation.
+
+    Returns:
+        List of SynthOutcome entities.
+    """
+    from synth_lab.domain.entities import SimulationAttributes
+
+    # Get all outcomes (up to 10000 for analysis)
+    result = service.get_simulation_outcomes(run_id=simulation_id, limit=10000, offset=0)
+
+    outcomes = []
+    for item in result["items"]:
+        outcome = SynthOutcome(
+            simulation_id=simulation_id,
+            synth_id=item["synth_id"],
+            did_not_try_rate=item["did_not_try_rate"],
+            failed_rate=item["failed_rate"],
+            success_rate=item["success_rate"],
+            synth_attributes=SimulationAttributes.model_validate(item["synth_attributes"]),
+        )
+        outcomes.append(outcome)
+
+    return outcomes
+
+
+@router.get(
+    "/simulations/{simulation_id}/charts/try-vs-success",
+    response_model=TryVsSuccessChart,
+)
+async def get_try_vs_success_chart(
+    simulation_id: str,
+    x_threshold: float = Query(
+        default=0.5, ge=0.0, le=1.0, description="X-axis threshold for quadrant division"
+    ),
+    y_threshold: float = Query(
+        default=0.5, ge=0.0, le=1.0, description="Y-axis threshold for quadrant division"
+    ),
+) -> TryVsSuccessChart:
+    """
+    Get Try vs Success scatter plot data.
+
+    Each point represents one synth:
+    - X-axis: attempt_rate = 1 - did_not_try_rate
+    - Y-axis: success_rate
+
+    Quadrants:
+    - ok: high attempt, high success
+    - usability_issue: high attempt, low success
+    - discovery_issue: low attempt, high success
+    - low_value: low attempt, low success
+    """
+    sim_service = get_simulation_service()
+    chart_service = get_chart_data_service()
+
+    # Verify simulation exists and is completed
+    run = sim_service.get_simulation(simulation_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404, detail=f"Simulation {simulation_id} not found"
+        )
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
+        )
+
+    outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
+
+    return chart_service.get_try_vs_success(
+        simulation_id=simulation_id,
+        outcomes=outcomes,
+        x_threshold=x_threshold,
+        y_threshold=y_threshold,
+    )
+
+
+@router.get(
+    "/simulations/{simulation_id}/charts/distribution",
+    response_model=OutcomeDistributionChart,
+)
+async def get_distribution_chart(
+    simulation_id: str,
+    sort_by: str = Query(
+        default="success_rate",
+        description="Field to sort by: success_rate, failed_rate, did_not_try_rate",
+    ),
+    order: str = Query(default="desc", description="Sort order: asc or desc"),
+    limit: int = Query(default=50, ge=1, le=1000, description="Maximum results"),
+) -> OutcomeDistributionChart:
+    """
+    Get outcome distribution chart data.
+
+    Shows distribution of outcomes across synths, sorted by specified metric.
+    """
+    sim_service = get_simulation_service()
+    chart_service = get_chart_data_service()
+
+    # Verify simulation exists and is completed
+    run = sim_service.get_simulation(simulation_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404, detail=f"Simulation {simulation_id} not found"
+        )
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
+        )
+
+    # Validate sort_by
+    valid_sort_fields = ["success_rate", "failed_rate", "did_not_try_rate"]
+    if sort_by not in valid_sort_fields:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid sort_by: {sort_by}. Must be one of {valid_sort_fields}",
+        )
+
+    # Validate order
+    if order not in ["asc", "desc"]:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid order: {order}. Must be 'asc' or 'desc'"
+        )
+
+    outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
+
+    return chart_service.get_outcome_distribution(
+        simulation_id=simulation_id,
+        outcomes=outcomes,
+        sort_by=sort_by,  # type: ignore
+        order=order,  # type: ignore
+        limit=limit,
+    )
+
+
+@router.get(
+    "/simulations/{simulation_id}/charts/sankey",
+    response_model=SankeyChart,
+)
+async def get_sankey_chart(
+    simulation_id: str,
+) -> SankeyChart:
+    """
+    Get Sankey diagram data.
+
+    Flow: All -> [Attempted, Not Attempted] -> [Success, Failed]
+    """
+    sim_service = get_simulation_service()
+    chart_service = get_chart_data_service()
+
+    # Verify simulation exists and is completed
+    run = sim_service.get_simulation(simulation_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404, detail=f"Simulation {simulation_id} not found"
+        )
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
+        )
+
+    outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
+
+    return chart_service.get_sankey(simulation_id=simulation_id, outcomes=outcomes)
+
+
+@router.get(
+    "/simulations/{simulation_id}/charts/failure-heatmap",
+    response_model=FailureHeatmapChart,
+)
+async def get_failure_heatmap_chart(
+    simulation_id: str,
+    x_axis: str = Query(default="capability_mean", description="X-axis attribute"),
+    y_axis: str = Query(default="trust_mean", description="Y-axis attribute"),
+    bins: int = Query(default=5, ge=2, le=20, description="Number of bins per axis"),
+    metric: str = Query(
+        default="failed_rate",
+        description="Metric to display: failed_rate, success_rate, did_not_try_rate",
+    ),
+) -> FailureHeatmapChart:
+    """
+    Get failure heatmap data.
+
+    Creates a 2D binned heatmap showing metric values across two attributes.
+    Useful for identifying problematic attribute combinations.
+    """
+    sim_service = get_simulation_service()
+    chart_service = get_chart_data_service()
+
+    # Verify simulation exists and is completed
+    run = sim_service.get_simulation(simulation_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404, detail=f"Simulation {simulation_id} not found"
+        )
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
+        )
+
+    # Validate metric
+    valid_metrics = ["failed_rate", "success_rate", "did_not_try_rate"]
+    if metric not in valid_metrics:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid metric: {metric}. Must be one of {valid_metrics}",
+        )
+
+    outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
+
+    return chart_service.get_failure_heatmap(
+        simulation_id=simulation_id,
+        outcomes=outcomes,
+        x_axis=x_axis,
+        y_axis=y_axis,
+        bins=bins,
+        metric=metric,  # type: ignore
+    )
+
+
+@router.get(
+    "/simulations/{simulation_id}/charts/scatter",
+    response_model=ScatterCorrelationChart,
+)
+async def get_scatter_correlation_chart(
+    simulation_id: str,
+    x_axis: str = Query(default="trust_mean", description="X-axis attribute"),
+    y_axis: str = Query(default="success_rate", description="Y-axis attribute"),
+    show_trendline: bool = Query(default=True, description="Include trend line"),
+) -> ScatterCorrelationChart:
+    """
+    Get scatter correlation chart data.
+
+    Shows correlation between two attributes with optional trend line.
+    Includes Pearson correlation coefficient and p-value.
+    """
+    sim_service = get_simulation_service()
+    chart_service = get_chart_data_service()
+
+    # Verify simulation exists and is completed
+    run = sim_service.get_simulation(simulation_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404, detail=f"Simulation {simulation_id} not found"
+        )
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
+        )
+
+    outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
+
+    return chart_service.get_scatter_correlation(
+        simulation_id=simulation_id,
+        outcomes=outcomes,
+        x_axis=x_axis,
+        y_axis=y_axis,
+        show_trendline=show_trendline,
+    )
+
+
+@router.get(
+    "/simulations/{simulation_id}/charts/tornado",
+    response_model=TornadoChart,
+)
+async def get_tornado_chart(
+    simulation_id: str,
+) -> TornadoChart:
+    """
+    Get tornado diagram data from sensitivity analysis.
+
+    Requires sensitivity analysis to be run first via /sensitivity endpoint.
+    Shows which dimensions have the greatest impact on outcomes.
+    """
+    sim_service = get_simulation_service()
+    chart_service = get_chart_data_service()
+
+    # Verify simulation exists and is completed
+    run = sim_service.get_simulation(simulation_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404, detail=f"Simulation {simulation_id} not found"
+        )
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
+        )
+
+    # Get sensitivity result from database
+    from synth_lab.repositories.sensitivity_repository import SensitivityRepository
+
+    db = get_database()
+    sens_repo = SensitivityRepository(db)
+    sensitivity_result = sens_repo.get_by_simulation_id(simulation_id)
+
+    if sensitivity_result is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No sensitivity analysis found for simulation {simulation_id}. "
+            "Run /sensitivity endpoint first.",
+        )
+
+    return chart_service.get_tornado(
+        simulation_id=simulation_id,
+        sensitivity_result=sensitivity_result,
+    )
 
 
 if __name__ == "__main__":
