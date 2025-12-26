@@ -33,32 +33,64 @@
 - 7 Clustering endpoints (US3)
 - 2 Outlier endpoints (US4)
 
-### MVP Delivered (commit a58873f)
+### Implementation Timeline
 
-✅ **6 Analysis Endpoints**:
+**Commit History**:
+1. `a58873f` - Phase 3+4: Analysis charts (US1+US2 MVP)
+2. `10ae616` - Phase 5: Clustering service (US3)
+3. `9c04ac3` - Phase 5: Clustering API + integration tests (US3 complete)
+4. `6b2ec1e` - Phase 6: Outlier detection (US4 complete)
+5. `4cd7570` - Final: MVP documentation + roadmap
+
+### MVP Delivered - All Core Features (Phases 1-6)
+
+✅ **Analysis Charts** (US1+US2 - 6 endpoints):
 - `GET /simulation/simulations/{id}/charts/try-vs-success` - Quadrant scatter plot
 - `GET /simulation/simulations/{id}/charts/distribution` - Outcome distribution
 - `GET /simulation/simulations/{id}/charts/sankey` - User flow diagram
 - `GET /simulation/simulations/{id}/charts/failure-heatmap` - 2D binned heatmap
 - `GET /simulation/simulations/{id}/charts/scatter` - Correlation with Pearson stats
 - `GET /simulation/simulations/{id}/charts/tornado` - Sensitivity diagram
+- `GET /simulation/simulations/{id}/charts/box-plot` - Regional box plots
+
+✅ **Clustering & Segmentation** (US3 - 7 endpoints):
+- `POST /simulation/simulations/{id}/clusters` - Create K-Means or Hierarchical clustering
+- `GET /simulation/simulations/{id}/clusters` - Retrieve clustering results
+- `GET /simulation/simulations/{id}/clusters/elbow` - Elbow method data (k=2 to 10)
+- `GET /simulation/simulations/{id}/clusters/dendrogram` - Hierarchical visualization
+- `GET /simulation/simulations/{id}/clusters/{cluster_id}/radar` - Single cluster radar
+- `GET /simulation/simulations/{id}/clusters/radar-comparison` - Compare all clusters
+- `POST /simulation/simulations/{id}/clusters/cut` - Cut dendrogram at N clusters
+
+✅ **Outlier Detection** (US4 - 2 endpoints):
+- `GET /simulation/simulations/{id}/extreme-cases` - Top failures/successes + unexpected cases
+- `GET /simulation/simulations/{id}/outliers` - Statistical outliers via Isolation Forest
 
 ✅ **Core Infrastructure**:
 - ChartDataService with 7 methods
+- ClusteringService with K-Means & Hierarchical
+- OutlierService with Isolation Forest
 - Feature extraction utilities
-- 18 Pydantic entities
-- 13 API schemas
-- Complete documentation
+- 30+ Pydantic entities
+- 15+ API schemas
+- Complete test coverage (251 unit + 17 integration tests)
 
-### Next Steps
+### Future Enhancements (Optional)
 
-**Priority 2** (US3 + US4):
-1. Implement Clustering (K-Means, Hierarchical)
-2. Implement Outlier Detection (Extreme Cases, Isolation Forest)
+**Phase 7** (US5 - Explainability):
+- SHAP explanations for individual synths
+- Partial Dependence Plots (PDP) for feature effects
+- Requires production ML model training
 
-**Priority 3** (US5 + US6):
-3. Implement Explainability (SHAP, PDP)
-4. Implement LLM Insights with database cache (Caption + Insight generation)
+**Phase 8** (US6 - LLM Insights):
+- Automated chart captions
+- Executive summary generation
+- Database caching for insights
+
+**Phase 9** (Polish):
+- Additional error handling
+- Performance optimizations
+- Extended API documentation
 
 ---
 
