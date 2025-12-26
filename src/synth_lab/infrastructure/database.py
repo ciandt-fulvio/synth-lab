@@ -19,9 +19,11 @@ from loguru import logger
 
 from synth_lab.infrastructure.config import DB_PATH
 
-# Database schema SQL - Version 4 (2024-12)
+# Database schema SQL - Version 5 (2024-12)
 # Changes:
-#   - synths.data: single JSON field for all nested data (demografia, psicografia, etc.)
+#   - v4: synths.data: single JSON field for all nested data
+#   - v5: Added simulation tables (feature_scorecards, simulation_runs, synth_outcomes,
+#         region_analyses, assumption_log)
 SCHEMA_SQL = """
 -- Enable recommended settings
 PRAGMA journal_mode=WAL;
@@ -112,6 +114,82 @@ CREATE TABLE IF NOT EXISTS topic_guides_cache (
     created_at TEXT,
     updated_at TEXT
 );
+
+-- Feature Scorecards (simulation)
+CREATE TABLE IF NOT EXISTS feature_scorecards (
+    id TEXT PRIMARY KEY,
+    data TEXT NOT NULL CHECK(json_valid(data)),
+    created_at TEXT NOT NULL,
+    updated_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_scorecards_created ON feature_scorecards(created_at DESC);
+
+-- Simulation Runs
+CREATE TABLE IF NOT EXISTS simulation_runs (
+    id TEXT PRIMARY KEY,
+    scorecard_id TEXT NOT NULL,
+    scenario_id TEXT NOT NULL,
+    config TEXT NOT NULL CHECK(json_valid(config)),
+    status TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    completed_at TEXT,
+    total_synths INTEGER DEFAULT 0,
+    aggregated_outcomes TEXT CHECK(json_valid(aggregated_outcomes) OR aggregated_outcomes IS NULL),
+    execution_time_seconds REAL,
+    CHECK(status IN ('pending', 'running', 'completed', 'failed')),
+    FOREIGN KEY (scorecard_id) REFERENCES feature_scorecards(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_simulations_scorecard ON simulation_runs(scorecard_id);
+CREATE INDEX IF NOT EXISTS idx_simulations_status ON simulation_runs(status);
+
+-- Synth Outcomes (simulation results per synth)
+CREATE TABLE IF NOT EXISTS synth_outcomes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    simulation_id TEXT NOT NULL,
+    synth_id TEXT NOT NULL,
+    did_not_try_rate REAL NOT NULL,
+    failed_rate REAL NOT NULL,
+    success_rate REAL NOT NULL,
+    synth_attributes TEXT CHECK(json_valid(synth_attributes)),
+    UNIQUE(simulation_id, synth_id),
+    FOREIGN KEY (simulation_id) REFERENCES simulation_runs(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_outcomes_simulation ON synth_outcomes(simulation_id);
+
+-- Region Analyses (simulation analysis results)
+CREATE TABLE IF NOT EXISTS region_analyses (
+    id TEXT PRIMARY KEY,
+    simulation_id TEXT NOT NULL,
+    rules TEXT NOT NULL CHECK(json_valid(rules)),
+    rule_text TEXT NOT NULL,
+    synth_count INTEGER NOT NULL,
+    synth_percentage REAL NOT NULL,
+    did_not_try_rate REAL NOT NULL,
+    failed_rate REAL NOT NULL,
+    success_rate REAL NOT NULL,
+    failure_delta REAL NOT NULL,
+    FOREIGN KEY (simulation_id) REFERENCES simulation_runs(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_regions_simulation ON region_analyses(simulation_id);
+
+-- Assumption Log (audit trail)
+CREATE TABLE IF NOT EXISTS assumption_log (
+    id TEXT PRIMARY KEY,
+    timestamp TEXT NOT NULL,
+    action TEXT NOT NULL,
+    scorecard_id TEXT,
+    simulation_id TEXT,
+    data TEXT CHECK(json_valid(data) OR data IS NULL),
+    user TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_log_timestamp ON assumption_log(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_log_action ON assumption_log(action);
+CREATE INDEX IF NOT EXISTS idx_log_scorecard ON assumption_log(scorecard_id);
 """
 
 
