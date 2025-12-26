@@ -23,14 +23,23 @@ from synth_lab.domain.entities import (
     KMeansResult,
     OutcomeDistributionChart,
     OutlierResult,
+    PDPComparison,
+    PDPResult,
     RadarChart,
     RegionAnalysis,
     SankeyChart,
     Scenario,
     ScatterCorrelationChart,
+    ShapExplanation,
+    ShapSummary,
     SynthOutcome,
     TornadoChart,
     TryVsSuccessChart,
+)
+from synth_lab.domain.entities.chart_insight import (
+    ChartInsight,
+    ChartType,
+    SimulationInsights,
 )
 from synth_lab.infrastructure.database import get_database
 from synth_lab.repositories.scorecard_repository import ScorecardRepository
@@ -42,6 +51,8 @@ from synth_lab.services.simulation.scorecard_service import (
 )
 from synth_lab.services.simulation.chart_data_service import ChartDataService
 from synth_lab.services.simulation.clustering_service import ClusteringService
+from synth_lab.services.simulation.explainability_service import ExplainabilityService
+from synth_lab.services.simulation.insight_service import InsightService, InsightGenerationError
 from synth_lab.services.simulation.outlier_service import OutlierService
 from synth_lab.services.simulation.simulation_service import SimulationService
 from synth_lab.api.schemas.analysis import ClusterRequest, CutDendrogramRequest
@@ -298,6 +309,9 @@ class SensitivityResultResponse(BaseModel):
     analyzed_at: str
     deltas_used: list[float]
     dimensions: list[DimensionSensitivityResponse]
+    baseline_success: float = Field(
+        default=0.0, description="Baseline success rate from the original simulation"
+    )
 
 
 # --- Helper Functions ---
@@ -852,6 +866,14 @@ async def compare_simulations(
         )
 
 
+# NOTE: Sensitivity analysis results are persisted in the database
+# (sensitivity_results table) for:
+# - Persistence across server restarts
+# - Multi-instance compatibility
+# - Historical tracking
+# - No memory leaks
+
+
 @router.get(
     "/simulations/{simulation_id}/sensitivity",
     response_model=SensitivityResultResponse,
@@ -903,6 +925,8 @@ async def analyze_sensitivity(
             simulation_id=simulation_id, deltas=delta_values
         )
 
+        # Note: Result is automatically persisted to database by analyzer
+
         # Convert to response
         dimensions_response = [
             DimensionSensitivityResponse(
@@ -921,6 +945,7 @@ async def analyze_sensitivity(
             analyzed_at=result.analyzed_at.isoformat(),
             deltas_used=result.deltas_used,
             dimensions=dimensions_response,
+            baseline_success=result.baseline_success,
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -977,11 +1002,17 @@ def get_simulation_outcomes_as_entities(
 )
 async def get_try_vs_success_chart(
     simulation_id: str,
-    x_threshold: float = Query(
-        default=0.5, ge=0.0, le=1.0, description="X-axis threshold for quadrant division"
+    attempt_rate_threshold: float = Query(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Minimum attempt rate (1 - did_not_try_rate) for high engagement quadrants",
     ),
-    y_threshold: float = Query(
-        default=0.5, ge=0.0, le=1.0, description="Y-axis threshold for quadrant division"
+    success_rate_threshold: float = Query(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Minimum success rate for high performance quadrants",
     ),
 ) -> TryVsSuccessChart:
     """
@@ -992,10 +1023,10 @@ async def get_try_vs_success_chart(
     - Y-axis: success_rate
 
     Quadrants:
-    - ok: high attempt, high success
-    - usability_issue: high attempt, low success
-    - discovery_issue: low attempt, high success
-    - low_value: low attempt, low success
+    - ok: high attempt (>= attempt_rate_threshold), high success (>= success_rate_threshold)
+    - usability_issue: high attempt (>= attempt_rate_threshold), low success (< success_rate_threshold)
+    - discovery_issue: low attempt (< attempt_rate_threshold), high success (>= success_rate_threshold)
+    - low_value: low attempt (< attempt_rate_threshold), low success (< success_rate_threshold)
     """
     sim_service = get_simulation_service()
     chart_service = get_chart_data_service()
@@ -1017,8 +1048,8 @@ async def get_try_vs_success_chart(
     return chart_service.get_try_vs_success(
         simulation_id=simulation_id,
         outcomes=outcomes,
-        x_threshold=x_threshold,
-        y_threshold=y_threshold,
+        attempt_rate_threshold=attempt_rate_threshold,
+        success_rate_threshold=success_rate_threshold,
     )
 
 
@@ -1241,8 +1272,8 @@ async def get_tornado_chart(
     from synth_lab.repositories.sensitivity_repository import SensitivityRepository
 
     db = get_database()
-    sens_repo = SensitivityRepository(db)
-    sensitivity_result = sens_repo.get_by_simulation_id(simulation_id)
+    sensitivity_repo = SensitivityRepository(db)
+    sensitivity_result = sensitivity_repo.get_by_simulation(simulation_id)
 
     if sensitivity_result is None:
         raise HTTPException(
@@ -1266,8 +1297,27 @@ def get_clustering_service() -> ClusteringService:
 
 
 # Cache for clustering results (in-memory, per simulation)
-# In production, consider using Redis or database storage
+# IMPORTANT: This cache has no expiration and will grow indefinitely.
+# In production, consider using:
+# - Redis with TTL
+# - Database persistence
+# - LRU cache with max size
+# - Periodic cleanup task
+#
+# Current limitations:
+# - Cache survives only during server lifetime (cleared on restart)
+# - No automatic expiration (cleared only on server restart)
+# - No size limit (can grow unbounded)
+#
+# To clear cache manually: restart the API server
+# To clear programmatically: call _clear_clustering_cache() function below
 _clustering_cache: dict[str, KMeansResult | HierarchicalResult] = {}
+
+
+def _clear_clustering_cache() -> None:
+    """Clear all cached clustering results. Useful for testing/debugging."""
+    global _clustering_cache
+    _clustering_cache.clear()
 
 
 @router.post(
@@ -1690,10 +1740,449 @@ async def detect_outliers(
     return result
 
 
+# --- Explainability Endpoints (User Story 5 - SHAP & PDP) ---
+
+
+def get_explainability_service() -> ExplainabilityService:
+    """Get explainability service instance."""
+    return ExplainabilityService()
+
+
+@router.get(
+    "/simulations/{simulation_id}/shap/summary",
+    response_model=ShapSummary,
+)
+async def get_shap_summary(
+    simulation_id: str,
+) -> ShapSummary:
+    """
+    Get global SHAP summary showing feature importance.
+
+    Computes mean absolute SHAP values across all synths to rank
+    features by their overall impact on success rate predictions.
+
+    Args:
+        simulation_id: ID of the simulation.
+
+    Returns:
+        ShapSummary with feature importances and top features.
+    """
+    sim_service = get_simulation_service()
+    explain_service = get_explainability_service()
+
+    # Verify simulation exists and is completed
+    run = sim_service.get_simulation(simulation_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404, detail=f"Simulation {simulation_id} not found"
+        )
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
+        )
+
+    # Get outcomes
+    outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
+
+    if len(outcomes) < 20:
+        raise HTTPException(
+            status_code=400,
+            detail=f"SHAP summary requires at least 20 synths, got {len(outcomes)}",
+        )
+
+    try:
+        result = explain_service.get_shap_summary(
+            simulation_id=simulation_id,
+            outcomes=outcomes,
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get(
+    "/simulations/{simulation_id}/shap/{synth_id}",
+    response_model=ShapExplanation,
+)
+async def get_shap_explanation(
+    simulation_id: str,
+    synth_id: str,
+) -> ShapExplanation:
+    """
+    Get SHAP explanation for a specific synth.
+
+    Explains why the synth had its success rate by showing the contribution
+    of each feature using SHAP (SHapley Additive exPlanations) values.
+
+    Args:
+        simulation_id: ID of the simulation.
+        synth_id: ID of the synth to explain.
+
+    Returns:
+        ShapExplanation with feature contributions and explanation text.
+    """
+    sim_service = get_simulation_service()
+    explain_service = get_explainability_service()
+
+    # Verify simulation exists and is completed
+    run = sim_service.get_simulation(simulation_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404, detail=f"Simulation {simulation_id} not found"
+        )
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
+        )
+
+    # Get outcomes
+    outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
+
+    if len(outcomes) < 20:
+        raise HTTPException(
+            status_code=400,
+            detail=f"SHAP explanation requires at least 20 synths, got {len(outcomes)}",
+        )
+
+    try:
+        result = explain_service.explain_synth(
+            simulation_id=simulation_id,
+            outcomes=outcomes,
+            synth_id=synth_id,
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get(
+    "/simulations/{simulation_id}/pdp",
+    response_model=PDPResult,
+)
+async def get_pdp(
+    simulation_id: str,
+    feature: str = Query(
+        ..., description="Feature name to analyze (e.g., 'trust_mean', 'capability_mean')"
+    ),
+    grid_resolution: int = Query(
+        default=20, ge=5, le=100, description="Number of points in PDP curve"
+    ),
+) -> PDPResult:
+    """
+    Get Partial Dependence Plot for a feature.
+
+    Shows how changing the feature value affects the predicted
+    success rate, averaging over all other features.
+
+    Args:
+        simulation_id: ID of the simulation.
+        feature: Feature name to analyze.
+        grid_resolution: Number of points in PDP curve.
+
+    Returns:
+        PDPResult with PDP curve, effect type, and strength.
+    """
+    sim_service = get_simulation_service()
+    explain_service = get_explainability_service()
+
+    # Verify simulation exists and is completed
+    run = sim_service.get_simulation(simulation_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404, detail=f"Simulation {simulation_id} not found"
+        )
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
+        )
+
+    # Get outcomes
+    outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
+
+    if len(outcomes) < 20:
+        raise HTTPException(
+            status_code=400,
+            detail=f"PDP requires at least 20 synths, got {len(outcomes)}",
+        )
+
+    try:
+        result = explain_service.calculate_pdp(
+            simulation_id=simulation_id,
+            outcomes=outcomes,
+            feature=feature,
+            grid_resolution=grid_resolution,
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get(
+    "/simulations/{simulation_id}/pdp/comparison",
+    response_model=PDPComparison,
+)
+async def get_pdp_comparison(
+    simulation_id: str,
+    features: str = Query(
+        ...,
+        description="Comma-separated list of features to compare (e.g., 'trust_mean,capability_mean')",
+    ),
+    grid_resolution: int = Query(
+        default=20, ge=5, le=100, description="Number of points in each PDP curve"
+    ),
+) -> PDPComparison:
+    """
+    Compare PDPs across multiple features.
+
+    Shows how different features affect success rate predictions
+    and ranks them by effect strength.
+
+    Args:
+        simulation_id: ID of the simulation.
+        features: Comma-separated list of feature names.
+        grid_resolution: Number of points in each PDP curve.
+
+    Returns:
+        PDPComparison with all PDPs and feature ranking.
+    """
+    sim_service = get_simulation_service()
+    explain_service = get_explainability_service()
+
+    # Verify simulation exists and is completed
+    run = sim_service.get_simulation(simulation_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404, detail=f"Simulation {simulation_id} not found"
+        )
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
+        )
+
+    # Parse features
+    feature_list = [f.strip() for f in features.split(",") if f.strip()]
+    if len(feature_list) < 2:
+        raise HTTPException(
+            status_code=400,
+            detail="At least 2 features required for comparison",
+        )
+
+    # Get outcomes
+    outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
+
+    if len(outcomes) < 20:
+        raise HTTPException(
+            status_code=400,
+            detail=f"PDP comparison requires at least 20 synths, got {len(outcomes)}",
+        )
+
+    try:
+        result = explain_service.compare_pdps(
+            simulation_id=simulation_id,
+            outcomes=outcomes,
+            features=feature_list,
+            grid_resolution=grid_resolution,
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# --- LLM Insight Endpoints (User Story 6) ---
+
+
+def get_insight_service() -> InsightService:
+    """Get insight service instance."""
+    return InsightService()
+
+
+# Request/Response models for insights
+class GenerateChartInsightRequest(BaseModel):
+    """Request model for generating chart insight."""
+
+    chart_data: dict = Field(description="Chart data to analyze")
+    force_regenerate: bool = Field(
+        default=False, description="Force regenerate even if cached"
+    )
+
+
+class ExecutiveSummaryResponse(BaseModel):
+    """Response model for executive summary."""
+
+    simulation_id: str
+    summary: str | None
+    total_insights: int
+
+
+@router.get(
+    "/simulations/{simulation_id}/insights",
+    response_model=SimulationInsights,
+)
+async def get_all_insights(
+    simulation_id: str,
+) -> SimulationInsights:
+    """
+    Get all cached insights for a simulation.
+
+    Returns all previously generated chart insights and metadata.
+    Use the POST endpoint to generate new insights.
+
+    Args:
+        simulation_id: ID of the simulation.
+
+    Returns:
+        SimulationInsights with all cached insights.
+    """
+    sim_service = get_simulation_service()
+
+    # Verify simulation exists
+    run = sim_service.get_simulation(simulation_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404, detail=f"Simulation {simulation_id} not found"
+        )
+
+    insight_service = get_insight_service()
+    return insight_service.get_all_insights(simulation_id)
+
+
+# IMPORTANT: executive-summary must be defined BEFORE {chart_type} to avoid route conflict
+@router.post(
+    "/simulations/{simulation_id}/insights/executive-summary",
+    response_model=ExecutiveSummaryResponse,
+)
+async def generate_executive_summary(
+    simulation_id: str,
+) -> ExecutiveSummaryResponse:
+    """
+    Generate executive summary across all insights.
+
+    Synthesizes all chart insights into a concise executive summary
+    highlighting key findings and prioritized recommendations.
+
+    Requires at least one insight to be generated first.
+
+    Args:
+        simulation_id: ID of the simulation.
+
+    Returns:
+        ExecutiveSummaryResponse with summary text.
+    """
+    sim_service = get_simulation_service()
+
+    # Verify simulation exists
+    run = sim_service.get_simulation(simulation_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404, detail=f"Simulation {simulation_id} not found"
+        )
+
+    insight_service = get_insight_service()
+
+    # Check if there are any insights to summarize
+    all_insights = insight_service.get_all_insights(simulation_id)
+    if len(all_insights.insights) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="No insights available to summarize. Generate chart insights first.",
+        )
+
+    try:
+        summary = insight_service.generate_executive_summary(simulation_id)
+        return ExecutiveSummaryResponse(
+            simulation_id=simulation_id,
+            summary=summary,
+            total_insights=len(all_insights.insights),
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate executive summary: {e}"
+        )
+
+
+@router.post(
+    "/simulations/{simulation_id}/insights/{chart_type}",
+    response_model=ChartInsight,
+)
+async def generate_chart_insight(
+    simulation_id: str,
+    chart_type: ChartType,
+    request: GenerateChartInsightRequest,
+) -> ChartInsight:
+    """
+    Generate LLM insight for a specific chart.
+
+    Analyzes the chart data and generates:
+    - Short caption (<=20 tokens)
+    - Detailed explanation (<=200 tokens)
+    - Evidence from data
+    - Actionable recommendation
+
+    Results are cached for subsequent requests.
+
+    Args:
+        simulation_id: ID of the simulation.
+        chart_type: Type of chart to analyze.
+        request: Chart data and options.
+
+    Returns:
+        ChartInsight with analysis.
+    """
+    sim_service = get_simulation_service()
+
+    # Verify simulation exists and is completed
+    run = sim_service.get_simulation(simulation_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404, detail=f"Simulation {simulation_id} not found"
+        )
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
+        )
+
+    insight_service = get_insight_service()
+
+    try:
+        insight = insight_service.generate_insight(
+            simulation_id=simulation_id,
+            chart_type=chart_type,
+            chart_data=request.chart_data,
+            force_regenerate=request.force_regenerate,
+        )
+        return insight
+    except InsightGenerationError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete(
+    "/simulations/{simulation_id}/insights",
+    status_code=204,
+)
+async def clear_insights(
+    simulation_id: str,
+) -> None:
+    """
+    Clear all cached insights for a simulation.
+
+    Removes all cached insights, requiring regeneration on next request.
+
+    Args:
+        simulation_id: ID of the simulation.
+    """
+    insight_service = get_insight_service()
+    insight_service.clear_cache(simulation_id=simulation_id)
+
+
 if __name__ == "__main__":
     import sys
 
-    print("=== Simulation Router Validation ===\n")
+    print("=== Simulation Router Validation ===")
 
     all_validation_failures = []
     total_tests = 0
