@@ -16,11 +16,13 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from synth_lab.domain.entities import (
+    ExtremeCasesTable,
     FailureHeatmapChart,
     FeatureScorecard,
     HierarchicalResult,
     KMeansResult,
     OutcomeDistributionChart,
+    OutlierResult,
     RadarChart,
     RegionAnalysis,
     SankeyChart,
@@ -40,6 +42,7 @@ from synth_lab.services.simulation.scorecard_service import (
 )
 from synth_lab.services.simulation.chart_data_service import ChartDataService
 from synth_lab.services.simulation.clustering_service import ClusteringService
+from synth_lab.services.simulation.outlier_service import OutlierService
 from synth_lab.services.simulation.simulation_service import SimulationService
 from synth_lab.api.schemas.analysis import ClusterRequest, CutDendrogramRequest
 
@@ -1560,6 +1563,131 @@ async def cut_dendrogram(
     _clustering_cache[cache_key] = cut_result
 
     return cut_result
+
+
+# --- Outlier Detection Endpoints (User Story 4) ---
+
+
+def get_outlier_service() -> OutlierService:
+    """Get outlier service instance."""
+    return OutlierService()
+
+
+@router.get(
+    "/simulations/{simulation_id}/extreme-cases",
+    response_model=ExtremeCasesTable,
+)
+async def get_extreme_cases(
+    simulation_id: str,
+    n_per_category: int = Query(
+        10, ge=1, le=50, description="Number of synths per category"
+    ),
+) -> ExtremeCasesTable:
+    """
+    Get extreme cases for qualitative research.
+
+    Returns top N worst failures, best successes, and unexpected cases
+    for UX researchers to conduct qualitative interviews.
+
+    Args:
+        simulation_id: ID of the simulation.
+        n_per_category: Number of synths per category (1-50, default: 10).
+
+    Returns:
+        ExtremeCasesTable with categorized synths and interview questions.
+    """
+    sim_service = get_simulation_service()
+    outlier_service = get_outlier_service()
+
+    # Verify simulation exists and is completed
+    run = sim_service.get_simulation(simulation_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404, detail=f"Simulation {simulation_id} not found"
+        )
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
+        )
+
+    # Get outcomes
+    outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
+
+    if len(outcomes) < 10:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Extreme cases requires at least 10 synths, got {len(outcomes)}",
+        )
+
+    # Get extreme cases
+    result = outlier_service.get_extreme_cases(
+        simulation_id=simulation_id,
+        outcomes=outcomes,
+        n_per_category=n_per_category,
+    )
+
+    return result
+
+
+@router.get(
+    "/simulations/{simulation_id}/outliers",
+    response_model=OutlierResult,
+)
+async def detect_outliers(
+    simulation_id: str,
+    contamination: float = Query(
+        0.1,
+        ge=0.01,
+        le=0.5,
+        description="Expected proportion of outliers (0.01-0.5)",
+    ),
+) -> OutlierResult:
+    """
+    Detect statistical outliers using Isolation Forest.
+
+    Identifies synths with atypical profiles or unexpected outcomes
+    for deeper qualitative analysis.
+
+    Args:
+        simulation_id: ID of the simulation.
+        contamination: Expected proportion of outliers (0.01-0.5, default: 0.1).
+
+    Returns:
+        OutlierResult with detected outliers and classifications.
+    """
+    sim_service = get_simulation_service()
+    outlier_service = get_outlier_service()
+
+    # Verify simulation exists and is completed
+    run = sim_service.get_simulation(simulation_id)
+    if run is None:
+        raise HTTPException(
+            status_code=404, detail=f"Simulation {simulation_id} not found"
+        )
+    if run.status != "completed":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
+        )
+
+    # Get outcomes
+    outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
+
+    if len(outcomes) < 10:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Outlier detection requires at least 10 synths, got {len(outcomes)}",
+        )
+
+    # Detect outliers
+    result = outlier_service.detect_outliers(
+        simulation_id=simulation_id,
+        outcomes=outcomes,
+        contamination=contamination,
+    )
+
+    return result
 
 
 if __name__ == "__main__":

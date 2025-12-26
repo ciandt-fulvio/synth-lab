@@ -46,11 +46,25 @@ from synth_lab.domain.entities.cluster_result import (
     RadarChart,
     SuggestedCut,
 )
+from synth_lab.domain.entities.explainability import (
+    PDPComparison,
+    PDPPoint,
+    PDPResult,
+    ShapContribution,
+    ShapExplanation,
+    ShapSummary,
+)
 from synth_lab.domain.entities.feature_scorecard import (
     FeatureScorecard,
     ScorecardDimension,
     ScorecardIdentification,
     generate_scorecard_id,
+)
+from synth_lab.domain.entities.outlier_result import (
+    ExtremeCasesTable,
+    ExtremeSynth,
+    OutlierResult,
+    OutlierSynth,
 )
 from synth_lab.domain.entities.region_analysis import (
     RegionAnalysis,
@@ -123,11 +137,23 @@ __all__ = [
     "RadarAxis",
     "RadarChart",
     "SuggestedCut",
+    # Explainability
+    "PDPComparison",
+    "PDPPoint",
+    "PDPResult",
+    "ShapContribution",
+    "ShapExplanation",
+    "ShapSummary",
     # Feature scorecard
     "FeatureScorecard",
     "ScorecardDimension",
     "ScorecardIdentification",
     "generate_scorecard_id",
+    # Outlier result
+    "ExtremeCasesTable",
+    "ExtremeSynth",
+    "OutlierResult",
+    "OutlierSynth",
     # Region analysis
     "RegionAnalysis",
     "RegionRule",
