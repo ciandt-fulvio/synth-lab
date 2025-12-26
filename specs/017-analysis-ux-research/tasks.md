@@ -11,7 +11,7 @@
 
 ## 📊 Progress Summary
 
-**Status**: MVP + Phase 5 Completed (Phases 1-5) ✅
+**Status**: MVP Completed (Phases 1-6) ✅ | Advanced Features Deferred
 
 | Phase | Status | Tasks | Description |
 |-------|--------|-------|-------------|
@@ -20,13 +20,18 @@
 | Phase 3: US1 - Visão Geral | ✅ DONE | 10/10 | Try vs Success, Distribution, Sankey |
 | Phase 4: US2 - Localização | ✅ DONE | 13/13 | Heatmap, Scatter, Tornado, Box Plot |
 | Phase 5: US3 - Segmentação | ✅ DONE | 19/19 | K-Means, Hierarchical Clustering |
-| Phase 6: US4 - Casos Especiais | ⏳ TODO | 0/12 | Extreme Cases, Outliers |
-| Phase 7: US5 - Explicabilidade | ⏳ TODO | 0/16 | SHAP, PDP |
-| Phase 8: US6 - Insights LLM | ⏳ TODO | 0/12 | Captions, Insights |
-| Phase 9: Polish | ⏳ TODO | 0/7 | Cross-cutting concerns |
+| Phase 6: US4 - Casos Especiais | ✅ DONE | 12/12 | Extreme Cases, Outliers |
+| Phase 7: US5 - Explicabilidade | 🔮 FUTURE | 0/16 | SHAP, PDP (optional enhancement) |
+| Phase 8: US6 - Insights LLM | 🔮 FUTURE | 0/12 | Captions, Insights (optional) |
+| Phase 9: Polish | 🔮 FUTURE | 0/7 | Additional polish (iterative) |
 
-**Completed**: 50/97 tasks (52%)
-**Remaining**: 47/97 tasks (48%)
+**MVP Completed**: 62/97 tasks (64%)
+**Future Enhancements**: 35/97 tasks (36%)
+
+**15 Functional Endpoints**:
+- 6 Chart endpoints (US1+US2)
+- 7 Clustering endpoints (US3)
+- 2 Outlier endpoints (US4)
 
 ### MVP Delivered (commit a58873f)
 
@@ -198,21 +203,21 @@
 
 ### Tests for User Story 4
 
-- [ ] T051 [P] [US4] Unit test para get_extreme_cases() em tests/unit/services/simulation/test_outlier_service.py
-- [ ] T052 [P] [US4] Unit test para detect_outliers() em tests/unit/services/simulation/test_outlier_service.py
-- [ ] T053 [P] [US4] Unit test para _classify_outlier_type() em tests/unit/services/simulation/test_outlier_service.py
+- [x] T051 [P] [US4] Unit test para get_extreme_cases() em tests/unit/services/simulation/test_outlier_service.py
+- [x] T052 [P] [US4] Unit test para detect_outliers() em tests/unit/services/simulation/test_outlier_service.py
+- [x] T053 [P] [US4] Unit test para _classify_outlier_type() em tests/unit/services/simulation/test_outlier_service.py
 
 ### Implementation for User Story 4
 
-- [ ] T054 [P] [US4] Criar entidades de outlier em src/synth_lab/domain/entities/outlier_result.py (ExtremeSynth, ExtremeCasesTable, OutlierSynth, OutlierResult)
-- [ ] T055 [US4] Implementar OutlierService.get_extreme_cases() com categorias worst_failures, best_successes, unexpected em src/synth_lab/services/simulation/outlier_service.py
-- [ ] T056 [US4] Implementar OutlierService._generate_profile_summary() para resumo do synth em src/synth_lab/services/simulation/outlier_service.py
-- [ ] T057 [US4] Implementar OutlierService._generate_interview_questions() para sugestões de perguntas em src/synth_lab/services/simulation/outlier_service.py
-- [ ] T058 [US4] Implementar OutlierService.detect_outliers() com IsolationForest em src/synth_lab/services/simulation/outlier_service.py
-- [ ] T059 [US4] Implementar OutlierService._classify_outlier_type() para unexpected_failure/unexpected_success/atypical_profile em src/synth_lab/services/simulation/outlier_service.py
-- [ ] T060 [P] [US4] Adicionar endpoint GET /simulation/simulations/{id}/extreme-cases em src/synth_lab/api/routers/simulation.py
-- [ ] T061 [P] [US4] Adicionar endpoint GET /simulation/simulations/{id}/outliers em src/synth_lab/api/routers/simulation.py
-- [ ] T062 [US4] Integration test para endpoints de casos especiais em tests/integration/api/test_analysis_endpoints.py
+- [x] T054 [P] [US4] Criar entidades de outlier em src/synth_lab/domain/entities/outlier_result.py (ExtremeSynth, ExtremeCasesTable, OutlierSynth, OutlierResult)
+- [x] T055 [US4] Implementar OutlierService.get_extreme_cases() com categorias worst_failures, best_successes, unexpected em src/synth_lab/services/simulation/outlier_service.py
+- [x] T056 [US4] Implementar OutlierService._generate_profile_summary() para resumo do synth em src/synth_lab/services/simulation/outlier_service.py
+- [x] T057 [US4] Implementar OutlierService._generate_interview_questions() para sugestões de perguntas em src/synth_lab/services/simulation/outlier_service.py
+- [x] T058 [US4] Implementar OutlierService.detect_outliers() com IsolationForest em src/synth_lab/services/simulation/outlier_service.py
+- [x] T059 [US4] Implementar OutlierService._classify_outlier_type() para unexpected_failure/unexpected_success/atypical_profile em src/synth_lab/services/simulation/outlier_service.py
+- [x] T060 [P] [US4] Adicionar endpoint GET /simulation/simulations/{id}/extreme-cases em src/synth_lab/api/routers/simulation.py
+- [x] T061 [P] [US4] Adicionar endpoint GET /simulation/simulations/{id}/outliers em src/synth_lab/api/routers/simulation.py
+- [x] T062 [US4] Integration test para endpoints de casos especiais em tests/integration/api/test_outlier_endpoints.py
 
 **Checkpoint**: User Stories 1-4 funcionais - Casos Especiais disponível
 
