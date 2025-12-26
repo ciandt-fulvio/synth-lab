@@ -30,7 +30,7 @@ from typing import Any
 
 import numpy as np
 from loguru import logger
-from sklearn.tree import DecisionTreeClassifier, export_text
+from sklearn.tree import DecisionTreeClassifier
 
 from synth_lab.domain.entities import RegionAnalysis, RegionRule
 
@@ -46,16 +46,16 @@ class RegionAnalyzer:
     def __init__(
         self,
         max_depth: int = 3,
-        min_samples_leaf: int = 50,
-        min_samples_split: int = 100,
+        min_samples_leaf: int = 30,
+        min_samples_split: int = 60,
     ) -> None:
         """
         Initialize RegionAnalyzer.
 
         Args:
             max_depth: Maximum depth of decision tree (avoids overfitting)
-            min_samples_leaf: Minimum samples per leaf node (10% of 500)
-            min_samples_split: Minimum samples to split a node (20% of 500)
+            min_samples_leaf: Minimum samples per leaf node (6% of 500)
+            min_samples_split: Minimum samples to split a node (12% of 500)
         """
         self.max_depth = max_depth
         self.min_samples_leaf = min_samples_leaf
@@ -114,12 +114,12 @@ class RegionAnalyzer:
 
         clf.fit(X, y)
 
-        # Extract rules for high-failure regions
+        # Extract rules for high-failure regions using REAL outcome data
         regions = self._extract_rules(
             tree=clf,
             feature_names=feature_names,
             X=X,
-            y=y,
+            outcomes=outcomes,
             simulation_id=simulation_id,
             min_failure_rate=min_failure_rate,
         )
@@ -218,21 +218,21 @@ class RegionAnalyzer:
         tree: DecisionTreeClassifier,
         feature_names: list[str],
         X: np.ndarray,
-        y: np.ndarray,
+        outcomes: list[dict[str, Any]],
         simulation_id: str,
         min_failure_rate: float,
     ) -> list[RegionAnalysis]:
         """
         Extract interpretable rules from decision tree.
 
-        Walks the tree structure to extract rules for leaf nodes
-        with high failure rates.
+        Uses leaf node assignments to calculate REAL failure rates from
+        the original outcomes data.
 
         Args:
             tree: Trained DecisionTreeClassifier
             feature_names: Names of features
             X: Feature matrix
-            y: Label array
+            outcomes: Original outcomes list (for calculating real rates)
             simulation_id: Simulation ID
             min_failure_rate: Minimum failure rate threshold
 
@@ -241,72 +241,41 @@ class RegionAnalyzer:
         """
         regions = []
 
-        # Get tree structure
+        # Get leaf assignment for each sample
+        leaf_ids = tree.apply(X)
+
+        # Get tree structure for rule extraction
         tree_structure = tree.tree_
-        feature = tree_structure.feature
-        threshold = tree_structure.threshold
-        value = tree_structure.value
 
-        # Track paths to leaf nodes
-        def recurse(node: int, rules: list[RegionRule]) -> None:
-            """Recursively traverse tree and extract rules."""
-            # Check if leaf node
-            if tree_structure.feature[node] == -2:  # Leaf node
-                # Calculate failure rate for this leaf
-                samples_in_leaf = tree_structure.value[node][0]
-                total_samples = samples_in_leaf.sum()
-                if total_samples == 0:
-                    return
+        # Group samples by leaf
+        from collections import defaultdict
 
-                # Count high-failure samples (y=1)
-                # Handle case where leaf might only have one class
-                if len(samples_in_leaf) < 2:
-                    # Only one class in tree - skip this leaf
-                    return
+        leaf_to_indices: dict[int, list[int]] = defaultdict(list)
+        for idx, leaf_id in enumerate(leaf_ids):
+            leaf_to_indices[leaf_id].append(idx)
 
-                high_failure_count = samples_in_leaf[1]
-                failure_rate = high_failure_count / total_samples
+        # Calculate baseline failure rate
+        baseline_failure = np.mean([o.get("failed_rate", 0.0) for o in outcomes])
 
-                # Only include regions with high failure rate
-                if failure_rate >= min_failure_rate:
-                    # Calculate samples in this region
-                    n_samples = int(total_samples)
+        # Extract path for each leaf
+        def get_path_to_leaf(node: int, target_leaf: int, path: list) -> list | None:
+            """Get the decision path from root to a specific leaf."""
+            if node == target_leaf:
+                return path
 
-                    # Calculate avg failure rate for synths in this region
-                    avg_failure = round(failure_rate, 3)
-                    avg_success = round(1.0 - failure_rate, 3)
+            if tree_structure.feature[node] == -2:  # Leaf but not target
+                return None
 
-                    # Format rule text
-                    rule_text = self.format_rule_text(rules)
-
-                    # Calculate percentage (assume total population from X shape)
-                    synth_percentage = round((n_samples / len(X)) * 100, 1)
-
-                    # Create RegionAnalysis
-                    region = RegionAnalysis(
-                        simulation_id=simulation_id,
-                        rules=rules.copy(),
-                        rule_text=rule_text,
-                        synth_count=n_samples,
-                        synth_percentage=synth_percentage,
-                        did_not_try_rate=0.0,  # Not tracked in binary classification
-                        failed_rate=avg_failure,
-                        success_rate=avg_success,
-                        failure_delta=0.0,  # Will be calculated when comparing to population
-                    )
-                    regions.append(region)
-                return
-
-            # Internal node - split on feature
             feature_idx = tree_structure.feature[node]
             threshold_val = tree_structure.threshold[node]
             feature_name = feature_names[feature_idx]
 
-            # Left child: feature <= threshold
-            left_child = tree_structure.children_left[node]
-            recurse(
-                left_child,
-                rules
+            # Try left child (<=)
+            left = tree_structure.children_left[node]
+            result = get_path_to_leaf(
+                left,
+                target_leaf,
+                path
                 + [
                     RegionRule(
                         attribute=feature_name,
@@ -315,12 +284,15 @@ class RegionAnalyzer:
                     )
                 ],
             )
+            if result is not None:
+                return result
 
-            # Right child: feature > threshold
-            right_child = tree_structure.children_right[node]
-            recurse(
-                right_child,
-                rules
+            # Try right child (>)
+            right = tree_structure.children_right[node]
+            return get_path_to_leaf(
+                right,
+                target_leaf,
+                path
                 + [
                     RegionRule(
                         attribute=feature_name,
@@ -330,10 +302,91 @@ class RegionAnalyzer:
                 ],
             )
 
-        # Start recursion from root
-        recurse(node=0, rules=[])
+        # Process each leaf
+        for leaf_id, sample_indices in leaf_to_indices.items():
+            if len(sample_indices) < self.min_samples_leaf:
+                continue  # Skip small leaves
+
+            # Calculate REAL rates from outcomes
+            leaf_outcomes = [outcomes[i] for i in sample_indices]
+            avg_failed = np.mean([o.get("failed_rate", 0.0) for o in leaf_outcomes])
+            avg_success = np.mean([o.get("success_rate", 0.0) for o in leaf_outcomes])
+            avg_did_not_try = np.mean(
+                [o.get("did_not_try_rate", 0.0) for o in leaf_outcomes]
+            )
+
+            # Only include high-failure regions
+            if avg_failed < min_failure_rate:
+                continue
+
+            # Get rules for this leaf
+            rules = get_path_to_leaf(0, leaf_id, [])
+            if rules is None:
+                continue
+
+            # Simplify redundant rules
+            simplified_rules = self._simplify_rules(rules)
+
+            n_samples = len(sample_indices)
+            synth_percentage = round((n_samples / len(X)) * 100, 1)
+            failure_delta = round(avg_failed - baseline_failure, 3)
+
+            region = RegionAnalysis(
+                simulation_id=simulation_id,
+                rules=simplified_rules,
+                rule_text=self.format_rule_text(simplified_rules),
+                synth_count=n_samples,
+                synth_percentage=synth_percentage,
+                did_not_try_rate=round(avg_did_not_try, 3),
+                failed_rate=round(avg_failed, 3),
+                success_rate=round(avg_success, 3),
+                failure_delta=failure_delta,
+            )
+            regions.append(region)
+
+        # Sort by failure rate descending
+        regions.sort(key=lambda r: r.failed_rate, reverse=True)
 
         return regions
+
+    def _simplify_rules(self, rules: list[RegionRule]) -> list[RegionRule]:
+        """
+        Simplify redundant rules.
+
+        For example: "x <= 0.5 AND x <= 0.3" becomes "x <= 0.3"
+        And: "x > 0.3 AND x > 0.5" becomes "x > 0.5"
+
+        Args:
+            rules: List of RegionRule objects
+
+        Returns:
+            Simplified list of rules
+        """
+        from collections import defaultdict
+
+        # Group by attribute
+        by_attribute: dict[str, list[RegionRule]] = defaultdict(list)
+        for rule in rules:
+            by_attribute[rule.attribute].append(rule)
+
+        simplified = []
+        for attribute, attr_rules in by_attribute.items():
+            # Separate by operator
+            le_rules = [r for r in attr_rules if r.operator == "<="]
+            gt_rules = [r for r in attr_rules if r.operator == ">"]
+
+            # Keep only the tightest bound for each direction
+            if le_rules:
+                # Keep smallest threshold for <=
+                min_rule = min(le_rules, key=lambda r: r.threshold)
+                simplified.append(min_rule)
+
+            if gt_rules:
+                # Keep largest threshold for >
+                max_rule = max(gt_rules, key=lambda r: r.threshold)
+                simplified.append(max_rule)
+
+        return simplified
 
     def format_rule_text(self, rules: list[RegionRule]) -> str:
         """

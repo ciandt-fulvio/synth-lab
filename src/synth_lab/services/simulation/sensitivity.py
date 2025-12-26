@@ -92,7 +92,7 @@ class SensitivityAnalyzer:
             raise ValueError(f"Simulation not found: {simulation_id}")
 
         # Get baseline scorecard
-        scorecard = self.scorecard_repo.get(baseline_run.scorecard_id)
+        scorecard = self.scorecard_repo.get_scorecard(baseline_run.scorecard_id)
         if not scorecard:
             raise ValueError(
                 f"Scorecard not found: {baseline_run.scorecard_id}"
@@ -142,14 +142,18 @@ class SensitivityAnalyzer:
                 )
             )
 
+        # Get the most sensitive dimension (rank 1)
+        most_sensitive = dimensions[0].dimension if dimensions else ""
+
         self.logger.info(
-            f"Sensitivity analysis complete. Most sensitive: {dimensions[0].dimension}"
+            f"Sensitivity analysis complete. Most sensitive: {most_sensitive}"
         )
 
         return SensitivityResult(
             simulation_id=simulation_id,
             deltas_used=deltas,
             dimensions=dimensions,
+            most_sensitive_dimension=most_sensitive,
         )
 
     def _analyze_dimension(
@@ -248,16 +252,19 @@ class SensitivityAnalyzer:
         scorecard_data[dimension]["score"] = round(new_value, 3)
 
         # Create new scorecard ID
-        import uuid
+        from synth_lab.domain.entities.feature_scorecard import generate_scorecard_id
 
-        scorecard_data["id"] = f"scorecard_{uuid.uuid4().hex[:8]}"
-        scorecard_data["name"] = f"{scorecard.name} ({dimension}={new_value:.2f})"
+        scorecard_data["id"] = generate_scorecard_id()
+        # Update feature name to indicate this is a sensitivity variation
+        scorecard_data["identification"]["feature_name"] = (
+            f"{scorecard.identification.feature_name} ({dimension}={new_value:.2f})"
+        )
 
         # Save to database
         from synth_lab.domain.entities import FeatureScorecard
 
         modified_scorecard = FeatureScorecard(**scorecard_data)
-        self.scorecard_repo.create(modified_scorecard)
+        self.scorecard_repo.create_scorecard(modified_scorecard)
 
         return modified_scorecard
 

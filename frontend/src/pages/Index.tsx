@@ -50,9 +50,10 @@ export default function Index() {
                 value="interviews"
                 className={`
                   flex items-center gap-2 transition-all duration-200
-                  hover:shadow-md
+                  hover:bg-gray-200/60
                   data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500
                   data-[state=active]:text-white data-[state=active]:shadow-lg
+                  data-[state=active]:hover:bg-transparent
                 `}
               >
                 <FileText className={`w-4 h-4 ${activeTab === "interviews" ? "text-white" : "text-gray-400"}`} />
@@ -69,9 +70,10 @@ export default function Index() {
                 value="synths"
                 className={`
                   flex items-center gap-2 transition-all duration-200
-                  hover:shadow-md
+                  hover:bg-gray-200/60
                   data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500
                   data-[state=active]:text-white data-[state=active]:shadow-lg
+                  data-[state=active]:hover:bg-transparent
                 `}
               >
                 <Users className={`w-4 h-4 ${activeTab === "synths" ? "text-white" : "text-gray-400"}`} />

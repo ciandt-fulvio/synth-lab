@@ -197,7 +197,6 @@ def build_prompt(synths: list[dict[str, Any]]) -> str:
 
     # Montar prompt completo em português
     prompt = f"""Crie uma imagem dividida em uma grade 3x3, com 9 blocos iguais.
-Crie uma imagem dividida em uma grade 3x3, com 9 blocos iguais.
 Cada bloco representa uma fotografia independente.
 Cada bloco deve respeitar estritamente o enquadramento indicado.
 Estilo fotorrealista.

@@ -710,50 +710,15 @@ async def analyze_simulation_regions(
     Returns:
         List of regions with interpretable rules
     """
-    from synth_lab.repositories.region_repository import RegionRepository
     from synth_lab.services.simulation.analyzer import RegionAnalyzer
 
-    db = get_database()
     service = get_simulation_service()
-    region_repo = RegionRepository(db)
 
     # Verify simulation exists
     run = service.get_simulation(simulation_id)
     if run is None:
         raise HTTPException(
             status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
-
-    # Check if analysis already exists
-    existing_regions = region_repo.get_region_analyses(simulation_id)
-    if existing_regions:
-        # Return cached results
-        regions_response = [
-            RegionAnalysisResponse(
-                id=region.id,
-                simulation_id=region.simulation_id,
-                rules=[
-                    RegionRuleResponse(
-                        attribute=rule.attribute,
-                        operator=rule.operator,
-                        threshold=rule.threshold,
-                    )
-                    for rule in region.rules
-                ],
-                rule_text=region.rule_text,
-                synth_count=region.synth_count,
-                synth_percentage=region.synth_percentage,
-                did_not_try_rate=region.did_not_try_rate,
-                failed_rate=region.failed_rate,
-                success_rate=region.success_rate,
-                failure_delta=region.failure_delta,
-            )
-            for region in existing_regions
-        ]
-
-        return RegionAnalysisListResponse(
-            regions=regions_response,
-            total=len(regions_response),
         )
 
     # Get simulation outcomes
@@ -769,7 +734,7 @@ async def analyze_simulation_regions(
             detail=f"Not enough outcomes ({len(outcomes_result['items'])}) for region analysis. Need at least 40.",
         )
 
-    # Run region analysis
+    # Run region analysis (no caching - always fresh results)
     analyzer = RegionAnalyzer()
     regions = analyzer.analyze_regions(
         outcomes=outcomes_result["items"],
@@ -777,8 +742,14 @@ async def analyze_simulation_regions(
         min_failure_rate=min_failure_rate,
     )
 
-    # Save results
+    # Persist regions to database for later comparison
     if regions:
+        from synth_lab.repositories.region_repository import RegionRepository
+
+        db = get_database()
+        region_repo = RegionRepository(db)
+        # Delete previous analyses for this simulation to avoid duplicates
+        region_repo.delete_region_analyses(simulation_id)
         region_repo.save_region_analyses(regions)
 
     # Convert to response
