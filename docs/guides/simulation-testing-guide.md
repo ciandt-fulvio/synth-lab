@@ -1,6 +1,12 @@
-# Manual de Testes - Feature Impact Simulation
+# Manual de Testes - Feature Impact Simulation + UX Research Analysis
 
-Este guia explica como testar o sistema de simulação de impacto de features.
+Este guia explica como testar o sistema completo de simulação e análise UX.
+
+**Funcionalidades Disponíveis**:
+- ✅ Feature Impact Simulation (Monte Carlo)
+- ✅ UX Research Analysis Charts (6 endpoints)
+- ✅ Clustering & Segmentation (7 endpoints)
+- ✅ Outlier Detection (2 endpoints)
 
 ## Pré-requisitos
 
@@ -730,7 +736,515 @@ uv run python docs/guides/test_advanced_simulation.py
 
 ---
 
-## 10. Verificar Dados no Banco
+## 10. Análise UX Research - Charts (US1 + US2)
+
+Os novos endpoints de análise fornecem visualizações prontas para pesquisa UX.
+
+### 10.1 Try vs Success Chart
+
+Visualiza relação entre tentativas e sucesso em quadrantes.
+
+```bash
+curl -X GET "http://localhost:8000/simulation/simulations/SIMULATION_ID/charts/try-vs-success" | jq
+```
+
+**Resposta esperada:**
+```json
+{
+  "simulation_id": "sim_xyz12345",
+  "chart_type": "try_vs_success",
+  "data_points": [
+    {
+      "synth_id": "synth_001",
+      "try_rate": 0.72,
+      "success_rate": 0.45,
+      "quadrant": "high_try_medium_success",
+      "capability_mean": 0.55
+    }
+  ],
+  "quadrant_counts": {
+    "high_try_high_success": 25,
+    "high_try_medium_success": 18,
+    "low_try_high_success": 8,
+    "low_try_medium_success": 15
+  }
+}
+```
+
+### 10.2 Outcome Distribution
+
+Distribuição de outcomes agregada.
+
+```bash
+curl -X GET "http://localhost:8000/simulation/simulations/SIMULATION_ID/charts/distribution" | jq
+```
+
+**Resposta esperada:**
+```json
+{
+  "simulation_id": "sim_xyz12345",
+  "chart_type": "outcome_distribution",
+  "distributions": [
+    {
+      "outcome": "success",
+      "count": 850,
+      "percentage": 42.5,
+      "color": "#4ade80"
+    },
+    {
+      "outcome": "failed",
+      "count": 550,
+      "percentage": 27.5,
+      "color": "#f87171"
+    },
+    {
+      "outcome": "did_not_try",
+      "count": 600,
+      "percentage": 30.0,
+      "color": "#94a3b8"
+    }
+  ],
+  "total_executions": 2000
+}
+```
+
+### 10.3 Sankey Diagram
+
+Fluxo de usuários através dos estados.
+
+```bash
+curl -X GET "http://localhost:8000/simulation/simulations/SIMULATION_ID/charts/sankey" | jq
+```
+
+### 10.4 Failure Heatmap
+
+Heatmap 2D de falhas por atributos.
+
+```bash
+curl -X GET "http://localhost:8000/simulation/simulations/SIMULATION_ID/charts/failure-heatmap?x_attribute=capability_mean&y_attribute=trust_mean" | jq
+```
+
+**Parâmetros:**
+- `x_attribute`: Atributo para eixo X (padrão: capability_mean)
+- `y_attribute`: Atributo para eixo Y (padrão: trust_mean)
+- `bins`: Número de bins (padrão: 10)
+
+### 10.5 Scatter Plot com Correlação
+
+Análise de correlação entre atributos e sucesso.
+
+```bash
+curl -X GET "http://localhost:8000/simulation/simulations/SIMULATION_ID/charts/scatter?attribute=capability_mean" | jq
+```
+
+**Resposta inclui:**
+- Pontos do scatter plot
+- Estatísticas de Pearson (r, p-value)
+- Linha de tendência (slope, intercept)
+
+### 10.6 Tornado Diagram
+
+Sensibilidade de features (ranking de impacto).
+
+```bash
+curl -X GET "http://localhost:8000/simulation/simulations/SIMULATION_ID/charts/tornado" | jq
+```
+
+**Resposta esperada:**
+```json
+{
+  "simulation_id": "sim_xyz12345",
+  "chart_type": "tornado",
+  "bars": [
+    {
+      "feature": "capability_mean",
+      "impact": 0.35,
+      "rank": 1,
+      "direction": "positive"
+    },
+    {
+      "feature": "trust_mean",
+      "impact": 0.28,
+      "rank": 2,
+      "direction": "positive"
+    }
+  ]
+}
+```
+
+---
+
+## 11. Clustering & Segmentação (US3)
+
+Agrupe synths em personas para análise qualitativa.
+
+### 11.1 Criar Clustering K-Means
+
+```bash
+curl -X POST "http://localhost:8000/simulation/simulations/SIMULATION_ID/clusters" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "method": "kmeans",
+    "n_clusters": 3
+  }' | jq
+```
+
+**Resposta esperada:**
+```json
+{
+  "simulation_id": "sim_xyz12345",
+  "n_clusters": 3,
+  "method": "kmeans",
+  "silhouette_score": 0.52,
+  "inertia": 145.3,
+  "clusters": [
+    {
+      "cluster_id": 0,
+      "size": 35,
+      "percentage": 35.0,
+      "suggested_label": "Power Users",
+      "avg_success_rate": 0.82,
+      "high_traits": ["capability_mean", "trust_mean"],
+      "low_traits": [],
+      "synth_ids": ["synth_001", "synth_005", ...]
+    }
+  ],
+  "features_used": ["capability_mean", "trust_mean", "friction_tolerance_mean"]
+}
+```
+
+### 11.2 Criar Clustering Hierárquico
+
+```bash
+curl -X POST "http://localhost:8000/simulation/simulations/SIMULATION_ID/clusters" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "method": "hierarchical",
+    "linkage": "ward"
+  }' | jq
+```
+
+**Métodos de linkage:**
+- `ward` (padrão) - minimiza variância
+- `complete` - distância máxima
+- `average` - distância média
+- `single` - distância mínima
+
+### 11.3 Recuperar Clustering Existente
+
+```bash
+curl -X GET "http://localhost:8000/simulation/simulations/SIMULATION_ID/clusters" | jq
+```
+
+### 11.4 Obter Dados do Método Elbow
+
+Para determinar número ideal de clusters.
+
+```bash
+curl -X GET "http://localhost:8000/simulation/simulations/SIMULATION_ID/clusters/elbow" | jq
+```
+
+**Resposta esperada:**
+```json
+[
+  {"k": 2, "inertia": 250.5, "silhouette": 0.48},
+  {"k": 3, "inertia": 145.3, "silhouette": 0.52},
+  {"k": 4, "inertia": 98.7, "silhouette": 0.49},
+  {"k": 5, "inertia": 75.2, "silhouette": 0.45}
+]
+```
+
+**Interpretação:**
+- Procure "cotovelo" onde inertia cai menos
+- k=3 tem melhor silhouette score (0.52)
+
+### 11.5 Radar Chart de Cluster Específico
+
+```bash
+curl -X GET "http://localhost:8000/simulation/simulations/SIMULATION_ID/clusters/0/radar" | jq
+```
+
+### 11.6 Comparação Radar de Todos Clusters
+
+```bash
+curl -X GET "http://localhost:8000/simulation/simulations/SIMULATION_ID/clusters/radar-comparison" | jq
+```
+
+**Resposta esperada:**
+```json
+{
+  "simulation_id": "sim_xyz12345",
+  "clusters": [
+    {
+      "cluster_id": 0,
+      "label": "Power Users",
+      "color": "#4ade80",
+      "success_rate": 0.82,
+      "axes": [
+        {"name": "capability_mean", "value": 0.75, "normalized": 0.85},
+        {"name": "trust_mean", "value": 0.68, "normalized": 0.78}
+      ]
+    }
+  ],
+  "axis_labels": ["capability_mean", "trust_mean", "friction_tolerance_mean"],
+  "baseline": [0.50, 0.50, 0.50]
+}
+```
+
+### 11.7 Cortar Dendrogram Hierárquico
+
+```bash
+curl -X POST "http://localhost:8000/simulation/simulations/SIMULATION_ID/clusters/cut" \
+  -H "Content-Type: application/json" \
+  -d '{"n_clusters": 4}' | jq
+```
+
+**Só funciona após criar clustering hierárquico.**
+
+---
+
+## 12. Detecção de Outliers (US4)
+
+Identifique casos extremos para entrevistas qualitativas.
+
+### 12.1 Obter Casos Extremos
+
+```bash
+curl -X GET "http://localhost:8000/simulation/simulations/SIMULATION_ID/extreme-cases?n_per_category=5" | jq
+```
+
+**Parâmetros:**
+- `n_per_category`: Número de synths por categoria (1-50, padrão: 10)
+
+**Resposta esperada:**
+```json
+{
+  "simulation_id": "sim_xyz12345",
+  "total_synths": 200,
+  "worst_failures": [
+    {
+      "synth_id": "synth_042",
+      "category": "worst_failure",
+      "success_rate": 0.05,
+      "failed_rate": 0.88,
+      "profile_summary": "Synth with high capability (0.72), low trust (0.25), and low digital literacy (0.28). Success rate: 5.0%, Failed rate: 88.0%.",
+      "interview_questions": [
+        "What were the main obstacles that prevented you from succeeding?",
+        "Can you describe a specific moment when you felt stuck or frustrated?",
+        "What would have helped you overcome these challenges?"
+      ],
+      "capability_mean": 0.72,
+      "trust_mean": 0.25
+    }
+  ],
+  "best_successes": [
+    {
+      "synth_id": "synth_156",
+      "category": "best_success",
+      "success_rate": 0.94,
+      "failed_rate": 0.04,
+      "profile_summary": "Synth with high capability (0.88), high trust (0.85), and high digital literacy (0.82)...",
+      "interview_questions": [
+        "What strategies did you use to achieve success?",
+        "Can you walk me through your typical interaction with the feature?"
+      ]
+    }
+  ],
+  "unexpected_cases": [
+    {
+      "synth_id": "synth_089",
+      "category": "unexpected",
+      "success_rate": 0.92,
+      "failed_rate": 0.06,
+      "profile_summary": "Synth with low capability (0.22), high trust (0.88)...",
+      "interview_questions": [
+        "Despite lower capability scores, you succeeded. What made the difference?",
+        "Did you find the feature particularly easy to use? Why?"
+      ]
+    }
+  ]
+}
+```
+
+**Categorias:**
+- `worst_failures`: Top N com maior taxa de falha
+- `best_successes`: Top N com maior taxa de sucesso
+- `unexpected_cases`: Capability vs outcome inconsistente
+
+### 12.2 Detectar Outliers Estatísticos
+
+Usa Isolation Forest para detectar synths atípicos.
+
+```bash
+curl -X GET "http://localhost:8000/simulation/simulations/SIMULATION_ID/outliers?contamination=0.1" | jq
+```
+
+**Parâmetros:**
+- `contamination`: Proporção esperada de outliers (0.01-0.5, padrão: 0.1)
+
+**Resposta esperada:**
+```json
+{
+  "simulation_id": "sim_xyz12345",
+  "method": "isolation_forest",
+  "contamination": 0.1,
+  "total_synths": 200,
+  "n_outliers": 20,
+  "features_used": ["capability_mean", "trust_mean", "friction_tolerance_mean", "digital_literacy", "similar_tool_experience", "success_rate", "failed_rate"],
+  "outliers": [
+    {
+      "synth_id": "synth_089",
+      "outlier_type": "unexpected_success",
+      "anomaly_score": -0.35,
+      "success_rate": 0.92,
+      "failed_rate": 0.06,
+      "explanation": "Low capability (0.22) but high success rate (92.0%). This indicates the feature may be easier than expected.",
+      "capability_mean": 0.22,
+      "trust_mean": 0.88,
+      "digital_literacy": 0.25
+    },
+    {
+      "synth_id": "synth_042",
+      "outlier_type": "unexpected_failure",
+      "anomaly_score": -0.42,
+      "explanation": "High capability (0.72) but high failure rate (88.0%). This suggests unexpected barriers or friction points."
+    },
+    {
+      "synth_id": "synth_178",
+      "outlier_type": "atypical_profile",
+      "anomaly_score": -0.28,
+      "explanation": "Atypical combination of attributes with capability=0.45, trust=0.92, success=35.0%."
+    }
+  ]
+}
+```
+
+**Tipos de outliers:**
+- `unexpected_failure`: Alta capability, alta falha
+- `unexpected_success`: Baixa capability, alto sucesso
+- `atypical_profile`: Combinação incomum de atributos
+
+---
+
+## 13. Workflow Completo de Análise UX
+
+Exemplo de workflow end-to-end para pesquisa UX.
+
+### 13.1 Script Python Completo
+
+```python
+"""
+Workflow completo de análise UX.
+Execute com: uv run python docs/guides/test_ux_workflow.py
+"""
+import requests
+import json
+
+BASE_URL = "http://localhost:8000/simulation"
+
+# 1. Criar scorecard e executar simulação
+print("=== 1. Setup ===")
+scorecard = requests.post(f"{BASE_URL}/scorecards", json={
+    "feature_name": "Análise UX Completa",
+    "use_scenario": "Workflow de pesquisa",
+    "description_text": "Feature para demonstração de análise UX",
+    "complexity": {"score": 0.5},
+    "initial_effort": {"score": 0.4},
+    "perceived_risk": {"score": 0.3},
+    "time_to_value": {"score": 0.6}
+}).json()
+
+simulation = requests.post(f"{BASE_URL}/simulations", json={
+    "scorecard_id": scorecard["id"],
+    "scenario_id": "baseline",
+    "n_executions": 100,
+    "seed": 42
+}).json()
+
+sim_id = simulation["id"]
+print(f"Simulação: {sim_id}")
+print(f"Success: {simulation['aggregated_outcomes']['success']:.1%}")
+
+# 2. Visualizações gerais
+print("\n=== 2. Charts ===")
+try_success = requests.get(f"{BASE_URL}/simulations/{sim_id}/charts/try-vs-success").json()
+print(f"Quadrantes: {try_success['quadrant_counts']}")
+
+distribution = requests.get(f"{BASE_URL}/simulations/{sim_id}/charts/distribution").json()
+for dist in distribution["distributions"]:
+    print(f"  {dist['outcome']}: {dist['percentage']:.1f}%")
+
+tornado = requests.get(f"{BASE_URL}/simulations/{sim_id}/charts/tornado").json()
+print(f"Feature mais impactante: {tornado['bars'][0]['feature']}")
+
+# 3. Clustering para personas
+print("\n=== 3. Clustering ===")
+clustering = requests.post(f"{BASE_URL}/simulations/{sim_id}/clusters", json={
+    "method": "kmeans",
+    "n_clusters": 3
+}).json()
+
+print(f"Silhouette score: {clustering['silhouette_score']:.3f}")
+for cluster in clustering["clusters"]:
+    print(f"\n  Cluster {cluster['cluster_id']}: {cluster['suggested_label']}")
+    print(f"    Size: {cluster['size']} synths ({cluster['percentage']:.1f}%)")
+    print(f"    Success: {cluster['avg_success_rate']:.1%}")
+    print(f"    Traits: +{cluster['high_traits']}, -{cluster['low_traits']}")
+
+# 4. Radar comparison
+radar = requests.get(f"{BASE_URL}/simulations/{sim_id}/clusters/radar-comparison").json()
+print(f"\n  Radar chart com {len(radar['clusters'])} clusters")
+
+# 5. Outliers para entrevistas
+print("\n=== 4. Outliers ===")
+extreme = requests.get(f"{BASE_URL}/simulations/{sim_id}/extreme-cases?n_per_category=3").json()
+
+print(f"\nTop 3 Worst Failures:")
+for synth in extreme["worst_failures"]:
+    print(f"  - {synth['synth_id']}: {synth['failed_rate']:.1%} falha")
+    print(f"    {synth['profile_summary'][:80]}...")
+
+print(f"\nUnexpected Cases:")
+for synth in extreme["unexpected_cases"]:
+    print(f"  - {synth['synth_id']}: {synth['category']}")
+
+outliers = requests.get(f"{BASE_URL}/simulations/{sim_id}/outliers?contamination=0.1").json()
+print(f"\nOutliers detectados: {outliers['n_outliers']}")
+for outlier in outliers["outliers"][:3]:
+    print(f"  - {outlier['synth_id']}: {outlier['outlier_type']}")
+    print(f"    {outlier['explanation'][:80]}...")
+
+# 6. Recomendações
+print("\n=== 5. Recomendações ===")
+print("\nPróximos passos:")
+print("1. Entrevistar synths dos 'Worst Failures' para entender barreiras")
+print("2. Estudar 'Unexpected Cases' para descobrir patterns não óbvios")
+print(f"3. Focar em melhorar '{tornado['bars'][0]['feature']}' (maior impacto)")
+print("4. Criar materials específicos para cada cluster/persona")
+
+print("\n✅ Análise UX completa!")
+```
+
+### 13.2 Interpretação dos Resultados
+
+**Para Product Managers:**
+- Charts → Entender padrões gerais de adoção
+- Tornado → Priorizar dimensões de maior impacto
+- Clustering → Definir personas e segmentos
+
+**Para UX Researchers:**
+- Extreme Cases → Selecionar candidatos para entrevistas
+- Outliers → Identificar casos interessantes/atípicos
+- Radar Charts → Comparar perfis de diferentes grupos
+
+**Para Designers:**
+- Worst Failures → Identificar barreiras de usabilidade
+- Unexpected Success → Descobrir o que facilita adoção
+- Clustering → Adaptar design para diferentes personas
+
+---
+
+## 14. Verificar Dados no Banco
 
 ```bash
 # Ver scorecards
@@ -751,7 +1265,37 @@ sqlite3 output/synthlab.db "SELECT 'scorecards' as table_name, COUNT(*) as count
 
 ---
 
-## 11. Troubleshooting
+## 15. Troubleshooting
+
+### Erros Comuns dos Novos Endpoints
+
+**Clustering: "No clustering found"**
+- Você precisa criar um clustering primeiro com POST /clusters
+- Use GET /clusters apenas após criar
+
+**Clustering: "Requires at least 10 synths"**
+- Clustering precisa de mínimo 10 synths
+- Execute simulação com mais synths ou use synth_ids específicos
+
+**Outliers: "Requires completed simulation"**
+- A simulação precisa ter status="completed"
+- Verifique o status com GET /simulations/{id}
+
+**Charts: 404 Not Found**
+- Verifique se o simulation_id existe
+- Confirme que a simulação foi completada
+
+**Elbow: "Must create K-Means clustering first"**
+- O endpoint /elbow só funciona após criar K-Means
+- Execute POST /clusters com method="kmeans"
+
+**Cut dendrogram: "Only available for hierarchical"**
+- POST /cut só funciona para clustering hierárquico
+- Execute POST /clusters com method="hierarchical" primeiro
+
+---
+
+## 16. Troubleshooting (Simulação Original)
 
 ### Erro: "Scorecard not found"
 - Verifique se o ID do scorecard está correto
