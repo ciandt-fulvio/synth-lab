@@ -1,0 +1,638 @@
+openapi: 3.0.3
+info:
+  title: SynthLab API - Experiment Hub Extension
+  description: |
+    Extensão da API REST do SynthLab para suportar o modelo Experiment Hub.
+
+    Adiciona endpoints para gerenciamento de Experimentos e Synth Groups,
+    além de modificações nos endpoints existentes de Simulation e Research.
+  version: 2.0.0
+  contact:
+    name: SynthLab Team
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+
+tags:
+  - name: experiments
+    description: Gerenciamento de experimentos (feature/hipótese)
+  - name: synth-groups
+    description: Gerenciamento de grupos de synths
+  - name: simulation
+    description: Simulações vinculadas a experimentos
+  - name: research
+    description: Entrevistas vinculadas a experimentos
+
+paths:
+  # ============ EXPERIMENTS ============
+  /experiments/list:
+    get:
+      tags:
+        - experiments
+      summary: Lista todos os experimentos
+      description: Retorna lista paginada de experimentos com contadores de simulações e entrevistas
+      operationId: listExperiments
+      parameters:
+        - name: limit
+          in: query
+          description: Máximo de itens por página
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+        - name: offset
+          in: query
+          description: Número de itens a pular
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: sort_by
+          in: query
+          description: Campo para ordenação
+          schema:
+            type: string
+            enum: [created_at, name, updated_at]
+            default: created_at
+        - name: sort_order
+          in: query
+          description: Direção da ordenação
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Lista de experimentos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedExperimentSummary'
+
+  /experiments:
+    post:
+      tags:
+        - experiments
+      summary: Cria novo experimento
+      description: Cria um novo experimento para testar uma feature/hipótese
+      operationId: createExperiment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExperimentCreate'
+      responses:
+        '201':
+          description: Experimento criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentDetail'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /experiments/{experiment_id}:
+    get:
+      tags:
+        - experiments
+      summary: Obtém detalhe do experimento
+      description: Retorna experimento com lista de simulações e entrevistas vinculadas
+      operationId: getExperiment
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^exp_[a-f0-9]{8}$
+      responses:
+        '200':
+          description: Detalhe do experimento
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentDetail'
+        '404':
+          description: Experimento não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+
+    put:
+      tags:
+        - experiments
+      summary: Atualiza experimento
+      description: Atualiza nome, hipótese ou descrição do experimento
+      operationId: updateExperiment
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^exp_[a-f0-9]{8}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExperimentUpdate'
+      responses:
+        '200':
+          description: Experimento atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentDetail'
+        '404':
+          description: Experimento não encontrado
+        '422':
+          description: Erro de validação
+
+  /experiments/{experiment_id}/scorecards:
+    post:
+      tags:
+        - experiments
+        - simulation
+      summary: Cria scorecard vinculado ao experimento
+      description: Cria um novo scorecard já vinculado ao experimento especificado
+      operationId: createExperimentScorecard
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^exp_[a-f0-9]{8}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScorecardCreate'
+      responses:
+        '201':
+          description: Scorecard criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScorecardResponse'
+        '404':
+          description: Experimento não encontrado
+        '422':
+          description: Erro de validação
+
+  /experiments/{experiment_id}/interviews:
+    post:
+      tags:
+        - experiments
+        - research
+      summary: Cria entrevista vinculada ao experimento
+      description: Cria uma nova entrevista já vinculada ao experimento especificado
+      operationId: createExperimentInterview
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^exp_[a-f0-9]{8}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InterviewCreate'
+      responses:
+        '201':
+          description: Entrevista criada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterviewResponse'
+        '404':
+          description: Experimento não encontrado
+        '422':
+          description: Erro de validação
+
+  # ============ SYNTH GROUPS ============
+  /synth-groups/list:
+    get:
+      tags:
+        - synth-groups
+      summary: Lista todos os grupos de synths
+      description: Retorna lista de grupos com contagem de synths
+      operationId: listSynthGroups
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: Lista de grupos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSynthGroup'
+
+  /synth-groups:
+    post:
+      tags:
+        - synth-groups
+      summary: Cria novo grupo de synths
+      description: Cria um novo grupo para agrupar synths (geralmente usado internamente pela geração)
+      operationId: createSynthGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SynthGroupCreate'
+      responses:
+        '201':
+          description: Grupo criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SynthGroupDetail'
+
+  /synth-groups/{group_id}:
+    get:
+      tags:
+        - synth-groups
+      summary: Obtém detalhe do grupo
+      description: Retorna grupo com lista de synths
+      operationId: getSynthGroup
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^grp_[a-f0-9]{8}$
+      responses:
+        '200':
+          description: Detalhe do grupo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SynthGroupDetail'
+        '404':
+          description: Grupo não encontrado
+
+components:
+  schemas:
+    # ============ EXPERIMENT SCHEMAS ============
+    ExperimentCreate:
+      type: object
+      required:
+        - name
+        - hypothesis
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: Nome curto da feature
+          example: "Novo Fluxo de Checkout"
+        hypothesis:
+          type: string
+          maxLength: 500
+          description: Descrição da hipótese a ser testada
+          example: "Reduzir etapas do checkout aumentará conversão em 15%"
+        description:
+          type: string
+          maxLength: 2000
+          description: Contexto adicional, links, referências
+          example: "Baseado em feedback de usuários e análise de abandono"
+
+    ExperimentUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        hypothesis:
+          type: string
+          maxLength: 500
+        description:
+          type: string
+          maxLength: 2000
+
+    ExperimentSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: ^exp_[a-f0-9]{8}$
+          example: "exp_a1b2c3d4"
+        name:
+          type: string
+          example: "Novo Fluxo de Checkout"
+        hypothesis:
+          type: string
+          example: "Reduzir etapas do checkout aumentará conversão em 15%"
+        simulation_count:
+          type: integer
+          description: Número de simulações vinculadas
+          example: 3
+        interview_count:
+          type: integer
+          description: Número de entrevistas vinculadas
+          example: 2
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-12-27T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    ExperimentDetail:
+      allOf:
+        - $ref: '#/components/schemas/ExperimentSummary'
+        - type: object
+          properties:
+            description:
+              type: string
+              nullable: true
+            simulations:
+              type: array
+              items:
+                $ref: '#/components/schemas/SimulationSummary'
+            interviews:
+              type: array
+              items:
+                $ref: '#/components/schemas/InterviewSummary'
+
+    PaginatedExperimentSummary:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExperimentSummary'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # ============ SYNTH GROUP SCHEMAS ============
+    SynthGroupCreate:
+      type: object
+      required:
+        - name
+      properties:
+        id:
+          type: string
+          pattern: ^grp_[a-f0-9]{8}$
+          description: ID opcional. Se não fornecido, será gerado automaticamente
+        name:
+          type: string
+          example: "Geração Dezembro 2025"
+        description:
+          type: string
+          example: "Synths gerados para testes de checkout"
+
+    SynthGroupSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: ^grp_[a-f0-9]{8}$
+          example: "grp_a1b2c3d4"
+        name:
+          type: string
+          example: "Geração Dezembro 2025"
+        description:
+          type: string
+          nullable: true
+        synth_count:
+          type: integer
+          example: 50
+        created_at:
+          type: string
+          format: date-time
+
+    SynthGroupDetail:
+      allOf:
+        - $ref: '#/components/schemas/SynthGroupSummary'
+        - type: object
+          properties:
+            synths:
+              type: array
+              items:
+                $ref: '#/components/schemas/SynthSummary'
+
+    PaginatedSynthGroup:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SynthGroupSummary'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # ============ RELATED SCHEMAS ============
+    SimulationSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "sim_xyz789"
+        scenario_id:
+          type: string
+          nullable: true
+          example: "base"
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        has_insights:
+          type: boolean
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        score:
+          type: number
+          format: float
+          nullable: true
+          description: Score agregado da simulação (0-100)
+
+    InterviewSummary:
+      type: object
+      properties:
+        exec_id:
+          type: string
+          example: "exec_abc123"
+        topic_name:
+          type: string
+          example: "checkout-experience"
+        status:
+          type: string
+          enum: [pending, running, generating_summary, completed, failed]
+        synth_count:
+          type: integer
+          example: 15
+        has_summary:
+          type: boolean
+        has_prfaq:
+          type: boolean
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    SynthSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "abc123"
+        nome:
+          type: string
+          example: "Maria Silva"
+        descricao:
+          type: string
+          nullable: true
+        avatar_path:
+          type: string
+          nullable: true
+        synth_group_id:
+          type: string
+          pattern: ^grp_[a-f0-9]{8}$
+        created_at:
+          type: string
+          format: date-time
+
+    ScorecardCreate:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          description: Dados do scorecard (dimensões, pesos, etc.)
+
+    ScorecardResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "sc_xyz789"
+        experiment_id:
+          type: string
+          example: "exp_a1b2c3d4"
+        data:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+
+    InterviewCreate:
+      type: object
+      required:
+        - topic_name
+      properties:
+        topic_name:
+          type: string
+          example: "checkout-experience"
+        synth_count:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 100
+        model:
+          type: string
+          default: "gpt-5-mini"
+        max_turns:
+          type: integer
+          default: 6
+          minimum: 1
+          maximum: 20
+
+    InterviewResponse:
+      type: object
+      properties:
+        exec_id:
+          type: string
+          example: "exec_abc123"
+        experiment_id:
+          type: string
+          example: "exp_a1b2c3d4"
+        topic_name:
+          type: string
+        status:
+          type: string
+        synth_count:
+          type: integer
+        started_at:
+          type: string
+          format: date-time
+
+    # ============ COMMON SCHEMAS ============
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 100
+        limit:
+          type: integer
+          example: 50
+        offset:
+          type: integer
+          example: 0
+        has_next:
+          type: boolean
+          example: true
+        has_prev:
+          type: boolean
+          example: false
+
+    ValidationError:
+      type: object
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              loc:
+                type: array
+                items:
+                  type: string
+              msg:
+                type: string
+              type:
+                type: string
+
+    NotFoundError:
+      type: object
+      properties:
+        detail:
+          type: string
+          example: "Experiment not found: exp_notfound"

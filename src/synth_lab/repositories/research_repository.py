@@ -9,7 +9,6 @@ References:
 
 import json
 from datetime import datetime
-from pathlib import Path
 
 from synth_lab.infrastructure.database import DatabaseManager
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
@@ -166,6 +165,7 @@ class ResearchRepository(BaseRepository):
 
         return ResearchExecutionSummary(
             exec_id=row["exec_id"],
+            experiment_id=row["experiment_id"] if "experiment_id" in row.keys() else None,
             topic_name=row["topic_name"],
             status=ExecutionStatus(row["status"]),
             synth_count=row["synth_count"],
@@ -198,6 +198,7 @@ class ResearchRepository(BaseRepository):
 
         return ResearchExecutionDetail(
             exec_id=row["exec_id"],
+            experiment_id=row["experiment_id"] if "experiment_id" in row.keys() else None,
             topic_name=row["topic_name"],
             status=ExecutionStatus(row["status"]),
             synth_count=row["synth_count"],
@@ -268,6 +269,7 @@ class ResearchRepository(BaseRepository):
         model: str = "gpt-4o-mini",
         max_turns: int = 6,
         status: ExecutionStatus = ExecutionStatus.PENDING,
+        experiment_id: str | None = None,
     ) -> None:
         """
         Create a new research execution record.
@@ -279,15 +281,16 @@ class ResearchRepository(BaseRepository):
             model: LLM model to use.
             max_turns: Maximum turns per interview.
             status: Initial execution status.
+            experiment_id: Optional parent experiment ID.
         """
         query = """
             INSERT INTO research_executions
-            (exec_id, topic_name, synth_count, model, max_turns, status, started_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (exec_id, experiment_id, topic_name, synth_count, model, max_turns, status, started_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """
         self.db.execute(
             query,
-            (exec_id, topic_name, synth_count, model, max_turns,
+            (exec_id, experiment_id, topic_name, synth_count, model, max_turns,
              status.value, datetime.now().isoformat()),
         )
 
@@ -424,6 +427,78 @@ class ResearchRepository(BaseRepository):
             "validation_status": row["validation_status"],
             "confidence_score": row["confidence_score"],
         }
+
+    def list_executions_by_experiment(
+        self,
+        experiment_id: str,
+        params: PaginationParams | None = None,
+    ) -> PaginatedResponse[ResearchExecutionSummary]:
+        """
+        List research executions for a specific experiment.
+
+        Args:
+            experiment_id: Experiment ID to filter by.
+            params: Pagination parameters.
+
+        Returns:
+            Paginated response with execution summaries.
+        """
+        params = params or PaginationParams()
+        base_query = "SELECT * FROM research_executions WHERE experiment_id = ?"
+        rows, meta = self._paginate_query(base_query, params, query_params=(experiment_id,))
+        executions = [self._row_to_summary(row) for row in rows]
+        return PaginatedResponse(data=executions, pagination=meta)
+
+    def check_summaries_exist_batch(self, exec_ids: list[str]) -> dict[str, bool]:
+        """
+        Check which executions have summary_content.
+
+        Args:
+            exec_ids: List of execution IDs to check.
+
+        Returns:
+            Dict mapping exec_id to True if summary exists.
+        """
+        if not exec_ids:
+            return {}
+
+        placeholders = ",".join("?" * len(exec_ids))
+        rows = self.db.fetchall(
+            f"""
+            SELECT exec_id
+            FROM research_executions
+            WHERE exec_id IN ({placeholders})
+            AND summary_content IS NOT NULL
+            AND summary_content != ''
+            """,
+            tuple(exec_ids),
+        )
+        return {row["exec_id"]: True for row in rows}
+
+    def check_prfaqs_exist_batch(self, exec_ids: list[str]) -> dict[str, bool]:
+        """
+        Check which executions have completed prfaq_metadata.
+
+        Args:
+            exec_ids: List of execution IDs to check.
+
+        Returns:
+            Dict mapping exec_id to True if prfaq exists and is completed.
+        """
+        if not exec_ids:
+            return {}
+
+        placeholders = ",".join("?" * len(exec_ids))
+        rows = self.db.fetchall(
+            f"""
+            SELECT exec_id
+            FROM prfaq_metadata
+            WHERE exec_id IN ({placeholders})
+            AND status = 'completed'
+            """,
+            tuple(exec_ids),
+        )
+        return {row["exec_id"]: True for row in rows}
 
 
 if __name__ == "__main__":

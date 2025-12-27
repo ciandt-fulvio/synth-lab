@@ -60,14 +60,14 @@ class ScorecardRepository:
         created_at = scorecard.created_at.isoformat()
 
         sql = """
-            INSERT INTO feature_scorecards (id, data, created_at)
-            VALUES (?, ?, ?)
+            INSERT INTO feature_scorecards (id, experiment_id, data, created_at)
+            VALUES (?, ?, ?, ?)
         """
 
         with self.db.transaction() as conn:
-            conn.execute(sql, (scorecard.id, json.dumps(data), created_at))
+            conn.execute(sql, (scorecard.id, scorecard.experiment_id, json.dumps(data), created_at))
 
-        self.logger.info(f"Created scorecard {scorecard.id}")
+        self.logger.info(f"Created scorecard {scorecard.id} for experiment {scorecard.experiment_id}")
         return scorecard.id
 
     def get_scorecard(self, scorecard_id: str) -> FeatureScorecard | None:
@@ -183,6 +183,44 @@ class ScorecardRepository:
             self.logger.warning(f"Scorecard {scorecard_id} not found for deletion")
 
         return deleted
+
+    def list_by_experiment_id(
+        self,
+        experiment_id: str,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> tuple[list[FeatureScorecard], int]:
+        """
+        List scorecards for a specific experiment.
+
+        Args:
+            experiment_id: Experiment ID to filter by
+            limit: Maximum number of scorecards to return
+            offset: Number of scorecards to skip
+
+        Returns:
+            Tuple of (list of scorecards, total count)
+        """
+        # Get total count
+        count_sql = "SELECT COUNT(*) as count FROM feature_scorecards WHERE experiment_id = ?"
+        count_row = self.db.fetchone(count_sql, (experiment_id,))
+        total = count_row["count"] if count_row else 0
+
+        # Get paginated results
+        list_sql = """
+            SELECT data FROM feature_scorecards
+            WHERE experiment_id = ?
+            ORDER BY created_at DESC
+            LIMIT ? OFFSET ?
+        """
+        rows = self.db.fetchall(list_sql, (experiment_id, limit, offset))
+
+        scorecards = [
+            FeatureScorecard.model_validate(json.loads(row["data"]))
+            for row in rows
+        ]
+
+        return scorecards, total
 
 
 if __name__ == "__main__":

@@ -96,6 +96,11 @@ class FeatureScorecard(BaseModel):
         description="8-character alphanumeric ID.",
     )
 
+    experiment_id: str | None = Field(
+        default=None,
+        description="ID of the parent experiment (exp_xxxxxxxx format).",
+    )
+
     identification: ScorecardIdentification
 
     # Rich description

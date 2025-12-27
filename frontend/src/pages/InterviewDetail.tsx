@@ -25,7 +25,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function InterviewDetail() {
-  const { execId } = useParams<{ execId: string }>();
+  const { execId, expId } = useParams<{ execId: string; expId?: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -38,6 +38,15 @@ export default function InterviewDetail() {
   const { data: execution, isLoading, error } = useResearchDetail(execId!);
   const { data: transcripts } = useResearchTranscripts(execId!);
   const { data: artifactStates } = useArtifactStatesWithPolling(execId!);
+
+  // T061: Auto-redirect legacy URLs to experiment-scoped URLs
+  useEffect(() => {
+    if (!expId && execution?.experiment_id) {
+      // Accessed via legacy /interviews/:execId but execution has experiment_id
+      // Redirect to /experiments/:expId/interviews/:execId
+      navigate(`/experiments/${execution.experiment_id}/interviews/${execId}`, { replace: true });
+    }
+  }, [expId, execution?.experiment_id, execId, navigate]);
 
   // [INTERVIEW-HEADER] Fetch topic details for question preview
   const { data: topicDetail } = useTopicDetail(execution?.topic_name ?? null);
@@ -159,8 +168,14 @@ export default function InterviewDetail() {
     <div className="container mx-auto p-6 space-y-6">
       {/* [INTERVIEW-HEADER] Redesigned header with topic guide preview */}
       <div className="flex items-center gap-4 mb-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
-          <ArrowLeft className="h-4 w-4" />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => expId ? navigate(`/experiments/${expId}`) : navigate('/')}
+          className="text-gray-600 hover:text-purple-600"
+        >
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          {expId ? 'Experimento' : 'Início'}
         </Button>
         <h1 className="text-2xl font-bold">{execution.topic_name}</h1>
         <StatusBadge status={execution.status} />

@@ -309,6 +309,49 @@ class SimulationRepository:
 
         return outcomes, total
 
+    def list_by_experiment_id(
+        self,
+        experiment_id: str,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> tuple[list[SimulationRun], int]:
+        """
+        List simulation runs for a specific experiment (via scorecards).
+
+        Args:
+            experiment_id: Experiment ID to filter by
+            limit: Maximum results
+            offset: Results to skip
+
+        Returns:
+            Tuple of (list of runs, total count)
+        """
+        # Count total - join with feature_scorecards to filter by experiment
+        count_sql = """
+            SELECT COUNT(*) as count
+            FROM simulation_runs sr
+            JOIN feature_scorecards fs ON sr.scorecard_id = fs.id
+            WHERE fs.experiment_id = ?
+        """
+        count_row = self.db.fetchone(count_sql, (experiment_id,))
+        total = count_row["count"] if count_row else 0
+
+        # Get paginated results
+        list_sql = """
+            SELECT sr.id, sr.scorecard_id, sr.scenario_id, sr.config, sr.status,
+                   sr.started_at, sr.completed_at, sr.total_synths,
+                   sr.aggregated_outcomes, sr.execution_time_seconds
+            FROM simulation_runs sr
+            JOIN feature_scorecards fs ON sr.scorecard_id = fs.id
+            WHERE fs.experiment_id = ?
+            ORDER BY sr.started_at DESC
+            LIMIT ? OFFSET ?
+        """
+        rows = self.db.fetchall(list_sql, (experiment_id, limit, offset))
+
+        runs = [self._row_to_simulation_run(row) for row in rows]
+        return runs, total
+
     def _row_to_simulation_run(self, row: Any) -> SimulationRun:
         """Convert a database row to SimulationRun."""
         config = SimulationConfig.model_validate(json.loads(row["config"]))

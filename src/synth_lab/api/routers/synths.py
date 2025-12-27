@@ -30,11 +30,13 @@ async def list_synths(
     sort_by: str | None = Query(default=None, description="Field to sort by"),
     sort_order: str = Query(default="desc", pattern="^(asc|desc)$", description="Sort order"),
     fields: str | None = Query(default=None, description="Comma-separated list of fields"),
+    synth_group_id: str | None = Query(default=None, description="Filter by synth group ID"),
 ) -> PaginatedResponse[SynthSummary]:
     """
     List all synths with pagination.
 
-    Returns a paginated list of synth summaries with optional field selection.
+    Returns a paginated list of synth summaries with optional field selection
+    and group filtering.
     """
     service = get_synth_service()
     params = PaginationParams(
@@ -44,7 +46,7 @@ async def list_synths(
         sort_order=sort_order,
     )
     field_list = fields.split(",") if fields else None
-    return service.list_synths(params, field_list)
+    return service.list_synths(params, field_list, synth_group_id=synth_group_id)
 
 
 @router.get("/fields", response_model=list[SynthFieldInfo])
