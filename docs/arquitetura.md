@@ -1,821 +1,568 @@
-# Arquitetura do synth-lab
+# Arquitetura do Backend - synth-lab
 
 ## Visão Geral
 
-O **synth-lab** implementa uma arquitetura em **3 camadas** (Interface → Service → Database) que promove separação de responsabilidades, reutilização de código e facilidade de manutenção.
+O **synth-lab** implementa uma arquitetura em **camadas** com separação clara de responsabilidades. Este documento define as regras obrigatórias que devem ser seguidas em todo código novo.
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                   INTERFACE LAYER                        │
-│  ┌──────────────┐              ┌──────────────┐         │
-│  │     CLI      │              │   REST API   │         │
-│  │   (Typer)    │              │  (FastAPI)   │         │
-│  └──────┬───────┘              └──────┬───────┘         │
-│         │                             │                 │
-│         └─────────────┬───────────────┘                 │
-└───────────────────────┼─────────────────────────────────┘
-                        │
-┌───────────────────────┼─────────────────────────────────┐
-│                   SERVICE LAYER                          │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │  • SynthService (generate, list, get)           │    │
-│  │  • TopicService (create, update, list)          │    │
-│  │  • ResearchService (execute, stream, status)    │    │
-│  │  • ReportService (summary, prfaq - async)       │    │
-│  └──────────────────────┬──────────────────────────┘    │
-└─────────────────────────┼───────────────────────────────┘
-                          │
-┌─────────────────────────┼───────────────────────────────┐
-│                   DATABASE LAYER                         │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │  • DatabaseManager (context manager)            │    │
-│  │  • Repositories (synths, topics, executions)    │    │
-│  │  • Models (Pydantic)                            │    │
-│  └──────────────────────┬──────────────────────────┘    │
-└─────────────────────────┼───────────────────────────────┘
-                          │
-                   ┌──────┴──────┐
-                   │   SQLite    │
-                   │ synthlab.db │
-                   └─────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                        API LAYER                                 │
+│  api/routers/     - Endpoints HTTP (recebe request, retorna     │
+│                     response)                                    │
+│  api/schemas/     - Pydantic models para request/response       │
+│  api/errors.py    - Exception handlers HTTP                     │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      SERVICE LAYER                               │
+│  services/        - Lógica de negócio                           │
+│  services/errors.py - Exceções de domínio                       │
+│  services/*/prompts.py - Prompts de LLM                         │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    REPOSITORY LAYER                              │
+│  repositories/    - Acesso a dados (SQL encapsulado)            │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   INFRASTRUCTURE LAYER                           │
+│  infrastructure/database.py      - DatabaseManager              │
+│  infrastructure/llm_client.py    - Cliente OpenAI               │
+│  infrastructure/phoenix_tracing.py - Observabilidade            │
+│  infrastructure/config.py        - Configurações                │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      DOMAIN LAYER                                │
+│  domain/entities/ - Entidades de negócio (Pydantic)             │
+│  models/          - Models compartilhados (pagination, events)  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## Camadas da Arquitetura
+---
 
-### 1. Interface Layer (Camada de Interface)
-
-Responsável por interagir com o usuário, seja através de linha de comando (CLI) ou requisições HTTP (API REST).
-
-#### 1.1 CLI (Command Line Interface)
-
-**Tecnologia**: Typer + Rich
-
-**Localização**: `src/synth_lab/` (comandos integrados)
-
-**Responsabilidades**:
-- Capturar comandos do usuário
-- Validar argumentos de entrada
-- Chamar serviços da camada de negócio
-- Formatar saída com cores e tabelas (Rich)
-- Mostrar progress bars para operações longas
-
-**Comandos Principais**:
-```bash
-# Geração
-synthlab gensynth -n 10 --avatar
-
-# Consulta
-synthlab listsynth --where "demografia.idade > 30"
-
-# Topic Guides
-synthlab topic-guide create --name amazon-ecommerce
-synthlab topic-guide update --name amazon-ecommerce
-
-# Research
-synthlab research interview <synth_id> <topic_name>
-synthlab research batch <topic_name> --limit 10
-```
-
-#### 1.2 API REST (FastAPI)
-
-**Tecnologia**: FastAPI + Pydantic + Uvicorn
-
-**Localização**: `src/synth_lab/api/`
-
-**Responsabilidades**:
-- Expor endpoints HTTP RESTful
-- Validar requests com Pydantic models
-- Serializar responses em JSON
-- Tratar exceções e retornar erros padronizados
-- Servir documentação interativa (Swagger UI em `/docs`)
-- Streaming via Server-Sent Events (SSE)
-
-**Estrutura de Diretórios**:
-```
-src/synth_lab/api/
-├── main.py              # FastAPI app principal
-├── dependencies.py      # Dependency injection (DB, services)
-├── errors.py            # Exception handlers
-├── models/              # Request/response models
-│   ├── synth.py
-│   ├── topic.py
-│   ├── research.py
-│   └── prfaq.py
-└── routers/             # Endpoints agrupados
-    ├── synths.py        # 5 endpoints
-    ├── topics.py        # 3 endpoints
-    ├── research.py      # 6 endpoints
-    └── prfaq.py         # 3 endpoints
-```
-
-**Endpoints**:
-- **17 endpoints REST** divididos em 4 routers
-- Paginação padrão: limit (1-200), offset (>=0)
-- Sorting: sort_by + sort_order (asc/desc)
-- Filtros: WHERE clause SQL ou campos específicos
-
-### 2. Service Layer (Camada de Negócio)
-
-Contém toda a lógica de negócio do sistema. É **compartilhada** entre CLI e API, garantindo comportamento consistente.
-
-**Localização**: `src/synth_lab/services/`
-
-**Princípios**:
-- **Single Responsibility**: Cada service cuida de um domínio específico
-- **Dependency Injection**: Services recebem repositories via construtor
-- **Stateless**: Services não mantêm estado entre chamadas
-- **Testável**: Facilmente testável com mock de repositories
-
-#### 2.1 SynthService
-
-**Arquivo**: `src/synth_lab/services/synth_service.py`
-
-**Responsabilidades**:
-- Gerar novos synths (com LLM)
-- Listar synths com paginação e filtros
-- Buscar synth por ID
-- Busca avançada com SQL WHERE clause
-- Gerar e registrar avatares
-
-**Métodos Principais**:
-```python
-class SynthService:
-    def generate_synth(arquetipo: str | None) -> dict
-    def list_synths(params: PaginationParams, fields: list[str]) -> PaginatedResponse[SynthSummary]
-    def get_synth(synth_id: str) -> SynthDetail
-    def search_synths(where_clause: str, query: str, params: PaginationParams) -> PaginatedResponse[SynthSummary]
-    def get_avatar(synth_id: str) -> Path
-    def get_fields() -> list[SynthFieldInfo]
-```
-
-**Integrações**:
-- `gen_synth.generator` - Geração de perfil com LLM
-- `gen_synth.avatar_generator` - Geração de avatar com DALL-E
-- `SynthRepository` - Persistência no banco
-
-#### 2.2 TopicService
-
-**Arquivo**: `src/synth_lab/services/topic_service.py`
-
-**Responsabilidades**:
-- Criar topic guides
-- Atualizar descrições de arquivos (Vision API)
-- Listar topic guides
-- Obter detalhes de um topic
-- Listar research executions de um topic
-
-**Métodos Principais**:
-```python
-class TopicService:
-    def create_topic(name: str, display_name: str, description: str) -> TopicDetail
-    def update_topic(name: str, force: bool) -> TopicDetail
-    def list_topics(params: PaginationParams) -> PaginatedResponse[TopicSummary]
-    def get_topic(topic_name: str) -> TopicDetail
-    def get_topic_executions(topic_name: str, params: PaginationParams) -> PaginatedResponse[ResearchExecutionSummary]
-```
-
-**Integrações**:
-- `topic_guides.manager` - Processamento de arquivos
-- `infrastructure.llm_client` - Geração de descrições
-- `TopicRepository` - Persistência e cache
-
-#### 2.3 ResearchService
-
-**Arquivo**: `src/synth_lab/services/research_service.py`
-
-**Responsabilidades**:
-- Executar research com streaming de progresso
-- Gerenciar paralelização de entrevistas
-- Controlar concorrência (semaphore)
-- Salvar transcrições
-- Disparar jobs assíncronos (summary, PR-FAQ)
-
-**Métodos Principais**:
-```python
-class ResearchService:
-    async def execute_research_stream(
-        topic_name: str,
-        synth_ids: list[str] | None,
-        synth_count: int | None,
-        max_turns: int,
-        max_concurrent: int,
-        model: str | None = None,
-        generate_summary: bool
-    ) -> AsyncGenerator[dict, None]
-
-    def get_execution_status(exec_id: str) -> dict
-    def list_executions(params: PaginationParams) -> PaginatedResponse[ResearchExecutionSummary]
-    def get_transcripts(exec_id: str, params: PaginationParams) -> PaginatedResponse[TranscriptSummary]
-    def get_transcript(exec_id: str, synth_id: str) -> TranscriptDetail
-    def get_summary(exec_id: str) -> str
-```
-
-**Eventos SSE Emitidos**:
-- `started` - Início da execução
-- `interview_started` - Início de entrevista individual
-- `turn` - Cada turno de conversa
-- `interview_completed` - Fim de entrevista bem-sucedida
-- `interview_failed` - Falha em entrevista
-- `all_completed` - Fim de toda a execução
-- `job_queued` - Job assíncrono enfileirado
-
-**Integrações**:
-- `research_agentic.batch_interview` - Engine de entrevistas
-- `ResearchRepository` - Persistência
-- `ReportService` - Geração de relatórios
-
-#### 2.4 ReportService
-
-**Arquivo**: `src/synth_lab/services/report_service.py`
-
-**Responsabilidades**:
-- Enfileirar jobs assíncronos (summary, PR-FAQ)
-- Processar jobs em background (worker)
-- Gerar resumos executivos
-- Gerar documentos PR-FAQ
-- Atualizar metadata de reports
-
-**Métodos Principais**:
-```python
-class ReportService:
-    async def queue_summary_generation(exec_id: str) -> str  # retorna job_id
-    async def queue_prfaq_generation(exec_id: str, depends_on: str | None) -> str
-    def get_job_status(job_id: str) -> dict
-
-    # Privados
-    async def _job_worker()
-    async def _generate_summary(exec_id: str)
-    async def _generate_prfaq(exec_id: str)
-```
-
-**Integrações**:
-- `research_agentic.summary` - Geração de summary
-- `research_prfaq.generator` - Geração de PR-FAQ
-- `JobRepository` - Persistência de jobs
-
-### 3. Database Layer (Camada de Dados)
-
-Responsável por toda a interação com o banco de dados SQLite.
-
-**Localização**: `src/synth_lab/infrastructure/` e `src/synth_lab/repositories/`
-
-#### 3.1 DatabaseManager
-
-**Arquivo**: `src/synth_lab/infrastructure/database.py`
-
-**Responsabilidades**:
-- Gerenciar conexões SQLite
-- Fornecer context managers para queries
-- Gerenciar transações com rollback automático
-- Configurar WAL mode e foreign keys
-
-**Características**:
-- **Thread-safe**: Usa `threading.local()` para conexões por thread
-- **WAL mode**: Permite leituras concorrentes
-- **Foreign keys**: Habilitadas para integridade referencial
-- **Transações**: Rollback automático em caso de erro
-
-**Métodos Principais**:
-```python
-class DatabaseManager:
-    def connection() -> ContextManager[sqlite3.Connection]
-    def transaction() -> ContextManager[sqlite3.Connection]
-    def execute(sql: str, params: tuple) -> sqlite3.Cursor
-    def fetchone(sql: str, params: tuple) -> sqlite3.Row | None
-    def fetchall(sql: str, params: tuple) -> list[sqlite3.Row]
-    def executemany(sql: str, params_list: list[tuple])
-```
-
-#### 3.2 Repositories
-
-Cada repository encapsula acesso a dados de um domínio específico.
-
-**BaseRepository** (`src/synth_lab/repositories/base.py`):
-- Métodos comuns de paginação
-- Conversão de rows para dicts
-- Validação de campos de ordenação
-
-**SynthRepository** (`src/synth_lab/repositories/synth_repository.py`):
-```python
-class SynthRepository:
-    def create(synth_data: dict) -> str
-    def get_by_id(synth_id: str) -> dict | None
-    def list(params: PaginationParams, fields: list[str]) -> tuple[list[dict], PaginationMeta]
-    def search(where_clause: str, query: str, params: PaginationParams) -> tuple[list[dict], PaginationMeta]
-    def register_avatar(synth_id: str, file_path: str, model: str)
-    def get_avatar_path(synth_id: str) -> Path | None
-    def get_fields() -> list[SynthFieldInfo]
-```
-
-**TopicRepository** (`src/synth_lab/repositories/topic_repository.py`):
-```python
-class TopicRepository:
-    def create(topic_data: dict) -> str
-    def get_by_name(topic_name: str) -> dict | None
-    def list(params: PaginationParams) -> tuple[list[dict], PaginationMeta]
-    def update_cache(topic_name: str, metadata: dict)
-    def add_file(topic_name: str, file_data: dict)
-    def get_files(topic_name: str) -> list[dict]
-```
-
-**ResearchRepository** (`src/synth_lab/repositories/research_repository.py`):
-```python
-class ResearchRepository:
-    def create_execution(exec_data: dict) -> str
-    def get_execution(exec_id: str) -> dict | None
-    def list_executions(params: PaginationParams) -> tuple[list[dict], PaginationMeta]
-    def update_execution(exec_id: str, **fields)
-    def complete_execution(exec_id: str)
-
-    def save_transcript(exec_id: str, synth_id: str, transcript_data: dict)
-    def get_transcripts(exec_id: str, params: PaginationParams) -> tuple[list[dict], PaginationMeta]
-    def get_transcript(exec_id: str, synth_id: str) -> dict | None
-
-    def register_report(exec_id: str, report_data: dict)
-    def save_prfaq_metadata(exec_id: str, metadata: dict)
-```
-
-**PRFAQRepository** (`src/synth_lab/repositories/prfaq_repository.py`):
-```python
-class PRFAQRepository:
-    def list(params: PaginationParams) -> tuple[list[dict], PaginationMeta]
-    def get_by_exec_id(exec_id: str) -> dict | None
-    def get_markdown(exec_id: str) -> str
-```
-
-**JobRepository** (`src/synth_lab/repositories/job_repository.py`):
-```python
-class JobRepository:
-    def create_job(job_data: dict) -> str
-    def get_job(job_id: str) -> dict | None
-    def get_next_pending_job() -> dict | None
-    def update_job_status(job_id: str, status: str, error_message: str | None)
-```
-
-#### 3.3 Models (Pydantic)
-
-**Localização**: `src/synth_lab/models/`
-
-**Responsabilidades**:
-- Validação automática de dados
-- Serialização/deserialização JSON
-- Type safety em tempo de compilação
-- Documentação automática de schemas
-
-**Hierarquia de Models**:
+## Estrutura de Diretórios
 
 ```
-models/
-├── synth.py
-│   ├── SynthBase (campos obrigatórios)
-│   ├── SynthSummary (para listagens)
-│   ├── SynthDetail (com dados aninhados)
-│   ├── Demographics, Psychographics, TechCapabilities, etc.
-│   └── SynthSearchRequest, SynthFieldInfo
+src/synth_lab/
+├── api/                          # Camada de Interface HTTP
+│   ├── main.py                   # FastAPI app, lifespan, CORS
+│   ├── errors.py                 # Exception handlers → HTTP responses
+│   ├── routers/                  # Endpoints agrupados por domínio
+│   │   ├── synths.py
+│   │   ├── experiments.py
+│   │   └── ...
+│   └── schemas/                  # Request/Response Pydantic models
+│       ├── experiments.py
+│       └── ...
 │
-├── topic.py
-│   ├── TopicSummary
-│   ├── TopicDetail
-│   ├── TopicQuestion
-│   └── TopicFile
+├── services/                     # Camada de Negócio
+│   ├── errors.py                 # Exceções de domínio
+│   ├── experiment_service.py     # Serviço de experiments
+│   ├── synth_service.py          # Serviço de synths
+│   ├── research_service.py       # Serviço de research
+│   ├── simulation/               # Subdomínio: simulação
+│   │   ├── scorecard_llm.py      # Operações LLM para scorecard
+│   │   ├── simulation_service.py
+│   │   └── ...
+│   ├── research_agentic/         # Subdomínio: entrevistas
+│   │   ├── prompts.py            # Prompts de LLM (NUNCA no router!)
+│   │   └── ...
+│   └── research_prfaq/           # Subdomínio: PR-FAQ
+│       ├── prompts.py
+│       └── generator.py
 │
-├── research.py
-│   ├── ResearchExecutionBase
-│   ├── ResearchExecutionSummary
-│   ├── ResearchExecutionDetail
-│   ├── TranscriptSummary
-│   ├── TranscriptDetail
-│   ├── Message
-│   ├── ExecutionStatus (enum)
-│   └── ResearchExecuteRequest, ResearchExecuteResponse
+├── repositories/                 # Camada de Dados
+│   ├── base.py                   # BaseRepository com paginação
+│   ├── experiment_repository.py
+│   ├── synth_repository.py
+│   └── ...
 │
-├── prfaq.py
-│   ├── PRFAQSummary
-│   ├── PRFAQGenerateRequest
-│   └── PRFAQGenerateResponse
+├── infrastructure/               # Camada de Infraestrutura
+│   ├── config.py                 # Configurações (env vars)
+│   ├── database.py               # DatabaseManager (SQLite)
+│   ├── llm_client.py             # LLMClient (OpenAI)
+│   ├── phoenix_tracing.py        # Tracing (Phoenix/OTEL)
+│   └── migrations/               # Migrações de schema
 │
-└── pagination.py
-    ├── PaginationParams
-    ├── PaginationMeta
-    └── PaginatedResponse[T]
+├── domain/                       # Camada de Domínio
+│   └── entities/                 # Entidades de negócio
+│       ├── experiment.py
+│       ├── synth_group.py
+│       └── ...
+│
+└── models/                       # Models Compartilhados
+    ├── pagination.py             # PaginationParams, PaginatedResponse
+    ├── events.py                 # SSE events
+    └── ...
 ```
 
-## Fluxo de Dados
+---
 
-### Exemplo 1: Listar Synths via API
+## Regras por Camada
 
-```
-1. Request HTTP
-   GET /synths/list?limit=10&offset=0
+### 1. API Layer (`api/`)
 
-2. Router Handler (api/routers/synths.py)
-   └─> Cria PaginationParams(limit=10, offset=0)
-   └─> Chama SynthService.list_synths(params)
+**Responsabilidades:**
+- Receber requests HTTP
+- Validar input com Pydantic schemas
+- Chamar services
+- Converter exceções em HTTP responses
+- Retornar responses JSON
 
-3. Service Layer (services/synth_service.py)
-   └─> SynthService.list_synths()
-       └─> Chama SynthRepository.list(params)
-
-4. Repository Layer (repositories/synth_repository.py)
-   └─> SynthRepository.list()
-       └─> Chama BaseRepository._paginate_query()
-       └─> DatabaseManager.fetchone() [COUNT query]
-       └─> DatabaseManager.fetchall() [SELECT com LIMIT/OFFSET]
-       └─> Converte rows para SynthSummary
-
-5. Database Layer (infrastructure/database.py)
-   └─> SQLite Connection (thread-local)
-   └─> Executa queries no banco synthlab.db
-   └─> Retorna sqlite3.Row objects
-
-6. Response
-   └─> Repository retorna (list[dict], PaginationMeta)
-   └─> Service retorna PaginatedResponse[SynthSummary]
-   └─> Router valida com Pydantic
-   └─> FastAPI serializa para JSON
-   └─> HTTP 200 OK com body JSON
-```
-
-### Exemplo 2: Executar Research via CLI
-
-```
-1. Comando CLI
-   $ synthlab research batch compra-amazon --limit 10
-
-2. CLI Handler
-   └─> Parseia argumentos (topic_name="compra-amazon", limit=10)
-   └─> Chama ResearchService.execute_research_stream()
-
-3. Service Layer (services/research_service.py)
-   └─> ResearchService.execute_research_stream()
-       ├─> Cria execution record no DB
-       ├─> Seleciona synths aleatórios (via repository)
-       ├─> Para cada synth:
-       │   ├─> Executa interview (async, com semaphore)
-       │   ├─> Salva transcript no DB
-       │   └─> Yield eventos de progresso
-       ├─> Atualiza status da execution
-       └─> Enfileira jobs assíncronos (summary, PR-FAQ)
-
-4. Research Engine (research_agentic/batch_interview.py)
-   └─> Carrega synth do DB
-   └─> Carrega topic guide do DB
-   └─> Executa conversa LLM (interviewer + synth)
-   └─> Retorna transcript completo
-
-5. Repository Layer
-   └─> ResearchRepository.save_transcript()
-       └─> INSERT na tabela research_transcripts
-
-6. Job Service (services/report_service.py)
-   └─> Enfileira job de summary
-   └─> Worker em background processa job
-   └─> Gera summary.md usando LLM
-   └─> Salva arquivo e atualiza DB
-```
-
-## Padrões de Design
-
-### 1. Dependency Injection
-
-**Problema**: Acoplamento forte entre camadas
-
-**Solução**: Services recebem repositories via construtor
-
+**PERMITIDO:**
 ```python
-# API dependencies (api/dependencies.py)
-@lru_cache
-def get_db() -> DatabaseManager:
-    return get_database()
-
-@lru_cache
-def get_synth_service() -> SynthService:
-    return SynthService(SynthRepository())
-
-# Router handler
-@router.get("/synths/list")
-async def list_synths(
-    service: SynthService = Depends(get_synth_service)
-):
-    return service.list_synths(...)
+# Router chama service
+@router.post("", response_model=ExperimentResponse)
+async def create_experiment(data: ExperimentCreate):
+    service = get_experiment_service()
+    try:
+        experiment = service.create_experiment(
+            name=data.name,
+            hypothesis=data.hypothesis,
+        )
+        return ExperimentResponse.from_entity(experiment)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 ```
 
-**Benefícios**:
-- Testável (mock de dependencies)
-- Reutilizável (mesma service em CLI e API)
-- Flexível (fácil trocar implementações)
-
-### 2. Repository Pattern
-
-**Problema**: Lógica de negócio misturada com acesso a dados
-
-**Solução**: Repositories encapsulam toda a lógica SQL
-
+**PROIBIDO:**
 ```python
-# Service não sabe como dados são armazenados
-class SynthService:
-    def __init__(self, repo: SynthRepository):
-        self.repo = repo
+# ❌ Lógica de negócio no router
+@router.post("")
+async def create_experiment(data: ExperimentCreate):
+    if len(data.name) > 100:  # ❌ Validação de negócio
+        raise HTTPException(422, "Name too long")
 
-    def get_synth(self, synth_id: str):
-        return self.repo.get_by_id(synth_id)
+    # ❌ SQL direto no router
+    db.execute("INSERT INTO experiments...")
 
-# Repository cuida de SQL
-class SynthRepository:
-    def get_by_id(self, synth_id: str):
-        sql = "SELECT * FROM synths WHERE id = ?"
-        return self.db.fetchone(sql, (synth_id,))
+    # ❌ Chamada LLM no router
+    llm = get_llm_client()
+    response = llm.complete(...)
+
+# ❌ Prompts de LLM no router
+SCORECARD_PROMPT = """Você é um especialista..."""
 ```
 
-**Benefícios**:
-- Separação de responsabilidades
-- Fácil trocar banco de dados
-- Queries SQL centralizadas
+**Regra de Ouro:** Router só faz: `request → service.method() → response`
 
-### 3. Pydantic Models para Validação
+---
 
-**Problema**: Validação manual propensa a erros
+### 2. Service Layer (`services/`)
 
-**Solução**: Pydantic valida automaticamente
+**Responsabilidades:**
+- Toda lógica de negócio
+- Validações de domínio
+- Orquestração de repositories
+- Chamadas LLM (via LLMClient ou classes dedicadas)
+- Logging (via loguru)
 
+**PERMITIDO:**
 ```python
-class PaginationParams(BaseModel):
-    limit: int = Field(default=50, ge=1, le=200)
-    offset: int = Field(default=0, ge=0)
-    sort_by: str | None = None
-    sort_order: Literal["asc", "desc"] = "asc"
+class ExperimentService:
+    def __init__(self, repository: ExperimentRepository | None = None):
+        self.repository = repository or ExperimentRepository()
+        self.logger = logger.bind(component="experiment_service")
 
-# FastAPI valida automaticamente
-@router.get("/synths/list")
-async def list_synths(params: PaginationParams = Depends()):
-    # params já validado!
-    pass
+    def create_experiment(self, name: str, hypothesis: str) -> Experiment:
+        # ✅ Validação de negócio no service
+        if not name or not name.strip():
+            raise ValueError("name is required")
+        if len(name) > 100:
+            raise ValueError("name must not exceed 100 characters")
+
+        # ✅ Criação de entidade
+        experiment = Experiment(name=name, hypothesis=hypothesis)
+
+        # ✅ Persistência via repository
+        return self.repository.create(experiment)
 ```
 
-**Benefícios**:
-- Validação automática
-- Erros claros e detalhados
-- Documentação automática (OpenAPI)
-- Type hints integrados
-
-### 4. Context Managers para Recursos
-
-**Problema**: Conexões não fechadas, transações não rollback
-
-**Solução**: Context managers garantem cleanup
-
+**Para operações LLM, criar classe dedicada:**
 ```python
-class DatabaseManager:
-    @contextmanager
-    def connection(self):
-        conn = self._get_connection()
-        try:
-            yield conn
-        finally:
-            # Cleanup sempre executado
-            pass
+# services/experiment/scorecard_estimator.py
+class ScorecardEstimator:
+    """Estimativa de scorecard via LLM."""
 
-    @contextmanager
-    def transaction(self):
-        with self.connection() as conn:
-            try:
-                yield conn
-                conn.commit()
-            except Exception:
-                conn.rollback()
-                raise
+    def __init__(self, llm_client: LLMClient | None = None):
+        self.llm = llm_client or get_llm_client()
+        self.logger = logger.bind(component="scorecard_estimator")
 
-# Uso
-with db.transaction() as conn:
-    conn.execute("INSERT INTO ...")
-    # Commit automático ou rollback em erro
+    def estimate_from_experiment(self, experiment: Experiment) -> ScorecardEstimate:
+        with _tracer.start_as_current_span("estimate_scorecard"):
+            prompt = self._build_prompt(experiment)
+            response = self.llm.complete_json(messages=[...])
+            self.logger.info(f"Estimated scorecard for {experiment.id}")
+            return self._parse_response(response)
+
+    def _build_prompt(self, experiment: Experiment) -> str:
+        """Prompt encapsulado como método privado."""
+        return f"""Você é um especialista..."""
 ```
 
-**Benefícios**:
-- Segurança (rollback garantido)
-- Legibilidade (with statement)
-- Menos bugs (não esquece de fechar)
-
-### 5. Async Generators para Streaming
-
-**Problema**: API bloqueante durante research longa
-
-**Solução**: Async generator com SSE
-
+**PROIBIDO:**
 ```python
-class ResearchService:
-    async def execute_research_stream(self, ...) -> AsyncGenerator[dict, None]:
-        # Yield eventos conforme ocorrem
-        yield {"event": "started", "exec_id": exec_id}
+# ❌ SQL direto no service
+class ExperimentService:
+    def get_experiment(self, exp_id: str):
+        db.execute("SELECT * FROM experiments WHERE id = ?", (exp_id,))
 
-        async for turn in run_interview_async(...):
-            yield {"event": "turn", "text": turn.text}
-
-        yield {"event": "completed"}
-
-# FastAPI converte para SSE
-@router.post("/research/execute")
-async def execute_research(request: ResearchExecuteRequest):
-    async def event_generator():
-        async for event in service.execute_research_stream(...):
-            yield f"data: {json.dumps(event)}\n\n"
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+# ❌ Constantes de prompt fora de services
+# (prompts devem estar em services/*/prompts.py ou como métodos privados)
 ```
 
-**Benefícios**:
-- UX melhor (progresso em tempo real)
-- Escalável (não bloqueia servidor)
-- Interruptível (cliente pode cancelar)
+---
 
-## Decisões Arquiteturais
+### 3. Repository Layer (`repositories/`)
 
-### 1. Por que SQLite?
+**Responsabilidades:**
+- Todo acesso a dados
+- Queries SQL
+- Conversão row → entity
+- Paginação
 
-**Alternativas Consideradas**: PostgreSQL, MongoDB, DuckDB
+**PERMITIDO:**
+```python
+class ExperimentRepository(BaseRepository):
+    def __init__(self, db: DatabaseManager | None = None):
+        super().__init__(db)
 
-**Decisão**: SQLite com JSON1
+    def create(self, experiment: Experiment) -> Experiment:
+        self.db.execute(
+            """
+            INSERT INTO experiments (id, name, hypothesis, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (experiment.id, experiment.name, experiment.hypothesis, experiment.created_at),
+        )
+        return experiment
 
-**Razões**:
-- ✅ Zero dependências (built-in Python 3.13)
-- ✅ Deploy simples (single file)
-- ✅ JSON1 suporta queries em campos aninhados
-- ✅ WAL mode permite leituras concorrentes
-- ✅ Suficiente para até 10k synths
-- ❌ Não escala para milhões de records (futuro: migrar para PostgreSQL)
+    def get_by_id(self, exp_id: str) -> Experiment | None:
+        row = self.db.fetchone(
+            "SELECT * FROM experiments WHERE id = ?",
+            (exp_id,),
+        )
+        return self._row_to_entity(row) if row else None
+```
 
-### 2. Por que FastAPI?
+**OBRIGATÓRIO:** Usar queries parametrizadas (prevenção SQL injection)
+```python
+# ✅ CORRETO - Parametrizado
+self.db.execute("SELECT * FROM synths WHERE id = ?", (synth_id,))
 
-**Alternativas Consideradas**: Flask, Django REST Framework
+# ❌ ERRADO - String interpolation
+self.db.execute(f"SELECT * FROM synths WHERE id = '{synth_id}'")
+```
 
-**Decisão**: FastAPI
+---
 
-**Razões**:
-- ✅ Async nativo (melhor para I/O bound)
-- ✅ Pydantic integrado (validação automática)
-- ✅ OpenAPI docs automático
-- ✅ Performance superior
-- ✅ Type hints modernos
-- ✅ SSE suportado nativamente
+### 4. Infrastructure Layer (`infrastructure/`)
 
-### 3. Por que Service Layer?
+**Responsabilidades:**
+- Conexões externas (DB, APIs)
+- Configuração
+- Tracing/Observabilidade
 
-**Alternativas Consideradas**: Lógica direto no router, lógica direto no repository
+**Componentes:**
 
-**Decisão**: Service layer separada
+| Arquivo | Responsabilidade |
+|---------|------------------|
+| `config.py` | Variáveis de ambiente, constantes |
+| `database.py` | `DatabaseManager` (conexões SQLite, transações) |
+| `llm_client.py` | `LLMClient` (OpenAI com retry, timeout, logging) |
+| `phoenix_tracing.py` | Setup Phoenix/OTEL, instrumentação |
 
-**Razões**:
-- ✅ CLI e API compartilham lógica
-- ✅ Testável (mock de repositories)
-- ✅ Reutilizável (composição de serviços)
-- ✅ Single Responsibility (cada service um domínio)
-- ❌ Mais boilerplate (tradeoff aceitável)
+**Padrão de uso do LLMClient:**
+```python
+from synth_lab.infrastructure.llm_client import get_llm_client
 
-### 4. Por que Streaming SSE?
+class MyService:
+    def __init__(self, llm_client: LLMClient | None = None):
+        self.llm = llm_client or get_llm_client()  # ✅ Injeção de dependência
+```
 
-**Alternativas Consideradas**: Polling, WebSockets, GraphQL subscriptions
+---
 
-**Decisão**: Server-Sent Events (SSE)
+### 5. Domain Layer (`domain/entities/`)
 
-**Razões**:
-- ✅ Simples (HTTP unidirecional)
-- ✅ Auto-reconnect do navegador
-- ✅ Suportado por `EventSource` nativo
-- ✅ Menos overhead que WebSockets
-- ✅ Ideal para updates unidirecionais (server → client)
-- ❌ Não bidirecional (mas não precisamos)
+**Responsabilidades:**
+- Entidades de negócio
+- Validação de dados
+- Geração de IDs
 
-### 5. Por que Jobs Assíncronos?
+**Padrão:**
+```python
+from pydantic import BaseModel, Field, field_validator
+import secrets
 
-**Alternativas Consideradas**: Síncrono (bloqueante), Celery, RQ
+def generate_experiment_id() -> str:
+    return f"exp_{secrets.token_hex(4)}"
 
-**Decisão**: Worker em background (asyncio)
+class Experiment(BaseModel):
+    id: str = Field(default_factory=generate_experiment_id)
+    name: str = Field(max_length=100)
+    hypothesis: str = Field(max_length=500)
 
-**Razões**:
-- ✅ Simples (sem dependências extras)
-- ✅ Suficiente para volume atual
-- ✅ Integrado com FastAPI (mesmo processo)
-- ❌ Não persistente (jobs perdidos se processo cair)
-- **Futuro**: Migrar para Celery quando escalar
+    @field_validator("name")
+    @classmethod
+    def validate_name_not_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("name cannot be empty")
+        return v
+```
 
-## Segurança
+---
 
-### Validação de Entrada
-- Pydantic valida todos os requests
-- SQL injection prevenido por:
-  - Parametrized queries (`?` placeholders)
-  - Whitelist de keywords em WHERE clauses
-  - Validação de campos de ordenação
+## Mecanismos Transversais
 
-### Autenticação/Autorização
-- **Atual**: Nenhuma (API pública)
-- **Futuro**: OAuth2 + JWT para produção
+### 1. Logging (Loguru)
 
-### Secrets Management
-- OpenAI API Key em variável de ambiente (`OPENAI_API_KEY`)
-- Nunca logados ou commitados
-- `.env` em `.gitignore`
+**Padrão obrigatório:**
+```python
+from loguru import logger
 
-### CORS
-- Configurado em `api/main.py`
-- **Dev**: `allow_origins=["*"]`
-- **Prod**: Restringir a domínios específicos
+class MyService:
+    def __init__(self):
+        self.logger = logger.bind(component="my_service")
 
-## Performance
+    def do_something(self):
+        self.logger.info("Starting operation")
+        self.logger.debug(f"Details: {details}")
+        self.logger.error(f"Failed: {error}")
+```
 
-### Database Otimizações
-- **Índices** em colunas frequentemente consultadas
-- **WAL mode** para leituras concorrentes
-- **Foreign keys** para integridade (overhead aceitável)
-- **JSON1** para queries em campos aninhados
+**Níveis:**
+- `debug`: Detalhes técnicos para troubleshooting
+- `info`: Operações normais importantes
+- `warning`: Situações anormais mas não críticas
+- `error`: Erros que precisam de atenção
 
-### API Otimizações
-- **Paginação** padrão (limit 50, max 200)
-- **Lazy loading** de campos pesados (apenas quando solicitado)
-- **Caching** de metadata (topic guides cache)
-- **Connection pooling** (thread-local connections)
+---
 
-### Async Otimizações
-- **Paralelização** de entrevistas (semaphore)
-- **Streaming** de eventos (não bloqueia)
-- **Background jobs** para tarefas longas
+### 2. Tracing (Phoenix/OpenTelemetry)
 
-## Observabilidade
+**Para operações LLM, usar spans:**
+```python
+from synth_lab.infrastructure.phoenix_tracing import get_tracer
 
-### Logging
-- **Loguru** com níveis configuráveis
-- Logs estruturados por componente
-- Contexto de erro detalhado
+_tracer = get_tracer("my-component")
 
-### Métricas (Futuro)
-- Tempo de resposta de endpoints
-- Contadores de requests por endpoint
-- Taxa de erro por operação
-- Uso de tokens OpenAI
+class MyLLMService:
+    def generate(self, input: str) -> str:
+        with _tracer.start_as_current_span(
+            "MyLLMService: generate",
+            attributes={"input_length": len(input)},
+        ):
+            response = self.llm.complete(...)
+            return response
+```
 
-### Tracing (Futuro)
-- OpenTelemetry para distributed tracing
-- Rastreamento de research executions
+---
 
-## Escalabilidade
+### 3. Error Handling
 
-### Limites Atuais
-- SQLite: ~10k synths, ~1k executions
-- FastAPI: ~100 req/s
-- Research concurrent: 10 interviews paralelas
+**Hierarquia de exceções:**
+```
+SynthLabError (base)
+├── NotFoundError
+│   ├── SynthNotFoundError
+│   ├── ExperimentNotFoundError
+│   └── ...
+├── ValidationError
+│   ├── InvalidQueryError
+│   └── InvalidRequestError
+├── GenerationFailedError
+└── DatabaseError
+```
 
-### Plano de Escala
-1. **Horizontal**: Load balancer + múltiplas instâncias FastAPI
-2. **Database**: Migrar para PostgreSQL (compatível com repositories)
-3. **Jobs**: Migrar para Celery + Redis
-4. **Storage**: Separar avatares em S3 ou similar
+**Fluxo:**
+1. Service lança exceção de domínio (`SynthNotFoundError`)
+2. Router deixa exceção subir (não precisa capturar)
+3. `api/errors.py` converte em HTTP response
 
-## Manutenibilidade
+**No service:**
+```python
+from synth_lab.services.errors import SynthNotFoundError
 
-### Convenções de Código
-- Máximo 500 linhas por arquivo
-- Google-style docstrings
-- Type hints completos
-- Ruff linting (PEP 8)
+def get_synth(self, synth_id: str) -> Synth:
+    synth = self.repository.get_by_id(synth_id)
+    if not synth:
+        raise SynthNotFoundError(synth_id)  # ✅ Exceção de domínio
+    return synth
+```
 
-### Testes
-- Unit tests para services (mock repositories)
-- Integration tests para API (test database)
-- Contract tests para LLM responses
+**No router:**
+```python
+@router.get("/{synth_id}")
+async def get_synth(synth_id: str):
+    service = get_synth_service()
+    return service.get_synth(synth_id)  # ✅ Deixa exceção subir
+    # api/errors.py converte SynthNotFoundError → HTTP 404
+```
 
-### Documentação
-- README atualizado
-- Docs técnicos em `docs/`
-- OpenAPI auto-gerado em `/docs`
-- Inline comments para lógica complexa
+---
 
-## Evolução da Arquitetura
+### 4. Dependency Injection
 
-### Versão 1.0 (Atual)
-- CLI com JSON files
-- DuckDB para queries
+**Padrão:**
+```python
+# Service recebe dependencies via constructor
+class ExperimentService:
+    def __init__(
+        self,
+        repository: ExperimentRepository | None = None,
+        llm_client: LLMClient | None = None,
+    ):
+        self.repository = repository or ExperimentRepository()
+        self.llm = llm_client or get_llm_client()
 
-### Versão 2.0 (API + Database)
-- SQLite database
-- Service layer compartilhada
-- FastAPI REST API
-- Streaming SSE
+# Factory function para API
+def get_experiment_service() -> ExperimentService:
+    return ExperimentService()
 
-### Versão 3.0 (Futuro)
-- PostgreSQL para escala
-- Autenticação OAuth2
-- Celery para jobs
-- Dashboard web
-- Métricas e tracing
-- Deploy em cloud (AWS/GCP)
+# Uso no router
+@router.post("")
+async def create_experiment(data: ExperimentCreate):
+    service = get_experiment_service()
+    return service.create_experiment(...)
+```
 
-## Conclusão
+---
 
-A arquitetura em 3 camadas do synth-lab promove:
-- **Separação de responsabilidades**: Cada camada tem um papel claro
-- **Reutilização**: Service layer compartilhada entre CLI e API
-- **Testabilidade**: Dependency injection facilita mocks
-- **Escalabilidade**: Preparado para crescimento futuro
-- **Manutenibilidade**: Código organizado e bem documentado
+## Checklist de Code Review
 
-A escolha de tecnologias (FastAPI, SQLite, Pydantic) equilibra simplicidade, performance e capacidade de evolução.
+### Para cada novo endpoint de API:
+- [ ] Router só faz request → service → response?
+- [ ] Validações de negócio estão no service (não no router)?
+- [ ] Schemas Pydantic em `api/schemas/`?
+
+### Para operações LLM:
+- [ ] Prompt está em service (não no router)?
+- [ ] Usa classe dedicada (ex: `ScorecardEstimator`) ou service method?
+- [ ] Tem tracing com `_tracer.start_as_current_span()`?
+- [ ] Tem logging adequado?
+
+### Para acesso a dados:
+- [ ] SQL está em repository (não em service ou router)?
+- [ ] Usa queries parametrizadas (`?` placeholders)?
+- [ ] Não usa string interpolation para valores de usuário?
+
+### Para novas entidades:
+- [ ] Entity em `domain/entities/`?
+- [ ] Repository correspondente?
+- [ ] Service correspondente?
+- [ ] Schemas de request/response em `api/schemas/`?
+
+---
+
+## Exemplos de Violações Comuns
+
+### 1. LLM no Router (ERRADO)
+```python
+# ❌ ERRADO - Prompt e chamada LLM no router
+PROMPT = """Você é um especialista..."""
+
+@router.post("/estimate")
+async def estimate(data: Request):
+    llm = get_llm_client()
+    response = llm.complete(messages=[{"role": "user", "content": PROMPT}])
+    return response
+```
+
+**CORRETO:**
+```python
+# services/estimation_service.py
+class EstimationService:
+    def estimate(self, data) -> EstimationResult:
+        prompt = self._build_prompt(data)
+        response = self.llm.complete_json(messages=[...])
+        return EstimationResult(...)
+
+    def _build_prompt(self, data) -> str:
+        return f"""Você é um especialista..."""
+
+# routers/estimation.py
+@router.post("/estimate")
+async def estimate(data: Request):
+    service = EstimationService()
+    return service.estimate(data)
+```
+
+### 2. SQL no Router (ERRADO)
+```python
+# ❌ ERRADO - SQL direto no router
+@router.get("/check")
+async def check_exists(ids: list[str]):
+    db = get_db()
+    rows = db.fetchall(f"SELECT id FROM items WHERE id IN ({','.join(ids)})")
+    return {"exists": [r["id"] for r in rows]}
+```
+
+**CORRETO:**
+```python
+# repositories/item_repository.py
+class ItemRepository:
+    def check_exists_batch(self, ids: list[str]) -> dict[str, bool]:
+        placeholders = ",".join("?" * len(ids))
+        rows = self.db.fetchall(
+            f"SELECT id FROM items WHERE id IN ({placeholders})",
+            tuple(ids),
+        )
+        return {r["id"]: True for r in rows}
+
+# routers/items.py
+@router.get("/check")
+async def check_exists(ids: list[str]):
+    repo = ItemRepository()
+    return repo.check_exists_batch(ids)
+```
+
+### 3. Validação no Router (ERRADO)
+```python
+# ❌ ERRADO - Validação de negócio no router
+@router.post("")
+async def create(data: CreateRequest):
+    if len(data.name) > 100:
+        raise HTTPException(422, "Name too long")
+    if data.name in RESERVED_NAMES:
+        raise HTTPException(422, "Reserved name")
+```
+
+**CORRETO:**
+```python
+# services/my_service.py
+class MyService:
+    RESERVED_NAMES = {"admin", "system"}
+
+    def create(self, name: str) -> Entity:
+        if len(name) > 100:
+            raise ValueError("Name must not exceed 100 characters")
+        if name in self.RESERVED_NAMES:
+            raise ValueError(f"Name '{name}' is reserved")
+        ...
+
+# routers/my_router.py
+@router.post("")
+async def create(data: CreateRequest):
+    service = MyService()
+    try:
+        return service.create(data.name)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+```
+
+---
+
+## Referências
+
+- **FastAPI**: https://fastapi.tiangolo.com/
+- **Pydantic**: https://docs.pydantic.dev/
+- **Loguru**: https://loguru.readthedocs.io/
+- **Phoenix/Arize**: https://docs.arize.com/phoenix
+- **OpenTelemetry**: https://opentelemetry.io/docs/languages/python/

@@ -111,40 +111,31 @@ Code MUST prioritize simplicity, readability, and maintainability over clevernes
 
 **Enforcement:** Code reviews will check for adherence to language requirements in code and documentation.
 
-### VII. Architecture
+### VII. Architecture - NON-NEGOTIABLE
 
-project/
-├── src/
-│   ├── api/                 # Camada de apresentação
-│   │   ├── routes/         # Endpoints REST
-│   │   ├── schemas/        # Pydantic models (request/response)
-│   │   └── dependencies.py # Injeção de dependências
-│   │
-│   ├── domain/             # Regras de negócio (agnóstico de infra)
-│   │   ├── entities/       # Modelos de domínio
-│   │   ├── services/       # Lógica de negócio
-│   │   └── ports/          # Interfaces/protocolos
-│   │
-│   ├── infrastructure/     # Implementações concretas
-│   │   ├── database/       # SQLAlchemy, migrations
-│   │   ├── external_apis/  # Clients de APIs externas
-│   │   ├── llm/           # Integração LLM (OpenAI, etc)
-│   │   └── repositories/   # Implementação dos ports
-│   │
-│   └── config.py          # Settings (Pydantic BaseSettings)
-│
-├── tests/
-│   ├── unit/              # Testa domain/services isolado
-│   ├── integration/       # Testa infra (DB, APIs externas)
-│   ├── api/               # Testa endpoints E2E
-│   ├── contract/          # Pact ou schema validation
-│   └── component/         # Testa subsistemas completos
-│
-├── pyproject.toml
-└── docker-compose.yml
+A arquitetura do projeto está documentada em detalhes nos seguintes arquivos:
 
+- **Backend**: [`docs/arquitetura.md`](../../docs/arquitetura.md)
+- **Frontend**: [`docs/arquitetura_front.md`](../../docs/arquitetura_front.md)
 
-### IX. Ohter Principles
+**Regras Fundamentais (Backend):**
+- Router só faz: `request → service.method() → response`
+- Toda lógica de negócio DEVE estar em services (NUNCA em routers)
+- Todo acesso a dados DEVE estar em repositories (NUNCA em services ou routers)
+- Prompts de LLM DEVEM estar em services (NUNCA em routers)
+- Chamadas LLM DEVEM usar tracing Phoenix (`_tracer.start_as_current_span()`)
+- Queries SQL DEVEM ser parametrizadas (prevenção SQL injection)
+
+**Regras Fundamentais (Frontend):**
+- Pages apenas compõem componentes e usam hooks
+- Componentes são puros (recebem props, retornam JSX)
+- Hooks encapsulam React Query (useQuery, useMutation)
+- Services contêm funções de chamada à API
+- Query keys centralizadas em `lib/query-keys.ts`
+
+**Enforcement:** Code review DEVE verificar conformidade com docs de arquitetura. Violações são grounds para rejeição imediata do PR.
+
+### VIII. Other Principles
 - Treat tracing as first-class concerns. Use Phoenix for all tracing needs, specially LLM calls tracing.
 - Follow DRY (Don't Repeat Yourself) principle to minimize code duplication.
 - Adhere to SOLID principles for object-oriented design.
@@ -251,5 +242,7 @@ For day-to-day development instructions and tooling setup, refer to:
 - Project README.md for setup and running instructions
 - Global CLAUDE.md for AI agent development standards
 - Template files in `.specify/templates/` for feature development workflow
+- **[docs/arquitetura.md](../../docs/arquitetura.md)** for backend architecture rules
+- **[docs/arquitetura_front.md](../../docs/arquitetura_front.md)** for frontend architecture rules
 
-**Version**: 1.0.0 | **Ratified**: 2025-12-12 | **Last Amended**: 2025-12-12
+**Version**: 1.1.0 | **Ratified**: 2025-12-12 | **Last Amended**: 2025-12-27
