@@ -255,6 +255,10 @@ npx tsc --noEmit
 
 ## Architecture
 
+**IMPORTANTE**: Documentação detalhada de arquitetura em:
+- **Backend**: [`docs/arquitetura.md`](docs/arquitetura.md)
+- **Frontend**: [`docs/arquitetura_front.md`](docs/arquitetura_front.md)
+
 ### Backend Layers
 - **API Layer** (`src/synth_lab/api/`): FastAPI endpoints, request/response handling
 - **Domain Layer** (`src/synth_lab/domain/`): Business logic models, core entities
@@ -262,12 +266,27 @@ npx tsc --noEmit
 - **Repository Layer** (`src/synth_lab/repositories/`): Data access, database operations
 - **Infrastructure** (`src/synth_lab/infrastructure/`): Database connection, config, external services
 
+### Backend Rules (NON-NEGOTIABLE)
+- **Router só faz**: `request → service.method() → response`
+- **Lógica de negócio**: SEMPRE em services, NUNCA em routers
+- **Acesso a dados**: SEMPRE em repositories, NUNCA em services ou routers
+- **Prompts de LLM**: SEMPRE em services, NUNCA em routers
+- **Chamadas LLM**: DEVEM usar tracing Phoenix (`_tracer.start_as_current_span()`)
+- **Queries SQL**: DEVEM ser parametrizadas (`?` placeholders), NUNCA string interpolation
+
 ### Frontend Patterns
 - **Component-Based**: Reusable, composable React components
 - **Composition**: Prefer composition over prop drilling
 - **Custom Hooks**: Extract reusable logic into hooks
 - **API Integration**: React Query for data fetching and caching
 - **Type Safety**: TypeScript interfaces for all API responses and props
+
+### Frontend Rules (NON-NEGOTIABLE)
+- **Pages**: Apenas compõem componentes e usam hooks
+- **Componentes**: São puros (recebem props, retornam JSX), SEM fetch direto
+- **Hooks**: Encapsulam React Query (useQuery, useMutation)
+- **Services**: Contêm funções de chamada à API usando `fetchAPI`
+- **Query Keys**: Centralizadas em `lib/query-keys.ts`
 
 ### Development Best Practices
 - **Function-First**: Prefer functions over classes (unless maintaining state or validation)
@@ -315,4 +334,51 @@ LOG_LEVEL=INFO
 
 
 <!-- MANUAL ADDITIONS START -->
+
+## Code Review Checklist (Architecture Compliance)
+
+**IMPORTANTE**: Todo code review DEVE verificar conformidade com a arquitetura documentada.
+
+### Backend Checklist
+- [ ] Router só faz `request → service → response`?
+- [ ] Validações de negócio estão em services (não em routers)?
+- [ ] Prompts de LLM estão em services (não em routers)?
+- [ ] Chamadas LLM usam tracing Phoenix?
+- [ ] SQL está em repositories (não em services ou routers)?
+- [ ] Queries SQL usam parametrização (`?` placeholders)?
+- [ ] Não há string interpolation em queries SQL?
+
+### Frontend Checklist
+- [ ] Pages usam hooks para dados (não fetch direto)?
+- [ ] Componentes são puros (props → JSX)?
+- [ ] Hooks usam React Query (useQuery, useMutation)?
+- [ ] Query keys estão em `lib/query-keys.ts`?
+- [ ] Services usam `fetchAPI` base?
+
+### Padrões LLM (Critical)
+Operações LLM DEVEM seguir este padrão:
+
+```python
+class MyLLMService:
+    def __init__(self, llm_client: LLMClient | None = None):
+        self.llm = llm_client or get_llm_client()
+        self.logger = logger.bind(component="my_llm_service")
+
+    def generate(self, data) -> Result:
+        with _tracer.start_as_current_span("generate"):
+            prompt = self._build_prompt(data)
+            response = self.llm.complete_json(messages=[...])
+            self.logger.info(f"Generated for {data.id}")
+            return self._parse_response(response)
+
+    def _build_prompt(self, data) -> str:
+        return f"""..."""  # Prompt como método privado
+
+```
+
+### Referências de Arquitetura
+- Backend: [`docs/arquitetura.md`](docs/arquitetura.md)
+- Frontend: [`docs/arquitetura_front.md`](docs/arquitetura_front.md)
+- Constitution: [`.specify/memory/constitution.md`](.specify/memory/constitution.md)
+
 <!-- MANUAL ADDITIONS END -->
