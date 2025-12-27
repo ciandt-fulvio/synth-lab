@@ -1,0 +1,1110 @@
+# OpenAPI Contract: Analysis API
+# Feature: 017-analysis-ux-research
+# This is a simplified contract focusing on endpoint signatures and key models
+
+openapi: 3.1.0
+info:
+  title: SynthLab Analysis API
+  version: 1.0.0
+  description: API for UX Research analysis - charts, clustering, outliers, and insights
+
+paths:
+  # ============================================================================
+  # FASE 1 - Visão Geral
+  # ============================================================================
+
+  /simulation/simulations/{simulation_id}/charts/try-vs-success:
+    get:
+      summary: Get Try vs Success scatter chart data
+      tags: [Phase 1 - Overview]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: x_threshold
+          in: query
+          schema:
+            type: number
+            default: 0.5
+        - name: y_threshold
+          in: query
+          schema:
+            type: number
+            default: 0.5
+      responses:
+        '200':
+          description: Chart data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TryVsSuccessChart'
+        '404':
+          description: Simulation not found
+
+  /simulation/simulations/{simulation_id}/charts/distribution:
+    get:
+      summary: Get outcome distribution chart data
+      tags: [Phase 1 - Overview]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: mode
+          in: query
+          schema:
+            type: string
+            enum: [by_synth, by_percentile, by_cluster]
+            default: by_synth
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [success_rate, failed_rate, did_not_try_rate]
+            default: success_rate
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Chart data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutcomeDistributionChart'
+
+  /simulation/simulations/{simulation_id}/charts/sankey:
+    get:
+      summary: Get Sankey diagram data
+      tags: [Phase 1 - Overview]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sankey data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SankeyChart'
+
+  # ============================================================================
+  # FASE 2 - Localização
+  # ============================================================================
+
+  /simulation/simulations/{simulation_id}/charts/failure-heatmap:
+    get:
+      summary: Get failure heatmap data
+      tags: [Phase 2 - Localization]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: x_axis
+          in: query
+          schema:
+            type: string
+            default: capability_mean
+        - name: y_axis
+          in: query
+          schema:
+            type: string
+            default: trust_mean
+        - name: bins
+          in: query
+          schema:
+            type: integer
+            default: 5
+        - name: metric
+          in: query
+          schema:
+            type: string
+            enum: [failed_rate, success_rate, did_not_try_rate]
+            default: failed_rate
+      responses:
+        '200':
+          description: Heatmap data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FailureHeatmapChart'
+
+  /simulation/simulations/{simulation_id}/charts/box-plot:
+    get:
+      summary: Get box plot by region data
+      tags: [Phase 2 - Localization]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: metric
+          in: query
+          schema:
+            type: string
+            enum: [success_rate, failed_rate, did_not_try_rate]
+            default: success_rate
+        - name: include_baseline
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Box plot data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoxPlotChart'
+
+  /simulation/simulations/{simulation_id}/charts/scatter:
+    get:
+      summary: Get scatter correlation chart data
+      tags: [Phase 2 - Localization]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: x_axis
+          in: query
+          schema:
+            type: string
+            default: trust_mean
+        - name: y_axis
+          in: query
+          schema:
+            type: string
+            default: success_rate
+        - name: show_trendline
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Scatter data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScatterCorrelationChart'
+
+  /simulation/simulations/{simulation_id}/charts/tornado:
+    get:
+      summary: Get tornado diagram data
+      tags: [Phase 2 - Localization]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tornado data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TornadoChart'
+        '400':
+          description: Sensitivity analysis not found
+
+  # ============================================================================
+  # FASE 3 - Segmentação
+  # ============================================================================
+
+  /simulation/simulations/{simulation_id}/clusters:
+    post:
+      summary: Create clustering
+      tags: [Phase 3 - Segmentation]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterRequest'
+      responses:
+        '201':
+          description: Clustering result
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/KMeansResult'
+                  - $ref: '#/components/schemas/HierarchicalResult'
+
+    get:
+      summary: Get existing clustering result
+      tags: [Phase 3 - Segmentation]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Last clustering result
+        '404':
+          description: No clustering found
+
+  /simulation/simulations/{simulation_id}/clusters/elbow:
+    get:
+      summary: Get elbow method data
+      tags: [Phase 3 - Segmentation]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Elbow data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ElbowDataPoint'
+
+  /simulation/simulations/{simulation_id}/clusters/dendrogram:
+    get:
+      summary: Get dendrogram chart data
+      tags: [Phase 3 - Segmentation]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: max_depth
+          in: query
+          schema:
+            type: integer
+            default: 5
+        - name: color_threshold
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Dendrogram data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DendrogramChart'
+
+  /simulation/simulations/{simulation_id}/clusters/{cluster_id}/radar:
+    get:
+      summary: Get radar chart for specific cluster
+      tags: [Phase 3 - Segmentation]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cluster_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Radar data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterRadar'
+
+  /simulation/simulations/{simulation_id}/clusters/radar-comparison:
+    get:
+      summary: Get radar chart comparing all clusters
+      tags: [Phase 3 - Segmentation]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Radar comparison data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RadarChart'
+
+  /simulation/simulations/{simulation_id}/clusters/cut:
+    post:
+      summary: Cut dendrogram into N clusters
+      tags: [Phase 3 - Segmentation]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                n_clusters:
+                  type: integer
+              required:
+                - n_clusters
+      responses:
+        '200':
+          description: Updated clustering with assignments
+
+  # ============================================================================
+  # FASE 4 - Casos Especiais
+  # ============================================================================
+
+  /simulation/simulations/{simulation_id}/extreme-cases:
+    get:
+      summary: Get extreme cases table
+      tags: [Phase 4 - Special Cases]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [all, failures, successes, unstable, unexpected]
+            default: all
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: include_interview_suggestions
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Extreme cases
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtremeCasesTable'
+
+  /simulation/simulations/{simulation_id}/outliers:
+    get:
+      summary: Detect outliers using Isolation Forest
+      tags: [Phase 4 - Special Cases]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: contamination
+          in: query
+          schema:
+            type: number
+            default: 0.1
+        - name: include_outcomes
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [all, unexpected_failure, unexpected_success, atypical_profile]
+            default: all
+      responses:
+        '200':
+          description: Outlier detection result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutlierResult'
+
+  # ============================================================================
+  # FASE 5 - Explicabilidade
+  # ============================================================================
+
+  /simulation/simulations/{simulation_id}/shap:
+    get:
+      summary: Get SHAP explanation for synth
+      tags: [Phase 5 - Explainability]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: synth_id
+          in: query
+          schema:
+            type: string
+          description: If omitted, returns summary
+      responses:
+        '200':
+          description: SHAP explanation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShapExplanation'
+
+  /simulation/simulations/{simulation_id}/shap/summary:
+    get:
+      summary: Get SHAP feature importance summary
+      tags: [Phase 5 - Explainability]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SHAP summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShapSummary'
+
+  /simulation/simulations/{simulation_id}/pdp:
+    get:
+      summary: Get Partial Dependence Plot
+      tags: [Phase 5 - Explainability]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: feature
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: grid_resolution
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: PDP result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PDPResult'
+
+  /simulation/simulations/{simulation_id}/pdp/comparison:
+    get:
+      summary: Compare PDP across multiple features
+      tags: [Phase 5 - Explainability]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: features
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Comma-separated feature names
+      responses:
+        '200':
+          description: PDP comparison
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PDPComparison'
+
+  # ============================================================================
+  # FASE 6 - Insights LLM
+  # ============================================================================
+
+  /simulation/simulations/{simulation_id}/charts/{chart_type}/caption:
+    get:
+      summary: Generate caption for chart
+      tags: [Phase 6 - LLM Insights]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: chart_type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [try-vs-success, distribution, sankey, failure-heatmap, box-plot, scatter, tornado]
+      responses:
+        '200':
+          description: Generated caption
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChartCaption'
+
+  /simulation/simulations/{simulation_id}/charts/{chart_type}/insight:
+    get:
+      summary: Generate insight for chart
+      tags: [Phase 6 - LLM Insights]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: chart_type
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Generated insight
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChartInsight'
+
+  /simulation/simulations/{simulation_id}/insights:
+    get:
+      summary: Get all insights for simulation
+      tags: [Phase 6 - LLM Insights]
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: All insights
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationInsights'
+
+components:
+  schemas:
+    # ============================================================================
+    # Phase 1 - Overview Schemas
+    # ============================================================================
+
+    TryVsSuccessPoint:
+      type: object
+      properties:
+        synth_id:
+          type: string
+        attempt_rate:
+          type: number
+        success_rate:
+          type: number
+        quadrant:
+          type: string
+          enum: [low_value, usability_issue, discovery_issue, ok]
+
+    TryVsSuccessChart:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        points:
+          type: array
+          items:
+            $ref: '#/components/schemas/TryVsSuccessPoint'
+        quadrant_counts:
+          type: object
+          additionalProperties:
+            type: integer
+        quadrant_thresholds:
+          type: object
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+        total_synths:
+          type: integer
+
+    SankeyChart:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        total_synths:
+          type: integer
+        nodes:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              label:
+                type: string
+              value:
+                type: integer
+        links:
+          type: array
+          items:
+            type: object
+            properties:
+              source:
+                type: string
+              target:
+                type: string
+              value:
+                type: integer
+              percentage:
+                type: number
+
+    OutcomeDistributionChart:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        distributions:
+          type: array
+          items:
+            type: object
+        summary:
+          type: object
+        worst_performers:
+          type: array
+          items:
+            type: string
+        best_performers:
+          type: array
+          items:
+            type: string
+        total_synths:
+          type: integer
+
+    # ============================================================================
+    # Phase 2 - Localization Schemas
+    # ============================================================================
+
+    FailureHeatmapChart:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        x_axis:
+          type: string
+        y_axis:
+          type: string
+        metric:
+          type: string
+        bins:
+          type: integer
+        cells:
+          type: array
+          items:
+            type: object
+        critical_cells:
+          type: array
+          items:
+            type: object
+
+    BoxPlotChart:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        metric:
+          type: string
+        regions:
+          type: array
+          items:
+            type: object
+        baseline_stats:
+          type: object
+
+    ScatterCorrelationChart:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        x_axis:
+          type: string
+        y_axis:
+          type: string
+        points:
+          type: array
+          items:
+            type: object
+        correlation:
+          type: object
+        trendline:
+          type: array
+          items:
+            type: object
+
+    TornadoChart:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        baseline_success:
+          type: number
+        bars:
+          type: array
+          items:
+            type: object
+        most_sensitive:
+          type: string
+
+    # ============================================================================
+    # Phase 3 - Segmentation Schemas
+    # ============================================================================
+
+    ClusterRequest:
+      type: object
+      properties:
+        method:
+          type: string
+          enum: [kmeans, hierarchical]
+          default: kmeans
+        n_clusters:
+          type: integer
+          default: 4
+        features:
+          type: array
+          items:
+            type: string
+        include_outcomes:
+          type: boolean
+          default: false
+        linkage:
+          type: string
+          default: ward
+
+    ElbowDataPoint:
+      type: object
+      properties:
+        k:
+          type: integer
+        inertia:
+          type: number
+        silhouette:
+          type: number
+
+    KMeansResult:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        n_clusters:
+          type: integer
+        method:
+          type: string
+          enum: [kmeans]
+        silhouette_score:
+          type: number
+        inertia:
+          type: number
+        clusters:
+          type: array
+          items:
+            type: object
+        elbow_data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ElbowDataPoint'
+
+    HierarchicalResult:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        method:
+          type: string
+          enum: [hierarchical]
+        linkage_method:
+          type: string
+        linkage_matrix:
+          type: array
+          items:
+            type: array
+            items:
+              type: number
+        suggested_cuts:
+          type: array
+          items:
+            type: object
+
+    ClusterRadar:
+      type: object
+      properties:
+        cluster_id:
+          type: integer
+        label:
+          type: string
+        axes:
+          type: array
+          items:
+            type: object
+        success_rate:
+          type: number
+
+    RadarChart:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        clusters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClusterRadar'
+        baseline:
+          type: array
+          items:
+            type: number
+
+    DendrogramChart:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        branches:
+          type: array
+          items:
+            type: object
+        cut_lines:
+          type: array
+          items:
+            type: object
+        width:
+          type: number
+        height:
+          type: number
+
+    # ============================================================================
+    # Phase 4 - Special Cases Schemas
+    # ============================================================================
+
+    ExtremeCasesTable:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        worst_failures:
+          type: array
+          items:
+            type: object
+        best_successes:
+          type: array
+          items:
+            type: object
+        unexpected:
+          type: array
+          items:
+            type: object
+        total_analyzed:
+          type: integer
+
+    OutlierResult:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        method:
+          type: string
+        contamination:
+          type: number
+        outliers:
+          type: array
+          items:
+            type: object
+        total_outliers:
+          type: integer
+        all_scores:
+          type: object
+          additionalProperties:
+            type: number
+
+    # ============================================================================
+    # Phase 5 - Explainability Schemas
+    # ============================================================================
+
+    ShapExplanation:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        synth_id:
+          type: string
+        base_value:
+          type: number
+        predicted_value:
+          type: number
+        actual_value:
+          type: number
+        contributions:
+          type: array
+          items:
+            type: object
+        explanation_text:
+          type: string
+
+    ShapSummary:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        feature_importance:
+          type: object
+          additionalProperties:
+            type: number
+        top_positive:
+          type: array
+          items:
+            type: string
+        top_negative:
+          type: array
+          items:
+            type: string
+        model_r2:
+          type: number
+
+    PDPResult:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        feature:
+          type: string
+        points:
+          type: array
+          items:
+            type: object
+        effect_type:
+          type: string
+          enum: [monotonic_positive, monotonic_negative, non_linear, flat]
+        effect_strength:
+          type: number
+
+    PDPComparison:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        features:
+          type: array
+          items:
+            type: string
+        pdps:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/PDPResult'
+        effect_ranking:
+          type: array
+          items:
+            type: string
+
+    # ============================================================================
+    # Phase 6 - LLM Insights Schemas
+    # ============================================================================
+
+    ChartCaption:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        chart_type:
+          type: string
+        caption:
+          type: string
+        key_metric:
+          type: string
+        key_value:
+          type: number
+        confidence:
+          type: number
+
+    ChartInsight:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        chart_type:
+          type: string
+        caption:
+          type: string
+        explanation:
+          type: string
+        evidence:
+          type: array
+          items:
+            type: string
+        recommendation:
+          type: string
+        confidence:
+          type: number
+
+    SimulationInsights:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        insights:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ChartInsight'
+        executive_summary:
+          type: string
+        generated_at:
+          type: string
+
+tags:
+  - name: Phase 1 - Overview
+    description: Visão geral da simulação (Try vs Success, Sankey, Distribution)
+  - name: Phase 2 - Localization
+    description: Localização de problemas (Heatmap, Box Plot, Scatter, Tornado)
+  - name: Phase 3 - Segmentation
+    description: Segmentação de personas (Clustering, Radar, Dendrogram)
+  - name: Phase 4 - Special Cases
+    description: Casos especiais (Extreme Cases, Outliers)
+  - name: Phase 5 - Explainability
+    description: Explicação profunda (SHAP, PDP)
+  - name: Phase 6 - LLM Insights
+    description: Insights gerados por LLM (Captions, Insights)

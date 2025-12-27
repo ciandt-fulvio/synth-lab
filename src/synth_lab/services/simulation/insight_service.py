@@ -1,0 +1,558 @@
+"""
+LLM-powered insights for chart analysis with database persistence.
+
+Generates captions, explanations, evidence, and recommendations
+for simulation charts using LLM with Phoenix tracing.
+
+Insights are persisted to the database (chart_insights table) and
+retrieved on subsequent requests unless force=True is specified.
+
+Functions:
+- generate_insight(): Generate and persist insight for a chart
+- get_all_insights(): Get all insights for a simulation from database
+- generate_executive_summary(): Generate and persist summary across all charts
+
+References:
+    - Entities: src/synth_lab/domain/entities/chart_insight.py
+    - Repository: src/synth_lab/repositories/insight_repository.py
+    - Spec: specs/017-analysis-ux-research/spec.md (US6)
+    - Data Model: specs/017-analysis-ux-research/data-model.md
+    - LLM Client: src/synth_lab/infrastructure/llm_client.py
+
+Sample usage:
+    from synth_lab.services.simulation.insight_service import InsightService
+
+    service = InsightService()
+
+    # Get insight (from DB if exists, else generate via LLM)
+    insight = service.generate_insight("sim_123", "try_vs_success", chart_data)
+
+    # Force regeneration via LLM
+    insight = service.generate_insight("sim_123", "try_vs_success", chart_data, force=True)
+
+Expected output:
+    ChartInsight with caption, explanation, evidence, and recommendation
+"""
+
+import json
+from typing import Any
+
+from loguru import logger
+
+from synth_lab.domain.entities.chart_insight import (
+    ChartInsight,
+    ChartType,
+    SimulationInsights,
+)
+from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
+from synth_lab.infrastructure.phoenix_tracing import get_tracer
+from synth_lab.repositories.insight_repository import InsightRepository
+
+# Phoenix/OpenTelemetry tracer for observability
+_tracer = get_tracer("insight-service")
+
+
+class InsightGenerationError(Exception):
+    """Error raised when insight generation fails."""
+
+    pass
+
+
+class InsightService:
+    """LLM-powered chart insight generator with database persistence."""
+
+    def __init__(
+        self,
+        llm_client: LLMClient | None = None,
+        repository: InsightRepository | None = None,
+    ) -> None:
+        """
+        Initialize with optional LLM client and repository.
+
+        Args:
+            llm_client: LLM client instance. If None, uses global client.
+            repository: Insight repository. If None, creates new instance.
+        """
+        self.llm = llm_client or get_llm_client()
+        self.repository = repository or InsightRepository()
+        self.logger = logger.bind(component="insight_service")
+
+    def generate_insight(
+        self,
+        simulation_id: str,
+        chart_type: ChartType,
+        chart_data: dict[str, Any],
+        force: bool = False,
+    ) -> ChartInsight:
+        """
+        Generate insight for a chart.
+
+        First checks database for existing insight. If found and force=False,
+        returns the persisted insight. Otherwise, generates via LLM and
+        persists to database.
+
+        Args:
+            simulation_id: Simulation identifier
+            chart_type: Type of chart
+            chart_data: Chart data to analyze
+            force: If True, bypass database and regenerate via LLM
+
+        Returns:
+            ChartInsight with caption, explanation, evidence, recommendation
+
+        Raises:
+            InsightGenerationError: If LLM call fails
+        """
+        with _tracer.start_as_current_span(
+            "InsightService: generate_insight",
+            attributes={
+                "simulation_id": simulation_id,
+                "chart_type": chart_type,
+                "force": force,
+            },
+        ):
+            # Check database first (unless force=True)
+            if not force:
+                existing = self.repository.get(simulation_id, chart_type)
+                if existing is not None:
+                    self.logger.debug(
+                        f"Returning persisted insight for {simulation_id}/{chart_type}"
+                    )
+                    return existing
+
+            # Generate via LLM
+            insight = self._generate_insight_via_llm(
+                simulation_id, chart_type, chart_data
+            )
+
+            # Persist to database
+            self.repository.save(simulation_id, chart_type, insight)
+
+            self.logger.info(
+                f"Generated and saved insight for {simulation_id}/{chart_type}: "
+                f"{insight.caption}"
+            )
+
+            return insight
+
+    def _generate_insight_via_llm(
+        self,
+        simulation_id: str,
+        chart_type: ChartType,
+        chart_data: dict[str, Any],
+    ) -> ChartInsight:
+        """
+        Generate insight using LLM.
+
+        Args:
+            simulation_id: Simulation identifier
+            chart_type: Type of chart
+            chart_data: Chart data to analyze
+
+        Returns:
+            ChartInsight generated by LLM
+
+        Raises:
+            InsightGenerationError: If LLM call fails
+        """
+        prompt = self._build_insight_prompt(chart_type, chart_data)
+
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are a senior UX research analyst. Analyze the chart data and "
+                    "provide a comprehensive insight. Return JSON with:\n"
+                    "- caption: Short factual summary (<=20 tokens)\n"
+                    "- explanation: Detailed analysis (<=200 tokens)\n"
+                    "- evidence: List of data points supporting the insight\n"
+                    "- recommendation: Actionable suggestion based on findings\n"
+                    "- key_metric: Name of the highlighted metric\n"
+                    "- key_value: Numeric value of the key metric\n"
+                    "- confidence: Confidence score 0-1"
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ]
+
+        try:
+            response = self.llm.complete_json(
+                messages=messages,
+                operation_name="generate_insight",
+            )
+        except Exception as e:
+            raise InsightGenerationError(
+                f"LLM call failed for {chart_type}: {e}"
+            ) from e
+
+        try:
+            data = json.loads(response)
+        except json.JSONDecodeError as e:
+            raise InsightGenerationError(
+                f"Invalid JSON response for {chart_type}: {e}"
+            ) from e
+
+        # Build insight with defaults for missing fields
+        return ChartInsight(
+            simulation_id=simulation_id,
+            chart_type=chart_type,
+            caption=data.get("caption", "Analysis pending"),
+            explanation=data.get(
+                "explanation", "Detailed analysis is being generated."
+            ),
+            evidence=data.get("evidence", []),
+            recommendation=data.get("recommendation"),
+            confidence=float(data.get("confidence", 0.8)),
+        )
+
+    def _build_insight_prompt(
+        self,
+        chart_type: ChartType,
+        chart_data: dict[str, Any],
+    ) -> str:
+        """Build prompt for full insight generation."""
+        data_str = json.dumps(chart_data, indent=2, default=str)
+
+        chart_descriptions = {
+            "try_vs_success": "quadrant chart showing try rate vs success rate",
+            "distribution": "histogram showing distribution of values",
+            "sankey": "flow diagram showing user journey transitions",
+            "failure_heatmap": "heatmap showing failure patterns",
+            "scatter": "scatter plot showing correlation between variables",
+            "tornado": "tornado chart showing sensitivity analysis",
+            "box_plot": "box plot showing value distributions by category",
+            "clustering": "cluster visualization showing user segments",
+            "outliers": "outlier detection chart highlighting anomalies",
+            "shap_summary": "SHAP summary showing feature importance",
+            "pdp": "partial dependence plot showing feature effects",
+        }
+
+        chart_desc = chart_descriptions.get(chart_type, f"{chart_type} visualization")
+
+        return f"""
+Analyze this {chart_desc} and provide a comprehensive insight.
+
+## Chart Type
+{chart_type}
+
+## Chart Data
+{data_str}
+
+## Requirements
+1. Caption: Maximum 20 tokens, factual, highlights key finding
+2. Explanation: Maximum 200 tokens, detailed analysis
+3. Evidence: List of specific data points (numbers, percentages)
+4. Recommendation: Actionable suggestion for product team
+
+Return JSON:
+{{
+    "caption": "...",
+    "explanation": "...",
+    "evidence": ["point 1", "point 2", ...],
+    "recommendation": "...",
+    "key_metric": "...",
+    "key_value": 0.0,
+    "confidence": 0.9
+}}
+"""
+
+    def get_all_insights(self, simulation_id: str) -> SimulationInsights:
+        """
+        Get all insights for a simulation from database.
+
+        Args:
+            simulation_id: Simulation identifier
+
+        Returns:
+            SimulationInsights with all available insights
+        """
+        insights = self.repository.get_all_for_simulation(simulation_id)
+        executive_summary = self.repository.get_executive_summary(simulation_id)
+
+        return SimulationInsights(
+            simulation_id=simulation_id,
+            insights=insights,
+            executive_summary=executive_summary,
+            total_charts_analyzed=len(insights),
+        )
+
+    def generate_executive_summary(
+        self,
+        simulation_id: str,
+        force: bool = False,
+    ) -> str | None:
+        """
+        Generate executive summary across all insights.
+
+        Checks database first. If exists and force=False, returns persisted summary.
+        Otherwise, generates via LLM and persists.
+
+        Args:
+            simulation_id: Simulation identifier
+            force: If True, bypass database and regenerate via LLM
+
+        Returns:
+            Executive summary text, or None if no insights available
+        """
+        with _tracer.start_as_current_span(
+            "InsightService: generate_executive_summary",
+            attributes={"simulation_id": simulation_id, "force": force},
+        ):
+            # Check database first (unless force=True)
+            if not force:
+                existing = self.repository.get_executive_summary(simulation_id)
+                if existing is not None:
+                    self.logger.debug(
+                        f"Returning persisted executive summary for {simulation_id}"
+                    )
+                    return existing
+
+            # Get all insights from database
+            insights = self.repository.get_all_for_simulation(simulation_id)
+
+            if not insights:
+                return None
+
+            # Build summary of all insights
+            insights_summary = []
+            for chart_type, insight in insights.items():
+                insights_summary.append(f"- {chart_type}: {insight.caption}")
+
+            insights_text = "\n".join(insights_summary)
+
+            messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a senior UX research analyst. Synthesize the chart insights "
+                        "into a concise executive summary (maximum 100 words) that highlights "
+                        "the most important findings and prioritized recommendations."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"""
+Create an executive summary for this simulation analysis:
+
+## Chart Insights
+{insights_text}
+
+## Full Details
+{json.dumps({ct: {"caption": i.caption, "recommendation": i.recommendation}
+             for ct, i in insights.items()}, indent=2)}
+
+Provide a concise summary highlighting key findings and top priority recommendations.
+""",
+                },
+            ]
+
+            response = self.llm.complete(
+                messages=messages,
+                operation_name="generate_executive_summary",
+            )
+
+            # Persist to database
+            self.repository.save_executive_summary(simulation_id, response)
+
+            self.logger.info(f"Generated and saved executive summary for {simulation_id}")
+
+            return response
+
+    def clear_insights(self, simulation_id: str) -> int:
+        """
+        Clear all insights for a simulation from database.
+
+        Args:
+            simulation_id: Simulation identifier
+
+        Returns:
+            Number of deleted records
+        """
+        return self.repository.delete_for_simulation(simulation_id)
+
+
+# =============================================================================
+# Validation
+# =============================================================================
+
+if __name__ == "__main__":
+    import sys
+    from unittest.mock import MagicMock
+
+    print("=== InsightService Validation ===\n")
+
+    all_validation_failures: list[str] = []
+    total_tests = 0
+
+    # Create mock LLM client and repository
+    mock_llm = MagicMock()
+    mock_repo = MagicMock()
+
+    # Test 1: Service instantiation
+    total_tests += 1
+    try:
+        service = InsightService(llm_client=mock_llm, repository=mock_repo)
+        if service.llm is not mock_llm:
+            all_validation_failures.append("Service should use provided LLM client")
+        elif service.repository is not mock_repo:
+            all_validation_failures.append("Service should use provided repository")
+        else:
+            print("Test 1 PASSED: Service instantiation works correctly")
+    except Exception as e:
+        all_validation_failures.append(f"Service instantiation failed: {e}")
+
+    # Test 2: Prompt building for try_vs_success
+    total_tests += 1
+    try:
+        prompt = service._build_insight_prompt(
+            chart_type="try_vs_success",
+            chart_data={"quadrants": {"strugglers": {"percentage": 42.0}}},
+        )
+        if "try_vs_success" not in prompt.lower() and "quadrant" not in prompt.lower():
+            all_validation_failures.append("Prompt should reference chart type")
+        elif "20 token" not in prompt.lower():
+            all_validation_failures.append("Prompt should mention token limits")
+        elif "json" not in prompt.lower():
+            all_validation_failures.append("Prompt should request JSON output")
+        else:
+            print("Test 2 PASSED: Insight prompt built correctly")
+    except Exception as e:
+        all_validation_failures.append(f"Prompt building failed: {e}")
+
+    # Test 3: generate_insight uses repository (cache hit)
+    total_tests += 1
+    try:
+        mock_repo.reset_mock()
+        mock_repo.get.return_value = ChartInsight(
+            simulation_id="sim_test",
+            chart_type="try_vs_success",
+            caption="Cached caption",
+            explanation="Cached explanation",
+        )
+
+        result = service.generate_insight(
+            "sim_test", "try_vs_success", {"data": "test"}
+        )
+
+        if not mock_repo.get.called:
+            all_validation_failures.append("Should check repository first")
+        elif mock_llm.complete_json.called:
+            all_validation_failures.append("Should not call LLM when found in repo")
+        elif result.caption != "Cached caption":
+            all_validation_failures.append("Should return repository result")
+        else:
+            print("Test 3 PASSED: generate_insight uses repository (cache hit)")
+    except Exception as e:
+        all_validation_failures.append(f"Repository cache hit test failed: {e}")
+
+    # Test 4: generate_insight with force=True bypasses repository
+    total_tests += 1
+    try:
+        mock_repo.reset_mock()
+        mock_llm.reset_mock()
+        mock_repo.get.return_value = ChartInsight(
+            simulation_id="sim_test",
+            chart_type="try_vs_success",
+            caption="Cached",
+            explanation="Cached",
+        )
+        mock_llm.complete_json.return_value = json.dumps({
+            "caption": "New LLM caption",
+            "explanation": "New explanation",
+            "evidence": [],
+            "recommendation": None,
+            "confidence": 0.9,
+        })
+
+        result = service.generate_insight(
+            "sim_test", "try_vs_success", {"data": "test"}, force=True
+        )
+
+        if mock_repo.get.called:
+            all_validation_failures.append("Should not check repo when force=True")
+        elif not mock_llm.complete_json.called:
+            all_validation_failures.append("Should call LLM when force=True")
+        elif not mock_repo.save.called:
+            all_validation_failures.append("Should save to repo after LLM call")
+        elif result.caption != "New LLM caption":
+            all_validation_failures.append("Should return LLM result")
+        else:
+            print("Test 4 PASSED: generate_insight with force=True bypasses repository")
+    except Exception as e:
+        all_validation_failures.append(f"Force regenerate test failed: {e}")
+
+    # Test 5: get_all_insights uses repository
+    total_tests += 1
+    try:
+        mock_repo.reset_mock()
+        mock_repo.get_all_for_simulation.return_value = {
+            "try_vs_success": ChartInsight(
+                simulation_id="sim_test",
+                chart_type="try_vs_success",
+                caption="Cap 1",
+                explanation="Exp 1",
+            )
+        }
+        mock_repo.get_executive_summary.return_value = "Executive summary"
+
+        result = service.get_all_insights("sim_test")
+
+        if not mock_repo.get_all_for_simulation.called:
+            all_validation_failures.append("Should call repository")
+        elif len(result.insights) != 1:
+            all_validation_failures.append("Should return insights from repo")
+        elif result.executive_summary != "Executive summary":
+            all_validation_failures.append("Should include executive summary")
+        else:
+            print("Test 5 PASSED: get_all_insights uses repository")
+    except Exception as e:
+        all_validation_failures.append(f"Get all insights test failed: {e}")
+
+    # Test 6: generate_executive_summary with no insights returns None
+    total_tests += 1
+    try:
+        mock_repo.reset_mock()
+        mock_repo.get_executive_summary.return_value = None
+        mock_repo.get_all_for_simulation.return_value = {}
+
+        result = service.generate_executive_summary("empty_sim")
+
+        if result is not None:
+            all_validation_failures.append("Should return None for empty simulation")
+        else:
+            print("Test 6 PASSED: Executive summary handles empty simulation")
+    except Exception as e:
+        all_validation_failures.append(f"Executive summary empty test failed: {e}")
+
+    # Test 7: clear_insights calls repository
+    total_tests += 1
+    try:
+        mock_repo.reset_mock()
+        mock_repo.delete_for_simulation.return_value = 3
+
+        deleted = service.clear_insights("sim_test")
+
+        if not mock_repo.delete_for_simulation.called:
+            all_validation_failures.append("Should call repository delete")
+        elif deleted != 3:
+            all_validation_failures.append("Should return delete count")
+        else:
+            print("Test 7 PASSED: clear_insights calls repository")
+    except Exception as e:
+        all_validation_failures.append(f"Clear insights test failed: {e}")
+
+    # Final result
+    print()
+    if all_validation_failures:
+        print(
+            f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:"
+        )
+        for failure in all_validation_failures:
+            print(f"  - {failure}")
+        sys.exit(1)
+    else:
+        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            "\nNote: Actual LLM calls require OPENAI_API_KEY and are not tested in validation"
+        )
+        sys.exit(0)

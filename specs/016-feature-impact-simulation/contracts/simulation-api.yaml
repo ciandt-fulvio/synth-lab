@@ -1,0 +1,779 @@
+openapi: 3.1.0
+info:
+  title: Feature Impact Simulation API
+  description: API para simulação de impacto de features sobre perfis de synths
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+
+paths:
+  # ============ SCORECARDS ============
+  /scorecards:
+    get:
+      summary: Listar scorecards
+      operationId: listScorecards
+      tags:
+        - Scorecards
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Lista de scorecards
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScorecardList'
+
+    post:
+      summary: Criar scorecard
+      operationId: createScorecard
+      tags:
+        - Scorecards
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScorecardCreate'
+      responses:
+        '201':
+          description: Scorecard criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureScorecard'
+        '422':
+          description: Validation error
+
+  /scorecards/{scorecard_id}:
+    get:
+      summary: Obter scorecard por ID
+      operationId: getScorecard
+      tags:
+        - Scorecards
+      parameters:
+        - name: scorecard_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Scorecard encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureScorecard'
+        '404':
+          description: Scorecard não encontrado
+
+  /scorecards/{scorecard_id}/generate-insights:
+    post:
+      summary: Gerar insights via LLM
+      operationId: generateScorecardInsights
+      tags:
+        - Scorecards
+      parameters:
+        - name: scorecard_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Insights gerados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScorecardInsights'
+
+  # ============ SCENARIOS ============
+  /scenarios:
+    get:
+      summary: Listar cenários disponíveis
+      operationId: listScenarios
+      tags:
+        - Scenarios
+      responses:
+        '200':
+          description: Lista de cenários pré-definidos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Scenario'
+
+  /scenarios/{scenario_id}:
+    get:
+      summary: Obter cenário por ID
+      operationId: getScenario
+      tags:
+        - Scenarios
+      parameters:
+        - name: scenario_id
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [baseline, crisis, first-use]
+      responses:
+        '200':
+          description: Cenário encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scenario'
+        '404':
+          description: Cenário não encontrado
+
+  # ============ SIMULATIONS ============
+  /simulations:
+    get:
+      summary: Listar simulações
+      operationId: listSimulations
+      tags:
+        - Simulations
+      parameters:
+        - name: scorecard_id
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, running, completed, failed]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Lista de simulações
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationList'
+
+    post:
+      summary: Executar simulação
+      operationId: runSimulation
+      tags:
+        - Simulations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimulationRequest'
+      responses:
+        '202':
+          description: Simulação iniciada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationRun'
+        '422':
+          description: Validation error
+
+  /simulations/{simulation_id}:
+    get:
+      summary: Obter simulação por ID
+      operationId: getSimulation
+      tags:
+        - Simulations
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Simulação encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationRun'
+        '404':
+          description: Simulação não encontrada
+
+  /simulations/{simulation_id}/outcomes:
+    get:
+      summary: Obter outcomes por synth
+      operationId: getSimulationOutcomes
+      tags:
+        - Simulations
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Outcomes por synth
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutcomeList'
+
+  # ============ ANALYSIS ============
+  /simulations/{simulation_id}/regions:
+    get:
+      summary: Analisar regiões de impacto
+      operationId: analyzeRegions
+      tags:
+        - Analysis
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: min_failure_rate
+          in: query
+          description: Taxa mínima de falha para incluir região
+          schema:
+            type: number
+            default: 0.5
+        - name: max_depth
+          in: query
+          description: Profundidade máxima das regras
+          schema:
+            type: integer
+            default: 4
+      responses:
+        '200':
+          description: Regiões identificadas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RegionAnalysis'
+
+  /simulations/{simulation_id}/sensitivity:
+    get:
+      summary: Análise de sensibilidade OAT
+      operationId: analyzeSensitivity
+      tags:
+        - Analysis
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: deltas
+          in: query
+          description: Variações a testar (ex: 0.05,0.10)
+          schema:
+            type: string
+            default: "0.05,0.10"
+      responses:
+        '200':
+          description: Resultado de sensibilidade
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SensitivityResult'
+
+  /simulations/compare:
+    post:
+      summary: Comparar simulações entre cenários
+      operationId: compareSimulations
+      tags:
+        - Analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompareRequest'
+      responses:
+        '200':
+          description: Comparação de resultados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompareResult'
+
+  # ============ AUDIT ============
+  /audit/log:
+    get:
+      summary: Consultar log de auditoria
+      operationId: getAuditLog
+      tags:
+        - Audit
+      parameters:
+        - name: scorecard_id
+          in: query
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: from_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Entradas do log
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LogEntry'
+
+components:
+  schemas:
+    # ============ SCORECARD SCHEMAS ============
+    ScorecardDimension:
+      type: object
+      required:
+        - score
+      properties:
+        score:
+          type: number
+          minimum: 0
+          maximum: 1
+        rules_applied:
+          type: array
+          items:
+            type: string
+        min_uncertainty:
+          type: number
+          minimum: 0
+          maximum: 1
+        max_uncertainty:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    ScorecardCreate:
+      type: object
+      required:
+        - feature_name
+        - use_scenario
+        - description_text
+        - complexity
+        - initial_effort
+        - perceived_risk
+        - time_to_value
+      properties:
+        feature_name:
+          type: string
+        use_scenario:
+          type: string
+        evaluators:
+          type: array
+          items:
+            type: string
+        description_text:
+          type: string
+        description_media_urls:
+          type: array
+          items:
+            type: string
+        complexity:
+          $ref: '#/components/schemas/ScorecardDimension'
+        initial_effort:
+          $ref: '#/components/schemas/ScorecardDimension'
+        perceived_risk:
+          $ref: '#/components/schemas/ScorecardDimension'
+        time_to_value:
+          $ref: '#/components/schemas/ScorecardDimension'
+
+    FeatureScorecard:
+      allOf:
+        - $ref: '#/components/schemas/ScorecardCreate'
+        - type: object
+          properties:
+            id:
+              type: string
+            justification:
+              type: string
+            impact_hypotheses:
+              type: array
+              items:
+                type: string
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+
+    ScorecardList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureScorecard'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    ScorecardInsights:
+      type: object
+      properties:
+        justification:
+          type: string
+        impact_hypotheses:
+          type: array
+          items:
+            type: string
+        suggested_adjustments:
+          type: array
+          items:
+            type: string
+
+    # ============ SCENARIO SCHEMAS ============
+    Scenario:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        motivation_modifier:
+          type: number
+          minimum: -0.3
+          maximum: 0.3
+        trust_modifier:
+          type: number
+          minimum: -0.3
+          maximum: 0.3
+        friction_modifier:
+          type: number
+          minimum: -0.3
+          maximum: 0.3
+        task_criticality:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    # ============ SIMULATION SCHEMAS ============
+    SimulationConfig:
+      type: object
+      properties:
+        n_synths:
+          type: integer
+          default: 500
+          minimum: 1
+        n_executions:
+          type: integer
+          default: 100
+          minimum: 1
+        sigma:
+          type: number
+          default: 0.05
+          minimum: 0
+          maximum: 0.5
+        seed:
+          type: integer
+
+    SimulationRequest:
+      type: object
+      required:
+        - scorecard_id
+        - scenario_id
+      properties:
+        scorecard_id:
+          type: string
+        scenario_id:
+          type: string
+          enum: [baseline, crisis, first-use]
+        config:
+          $ref: '#/components/schemas/SimulationConfig'
+
+    SimulationRun:
+      type: object
+      properties:
+        id:
+          type: string
+        scorecard_id:
+          type: string
+        scenario_id:
+          type: string
+        config:
+          $ref: '#/components/schemas/SimulationConfig'
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        total_synths:
+          type: integer
+        aggregated_outcomes:
+          type: object
+          properties:
+            did_not_try:
+              type: number
+            failed:
+              type: number
+            success:
+              type: number
+        execution_time_seconds:
+          type: number
+
+    SimulationList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SimulationRun'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    # ============ OUTCOME SCHEMAS ============
+    SynthOutcome:
+      type: object
+      properties:
+        synth_id:
+          type: string
+        synth_name:
+          type: string
+        did_not_try_rate:
+          type: number
+        failed_rate:
+          type: number
+        success_rate:
+          type: number
+        synth_attributes:
+          type: object
+          properties:
+            observables:
+              type: object
+              properties:
+                digital_literacy:
+                  type: number
+                similar_tool_experience:
+                  type: number
+                motor_ability:
+                  type: number
+                time_availability:
+                  type: number
+                domain_expertise:
+                  type: number
+            latent_traits:
+              type: object
+              properties:
+                capability_mean:
+                  type: number
+                trust_mean:
+                  type: number
+                friction_tolerance_mean:
+                  type: number
+                exploration_prob:
+                  type: number
+
+    OutcomeList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SynthOutcome'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    # ============ ANALYSIS SCHEMAS ============
+    RegionRule:
+      type: object
+      properties:
+        attribute:
+          type: string
+        operator:
+          type: string
+          enum: ["<", "<=", ">", ">="]
+        threshold:
+          type: number
+
+    RegionAnalysis:
+      type: object
+      properties:
+        id:
+          type: string
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/RegionRule'
+        rule_text:
+          type: string
+        synth_count:
+          type: integer
+        synth_percentage:
+          type: number
+        did_not_try_rate:
+          type: number
+        failed_rate:
+          type: number
+        success_rate:
+          type: number
+        failure_delta:
+          type: number
+
+    DimensionSensitivity:
+      type: object
+      properties:
+        dimension:
+          type: string
+        baseline_value:
+          type: number
+        deltas_tested:
+          type: array
+          items:
+            type: number
+        outcomes_by_delta:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              did_not_try:
+                type: number
+              failed:
+                type: number
+              success:
+                type: number
+        sensitivity_index:
+          type: number
+        rank:
+          type: integer
+
+    SensitivityResult:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+        analyzed_at:
+          type: string
+          format: date-time
+        deltas_used:
+          type: array
+          items:
+            type: number
+        dimensions:
+          type: array
+          items:
+            $ref: '#/components/schemas/DimensionSensitivity'
+        most_sensitive_dimension:
+          type: string
+
+    CompareRequest:
+      type: object
+      required:
+        - simulation_ids
+      properties:
+        simulation_ids:
+          type: array
+          items:
+            type: string
+          minItems: 2
+          maxItems: 5
+
+    CompareResult:
+      type: object
+      properties:
+        simulations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              scenario_id:
+                type: string
+              aggregated_outcomes:
+                type: object
+        most_affected_regions:
+          type: array
+          items:
+            type: object
+            properties:
+              rule_text:
+                type: string
+              outcomes_by_scenario:
+                type: object
+
+    # ============ AUDIT SCHEMAS ============
+    LogEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        action:
+          type: string
+        scorecard_id:
+          type: string
+        simulation_id:
+          type: string
+        data:
+          type: object
+        user:
+          type: string
