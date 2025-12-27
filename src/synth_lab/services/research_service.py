@@ -321,6 +321,7 @@ class ResearchService:
             model=request.model,
             max_turns=request.max_turns,
             status=ExecutionStatus.RUNNING,
+            experiment_id=request.experiment_id,
         )
 
         # Start the batch interviews asynchronously

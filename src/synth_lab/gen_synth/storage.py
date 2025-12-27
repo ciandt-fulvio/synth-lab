@@ -53,7 +53,12 @@ def _get_connection() -> sqlite3.Connection:
     return conn
 
 
-def save_synth(synth_dict: dict[str, Any], output_dir: Path | None = None, save_individual: bool = False) -> None:
+def save_synth(
+    synth_dict: dict[str, Any],
+    output_dir: Path | None = None,
+    save_individual: bool = False,
+    synth_group_id: str | None = None,
+) -> None:
     """
     Save synth to SQLite database.
 
@@ -61,11 +66,15 @@ def save_synth(synth_dict: dict[str, Any], output_dir: Path | None = None, save_
         synth_dict: Dictionary containing complete synth data (must have "id" key)
         output_dir: Deprecated, ignored (kept for API compatibility)
         save_individual: Deprecated, ignored (kept for API compatibility)
+        synth_group_id: Optional synth group ID to link this synth to
 
     Raises:
         KeyError: If synth_dict doesn't contain "id" key
     """
     synth_id = synth_dict["id"]
+
+    # Use synth_group_id from parameter or from synth_dict
+    group_id = synth_group_id or synth_dict.get("synth_group_id")
 
     # Build data object with nested fields
     data = {}
@@ -83,11 +92,12 @@ def save_synth(synth_dict: dict[str, Any], output_dir: Path | None = None, save_
         conn.execute(
             """
             INSERT OR REPLACE INTO synths
-            (id, nome, descricao, link_photo, avatar_path, created_at, version, data)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (id, synth_group_id, nome, descricao, link_photo, avatar_path, created_at, version, data)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 synth_id,
+                group_id,
                 synth_dict.get("nome", ""),
                 synth_dict.get("descricao"),
                 synth_dict.get("link_photo"),
@@ -98,7 +108,7 @@ def save_synth(synth_dict: dict[str, Any], output_dir: Path | None = None, save_
             ),
         )
         conn.commit()
-        logger.debug(f"Synth saved: {synth_id}")
+        logger.debug(f"Synth saved: {synth_id} (group: {group_id})")
     finally:
         conn.close()
 
@@ -152,6 +162,7 @@ def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
     """Convert a database row to a synth dictionary."""
     synth = {
         "id": row["id"],
+        "synth_group_id": row["synth_group_id"] if "synth_group_id" in row.keys() else None,
         "nome": row["nome"],
         "descricao": row["descricao"],
         "link_photo": row["link_photo"],

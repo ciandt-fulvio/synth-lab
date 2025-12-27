@@ -154,6 +154,7 @@ class SynthBase(BaseModel):
     """Base synth model with core fields."""
 
     id: str = Field(..., min_length=6, max_length=6, description="6-character unique ID")
+    synth_group_id: str | None = Field(default=None, description="ID of the synth group this synth belongs to")
     nome: str = Field(..., description="Display name")
     descricao: str | None = Field(default=None, description="Brief description")
     link_photo: str | None = Field(default=None, description="External photo URL")

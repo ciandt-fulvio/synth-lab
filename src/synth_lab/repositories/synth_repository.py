@@ -49,6 +49,7 @@ class SynthRepository(BaseRepository):
         self,
         params: PaginationParams,
         fields: list[str] | None = None,
+        synth_group_id: str | None = None,
     ) -> PaginatedResponse[SynthSummary]:
         """
         List synths with pagination.
@@ -56,6 +57,7 @@ class SynthRepository(BaseRepository):
         Args:
             params: Pagination parameters.
             fields: Optional list of fields to include.
+            synth_group_id: Optional filter by synth group ID.
 
         Returns:
             Paginated response with synth summaries.
@@ -64,10 +66,32 @@ class SynthRepository(BaseRepository):
         select_fields = self._build_select_fields(fields)
         base_query = f"SELECT {select_fields} FROM synths"
 
+        # Add group filter if specified
+        if synth_group_id:
+            base_query += f" WHERE synth_group_id = '{synth_group_id}'"
+
         rows, meta = self._paginate_query(base_query, params)
 
         synths = [self._row_to_summary(row) for row in rows]
         return PaginatedResponse(data=synths, pagination=meta)
+
+    def list_by_group_id(
+        self,
+        synth_group_id: str,
+        params: PaginationParams | None = None,
+    ) -> PaginatedResponse[SynthSummary]:
+        """
+        List synths by group ID with pagination.
+
+        Args:
+            synth_group_id: Synth group ID to filter by.
+            params: Pagination parameters.
+
+        Returns:
+            Paginated response with synth summaries.
+        """
+        params = params or PaginationParams()
+        return self.list_synths(params, synth_group_id=synth_group_id)
 
     def get_by_id(self, synth_id: str) -> SynthDetail:
         """
@@ -252,6 +276,7 @@ class SynthRepository(BaseRepository):
 
         return SynthSummary(
             id=row["id"],
+            synth_group_id=row["synth_group_id"] if "synth_group_id" in row.keys() else None,
             nome=row["nome"] if "nome" in row.keys() else "",
             descricao=row["descricao"] if "descricao" in row.keys() else None,
             link_photo=row["link_photo"] if "link_photo" in row.keys() else None,
@@ -353,6 +378,7 @@ class SynthRepository(BaseRepository):
 
         return SynthDetail(
             id=row["id"],
+            synth_group_id=row["synth_group_id"] if "synth_group_id" in row.keys() else None,
             nome=row["nome"],
             descricao=row["descricao"],
             link_photo=row["link_photo"],

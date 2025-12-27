@@ -3,9 +3,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import { listSynths, getSynth } from '@/services/synths-api';
-import type { PaginationParams } from '@/types';
+import type { SynthsListParams } from '@/types';
 
-export function useSynthsList(params?: PaginationParams) {
+export function useSynthsList(params?: SynthsListParams) {
   return useQuery({
     queryKey: [...queryKeys.synthsList, params],
     queryFn: () => listSynths(params),

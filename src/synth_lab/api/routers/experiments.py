@@ -8,12 +8,14 @@ References:
     - OpenAPI: specs/018-experiment-hub/contracts/openapi.yaml
 """
 
+import json
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from synth_lab.infrastructure.database import DatabaseManager, get_database
+from synth_lab.infrastructure.llm_client import get_llm_client
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.research import ResearchExecuteRequest, ResearchExecuteResponse
 from synth_lab.repositories.experiment_repository import ExperimentSummary
@@ -163,6 +165,78 @@ class ScorecardResponse(BaseModel):
     impact_hypotheses: list[str]
     created_at: datetime
     updated_at: datetime | None
+
+
+# AI Estimation schemas
+
+
+class DimensionEstimate(BaseModel):
+    """AI-generated dimension estimate."""
+
+    value: float = Field(ge=0.0, le=1.0, description="Estimated score value in [0,1]")
+    justification: str = Field(description="Brief justification for the score")
+    min: float = Field(ge=0.0, le=1.0, description="Minimum uncertainty bound")
+    max: float = Field(ge=0.0, le=1.0, description="Maximum uncertainty bound")
+
+
+class ScorecardEstimateResponse(BaseModel):
+    """Response model for AI-generated scorecard estimate."""
+
+    complexity: DimensionEstimate
+    initial_effort: DimensionEstimate
+    perceived_risk: DimensionEstimate
+    time_to_value: DimensionEstimate
+
+
+SCORECARD_ESTIMATE_PROMPT = """Você é um especialista em UX e product management.
+Sua tarefa é analisar uma feature/hipótese e estimar as dimensões do scorecard.
+
+## Feature
+Nome: {name}
+Hipótese: {hypothesis}
+Descrição: {description}
+
+## Regras de Scoring (0 = baixo / 1 = alto)
+
+### Complexity (0.0-1.0)
+Base: 0.0
+- +0.2 por conceito novo para o usuário
+- +0.2 se há estados invisíveis ou não óbvios
+- +0.2 se usa termos técnicos
+- +0.2 se envolve ação irreversível
+- +0.2 se feedback é fraco ou atrasado
+
+### Initial Effort
+- 0.1: uso imediato, sem configuração
+- 0.3: 1-2 passos simples
+- 0.5: requer configuração básica
+- 0.7+: requer onboarding dedicado
+
+### Perceived Risk
+- 0.1: totalmente reversível
+- 0.4: afeta dados do usuário
+- 0.7+: afeta dinheiro ou reputação
+
+### Time to Value
+- 0.1: valor imediato
+- 0.3: valor na mesma sessão
+- 0.6: valor após alguns dias
+- 0.8+: valor futuro/incerto
+
+## Instruções
+1. Analise a feature considerando as regras acima
+2. Para cada dimensão, forneça:
+   - value: o score estimado (0.0 a 1.0)
+   - justification: 1-2 frases objetivas explicando o score
+   - min/max: intervalo de incerteza (ex: se value=0.4, min pode ser 0.3 e max 0.5)
+
+Responda APENAS com o JSON no formato abaixo, sem texto adicional:
+{{
+  "complexity": {{"value": 0.XX, "justification": "...", "min": 0.XX, "max": 0.XX}},
+  "initial_effort": {{"value": 0.XX, "justification": "...", "min": 0.XX, "max": 0.XX}},
+  "perceived_risk": {{"value": 0.XX, "justification": "...", "min": 0.XX, "max": 0.XX}},
+  "time_to_value": {{"value": 0.XX, "justification": "...", "min": 0.XX, "max": 0.XX}}
+}}"""
 
 
 def get_experiment_service() -> ExperimentService:
@@ -563,3 +637,68 @@ async def create_interview_for_experiment(
     # Execute via research service
     research_service = get_research_service()
     return await research_service.execute_research(research_request)
+
+
+@router.post(
+    "/{experiment_id}/estimate-scorecard",
+    response_model=ScorecardEstimateResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def estimate_scorecard_for_experiment(
+    experiment_id: str,
+) -> ScorecardEstimateResponse:
+    """
+    Use AI to estimate scorecard dimensions for an experiment.
+
+    Takes the experiment's name, hypothesis, and description,
+    and returns AI-generated estimates for all scorecard dimensions.
+    """
+    # Validate experiment exists and get details
+    exp_service = get_experiment_service()
+    experiment = exp_service.get_experiment_detail(experiment_id)
+    if experiment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Experiment {experiment_id} not found",
+        )
+
+    # Build prompt with experiment data
+    prompt = SCORECARD_ESTIMATE_PROMPT.format(
+        name=experiment.name,
+        hypothesis=experiment.hypothesis,
+        description=experiment.description or "Não fornecida",
+    )
+
+    # Call LLM for estimation
+    llm = get_llm_client()
+    try:
+        response = llm.complete_json(
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,  # Lower temperature for more consistent results
+            operation_name="Scorecard AI Estimation",
+        )
+
+        # Parse JSON response
+        data = json.loads(response)
+
+        return ScorecardEstimateResponse(
+            complexity=DimensionEstimate(**data["complexity"]),
+            initial_effort=DimensionEstimate(**data["initial_effort"]),
+            perceived_risk=DimensionEstimate(**data["perceived_risk"]),
+            time_to_value=DimensionEstimate(**data["time_to_value"]),
+        )
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to parse AI response: {e}",
+        )
+    except KeyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"AI response missing required field: {e}",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"AI estimation failed: {e}",
+        )

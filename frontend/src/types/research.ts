@@ -9,6 +9,7 @@ export type ExecutionStatus =
 
 export interface ResearchExecutionSummary {
   exec_id: string;
+  experiment_id: string | null;
   topic_name: string;
   status: ExecutionStatus;
   synth_count: number;
@@ -46,11 +47,25 @@ export interface TranscriptDetail extends TranscriptSummary {
 
 export interface ResearchExecuteRequest {
   topic_name: string;
+  experiment_id?: string | null;
   synth_ids?: string[] | null;
   synth_count?: number | null;
   max_turns?: number; // default: 6
   max_concurrent?: number; // default: 10
   model?: string; // default: 'gpt-4o-mini'
+  generate_summary?: boolean; // default: true
+}
+
+/**
+ * Request for creating an interview from an experiment.
+ * Experiment_id is taken from the URL path.
+ */
+export interface InterviewCreateRequest {
+  topic_name: string;
+  additional_context?: string | null;
+  synth_ids?: string[] | null;
+  synth_count?: number | null;
+  max_turns?: number; // default: 6
   generate_summary?: boolean; // default: true
 }
 

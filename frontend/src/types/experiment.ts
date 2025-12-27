@@ -185,3 +185,27 @@ export interface ScorecardResponse {
   /** Last update timestamp */
   updated_at: string | null;
 }
+
+/**
+ * AI-generated dimension estimate.
+ */
+export interface DimensionEstimate {
+  /** Estimated score value in [0,1] */
+  value: number;
+  /** Brief justification for the score */
+  justification: string;
+  /** Minimum uncertainty bound */
+  min: number;
+  /** Maximum uncertainty bound */
+  max: number;
+}
+
+/**
+ * Response from AI scorecard estimation.
+ */
+export interface ScorecardEstimateResponse {
+  complexity: DimensionEstimate;
+  initial_effort: DimensionEstimate;
+  perceived_risk: DimensionEstimate;
+  time_to_value: DimensionEstimate;
+}
