@@ -7,6 +7,7 @@ and interview history as context.
 References:
     - LLM Client: src/synth_lab/infrastructure/llm_client.py
     - Research Repository: src/synth_lab/repositories/research_repository.py
+    - Architecture: docs/arquitetura.md (LLM calls must use Phoenix tracing)
 """
 
 from datetime import datetime
@@ -14,10 +15,14 @@ from datetime import datetime
 from loguru import logger
 
 from synth_lab.infrastructure.llm_client import get_llm_client
+from synth_lab.infrastructure.phoenix_tracing import get_tracer
 from synth_lab.models.chat import ChatRequest, ChatResponse
 from synth_lab.repositories.research_repository import ResearchRepository
 from synth_lab.repositories.synth_repository import SynthRepository
 from synth_lab.services.chat.instructions import format_chat_instructions
+
+# Phoenix/OpenTelemetry tracer for observability
+_tracer = get_tracer("chat-service")
 
 
 class ChatService:
@@ -91,12 +96,20 @@ class ChatService:
 
         messages, synth_name = self._build_messages(synth_id, request)
 
-        # Generate response with custom operation name for tracing
-        response_text = self.llm_client.complete(
-            messages=messages,
-            temperature=0.8,
-            operation_name=f"ChatCompl with {synth_name}",
-        )
+        # Generate response with Phoenix tracing
+        with _tracer.start_as_current_span(
+            "ChatService: generate_response",
+            attributes={
+                "synth_id": synth_id,
+                "synth_name": synth_name,
+                "exec_id": request.exec_id,
+            },
+        ):
+            response_text = self.llm_client.complete(
+                messages=messages,
+                temperature=0.8,
+                operation_name=f"ChatCompl with {synth_name}",
+            )
 
         self.logger.info(f"Generated response: {len(response_text)} chars")
 
@@ -122,13 +135,21 @@ class ChatService:
 
         messages, synth_name = self._build_messages(synth_id, request)
 
-        # Generate streaming response with custom operation name for tracing
-        for chunk in self.llm_client.complete_stream(
-            messages=messages,
-            temperature=0.8,
-            operation_name=f"ChatCompl with {synth_name}",
+        # Generate streaming response with Phoenix tracing
+        with _tracer.start_as_current_span(
+            "ChatService: generate_response_stream",
+            attributes={
+                "synth_id": synth_id,
+                "synth_name": synth_name,
+                "exec_id": request.exec_id,
+            },
         ):
-            yield chunk
+            for chunk in self.llm_client.complete_stream(
+                messages=messages,
+                temperature=0.8,
+                operation_name=f"ChatCompl with {synth_name}",
+            ):
+                yield chunk
 
     def _format_transcript(self, transcript) -> str:
         """Format transcript messages for context."""

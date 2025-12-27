@@ -187,6 +187,7 @@ class ScorecardService:
             )
 
         return FeatureScorecard(
+            experiment_id=data.get("experiment_id"),
             identification=identification,
             description_text=data.get("description_text", ""),
             description_media_urls=data.get("description_media_urls", []),

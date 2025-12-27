@@ -76,6 +76,7 @@ export interface TechCapabilities {
 
 export interface SynthSummary {
   id: string;
+  synth_group_id?: string | null;
   nome: string;
   descricao?: string;
   link_photo?: string;
@@ -89,6 +90,14 @@ export interface SynthDetail extends SynthSummary {
   psicografia?: Psychographics;
   deficiencias?: Disabilities;
   capacidades_tecnologicas?: TechCapabilities;
+}
+
+export interface SynthsListParams {
+  limit?: number;
+  offset?: number;
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
+  synth_group_id?: string;
 }
 
 export interface SynthSearchRequest {

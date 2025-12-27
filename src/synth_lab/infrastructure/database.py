@@ -19,35 +19,64 @@ from loguru import logger
 
 from synth_lab.infrastructure.config import DB_PATH
 
-# Database schema SQL - Version 5 (2024-12)
+# Database schema SQL - Version 6 (2025-12)
 # Changes:
 #   - v4: synths.data: single JSON field for all nested data
 #   - v5: Added simulation tables (feature_scorecards, simulation_runs, synth_outcomes,
 #         region_analyses, assumption_log)
+#   - v6: Added experiments table, synth_groups table, added experiment_id to
+#         feature_scorecards and research_executions, added synth_group_id to synths
 SCHEMA_SQL = """
 -- Enable recommended settings
 PRAGMA journal_mode=WAL;
 PRAGMA foreign_keys=ON;
 PRAGMA synchronous=NORMAL;
 
--- Synths table
+-- Experiments table (NEW in v6)
+CREATE TABLE IF NOT EXISTS experiments (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    hypothesis TEXT NOT NULL,
+    description TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_experiments_created ON experiments(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_experiments_name ON experiments(name);
+
+-- Synth Groups table (NEW in v6)
+CREATE TABLE IF NOT EXISTS synth_groups (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_synth_groups_created ON synth_groups(created_at DESC);
+
+-- Synths table (MODIFIED in v6 - added synth_group_id)
 CREATE TABLE IF NOT EXISTS synths (
     id TEXT PRIMARY KEY,
+    synth_group_id TEXT,
     nome TEXT NOT NULL,
     descricao TEXT,
     link_photo TEXT,
     avatar_path TEXT,
     created_at TEXT NOT NULL,
     version TEXT DEFAULT '2.0.0',
-    data TEXT CHECK(json_valid(data) OR data IS NULL)
+    data TEXT CHECK(json_valid(data) OR data IS NULL),
+    FOREIGN KEY (synth_group_id) REFERENCES synth_groups(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_synths_created_at ON synths(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_synths_nome ON synths(nome);
+CREATE INDEX IF NOT EXISTS idx_synths_group ON synths(synth_group_id);
 
--- Research executions table
+-- Research executions table (MODIFIED in v6 - added experiment_id)
 CREATE TABLE IF NOT EXISTS research_executions (
     exec_id TEXT PRIMARY KEY,
+    experiment_id TEXT,
     topic_name TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'completed',
     synth_count INTEGER NOT NULL,
@@ -58,12 +87,14 @@ CREATE TABLE IF NOT EXISTS research_executions (
     started_at TEXT NOT NULL,
     completed_at TEXT,
     summary_content TEXT,
-    CHECK(status IN ('pending', 'running', 'generating_summary', 'completed', 'failed'))
+    CHECK(status IN ('pending', 'running', 'generating_summary', 'completed', 'failed')),
+    FOREIGN KEY (experiment_id) REFERENCES experiments(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_executions_topic ON research_executions(topic_name);
 CREATE INDEX IF NOT EXISTS idx_executions_status ON research_executions(status);
 CREATE INDEX IF NOT EXISTS idx_executions_started ON research_executions(started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_executions_experiment ON research_executions(experiment_id);
 
 -- Transcripts table
 CREATE TABLE IF NOT EXISTS transcripts (
@@ -115,15 +146,18 @@ CREATE TABLE IF NOT EXISTS topic_guides_cache (
     updated_at TEXT
 );
 
--- Feature Scorecards (simulation)
+-- Feature Scorecards (simulation) (MODIFIED in v6 - added experiment_id)
 CREATE TABLE IF NOT EXISTS feature_scorecards (
     id TEXT PRIMARY KEY,
+    experiment_id TEXT,
     data TEXT NOT NULL CHECK(json_valid(data)),
     created_at TEXT NOT NULL,
-    updated_at TEXT
+    updated_at TEXT,
+    FOREIGN KEY (experiment_id) REFERENCES experiments(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_scorecards_created ON feature_scorecards(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_scorecards_experiment ON feature_scorecards(experiment_id);
 
 -- Simulation Runs
 CREATE TABLE IF NOT EXISTS simulation_runs (

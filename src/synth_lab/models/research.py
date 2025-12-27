@@ -35,6 +35,7 @@ class ResearchExecutionBase(BaseModel):
     """Base research execution model."""
 
     exec_id: str = Field(..., description="Execution ID (e.g., batch_topic_timestamp)")
+    experiment_id: str | None = Field(default=None, description="Parent experiment ID (if linked)")
     topic_name: str = Field(..., description="Topic guide name")
     status: ExecutionStatus = Field(..., description="Execution status")
     synth_count: int = Field(..., description="Number of synths in execution")
@@ -85,6 +86,10 @@ class ResearchExecuteRequest(BaseModel):
     """Request model for executing research."""
 
     topic_name: str = Field(..., description="Topic guide name")
+    experiment_id: str | None = Field(
+        default=None,
+        description="Optional parent experiment ID to link this research to",
+    )
     additional_context: str | None = Field(
         default=None,
         description="Additional context to complement the research scenario",

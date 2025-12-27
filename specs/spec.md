@@ -40,7 +40,6 @@ Experimento (Feature/Hipotese)
 | name             |
 | hypothesis       |
 | description      |
-| status           |
 | created_at       |
 | updated_at       |
 +------------------+
@@ -92,19 +91,33 @@ Experimento (Feature/Hipotese)
 | success_rate     |       +------------------+
 +------------------+
 
+
 +------------------+       +------------------+
-|      synths      |       |   scenarios      |
+|   synth_groups   |       |   scenarios      |
 +------------------+       +------------------+
 | id (PK)          |       | id (PK)          |
-| nome             |       | name             |
-| descricao        |       | description      |
-| data (JSON)      |       | modifiers (JSON) |
-| avatar_path      |       +------------------+
-| ...              |       (Carregados de JSON,
-+------------------+        nao persistidos)
-(Recurso global,
- nao vinculado a
- experimentos)
+| name             |       | name             |
+| description      |       | description      |
+| created_at       |       | modifiers (JSON) |
++------------------+       +------------------+
+        |                  (Carregados de JSON,
+        | 1                 nao persistidos)
+        |
+        | N
+        v
++------------------+
+|      synths      |
++------------------+
+| id (PK)          |
+| synth_group_id   |
+|   (FK, NOT NULL) |
+| nome             |
+| descricao        |
+| data (JSON)      |
+| avatar_path      |
+| created_at       |
+| ...              |
++------------------+
 ```
 
 ### Relacionamentos
@@ -117,15 +130,31 @@ Experimento (Feature/Hipotese)
 | SimulationRun | SynthOutcome | 1:N | Uma simulacao gera outcome para cada synth |
 | SimulationRun | RegionAnalysis | 1:N | Uma simulacao pode ter multiplas analises de regiao |
 | ResearchExecution | Transcript | 1:N | Uma entrevista tem multiplas transcricoes |
+| SynthGroup | Synth | 1:N | Um grupo contem multiplos synths |
 
 ### Notas sobre o Modelo
 
-1. **Synths e grupos de synths**: Synths sao organizados em grupos (synth_groups). Cada experimento referencia um synth_group específico, permitindo que diferentes experimentos usem conjuntos diferentes de personas. Atualmente, um synth_group padrão é usado, mas a arquitetura permite escalabilidade futura. Synths continuam sendo recursos globais (compartilháveis entre experimentos), mas agrupados logicamente via synth_group_id. (necessario cria o conceito de synth_group)
+1. **Synth Groups**: Synths sao organizados em grupos (`synth_groups`). Cada grupo tem:
+   - `id`: Identificador unico (ex: `grp_abc123`)
+   - `name`: Nome descritivo (ex: "Geracao Dezembro 2025")
+   - `description`: Breve descricao do proposito/contexto da geracao
+   - `created_at`: Data de criacao do grupo
 
-2. **Scenarios sao pre-definidos**: Carregados de arquivos JSON (`data/simulation_scenarios/*.json`), nao persistidos no banco.
+   Cada synth pertence obrigatoriamente a um grupo via `synth_group_id`. Isso permite:
+   - Rastrear quando/como synths foram gerados
+   - Agrupar synths por "safra" ou contexto de geracao
+   - Filtrar synths por grupo no catalogo
 
+2. **Geracao de Synths com Grupo**: A geracao de synths aceita um `synth_group_id` opcional:
+   - Se o grupo existir: synths sao adicionados ao grupo existente
+   - Se o grupo NAO existir: cria o grupo automaticamente com o id fornecido
+   - Se nenhum grupo for informado: cria um novo grupo com nome baseado na data/hora
 
-3. **FeatureScorecard vs Experiment**: O scorecard e a definicao des dimensoes da feature. O experimento é o container que explica a feature (descricao da hipotese, contexto, anexos).
+3. **Scenarios sao pre-definidos**: Carregados de arquivos JSON (`data/simulation_scenarios/*.json`), nao persistidos no banco.
+
+4. **FeatureScorecard vs Experiment**: O scorecard e a definicao das dimensoes da feature. O experimento e o container que explica a feature (descricao da hipotese, contexto, anexos).
+
+5. **Experimentos sem status**: Nesta versao, experimentos nao tem campo de status. O estado e inferido pela existencia de simulacoes/entrevistas vinculadas (futuro: pode ser adicionado).
 
 ---
 ---
@@ -142,7 +171,7 @@ O usuario acessa o SynthLab e ve imediatamente a lista de todos os seus experime
 
 **Acceptance Scenarios**:
 
-1. **Given** usuario acessa a home, **When** existem experimentos cadastrados, **Then** ve grid de cards com nome, descricao curta, contadores (simulacoes/entrevistas) e status
+1. **Given** usuario acessa a home, **When** existem experimentos cadastrados, **Then** ve grid de cards com nome, hipotese truncada, contadores (simulacoes/entrevistas) e data de criacao
 2. **Given** usuario acessa a home, **When** nao existem experimentos, **Then** ve empty state com CTA para criar primeiro experimento
 3. **Given** lista de experimentos, **When** usuario clica em um card, **Then** navega para pagina de detalhe do experimento
 4. **Given** lista de experimentos, **When** usuario clica em "+ Novo Experimento", **Then** abre modal/drawer de criacao
@@ -165,7 +194,7 @@ O usuario cria um novo experimento definindo a feature/hipotese que deseja testa
 **Acceptance Scenarios**:
 
 1. **Given** usuario na home, **When** clica em "+ Novo Experimento", **Then** abre modal com formulario
-2. **Given** formulario aberto, **When** preenche nome e hipotese e salva, **Then** experimento e criado com status "Rascunho"
+2. **Given** formulario aberto, **When** preenche nome e hipotese e salva, **Then** experimento e criado e salvo no banco
 3. **Given** formulario aberto, **When** tenta salvar sem nome ou hipotese, **Then** mostra validacao de campos obrigatorios
 4. **Given** experimento criado, **When** volta para home, **Then** novo experimento aparece na lista
 
@@ -184,7 +213,7 @@ O usuario acessa o detalhe de um experimento e ve todas as simulacoes e entrevis
 +--------------------------------------------------+
 | [Nome do Experimento]                   [Editar] |
 | Hipotese: "..."                                  |
-| Status: Em progresso | Criado: 20 dez            |
+| Criado: 20 dez 2025                              |
 +--------------------------------------------------+
 | Simulacoes                    [+ Nova Simulacao] |
 | +----------------+ +----------------+            |
@@ -332,35 +361,40 @@ O usuario edita os dados de um experimento existente.
 
 **Entidade Experimento**
 - **FR-001**: Sistema DEVE permitir criar experimento com nome (obrigatorio), hipotese (obrigatorio) e descricao (opcional)
-- **FR-002**: Sistema DEVE atribuir status inicial "draft" ao criar experimento
-- **FR-003**: Sistema DEVE calcular status do experimento baseado em simulacoes/entrevistas vinculadas:
-  - "draft": sem simulacoes nem entrevistas
-  - "in_progress": alguma simulacao ou entrevista em execucao
-  - "completed": todas simulacoes e entrevistas finalizadas (pelo menos 1 de cada)
-- **FR-004**: Sistema DEVE permitir editar nome, hipotese e descricao de experimento existente
+- **FR-002**: Sistema DEVE permitir editar nome, hipotese e descricao de experimento existente
+- **FR-003**: Sistema DEVE registrar created_at e updated_at automaticamente
 
 **Navegacao**
-- **FR-006**: Home (/) DEVE exibir lista de experimentos em grid de cards
-- **FR-007**: Card de experimento DEVE mostrar: nome, hipotese truncada, contadores (simulacoes/entrevistas), status, data de criacao
-- **FR-008**: Home DEVE ter botao "+ Novo Experimento" visivel
-- **FR-009**: Home DEVE mostrar empty state quando nao ha experimentos
-- **FR-010**: Todas as paginas DEVE ter header com icone para acessar Synths
+- **FR-004**: Home (/) DEVE exibir lista de experimentos em grid de cards
+- **FR-005**: Card de experimento DEVE mostrar: nome, hipotese truncada, contadores (simulacoes/entrevistas), data de criacao
+- **FR-006**: Home DEVE ter botao "+ Novo Experimento" visivel
+- **FR-007**: Home DEVE mostrar empty state quando nao ha experimentos
+- **FR-008**: Todas as paginas DEVE ter header com icone para acessar Synths
 
 **Vinculacao de Scorecards/Simulacoes**
-- **FR-011**: Tabela feature_scorecards DEVE ter coluna experiment_id (FK, NOT NULL)
-- **FR-012**: Criacao de scorecard via pagina de experimento DEVE preencher experiment_id automaticamente
-- **FR-013**: Pagina de detalhe do experimento DEVE listar todos scorecards/simulacoes com experiment_id correspondente
-- **FR-014**: Detalhe de simulacao DEVE ter breadcrumb para voltar ao experimento pai
+- **FR-009**: Tabela feature_scorecards DEVE ter coluna experiment_id (FK, NOT NULL)
+- **FR-010**: Criacao de scorecard via pagina de experimento DEVE preencher experiment_id automaticamente
+- **FR-011**: Pagina de detalhe do experimento DEVE listar todos scorecards/simulacoes com experiment_id correspondente
+- **FR-012**: Detalhe de simulacao DEVE ter breadcrumb para voltar ao experimento pai
 
 **Vinculacao de Entrevistas**
-- **FR-015**: Tabela research_executions DEVE ter coluna experiment_id (FK, NOT NULL)
-- **FR-016**: Criacao de entrevista via pagina de experimento DEVE preencher experiment_id automaticamente
-- **FR-017**: Pagina de detalhe do experimento DEVE listar todas entrevistas com experiment_id correspondente
-- **FR-018**: Detalhe de entrevista DEVE manter comportamento existente, apenas alterando breadcrumb
+- **FR-013**: Tabela research_executions DEVE ter coluna experiment_id (FK, NOT NULL)
+- **FR-014**: Criacao de entrevista via pagina de experimento DEVE preencher experiment_id automaticamente
+- **FR-015**: Pagina de detalhe do experimento DEVE listar todas entrevistas com experiment_id correspondente
+- **FR-016**: Detalhe de entrevista DEVE manter comportamento existente, apenas alterando breadcrumb
+
+**Synth Groups**
+- **FR-017**: Tabela synth_groups DEVE ter: id (PK), name, description, created_at
+- **FR-018**: Tabela synths DEVE ter coluna synth_group_id (FK, NOT NULL)
+- **FR-019**: Geracao de synths DEVE aceitar synth_group_id como parametro opcional
+- **FR-020**: Se synth_group_id informado e grupo NAO existir, sistema DEVE criar o grupo automaticamente
+- **FR-021**: Se synth_group_id NAO informado, sistema DEVE criar novo grupo com nome baseado em data/hora
+- **FR-022**: Catalogo de synths DEVE permitir filtrar por grupo
 
 **Synths (Menu Secundario)**
-- **FR-019**: Header DEVE ter icone/botao para acessar catalogo de synths (/synths)
-- **FR-020**: Catalogo de synths DEVE manter funcionalidade existente (listagem, busca, detalhe)
+- **FR-023**: Header DEVE ter icone/botao para acessar catalogo de synths (/synths)
+- **FR-024**: Catalogo de synths DEVE manter funcionalidade existente (listagem, busca, detalhe)
+- **FR-025**: Catalogo de synths DEVE exibir informacao do grupo de cada synth
 
 ### API Endpoints
 
@@ -369,6 +403,17 @@ O usuario edita os dados de um experimento existente.
 - `GET /experiments/{id}` - Detalhe de um experimento com simulacoes e entrevistas
 - `POST /experiments` - Criar novo experimento
 - `PUT /experiments/{id}` - Atualizar experimento
+
+**Synth Groups**
+- `GET /synth-groups` - Lista todos os grupos de synths
+- `GET /synth-groups/{id}` - Detalhe de um grupo com lista de synths
+- `POST /synth-groups` - Criar novo grupo (usado internamente pela geracao)
+
+**Geracao de Synths (extensao)**
+- `POST /synths/generate` - Aceita `synth_group_id` opcional no body
+  - Se grupo existe: adiciona synths ao grupo
+  - Se grupo NAO existe: cria grupo com o id fornecido
+  - Se nao informado: cria novo grupo automaticamente
 
 **Extensoes aos endpoints existentes**
 - `POST /experiments/{id}/scorecards` - Criar scorecard vinculado ao experimento
@@ -397,8 +442,9 @@ O usuario edita os dados de um experimento existente.
 - **SC-004**: Navegacao de home ate detalhe de simulacao requer maximo 2 cliques
 - **SC-005**: Navegacao de home ate detalhe de entrevista requer maximo 2 cliques
 - **SC-006**: Zero abas na navegacao principal (apenas Experimentos como home)
-- **SC-007**: Status do experimento reflete corretamente o estado agregado de simulacoes/entrevistas
-- **SC-008**: Comportamento de InterviewDetail 100% identico ao atual (apenas breadcrumb diferente)
+- **SC-007**: Comportamento de InterviewDetail 100% identico ao atual (apenas breadcrumb diferente)
+- **SC-008**: 100% dos synths gerados pertencem a um synth_group
+- **SC-009**: Catalogo de synths exibe grupo de cada synth
 
 ---
 
@@ -408,7 +454,9 @@ O usuario edita os dados de um experimento existente.
 - Nao ha necessidade de mover simulacao/entrevista entre experimentos
 - Um experimento pode ter multiplos scorecards e multiplas entrevistas
 - Experimentos nao tem hierarquia (nao ha sub-experimentos)
-- Synths continuam sendo recurso global, nao vinculados a experimentos
+- Synths pertencem a grupos (synth_groups), mas grupos sao recursos globais (nao vinculados a experimentos)
+- Todo synth deve pertencer a exatamente um grupo
+- Grupos de synths sao imutaveis apos criacao (synths nao podem mudar de grupo)
 - Topicos de pesquisa continuam existindo como templates, nao vinculados a experimentos
 - Scenarios continuam sendo carregados de JSON, nao persistidos
 
@@ -421,12 +469,7 @@ O usuario edita os dados de um experimento existente.
 1. **Home**: Grid de cards, CTA proeminente para criar
 2. **Detalhe**: Header com info do experimento, secoes claras para Simulacoes e Entrevistas
 3. **Navegacao**: Breadcrumb simples, header persistente com acesso a Synths
-
-### Estados Visuais
-
-- **Draft**: Badge cinza
-- **In Progress**: Badge azul/amarelo, indicador de atividade
-- **Completed**: Badge verde
+4. **Catalogo de Synths**: Lista com filtro por grupo, badge indicando grupo de cada synth
 
 ### Empty States
 
@@ -434,10 +477,18 @@ O usuario edita os dados de um experimento existente.
 - Experimento sem simulacoes: "Nenhuma simulacao ainda. Crie sua primeira para testar quantitativamente."
 - Experimento sem entrevistas: "Nenhuma entrevista ainda. Crie sua primeira para coletar feedback qualitativo."
 
+### Cards de Experimento
+
+- Nome em destaque
+- Hipotese truncada (max 2 linhas)
+- Contadores: "X simulacoes | Y entrevistas"
+- Data de criacao (formato relativo: "ha 2 dias" ou absoluto: "20 dez 2025")
+
 ---
 
 ## Out of Scope
 
+- Status calculado de experimentos (draft/in_progress/completed) - futuro
 - Comparacao entre experimentos
 - Dashboard com metricas agregadas
 - Colaboracao multi-usuario em experimentos
@@ -445,3 +496,4 @@ O usuario edita os dados de um experimento existente.
 - Integracao com ferramentas externas (Jira, Notion, etc.)
 - Experimentos aninhados ou hierarquicos
 - Qualquer alteracao no comportamento/layout de InterviewDetail
+- Mover synths entre grupos apos geracao

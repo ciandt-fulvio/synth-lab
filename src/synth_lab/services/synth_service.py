@@ -31,6 +31,7 @@ class SynthService:
         self,
         params: PaginationParams | None = None,
         fields: list[str] | None = None,
+        synth_group_id: str | None = None,
     ) -> PaginatedResponse[SynthSummary]:
         """
         List synths with pagination.
@@ -38,12 +39,13 @@ class SynthService:
         Args:
             params: Pagination parameters.
             fields: Optional list of fields to include.
+            synth_group_id: Optional filter by synth group ID.
 
         Returns:
             Paginated response with synth summaries.
         """
         params = params or PaginationParams()
-        return self.synth_repo.list_synths(params, fields)
+        return self.synth_repo.list_synths(params, fields, synth_group_id=synth_group_id)
 
     def get_synth(self, synth_id: str) -> SynthDetail:
         """

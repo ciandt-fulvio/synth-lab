@@ -3,14 +3,14 @@
 import { fetchAPI } from './api';
 import type {
   PaginatedResponse,
-  PaginationParams,
   SynthSummary,
   SynthDetail,
   SynthSearchRequest,
+  SynthsListParams,
 } from '@/types';
 
 export async function listSynths(
-  params?: PaginationParams
+  params?: SynthsListParams
 ): Promise<PaginatedResponse<SynthSummary>> {
   const queryParams = new URLSearchParams();
 
@@ -18,6 +18,7 @@ export async function listSynths(
   if (params?.offset) queryParams.append('offset', params.offset.toString());
   if (params?.sort_by) queryParams.append('sort_by', params.sort_by);
   if (params?.sort_order) queryParams.append('sort_order', params.sort_order);
+  if (params?.synth_group_id) queryParams.append('synth_group_id', params.synth_group_id);
 
   const query = queryParams.toString();
   const endpoint = query ? `/synths/list?${query}` : '/synths/list';
