@@ -26,7 +26,7 @@ export default function Synths() {
               variant="ghost"
               size="icon"
               onClick={() => navigate('/')}
-              className="text-gray-600 hover:text-purple-600"
+              className="text-muted-foreground hover:text-primary"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -35,12 +35,8 @@ export default function Synths() {
               alt="SynthLab Logo"
               className="h-8 w-auto"
             />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              SynthLab
-            </h1>
-            <Badge variant="secondary" className="bg-purple-100 text-purple-700 hover:bg-purple-100">
-              Beta
-            </Badge>
+            <h1 className="text-3xl font-bold text-primary">SynthLab</h1>
+            <Badge variant="secondary">Beta</Badge>
           </div>
           <p className="mt-2 text-sm font-semibold text-gray-600 ml-12">
             Catálogo de Synths
