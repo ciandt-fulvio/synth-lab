@@ -281,6 +281,79 @@
           "description": "Nível de alfabetização digital"
         }
       }
+    },
+    "simulation_attributes": {
+      "type": "object",
+      "description": "Attributes for Monte Carlo feature impact simulation (v2.1.0+)",
+      "properties": {
+        "observables": {
+          "type": "object",
+          "properties": {
+            "digital_literacy": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Digital literacy level (Beta(2,4) distribution)"
+            },
+            "similar_tool_experience": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Experience with similar tools (Beta(3,3) distribution)"
+            },
+            "motor_ability": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Motor ability derived from deficiencias.motora.tipo"
+            },
+            "time_availability": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Time available for task (Beta(2,3) distribution)"
+            },
+            "domain_expertise": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Domain-specific expertise (Beta(3,3) distribution)"
+            }
+          },
+          "required": ["digital_literacy", "similar_tool_experience", "motor_ability", "time_availability", "domain_expertise"]
+        },
+        "latent_traits": {
+          "type": "object",
+          "properties": {
+            "capability_mean": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Mean capability: 0.40*dl + 0.35*exp + 0.15*motor + 0.10*domain"
+            },
+            "trust_mean": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Mean trust level: 0.60*exp + 0.40*dl"
+            },
+            "friction_tolerance_mean": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Friction tolerance: 0.40*time + 0.35*dl + 0.25*exp"
+            },
+            "exploration_prob": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Exploration probability: 0.50*dl + 0.30*(1-exp) + 0.20*time"
+            }
+          },
+          "required": ["capability_mean", "trust_mean", "friction_tolerance_mean", "exploration_prob"]
+        }
+      },
+      "required": ["observables", "latent_traits"]
     }
   },
   "required": ["id", "nome", "descricao", "link_photo", "created_at", "version", "demografia", "psicografia", "deficiencias", "capacidades_tecnologicas"]

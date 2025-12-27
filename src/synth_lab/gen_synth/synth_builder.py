@@ -2,7 +2,8 @@
 Synth Builder - Orchestrates synth assembly from all generation modules.
 
 This module combines demographics, psychographics, disabilities,
-tech capabilities, and derivations to create complete synthetic personas.
+tech capabilities, derivations, and simulation attributes to create
+complete synthetic personas.
 
 Functions:
 - assemble_synth(): Generate a complete synth by orchestrating all modules
@@ -16,11 +17,14 @@ Sample usage:
     print(synth['nome'], synth['descricao'])
 
 Expected output:
-    Complete synth dict with all fields populated and validated
+    Complete synth dict with all fields populated and validated,
+    including simulation_attributes with observables and latent_traits
 """
 
 from datetime import datetime, timezone
 from typing import Any
+
+import numpy as np
 
 from synth_lab.gen_synth import (
     demographics,
@@ -30,10 +34,17 @@ from synth_lab.gen_synth import (
     tech_capabilities,
     validation,
 )
+from synth_lab.gen_synth.simulation_attributes import (
+    digital_literacy_to_alfabetizacao_digital,
+    generate_simulation_attributes,
+)
 from synth_lab.gen_synth.utils import gerar_id
 
 
-def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
+def assemble_synth(
+    config: dict[str, Any],
+    rng: np.random.Generator | None = None,
+) -> dict[str, Any]:
     """
     Assemble a complete synth by orchestrating all generation modules.
 
@@ -44,18 +55,24 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
     4. Generating psychographics (interests, cognitive contract)
     5. Generating disabilities (if applicable)
     6. Generating tech capabilities (digital literacy)
-    7. Generating photo link from name
-    8. Assembling complete synth
-    9. Deriving description from complete synth
+    7. Generating simulation attributes (observables + latent traits)
+    8. Generating photo link from name
+    9. Assembling complete synth
+    10. Deriving description from complete synth
 
     Args:
         config: Configuration dict with 'ibge', 'occupations', 'interests_hobbies'
+        rng: Optional NumPy random generator for reproducibility
 
     Returns:
-        dict: Complete synth with all fields populated
+        dict: Complete synth with all fields populated, including simulation_attributes
     """
     # Generate unique ID
     synth_id = gerar_id(tamanho=6)
+
+    # Create RNG if not provided (for simulation attribute generation)
+    if rng is None:
+        rng = np.random.default_rng()
 
     # 1. Generate demographics
     demografia = demographics.generate_demographics(config)
@@ -78,24 +95,33 @@ def assemble_synth(config: dict[str, Any]) -> dict[str, Any]:
         deficiencias
     )
 
-    # 7. Generate photo link
+    # 7. Generate simulation attributes
+    simulation_attrs = generate_simulation_attributes(rng, deficiencias)
+
+    # Update alfabetizacao_digital from digital_literacy
+    # (simulation attribute is the source of truth, translated to tech capabilities)
+    dl = simulation_attrs.observables.digital_literacy
+    capacidades_tecnologicas["alfabetizacao_digital"] = digital_literacy_to_alfabetizacao_digital(dl)
+
+    # 8. Generate photo link
     link_photo = derivations.generate_photo_link(nome)
 
-    # 8. Assemble complete synth (needed for description)
+    # 9. Assemble complete synth (needed for description)
     synth = {
         "id": synth_id,
         "nome": nome,
         "descricao": "",  # Placeholder, will be filled after
         "link_photo": link_photo,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "version": "2.0.0",
+        "version": "2.1.0",  # Bumped version for simulation_attributes
         "demografia": demografia,
         "psicografia": psicografia,
         "deficiencias": deficiencias,
         "capacidades_tecnologicas": capacidades_tecnologicas,
+        "simulation_attributes": simulation_attrs.model_dump(),
     }
 
-    # 9. Derive description (needs complete synth)
+    # 10. Derive description (needs complete synth)
     descricao = derivations.derive_description(synth)
     synth["descricao"] = descricao
 
@@ -131,7 +157,7 @@ if __name__ == "__main__":
         required_fields = [
             "id", "nome", "descricao", "link_photo",
             "created_at", "version", "demografia", "psicografia",
-            "deficiencias", "capacidades_tecnologicas"
+            "deficiencias", "capacidades_tecnologicas", "simulation_attributes"
         ]
 
         missing_fields = [f for f in required_fields if f not in synth]
@@ -237,7 +263,56 @@ if __name__ == "__main__":
         else:
             print(f"✓ Tech capabilities complete: digital literacy {tech['alfabetizacao_digital']}")
 
-    # Test 7: Verify derivations
+    # Test 7: Verify simulation_attributes structure
+    total_tests += 1
+    if "synth" in locals():
+        sim_attrs = synth.get("simulation_attributes", {})
+        sim_attrs_failures = []
+
+        # Check observables
+        observables = sim_attrs.get("observables", {})
+        required_observables = [
+            "digital_literacy", "similar_tool_experience",
+            "motor_ability", "time_availability", "domain_expertise"
+        ]
+        missing_obs = [f for f in required_observables if f not in observables]
+        if missing_obs:
+            sim_attrs_failures.append(f"Missing observables: {missing_obs}")
+
+        # Check latent traits
+        latent_traits = sim_attrs.get("latent_traits", {})
+        required_latent = [
+            "capability_mean", "trust_mean",
+            "friction_tolerance_mean", "exploration_prob"
+        ]
+        missing_latent = [f for f in required_latent if f not in latent_traits]
+        if missing_latent:
+            sim_attrs_failures.append(f"Missing latent traits: {missing_latent}")
+
+        # Verify all values in [0, 1]
+        for field, value in observables.items():
+            if not 0.0 <= value <= 1.0:
+                sim_attrs_failures.append(f"Observable {field} out of range: {value}")
+
+        for field, value in latent_traits.items():
+            if not 0.0 <= value <= 1.0:
+                sim_attrs_failures.append(f"Latent trait {field} out of range: {value}")
+
+        # Verify alfabetizacao_digital matches digital_literacy
+        dl = observables.get("digital_literacy", 0)
+        expected_ad = int(round(dl * 100))
+        actual_ad = tech.get("alfabetizacao_digital", -1)
+        if actual_ad != expected_ad:
+            sim_attrs_failures.append(
+                f"alfabetizacao_digital mismatch: expected {expected_ad} from dl={dl}, got {actual_ad}"
+            )
+
+        if sim_attrs_failures:
+            all_validation_failures.extend(sim_attrs_failures)
+        else:
+            print(f"✓ Simulation attributes complete: 5 observables + 4 latent traits (dl={dl:.3f})")
+
+    # Test 8: Verify derivations
     total_tests += 1
     if "synth" in locals():
         derivation_failures = []
@@ -254,7 +329,7 @@ if __name__ == "__main__":
         else:
             print("✓ Derivations correct: description, photo link")
 
-    # Test 8: Generate batch of 3 synths to verify uniqueness
+    # Test 9: Generate batch of 3 synths to verify uniqueness
     total_tests += 1
     try:
         synths_batch = [assemble_synth(config) for _ in range(3)]
@@ -278,7 +353,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Batch generation: Failed - {e}")
 
-    # Test 9: Validate generated synth against schema
+    # Test 10: Validate generated synth against schema
     total_tests += 1
     if "synth" in locals():
         try:

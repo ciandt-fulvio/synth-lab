@@ -18,9 +18,11 @@ from synth_lab.api.errors import register_exception_handlers
 from synth_lab.infrastructure.config import (
     API_HOST,
     API_PORT,
+    DB_PATH,
     configure_logging,
     ensure_directories,
 )
+from synth_lab.infrastructure.database import init_database
 from synth_lab.infrastructure.phoenix_tracing import (
     maybe_setup_tracing,
     shutdown_tracing,
@@ -38,6 +40,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     configure_logging()
     logger.info("Starting synth-lab API...")
     ensure_directories()
+    # Initialize database schema
+    init_database(DB_PATH)
+    logger.info("Database schema initialized")
     # Setup Phoenix tracing if PHOENIX_ENABLED=true
     maybe_setup_tracing()
     logger.info(f"API ready at http://{API_HOST}:{API_PORT}")
@@ -87,7 +92,7 @@ async def root() -> dict:
 
 
 # Router imports
-from synth_lab.api.routers import chat, prfaq, research, synths, topics
+from synth_lab.api.routers import chat, prfaq, research, simulation, synths, topics
 
 # Register routers
 app.include_router(synths.router, prefix="/synths", tags=["synths"])
@@ -95,6 +100,7 @@ app.include_router(chat.router, prefix="/synths", tags=["chat"])
 app.include_router(research.router, prefix="/research", tags=["research"])
 app.include_router(topics.router, prefix="/topics", tags=["topics"])
 app.include_router(prfaq.router, prefix="/prfaq", tags=["prfaq"])
+app.include_router(simulation.router, prefix="/simulation", tags=["simulation"])
 
 
 if __name__ == "__main__":

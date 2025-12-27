@@ -1,0 +1,29 @@
+{
+  "baseline": {
+    "id": "baseline",
+    "name": "Baseline",
+    "description": "Condicoes tipicas de uso",
+    "motivation_modifier": 0.0,
+    "trust_modifier": 0.0,
+    "friction_modifier": 0.0,
+    "task_criticality": 0.5
+  },
+  "crisis": {
+    "id": "crisis",
+    "name": "Crise",
+    "description": "Urgencia, precisa resolver rapido",
+    "motivation_modifier": 0.2,
+    "trust_modifier": -0.1,
+    "friction_modifier": -0.15,
+    "task_criticality": 0.85
+  },
+  "first-use": {
+    "id": "first-use",
+    "name": "Primeiro Uso",
+    "description": "Exploracao inicial do produto",
+    "motivation_modifier": 0.1,
+    "trust_modifier": -0.2,
+    "friction_modifier": 0.0,
+    "task_criticality": 0.2
+  }
+}
