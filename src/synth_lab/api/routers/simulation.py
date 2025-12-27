@@ -15,6 +15,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from synth_lab.api.schemas.analysis import ClusterRequest, CutDendrogramRequest
 from synth_lab.domain.entities import (
     ExtremeCasesTable,
     FailureHeatmapChart,
@@ -26,10 +27,9 @@ from synth_lab.domain.entities import (
     PDPComparison,
     PDPResult,
     RadarChart,
-    RegionAnalysis,
     SankeyChart,
-    Scenario,
     ScatterCorrelationChart,
+    Scenario,
     ShapExplanation,
     ShapSummary,
     SynthOutcome,
@@ -43,19 +43,18 @@ from synth_lab.domain.entities.chart_insight import (
 )
 from synth_lab.infrastructure.database import get_database
 from synth_lab.repositories.scorecard_repository import ScorecardRepository
+from synth_lab.services.simulation.chart_data_service import ChartDataService
+from synth_lab.services.simulation.clustering_service import ClusteringService
+from synth_lab.services.simulation.explainability_service import ExplainabilityService
+from synth_lab.services.simulation.insight_service import InsightGenerationError, InsightService
+from synth_lab.services.simulation.outlier_service import OutlierService
 from synth_lab.services.simulation.scorecard_llm import ScorecardLLM
 from synth_lab.services.simulation.scorecard_service import (
     ScorecardNotFoundError,
     ScorecardService,
     ValidationError,
 )
-from synth_lab.services.simulation.chart_data_service import ChartDataService
-from synth_lab.services.simulation.clustering_service import ClusteringService
-from synth_lab.services.simulation.explainability_service import ExplainabilityService
-from synth_lab.services.simulation.insight_service import InsightService, InsightGenerationError
-from synth_lab.services.simulation.outlier_service import OutlierService
 from synth_lab.services.simulation.simulation_service import SimulationService
-from synth_lab.api.schemas.analysis import ClusterRequest, CutDendrogramRequest
 
 router = APIRouter()
 
@@ -759,9 +758,10 @@ async def analyze_simulation_regions(
     )
 
     if len(outcomes_result["items"]) < 40:  # min_samples_split from analyzer
+        count = len(outcomes_result["items"])
         raise HTTPException(
             status_code=400,
-            detail=f"Not enough outcomes ({len(outcomes_result['items'])}) for region analysis. Need at least 40.",
+            detail=f"Not enough outcomes ({count}) for region analysis. Need at least 40.",
         )
 
     # Run region analysis (no caching - always fresh results)
@@ -1034,10 +1034,10 @@ async def get_try_vs_success_chart(
     - Y-axis: success_rate
 
     Quadrants:
-    - ok: high attempt (>= attempt_rate_threshold), high success (>= success_rate_threshold)
-    - usability_issue: high attempt (>= attempt_rate_threshold), low success (< success_rate_threshold)
-    - discovery_issue: low attempt (< attempt_rate_threshold), high success (>= success_rate_threshold)
-    - low_value: low attempt (< attempt_rate_threshold), low success (< success_rate_threshold)
+    - ok: high attempt, high success
+    - usability_issue: high attempt, low success
+    - discovery_issue: low attempt, high success
+    - low_value: low attempt, low success
     """
     sim_service = get_simulation_service()
     chart_service = get_chart_data_service()
@@ -1939,7 +1939,7 @@ async def get_pdp_comparison(
     simulation_id: str,
     features: str = Query(
         ...,
-        description="Comma-separated list of features to compare (e.g., 'trust_mean,capability_mean')",
+        description="Comma-separated features (e.g., 'trust_mean,capability_mean')",
     ),
     grid_resolution: int = Query(
         default=20, ge=5, le=100, description="Number of points in each PDP curve"
@@ -2164,7 +2164,7 @@ async def generate_chart_insight(
             simulation_id=simulation_id,
             chart_type=chart_type,
             chart_data=request.chart_data,
-            force_regenerate=request.force_regenerate,
+            force=request.force_regenerate,
         )
         return insight
     except InsightGenerationError as e:
@@ -2187,7 +2187,7 @@ async def clear_insights(
         simulation_id: ID of the simulation.
     """
     insight_service = get_insight_service()
-    insight_service.clear_cache(simulation_id=simulation_id)
+    insight_service.clear_insights(simulation_id=simulation_id)
 
 
 if __name__ == "__main__":

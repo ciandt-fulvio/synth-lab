@@ -27,9 +27,11 @@ def client():
 
 @pytest.fixture
 def sample_simulation():
-    """Create a mock simulation run."""
+    """Create a mock simulation run with unique ID per test."""
+    import uuid
+    unique_id = f"sim_{uuid.uuid4().hex[:8]}"
     return SimulationRun(
-        id="sim_ins1ght8",  # Valid pattern: sim_ + 8 alphanumeric chars
+        id=unique_id,
         scorecard_id="scorecard_001",
         scenario_id="baseline",
         num_synths=100,
