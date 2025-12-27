@@ -58,9 +58,13 @@ class BaseRepository:
         # Apply sorting if specified
         if params.sort_by:
             # Validate sort_by to prevent SQL injection
-            # Only allow alphanumeric and underscore
+            # Only allow alphanumeric and underscore for column names
             if params.sort_by.replace("_", "").isalnum():
-                base_query = f"{base_query} ORDER BY {params.sort_by} {params.sort_order.upper()}"
+                # Validate sort_order (only allow ASC/DESC)
+                sort_order = params.sort_order.upper()
+                if sort_order not in ("ASC", "DESC"):
+                    sort_order = "ASC"
+                base_query = f"{base_query} ORDER BY {params.sort_by} {sort_order}"
 
         # Apply pagination
         paginated_query = f"{base_query} LIMIT ? OFFSET ?"

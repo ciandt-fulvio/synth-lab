@@ -9,7 +9,6 @@ References:
 
 import json
 from datetime import datetime
-from pathlib import Path
 
 from synth_lab.infrastructure.database import DatabaseManager
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
@@ -449,6 +448,57 @@ class ResearchRepository(BaseRepository):
         rows, meta = self._paginate_query(base_query, params, query_params=(experiment_id,))
         executions = [self._row_to_summary(row) for row in rows]
         return PaginatedResponse(data=executions, pagination=meta)
+
+    def check_summaries_exist_batch(self, exec_ids: list[str]) -> dict[str, bool]:
+        """
+        Check which executions have summary_content.
+
+        Args:
+            exec_ids: List of execution IDs to check.
+
+        Returns:
+            Dict mapping exec_id to True if summary exists.
+        """
+        if not exec_ids:
+            return {}
+
+        placeholders = ",".join("?" * len(exec_ids))
+        rows = self.db.fetchall(
+            f"""
+            SELECT exec_id
+            FROM research_executions
+            WHERE exec_id IN ({placeholders})
+            AND summary_content IS NOT NULL
+            AND summary_content != ''
+            """,
+            tuple(exec_ids),
+        )
+        return {row["exec_id"]: True for row in rows}
+
+    def check_prfaqs_exist_batch(self, exec_ids: list[str]) -> dict[str, bool]:
+        """
+        Check which executions have completed prfaq_metadata.
+
+        Args:
+            exec_ids: List of execution IDs to check.
+
+        Returns:
+            Dict mapping exec_id to True if prfaq exists and is completed.
+        """
+        if not exec_ids:
+            return {}
+
+        placeholders = ",".join("?" * len(exec_ids))
+        rows = self.db.fetchall(
+            f"""
+            SELECT exec_id
+            FROM prfaq_metadata
+            WHERE exec_id IN ({placeholders})
+            AND status = 'completed'
+            """,
+            tuple(exec_ids),
+        )
+        return {row["exec_id"]: True for row in rows}
 
 
 if __name__ == "__main__":

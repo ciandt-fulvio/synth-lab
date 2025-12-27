@@ -8,14 +8,12 @@ References:
     - OpenAPI: specs/018-experiment-hub/contracts/openapi.yaml
 """
 
-import json
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
-from synth_lab.infrastructure.database import DatabaseManager, get_database
-from synth_lab.infrastructure.llm_client import get_llm_client
+from synth_lab.infrastructure.database import get_database
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.research import ResearchExecuteRequest, ResearchExecuteResponse
 from synth_lab.repositories.experiment_repository import ExperimentSummary
@@ -24,6 +22,10 @@ from synth_lab.repositories.scorecard_repository import ScorecardRepository
 from synth_lab.repositories.simulation_repository import SimulationRepository
 from synth_lab.services.experiment_service import ExperimentService
 from synth_lab.services.research_service import ResearchService
+from synth_lab.services.scorecard_estimator import (
+    ScorecardEstimationError,
+    ScorecardEstimator,
+)
 from synth_lab.services.simulation.scorecard_service import ScorecardService, ValidationError
 
 router = APIRouter()
@@ -188,57 +190,6 @@ class ScorecardEstimateResponse(BaseModel):
     time_to_value: DimensionEstimate
 
 
-SCORECARD_ESTIMATE_PROMPT = """Você é um especialista em UX e product management.
-Sua tarefa é analisar uma feature/hipótese e estimar as dimensões do scorecard.
-
-## Feature
-Nome: {name}
-Hipótese: {hypothesis}
-Descrição: {description}
-
-## Regras de Scoring (0 = baixo / 1 = alto)
-
-### Complexity (0.0-1.0)
-Base: 0.0
-- +0.2 por conceito novo para o usuário
-- +0.2 se há estados invisíveis ou não óbvios
-- +0.2 se usa termos técnicos
-- +0.2 se envolve ação irreversível
-- +0.2 se feedback é fraco ou atrasado
-
-### Initial Effort
-- 0.1: uso imediato, sem configuração
-- 0.3: 1-2 passos simples
-- 0.5: requer configuração básica
-- 0.7+: requer onboarding dedicado
-
-### Perceived Risk
-- 0.1: totalmente reversível
-- 0.4: afeta dados do usuário
-- 0.7+: afeta dinheiro ou reputação
-
-### Time to Value
-- 0.1: valor imediato
-- 0.3: valor na mesma sessão
-- 0.6: valor após alguns dias
-- 0.8+: valor futuro/incerto
-
-## Instruções
-1. Analise a feature considerando as regras acima
-2. Para cada dimensão, forneça:
-   - value: o score estimado (0.0 a 1.0)
-   - justification: 1-2 frases objetivas explicando o score
-   - min/max: intervalo de incerteza (ex: se value=0.4, min pode ser 0.3 e max 0.5)
-
-Responda APENAS com o JSON no formato abaixo, sem texto adicional:
-{{
-  "complexity": {{"value": 0.XX, "justification": "...", "min": 0.XX, "max": 0.XX}},
-  "initial_effort": {{"value": 0.XX, "justification": "...", "min": 0.XX, "max": 0.XX}},
-  "perceived_risk": {{"value": 0.XX, "justification": "...", "min": 0.XX, "max": 0.XX}},
-  "time_to_value": {{"value": 0.XX, "justification": "...", "min": 0.XX, "max": 0.XX}}
-}}"""
-
-
 def get_experiment_service() -> ExperimentService:
     """Get experiment service instance."""
     return ExperimentService()
@@ -293,6 +244,14 @@ async def list_experiments(
     return service.list_experiments(params)
 
 
+def _calculate_simulation_score(aggregated_outcomes: dict) -> float | None:
+    """Calculate a simple score from aggregated outcomes (success rate * 100)."""
+    if not aggregated_outcomes:
+        return None
+    success_rate = aggregated_outcomes.get("success", 0)
+    return round(success_rate * 100, 1)
+
+
 @router.get("/{experiment_id}", response_model=ExperimentDetailResponse)
 async def get_experiment(experiment_id: str) -> ExperimentDetailResponse:
     """
@@ -331,16 +290,16 @@ async def get_experiment(experiment_id: str) -> ExperimentDetailResponse:
         for run in simulation_runs
     ]
 
-    # Fetch actual interviews
+    # Fetch actual interviews using repository methods
     research_repo = ResearchRepository(db)
     interview_response = research_repo.list_executions_by_experiment(
         experiment_id, PaginationParams(limit=100)
     )
 
-    # Batch check for summary and prfaq existence
+    # Batch check for summary and prfaq existence using repository methods
     exec_ids = [exec.exec_id for exec in interview_response.data]
-    summary_exists = _check_summaries_exist(db, exec_ids)
-    prfaq_exists = _check_prfaqs_exist(db, exec_ids)
+    summary_exists = research_repo.check_summaries_exist_batch(exec_ids)
+    prfaq_exists = research_repo.check_prfaqs_exist_batch(exec_ids)
 
     interviews = [
         InterviewSummary(
@@ -368,67 +327,6 @@ async def get_experiment(experiment_id: str) -> ExperimentDetailResponse:
         simulations=simulations,
         interviews=interviews,
     )
-
-
-def _check_summaries_exist(db: DatabaseManager, exec_ids: list[str]) -> dict[str, bool]:
-    """Check which executions have summary_content.
-
-    Args:
-        db: Database manager.
-        exec_ids: List of execution IDs to check.
-
-    Returns:
-        Dict mapping exec_id to True if summary exists.
-    """
-    if not exec_ids:
-        return {}
-
-    placeholders = ",".join("?" * len(exec_ids))
-    rows = db.fetchall(
-        f"""
-        SELECT exec_id
-        FROM research_executions
-        WHERE exec_id IN ({placeholders})
-        AND summary_content IS NOT NULL
-        AND summary_content != ''
-        """,
-        tuple(exec_ids),
-    )
-    return {row["exec_id"]: True for row in rows}
-
-
-def _check_prfaqs_exist(db: DatabaseManager, exec_ids: list[str]) -> dict[str, bool]:
-    """Check which executions have prfaq_metadata.
-
-    Args:
-        db: Database manager.
-        exec_ids: List of execution IDs to check.
-
-    Returns:
-        Dict mapping exec_id to True if prfaq exists.
-    """
-    if not exec_ids:
-        return {}
-
-    placeholders = ",".join("?" * len(exec_ids))
-    rows = db.fetchall(
-        f"""
-        SELECT exec_id
-        FROM prfaq_metadata
-        WHERE exec_id IN ({placeholders})
-        AND status = 'completed'
-        """,
-        tuple(exec_ids),
-    )
-    return {row["exec_id"]: True for row in rows}
-
-
-def _calculate_simulation_score(aggregated_outcomes: dict) -> float | None:
-    """Calculate a simple score from aggregated outcomes (success rate * 100)."""
-    if not aggregated_outcomes:
-        return None
-    success_rate = aggregated_outcomes.get("success", 0)
-    return round(success_rate * 100, 1)
 
 
 @router.put("/{experiment_id}", response_model=ExperimentResponse)
@@ -662,43 +560,38 @@ async def estimate_scorecard_for_experiment(
             detail=f"Experiment {experiment_id} not found",
         )
 
-    # Build prompt with experiment data
-    prompt = SCORECARD_ESTIMATE_PROMPT.format(
-        name=experiment.name,
-        hypothesis=experiment.hypothesis,
-        description=experiment.description or "Não fornecida",
-    )
-
-    # Call LLM for estimation
-    llm = get_llm_client()
+    # Use ScorecardEstimator service (handles LLM call with tracing)
+    estimator = ScorecardEstimator()
     try:
-        response = llm.complete_json(
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,  # Lower temperature for more consistent results
-            operation_name="Scorecard AI Estimation",
-        )
-
-        # Parse JSON response
-        data = json.loads(response)
-
+        estimate = estimator.estimate_from_experiment(experiment)
         return ScorecardEstimateResponse(
-            complexity=DimensionEstimate(**data["complexity"]),
-            initial_effort=DimensionEstimate(**data["initial_effort"]),
-            perceived_risk=DimensionEstimate(**data["perceived_risk"]),
-            time_to_value=DimensionEstimate(**data["time_to_value"]),
+            complexity=DimensionEstimate(
+                value=estimate.complexity.value,
+                justification=estimate.complexity.justification,
+                min=estimate.complexity.min,
+                max=estimate.complexity.max,
+            ),
+            initial_effort=DimensionEstimate(
+                value=estimate.initial_effort.value,
+                justification=estimate.initial_effort.justification,
+                min=estimate.initial_effort.min,
+                max=estimate.initial_effort.max,
+            ),
+            perceived_risk=DimensionEstimate(
+                value=estimate.perceived_risk.value,
+                justification=estimate.perceived_risk.justification,
+                min=estimate.perceived_risk.min,
+                max=estimate.perceived_risk.max,
+            ),
+            time_to_value=DimensionEstimate(
+                value=estimate.time_to_value.value,
+                justification=estimate.time_to_value.justification,
+                min=estimate.time_to_value.min,
+                max=estimate.time_to_value.max,
+            ),
         )
-    except json.JSONDecodeError as e:
+    except ScorecardEstimationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to parse AI response: {e}",
-        )
-    except KeyError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"AI response missing required field: {e}",
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"AI estimation failed: {e}",
+            detail=str(e),
         )

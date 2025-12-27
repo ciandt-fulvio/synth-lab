@@ -33,10 +33,17 @@ from synth_lab.repositories.base import BaseRepository
 from synth_lab.services.errors import InvalidQueryError, SynthNotFoundError
 
 # Dangerous SQL keywords that should not be in WHERE clauses
+# This is a blacklist approach for power-user WHERE clause functionality
+# WARNING: This feature should only be exposed to trusted users
 BLOCKED_KEYWORDS = frozenset([
     "INSERT", "UPDATE", "DELETE", "DROP", "CREATE", "ALTER", "TRUNCATE",
-    "EXEC", "EXECUTE", "GRANT", "REVOKE", "--", ";", "/*", "*/",
+    "EXEC", "EXECUTE", "GRANT", "REVOKE", "UNION", "INTO", "LOAD",
+    "ATTACH", "DETACH", "PRAGMA", "VACUUM", "REINDEX",
+    "--", ";", "/*", "*/", "@@", "CHAR(", "0x",
 ])
+
+# Maximum length for WHERE clauses to prevent DoS
+MAX_WHERE_CLAUSE_LENGTH = 1000
 
 
 class SynthRepository(BaseRepository):
@@ -66,11 +73,13 @@ class SynthRepository(BaseRepository):
         select_fields = self._build_select_fields(fields)
         base_query = f"SELECT {select_fields} FROM synths"
 
-        # Add group filter if specified
+        # Add group filter if specified (using parameterized query)
+        query_params = None
         if synth_group_id:
-            base_query += f" WHERE synth_group_id = '{synth_group_id}'"
+            base_query += " WHERE synth_group_id = ?"
+            query_params = (synth_group_id,)
 
-        rows, meta = self._paginate_query(base_query, params)
+        rows, meta = self._paginate_query(base_query, params, query_params=query_params)
 
         synths = [self._row_to_summary(row) for row in rows]
         return PaginatedResponse(data=synths, pagination=meta)
@@ -258,13 +267,35 @@ class SynthRepository(BaseRepository):
                 raise InvalidQueryError(f"Keyword '{keyword}' is not allowed", query)
 
     def _validate_where_clause(self, where_clause: str) -> None:
-        """Validate that a WHERE clause is safe."""
+        """
+        Validate that a WHERE clause is safe.
+
+        WARNING: This is a power-user feature. The blacklist approach cannot
+        guarantee 100% protection against SQL injection. Only expose this
+        to trusted users.
+
+        Args:
+            where_clause: SQL WHERE clause to validate.
+
+        Raises:
+            InvalidQueryError: If clause contains blocked keywords or is too long.
+        """
+        # Check length limit
+        if len(where_clause) > MAX_WHERE_CLAUSE_LENGTH:
+            raise InvalidQueryError(
+                f"WHERE clause exceeds max length of {MAX_WHERE_CLAUSE_LENGTH} characters",
+                where_clause[:100] + "...",
+            )
+
         clause_upper = where_clause.upper()
 
         # Check for blocked keywords
         for keyword in BLOCKED_KEYWORDS:
             if keyword in clause_upper:
-                raise InvalidQueryError(f"Keyword '{keyword}' is not allowed in WHERE clause", where_clause)
+                raise InvalidQueryError(
+                    f"Keyword '{keyword}' is not allowed in WHERE clause",
+                    where_clause,
+                )
 
     def _row_to_summary(self, row) -> SynthSummary:
         """Convert a database row to SynthSummary."""
