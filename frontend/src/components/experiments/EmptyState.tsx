@@ -17,8 +17,8 @@ interface EmptyStateProps {
 export function EmptyState({ onCreateClick }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4">
-      <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
-        <FlaskConical className="w-8 h-8 text-purple-600" />
+      <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+        <FlaskConical className="w-8 h-8 text-primary" />
       </div>
       <h3 className="text-xl font-semibold text-gray-900 mb-2">
         Nenhum experimento ainda
@@ -27,10 +27,7 @@ export function EmptyState({ onCreateClick }: EmptyStateProps) {
         Experimentos são o ponto de partida para testar suas hipóteses.
         Crie seu primeiro experimento para começar a explorar insights com personas sintéticas.
       </p>
-      <Button
-        onClick={onCreateClick}
-        className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-      >
+      <Button onClick={onCreateClick}>
         <Plus className="w-4 h-4 mr-2" />
         Criar primeiro experimento
       </Button>

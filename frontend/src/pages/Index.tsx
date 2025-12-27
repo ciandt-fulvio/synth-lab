@@ -79,18 +79,14 @@ export default function Index() {
                 alt="SynthLab Logo"
                 className="h-8 w-auto logo-pulse-loop"
               />
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                SynthLab
-              </h1>
-              <Badge variant="secondary" className="bg-purple-100 text-purple-700 hover:bg-purple-100">
-                Beta
-              </Badge>
+              <h1 className="text-3xl font-bold text-primary">SynthLab</h1>
+              <Badge variant="secondary">Beta</Badge>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={handleSynthsClick}
-              className="text-gray-600 hover:text-purple-600"
+              className="text-muted-foreground hover:text-primary"
               title="Catálogo de Synths"
             >
               <Users className="h-5 w-5" />
@@ -112,10 +108,7 @@ export default function Index() {
             </p>
           </div>
           {experiments.length > 0 && (
-            <Button
-              onClick={handleCreateClick}
-              className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-            >
+            <Button onClick={handleCreateClick}>
               <Plus className="w-4 h-4 mr-2" />
               Novo Experimento
             </Button>
