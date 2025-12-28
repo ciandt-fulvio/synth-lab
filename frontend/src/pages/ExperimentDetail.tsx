@@ -28,6 +28,8 @@ import {
 import {
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   MessageSquare,
   Plus,
   FlaskConical,
@@ -35,6 +37,8 @@ import {
   AlertTriangle,
   ArrowLeft,
 } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
 
 // =============================================================================
@@ -101,11 +105,14 @@ function ScoreSlider({ label, value, color, delay = 0 }: ScoreSliderProps) {
 // Main Component
 // =============================================================================
 
+const INTERVIEWS_PER_PAGE = 2;
+
 export default function ExperimentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isInterviewsOpen, setIsInterviewsOpen] = useState(false);
   const [isNewInterviewOpen, setIsNewInterviewOpen] = useState(false);
+  const [interviewPage, setInterviewPage] = useState(0);
 
   const { data: experiment, isLoading, isError, error } = useExperiment(id ?? '');
   const runAnalysisMutation = useRunAnalysis();
@@ -266,33 +273,129 @@ export default function ExperimentDetail() {
             </div>
 
             <CollapsibleContent>
-              <div className="px-5 py-4">
+              <div className="px-4 py-3">
                 {experiment.interview_count === 0 ? (
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-500 py-2">
                     Nenhuma entrevista realizada ainda.
                   </p>
                 ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {experiment.interviews.map((interview) => (
-                      <button
-                        key={interview.exec_id}
-                        onClick={() => navigate(`/experiments/${id}/interviews/${interview.exec_id}`)}
-                        className="inline-flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm hover:bg-white hover:border-purple-200 hover:shadow-sm transition-all"
-                      >
-                        <span className="font-medium text-slate-700">
-                          {interview.topic_name}
+                  <>
+                    {/* Compact Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-slate-200/80">
+                            <th className="text-left py-1.5 px-2 font-medium text-slate-500 uppercase tracking-wider w-[120px]">Data</th>
+                            <th className="text-center py-1.5 px-2 font-medium text-slate-500 uppercase tracking-wider w-[60px]">Synths</th>
+                            <th className="text-center py-1.5 px-2 font-medium text-slate-500 uppercase tracking-wider w-[60px]">Turnos</th>
+                            <th className="text-left py-1.5 px-2 font-medium text-slate-500 uppercase tracking-wider">Contexto</th>
+                            <th className="text-right py-1.5 px-2 font-medium text-slate-500 uppercase tracking-wider w-[130px]">Artefatos</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const sorted = [...experiment.interviews].sort(
+                              (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+                            );
+                            const totalPages = Math.ceil(sorted.length / INTERVIEWS_PER_PAGE);
+                            const paged = sorted.slice(
+                              interviewPage * INTERVIEWS_PER_PAGE,
+                              (interviewPage + 1) * INTERVIEWS_PER_PAGE
+                            );
+                            return paged.map((interview, idx) => {
+                              const formattedDate = format(
+                                new Date(interview.started_at),
+                                "dd/MM/yy HH:mm",
+                                { locale: ptBR }
+                              );
+                              const contextPreview = interview.additional_context
+                                ? interview.additional_context.length > 45
+                                  ? `${interview.additional_context.slice(0, 45)}…`
+                                  : interview.additional_context
+                                : null;
+                              return (
+                                <tr
+                                  key={interview.exec_id}
+                                  onClick={() => navigate(`/experiments/${id}/interviews/${interview.exec_id}`)}
+                                  className={`
+                                    group cursor-pointer transition-all duration-150
+                                    hover:bg-indigo-50/50
+                                    ${idx !== paged.length - 1 ? 'border-b border-slate-100' : ''}
+                                  `}
+                                >
+                                  <td className="py-2 px-2">
+                                    <span className="font-medium text-slate-700 group-hover:text-indigo-700 transition-colors">
+                                      {formattedDate}
+                                    </span>
+                                  </td>
+                                  <td className="py-2 px-2 text-center">
+                                    <span className="text-slate-600 tabular-nums">{interview.synth_count}</span>
+                                  </td>
+                                  <td className="py-2 px-2 text-center">
+                                    <span className="text-slate-600 tabular-nums">{interview.total_turns}</span>
+                                  </td>
+                                  <td className="py-2 px-2 max-w-[280px]">
+                                    {contextPreview ? (
+                                      <span
+                                        className="text-slate-600 truncate block"
+                                        title={interview.additional_context || ''}
+                                      >
+                                        {contextPreview}
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-400">—</span>
+                                    )}
+                                  </td>
+                                  <td className="py-2 px-2">
+                                    <div className="flex items-center justify-end gap-1">
+                                      {interview.has_summary && (
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                                          Summary
+                                        </span>
+                                      )}
+                                      {interview.has_prfaq && (
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-sky-50 text-sky-700 border border-sky-200/60">
+                                          PR/FAQ
+                                        </span>
+                                      )}
+                                      {!interview.has_summary && !interview.has_prfaq && (
+                                        <span className="text-slate-400">—</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination */}
+                    {experiment.interviews.length > INTERVIEWS_PER_PAGE && (
+                      <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-100">
+                        <span className="text-xs text-slate-500">
+                          {interviewPage * INTERVIEWS_PER_PAGE + 1}–{Math.min((interviewPage + 1) * INTERVIEWS_PER_PAGE, experiment.interviews.length)} de {experiment.interviews.length}
                         </span>
-                        <span className="text-slate-400">
-                          {interview.synth_count} synths
-                        </span>
-                        {interview.has_summary && (
-                          <Badge variant="outline" className="text-xs py-0 border-green-200 text-green-600">
-                            Resumo
-                          </Badge>
-                        )}
-                      </button>
-                    ))}
-                  </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setInterviewPage(p => Math.max(0, p - 1)); }}
+                            disabled={interviewPage === 0}
+                            className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <ChevronLeft className="w-4 h-4 text-slate-600" />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setInterviewPage(p => Math.min(Math.ceil(experiment.interviews.length / INTERVIEWS_PER_PAGE) - 1, p + 1)); }}
+                            disabled={interviewPage >= Math.ceil(experiment.interviews.length / INTERVIEWS_PER_PAGE) - 1}
+                            className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <ChevronRight className="w-4 h-4 text-slate-600" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </CollapsibleContent>

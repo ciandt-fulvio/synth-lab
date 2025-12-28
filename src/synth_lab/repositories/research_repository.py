@@ -270,6 +270,7 @@ class ResearchRepository(BaseRepository):
         max_turns: int = 6,
         status: ExecutionStatus = ExecutionStatus.PENDING,
         experiment_id: str | None = None,
+        additional_context: str | None = None,
     ) -> None:
         """
         Create a new research execution record.
@@ -282,16 +283,17 @@ class ResearchRepository(BaseRepository):
             max_turns: Maximum turns per interview.
             status: Initial execution status.
             experiment_id: Optional parent experiment ID.
+            additional_context: Optional additional context for the interview.
         """
         query = """
             INSERT INTO research_executions
-            (exec_id, experiment_id, topic_name, synth_count, model, max_turns, status, started_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (exec_id, experiment_id, topic_name, synth_count, model, max_turns, status, started_at, additional_context)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         self.db.execute(
             query,
             (exec_id, experiment_id, topic_name, synth_count, model, max_turns,
-             status.value, datetime.now().isoformat()),
+             status.value, datetime.now().isoformat(), additional_context),
         )
 
     def update_execution_status(
@@ -499,6 +501,81 @@ class ResearchRepository(BaseRepository):
             tuple(exec_ids),
         )
         return {row["exec_id"]: True for row in rows}
+
+    def check_additional_context_exist_batch(self, exec_ids: list[str]) -> dict[str, bool]:
+        """
+        Check which executions have additional_context filled.
+
+        Args:
+            exec_ids: List of execution IDs to check.
+
+        Returns:
+            Dict mapping exec_id to True if additional_context exists.
+        """
+        if not exec_ids:
+            return {}
+
+        placeholders = ",".join("?" * len(exec_ids))
+        rows = self.db.fetchall(
+            f"""
+            SELECT exec_id
+            FROM research_executions
+            WHERE exec_id IN ({placeholders})
+            AND additional_context IS NOT NULL
+            AND additional_context != ''
+            """,
+            tuple(exec_ids),
+        )
+        return {row["exec_id"]: True for row in rows}
+
+    def get_additional_context_batch(self, exec_ids: list[str]) -> dict[str, str | None]:
+        """
+        Get additional_context text for executions.
+
+        Args:
+            exec_ids: List of execution IDs.
+
+        Returns:
+            Dict mapping exec_id to additional_context text (or None).
+        """
+        if not exec_ids:
+            return {}
+
+        placeholders = ",".join("?" * len(exec_ids))
+        rows = self.db.fetchall(
+            f"""
+            SELECT exec_id, additional_context
+            FROM research_executions
+            WHERE exec_id IN ({placeholders})
+            """,
+            tuple(exec_ids),
+        )
+        return {row["exec_id"]: row["additional_context"] for row in rows}
+
+    def get_total_turns_batch(self, exec_ids: list[str]) -> dict[str, int]:
+        """
+        Get total turn count for executions (sum of turns from all transcripts).
+
+        Args:
+            exec_ids: List of execution IDs.
+
+        Returns:
+            Dict mapping exec_id to total turn count.
+        """
+        if not exec_ids:
+            return {}
+
+        placeholders = ",".join("?" * len(exec_ids))
+        rows = self.db.fetchall(
+            f"""
+            SELECT exec_id, COALESCE(SUM(turn_count), 0) as total_turns
+            FROM transcripts
+            WHERE exec_id IN ({placeholders})
+            GROUP BY exec_id
+            """,
+            tuple(exec_ids),
+        )
+        return {row["exec_id"]: row["total_turns"] for row in rows}
 
 
 if __name__ == "__main__":

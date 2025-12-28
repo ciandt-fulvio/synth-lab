@@ -354,10 +354,12 @@ async def get_experiment(experiment_id: str) -> ExperimentDetail:
         experiment_id, PaginationParams(limit=100)
     )
 
-    # Batch check for summary and prfaq existence using repository methods
+    # Batch fetch for summary, prfaq, additional_context, and total_turns
     exec_ids = [exec.exec_id for exec in interview_response.data]
     summary_exists = research_repo.check_summaries_exist_batch(exec_ids)
     prfaq_exists = research_repo.check_prfaqs_exist_batch(exec_ids)
+    additional_contexts = research_repo.get_additional_context_batch(exec_ids)
+    total_turns = research_repo.get_total_turns_batch(exec_ids)
 
     interviews = [
         InterviewSummary(
@@ -365,8 +367,10 @@ async def get_experiment(experiment_id: str) -> ExperimentDetail:
             topic_name=exec.topic_name,
             status=exec.status.value if hasattr(exec.status, "value") else str(exec.status),
             synth_count=exec.synth_count,
+            total_turns=total_turns.get(exec.exec_id, 0),
             has_summary=summary_exists.get(exec.exec_id, False),
             has_prfaq=prfaq_exists.get(exec.exec_id, False),
+            additional_context=additional_contexts.get(exec.exec_id),
             started_at=exec.started_at,
             completed_at=exec.completed_at,
         )

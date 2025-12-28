@@ -239,8 +239,12 @@ class InterviewSummary(BaseModel):
     topic_name: str = Field(description="Research topic name.")
     status: str = Field(description="Interview status.")
     synth_count: int = Field(description="Number of synths interviewed.")
+    total_turns: int = Field(default=0, description="Total turns across all transcripts.")
     has_summary: bool = Field(default=False, description="Whether summary is available.")
     has_prfaq: bool = Field(default=False, description="Whether PR-FAQ is available.")
+    additional_context: str | None = Field(
+        default=None, description="Additional context text (if provided)."
+    )
     started_at: datetime = Field(description="Start timestamp.")
     completed_at: datetime | None = Field(default=None, description="Completion timestamp.")
 

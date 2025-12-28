@@ -347,6 +347,7 @@ class ResearchService:
             max_turns=request.max_turns,
             status=ExecutionStatus.RUNNING,
             experiment_id=request.experiment_id,
+            additional_context=request.additional_context,
         )
 
         # Convert to InterviewGuideData for runner
