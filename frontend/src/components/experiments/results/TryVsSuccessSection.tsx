@@ -44,17 +44,17 @@ export function TryVsSuccessSection({ experimentId }: TryVsSuccessSectionProps) 
       <CardContent className="space-y-4">
         {/* Explanation section - collapsible */}
         <Collapsible open={showExplanation} onOpenChange={setShowExplanation}>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="bg-gradient-to-r from-slate-50 to-indigo-50 border border-slate-200 rounded-lg p-3">
             <CollapsibleTrigger asChild>
               <Button
                 variant="ghost"
                 className="w-full flex items-center justify-between p-0 h-auto hover:bg-transparent"
               >
-                <div className="flex items-center gap-2 text-blue-700">
+                <div className="flex items-center gap-2 text-indigo-700">
                   <HelpCircle className="h-4 w-4" />
                   <span className="text-sm font-medium">Como interpretar este gráfico?</span>
                 </div>
-                <span className="text-xs text-blue-600">
+                <span className="text-xs text-indigo-600">
                   {showExplanation ? 'Ocultar' : 'Ver explicação'}
                 </span>
               </Button>

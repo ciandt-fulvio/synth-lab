@@ -225,7 +225,7 @@ export default function ExperimentDetail() {
         </div>
 
         {/* Interviews Section - Collapsible */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div className="bg-gradient-to-r from-slate-50 to-indigo-50 rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
           <Collapsible open={isInterviewsOpen} onOpenChange={setIsInterviewsOpen}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
               <CollapsibleTrigger asChild>
