@@ -8,7 +8,7 @@
  * Overview → Location → Segmentation → Edge Cases → Deep Dive → Insights
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   TrendingUp,
   Target,
@@ -23,7 +23,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-interface AnalysisPhase {
+export interface AnalysisPhase {
   id: string;
   title: string;
   shortTitle: string;
@@ -32,7 +32,15 @@ interface AnalysisPhase {
   description: string;
 }
 
-const ANALYSIS_PHASES: AnalysisPhase[] = [
+export type AnalysisPhaseId =
+  | 'visao-geral'
+  | 'localizacao'
+  | 'segmentacao'
+  | 'casos-especiais'
+  | 'aprofundamento'
+  | 'insights';
+
+export const ANALYSIS_PHASES: AnalysisPhase[] = [
   {
     id: 'visao-geral',
     title: 'Visão Geral',
@@ -90,15 +98,44 @@ const ANALYSIS_PHASES: AnalysisPhase[] = [
 ];
 
 interface AnalysisPhaseTabsProps {
+  simulationId?: string;
+  hasAnalysis?: boolean;
   onRunAnalysis?: () => void;
   isLoading?: boolean;
+  children?: React.ReactNode;
+  /** Render function for each phase */
+  renderPhase?: (phaseId: string) => React.ReactNode;
 }
 
 export function AnalysisPhaseTabs({
+  simulationId,
+  hasAnalysis = false,
   onRunAnalysis,
   isLoading = false,
+  children,
+  renderPhase,
 }: AnalysisPhaseTabsProps) {
   const [activePhase, setActivePhase] = useState<string>('visao-geral');
+
+  // Keyboard navigation (←/→)
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    const currentIndex = ANALYSIS_PHASES.findIndex((p) => p.id === activePhase);
+
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      const nextIndex = Math.min(ANALYSIS_PHASES.length - 1, currentIndex + 1);
+      setActivePhase(ANALYSIS_PHASES[nextIndex].id);
+    } else if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      const prevIndex = Math.max(0, currentIndex - 1);
+      setActivePhase(ANALYSIS_PHASES[prevIndex].id);
+    }
+  }, [activePhase]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
 
   const currentPhase = ANALYSIS_PHASES.find((p) => p.id === activePhase);
   const currentIndex = ANALYSIS_PHASES.findIndex((p) => p.id === activePhase);
@@ -215,18 +252,24 @@ export function AnalysisPhaseTabs({
               {currentPhase.description}
             </p>
 
-            {/* Empty State / Placeholder */}
-            <div className="mt-6 p-8 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 text-center">
-              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
-                <FlaskConical className="w-6 h-6 text-slate-400" />
+            {/* Phase Content or Empty State */}
+            {hasAnalysis && renderPhase ? (
+              <div className="mt-6">
+                {renderPhase(activePhase)}
               </div>
-              <p className="text-slate-500 text-sm mb-1">
-                Aguardando execução da análise
-              </p>
-              <p className="text-slate-400 text-xs">
-                Os resultados desta fase aparecerão aqui após executar a análise
-              </p>
-            </div>
+            ) : (
+              <div className="mt-6 p-8 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 text-center">
+                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
+                  <FlaskConical className="w-6 h-6 text-slate-400" />
+                </div>
+                <p className="text-slate-500 text-sm mb-1">
+                  Aguardando execução da análise
+                </p>
+                <p className="text-slate-400 text-xs">
+                  Os resultados desta fase aparecerão aqui após executar a análise
+                </p>
+              </div>
+            )}
 
             {/* Navigation Arrows */}
             <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-6">
@@ -268,17 +311,19 @@ export function AnalysisPhaseTabs({
         )}
       </div>
 
-      {/* Footer - Run Analysis CTA */}
-      <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-violet-50/30 border-t border-slate-100">
-        <Button
-          onClick={onRunAnalysis}
-          disabled={isLoading}
-          className="w-full btn-primary"
-        >
-          <Play className="w-4 h-4 mr-2" />
-          {isLoading ? 'Executando...' : 'Executar Análise Completa'}
-        </Button>
-      </div>
+      {/* Footer - Run Analysis CTA (only when no analysis) */}
+      {!hasAnalysis && onRunAnalysis && (
+        <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-violet-50/30 border-t border-slate-100">
+          <Button
+            onClick={onRunAnalysis}
+            disabled={isLoading}
+            className="w-full btn-primary"
+          >
+            <Play className="w-4 h-4 mr-2" />
+            {isLoading ? 'Executando...' : 'Executar Análise Completa'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
