@@ -40,7 +40,7 @@ _tracer = get_tracer("prfaq-generator")
 def generate_prfaq_from_content(
     summary_content: str,
     batch_id: str,
-    model: str = "gpt-4o-mini",
+    model: str = "gpt-4.1-mini",
     api_key: Optional[str] = None,
 ) -> str:
     """Generate PR-FAQ Markdown from research summary content using OpenAI API.
@@ -48,7 +48,7 @@ def generate_prfaq_from_content(
     Args:
         summary_content: Research summary markdown content
         batch_id: Research batch identifier for logging
-        model: OpenAI model to use (default: gpt-5-mini)
+        model: OpenAI model to use (default: gpt-4.1-mini)
         api_key: OpenAI API key (default: from OPENAI_API_KEY env var)
 
     Returns:
@@ -115,8 +115,8 @@ Return ONLY the Markdown-formatted PR-FAQ document."""
         logger.debug(f"Calling OpenAI API with model {model}")
 
         # Call OpenAI API for Markdown generation
-        # Note: gpt-5-mini is a reasoning model - needs extra tokens for internal reasoning
-        # before producing output. 16000 allows ~4000 reasoning + ~12000 output tokens.
+        # Note: gpt-4.1-mini is a fast, cost-effective model for generation tasks.
+        # 16000 max tokens allows for comprehensive PR-FAQ output.
         try:
             response = client.chat.completions.create(
                 model=model,
@@ -185,7 +185,7 @@ if __name__ == "__main__":
             prfaq_md = generate_prfaq_from_content(
                 summary_content=sample_content,
                 batch_id="test_validation",
-                model="gpt-5-mini",
+                model="gpt-4.1-mini",
             )
             logger.info(
                 f"Generated PR-FAQ Markdown ({len(prfaq_md)} characters)")
