@@ -27,6 +27,11 @@ from typing import Any
 from loguru import logger
 
 import synth_lab.infrastructure.config as config_module
+from synth_lab.domain.entities.synth_group import (
+    DEFAULT_SYNTH_GROUP_DESCRIPTION,
+    DEFAULT_SYNTH_GROUP_ID,
+    DEFAULT_SYNTH_GROUP_NAME,
+)
 
 
 def _get_db_path():
@@ -53,6 +58,32 @@ def _get_connection() -> sqlite3.Connection:
     return conn
 
 
+def _ensure_default_group(conn: sqlite3.Connection) -> None:
+    """
+    Ensure the default synth group exists in the database.
+
+    This is called before saving synths to ensure the default group
+    is available for foreign key references.
+
+    Args:
+        conn: Active database connection.
+    """
+    from datetime import datetime, timezone
+
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO synth_groups (id, name, description, created_at)
+        VALUES (?, ?, ?, ?)
+        """,
+        (
+            DEFAULT_SYNTH_GROUP_ID,
+            DEFAULT_SYNTH_GROUP_NAME,
+            DEFAULT_SYNTH_GROUP_DESCRIPTION,
+            datetime.now(timezone.utc).isoformat(),
+        ),
+    )
+
+
 def save_synth(
     synth_dict: dict[str, Any],
     output_dir: Path | None = None,
@@ -66,15 +97,16 @@ def save_synth(
         synth_dict: Dictionary containing complete synth data (must have "id" key)
         output_dir: Deprecated, ignored (kept for API compatibility)
         save_individual: Deprecated, ignored (kept for API compatibility)
-        synth_group_id: Optional synth group ID to link this synth to
+        synth_group_id: Optional synth group ID to link this synth to.
+                        If not provided, uses DEFAULT_SYNTH_GROUP_ID.
 
     Raises:
         KeyError: If synth_dict doesn't contain "id" key
     """
     synth_id = synth_dict["id"]
 
-    # Use synth_group_id from parameter or from synth_dict
-    group_id = synth_group_id or synth_dict.get("synth_group_id")
+    # Use synth_group_id from parameter, synth_dict, or DEFAULT
+    group_id = synth_group_id or synth_dict.get("synth_group_id") or DEFAULT_SYNTH_GROUP_ID
 
     # Build data object with nested fields
     data = {}
@@ -89,6 +121,9 @@ def save_synth(
 
     conn = _get_connection()
     try:
+        # Ensure default group exists before inserting synth with foreign key
+        _ensure_default_group(conn)
+
         conn.execute(
             """
             INSERT OR REPLACE INTO synths

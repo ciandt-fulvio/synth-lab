@@ -1,0 +1,378 @@
+openapi: 3.0.3
+info:
+  title: Experiment API
+  description: API para gerenciamento de experimentos com scorecard embutido
+  version: 2.0.0
+
+paths:
+  /experiments:
+    post:
+      summary: Criar experimento
+      description: Cria um novo experimento, opcionalmente com scorecard
+      operationId: createExperiment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExperimentCreate'
+      responses:
+        '201':
+          description: Experimento criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentResponse'
+        '422':
+          description: Dados inválidos
+
+  /experiments/list:
+    get:
+      summary: Listar experimentos
+      operationId: listExperiments
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [created_at, name]
+            default: created_at
+        - name: sort_order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Lista paginada de experimentos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentListResponse'
+
+  /experiments/{experiment_id}:
+    get:
+      summary: Obter detalhes do experimento
+      operationId: getExperiment
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detalhes do experimento com scorecard, análise e entrevistas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentDetailResponse'
+        '404':
+          description: Experimento não encontrado
+
+    put:
+      summary: Atualizar experimento
+      operationId: updateExperiment
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExperimentUpdate'
+      responses:
+        '200':
+          description: Experimento atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentResponse'
+        '404':
+          description: Experimento não encontrado
+
+    delete:
+      summary: Deletar experimento
+      operationId: deleteExperiment
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Experimento deletado
+        '404':
+          description: Experimento não encontrado
+
+  /experiments/{experiment_id}/scorecard:
+    put:
+      summary: Atualizar scorecard do experimento
+      operationId: updateScorecard
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScorecardData'
+      responses:
+        '200':
+          description: Scorecard atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentResponse'
+        '404':
+          description: Experimento não encontrado
+
+  /experiments/{experiment_id}/estimate-scorecard:
+    post:
+      summary: Estimar scorecard com IA
+      description: Usa LLM para estimar dimensões do scorecard baseado na descrição
+      operationId: estimateScorecard
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Estimativa do scorecard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScorecardEstimateResponse'
+        '404':
+          description: Experimento não encontrado
+        '400':
+          description: Experimento sem descrição suficiente
+
+components:
+  schemas:
+    ScorecardDimension:
+      type: object
+      required:
+        - score
+      properties:
+        score:
+          type: number
+          minimum: 0
+          maximum: 1
+        rules_applied:
+          type: array
+          items:
+            type: string
+        lower_bound:
+          type: number
+        upper_bound:
+          type: number
+
+    ScorecardData:
+      type: object
+      required:
+        - feature_name
+        - description_text
+        - complexity
+        - initial_effort
+        - perceived_risk
+        - time_to_value
+      properties:
+        feature_name:
+          type: string
+        scenario:
+          type: string
+          default: baseline
+        description_text:
+          type: string
+        description_media_urls:
+          type: array
+          items:
+            type: string
+        complexity:
+          $ref: '#/components/schemas/ScorecardDimension'
+        initial_effort:
+          $ref: '#/components/schemas/ScorecardDimension'
+        perceived_risk:
+          $ref: '#/components/schemas/ScorecardDimension'
+        time_to_value:
+          $ref: '#/components/schemas/ScorecardDimension'
+        justification:
+          type: string
+        impact_hypotheses:
+          type: array
+          items:
+            type: string
+
+    ExperimentCreate:
+      type: object
+      required:
+        - name
+        - hypothesis
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        hypothesis:
+          type: string
+          maxLength: 500
+        description:
+          type: string
+          maxLength: 2000
+        scorecard_data:
+          $ref: '#/components/schemas/ScorecardData'
+
+    ExperimentUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        hypothesis:
+          type: string
+          maxLength: 500
+        description:
+          type: string
+          maxLength: 2000
+        scorecard_data:
+          $ref: '#/components/schemas/ScorecardData'
+
+    ExperimentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        hypothesis:
+          type: string
+        description:
+          type: string
+        scorecard_data:
+          $ref: '#/components/schemas/ScorecardData'
+        has_scorecard:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ExperimentDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/ExperimentResponse'
+        - type: object
+          properties:
+            analysis:
+              $ref: '#/components/schemas/AnalysisSummary'
+            interviews:
+              type: array
+              items:
+                $ref: '#/components/schemas/InterviewSummary'
+            interview_count:
+              type: integer
+
+    AnalysisSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        aggregated_outcomes:
+          type: object
+          properties:
+            did_not_try_rate:
+              type: number
+            failed_rate:
+              type: number
+            success_rate:
+              type: number
+
+    InterviewSummary:
+      type: object
+      properties:
+        exec_id:
+          type: string
+        topic_name:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, generating_summary, completed, failed]
+        synth_count:
+          type: integer
+        has_summary:
+          type: boolean
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+
+    ScorecardEstimateResponse:
+      type: object
+      properties:
+        complexity:
+          $ref: '#/components/schemas/ScorecardDimension'
+        initial_effort:
+          $ref: '#/components/schemas/ScorecardDimension'
+        perceived_risk:
+          $ref: '#/components/schemas/ScorecardDimension'
+        time_to_value:
+          $ref: '#/components/schemas/ScorecardDimension'
+        justification:
+          type: string
+        impact_hypotheses:
+          type: array
+          items:
+            type: string
+
+    ExperimentListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExperimentResponse'
+        pagination:
+          type: object
+          properties:
+            total:
+              type: integer
+            limit:
+              type: integer
+            offset:
+              type: integer
+            has_more:
+              type: boolean

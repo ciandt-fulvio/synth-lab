@@ -271,3 +271,197 @@
 .logo-pulse-loop {
   animation: logo-breathe 5.5s ease-in-out infinite;
 }
+
+/* =============================================================================
+   SYNTHLAB DESIGN SYSTEM
+
+   This file contains all centralized UI patterns for the application.
+   When creating new components, use these classes instead of inline styles.
+   ============================================================================= */
+
+/* =============================================================================
+   1. BUTTON SYSTEM
+   ============================================================================= */
+
+/* Primary Button - Gradient CTA for main actions */
+.btn-primary {
+  @apply bg-gradient-to-r from-indigo-600 to-violet-600
+         hover:from-indigo-700 hover:to-violet-700
+         text-white shadow-lg shadow-indigo-200/50
+         transition-all hover:shadow-xl;
+}
+
+.btn-primary:disabled {
+  @apply opacity-50 cursor-not-allowed shadow-none;
+}
+
+/* Secondary Button - Outline for cancel/back actions */
+.btn-secondary {
+  @apply border border-slate-300 bg-white text-slate-700
+         hover:bg-slate-50 hover:border-slate-400
+         transition-colors;
+}
+
+/* Ghost Button - Minimal for discrete actions */
+.btn-ghost {
+  @apply text-violet-600 hover:text-violet-700 hover:bg-slate-100
+         transition-colors;
+}
+
+/* Ghost Button - Icon only for navigation */
+.btn-ghost-icon {
+  @apply text-violet-600 hover:text-violet-700 hover:bg-slate-100
+         transition-colors;
+}
+
+/* =============================================================================
+   2. CARD SYSTEM
+   ============================================================================= */
+
+/* Standard Card - Default container */
+.card {
+  @apply bg-white rounded-xl border border-slate-200 shadow-sm;
+}
+
+/* Card with hover effect */
+.card-hover {
+  @apply bg-white rounded-xl border border-slate-200 shadow-sm
+         hover:shadow-md hover:border-slate-300 transition-all;
+}
+
+/* Card - Dashed border for empty/placeholder states */
+.card-dashed {
+  @apply bg-white rounded-xl border-2 border-dashed border-slate-300;
+}
+
+/* =============================================================================
+   3. ICON BOX SYSTEM - Colored icon containers
+   ============================================================================= */
+
+/* Primary gradient icon box */
+.icon-box-primary {
+  @apply p-2 bg-gradient-to-br from-indigo-500 to-violet-600
+         rounded-xl text-white shadow-lg shadow-indigo-200/50;
+}
+
+/* Neutral icon box */
+.icon-box-neutral {
+  @apply p-2 bg-slate-100 rounded-lg text-slate-600;
+}
+
+/* Light primary icon box */
+.icon-box-light {
+  @apply p-2 bg-indigo-50 rounded-lg text-indigo-600;
+}
+
+/* =============================================================================
+   4. BADGE VARIANTS
+   ============================================================================= */
+
+/* Status badges */
+.badge-success {
+  @apply bg-green-100 text-green-700 border-green-200;
+}
+
+.badge-warning {
+  @apply bg-amber-100 text-amber-700 border-amber-200;
+}
+
+.badge-error {
+  @apply bg-red-100 text-red-700 border-red-200;
+}
+
+.badge-info {
+  @apply bg-blue-100 text-blue-700 border-blue-200;
+}
+
+.badge-primary {
+  @apply bg-indigo-100 text-indigo-700 border-indigo-200;
+}
+
+.badge-neutral {
+  @apply bg-slate-100 text-slate-700 border-slate-200;
+}
+
+/* =============================================================================
+   5. TYPOGRAPHY
+   ============================================================================= */
+
+/* Page title */
+.text-page-title {
+  @apply text-2xl font-bold text-slate-900;
+}
+
+/* Section title */
+.text-section-title {
+  @apply text-lg font-semibold text-slate-900;
+}
+
+/* Card title */
+.text-card-title {
+  @apply text-base font-medium text-slate-900;
+}
+
+/* Body text */
+.text-body {
+  @apply text-sm text-slate-600;
+}
+
+/* Meta/helper text */
+.text-meta {
+  @apply text-xs text-slate-500;
+}
+
+/* =============================================================================
+   6. HEADER STYLES
+   ============================================================================= */
+
+/* Sticky page header */
+.header-sticky {
+  @apply sticky top-0 z-50 bg-white/80 backdrop-blur-md
+         border-b border-slate-200 shadow-sm;
+}
+
+/* Logo glow effect */
+.logo-glow {
+  @apply absolute -inset-1 bg-gradient-to-r from-indigo-600 to-violet-500
+         rounded-lg blur opacity-25;
+}
+
+/* =============================================================================
+   7. LOADING STATES
+   ============================================================================= */
+
+/* Spinner - uses Loader2 icon */
+.spinner {
+  @apply animate-spin text-indigo-500;
+}
+
+/* Skeleton pulse */
+.skeleton-pulse {
+  @apply animate-pulse bg-slate-200 rounded;
+}
+
+/* =============================================================================
+   8. GRADIENT SYSTEM
+   ============================================================================= */
+
+/* Primary gradient - left to right */
+.gradient-primary {
+  @apply bg-gradient-to-r from-indigo-600 to-violet-600;
+}
+
+/* Primary gradient hover */
+.gradient-primary-hover {
+  @apply hover:from-indigo-700 hover:to-violet-700;
+}
+
+/* Light gradient background */
+.gradient-light {
+  @apply bg-gradient-to-r from-slate-50 to-indigo-50/30;
+}
+
+/* Logo/decorative gradient */
+.gradient-decorative {
+  @apply bg-gradient-to-r from-indigo-600 to-violet-500;
+}

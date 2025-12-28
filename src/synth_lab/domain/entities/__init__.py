@@ -1,5 +1,11 @@
 """Domain entities for synth-lab."""
 
+from synth_lab.domain.entities.analysis_run import (
+    AggregatedOutcomes,
+    AnalysisConfig,
+    AnalysisRun,
+    generate_analysis_id,
+)
 from synth_lab.domain.entities.artifact_state import (
     ArtifactState,
     ArtifactStateEnum,
@@ -46,6 +52,12 @@ from synth_lab.domain.entities.cluster_result import (
     RadarChart,
     SuggestedCut,
 )
+from synth_lab.domain.entities.experiment import (
+    Experiment,
+    ScorecardData,
+    ScorecardDimension as ExperimentScorecardDimension,
+    generate_experiment_id,
+)
 from synth_lab.domain.entities.explainability import (
     PDPComparison,
     PDPPoint,
@@ -90,11 +102,24 @@ from synth_lab.domain.entities.simulation_run import (
     SimulationRun,
     generate_simulation_id,
 )
+from synth_lab.domain.entities.synth_group import (
+    DEFAULT_SYNTH_GROUP_DESCRIPTION,
+    DEFAULT_SYNTH_GROUP_ID,
+    DEFAULT_SYNTH_GROUP_NAME,
+    SynthGroup,
+    generate_synth_group_id,
+)
 from synth_lab.domain.entities.synth_outcome import (
     SynthOutcome,
+    generate_outcome_id,
 )
 
 __all__ = [
+    # Analysis run (new in v7)
+    "AggregatedOutcomes",
+    "AnalysisConfig",
+    "AnalysisRun",
+    "generate_analysis_id",
     # Artifact state
     "ArtifactState",
     "ArtifactStateEnum",
@@ -137,6 +162,11 @@ __all__ = [
     "RadarAxis",
     "RadarChart",
     "SuggestedCut",
+    # Experiment (updated in v7 - embedded scorecard)
+    "Experiment",
+    "ExperimentScorecardDimension",
+    "ScorecardData",
+    "generate_experiment_id",
     # Explainability
     "PDPComparison",
     "PDPPoint",
@@ -144,7 +174,7 @@ __all__ = [
     "ShapContribution",
     "ShapExplanation",
     "ShapSummary",
-    # Feature scorecard
+    # Feature scorecard (legacy)
     "FeatureScorecard",
     "ScorecardDimension",
     "ScorecardIdentification",
@@ -169,10 +199,17 @@ __all__ = [
     "SimulationAttributes",
     "SimulationLatentTraits",
     "SimulationObservables",
-    # Simulation run
+    # Simulation run (legacy)
     "SimulationConfig",
     "SimulationRun",
     "generate_simulation_id",
-    # Synth outcome
+    # Synth group
+    "DEFAULT_SYNTH_GROUP_DESCRIPTION",
+    "DEFAULT_SYNTH_GROUP_ID",
+    "DEFAULT_SYNTH_GROUP_NAME",
+    "SynthGroup",
+    "generate_synth_group_id",
+    # Synth outcome (updated in v7 - uses analysis_id)
     "SynthOutcome",
+    "generate_outcome_id",
 ]

@@ -1,0 +1,351 @@
+openapi: 3.0.3
+info:
+  title: Analysis API
+  description: API para análise quantitativa (1:1 com experimento)
+  version: 2.0.0
+
+paths:
+  /experiments/{experiment_id}/analysis:
+    get:
+      summary: Obter análise do experimento
+      description: Retorna a análise quantitativa única do experimento
+      operationId: getAnalysis
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Análise encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResponse'
+        '404':
+          description: Experimento ou análise não encontrada
+
+    post:
+      summary: Executar análise quantitativa
+      description: Executa (ou re-executa) a análise quantitativa do experimento
+      operationId: runAnalysis
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalysisConfig'
+      responses:
+        '202':
+          description: Análise iniciada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResponse'
+        '400':
+          description: Experimento sem scorecard
+        '404':
+          description: Experimento não encontrado
+        '409':
+          description: Análise já em execução
+
+    delete:
+      summary: Deletar análise
+      description: Remove a análise e todos os resultados associados
+      operationId: deleteAnalysis
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Análise deletada
+        '404':
+          description: Análise não encontrada
+
+  /experiments/{experiment_id}/analysis/outcomes:
+    get:
+      summary: Listar resultados por synth
+      description: Retorna resultados individuais de cada synth na análise
+      operationId: listOutcomes
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Lista de resultados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutcomeListResponse'
+        '404':
+          description: Análise não encontrada
+
+  /experiments/{experiment_id}/analysis/regions:
+    get:
+      summary: Analisar regiões de alto risco
+      description: Identifica clusters de synths com alta taxa de falha
+      operationId: analyzeRegions
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: min_failure_rate
+          in: query
+          schema:
+            type: number
+            default: 0.3
+      responses:
+        '200':
+          description: Regiões identificadas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegionAnalysisResponse'
+        '404':
+          description: Análise não encontrada
+
+  /experiments/{experiment_id}/analysis/interview-suggestions:
+    get:
+      summary: Obter sugestões de entrevista
+      description: Sugere synths representativos para entrevista baseado nas regiões de alto risco
+      operationId: getInterviewSuggestions
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: max_suggestions
+          in: query
+          schema:
+            type: integer
+            default: 5
+      responses:
+        '200':
+          description: Sugestões de entrevista
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterviewSuggestionsResponse'
+        '404':
+          description: Análise não encontrada
+
+  /experiments/{experiment_id}/analysis/insights:
+    get:
+      summary: Obter insights da análise
+      description: Retorna insights gerados por IA sobre os resultados
+      operationId: getInsights
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Insights da análise
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightsResponse'
+        '404':
+          description: Análise não encontrada
+
+    post:
+      summary: Gerar insights
+      description: Gera novos insights usando IA
+      operationId: generateInsights
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Insights gerados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightsResponse'
+        '404':
+          description: Análise não encontrada
+
+components:
+  schemas:
+    AnalysisConfig:
+      type: object
+      properties:
+        n_synths:
+          type: integer
+          minimum: 10
+          maximum: 10000
+          default: 500
+        n_executions:
+          type: integer
+          minimum: 10
+          maximum: 1000
+          default: 100
+        sigma:
+          type: number
+          minimum: 0
+          maximum: 0.5
+          default: 0.05
+        seed:
+          type: integer
+
+    AggregatedOutcomes:
+      type: object
+      properties:
+        did_not_try_rate:
+          type: number
+        failed_rate:
+          type: number
+        success_rate:
+          type: number
+
+    AnalysisResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        experiment_id:
+          type: string
+        config:
+          $ref: '#/components/schemas/AnalysisConfig'
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        total_synths:
+          type: integer
+        aggregated_outcomes:
+          $ref: '#/components/schemas/AggregatedOutcomes'
+        execution_time_seconds:
+          type: number
+
+    SynthOutcomeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        synth_id:
+          type: string
+        did_not_try_rate:
+          type: number
+        failed_rate:
+          type: number
+        success_rate:
+          type: number
+        synth_attributes:
+          type: object
+
+    OutcomeListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SynthOutcomeResponse'
+        pagination:
+          type: object
+          properties:
+            total:
+              type: integer
+            limit:
+              type: integer
+            offset:
+              type: integer
+            has_more:
+              type: boolean
+
+    RegionAnalysisResponse:
+      type: object
+      properties:
+        regions:
+          type: array
+          items:
+            type: object
+            properties:
+              cluster_id:
+                type: integer
+              synth_count:
+                type: integer
+              avg_failure_rate:
+                type: number
+              common_attributes:
+                type: object
+              representative_synths:
+                type: array
+                items:
+                  type: string
+
+    InterviewSuggestionsResponse:
+      type: object
+      properties:
+        suggestions:
+          type: array
+          items:
+            type: object
+            properties:
+              synth_id:
+                type: string
+              synth_name:
+                type: string
+              reason:
+                type: string
+              failure_rate:
+                type: number
+              cluster_id:
+                type: integer
+
+    InsightsResponse:
+      type: object
+      properties:
+        insights:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [risk, opportunity, recommendation]
+              title:
+                type: string
+              description:
+                type: string
+              confidence:
+                type: number
+        generated_at:
+          type: string
+          format: date-time

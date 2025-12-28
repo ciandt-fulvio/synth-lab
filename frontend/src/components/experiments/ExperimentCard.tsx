@@ -1,15 +1,16 @@
 /**
- * T023 ExperimentCard component.
+ * ExperimentCard component (Refactored).
  *
  * Card display for an experiment in the list view.
  *
  * References:
- *   - Spec: specs/018-experiment-hub/spec.md (US1)
+ *   - Spec: specs/019-experiment-refactor/spec.md
  *   - Types: src/types/experiment.ts
  */
 
+import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Calendar, FlaskConical, MessageSquare } from 'lucide-react';
+import { Calendar, FlaskConical, MessageSquare, CheckCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { ExperimentSummary } from '@/types/experiment';
@@ -36,9 +37,16 @@ export function ExperimentCard({ experiment, onClick }: ExperimentCardProps) {
       onClick={() => onClick(experiment.id)}
     >
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-1">
-          {experiment.name}
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-1">
+            {experiment.name}
+          </CardTitle>
+          {experiment.has_scorecard && (
+            <Badge variant="outline" className="text-purple-600 border-purple-300 text-xs">
+              Scorecard
+            </Badge>
+          )}
+        </div>
         <CardDescription className="text-sm text-gray-600 line-clamp-2">
           {truncatedHypothesis}
         </CardDescription>
@@ -46,11 +54,15 @@ export function ExperimentCard({ experiment, onClick }: ExperimentCardProps) {
       <CardContent className="pt-0">
         <div className="flex items-center justify-between text-sm text-muted-foreground mt-2">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1" title="Análise Quantitativa">
               <FlaskConical className="h-4 w-4 text-purple-500" />
-              <span>{experiment.simulation_count}</span>
+              {experiment.has_analysis ? (
+                <CheckCircle className="h-3 w-3 text-green-500" />
+              ) : (
+                <span className="text-gray-400">-</span>
+              )}
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1" title="Entrevistas">
               <MessageSquare className="h-4 w-4 text-blue-500" />
               <span>{experiment.interview_count}</span>
             </div>
