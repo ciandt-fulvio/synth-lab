@@ -109,10 +109,14 @@ export interface InterviewSummary {
   status: 'pending' | 'running' | 'generating_summary' | 'completed' | 'failed';
   /** Number of synths interviewed */
   synth_count: number;
+  /** Total turns across all transcripts */
+  total_turns: number;
   /** Whether summary is available */
   has_summary: boolean;
   /** Whether PR-FAQ is available */
   has_prfaq: boolean;
+  /** Additional context text (if provided) */
+  additional_context: string | null;
   /** Start timestamp */
   started_at: string;
   /** Completion timestamp */

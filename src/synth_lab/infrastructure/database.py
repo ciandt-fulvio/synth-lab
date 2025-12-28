@@ -125,6 +125,7 @@ CREATE TABLE IF NOT EXISTS research_executions (
     started_at TEXT NOT NULL,
     completed_at TEXT,
     summary_content TEXT,
+    additional_context TEXT,
     CHECK(status IN ('pending', 'running', 'generating_summary', 'completed', 'failed')),
     FOREIGN KEY (experiment_id) REFERENCES experiments(id) ON DELETE SET NULL
 );

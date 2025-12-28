@@ -13,6 +13,7 @@ import { useResearchDetail, useResearchTranscripts, useResearchSummary } from '@
 import { useArtifactStatesWithPolling } from '@/hooks/use-artifact-states';
 import { usePrfaqGenerate } from '@/hooks/use-prfaq-generate';
 import { useSummaryGenerate } from '@/hooks/use-summary-generate';
+import { useExperiment } from '@/hooks/use-experiments';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPrfaqMarkdown } from '@/services/prfaq-api';
 import { getSynthAvatarUrl } from '@/services/synths-api';
@@ -87,6 +88,11 @@ export default function InterviewDetail() {
   const { data: execution, isLoading, error } = useResearchDetail(execId!);
   const { data: transcripts } = useResearchTranscripts(execId!);
   const { data: artifactStates } = useArtifactStatesWithPolling(execId!);
+
+  // Fetch experiment name for display (when linked to experiment)
+  const experimentId = expId || execution?.experiment_id;
+  const { data: experiment } = useExperiment(experimentId || '');
+  const displayTitle = experiment?.name || execution?.topic_name || 'Entrevista';
 
   // T061: Auto-redirect legacy URLs to experiment-scoped URLs (only once)
   useEffect(() => {
@@ -209,7 +215,7 @@ export default function InterviewDetail() {
                     <MessageSquare className="h-5 w-5" />
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-2xl font-bold text-slate-900">{execution.topic_name}</h2>
+                    <h2 className="text-2xl font-bold text-slate-900">{displayTitle}</h2>
                     {execution.status === 'running' && (
                       <Badge className="bg-green-100 text-green-700 border-green-200 animate-pulse">
                         <Radio className="h-3 w-3 mr-1" />
@@ -219,10 +225,10 @@ export default function InterviewDetail() {
                   </div>
                 </div>
 
-                {/* Interview description - topic name as title */}
+                {/* Interview description with date */}
                 <div className="mb-4">
                   <p className="text-slate-600 leading-relaxed">
-                    Entrevista baseada no guia configurado para o experimento.
+                    Entrevista realizada em {formattedStart}.
                   </p>
                 </div>
 
@@ -397,7 +403,7 @@ export default function InterviewDetail() {
         <MarkdownPopup
           isOpen={summaryOpen}
           onClose={() => setSummaryOpen(false)}
-          title={`Summary - ${execution.topic_name}`}
+          title={`Summary - ${displayTitle}`}
           markdownContent={summaryMarkdown}
         />
       )}
@@ -406,7 +412,7 @@ export default function InterviewDetail() {
         <MarkdownPopup
           isOpen={prfaqOpen}
           onClose={() => setPrfaqOpen(false)}
-          title={`PR/FAQ - ${execution.topic_name}${
+          title={`PR/FAQ - ${displayTitle}${
             artifactStates?.prfaq.completed_at
               ? ` (${format(new Date(artifactStates.prfaq.completed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })})`
               : ''
