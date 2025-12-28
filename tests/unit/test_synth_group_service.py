@@ -145,7 +145,7 @@ class TestSynthGroupServiceList:
 
     def test_list_groups_with_pagination(self, synth_group_service) -> None:
         """Verify groups are listed with pagination."""
-        # Create 5 groups
+        # Create 5 groups (total will be 6 including default group)
         for i in range(5):
             synth_group_service.create_group(name=f"Group {i}")
 
@@ -153,17 +153,19 @@ class TestSynthGroupServiceList:
         result = synth_group_service.list_groups(params)
 
         assert len(result.data) == 3
-        assert result.pagination.total == 5
+        assert result.pagination.total == 6  # 5 + default group
 
-    def test_list_groups_empty_returns_empty_list(
+    def test_list_groups_returns_default_group(
         self, synth_group_service
     ) -> None:
-        """Verify empty list is returned when no groups exist."""
+        """Verify default group is returned when no custom groups exist."""
         params = PaginationParams(limit=10, offset=0)
         result = synth_group_service.list_groups(params)
 
-        assert len(result.data) == 0
-        assert result.pagination.total == 0
+        # Database now always creates a default group
+        assert len(result.data) == 1
+        assert result.data[0].name == "Default"
+        assert result.pagination.total == 1
 
 
 class TestSynthGroupServiceGet:

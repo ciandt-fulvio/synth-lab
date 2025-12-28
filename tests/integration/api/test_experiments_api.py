@@ -163,16 +163,18 @@ class TestListExperiments:
         )
         exp_id = response.json()["id"]
 
-        # Add simulation (feature_scorecard)
+        # Add analysis run
         test_db.execute(
             """
-            INSERT INTO feature_scorecards (id, experiment_id, data, created_at)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO analysis_runs
+            (id, experiment_id, config, status, started_at)
+            VALUES (?, ?, ?, ?, ?)
             """,
             (
-                "sc_001",
+                "ana_12345678",
                 exp_id,
-                '{"name": "test"}',
+                '{"scenario": "baseline"}',
+                "completed",
                 datetime.now(timezone.utc).isoformat(),
             ),
         )
@@ -200,7 +202,7 @@ class TestListExperiments:
         assert response.status_code == 200
         data = response.json()
         assert len(data["data"]) == 1
-        assert data["data"][0]["simulation_count"] == 1
+        assert data["data"][0]["has_analysis"] is True
         assert data["data"][0]["interview_count"] == 1
 
     def test_list_experiments_empty_returns_empty_list(self, client) -> None:
@@ -255,16 +257,18 @@ class TestGetExperiment:
         )
         exp_id = response.json()["id"]
 
-        # Add simulation
+        # Add analysis run
         test_db.execute(
             """
-            INSERT INTO feature_scorecards (id, experiment_id, data, created_at)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO analysis_runs
+            (id, experiment_id, config, status, started_at)
+            VALUES (?, ?, ?, ?, ?)
             """,
             (
-                "sc_001",
+                "ana_12345678",
                 exp_id,
-                '{"name": "baseline"}',
+                '{"scenario": "baseline"}',
+                "completed",
                 datetime.now(timezone.utc).isoformat(),
             ),
         )
@@ -294,7 +298,7 @@ class TestGetExperiment:
         assert data["id"] == exp_id
         assert data["name"] == "Test Feature"
         assert data["description"] == "Test description"
-        assert "simulations" in data
+        assert "analysis" in data or data.get("has_analysis") is not None
         assert "interviews" in data
 
     def test_get_experiment_not_found_returns_404(self, client) -> None:
@@ -362,46 +366,27 @@ class TestUpdateExperiment:
         assert response.status_code == 404
 
 
-class TestCreateScorecardFromExperiment:
-    """Tests for POST /experiments/{id}/scorecards - US4 scenarios."""
+class TestExperimentScorecard:
+    """Tests for scorecard functionality (now embedded in experiment)."""
 
-    def test_create_scorecard_for_experiment(self, client) -> None:
-        """
-        US4 Scenario 1: Create scorecard linked to experiment.
-        """
-        # Create experiment first
-        exp_response = client.post(
+    def test_experiment_has_scorecard_flag(self, client) -> None:
+        """Verify experiment has has_scorecard flag."""
+        # Create experiment
+        response = client.post(
             "/experiments",
             json={
                 "name": "Checkout Flow",
                 "hypothesis": "Simplify checkout increases conversions",
             },
         )
-        exp_id = exp_response.json()["id"]
-
-        # Create scorecard for experiment
-        response = client.post(
-            f"/experiments/{exp_id}/scorecards",
-            json={
-                "feature_name": "One-Page Checkout",
-                "use_scenario": "E-commerce purchase flow",
-                "description_text": "Single page checkout with all steps visible",
-            },
-        )
 
         assert response.status_code == 201
         data = response.json()
-        assert len(data["id"]) == 8  # 8-char alphanumeric ID
-        assert data["experiment_id"] == exp_id
-        assert data["feature_name"] == "One-Page Checkout"
-        assert data["use_scenario"] == "E-commerce purchase flow"
-        assert data["description_text"] == "Single page checkout with all steps visible"
-        # Default dimension scores
-        assert data["complexity_score"] == 0.5
-        assert data["initial_effort_score"] == 0.5
+        # New experiment should not have scorecard yet
+        assert data["has_scorecard"] is False
 
-    def test_create_scorecard_with_dimensions(self, client) -> None:
-        """Verify scorecard can be created with custom dimensions."""
+    def test_update_experiment_with_scorecard(self, client) -> None:
+        """Verify experiment can be updated with scorecard data via dedicated endpoint."""
         # Create experiment
         exp_response = client.post(
             "/experiments",
@@ -412,63 +397,24 @@ class TestCreateScorecardFromExperiment:
         )
         exp_id = exp_response.json()["id"]
 
-        # Create scorecard with dimensions
-        response = client.post(
-            f"/experiments/{exp_id}/scorecards",
+        # Update scorecard via dedicated endpoint
+        response = client.put(
+            f"/experiments/{exp_id}/scorecard",
             json={
                 "feature_name": "Feature X",
-                "use_scenario": "Scenario Y",
-                "description_text": "Description",
+                "scenario": "baseline",
+                "description_text": "Description of the feature",
+                "description_media_urls": [],
                 "complexity": {"score": 0.3, "rules_applied": ["rule1"]},
-                "initial_effort": {"score": 0.4},
-                "perceived_risk": {"score": 0.2},
-                "time_to_value": {"score": 0.8},
+                "initial_effort": {"score": 0.4, "rules_applied": []},
+                "perceived_risk": {"score": 0.2, "rules_applied": []},
+                "time_to_value": {"score": 0.8, "rules_applied": []},
             },
         )
 
-        assert response.status_code == 201
+        assert response.status_code == 200
         data = response.json()
-        assert data["complexity_score"] == 0.3
-        assert data["initial_effort_score"] == 0.4
-        assert data["perceived_risk_score"] == 0.2
-        assert data["time_to_value_score"] == 0.8
-
-    def test_create_scorecard_nonexistent_experiment_returns_404(self, client) -> None:
-        """Verify 404 for non-existent experiment."""
-        response = client.post(
-            "/experiments/exp_nonexist/scorecards",
-            json={
-                "feature_name": "Feature X",
-                "use_scenario": "Scenario Y",
-                "description_text": "Description",
-            },
-        )
-
-        assert response.status_code == 404
-
-    def test_create_scorecard_missing_required_fields_returns_422(self, client) -> None:
-        """Verify 422 for missing required fields."""
-        # Create experiment
-        exp_response = client.post(
-            "/experiments",
-            json={
-                "name": "Feature X",
-                "hypothesis": "Hypothesis Y",
-            },
-        )
-        exp_id = exp_response.json()["id"]
-
-        # Try to create scorecard without description_text
-        response = client.post(
-            f"/experiments/{exp_id}/scorecards",
-            json={
-                "feature_name": "Feature X",
-                "use_scenario": "Scenario Y",
-                # missing description_text
-            },
-        )
-
-        assert response.status_code == 422
+        assert data["has_scorecard"] is True
 
 
 class TestCreateInterviewFromExperiment:

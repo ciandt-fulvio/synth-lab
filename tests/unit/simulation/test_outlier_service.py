@@ -40,7 +40,7 @@ def sample_outcomes() -> list[SynthOutcome]:
         outcomes.append(
             SynthOutcome(
                 synth_id=f"worst_{i:03d}",
-                simulation_id="sim_test_001",
+                analysis_id="ana_12345678",
                 success_rate=success_rate,
                 failed_rate=failed_rate,
                 did_not_try_rate=did_not_try_rate,
@@ -76,7 +76,7 @@ def sample_outcomes() -> list[SynthOutcome]:
         outcomes.append(
             SynthOutcome(
                 synth_id=f"best_{i:03d}",
-                simulation_id="sim_test_001",
+                analysis_id="ana_12345678",
                 success_rate=success_rate,
                 failed_rate=failed_rate,
                 did_not_try_rate=did_not_try_rate,
@@ -102,7 +102,7 @@ def sample_outcomes() -> list[SynthOutcome]:
     outcomes.append(
         SynthOutcome(
             synth_id="outlier_success",
-            simulation_id="sim_test_001",
+            analysis_id="ana_12345678",
             success_rate=0.92,
             failed_rate=0.05,
             did_not_try_rate=0.03,
@@ -138,7 +138,7 @@ def sample_outcomes() -> list[SynthOutcome]:
         outcomes.append(
             SynthOutcome(
                 synth_id=f"normal_{i:03d}",
-                simulation_id="sim_test_001",
+                analysis_id="ana_12345678",
                 success_rate=success_rate,
                 failed_rate=failed_rate,
                 did_not_try_rate=did_not_try_rate,
@@ -335,7 +335,7 @@ class TestEdgeCases:
         few_outcomes = [
             SynthOutcome(
                 synth_id=f"synth_{i:03d}",
-                simulation_id="sim_test_001",
+                analysis_id="ana_12345678",
                 success_rate=0.5,
                 failed_rate=0.3,
                 did_not_try_rate=0.2,

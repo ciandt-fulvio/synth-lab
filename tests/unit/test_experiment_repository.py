@@ -157,7 +157,7 @@ class TestExperimentRepositoryList:
         assert result.pagination.total == 0
 
     def test_list_experiments_includes_counters(self, experiment_repo, test_db) -> None:
-        """Verify experiments include simulation and interview counters."""
+        """Verify experiments include has_analysis and interview counters."""
         # Create experiment
         experiment = Experiment(
             name="Feature with Runs",
@@ -165,16 +165,17 @@ class TestExperimentRepositoryList:
         )
         experiment_repo.create(experiment)
 
-        # Add simulations (feature_scorecards)
+        # Add analysis run
         test_db.execute(
             """
-            INSERT INTO feature_scorecards (id, experiment_id, data, created_at)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO analysis_runs (id, experiment_id, config, status, started_at)
+            VALUES (?, ?, ?, ?, ?)
             """,
             (
-                "sc_001",
+                "ana_12345678",
                 experiment.id,
-                '{"name": "test"}',
+                '{"scenario": "baseline"}',
+                "completed",
                 datetime.now(timezone.utc).isoformat(),
             ),
         )
@@ -200,7 +201,7 @@ class TestExperimentRepositoryList:
         result = experiment_repo.list_experiments(params)
 
         assert len(result.data) == 1
-        assert result.data[0].simulation_count == 1
+        assert result.data[0].has_analysis is True
         assert result.data[0].interview_count == 1
 
     def test_list_experiments_sorted_by_created_at_desc(self, experiment_repo) -> None:

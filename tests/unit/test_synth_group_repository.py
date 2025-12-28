@@ -142,7 +142,7 @@ class TestSynthGroupRepositoryList:
 
     def test_list_synth_groups_with_pagination(self, synth_group_repo) -> None:
         """Verify synth groups are listed with pagination."""
-        # Create 5 groups
+        # Create 5 groups (total will be 6 including default group)
         for i in range(5):
             group = SynthGroup(name=f"Group {i}")
             synth_group_repo.create(group)
@@ -151,16 +151,18 @@ class TestSynthGroupRepositoryList:
         result = synth_group_repo.list_groups(params)
 
         assert len(result.data) == 3
-        assert result.pagination.total == 5
+        assert result.pagination.total == 6  # 5 + default group
         assert result.pagination.has_next is True
 
-    def test_list_synth_groups_empty_database(self, synth_group_repo) -> None:
-        """Verify empty list is returned when no groups exist."""
+    def test_list_synth_groups_returns_default_group(self, synth_group_repo) -> None:
+        """Verify default group is returned when no custom groups exist."""
         params = PaginationParams(limit=10, offset=0)
         result = synth_group_repo.list_groups(params)
 
-        assert len(result.data) == 0
-        assert result.pagination.total == 0
+        # Database now always creates a default group
+        assert len(result.data) == 1
+        assert result.data[0].name == "Default"
+        assert result.pagination.total == 1
 
     def test_list_synth_groups_with_synth_count(
         self, synth_group_repo, test_db

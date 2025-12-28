@@ -136,21 +136,26 @@ class TestListSynthGroups:
 
         assert response.status_code == 200
         data = response.json()
-        assert len(data["data"]) == 1
-        assert data["data"][0]["synth_count"] == 3
+        # 2 groups: default + Test Group
+        assert len(data["data"]) == 2
+        # Find the Test Group and verify synth count
+        test_group = next(g for g in data["data"] if g["name"] == "Test Group")
+        assert test_group["synth_count"] == 3
 
-    def test_list_synth_groups_empty_returns_empty_list(self, client) -> None:
-        """Verify empty list is returned when no groups exist."""
+    def test_list_synth_groups_returns_default_group(self, client) -> None:
+        """Verify default group is returned when no custom groups exist."""
         response = client.get("/synth-groups/list")
 
         assert response.status_code == 200
         data = response.json()
-        assert data["data"] == []
-        assert data["pagination"]["total"] == 0
+        # Database now always creates a default group
+        assert len(data["data"]) == 1
+        assert data["data"][0]["name"] == "Default"
+        assert data["pagination"]["total"] == 1
 
     def test_list_synth_groups_with_pagination(self, client) -> None:
         """Verify pagination parameters work."""
-        # Create 5 groups
+        # Create 5 groups (total will be 6 including default group)
         for i in range(5):
             client.post(
                 "/synth-groups",
@@ -163,7 +168,7 @@ class TestListSynthGroups:
         assert response.status_code == 200
         data = response.json()
         assert len(data["data"]) == 3
-        assert data["pagination"]["total"] == 5
+        assert data["pagination"]["total"] == 6  # 5 + default group
         assert data["pagination"]["has_next"] is True
 
 
