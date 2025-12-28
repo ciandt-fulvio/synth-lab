@@ -59,9 +59,9 @@ export interface ResearchExecuteRequest {
 /**
  * Request for creating an interview from an experiment.
  * Experiment_id is taken from the URL path.
+ * Topic comes from the experiment's interview guide.
  */
 export interface InterviewCreateRequest {
-  topic_name: string;
   additional_context?: string | null;
   synth_ids?: string[] | null;
   synth_count?: number | null;

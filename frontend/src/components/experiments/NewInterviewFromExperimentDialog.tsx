@@ -1,7 +1,8 @@
 /**
- * T052 NewInterviewFromExperimentDialog component.
+ * NewInterviewFromExperimentDialog component.
  *
  * Dialog for creating a new interview linked to an experiment.
+ * Uses the experiment's interview guide for context.
  *
  * References:
  *   - Spec: specs/018-experiment-hub/spec.md (US5)
@@ -12,9 +13,8 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTopicsList } from '@/hooks/use-topics';
+import { z } from 'zod';
 import { useCreateInterviewForExperiment } from '@/hooks/use-experiments';
-import { newInterviewFromExperimentSchema, type NewInterviewFromExperimentFormData } from '@/lib/schemas';
 import {
   Dialog,
   DialogContent,
@@ -31,18 +31,21 @@ import {
   FormMessage,
   FormDescription,
 } from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+// Schema for interview creation (topic comes from experiment's interview guide)
+const interviewFormSchema = z.object({
+  additional_context: z.string().optional(),
+  synth_count: z.number().min(1).max(50),
+  max_turns: z.number().min(1).max(20),
+  generate_summary: z.boolean(),
+});
+
+type InterviewFormData = z.infer<typeof interviewFormSchema>;
 
 interface NewInterviewFromExperimentDialogProps {
   /** Whether the dialog is open */
@@ -60,13 +63,11 @@ export function NewInterviewFromExperimentDialog({
 }: NewInterviewFromExperimentDialogProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data: topics, isLoading: topicsLoading } = useTopicsList();
   const createMutation = useCreateInterviewForExperiment();
 
-  const form = useForm<NewInterviewFromExperimentFormData>({
-    resolver: zodResolver(newInterviewFromExperimentSchema),
+  const form = useForm<InterviewFormData>({
+    resolver: zodResolver(interviewFormSchema),
     defaultValues: {
-      topic_name: '',
       additional_context: '',
       synth_count: 5,
       max_turns: 6,
@@ -80,12 +81,11 @@ export function NewInterviewFromExperimentDialog({
     }
   }, [open, form]);
 
-  const onSubmit = async (data: NewInterviewFromExperimentFormData) => {
+  const onSubmit = async (data: InterviewFormData) => {
     try {
       const response = await createMutation.mutateAsync({
         experimentId,
         data: {
-          topic_name: data.topic_name,
           additional_context: data.additional_context || undefined,
           synth_count: data.synth_count,
           max_turns: data.max_turns,
@@ -117,43 +117,13 @@ export function NewInterviewFromExperimentDialog({
         <DialogHeader>
           <DialogTitle>Nova Entrevista</DialogTitle>
           <DialogDescription>
-            Configure os parametros para iniciar uma nova entrevista
+            Configure os parametros para iniciar uma nova entrevista.
+            O guia de entrevista do experimento sera utilizado.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="topic_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Topico</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um topico" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {topicsLoading ? (
-                        <div className="flex items-center justify-center py-6">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        </div>
-                      ) : (
-                        topics?.data.map((topic) => (
-                          <SelectItem key={topic.name} value={topic.name}>
-                            {topic.name}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <FormField
               control={form.control}
               name="additional_context"
@@ -168,7 +138,7 @@ export function NewInterviewFromExperimentDialog({
                     />
                   </FormControl>
                   <FormDescription>
-                    Complemente o topico com contexto adicional para a pesquisa
+                    Complemente o guia de entrevista com contexto adicional
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
