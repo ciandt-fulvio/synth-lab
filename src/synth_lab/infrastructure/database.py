@@ -19,7 +19,7 @@ from loguru import logger
 
 from synth_lab.infrastructure.config import DB_PATH
 
-# Database schema SQL - Version 7 (2025-12)
+# Database schema SQL - Version 8 (2025-12)
 # Changes:
 #   - v4: synths.data: single JSON field for all nested data
 #   - v5: Added simulation tables (feature_scorecards, simulation_runs, synth_outcomes,
@@ -29,6 +29,7 @@ from synth_lab.infrastructure.config import DB_PATH
 #   - v7: Refactored experiment model - scorecard embedded in experiments,
 #         analysis_runs replaces simulation_runs with 1:1 relationship to experiment,
 #         synth_outcomes now references analysis_runs
+#   - v8: Removed topic_guides_cache, added interview_guide table (1:1 with experiment)
 SCHEMA_SQL = """
 -- Enable recommended settings
 PRAGMA journal_mode=WAL;
@@ -172,16 +173,15 @@ CREATE TABLE IF NOT EXISTS prfaq_metadata (
 CREATE INDEX IF NOT EXISTS idx_prfaq_generated ON prfaq_metadata(generated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_prfaq_status ON prfaq_metadata(status);
 
--- Topic guides cache table
-CREATE TABLE IF NOT EXISTS topic_guides_cache (
-    name TEXT PRIMARY KEY,
-    display_name TEXT,
-    description TEXT,
-    question_count INTEGER DEFAULT 0,
-    file_count INTEGER DEFAULT 0,
-    script_hash TEXT,
-    created_at TEXT,
-    updated_at TEXT
+-- Interview Guide table (1:1 with experiment)
+CREATE TABLE IF NOT EXISTS interview_guide (
+    experiment_id TEXT PRIMARY KEY,
+    context_definition TEXT,
+    questions TEXT,
+    context_examples TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT,
+    FOREIGN KEY (experiment_id) REFERENCES experiments(id) ON DELETE CASCADE
 );
 
 -- Legacy tables (kept for backward compatibility, will be removed in future)

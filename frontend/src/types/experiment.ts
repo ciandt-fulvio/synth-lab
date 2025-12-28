@@ -75,12 +75,20 @@ export interface AggregatedOutcomes {
 export interface AnalysisSummary {
   /** Analysis run ID */
   id: string;
+  /** Simulation ID for chart endpoints (uses analysis ID) */
+  simulation_id: string;
   /** Analysis status */
   status: 'pending' | 'running' | 'completed' | 'failed';
   /** Start timestamp */
   started_at: string;
   /** Completion timestamp */
   completed_at?: string | null;
+  /** Number of synths analyzed */
+  total_synths: number;
+  /** Number of Monte Carlo executions per synth */
+  n_executions: number;
+  /** Time taken to run the analysis in seconds */
+  execution_time_seconds?: number | null;
   /** Aggregated outcomes from analysis */
   aggregated_outcomes?: AggregatedOutcomes | null;
 }
@@ -161,6 +169,8 @@ export interface ExperimentSummary {
   has_scorecard: boolean;
   /** Whether analysis exists */
   has_analysis: boolean;
+  /** Whether interview guide is configured */
+  has_interview_guide: boolean;
   /** Number of linked interviews */
   interview_count: number;
   /** Creation timestamp */
@@ -185,6 +195,8 @@ export interface ExperimentDetail {
   scorecard_data?: ScorecardData | null;
   /** Whether scorecard is filled */
   has_scorecard: boolean;
+  /** Whether interview guide is configured */
+  has_interview_guide: boolean;
   /** Creation timestamp */
   created_at: string;
   /** Last update timestamp */

@@ -1,0 +1,32 @@
+// frontend/src/hooks/use-outliers.ts
+// React Query hooks for edge cases and outlier detection
+
+import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query-keys';
+import { getExtremeCases, getOutliers } from '@/services/simulation-api';
+
+export function useExtremeCases(
+  simulationId: string,
+  nPerCategory = 10,
+  enabled = true
+) {
+  return useQuery({
+    queryKey: [...queryKeys.simulation.extremeCases(simulationId), nPerCategory],
+    queryFn: () => getExtremeCases(simulationId, nPerCategory),
+    enabled: !!simulationId && enabled,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+export function useOutliers(
+  simulationId: string,
+  contamination = 0.1,
+  enabled = true
+) {
+  return useQuery({
+    queryKey: [...queryKeys.simulation.outliers(simulationId), contamination],
+    queryFn: () => getOutliers(simulationId, contamination),
+    enabled: !!simulationId && enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}

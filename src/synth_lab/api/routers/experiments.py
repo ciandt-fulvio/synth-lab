@@ -36,6 +36,7 @@ from synth_lab.infrastructure.database import get_database
 from synth_lab.models.pagination import PaginationParams
 from synth_lab.models.research import ResearchExecuteRequest, ResearchExecuteResponse
 from synth_lab.repositories.analysis_repository import AnalysisRepository
+from synth_lab.repositories.interview_guide_repository import InterviewGuideRepository
 from synth_lab.repositories.research_repository import ResearchRepository
 from synth_lab.services.experiment_service import ExperimentService
 from synth_lab.services.research_service import ResearchService
@@ -164,6 +165,11 @@ async def create_experiment(data: ExperimentCreateSchema) -> ExperimentResponse:
         if experiment.scorecard_data:
             scorecard_schema = _convert_scorecard_data_to_schema(experiment.scorecard_data)
 
+        # Check if interview guide exists (newly created experiments won't have one)
+        db = get_database()
+        interview_guide_repo = InterviewGuideRepository(db)
+        has_interview_guide = interview_guide_repo.exists(experiment.id)
+
         return ExperimentResponse(
             id=experiment.id,
             name=experiment.name,
@@ -171,6 +177,7 @@ async def create_experiment(data: ExperimentCreateSchema) -> ExperimentResponse:
             description=experiment.description,
             scorecard_data=scorecard_schema,
             has_scorecard=experiment.has_scorecard(),
+            has_interview_guide=has_interview_guide,
             created_at=experiment.created_at,
             updated_at=experiment.updated_at,
         )
@@ -284,6 +291,7 @@ async def list_experiments(
             description=exp.description,
             has_scorecard=exp.has_scorecard,
             has_analysis=exp.has_analysis,
+            has_interview_guide=exp.has_interview_guide,
             interview_count=exp.interview_count,
             created_at=exp.created_at,
             updated_at=exp.updated_at,
@@ -330,9 +338,13 @@ async def get_experiment(experiment_id: str) -> ExperimentDetail:
             )
         analysis_summary = AnalysisSummary(
             id=analysis_run.id,
+            simulation_id=analysis_run.id,  # Use analysis ID for chart endpoints
             status=analysis_run.status,
             started_at=analysis_run.started_at,
             completed_at=analysis_run.completed_at,
+            total_synths=analysis_run.total_synths,
+            n_executions=analysis_run.config.n_executions,
+            execution_time_seconds=analysis_run.execution_time_seconds,
             aggregated_outcomes=outcomes_schema,
         )
 
@@ -366,6 +378,10 @@ async def get_experiment(experiment_id: str) -> ExperimentDetail:
     if experiment.scorecard_data:
         scorecard_schema = _convert_scorecard_data_to_schema(experiment.scorecard_data)
 
+    # Check if interview guide exists
+    interview_guide_repo = InterviewGuideRepository(db)
+    has_interview_guide = interview_guide_repo.exists(experiment_id)
+
     return ExperimentDetail(
         id=experiment.id,
         name=experiment.name,
@@ -373,6 +389,7 @@ async def get_experiment(experiment_id: str) -> ExperimentDetail:
         description=experiment.description,
         scorecard_data=scorecard_schema,
         has_scorecard=experiment.has_scorecard(),
+        has_interview_guide=has_interview_guide,
         created_at=experiment.created_at,
         updated_at=experiment.updated_at,
         analysis=analysis_summary,
@@ -409,6 +426,11 @@ async def update_experiment(
         if updated.scorecard_data:
             scorecard_schema = _convert_scorecard_data_to_schema(updated.scorecard_data)
 
+        # Check if interview guide exists
+        db = get_database()
+        interview_guide_repo = InterviewGuideRepository(db)
+        has_interview_guide = interview_guide_repo.exists(experiment_id)
+
         return ExperimentResponse(
             id=updated.id,
             name=updated.name,
@@ -416,6 +438,7 @@ async def update_experiment(
             description=updated.description,
             scorecard_data=scorecard_schema,
             has_scorecard=updated.has_scorecard(),
+            has_interview_guide=has_interview_guide,
             created_at=updated.created_at,
             updated_at=updated.updated_at,
         )
@@ -474,6 +497,11 @@ async def update_scorecard(
         if updated.scorecard_data:
             scorecard_schema = _convert_scorecard_data_to_schema(updated.scorecard_data)
 
+        # Check if interview guide exists
+        db = get_database()
+        interview_guide_repo = InterviewGuideRepository(db)
+        has_interview_guide = interview_guide_repo.exists(experiment_id)
+
         return ExperimentResponse(
             id=updated.id,
             name=updated.name,
@@ -481,6 +509,7 @@ async def update_scorecard(
             description=updated.description,
             scorecard_data=scorecard_schema,
             has_scorecard=updated.has_scorecard(),
+            has_interview_guide=has_interview_guide,
             created_at=updated.created_at,
             updated_at=updated.updated_at,
         )
@@ -499,7 +528,6 @@ async def update_scorecard(
 class InterviewCreateRequest(BaseModel):
     """Request model for creating an interview linked to an experiment."""
 
-    topic_name: str = Field(description="Topic guide name")
     additional_context: str | None = Field(
         default=None,
         description="Additional context to complement the research scenario",
@@ -541,6 +569,7 @@ async def create_interview_for_experiment(
     Create a new interview linked to an experiment.
 
     The interview is automatically associated with the specified experiment.
+    Uses the experiment's interview guide (from database) for context.
     Returns the execution details with ID and initial status.
     """
     # Validate experiment exists
@@ -552,9 +581,19 @@ async def create_interview_for_experiment(
             detail=f"Experiment {experiment_id} not found",
         )
 
+    # Validate experiment has interview guide
+    db = get_database()
+    interview_guide_repo = InterviewGuideRepository(db)
+    if not interview_guide_repo.exists(experiment_id):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Experiment does not have an interview guide configured",
+        )
+
     # Create research execution request with experiment_id
+    # The research_service will load the interview_guide from DB
     research_request = ResearchExecuteRequest(
-        topic_name=request.topic_name,
+        topic_name=f"exp_{experiment_id}",  # Used as guide_name for logging/tracing
         experiment_id=experiment_id,
         additional_context=request.additional_context,
         synth_ids=request.synth_ids,
@@ -565,7 +604,13 @@ async def create_interview_for_experiment(
 
     # Execute via research service
     research_service = get_research_service()
-    return await research_service.execute_research(research_request)
+    try:
+        return await research_service.execute_research(research_request)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
 
 
 @router.post(

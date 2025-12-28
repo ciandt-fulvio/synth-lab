@@ -125,25 +125,26 @@ class TestExperimentServiceGet:
 
         assert result is None
 
-    def test_get_experiment_with_simulations_and_interviews(
+    def test_get_experiment_with_analysis_and_interviews(
         self, experiment_service, test_db
     ) -> None:
-        """Verify experiment detail includes simulations and interviews."""
+        """Verify experiment detail includes analysis and interviews."""
         created = experiment_service.create_experiment(
             name="Test Feature",
             hypothesis="Test hypothesis",
         )
 
-        # Add simulation (feature_scorecard)
+        # Add analysis run
         test_db.execute(
             """
-            INSERT INTO feature_scorecards (id, experiment_id, data, created_at)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO analysis_runs (id, experiment_id, config, status, started_at)
+            VALUES (?, ?, ?, ?, ?)
             """,
             (
-                "sc_001",
+                "ana_12345678",
                 created.id,
-                '{"name": "test scenario"}',
+                '{"scenario": "baseline"}',
+                "completed",
                 datetime.now(timezone.utc).isoformat(),
             ),
         )
@@ -168,7 +169,7 @@ class TestExperimentServiceGet:
         result = experiment_service.get_experiment_detail(created.id)
 
         assert result is not None
-        assert result.simulation_count == 1
+        assert result.has_analysis is True  # Summary returns has_analysis flag
         assert result.interview_count == 1
 
 

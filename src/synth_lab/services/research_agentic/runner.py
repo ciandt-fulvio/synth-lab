@@ -6,7 +6,6 @@ coordinating the orchestrator, interviewer, interviewee, and reviewer agents.
 
 References:
 - OpenAI Agents SDK Runner: https://openai.github.io/openai-agents-python/running_agents/
-- MCP Integration: https://openai.github.io/openai-agents-python/mcp/
 
 Sample usage:
 ```python
@@ -14,9 +13,9 @@ from .runner import run_interview
 
 result = await run_interview(
     synth_id="abc123",
-    topic_guide_name="compra-amazon",
+    context_definition="Contexto da pesquisa...",
+    questions="Q1: Pergunta 1?\nQ2: Pergunta 2?",
     max_turns=6,
-    trace_path="output/traces/interview.trace.json"
 )
 ```
 """
@@ -30,7 +29,6 @@ from pathlib import Path
 from typing import Any
 
 from agents import Runner, add_trace_processor, trace
-from agents.mcp import MCPServerStdio
 from loguru import logger
 from rich.console import Console
 
@@ -41,7 +39,6 @@ from .agent_definitions import (
     create_interviewee_reviewer,
     create_interviewer,
 )
-from .tools import create_image_loader_tool, get_available_images
 from .tracing_bridge import TraceVisualizerProcessor
 
 # Console for colored output
@@ -158,7 +155,7 @@ class InterviewResult:
     messages: list[ConversationMessage]
     synth_id: str
     synth_name: str
-    topic_guide_name: str
+    topic_guide_name: str  # Kept for backward compatibility (can be experiment_id)
     trace_path: str | None
     total_turns: int
 
@@ -185,100 +182,50 @@ def load_synth(synth_id: str) -> dict[str, Any]:
     return synth
 
 
-def load_topic_guide(topic_guide_name: str) -> str:
+@dataclass
+class InterviewGuideData:
+    """Data from interview_guide table."""
+
+    context_definition: str | None = None
+    questions: str | None = None
+    context_examples: str | None = None
+
+    def get_context_examples_dict(self) -> dict[str, str] | None:
+        """Parse context_examples string into dict with positive/negative/neutral."""
+        if not self.context_examples:
+            return None
+
+        # If it's already structured, return as a dict with a single "example" key
+        # The context_examples is free text, so we'll use it as a neutral example
+        return {
+            "positive": self.context_examples,
+            "negative": self.context_examples,
+            "neutral": self.context_examples,
+        }
+
+
+def build_topic_guide_from_interview_guide(guide: InterviewGuideData) -> str:
     """
-    Load a topic guide by name.
+    Build a topic guide string from interview_guide data.
 
     Args:
-        topic_guide_name: Name of the topic guide directory
+        guide: InterviewGuideData with context, questions, examples
 
     Returns:
-        Formatted topic guide content
-
-    Raises:
-        FileNotFoundError: If topic guide not found
+        Formatted topic guide string for the interviewer agent
     """
-    from synth_lab.infrastructure.config import resolve_topic_guide_path
+    parts = []
 
-    topic_guide_path = resolve_topic_guide_path(topic_guide_name)
-    if topic_guide_path is None:
-        raise FileNotFoundError(f"Topic guide not found: {topic_guide_name}")
+    if guide.context_definition:
+        parts.append(f"CONTEXTO DA PESQUISA:\n{guide.context_definition}")
 
-    # Load script.json if it exists
-    script_path = topic_guide_path / "script.json"
-    if script_path.exists():
-        with open(script_path, encoding="utf-8") as f:
-            script = json.load(f)
-        return json.dumps(script, indent=2, ensure_ascii=False)
+    if guide.questions:
+        parts.append(f"PERGUNTAS DO GUIA:\n{guide.questions}")
 
-    # Fallback to summary.md
-    summary_path = topic_guide_path / "summary.md"
-    if summary_path.exists():
-        with open(summary_path, encoding="utf-8") as f:
-            return f.read()
+    if guide.context_examples:
+        parts.append(f"EXEMPLOS DE CONTEXTO:\n{guide.context_examples}")
 
-    raise FileNotFoundError(
-        f"No script.json or summary.md in {topic_guide_path}")
-
-
-def load_context_definition(topic_guide_name: str) -> str | None:
-    """
-    Load context definition from the topic guide script.json.
-
-    Args:
-        topic_guide_name: Name of the topic guide directory
-
-    Returns:
-        Context definition string or None if not found
-    """
-    from synth_lab.infrastructure.config import resolve_topic_guide_path
-
-    topic_guide_path = resolve_topic_guide_path(topic_guide_name)
-    if topic_guide_path is None:
-        return None
-
-    script_path = topic_guide_path / "script.json"
-    if not script_path.exists():
-        return None
-
-    with open(script_path, encoding="utf-8") as f:
-        script = json.load(f)
-
-    # Get context_definition from first item in script
-    if script and isinstance(script, list) and len(script) > 0:
-        return script[0].get("context_definition")
-
-    return None
-
-
-def load_context_examples(topic_guide_name: str) -> dict[str, str] | None:
-    """
-    Load context examples from the topic guide script.json.
-
-    Args:
-        topic_guide_name: Name of the topic guide directory
-
-    Returns:
-        Dictionary with 'positive', 'negative', 'neutral' examples or None
-    """
-    from synth_lab.infrastructure.config import resolve_topic_guide_path
-
-    topic_guide_path = resolve_topic_guide_path(topic_guide_name)
-    if topic_guide_path is None:
-        return None
-
-    script_path = topic_guide_path / "script.json"
-    if not script_path.exists():
-        return None
-
-    with open(script_path, encoding="utf-8") as f:
-        script = json.load(f)
-
-    # Get context_examples from first item in script
-    if script and isinstance(script, list) and len(script) > 0:
-        return script[0].get("context_examples")
-
-    return None
+    return "\n\n".join(parts) if parts else "Conduza uma entrevista exploratória."
 
 
 async def generate_initial_context(
@@ -423,36 +370,32 @@ def format_synth_profile(synth: dict[str, Any]) -> str:
 
 async def run_interview(
     synth_id: str,
-    topic_guide_name: str,
+    interview_guide: InterviewGuideData,
     max_turns: int = 6,
     trace_path: str | None = None,
     model: str = "gpt-4.1-mini",
-    use_mcp: bool = False,
-    mcp_directory: str | None = None,
     verbose: bool = True,
     exec_id: str | None = None,
     message_callback: Callable[[
         str, str, int, ConversationMessage], Awaitable[None]] | None = None,
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
+    guide_name: str = "interview",
 ) -> InterviewResult:
     """
     Run an agentic interview with orchestrated turn-taking.
 
     This function coordinates multiple agents:
-    1. Orchestrator: Decides whose turn it is
-    2. Interviewer: Asks questions based on topic guide
-    3. Interviewee: Responds as synthetic persona
-    4. Reviewers: Adapt tone for each speaker
+    1. Interviewer: Asks questions based on interview guide
+    2. Interviewee: Responds as synthetic persona
+    3. Reviewer (optional): Adapts tone for interviewee
 
     Args:
         synth_id: ID of the synthetic persona to interview
-        topic_guide_name: Name of the topic guide directory
+        interview_guide: InterviewGuideData with context_definition, questions, examples
         max_turns: Maximum number of conversation turns
         trace_path: Path to save trace file (optional)
         model: LLM model to use for all agents
-        use_mcp: Whether to enable MCP tools (filesystem access)
-        mcp_directory: Directory for MCP filesystem server
         verbose: Whether to print conversation to console
         exec_id: Execution ID for SSE streaming (optional)
         message_callback: Async callback for real-time message streaming (optional)
@@ -460,41 +403,34 @@ async def run_interview(
         skip_interviewee_review: Whether to skip the interviewee response reviewer.
             If True, uses raw interviewee response without humanization review.
         additional_context: Optional additional context to complement the research scenario
+        guide_name: Name identifier for the guide (for logging/tracing)
 
     Returns:
         InterviewResult with conversation and metadata
 
     Sample usage:
     ```python
+    guide = InterviewGuideData(
+        context_definition="Pesquisa sobre checkout 1-clique",
+        questions="Q1: Como você se sente...?",
+        context_examples="Exemplo de experiência positiva...",
+    )
     result = await run_interview(
         synth_id="abc123",
-        topic_guide_name="compra-amazon",
+        interview_guide=guide,
         max_turns=6
     )
-    print(f"Completed {result.total_turns} turns")
-    for msg in result.messages:
-        print(f"[{msg.speaker}]: {msg.text}")
     ```
     """
-    # Load data
+    # Load synth data
     synth = load_synth(synth_id)
-    topic_guide = load_topic_guide(topic_guide_name)
     synth_name = synth.get("nome", "Participante")
 
-    context_definition = load_context_definition(topic_guide_name)
+    # Build topic guide from interview_guide data
+    topic_guide = build_topic_guide_from_interview_guide(interview_guide)
 
-    # Load context examples for generating initial context
-    context_examples = load_context_examples(topic_guide_name)
-
-    # Load available images and create image tool for interviewee
-    available_images = get_available_images(topic_guide_name)
-    image_tool = None
-    if available_images:
-        image_tool = create_image_loader_tool(
-            topic_guide_name, available_images)
-        logger.info(
-            f"Created image tool with {len(available_images)} images: {available_images}"
-        )
+    # Get context examples for generating initial context
+    context_examples = interview_guide.get_context_examples_dict()
 
     # Initialize shared memory
     shared_memory = SharedMemory(
@@ -512,33 +448,17 @@ async def run_interview(
         metadata={
             "synth_id": synth_id,
             "synth_name": synth_name,
-            "topic_guide": topic_guide_name,
+            "guide_name": guide_name,
             "model": model,
             "max_turns": str(max_turns),
         },
     )
 
     # Add custom trace processor to capture SDK traces
-    # Note: processor verbose is False to avoid debug spam; conversation verbose is separate
     processor = TraceVisualizerProcessor(tracer, verbose=False)
     add_trace_processor(processor)
 
-    # Setup MCP servers if enabled
-    mcp_servers: list[Any] = []
-
     try:
-        if use_mcp and mcp_directory:
-            # TODO: MCP servers need async context management
-            # For now, we create and add to list for future implementation
-            _ = MCPServerStdio(
-                name="Filesystem Server",
-                params={
-                    "command": "npx",
-                    "args": ["-y", "@modelcontextprotocol/server-filesystem", mcp_directory],
-                },
-            )
-            # mcp_servers.append(mcp_server)  # Enable when async context is implemented
-
         # Main interview loop
         # Each "turn" is a complete exchange: interviewer question + interviewee answer
         turns = 0
@@ -556,12 +476,11 @@ async def run_interview(
                             topic_guide=topic_guide,
                             conversation_history=shared_memory.format_history(),
                             max_turns=max_turns,
-                            mcp_servers=mcp_servers,
                             model=model,
                             additional_context=additional_context,
                         )
 
-                        # Log request (system prompt + input)
+                        # Log request
                         span.set_attribute(
                             "request", f"[System Prompt]\n{interviewer.instructions}\n\n[Input]\n{interviewer_input}")
 
@@ -577,7 +496,7 @@ async def run_interview(
                                 context_examples=context_examples,
                                 topic_guide=topic_guide,
                                 model=model,
-                                context_definition=context_definition,
+                                context_definition=interview_guide.context_definition,
                                 additional_context=additional_context,
                             )
                             raw_result, initial_context = await asyncio.gather(
@@ -622,20 +541,14 @@ async def run_interview(
                         "speaker": "interviewee",
                         "turn_number": turns + 1,
                     }) as span:
-                        # Prepare tools for interviewee (image access)
-                        interviewee_tools = [image_tool] if image_tool else []
-
                         interviewee = create_interviewee(
                             synth=shared_memory.synth,
                             conversation_history=shared_memory.format_history(),
-                            mcp_servers=mcp_servers,
-                            tools=interviewee_tools,
-                            available_images=available_images,
                             initial_context=initial_context,
                             model=model,
                         )
 
-                        # Log request (system prompt + input)
+                        # Log request
                         span.set_attribute(
                             "request", f"[System Prompt]\n{interviewee.instructions}\n\n[Input]\n{interviewee_input}")
 
@@ -675,7 +588,7 @@ async def run_interview(
                                 "response", interviewee_response)
                             span.set_status(SpanStatus.SUCCESS)
 
-                    # Parse and add interviewee message (sentiment not used for interviewee)
+                    # Parse and add interviewee message
                     visible_message, internal_notes, should_end, _ = parse_agent_response(
                         interviewee_response
                     )
@@ -713,7 +626,7 @@ async def run_interview(
         messages=shared_memory.conversation,
         synth_id=synth_id,
         synth_name=synth_name,
-        topic_guide_name=topic_guide_name,
+        topic_guide_name=guide_name,
         trace_path=trace_path,
         total_turns=turns,
     )
@@ -730,12 +643,12 @@ async def run_interview_simple(
     """
     Run a simple interview, optionally loading synth from database.
 
-    Useful for quick testing or when full topic guide isn't needed.
+    Useful for quick testing or when full interview guide isn't needed.
 
     Args:
         topic: Topic to discuss in the interview
         synth_id: Optional synth ID to load from database
-        persona_description: Optional description if not using synth_id (deprecated)
+        persona_description: Optional description if not using synth_id
         max_turns: Maximum conversation turns
         model: LLM model to use
         verbose: Whether to print to console
@@ -745,13 +658,11 @@ async def run_interview_simple(
 
     Note:
         Either synth_id or persona_description must be provided.
-        If synth_id is provided, it takes precedence.
     """
     # Load synth from database or build minimal synth dict
     if synth_id:
         synth = load_synth(synth_id)
     elif persona_description:
-        # Build minimal synth dict from description (for backwards compatibility)
         synth = {
             "nome": "Participante",
             "descricao": persona_description,
@@ -770,7 +681,6 @@ async def run_interview_simple(
     messages: list[ConversationMessage] = []
     turns = 0
 
-    # Each turn = 1 question + 1 answer
     while turns < max_turns:
         # === PART 1: Interviewer asks ===
         interviewer = create_interviewer(
@@ -824,7 +734,6 @@ async def run_interview_simple(
         if verbose:
             _print_speaker("Interviewee", visible_message)
 
-        # Turn complete (1 turn = 1 question + 1 answer)
         turns += 1
 
     return messages
@@ -833,7 +742,7 @@ async def run_interview_simple(
 # Convenience function for sync usage
 def run_interview_sync(
     synth_id: str,
-    topic_guide_name: str,
+    interview_guide: InterviewGuideData,
     max_turns: int = 6,
     trace_path: str | None = None,
     model: str = "gpt-4.1-mini",
@@ -844,7 +753,7 @@ def run_interview_sync(
 
     Args:
         synth_id: ID of the synthetic persona
-        topic_guide_name: Name of the topic guide
+        interview_guide: InterviewGuideData with context, questions, examples
         max_turns: Maximum conversation turns
         trace_path: Path to save trace file
         model: LLM model to use
@@ -856,7 +765,7 @@ def run_interview_sync(
     return asyncio.run(
         run_interview(
             synth_id=synth_id,
-            topic_guide_name=topic_guide_name,
+            interview_guide=interview_guide,
             max_turns=max_turns,
             trace_path=trace_path,
             model=model,

@@ -76,8 +76,8 @@ class ExplainabilityService:
         if not outcomes:
             raise ValueError("Outcomes list is empty")
 
-        simulation_id = outcomes[0].simulation_id
-        cache_key = f"{simulation_id}:{','.join(features or DEFAULT_FEATURES)}"
+        analysis_id = outcomes[0].analysis_id
+        cache_key = f"{analysis_id}:{','.join(features or DEFAULT_FEATURES)}"
 
         # Return cached model if available
         if cache_key in self._model_cache:
@@ -108,7 +108,7 @@ class ExplainabilityService:
         score = float(model.score(X, y))
 
         logger.info(
-            f"Trained GradientBoostingRegressor for {simulation_id}, "
+            f"Trained GradientBoostingRegressor for {analysis_id}, "
             f"R²={score:.3f}, features={feature_names}"
         )
 

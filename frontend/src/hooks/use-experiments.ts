@@ -20,7 +20,9 @@ import {
   createInterviewForExperiment,
   estimateScorecardForExperiment,
   estimateScorecardFromText,
+  runAnalysis,
   type ScorecardEstimateRequest,
+  type RunAnalysisRequest,
 } from '@/services/experiments-api';
 import type { PaginationParams } from '@/types';
 import type { ExperimentCreate, ExperimentUpdate, ScorecardCreate } from '@/types/experiment';
@@ -150,5 +152,26 @@ export function useEstimateScorecardForExperiment() {
 export function useEstimateScorecardFromText() {
   return useMutation({
     mutationFn: (data: ScorecardEstimateRequest) => estimateScorecardFromText(data),
+  });
+}
+
+/**
+ * Hook to run quantitative analysis for an experiment.
+ *
+ * Creates and executes a Monte Carlo simulation.
+ * On success, invalidates experiment detail to refresh analysis data.
+ */
+export function useRunAnalysis() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ experimentId, config }: { experimentId: string; config?: RunAnalysisRequest }) =>
+      runAnalysis(experimentId, config),
+    onSuccess: (_, variables) => {
+      // Invalidate experiment detail to show the new analysis
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.experimentDetail(variables.experimentId),
+      });
+    },
   });
 }
