@@ -1,193 +1,55 @@
 """
-T020 Experiments API router for synth-lab.
+Experiments API router for synth-lab.
 
-REST endpoints for experiment management.
+REST endpoints for experiment management with embedded scorecard support.
 
 References:
-    - Spec: specs/018-experiment-hub/spec.md
-    - OpenAPI: specs/018-experiment-hub/contracts/openapi.yaml
+    - Spec: specs/019-experiment-refactor/spec.md
+    - OpenAPI: specs/019-experiment-refactor/contracts/experiment-api.yaml
 """
-
-from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
+from synth_lab.api.schemas.experiments import (
+    AggregatedOutcomesSchema,
+    AnalysisSummary,
+    ExperimentDetail,
+    ExperimentResponse,
+    InterviewSummary,
+    PaginatedExperimentSummary,
+    ScorecardDataSchema,
+    ScorecardDimensionSchema,
+    ScorecardEstimateResponse,
+)
+from synth_lab.api.schemas.experiments import (
+    ExperimentCreate as ExperimentCreateSchema,
+)
+from synth_lab.api.schemas.experiments import (
+    ExperimentSummary as ExperimentSummarySchema,
+)
+from synth_lab.api.schemas.experiments import (
+    ExperimentUpdate as ExperimentUpdateSchema,
+)
+from synth_lab.domain.entities.experiment import ScorecardData, ScorecardDimension
 from synth_lab.infrastructure.database import get_database
-from synth_lab.models.pagination import PaginatedResponse, PaginationParams
+from synth_lab.models.pagination import PaginationParams
 from synth_lab.models.research import ResearchExecuteRequest, ResearchExecuteResponse
-from synth_lab.repositories.experiment_repository import ExperimentSummary
+from synth_lab.repositories.analysis_repository import AnalysisRepository
 from synth_lab.repositories.research_repository import ResearchRepository
-from synth_lab.repositories.scorecard_repository import ScorecardRepository
-from synth_lab.repositories.simulation_repository import SimulationRepository
 from synth_lab.services.experiment_service import ExperimentService
 from synth_lab.services.research_service import ResearchService
 from synth_lab.services.scorecard_estimator import (
     ScorecardEstimationError,
     ScorecardEstimator,
 )
-from synth_lab.services.simulation.scorecard_service import ScorecardService, ValidationError
 
 router = APIRouter()
 
 
-# Request/Response Schemas
-
-class ExperimentCreate(BaseModel):
-    """Request schema for creating an experiment."""
-
-    name: str = Field(
-        min_length=1,
-        max_length=100,
-        description="Short name of the feature.",
-    )
-    hypothesis: str = Field(
-        min_length=1,
-        max_length=500,
-        description="Description of the hypothesis to test.",
-    )
-    description: str | None = Field(
-        default=None,
-        max_length=2000,
-        description="Additional context, links, references.",
-    )
-
-
-class ExperimentUpdate(BaseModel):
-    """Request schema for updating an experiment."""
-
-    name: str | None = Field(
-        default=None,
-        max_length=100,
-        description="Short name of the feature.",
-    )
-    hypothesis: str | None = Field(
-        default=None,
-        max_length=500,
-        description="Description of the hypothesis to test.",
-    )
-    description: str | None = Field(
-        default=None,
-        max_length=2000,
-        description="Additional context, links, references.",
-    )
-
-
-class SimulationSummary(BaseModel):
-    """Summary of a simulation for experiment detail."""
-
-    id: str
-    scenario_id: str | None = None
-    status: str = "pending"
-    has_insights: bool = False
-    started_at: datetime | None = None
-    completed_at: datetime | None = None
-    score: float | None = None
-
-
-class InterviewSummary(BaseModel):
-    """Summary of an interview for experiment detail."""
-
-    exec_id: str
-    topic_name: str
-    status: str = "pending"
-    synth_count: int = 0
-    has_summary: bool = False
-    has_prfaq: bool = False
-    started_at: datetime | None = None
-    completed_at: datetime | None = None
-
-
-class ExperimentDetailResponse(BaseModel):
-    """Response schema for experiment detail."""
-
-    id: str
-    name: str
-    hypothesis: str
-    description: str | None = None
-    simulation_count: int = 0
-    interview_count: int = 0
-    created_at: datetime
-    updated_at: datetime | None = None
-    simulations: list[SimulationSummary] = Field(default_factory=list)
-    interviews: list[InterviewSummary] = Field(default_factory=list)
-
-
-class ExperimentResponse(BaseModel):
-    """Response schema for experiment."""
-
-    id: str
-    name: str
-    hypothesis: str
-    description: str | None = None
-    created_at: datetime
-    updated_at: datetime | None = None
-
-
-# Scorecard schemas for experiment-linked scorecards
-
-class DimensionCreate(BaseModel):
-    """Request model for creating a dimension."""
-
-    score: float = Field(ge=0.0, le=1.0, description="Score value in [0,1]")
-    rules_applied: list[str] = Field(default_factory=list, description="Rules applied")
-    min_uncertainty: float = Field(default=0.0, ge=0.0, le=1.0)
-    max_uncertainty: float = Field(default=0.0, ge=0.0, le=1.0)
-
-
-class ScorecardCreateRequest(BaseModel):
-    """Request model for creating a scorecard linked to an experiment."""
-
-    feature_name: str = Field(description="Name of the feature")
-    use_scenario: str = Field(description="Usage scenario")
-    description_text: str = Field(description="Feature description")
-    evaluators: list[str] = Field(default_factory=list, description="List of evaluators")
-    description_media_urls: list[str] = Field(
-        default_factory=list, description="Media URLs"
-    )
-    complexity: DimensionCreate | None = None
-    initial_effort: DimensionCreate | None = None
-    perceived_risk: DimensionCreate | None = None
-    time_to_value: DimensionCreate | None = None
-
-
-class ScorecardResponse(BaseModel):
-    """Response model for a scorecard."""
-
-    id: str
-    experiment_id: str | None = None
-    feature_name: str
-    use_scenario: str
-    description_text: str
-    complexity_score: float
-    initial_effort_score: float
-    perceived_risk_score: float
-    time_to_value_score: float
-    justification: str | None
-    impact_hypotheses: list[str]
-    created_at: datetime
-    updated_at: datetime | None
-
-
-# AI Estimation schemas
-
-
-class DimensionEstimate(BaseModel):
-    """AI-generated dimension estimate."""
-
-    value: float = Field(ge=0.0, le=1.0, description="Estimated score value in [0,1]")
-    justification: str = Field(description="Brief justification for the score")
-    min: float = Field(ge=0.0, le=1.0, description="Minimum uncertainty bound")
-    max: float = Field(ge=0.0, le=1.0, description="Maximum uncertainty bound")
-
-
-class ScorecardEstimateResponse(BaseModel):
-    """Response model for AI-generated scorecard estimate."""
-
-    complexity: DimensionEstimate
-    initial_effort: DimensionEstimate
-    perceived_risk: DimensionEstimate
-    time_to_value: DimensionEstimate
+# =============================================================================
+# Helper Functions
+# =============================================================================
 
 
 def get_experiment_service() -> ExperimentService:
@@ -195,25 +57,120 @@ def get_experiment_service() -> ExperimentService:
     return ExperimentService()
 
 
+def _convert_schema_to_scorecard_data(
+    schema: ScorecardDataSchema,
+) -> ScorecardData:
+    """Convert API schema to domain entity."""
+    return ScorecardData(
+        feature_name=schema.feature_name,
+        scenario=schema.scenario,
+        description_text=schema.description_text,
+        description_media_urls=schema.description_media_urls,
+        complexity=ScorecardDimension(
+            score=schema.complexity.score,
+            rules_applied=schema.complexity.rules_applied,
+            lower_bound=schema.complexity.lower_bound,
+            upper_bound=schema.complexity.upper_bound,
+        ),
+        initial_effort=ScorecardDimension(
+            score=schema.initial_effort.score,
+            rules_applied=schema.initial_effort.rules_applied,
+            lower_bound=schema.initial_effort.lower_bound,
+            upper_bound=schema.initial_effort.upper_bound,
+        ),
+        perceived_risk=ScorecardDimension(
+            score=schema.perceived_risk.score,
+            rules_applied=schema.perceived_risk.rules_applied,
+            lower_bound=schema.perceived_risk.lower_bound,
+            upper_bound=schema.perceived_risk.upper_bound,
+        ),
+        time_to_value=ScorecardDimension(
+            score=schema.time_to_value.score,
+            rules_applied=schema.time_to_value.rules_applied,
+            lower_bound=schema.time_to_value.lower_bound,
+            upper_bound=schema.time_to_value.upper_bound,
+        ),
+        justification=schema.justification,
+        impact_hypotheses=schema.impact_hypotheses,
+    )
+
+
+def _convert_scorecard_data_to_schema(
+    data: ScorecardData,
+) -> ScorecardDataSchema:
+    """Convert domain entity to API schema."""
+    return ScorecardDataSchema(
+        feature_name=data.feature_name,
+        scenario=data.scenario,
+        description_text=data.description_text,
+        description_media_urls=data.description_media_urls,
+        complexity=ScorecardDimensionSchema(
+            score=data.complexity.score,
+            rules_applied=data.complexity.rules_applied,
+            lower_bound=data.complexity.lower_bound,
+            upper_bound=data.complexity.upper_bound,
+        ),
+        initial_effort=ScorecardDimensionSchema(
+            score=data.initial_effort.score,
+            rules_applied=data.initial_effort.rules_applied,
+            lower_bound=data.initial_effort.lower_bound,
+            upper_bound=data.initial_effort.upper_bound,
+        ),
+        perceived_risk=ScorecardDimensionSchema(
+            score=data.perceived_risk.score,
+            rules_applied=data.perceived_risk.rules_applied,
+            lower_bound=data.perceived_risk.lower_bound,
+            upper_bound=data.perceived_risk.upper_bound,
+        ),
+        time_to_value=ScorecardDimensionSchema(
+            score=data.time_to_value.score,
+            rules_applied=data.time_to_value.rules_applied,
+            lower_bound=data.time_to_value.lower_bound,
+            upper_bound=data.time_to_value.upper_bound,
+        ),
+        justification=data.justification,
+        impact_hypotheses=data.impact_hypotheses,
+    )
+
+
+# =============================================================================
+# Experiment CRUD Endpoints
+# =============================================================================
+
+
 @router.post("", response_model=ExperimentResponse, status_code=status.HTTP_201_CREATED)
-async def create_experiment(data: ExperimentCreate) -> ExperimentResponse:
+async def create_experiment(data: ExperimentCreateSchema) -> ExperimentResponse:
     """
-    Create a new experiment.
+    Create a new experiment, optionally with embedded scorecard.
 
     Returns the created experiment with generated ID.
     """
     service = get_experiment_service()
     try:
+        # Convert scorecard schema if provided
+        scorecard_data = None
+        if data.scorecard_data:
+            scorecard_data = _convert_schema_to_scorecard_data(data.scorecard_data)
+
         experiment = service.create_experiment(
             name=data.name,
             hypothesis=data.hypothesis,
             description=data.description,
+            scorecard_data=scorecard_data,
         )
+
+        # Build response with scorecard if present
+        scorecard_schema = None
+        if experiment.scorecard_data:
+            scorecard_schema = _convert_scorecard_data_to_schema(experiment.scorecard_data)
+
         return ExperimentResponse(
             id=experiment.id,
             name=experiment.name,
             hypothesis=experiment.hypothesis,
             description=experiment.description,
+            scorecard_data=scorecard_schema,
+            has_scorecard=experiment.has_scorecard(),
             created_at=experiment.created_at,
             updated_at=experiment.updated_at,
         )
@@ -224,15 +181,90 @@ async def create_experiment(data: ExperimentCreate) -> ExperimentResponse:
         )
 
 
-@router.get("/list", response_model=PaginatedResponse[ExperimentSummary])
+class ScorecardEstimateRequest(BaseModel):
+    """Request for AI scorecard estimation from text."""
+
+    name: str = Field(
+        max_length=100,
+        description="Short name of the feature.",
+    )
+    hypothesis: str = Field(
+        max_length=500,
+        description="Description of the hypothesis to test.",
+    )
+    description: str | None = Field(
+        default=None,
+        max_length=2000,
+        description="Additional context.",
+    )
+
+
+@router.post(
+    "/estimate-scorecard",
+    response_model=ScorecardEstimateResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def estimate_scorecard_from_text(
+    request: ScorecardEstimateRequest,
+) -> ScorecardEstimateResponse:
+    """
+    Use AI to estimate scorecard dimensions from text input.
+
+    This endpoint allows estimation before an experiment exists,
+    useful for forms where the user wants AI-generated estimates.
+    Takes name, hypothesis, and optional description as input.
+    """
+    estimator = ScorecardEstimator()
+    try:
+        estimate = estimator.estimate_from_text(
+            name=request.name,
+            hypothesis=request.hypothesis,
+            description=request.description,
+        )
+        return ScorecardEstimateResponse(
+            complexity=ScorecardDimensionSchema(
+                score=estimate.complexity.value,
+                rules_applied=[],
+                lower_bound=estimate.complexity.min,
+                upper_bound=estimate.complexity.max,
+            ),
+            initial_effort=ScorecardDimensionSchema(
+                score=estimate.initial_effort.value,
+                rules_applied=[],
+                lower_bound=estimate.initial_effort.min,
+                upper_bound=estimate.initial_effort.max,
+            ),
+            perceived_risk=ScorecardDimensionSchema(
+                score=estimate.perceived_risk.value,
+                rules_applied=[],
+                lower_bound=estimate.perceived_risk.min,
+                upper_bound=estimate.perceived_risk.max,
+            ),
+            time_to_value=ScorecardDimensionSchema(
+                score=estimate.time_to_value.value,
+                rules_applied=[],
+                lower_bound=estimate.time_to_value.min,
+                upper_bound=estimate.time_to_value.max,
+            ),
+            justification=getattr(estimate, "justification", ""),
+            impact_hypotheses=getattr(estimate, "impact_hypotheses", []),
+        )
+    except ScorecardEstimationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
+
+
+@router.get("/list", response_model=PaginatedExperimentSummary)
 async def list_experiments(
     limit: int = Query(default=50, ge=1, le=200, description="Maximum items per page"),
     offset: int = Query(default=0, ge=0, description="Number of items to skip"),
-) -> PaginatedResponse[ExperimentSummary]:
+) -> PaginatedExperimentSummary:
     """
     List all experiments with pagination.
 
-    Returns a paginated list of experiments with simulation and interview counts.
+    Returns a paginated list of experiments with analysis and interview counts.
     """
     service = get_experiment_service()
     params = PaginationParams(
@@ -241,56 +273,70 @@ async def list_experiments(
         sort_by="created_at",
         sort_order="desc",
     )
-    return service.list_experiments(params)
+    result = service.list_experiments(params)
+
+    # Convert repository summaries to API schemas
+    summaries = [
+        ExperimentSummarySchema(
+            id=exp.id,
+            name=exp.name,
+            hypothesis=exp.hypothesis,
+            description=exp.description,
+            has_scorecard=exp.has_scorecard,
+            has_analysis=exp.has_analysis,
+            interview_count=exp.interview_count,
+            created_at=exp.created_at,
+            updated_at=exp.updated_at,
+        )
+        for exp in result.data
+    ]
+
+    return PaginatedExperimentSummary(
+        data=summaries,
+        pagination=result.pagination,
+    )
 
 
-def _calculate_simulation_score(aggregated_outcomes: dict) -> float | None:
-    """Calculate a simple score from aggregated outcomes (success rate * 100)."""
-    if not aggregated_outcomes:
-        return None
-    success_rate = aggregated_outcomes.get("success", 0)
-    return round(success_rate * 100, 1)
-
-
-@router.get("/{experiment_id}", response_model=ExperimentDetailResponse)
-async def get_experiment(experiment_id: str) -> ExperimentDetailResponse:
+@router.get("/{experiment_id}", response_model=ExperimentDetail)
+async def get_experiment(experiment_id: str) -> ExperimentDetail:
     """
     Get an experiment by ID with full details.
 
-    Returns the experiment with linked simulations and interviews.
+    Returns the experiment with scorecard, analysis, and interviews.
     """
     service = get_experiment_service()
 
-    # Get experiment detail (with counts)
-    experiment = service.get_experiment_detail(experiment_id)
+    # Get full experiment (with scorecard)
+    experiment = service.get_experiment(experiment_id)
     if experiment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Experiment {experiment_id} not found",
         )
 
-    # Fetch actual simulations (via scorecards)
     db = get_database()
-    sim_repo = SimulationRepository(db)
-    simulation_runs, _ = sim_repo.list_by_experiment_id(experiment_id, limit=100)
-    simulations = [
-        SimulationSummary(
-            id=run.id,
-            scenario_id=run.scenario_id,
-            status=run.status,
-            has_insights=run.aggregated_outcomes is not None,
-            started_at=run.started_at,
-            completed_at=run.completed_at,
-            score=(
-                _calculate_simulation_score(run.aggregated_outcomes)
-                if run.aggregated_outcomes
-                else None
-            ),
-        )
-        for run in simulation_runs
-    ]
 
-    # Fetch actual interviews using repository methods
+    # Get analysis (1:1 relationship)
+    analysis_repo = AnalysisRepository(db)
+    analysis_run = analysis_repo.get_by_experiment_id(experiment_id)
+    analysis_summary = None
+    if analysis_run:
+        outcomes_schema = None
+        if analysis_run.aggregated_outcomes:
+            outcomes_schema = AggregatedOutcomesSchema(
+                did_not_try_rate=analysis_run.aggregated_outcomes.did_not_try_rate,
+                failed_rate=analysis_run.aggregated_outcomes.failed_rate,
+                success_rate=analysis_run.aggregated_outcomes.success_rate,
+            )
+        analysis_summary = AnalysisSummary(
+            id=analysis_run.id,
+            status=analysis_run.status,
+            started_at=analysis_run.started_at,
+            completed_at=analysis_run.completed_at,
+            aggregated_outcomes=outcomes_schema,
+        )
+
+    # Fetch interviews using repository methods
     research_repo = ResearchRepository(db)
     interview_response = research_repo.list_executions_by_experiment(
         experiment_id, PaginationParams(limit=100)
@@ -305,7 +351,7 @@ async def get_experiment(experiment_id: str) -> ExperimentDetailResponse:
         InterviewSummary(
             exec_id=exec.exec_id,
             topic_name=exec.topic_name,
-            status=exec.status.value if hasattr(exec.status, 'value') else str(exec.status),
+            status=exec.status.value if hasattr(exec.status, "value") else str(exec.status),
             synth_count=exec.synth_count,
             has_summary=summary_exists.get(exec.exec_id, False),
             has_prfaq=prfaq_exists.get(exec.exec_id, False),
@@ -315,29 +361,35 @@ async def get_experiment(experiment_id: str) -> ExperimentDetailResponse:
         for exec in interview_response.data
     ]
 
-    return ExperimentDetailResponse(
+    # Build response with scorecard if present
+    scorecard_schema = None
+    if experiment.scorecard_data:
+        scorecard_schema = _convert_scorecard_data_to_schema(experiment.scorecard_data)
+
+    return ExperimentDetail(
         id=experiment.id,
         name=experiment.name,
         hypothesis=experiment.hypothesis,
         description=experiment.description,
-        simulation_count=experiment.simulation_count,
-        interview_count=experiment.interview_count,
+        scorecard_data=scorecard_schema,
+        has_scorecard=experiment.has_scorecard(),
         created_at=experiment.created_at,
         updated_at=experiment.updated_at,
-        simulations=simulations,
+        analysis=analysis_summary,
         interviews=interviews,
+        interview_count=len(interviews),
     )
 
 
 @router.put("/{experiment_id}", response_model=ExperimentResponse)
 async def update_experiment(
     experiment_id: str,
-    data: ExperimentUpdate,
+    data: ExperimentUpdateSchema,
 ) -> ExperimentResponse:
     """
-    Update an experiment.
+    Update an experiment (name, hypothesis, description only).
 
-    Returns the updated experiment.
+    To update the scorecard, use PUT /experiments/{id}/scorecard.
     """
     service = get_experiment_service()
     try:
@@ -352,11 +404,18 @@ async def update_experiment(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Experiment {experiment_id} not found",
             )
+
+        scorecard_schema = None
+        if updated.scorecard_data:
+            scorecard_schema = _convert_scorecard_data_to_schema(updated.scorecard_data)
+
         return ExperimentResponse(
             id=updated.id,
             name=updated.name,
             hypothesis=updated.hypothesis,
             description=updated.description,
+            scorecard_data=scorecard_schema,
+            has_scorecard=updated.has_scorecard(),
             created_at=updated.created_at,
             updated_at=updated.updated_at,
         )
@@ -383,86 +442,58 @@ async def delete_experiment(experiment_id: str) -> None:
         )
 
 
-# --- Scorecard Endpoints ---
+# =============================================================================
+# Scorecard Endpoints (Embedded in Experiment)
+# =============================================================================
 
 
-def get_scorecard_service() -> ScorecardService:
-    """Get scorecard service instance."""
-    db = get_database()
-    repo = ScorecardRepository(db)
-    return ScorecardService(repo)
-
-
-@router.post(
-    "/{experiment_id}/scorecards",
-    response_model=ScorecardResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-async def create_scorecard_for_experiment(
+@router.put("/{experiment_id}/scorecard", response_model=ExperimentResponse)
+async def update_scorecard(
     experiment_id: str,
-    request: ScorecardCreateRequest,
-) -> ScorecardResponse:
+    data: ScorecardDataSchema,
+) -> ExperimentResponse:
     """
-    Create a new scorecard linked to an experiment.
+    Update the embedded scorecard of an experiment.
 
-    The scorecard is automatically associated with the specified experiment.
-    Returns the created scorecard with a generated ID.
+    Creates or replaces the scorecard data for the experiment.
     """
-    # Validate experiment exists
-    exp_service = get_experiment_service()
-    experiment = exp_service.get_experiment_detail(experiment_id)
-    if experiment is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found",
-        )
+    service = get_experiment_service()
 
-    # Build scorecard data with experiment_id
-    data = {
-        "experiment_id": experiment_id,
-        "feature_name": request.feature_name,
-        "use_scenario": request.use_scenario,
-        "description_text": request.description_text,
-        "evaluators": request.evaluators,
-        "description_media_urls": request.description_media_urls,
-    }
+    # Convert schema to domain entity
+    scorecard_data = _convert_schema_to_scorecard_data(data)
 
-    if request.complexity:
-        data["complexity"] = request.complexity.model_dump()
-    if request.initial_effort:
-        data["initial_effort"] = request.initial_effort.model_dump()
-    if request.perceived_risk:
-        data["perceived_risk"] = request.perceived_risk.model_dump()
-    if request.time_to_value:
-        data["time_to_value"] = request.time_to_value.model_dump()
-
-    # Create scorecard
-    scorecard_service = get_scorecard_service()
     try:
-        scorecard = scorecard_service.create_scorecard(data)
-        return ScorecardResponse(
-            id=scorecard.id,
-            experiment_id=scorecard.experiment_id,
-            feature_name=scorecard.identification.feature_name,
-            use_scenario=scorecard.identification.use_scenario,
-            description_text=scorecard.description_text,
-            complexity_score=scorecard.complexity.score,
-            initial_effort_score=scorecard.initial_effort.score,
-            perceived_risk_score=scorecard.perceived_risk.score,
-            time_to_value_score=scorecard.time_to_value.score,
-            justification=scorecard.justification,
-            impact_hypotheses=scorecard.impact_hypotheses,
-            created_at=scorecard.created_at,
-            updated_at=scorecard.updated_at,
+        updated = service.update_scorecard(experiment_id, scorecard_data)
+        if updated is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Experiment {experiment_id} not found",
+            )
+
+        scorecard_schema = None
+        if updated.scorecard_data:
+            scorecard_schema = _convert_scorecard_data_to_schema(updated.scorecard_data)
+
+        return ExperimentResponse(
+            id=updated.id,
+            name=updated.name,
+            hypothesis=updated.hypothesis,
+            description=updated.description,
+            scorecard_data=scorecard_schema,
+            has_scorecard=updated.has_scorecard(),
+            created_at=updated.created_at,
+            updated_at=updated.updated_at,
         )
-    except ValidationError as e:
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(e),
         )
 
 
-# --- Interview Endpoints ---
+# =============================================================================
+# Interview Endpoints
+# =============================================================================
 
 
 class InterviewCreateRequest(BaseModel):
@@ -553,7 +584,7 @@ async def estimate_scorecard_for_experiment(
     """
     # Validate experiment exists and get details
     exp_service = get_experiment_service()
-    experiment = exp_service.get_experiment_detail(experiment_id)
+    experiment = exp_service.get_experiment(experiment_id)
     if experiment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -565,30 +596,32 @@ async def estimate_scorecard_for_experiment(
     try:
         estimate = estimator.estimate_from_experiment(experiment)
         return ScorecardEstimateResponse(
-            complexity=DimensionEstimate(
-                value=estimate.complexity.value,
-                justification=estimate.complexity.justification,
-                min=estimate.complexity.min,
-                max=estimate.complexity.max,
+            complexity=ScorecardDimensionSchema(
+                score=estimate.complexity.value,
+                rules_applied=[],
+                lower_bound=estimate.complexity.min,
+                upper_bound=estimate.complexity.max,
             ),
-            initial_effort=DimensionEstimate(
-                value=estimate.initial_effort.value,
-                justification=estimate.initial_effort.justification,
-                min=estimate.initial_effort.min,
-                max=estimate.initial_effort.max,
+            initial_effort=ScorecardDimensionSchema(
+                score=estimate.initial_effort.value,
+                rules_applied=[],
+                lower_bound=estimate.initial_effort.min,
+                upper_bound=estimate.initial_effort.max,
             ),
-            perceived_risk=DimensionEstimate(
-                value=estimate.perceived_risk.value,
-                justification=estimate.perceived_risk.justification,
-                min=estimate.perceived_risk.min,
-                max=estimate.perceived_risk.max,
+            perceived_risk=ScorecardDimensionSchema(
+                score=estimate.perceived_risk.value,
+                rules_applied=[],
+                lower_bound=estimate.perceived_risk.min,
+                upper_bound=estimate.perceived_risk.max,
             ),
-            time_to_value=DimensionEstimate(
-                value=estimate.time_to_value.value,
-                justification=estimate.time_to_value.justification,
-                min=estimate.time_to_value.min,
-                max=estimate.time_to_value.max,
+            time_to_value=ScorecardDimensionSchema(
+                score=estimate.time_to_value.value,
+                rules_applied=[],
+                lower_bound=estimate.time_to_value.min,
+                upper_bound=estimate.time_to_value.max,
             ),
+            justification=getattr(estimate, "justification", ""),
+            impact_hypotheses=getattr(estimate, "impact_hypotheses", []),
         )
     except ScorecardEstimationError as e:
         raise HTTPException(

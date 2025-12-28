@@ -19,25 +19,29 @@ from loguru import logger
 
 from synth_lab.infrastructure.config import DB_PATH
 
-# Database schema SQL - Version 6 (2025-12)
+# Database schema SQL - Version 7 (2025-12)
 # Changes:
 #   - v4: synths.data: single JSON field for all nested data
 #   - v5: Added simulation tables (feature_scorecards, simulation_runs, synth_outcomes,
 #         region_analyses, assumption_log)
 #   - v6: Added experiments table, synth_groups table, added experiment_id to
 #         feature_scorecards and research_executions, added synth_group_id to synths
+#   - v7: Refactored experiment model - scorecard embedded in experiments,
+#         analysis_runs replaces simulation_runs with 1:1 relationship to experiment,
+#         synth_outcomes now references analysis_runs
 SCHEMA_SQL = """
 -- Enable recommended settings
 PRAGMA journal_mode=WAL;
 PRAGMA foreign_keys=ON;
 PRAGMA synchronous=NORMAL;
 
--- Experiments table (NEW in v6)
+-- Experiments table (MODIFIED in v7 - scorecard embedded, length constraints)
 CREATE TABLE IF NOT EXISTS experiments (
     id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    hypothesis TEXT NOT NULL,
-    description TEXT,
+    name TEXT NOT NULL CHECK(length(name) <= 100),
+    hypothesis TEXT NOT NULL CHECK(length(hypothesis) <= 500),
+    description TEXT CHECK(length(description) <= 2000),
+    scorecard_data TEXT CHECK(json_valid(scorecard_data) OR scorecard_data IS NULL),
     created_at TEXT NOT NULL,
     updated_at TEXT
 );
@@ -45,7 +49,40 @@ CREATE TABLE IF NOT EXISTS experiments (
 CREATE INDEX IF NOT EXISTS idx_experiments_created ON experiments(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_experiments_name ON experiments(name);
 
--- Synth Groups table (NEW in v6)
+-- Analysis Runs table (NEW in v7 - replaces simulation_runs, 1:1 with experiment)
+CREATE TABLE IF NOT EXISTS analysis_runs (
+    id TEXT PRIMARY KEY,
+    experiment_id TEXT NOT NULL UNIQUE,
+    config TEXT NOT NULL CHECK(json_valid(config)),
+    status TEXT NOT NULL DEFAULT 'pending',
+    started_at TEXT NOT NULL,
+    completed_at TEXT,
+    total_synths INTEGER DEFAULT 0,
+    aggregated_outcomes TEXT CHECK(json_valid(aggregated_outcomes) OR aggregated_outcomes IS NULL),
+    execution_time_seconds REAL,
+    CHECK(status IN ('pending', 'running', 'completed', 'failed')),
+    FOREIGN KEY (experiment_id) REFERENCES experiments(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_analysis_runs_experiment ON analysis_runs(experiment_id);
+CREATE INDEX IF NOT EXISTS idx_analysis_runs_status ON analysis_runs(status);
+
+-- Synth Outcomes (MODIFIED in v7 - references analysis_runs instead of simulation_runs)
+CREATE TABLE IF NOT EXISTS synth_outcomes (
+    id TEXT PRIMARY KEY,
+    analysis_id TEXT NOT NULL,
+    synth_id TEXT NOT NULL,
+    did_not_try_rate REAL NOT NULL,
+    failed_rate REAL NOT NULL,
+    success_rate REAL NOT NULL,
+    synth_attributes TEXT CHECK(json_valid(synth_attributes)),
+    UNIQUE(analysis_id, synth_id),
+    FOREIGN KEY (analysis_id) REFERENCES analysis_runs(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_outcomes_analysis ON synth_outcomes(analysis_id);
+
+-- Synth Groups table
 CREATE TABLE IF NOT EXISTS synth_groups (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -55,7 +92,7 @@ CREATE TABLE IF NOT EXISTS synth_groups (
 
 CREATE INDEX IF NOT EXISTS idx_synth_groups_created ON synth_groups(created_at DESC);
 
--- Synths table (MODIFIED in v6 - added synth_group_id)
+-- Synths table
 CREATE TABLE IF NOT EXISTS synths (
     id TEXT PRIMARY KEY,
     synth_group_id TEXT,
@@ -73,22 +110,22 @@ CREATE INDEX IF NOT EXISTS idx_synths_created_at ON synths(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_synths_nome ON synths(nome);
 CREATE INDEX IF NOT EXISTS idx_synths_group ON synths(synth_group_id);
 
--- Research executions table (MODIFIED in v6 - added experiment_id)
+-- Research executions table (interviews, N:1 with experiment)
 CREATE TABLE IF NOT EXISTS research_executions (
     exec_id TEXT PRIMARY KEY,
     experiment_id TEXT,
     topic_name TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'completed',
-    synth_count INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    synth_count INTEGER NOT NULL DEFAULT 0,
     successful_count INTEGER DEFAULT 0,
     failed_count INTEGER DEFAULT 0,
-    model TEXT DEFAULT 'gpt-5-mini',
+    model TEXT DEFAULT 'gpt-4o-mini',
     max_turns INTEGER DEFAULT 6,
     started_at TEXT NOT NULL,
     completed_at TEXT,
     summary_content TEXT,
     CHECK(status IN ('pending', 'running', 'generating_summary', 'completed', 'failed')),
-    FOREIGN KEY (experiment_id) REFERENCES experiments(id)
+    FOREIGN KEY (experiment_id) REFERENCES experiments(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_executions_topic ON research_executions(topic_name);
@@ -98,15 +135,16 @@ CREATE INDEX IF NOT EXISTS idx_executions_experiment ON research_executions(expe
 
 -- Transcripts table
 CREATE TABLE IF NOT EXISTS transcripts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY,
     exec_id TEXT NOT NULL,
     synth_id TEXT NOT NULL,
-    synth_name TEXT,
-    status TEXT NOT NULL DEFAULT 'completed',
+    synth_name TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
     turn_count INTEGER DEFAULT 0,
     timestamp TEXT NOT NULL,
-    messages TEXT CHECK(json_valid(messages) OR messages IS NULL),
-    UNIQUE(exec_id, synth_id)
+    messages TEXT CHECK(json_valid(messages)),
+    UNIQUE(exec_id, synth_id),
+    FOREIGN KEY (exec_id) REFERENCES research_executions(exec_id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_transcripts_exec ON transcripts(exec_id);
@@ -116,7 +154,7 @@ CREATE INDEX IF NOT EXISTS idx_transcripts_synth ON transcripts(synth_id);
 CREATE TABLE IF NOT EXISTS prfaq_metadata (
     exec_id TEXT PRIMARY KEY,
     generated_at TEXT,
-    model TEXT DEFAULT 'gpt-5-mini',
+    model TEXT DEFAULT 'gpt-4o-mini',
     validation_status TEXT DEFAULT 'valid',
     confidence_score REAL,
     headline TEXT,
@@ -146,7 +184,8 @@ CREATE TABLE IF NOT EXISTS topic_guides_cache (
     updated_at TEXT
 );
 
--- Feature Scorecards (simulation) (MODIFIED in v6 - added experiment_id)
+-- Legacy tables (kept for backward compatibility, will be removed in future)
+-- Feature Scorecards (legacy - scorecard now embedded in experiments)
 CREATE TABLE IF NOT EXISTS feature_scorecards (
     id TEXT PRIMARY KEY,
     experiment_id TEXT,
@@ -159,7 +198,7 @@ CREATE TABLE IF NOT EXISTS feature_scorecards (
 CREATE INDEX IF NOT EXISTS idx_scorecards_created ON feature_scorecards(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_scorecards_experiment ON feature_scorecards(experiment_id);
 
--- Simulation Runs
+-- Simulation Runs (legacy - replaced by analysis_runs)
 CREATE TABLE IF NOT EXISTS simulation_runs (
     id TEXT PRIMARY KEY,
     scorecard_id TEXT NOT NULL,
@@ -177,21 +216,6 @@ CREATE TABLE IF NOT EXISTS simulation_runs (
 
 CREATE INDEX IF NOT EXISTS idx_simulations_scorecard ON simulation_runs(scorecard_id);
 CREATE INDEX IF NOT EXISTS idx_simulations_status ON simulation_runs(status);
-
--- Synth Outcomes (simulation results per synth)
-CREATE TABLE IF NOT EXISTS synth_outcomes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    simulation_id TEXT NOT NULL,
-    synth_id TEXT NOT NULL,
-    did_not_try_rate REAL NOT NULL,
-    failed_rate REAL NOT NULL,
-    success_rate REAL NOT NULL,
-    synth_attributes TEXT CHECK(json_valid(synth_attributes)),
-    UNIQUE(simulation_id, synth_id),
-    FOREIGN KEY (simulation_id) REFERENCES simulation_runs(id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_outcomes_simulation ON synth_outcomes(simulation_id);
 
 -- Region Analyses (simulation analysis results)
 CREATE TABLE IF NOT EXISTS region_analyses (
@@ -234,6 +258,12 @@ def init_database(db_path: Path | None = None) -> None:
     Args:
         db_path: Path to database file. Defaults to config.DB_PATH.
     """
+    from synth_lab.domain.entities.synth_group import (
+        DEFAULT_SYNTH_GROUP_DESCRIPTION,
+        DEFAULT_SYNTH_GROUP_ID,
+        DEFAULT_SYNTH_GROUP_NAME,
+    )
+
     target_path = db_path or DB_PATH
 
     logger.info(f"Initializing database at {target_path}")
@@ -245,6 +275,17 @@ def init_database(db_path: Path | None = None) -> None:
     try:
         conn.executescript(SCHEMA_SQL)
         logger.info("Database schema created successfully")
+
+        # Ensure default synth group exists (ID=1, always present)
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO synth_groups (id, name, description, created_at)
+            VALUES (?, ?, ?, datetime('now'))
+            """,
+            (DEFAULT_SYNTH_GROUP_ID, DEFAULT_SYNTH_GROUP_NAME, DEFAULT_SYNTH_GROUP_DESCRIPTION),
+        )
+        conn.commit()
+        logger.info(f"Default synth group ensured: {DEFAULT_SYNTH_GROUP_ID}")
     finally:
         conn.close()
 

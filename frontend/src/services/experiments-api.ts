@@ -123,3 +123,30 @@ export async function estimateScorecardForExperiment(
     { method: 'POST' }
   );
 }
+
+/**
+ * Request for scorecard estimation from text.
+ */
+export interface ScorecardEstimateRequest {
+  name: string;
+  hypothesis: string;
+  description?: string;
+}
+
+/**
+ * Estimate scorecard dimensions using AI from text input.
+ *
+ * This allows estimation before an experiment exists.
+ * Useful for the experiment form to get AI-generated slider values.
+ */
+export async function estimateScorecardFromText(
+  data: ScorecardEstimateRequest
+): Promise<ScorecardEstimateResponse> {
+  return fetchAPI<ScorecardEstimateResponse>(
+    '/experiments/estimate-scorecard',
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }
+  );
+}

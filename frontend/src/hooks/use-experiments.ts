@@ -19,6 +19,8 @@ import {
   createScorecardForExperiment,
   createInterviewForExperiment,
   estimateScorecardForExperiment,
+  estimateScorecardFromText,
+  type ScorecardEstimateRequest,
 } from '@/services/experiments-api';
 import type { PaginationParams } from '@/types';
 import type { ExperimentCreate, ExperimentUpdate, ScorecardCreate } from '@/types/experiment';
@@ -134,10 +136,19 @@ export function useCreateInterviewForExperiment() {
 }
 
 /**
- * Hook to estimate scorecard dimensions using AI.
+ * Hook to estimate scorecard dimensions using AI for an existing experiment.
  */
 export function useEstimateScorecardForExperiment() {
   return useMutation({
     mutationFn: (experimentId: string) => estimateScorecardForExperiment(experimentId),
+  });
+}
+
+/**
+ * Hook to estimate scorecard dimensions from text input (before experiment exists).
+ */
+export function useEstimateScorecardFromText() {
+  return useMutation({
+    mutationFn: (data: ScorecardEstimateRequest) => estimateScorecardFromText(data),
   });
 }

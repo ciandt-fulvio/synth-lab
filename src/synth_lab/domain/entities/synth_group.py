@@ -14,6 +14,11 @@ from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field, field_validator
 
+# Default synth group - always exists and is used when no group is specified
+DEFAULT_SYNTH_GROUP_ID = "grp_00000001"
+DEFAULT_SYNTH_GROUP_NAME = "Default"
+DEFAULT_SYNTH_GROUP_DESCRIPTION = "Grupo padrão para synths sem grupo específico"
+
 
 def generate_synth_group_id() -> str:
     """

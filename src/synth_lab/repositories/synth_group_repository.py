@@ -12,7 +12,12 @@ from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field
 
-from synth_lab.domain.entities.synth_group import SynthGroup
+from synth_lab.domain.entities.synth_group import (
+    DEFAULT_SYNTH_GROUP_DESCRIPTION,
+    DEFAULT_SYNTH_GROUP_ID,
+    DEFAULT_SYNTH_GROUP_NAME,
+    SynthGroup,
+)
 from synth_lab.infrastructure.database import DatabaseManager
 from synth_lab.models.pagination import PaginatedResponse, PaginationMeta, PaginationParams
 from synth_lab.repositories.base import BaseRepository
@@ -55,6 +60,38 @@ class SynthGroupRepository(BaseRepository):
 
     def __init__(self, db: DatabaseManager | None = None):
         super().__init__(db)
+
+    def ensure_default_group(self) -> SynthGroupSummary:
+        """
+        Ensure the default synth group exists.
+
+        Creates the default group if it doesn't exist, returns it if it does.
+        This is the group used when no specific group is provided during synth generation.
+
+        Returns:
+            SynthGroupSummary: The default synth group.
+        """
+        # Check if default group exists
+        existing = self.get_by_id(DEFAULT_SYNTH_GROUP_ID)
+        if existing:
+            return existing
+
+        # Create default group if it doesn't exist
+        now = datetime.now(timezone.utc)
+        self.db.execute(
+            """
+            INSERT OR IGNORE INTO synth_groups (id, name, description, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                DEFAULT_SYNTH_GROUP_ID,
+                DEFAULT_SYNTH_GROUP_NAME,
+                DEFAULT_SYNTH_GROUP_DESCRIPTION,
+                now.isoformat(),
+            ),
+        )
+
+        return self.get_by_id(DEFAULT_SYNTH_GROUP_ID)
 
     def create(self, group: SynthGroup) -> SynthGroup:
         """
@@ -257,6 +294,7 @@ if __name__ == "__main__":
     from pathlib import Path
 
     from synth_lab.domain.entities.synth_group import SynthGroup
+    from synth_lab.infrastructure.database import init_database
 
     # Validation
     all_validation_failures = []
@@ -265,8 +303,20 @@ if __name__ == "__main__":
     # Use a temporary database for testing
     with tempfile.TemporaryDirectory() as tmpdir:
         test_db_path = Path(tmpdir) / "test.db"
+        init_database(test_db_path)  # Initialize schema first
         db = DatabaseManager(test_db_path)
         repo = SynthGroupRepository(db)
+
+        # Test 0: Default group should already exist after init_database
+        total_tests += 1
+        try:
+            default_group = repo.get_by_id(DEFAULT_SYNTH_GROUP_ID)
+            if default_group is None:
+                all_validation_failures.append("Default group not found after init_database")
+            elif default_group.name != DEFAULT_SYNTH_GROUP_NAME:
+                all_validation_failures.append(f"Default group name mismatch: {default_group.name}")
+        except Exception as e:
+            all_validation_failures.append(f"Default group check failed: {e}")
 
         # Test 1: Create synth group
         total_tests += 1
@@ -298,13 +348,14 @@ if __name__ == "__main__":
         except Exception as e:
             all_validation_failures.append(f"Get non-existent failed: {e}")
 
-        # Test 4: List groups
+        # Test 4: List groups (should have default + created group = 2)
         total_tests += 1
         try:
             params = PaginationParams(limit=10, offset=0)
             result = repo.list_groups(params)
-            if len(result.data) != 1:
-                all_validation_failures.append(f"Expected 1 group, got {len(result.data)}")
+            # Default group + created group = 2
+            if len(result.data) != 2:
+                all_validation_failures.append(f"Expected 2 groups (default + created), got {len(result.data)}")
         except Exception as e:
             all_validation_failures.append(f"List groups failed: {e}")
 

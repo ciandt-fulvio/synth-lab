@@ -1,58 +1,93 @@
 /**
- * T009 TypeScript types for Experiment.
+ * TypeScript types for Experiment (Refactored).
  *
  * Types for experiment API request/response handling.
+ * Updated to match spec 019-experiment-refactor.
  *
  * References:
- *   - OpenAPI: specs/018-experiment-hub/contracts/openapi.yaml
- *   - Data model: specs/018-experiment-hub/data-model.md
+ *   - Spec: specs/019-experiment-refactor/spec.md
+ *   - Data model: specs/019-experiment-refactor/data-model.md
  */
 
 import type { PaginationMeta } from './common';
 
+// =============================================================================
+// Scorecard Types (Embedded)
+// =============================================================================
+
 /**
- * Request schema for creating a new experiment.
+ * Scorecard dimension with score and optional metadata.
  */
-export interface ExperimentCreate {
-  /** Short name of the feature (max 100 chars) */
-  name: string;
-  /** Description of the hypothesis to test (max 500 chars) */
-  hypothesis: string;
-  /** Additional context, links, references (max 2000 chars) */
-  description?: string;
+export interface ScorecardDimension {
+  /** Score value in [0,1] */
+  score: number;
+  /** Rules applied to derive score */
+  rules_applied?: string[];
+  /** Lower bound for uncertainty */
+  lower_bound?: number;
+  /** Upper bound for uncertainty */
+  upper_bound?: number;
 }
 
 /**
- * Request schema for updating an experiment.
+ * Embedded scorecard data within an experiment.
  */
-export interface ExperimentUpdate {
-  /** Short name of the feature (max 100 chars) */
-  name?: string;
-  /** Description of the hypothesis to test (max 500 chars) */
-  hypothesis?: string;
-  /** Additional context, links, references (max 2000 chars) */
-  description?: string;
+export interface ScorecardData {
+  /** Name of the feature */
+  feature_name: string;
+  /** Feature description */
+  description_text: string;
+  /** Usage scenario */
+  use_scenario?: string;
+  /** Complexity dimension */
+  complexity: ScorecardDimension;
+  /** Initial effort dimension */
+  initial_effort: ScorecardDimension;
+  /** Perceived risk dimension */
+  perceived_risk: ScorecardDimension;
+  /** Time to value dimension */
+  time_to_value: ScorecardDimension;
+  /** LLM-generated justification */
+  justification?: string;
+  /** Impact hypotheses */
+  impact_hypotheses?: string[];
+}
+
+// =============================================================================
+// Analysis Types (1:1 Relationship)
+// =============================================================================
+
+/**
+ * Aggregated outcomes from analysis.
+ */
+export interface AggregatedOutcomes {
+  /** Proportion that did not try (0-1) */
+  did_not_try_rate: number;
+  /** Proportion that tried but failed (0-1) */
+  failed_rate: number;
+  /** Proportion that succeeded (0-1) */
+  success_rate: number;
 }
 
 /**
- * Summary of a simulation linked to an experiment.
+ * Summary of analysis linked to an experiment (1:1 relationship).
  */
-export interface SimulationSummary {
-  /** Simulation run ID */
+export interface AnalysisSummary {
+  /** Analysis run ID */
   id: string;
-  /** Scenario identifier (nullable) */
-  scenario_id?: string | null;
-  /** Simulation status */
+  /** Analysis status */
   status: 'pending' | 'running' | 'completed' | 'failed';
-  /** Whether insights are available */
-  has_insights: boolean;
   /** Start timestamp */
   started_at: string;
   /** Completion timestamp */
   completed_at?: string | null;
-  /** Aggregated score (0-100) */
-  score?: number | null;
+  /** Aggregated outcomes from analysis */
+  aggregated_outcomes?: AggregatedOutcomes | null;
 }
+
+// =============================================================================
+// Interview Types (N:1 Relationship)
+// =============================================================================
 
 /**
  * Summary of an interview linked to an experiment.
@@ -76,6 +111,40 @@ export interface InterviewSummary {
   completed_at?: string | null;
 }
 
+// =============================================================================
+// Experiment Request Types
+// =============================================================================
+
+/**
+ * Request schema for creating a new experiment.
+ */
+export interface ExperimentCreate {
+  /** Short name of the feature (max 100 chars) */
+  name: string;
+  /** Description of the hypothesis to test (max 500 chars) */
+  hypothesis: string;
+  /** Additional context, links, references (max 2000 chars) */
+  description?: string;
+  /** Optional scorecard data to create with experiment */
+  scorecard_data?: ScorecardData;
+}
+
+/**
+ * Request schema for updating an experiment.
+ */
+export interface ExperimentUpdate {
+  /** Short name of the feature (max 100 chars) */
+  name?: string;
+  /** Description of the hypothesis to test (max 500 chars) */
+  hypothesis?: string;
+  /** Additional context, links, references (max 2000 chars) */
+  description?: string;
+}
+
+// =============================================================================
+// Experiment Response Types
+// =============================================================================
+
 /**
  * Summary of an experiment for list display.
  */
@@ -86,8 +155,12 @@ export interface ExperimentSummary {
   name: string;
   /** Hypothesis description */
   hypothesis: string;
-  /** Number of linked simulations */
-  simulation_count: number;
+  /** Additional context */
+  description?: string | null;
+  /** Whether scorecard is filled */
+  has_scorecard: boolean;
+  /** Whether analysis exists */
+  has_analysis: boolean;
   /** Number of linked interviews */
   interview_count: number;
   /** Creation timestamp */
@@ -97,15 +170,31 @@ export interface ExperimentSummary {
 }
 
 /**
- * Full experiment details including linked simulations and interviews.
+ * Full experiment details including linked analysis and interviews.
  */
-export interface ExperimentDetail extends ExperimentSummary {
+export interface ExperimentDetail {
+  /** Experiment ID (exp_[a-f0-9]{8}) */
+  id: string;
+  /** Short name of the feature */
+  name: string;
+  /** Hypothesis description */
+  hypothesis: string;
   /** Additional context */
   description?: string | null;
-  /** Linked simulations */
-  simulations: SimulationSummary[];
-  /** Linked interviews */
+  /** Embedded scorecard data */
+  scorecard_data?: ScorecardData | null;
+  /** Whether scorecard is filled */
+  has_scorecard: boolean;
+  /** Creation timestamp */
+  created_at: string;
+  /** Last update timestamp */
+  updated_at?: string | null;
+  /** Linked analysis (1:1 relationship) */
+  analysis?: AnalysisSummary | null;
+  /** Linked interviews (N:1 relationship) */
   interviews: InterviewSummary[];
+  /** Number of linked interviews */
+  interview_count: number;
 }
 
 /**
@@ -116,8 +205,13 @@ export interface PaginatedExperimentSummary {
   pagination: PaginationMeta;
 }
 
+// =============================================================================
+// Scorecard API Types (Legacy - for backward compatibility)
+// =============================================================================
+
 /**
  * Dimension score configuration for scorecards.
+ * @deprecated Use ScorecardDimension instead
  */
 export interface DimensionCreate {
   /** Score value in [0,1] */
@@ -132,6 +226,7 @@ export interface DimensionCreate {
 
 /**
  * Request schema for creating a scorecard linked to an experiment.
+ * @deprecated Use PUT /experiments/{id}/scorecard with ScorecardData instead
  */
 export interface ScorecardCreate {
   /** Name of the feature */
@@ -156,6 +251,7 @@ export interface ScorecardCreate {
 
 /**
  * Response schema for a created scorecard.
+ * @deprecated Use ExperimentDetail.scorecard_data instead
  */
 export interface ScorecardResponse {
   /** Scorecard ID (8 char alphanumeric) */
@@ -186,18 +282,22 @@ export interface ScorecardResponse {
   updated_at: string | null;
 }
 
+// =============================================================================
+// AI Estimation Types
+// =============================================================================
+
 /**
  * AI-generated dimension estimate.
  */
 export interface DimensionEstimate {
   /** Estimated score value in [0,1] */
-  value: number;
+  score: number;
   /** Brief justification for the score */
-  justification: string;
+  justification?: string;
   /** Minimum uncertainty bound */
-  min: number;
+  lower_bound?: number;
   /** Maximum uncertainty bound */
-  max: number;
+  upper_bound?: number;
 }
 
 /**
@@ -208,4 +308,6 @@ export interface ScorecardEstimateResponse {
   initial_effort: DimensionEstimate;
   perceived_risk: DimensionEstimate;
   time_to_value: DimensionEstimate;
+  justification?: string;
+  impact_hypotheses?: string[];
 }

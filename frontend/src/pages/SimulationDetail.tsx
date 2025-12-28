@@ -138,7 +138,7 @@ export default function SimulationDetail() {
               variant="ghost"
               size="sm"
               onClick={() => navigate(`/experiments/${expId}`)}
-              className="text-gray-600 hover:text-purple-600"
+              className="btn-ghost"
             >
               <ArrowLeft className="w-4 h-4 mr-1" />
               {experiment.name}

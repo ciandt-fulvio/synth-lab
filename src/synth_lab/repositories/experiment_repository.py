@@ -1,18 +1,20 @@
 """
-T012 ExperimentRepository for synth-lab.
+ExperimentRepository for synth-lab.
 
 Data access layer for experiment data in SQLite database.
+Supports embedded scorecard data and related counts.
 
 References:
-    - Spec: specs/018-experiment-hub/spec.md
-    - Data model: specs/018-experiment-hub/data-model.md
+    - Spec: specs/019-experiment-refactor/spec.md
+    - Data model: specs/019-experiment-refactor/data-model.md
 """
 
+import json
 from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field
 
-from synth_lab.domain.entities.experiment import Experiment
+from synth_lab.domain.entities.experiment import Experiment, ScorecardData
 from synth_lab.infrastructure.database import DatabaseManager
 from synth_lab.models.pagination import PaginatedResponse, PaginationMeta, PaginationParams
 from synth_lab.repositories.base import BaseRepository
@@ -25,7 +27,8 @@ class ExperimentSummary(BaseModel):
     name: str = Field(description="Short name of the feature.")
     hypothesis: str = Field(description="Hypothesis description.")
     description: str | None = Field(default=None, description="Additional context.")
-    simulation_count: int = Field(default=0, description="Number of linked simulations.")
+    has_scorecard: bool = Field(default=False, description="Whether scorecard is filled.")
+    has_analysis: bool = Field(default=False, description="Whether analysis exists.")
     interview_count: int = Field(default=0, description="Number of linked interviews.")
     created_at: datetime = Field(description="Creation timestamp.")
     updated_at: datetime | None = Field(default=None, description="Last update timestamp.")
@@ -47,16 +50,21 @@ class ExperimentRepository(BaseRepository):
         Returns:
             Created experiment with persisted data.
         """
+        scorecard_json = None
+        if experiment.scorecard_data:
+            scorecard_json = json.dumps(experiment.scorecard_data.model_dump())
+
         self.db.execute(
             """
-            INSERT INTO experiments (id, name, hypothesis, description, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO experiments (id, name, hypothesis, description, scorecard_data, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 experiment.id,
                 experiment.name,
                 experiment.hypothesis,
                 experiment.description,
+                scorecard_json,
                 experiment.created_at.isoformat(),
                 experiment.updated_at.isoformat() if experiment.updated_at else None,
             ),
@@ -93,24 +101,20 @@ class ExperimentRepository(BaseRepository):
         Returns:
             Paginated response with experiment summaries.
         """
-        # Query with simulation and interview counts
+        # Query with analysis and interview counts
         base_query = """
             SELECT
                 e.id,
                 e.name,
                 e.hypothesis,
                 e.description,
+                e.scorecard_data,
                 e.created_at,
                 e.updated_at,
-                COALESCE(sim.cnt, 0) as simulation_count,
+                CASE WHEN ana.id IS NOT NULL THEN 1 ELSE 0 END as has_analysis,
                 COALESCE(int.cnt, 0) as interview_count
             FROM experiments e
-            LEFT JOIN (
-                SELECT experiment_id, COUNT(*) as cnt
-                FROM feature_scorecards
-                WHERE experiment_id IS NOT NULL
-                GROUP BY experiment_id
-            ) sim ON e.id = sim.experiment_id
+            LEFT JOIN analysis_runs ana ON e.id = ana.experiment_id
             LEFT JOIN (
                 SELECT experiment_id, COUNT(*) as cnt
                 FROM research_executions
@@ -134,6 +138,37 @@ class ExperimentRepository(BaseRepository):
         meta = PaginationMeta.from_params(total, params)
 
         return PaginatedResponse(data=summaries, pagination=meta)
+
+    def update_scorecard(
+        self, experiment_id: str, scorecard_data: ScorecardData
+    ) -> Experiment | None:
+        """
+        Update the scorecard data of an experiment.
+
+        Args:
+            experiment_id: ID of experiment to update.
+            scorecard_data: New scorecard data.
+
+        Returns:
+            Updated experiment if found, None otherwise.
+        """
+        existing = self.get_by_id(experiment_id)
+        if existing is None:
+            return None
+
+        updated_at = datetime.now(timezone.utc)
+        scorecard_json = json.dumps(scorecard_data.model_dump())
+
+        self.db.execute(
+            """
+            UPDATE experiments
+            SET scorecard_data = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (scorecard_json, updated_at.isoformat(), experiment_id),
+        )
+
+        return self.get_by_id(experiment_id)
 
     def update(
         self,
@@ -214,11 +249,19 @@ class ExperimentRepository(BaseRepository):
         if isinstance(updated_at, str):
             updated_at = datetime.fromisoformat(updated_at)
 
+        # Parse scorecard data if present
+        scorecard_data = None
+        scorecard_json = row["scorecard_data"] if "scorecard_data" in row.keys() else None
+        if scorecard_json:
+            scorecard_dict = json.loads(scorecard_json)
+            scorecard_data = ScorecardData(**scorecard_dict)
+
         return Experiment(
             id=row["id"],
             name=row["name"],
             hypothesis=row["hypothesis"],
             description=row["description"],
+            scorecard_data=scorecard_data,
             created_at=created_at,
             updated_at=updated_at,
         )
@@ -233,12 +276,18 @@ class ExperimentRepository(BaseRepository):
         if isinstance(updated_at, str):
             updated_at = datetime.fromisoformat(updated_at)
 
+        # Check if scorecard is present
+        has_scorecard = False
+        if "scorecard_data" in row.keys() and row["scorecard_data"]:
+            has_scorecard = True
+
         return ExperimentSummary(
             id=row["id"],
             name=row["name"],
             hypothesis=row["hypothesis"],
             description=row["description"],
-            simulation_count=row["simulation_count"] if "simulation_count" in row.keys() else 0,
+            has_scorecard=has_scorecard,
+            has_analysis=bool(row["has_analysis"]) if "has_analysis" in row.keys() else False,
             interview_count=row["interview_count"] if "interview_count" in row.keys() else 0,
             created_at=created_at,
             updated_at=updated_at,
@@ -250,7 +299,12 @@ if __name__ == "__main__":
     import tempfile
     from pathlib import Path
 
-    from synth_lab.domain.entities.experiment import Experiment
+    from synth_lab.domain.entities.experiment import (
+        Experiment,
+        ScorecardData,
+        ScorecardDimension,
+    )
+    from synth_lab.infrastructure.database import init_database
 
     # Validation
     all_validation_failures = []
@@ -259,6 +313,7 @@ if __name__ == "__main__":
     # Use a temporary database for testing
     with tempfile.TemporaryDirectory() as tmpdir:
         test_db_path = Path(tmpdir) / "test.db"
+        init_database(test_db_path)
         db = DatabaseManager(test_db_path)
         repo = ExperimentRepository(db)
 
@@ -315,7 +370,68 @@ if __name__ == "__main__":
         except Exception as e:
             all_validation_failures.append(f"Update failed: {e}")
 
-        # Test 6: Delete experiment
+        # Test 6: Create experiment with scorecard
+        total_tests += 1
+        try:
+            scorecard = ScorecardData(
+                feature_name="Test Feature",
+                description_text="A test feature",
+                complexity=ScorecardDimension(score=0.3),
+                initial_effort=ScorecardDimension(score=0.4),
+                perceived_risk=ScorecardDimension(score=0.2),
+                time_to_value=ScorecardDimension(score=0.6),
+            )
+            exp2 = Experiment(
+                name="With Scorecard",
+                hypothesis="Has scorecard",
+                scorecard_data=scorecard,
+            )
+            result = repo.create(exp2)
+            retrieved = repo.get_by_id(exp2.id)
+            if retrieved is None:
+                all_validation_failures.append("Experiment with scorecard not found")
+            elif not retrieved.has_scorecard():
+                all_validation_failures.append("has_scorecard() should be True")
+            elif retrieved.scorecard_data.feature_name != "Test Feature":
+                all_validation_failures.append("Scorecard feature_name mismatch")
+        except Exception as e:
+            all_validation_failures.append(f"Create with scorecard failed: {e}")
+
+        # Test 7: Update scorecard
+        total_tests += 1
+        try:
+            new_scorecard = ScorecardData(
+                feature_name="Updated Feature",
+                description_text="Updated description",
+                complexity=ScorecardDimension(score=0.5),
+                initial_effort=ScorecardDimension(score=0.5),
+                perceived_risk=ScorecardDimension(score=0.5),
+                time_to_value=ScorecardDimension(score=0.5),
+            )
+            updated = repo.update_scorecard(exp.id, new_scorecard)
+            if updated is None:
+                all_validation_failures.append("Update scorecard returned None")
+            elif not updated.has_scorecard():
+                all_validation_failures.append("Updated experiment should have scorecard")
+            elif updated.scorecard_data.feature_name != "Updated Feature":
+                all_validation_failures.append("Scorecard not updated correctly")
+        except Exception as e:
+            all_validation_failures.append(f"Update scorecard failed: {e}")
+
+        # Test 8: List shows has_scorecard
+        total_tests += 1
+        try:
+            params = PaginationParams(limit=10, offset=0)
+            result = repo.list_experiments(params)
+            scorecards_found = sum(1 for e in result.data if e.has_scorecard)
+            if scorecards_found != 2:
+                all_validation_failures.append(
+                    f"Expected 2 experiments with scorecard, got {scorecards_found}"
+                )
+        except Exception as e:
+            all_validation_failures.append(f"List with scorecard check failed: {e}")
+
+        # Test 9: Delete experiment
         total_tests += 1
         try:
             result = repo.delete(exp.id)

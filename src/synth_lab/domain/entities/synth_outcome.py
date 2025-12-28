@@ -1,13 +1,14 @@
 """
 Synth outcome entities for synth-lab.
 
-Defines models for simulation outcomes per synth.
+Defines models for analysis outcomes per synth.
 
 References:
-    - Spec: specs/016-feature-impact-simulation/spec.md
-    - Data model: specs/016-feature-impact-simulation/data-model.md
+    - Spec: specs/019-experiment-refactor/spec.md
+    - Data model: specs/019-experiment-refactor/data-model.md
 """
 
+import secrets
 from typing import Self
 
 from pydantic import BaseModel, Field, model_validator
@@ -15,17 +16,47 @@ from pydantic import BaseModel, Field, model_validator
 from synth_lab.domain.entities.simulation_attributes import SimulationAttributes
 
 
+def generate_outcome_id() -> str:
+    """
+    Generate an outcome ID with out_ prefix and 8-char hex suffix.
+
+    Returns:
+        str: ID in format out_[a-f0-9]{8}
+    """
+    return f"out_{secrets.token_hex(4)}"
+
+
 class SynthOutcome(BaseModel):
     """
-    Result of simulation for a specific synth.
+    Result of analysis for a specific synth.
 
-    Contains the outcome proportions from Monte Carlo simulation
-    and a snapshot of the synth's attributes at simulation time.
+    Contains the outcome proportions from Monte Carlo analysis
+    and a snapshot of the synth's attributes at analysis time.
+
+    Attributes:
+        id: Unique identifier (out_[a-f0-9]{8})
+        analysis_id: Parent analysis run ID
+        synth_id: ID of the synth
+        did_not_try_rate: Proportion that did not try (0-1)
+        failed_rate: Proportion that tried but failed (0-1)
+        success_rate: Proportion that succeeded (0-1)
+        synth_attributes: Synth attributes at time of analysis
     """
 
-    simulation_id: str = Field(description="ID of the simulation run.")
+    id: str = Field(
+        default_factory=generate_outcome_id,
+        pattern=r"^out_[a-f0-9]{8}$",
+        description="Unique outcome ID.",
+    )
 
-    synth_id: str = Field(description="ID of the synth.")
+    analysis_id: str = Field(
+        pattern=r"^ana_[a-f0-9]{8}$",
+        description="Parent analysis run ID.",
+    )
+
+    synth_id: str = Field(
+        description="ID of the synth.",
+    )
 
     # Outcome proportions [0, 1]
     did_not_try_rate: float = Field(
@@ -48,7 +79,7 @@ class SynthOutcome(BaseModel):
 
     # Snapshot of synth attributes
     synth_attributes: SimulationAttributes = Field(
-        description="Synth's simulation attributes at time of simulation.",
+        description="Synth's simulation attributes at time of analysis.",
     )
 
     @model_validator(mode="after")
@@ -58,6 +89,11 @@ class SynthOutcome(BaseModel):
         if not (0.99 <= total <= 1.01):
             raise ValueError(f"Rates must sum to 1.0, got {total}")
         return self
+
+
+# Legacy alias for backward compatibility
+# TODO: Remove in future version
+LegacySynthOutcome = SynthOutcome
 
 
 if __name__ == "__main__":
@@ -92,7 +128,7 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         outcome = SynthOutcome(
-            simulation_id="sim_abc12345",
+            analysis_id="ana_12345678",
             synth_id="synth_001",
             did_not_try_rate=0.22,
             failed_rate=0.38,
@@ -101,6 +137,8 @@ if __name__ == "__main__":
         )
         if outcome.success_rate != 0.40:
             all_validation_failures.append(f"success_rate mismatch: {outcome.success_rate}")
+        if not outcome.id.startswith("out_"):
+            all_validation_failures.append(f"ID should start with out_: {outcome.id}")
     except Exception as e:
         all_validation_failures.append(f"SynthOutcome creation failed: {e}")
 
@@ -108,7 +146,7 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         SynthOutcome(
-            simulation_id="sim_abc12345",
+            analysis_id="ana_12345678",
             synth_id="synth_001",
             did_not_try_rate=0.30,
             failed_rate=0.30,
@@ -125,7 +163,7 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         outcome = SynthOutcome(
-            simulation_id="sim_abc12345",
+            analysis_id="ana_12345678",
             synth_id="synth_001",
             did_not_try_rate=0.333,
             failed_rate=0.333,
@@ -140,7 +178,7 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         SynthOutcome(
-            simulation_id="sim_abc12345",
+            analysis_id="ana_12345678",
             synth_id="synth_001",
             did_not_try_rate=-0.1,
             failed_rate=0.5,
@@ -157,7 +195,7 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         SynthOutcome(
-            simulation_id="sim_abc12345",
+            analysis_id="ana_12345678",
             synth_id="synth_001",
             did_not_try_rate=1.5,
             failed_rate=0.0,
@@ -174,7 +212,7 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         outcome = SynthOutcome(
-            simulation_id="sim_abc12345",
+            analysis_id="ana_12345678",
             synth_id="synth_001",
             did_not_try_rate=1.0,
             failed_rate=0.0,
@@ -190,7 +228,7 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         outcome = SynthOutcome(
-            simulation_id="sim_abc12345",
+            analysis_id="ana_12345678",
             synth_id="synth_001",
             did_not_try_rate=0.0,
             failed_rate=0.0,
@@ -206,7 +244,7 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         outcome = SynthOutcome(
-            simulation_id="sim_abc12345",
+            analysis_id="ana_12345678",
             synth_id="synth_001",
             did_not_try_rate=0.22,
             failed_rate=0.38,
@@ -218,8 +256,36 @@ if __name__ == "__main__":
             all_validation_failures.append("model_dump missing synth_attributes")
         if "observables" not in dump["synth_attributes"]:
             all_validation_failures.append("model_dump missing observables")
+        if "analysis_id" not in dump:
+            all_validation_failures.append("model_dump missing analysis_id")
     except Exception as e:
         all_validation_failures.append(f"model_dump test failed: {e}")
+
+    # Test 9: Reject invalid analysis_id format
+    total_tests += 1
+    try:
+        SynthOutcome(
+            analysis_id="invalid_id",
+            synth_id="synth_001",
+            did_not_try_rate=0.22,
+            failed_rate=0.38,
+            success_rate=0.40,
+            synth_attributes=sample_attrs,
+        )
+        all_validation_failures.append("Should reject invalid analysis_id format")
+    except ValueError:
+        pass  # Expected
+    except Exception as e:
+        all_validation_failures.append(f"Unexpected error for invalid analysis_id: {e}")
+
+    # Test 10: ID generation uniqueness
+    total_tests += 1
+    try:
+        ids = {generate_outcome_id() for _ in range(100)}
+        if len(ids) != 100:
+            all_validation_failures.append("IDs should be unique")
+    except Exception as e:
+        all_validation_failures.append(f"ID generation test failed: {e}")
 
     # Final validation result
     if all_validation_failures:

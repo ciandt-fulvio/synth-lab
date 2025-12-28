@@ -55,6 +55,14 @@ class ScorecardEstimationError(Exception):
     pass
 
 
+class ScorecardEstimateInput(BaseModel):
+    """Input for scorecard estimation (without experiment ID)."""
+
+    name: str = Field(description="Feature name")
+    hypothesis: str = Field(description="Hypothesis to test")
+    description: str | None = Field(default=None, description="Additional description")
+
+
 class ScorecardEstimator:
     """LLM-powered scorecard dimension estimator."""
 
@@ -67,6 +75,69 @@ class ScorecardEstimator:
         """
         self.llm = llm_client or get_llm_client()
         self.logger = logger.bind(component="scorecard_estimator")
+
+    def estimate_from_text(
+        self,
+        name: str,
+        hypothesis: str,
+        description: str | None = None,
+    ) -> ScorecardEstimate:
+        """
+        Generate scorecard dimension estimates from text input.
+
+        This method allows estimation without an existing experiment ID,
+        useful for forms where the user wants to get AI estimates before
+        creating the experiment.
+
+        Args:
+            name: Feature name.
+            hypothesis: Hypothesis to test.
+            description: Optional additional description.
+
+        Returns:
+            ScorecardEstimate with all dimension estimates.
+
+        Raises:
+            ScorecardEstimationError: If LLM call fails or returns invalid data.
+        """
+        with _tracer.start_as_current_span(
+            "ScorecardEstimator: estimate_from_text",
+            attributes={
+                "feature_name": name,
+            },
+        ):
+            prompt = self._build_prompt_from_text(name, hypothesis, description)
+
+            self.logger.info(f"Estimating scorecard for feature: {name}")
+
+            try:
+                response = self.llm.complete_json(
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.3,
+                    operation_name="Scorecard AI Estimation (Form)",
+                )
+
+                data = json.loads(response)
+
+                estimate = ScorecardEstimate(
+                    complexity=DimensionEstimate(**data["complexity"]),
+                    initial_effort=DimensionEstimate(**data["initial_effort"]),
+                    perceived_risk=DimensionEstimate(**data["perceived_risk"]),
+                    time_to_value=DimensionEstimate(**data["time_to_value"]),
+                )
+
+                self.logger.info(f"Generated estimate for feature: {name}")
+                return estimate
+
+            except json.JSONDecodeError as e:
+                self.logger.error(f"Failed to parse LLM response: {e}")
+                raise ScorecardEstimationError(f"Failed to parse AI response: {e}")
+            except KeyError as e:
+                self.logger.error(f"Missing field in LLM response: {e}")
+                raise ScorecardEstimationError(f"AI response missing required field: {e}")
+            except Exception as e:
+                self.logger.error(f"Scorecard estimation failed: {e}")
+                raise ScorecardEstimationError(f"AI estimation failed: {e}")
 
     def estimate_from_experiment(
         self,
@@ -127,6 +198,25 @@ class ScorecardEstimator:
                 self.logger.error(f"Scorecard estimation failed: {e}")
                 raise ScorecardEstimationError(f"AI estimation failed: {e}")
 
+    def _build_prompt_from_text(
+        self,
+        name: str,
+        hypothesis: str,
+        description: str | None,
+    ) -> str:
+        """
+        Build the estimation prompt from text inputs.
+
+        Args:
+            name: Feature name.
+            hypothesis: Hypothesis to test.
+            description: Optional additional description.
+
+        Returns:
+            Formatted prompt string.
+        """
+        return self._build_prompt_content(name, hypothesis, description)
+
     def _build_prompt(self, experiment: ExperimentSummary) -> str:
         """
         Build the estimation prompt from experiment data.
@@ -137,13 +227,36 @@ class ScorecardEstimator:
         Returns:
             Formatted prompt string.
         """
+        return self._build_prompt_content(
+            experiment.name,
+            experiment.hypothesis,
+            experiment.description,
+        )
+
+    def _build_prompt_content(
+        self,
+        name: str,
+        hypothesis: str,
+        description: str | None,
+    ) -> str:
+        """
+        Build the estimation prompt content.
+
+        Args:
+            name: Feature name.
+            hypothesis: Hypothesis to test.
+            description: Optional additional description.
+
+        Returns:
+            Formatted prompt string.
+        """
         return f"""Você é um especialista em UX e product management.
 Sua tarefa é analisar uma feature/hipótese e estimar as dimensões do scorecard.
 
 ## Feature
-Nome: {experiment.name}
-Hipótese: {experiment.hypothesis}
-Descrição: {experiment.description or "Não fornecida"}
+Nome: {name}
+Hipótese: {hypothesis}
+Descrição: {description or "Não fornecida"}
 
 ## Regras de Scoring (0 = baixo / 1 = alto)
 

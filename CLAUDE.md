@@ -7,6 +7,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-22
 - SQLite (leitura apenas - sem persistência de chat) (015-synth-chat)
 - SQLite 3 com JSON1 extension (output/synthlab.db) - WAL mode (016-feature-impact-simulation)
 - Python 3.13+ (backend), TypeScript 5.5.3 (frontend) (018-experiment-hub)
+- Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI 0.109+, Pydantic 2.5+, React 18, TanStack Query 5.56+, shadcn/ui (019-experiment-refactor)
+- SQLite 3 com JSON1 extension e WAL mode (`output/synthlab.db`) (019-experiment-refactor)
 
 ### Backend
 - **Python**: 3.13+
@@ -328,9 +330,9 @@ LOG_LEVEL=INFO
 ```
 
 ## Recent Changes
+- 019-experiment-refactor: Added Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI 0.109+, Pydantic 2.5+, React 18, TanStack Query 5.56+, shadcn/ui
 - 018-experiment-hub: Added Python 3.13+ (backend), TypeScript 5.5.3 (frontend)
 - 016-feature-impact-simulation: Added Python 3.13+
-- 015-synth-chat: Added Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, OpenAI SDK, React 18, TanStack Query, shadcn/ui
 
 
 <!-- MANUAL ADDITIONS START -->
