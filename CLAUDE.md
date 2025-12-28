@@ -9,6 +9,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-22
 - Python 3.13+ (backend), TypeScript 5.5.3 (frontend) (018-experiment-hub)
 - Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI 0.109+, Pydantic 2.5+, React 18, TanStack Query 5.56+, shadcn/ui (019-experiment-refactor)
 - SQLite 3 com JSON1 extension e WAL mode (`output/synthlab.db`) (019-experiment-refactor)
+- TypeScript 5.5.3 (frontend) + React 18.3.1, TanStack React Query 5.56+, Recharts 2.12.7+, shadcn/ui (Radix UI), Tailwind CSS 3.4+ (020-experiment-results-frontend)
+- N/A (data from backend API) (020-experiment-results-frontend)
 
 ### Backend
 - **Python**: 3.13+
@@ -330,9 +332,9 @@ LOG_LEVEL=INFO
 ```
 
 ## Recent Changes
+- 020-experiment-results-frontend: Added TypeScript 5.5.3 (frontend) + React 18.3.1, TanStack React Query 5.56+, Recharts 2.12.7+, shadcn/ui (Radix UI), Tailwind CSS 3.4+
 - 019-experiment-refactor: Added Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI 0.109+, Pydantic 2.5+, React 18, TanStack Query 5.56+, shadcn/ui
 - 018-experiment-hub: Added Python 3.13+ (backend), TypeScript 5.5.3 (frontend)
-- 016-feature-impact-simulation: Added Python 3.13+
 
 
 <!-- MANUAL ADDITIONS START -->
