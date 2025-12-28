@@ -11,12 +11,20 @@ References:
 Sample usage:
 ```python
 from .batch_runner import run_batch_interviews
+from .runner import InterviewGuideData
+
+guide = InterviewGuideData(
+    context_definition="Pesquisa sobre checkout 1-clique...",
+    questions="Q1: Como você se sente...?",
+    context_examples="Exemplo de experiência...",
+)
 
 results, summary = await run_batch_interviews(
-    topic_guide_name="compra-amazon",
+    interview_guide=guide,
     max_interviews=10,
     max_concurrent=5,
-    model="gpt-xxxx"
+    model="gpt-xxxx",
+    guide_name="checkout-1clique"
 )
 ```
 """
@@ -44,7 +52,7 @@ from rich.progress import (
 
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
 
-from .runner import ConversationMessage, InterviewResult, run_interview
+from .runner import ConversationMessage, InterviewGuideData, InterviewResult, run_interview
 from .summarizer import summarize_interviews
 
 # Phoenix/OpenTelemetry tracer for observability
@@ -147,7 +155,7 @@ def _select_synths_for_interview(
 
 async def run_single_interview_safe(
     synth: dict[str, Any],
-    topic_guide_name: str,
+    interview_guide: InterviewGuideData,
     max_turns: int,
     semaphore: asyncio.Semaphore,
     progress: Progress,
@@ -161,25 +169,27 @@ async def run_single_interview_safe(
         str, str, int], Awaitable[None]] | None = None,
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
+    guide_name: str = "interview",
 ) -> tuple[InterviewResult | None, dict[str, Any], Exception | None]:
     """
     Run a single interview with error handling and semaphore control.
 
     Args:
         synth: Synth data dictionary
-        topic_guide_name: Name of the topic guide
-        model: LLM model to use
+        interview_guide: InterviewGuideData with context, questions, examples
         max_turns: Maximum conversation turns
         semaphore: Semaphore for concurrency control
         progress: Rich progress bar
         task_id: Task ID for progress updates
         batch_id: Batch identifier for grouping outputs
+        model: LLM model to use
         exec_id: Execution ID for SSE streaming (optional)
         message_callback: Async callback for real-time message streaming (optional)
         on_interview_completed: Async callback when interview completes (optional)
             Signature: (exec_id, synth_id, total_turns) -> None
         skip_interviewee_review: Whether to skip the interviewee response reviewer.
         additional_context: Optional additional context to complement the research scenario.
+        guide_name: Name identifier for the guide (for logging/tracing).
 
     Returns:
         Tuple of (result or None, synth_data, error or None)
@@ -194,7 +204,7 @@ async def run_single_interview_safe(
                 SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.AGENT.value,
                 "synth_id": synth_id,
                 "synth_name": synth_name,
-                "topic_guide": topic_guide_name,
+                "guide_name": guide_name,
                 "model": model,
             },
         ) as span:
@@ -212,7 +222,7 @@ async def run_single_interview_safe(
 
                 result = await run_interview(
                     synth_id=synth_id,
-                    topic_guide_name=topic_guide_name,
+                    interview_guide=interview_guide,
                     max_turns=max_turns,
                     trace_path=trace_path,
                     model=model,
@@ -221,6 +231,7 @@ async def run_single_interview_safe(
                     message_callback=message_callback,
                     skip_interviewee_review=skip_interviewee_review,
                     additional_context=additional_context,
+                    guide_name=guide_name,
                 )
 
                 logger.info(
@@ -247,7 +258,7 @@ async def run_single_interview_safe(
 
 
 async def run_batch_interviews(
-    topic_guide_name: str,
+    interview_guide: InterviewGuideData,
     max_interviews: int = 10,
     max_concurrent: int = 10,
     max_turns: int = 6,
@@ -264,12 +275,13 @@ async def run_batch_interviews(
     on_summary_start: Callable[[str], Awaitable[None]] | None = None,
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
+    guide_name: str = "interview",
 ) -> BatchResult:
     """
     Run multiple interviews in parallel with progress tracking.
 
     Args:
-        topic_guide_name: Name of the topic guide to use
+        interview_guide: InterviewGuideData with context, questions, examples
         max_interviews: Maximum number of interviews to run
         max_concurrent: Maximum concurrent interviews (default 10)
         max_turns: Maximum turns per interview
@@ -290,23 +302,29 @@ async def run_batch_interviews(
             Signature: (exec_id) -> None
         skip_interviewee_review: Whether to skip the interviewee response reviewer.
         additional_context: Optional additional context to complement the research scenario.
+        guide_name: Name identifier for the guide (for logging/tracing).
 
     Returns:
         BatchResult with all interview results and summary
 
     Sample usage:
     ```python
+    guide = InterviewGuideData(
+        context_definition="Checkout 1-clique...",
+        questions="Q1: Como você...?",
+    )
     result = await run_batch_interviews(
-        topic_guide_name="compra-amazon",
+        interview_guide=guide,
         max_interviews=5,
-        max_concurrent=3
+        max_concurrent=3,
+        guide_name="checkout-1clique"
     )
     print(f"Completed: {result.total_completed}")
     print(result.summary)
     ```
     """
     # Use provided exec_id or generate batch ID for grouping outputs
-    batch_id = exec_id if exec_id else f"batch_{topic_guide_name}_{get_timestamp_gmt3()}"
+    batch_id = exec_id if exec_id else f"batch_{guide_name}_{get_timestamp_gmt3()}"
 
     # Load synths and select which ones to interview
     all_synths = load_all_synths()
@@ -346,7 +364,7 @@ async def run_batch_interviews(
         tasks = [
             run_single_interview_safe(
                 synth=synth,
-                topic_guide_name=topic_guide_name,
+                interview_guide=interview_guide,
                 model=model,
                 max_turns=max_turns,
                 semaphore=semaphore,
@@ -358,6 +376,7 @@ async def run_batch_interviews(
                 on_interview_completed=on_interview_completed,
                 skip_interviewee_review=skip_interviewee_review,
                 additional_context=additional_context,
+                guide_name=guide_name,
             )
             for synth in synths_to_interview
         ]
@@ -406,11 +425,11 @@ async def run_batch_interviews(
             f"Starting summary generation for {len(successful_interviews)} interviews")
 
         try:
-            # Summarizer always uses gpt-5 with reasoning medium for better analysis
+            # Summarizer uses gpt-4.1-mini for faster generation
             summary = await summarize_interviews(
                 interview_results=successful_interviews,
-                topic_guide_name=topic_guide_name,
-                model="gpt-5",
+                topic_guide_name=guide_name,
+                model="gpt-4.1-mini",
             )
             logger.info(
                 f"Summary generated successfully. Length: {len(summary) if summary else 0} chars")
@@ -436,7 +455,7 @@ async def run_batch_interviews(
 
 
 def run_batch_interviews_sync(
-    topic_guide_name: str,
+    interview_guide: InterviewGuideData,
     max_interviews: int = 10,
     max_concurrent: int = 10,
     max_turns: int = 6,
@@ -450,12 +469,13 @@ def run_batch_interviews_sync(
         str, int, int], Awaitable[None]] | None = None,
     on_summary_start: Callable[[str], Awaitable[None]] | None = None,
     skip_interviewee_review: bool = True,
+    guide_name: str = "interview",
 ) -> BatchResult:
     """
     Synchronous wrapper for run_batch_interviews.
 
     Args:
-        topic_guide_name: Name of the topic guide to use
+        interview_guide: InterviewGuideData with context, questions, examples
         max_interviews: Maximum number of interviews to run
         max_concurrent: Maximum concurrent interviews
         max_turns: Maximum turns per interview
@@ -467,13 +487,14 @@ def run_batch_interviews_sync(
         on_transcription_completed: Callback when all transcriptions done (exec_id, success, failed)
         on_summary_start: Callback when summary generation starts
         skip_interviewee_review: Whether to skip the interviewee response reviewer.
+        guide_name: Name identifier for the guide (for logging/tracing).
 
     Returns:
         BatchResult with all interview results and summary
     """
     return asyncio.run(
         run_batch_interviews(
-            topic_guide_name=topic_guide_name,
+            interview_guide=interview_guide,
             max_interviews=max_interviews,
             max_concurrent=max_concurrent,
             max_turns=max_turns,
@@ -485,6 +506,7 @@ def run_batch_interviews_sync(
             on_transcription_completed=on_transcription_completed,
             on_summary_start=on_summary_start,
             skip_interviewee_review=skip_interviewee_review,
+            guide_name=guide_name,
         )
     )
 

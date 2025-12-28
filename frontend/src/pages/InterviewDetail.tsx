@@ -10,7 +10,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useResearchDetail, useResearchTranscripts, useResearchSummary } from '@/hooks/use-research';
-import { useTopicDetail } from '@/hooks/use-topics';
 import { useArtifactStatesWithPolling } from '@/hooks/use-artifact-states';
 import { usePrfaqGenerate } from '@/hooks/use-prfaq-generate';
 import { useSummaryGenerate } from '@/hooks/use-summary-generate';
@@ -18,21 +17,17 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPrfaqMarkdown } from '@/services/prfaq-api';
 import { getSynthAvatarUrl } from '@/services/synths-api';
 import { queryKeys } from '@/lib/query-keys';
-import { StatusBadge } from '@/components/shared/StatusBadge';
 import { ArtifactButton } from '@/components/shared/ArtifactButton';
 import MarkdownPopup from '@/components/shared/MarkdownPopup';
 import { TranscriptDialog } from '@/components/shared/TranscriptDialog';
 import { LiveInterviewGrid } from '@/components/interviews/LiveInterviewGrid';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import SynthLabHeader from '@/components/shared/SynthLabHeader';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Loader2,
-  ArrowLeft,
   User,
-  FileText,
   Users,
   CheckCircle2,
   XCircle,
@@ -87,25 +82,22 @@ export default function InterviewDetail() {
   const [selectedSynthId, setSelectedSynthId] = useState<string | null>(null);
   const [aggressivePolling, setAggressivePolling] = useState(false);
   const aggressivePollingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasRedirectedRef = useRef(false);
 
   const { data: execution, isLoading, error } = useResearchDetail(execId!);
   const { data: transcripts } = useResearchTranscripts(execId!);
   const { data: artifactStates } = useArtifactStatesWithPolling(execId!);
 
-  // T061: Auto-redirect legacy URLs to experiment-scoped URLs
+  // T061: Auto-redirect legacy URLs to experiment-scoped URLs (only once)
   useEffect(() => {
-    if (!expId && execution?.experiment_id) {
+    if (!hasRedirectedRef.current && !expId && execution?.experiment_id) {
+      hasRedirectedRef.current = true;
       navigate(`/experiments/${execution.experiment_id}/interviews/${execId}`, { replace: true });
     }
   }, [expId, execution?.experiment_id, execId, navigate]);
 
-  // Fetch topic details for question preview
-  const { data: topicDetail } = useTopicDetail(execution?.topic_name ?? null);
-
-  // Mock additional context
-  const additionalContext = execution?.topic_name === 'compra-amazon'
-    ? 'Focar em experiências de compra mobile e comparação de preços'
-    : null;
+  // Additional context comes from request (if any was provided)
+  const additionalContext: string | null = null;  // TODO: Include in execution response if needed
 
   // Handle transcription completion
   const handleTranscriptionCompleted = (data: import('@/types/sse-events').TranscriptionCompletedEvent) => {
@@ -196,156 +188,119 @@ export default function InterviewDetail() {
     ? Math.round((new Date(execution.completed_at).getTime() - new Date(execution.started_at).getTime()) / 60000)
     : null;
 
-  const firstScript = topicDetail?.script?.[0];
-  const contextDefinition = firstScript?.context_definition;
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
-      {/* Sticky Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => expId ? navigate(`/experiments/${expId}`) : navigate('/')}
-              className="btn-ghost-icon"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-slate-900">{execution.topic_name}</h1>
-                <StatusBadge status={execution.status} />
-                {execution.status === 'running' && (
-                  <Badge className="bg-green-100 text-green-700 border-green-200 animate-pulse">
-                    <Radio className="h-3 w-3 mr-1" />
-                    Ao Vivo
-                  </Badge>
-                )}
-              </div>
-              <p className="text-sm text-slate-500">
-                {expId ? 'Entrevista do experimento' : 'Detalhes da entrevista'}
-              </p>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Standardized Header */}
+      <SynthLabHeader
+        subtitle="Entrevista do Experimento"
+        backTo={expId ? `/experiments/${expId}` : '/'}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Topic Guide + Execution Stats */}
+        {/* Interview Hero Card - Topic Guide + Artefatos */}
         <AnimatedSection delay={0}>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Topic Guide - 2/3 width */}
-            <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-blue-100 rounded-lg">
-                    <FileText className="h-4 w-4 text-blue-600" />
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+            <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+              {/* LEFT: Interview Info */}
+              <div className="flex-1">
+                {/* Header com icon box */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl text-white shadow-lg shadow-purple-200">
+                    <MessageSquare className="h-5 w-5" />
                   </div>
-                  <h3 className="font-semibold text-slate-900">Topic Guide</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-2xl font-bold text-slate-900">{execution.topic_name}</h2>
+                    {execution.status === 'running' && (
+                      <Badge className="bg-green-100 text-green-700 border-green-200 animate-pulse">
+                        <Radio className="h-3 w-3 mr-1" />
+                        Ao Vivo
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="p-5 space-y-4">
-                {contextDefinition ? (
-                  <p className="text-sm text-slate-600 leading-relaxed">{contextDefinition}</p>
-                ) : firstScript?.ask ? (
-                  <p className="text-sm text-slate-600 leading-relaxed line-clamp-3">{firstScript.ask}</p>
-                ) : (
-                  <p className="text-sm text-slate-400 italic">Carregando...</p>
-                )}
 
+                {/* Interview description - topic name as title */}
+                <div className="mb-4">
+                  <p className="text-slate-600 leading-relaxed">
+                    Entrevista baseada no guia configurado para o experimento.
+                  </p>
+                </div>
+
+                {/* Contexto adicional (se existir) */}
                 {additionalContext && (
-                  <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                  <div className="p-3 bg-purple-50 border border-purple-100 rounded-lg mb-4">
                     <p className="text-xs font-medium text-purple-700 mb-1">Contexto adicional</p>
-                    <p className="text-sm text-purple-600">{additionalContext}</p>
+                    <p className="text-sm text-purple-800">{additionalContext}</p>
                   </div>
                 )}
 
-                {/* Execution Stats */}
-                <div className="pt-4 border-t border-slate-100">
-                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-3">Execução</p>
-                  <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="p-1 bg-slate-100 rounded">
-                        <Users className="h-3.5 w-3.5 text-slate-500" />
-                      </div>
-                      <span className="text-slate-700">{execution.synth_count} synths</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="p-1 bg-green-100 rounded">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
-                      </div>
-                      <span className="text-slate-700">{execution.successful_count} concluídos</span>
-                    </div>
-                    {execution.failed_count > 0 && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="p-1 bg-red-100 rounded">
-                          <XCircle className="h-3.5 w-3.5 text-red-500" />
-                        </div>
-                        <span className="text-slate-700">{execution.failed_count} falhas</span>
-                      </div>
-                    )}
-                    {durationMinutes !== null && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="p-1 bg-amber-100 rounded">
-                          <Clock className="h-3.5 w-3.5 text-amber-600" />
-                        </div>
-                        <span className="text-slate-700">{durationMinutes} min</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="p-1 bg-blue-100 rounded">
-                        <Calendar className="h-3.5 w-3.5 text-blue-500" />
-                      </div>
-                      <span className="text-slate-600 text-xs">{formattedStart}</span>
-                    </div>
-                  </div>
+                {/* Execution stats inline */}
+                <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
+                  <span className="flex items-center gap-1.5">
+                    <Users className="h-4 w-4" />
+                    {execution.synth_count} synths
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    {execution.successful_count} concluídos
+                  </span>
+                  {execution.failed_count > 0 && (
+                    <span className="flex items-center gap-1.5">
+                      <XCircle className="h-4 w-4 text-red-500" />
+                      {execution.failed_count} falhas
+                    </span>
+                  )}
+                  {durationMinutes !== null && (
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="h-4 w-4 text-amber-500" />
+                      {durationMinutes} min
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4" />
+                    {formattedStart}
+                  </span>
                 </div>
               </div>
-            </div>
 
-            {/* Artifacts - 1/3 width */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-purple-100 rounded-lg">
-                    <Sparkles className="h-4 w-4 text-purple-600" />
-                  </div>
+              {/* RIGHT: Artefatos */}
+              <div className="lg:w-64 lg:border-l lg:pl-6 lg:border-slate-200">
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className="h-4 w-4 text-purple-500" />
                   <h3 className="font-semibold text-slate-900">Artefatos</h3>
                 </div>
-              </div>
-              <div className="p-5 flex flex-col gap-3">
-                {artifactStates ? (
-                  <>
-                    <ArtifactButton
-                      state={artifactStates.summary.state}
-                      artifactType="summary"
-                      prerequisiteMessage={artifactStates.summary.prerequisite_message ?? undefined}
-                      errorMessage={artifactStates.summary.error_message ?? undefined}
-                      onGenerate={() => generateSummaryMutation.mutate()}
-                      onView={() => setSummaryOpen(true)}
-                      onRetry={() => generateSummaryMutation.mutate()}
-                      isPending={generateSummaryMutation.isPending}
-                      className="w-full"
-                    />
-                    <ArtifactButton
-                      state={artifactStates.prfaq.state}
-                      artifactType="prfaq"
-                      prerequisiteMessage={artifactStates.prfaq.prerequisite_message ?? undefined}
-                      errorMessage={artifactStates.prfaq.error_message ?? undefined}
-                      onGenerate={() => generatePrfaqMutation.mutate()}
-                      onView={() => setPrfaqOpen(true)}
-                      onRetry={() => generatePrfaqMutation.mutate()}
-                      isPending={generatePrfaqMutation.isPending}
-                      className="w-full"
-                    />
-                  </>
-                ) : (
-                  <div className="flex items-center justify-center py-6">
-                    <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
-                  </div>
-                )}
+                <div className="space-y-3">
+                  {artifactStates ? (
+                    <>
+                      <ArtifactButton
+                        state={artifactStates.summary.state}
+                        artifactType="summary"
+                        prerequisiteMessage={artifactStates.summary.prerequisite_message ?? undefined}
+                        errorMessage={artifactStates.summary.error_message ?? undefined}
+                        onGenerate={() => generateSummaryMutation.mutate()}
+                        onView={() => setSummaryOpen(true)}
+                        onRetry={() => generateSummaryMutation.mutate()}
+                        isPending={generateSummaryMutation.isPending}
+                        className="w-full"
+                      />
+                      <ArtifactButton
+                        state={artifactStates.prfaq.state}
+                        artifactType="prfaq"
+                        prerequisiteMessage={artifactStates.prfaq.prerequisite_message ?? undefined}
+                        errorMessage={artifactStates.prfaq.error_message ?? undefined}
+                        onGenerate={() => generatePrfaqMutation.mutate()}
+                        onView={() => setPrfaqOpen(true)}
+                        onRetry={() => generatePrfaqMutation.mutate()}
+                        isPending={generatePrfaqMutation.isPending}
+                        className="w-full"
+                      />
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

@@ -25,12 +25,20 @@ from synth_lab.api.schemas.analysis_run import (
     SynthAttributesSchema,
     SynthOutcomeResponse,
 )
+from synth_lab.domain.entities.chart_data import (
+    OutcomeDistributionChart,
+    SankeyChart,
+    TryVsSuccessChart,
+)
+from synth_lab.repositories.analysis_outcome_repository import AnalysisOutcomeRepository
+from synth_lab.services.simulation.chart_data_service import ChartDataService
 from synth_lab.domain.entities.analysis_run import AggregatedOutcomes, AnalysisConfig
 from synth_lab.infrastructure.database import get_database
 from synth_lab.models.pagination import PaginationParams
 from synth_lab.repositories.analysis_repository import AnalysisRepository
 from synth_lab.repositories.experiment_repository import ExperimentRepository
 from synth_lab.services.analysis.analysis_service import AnalysisService
+from synth_lab.services.analysis.analysis_execution_service import AnalysisExecutionService
 from synth_lab.services.experiment_service import ExperimentService
 
 router = APIRouter()
@@ -54,6 +62,21 @@ def get_analysis_service() -> AnalysisService:
 def get_experiment_service() -> ExperimentService:
     """Get experiment service instance."""
     return ExperimentService()
+
+
+def get_execution_service() -> AnalysisExecutionService:
+    """Get analysis execution service instance."""
+    return AnalysisExecutionService()
+
+
+def get_chart_data_service() -> ChartDataService:
+    """Get chart data service instance."""
+    return ChartDataService()
+
+
+def get_outcome_repository() -> AnalysisOutcomeRepository:
+    """Get analysis outcome repository instance."""
+    return AnalysisOutcomeRepository()
 
 
 def _convert_config_schema_to_domain(schema: AnalysisConfigSchema) -> AnalysisConfig:
@@ -161,7 +184,7 @@ async def get_analysis(experiment_id: str) -> AnalysisResponse:
 @router.post(
     "/{experiment_id}/analysis",
     response_model=AnalysisResponse,
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_201_CREATED,
 )
 async def run_analysis(
     experiment_id: str,
@@ -170,28 +193,13 @@ async def run_analysis(
     """
     Execute (or re-execute) quantitative analysis.
 
-    Creates a new analysis run for the experiment. If an analysis already
+    Runs a Monte Carlo simulation for the experiment. If an analysis already
     exists, it is deleted and replaced (re-run).
 
     Requires the experiment to have a scorecard.
     """
     service = get_analysis_service()
-    exp_service = get_experiment_service()
-
-    # Validate experiment exists
-    experiment = exp_service.get_experiment(experiment_id)
-    if experiment is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found",
-        )
-
-    # Validate experiment has scorecard
-    if not experiment.has_scorecard():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Experiment {experiment_id} must have a scorecard before running analysis",
-        )
+    execution_service = get_execution_service()
 
     # Check if already running
     existing = service.get_analysis(experiment_id)
@@ -212,8 +220,13 @@ async def run_analysis(
         )
 
     try:
-        # Use rerun to handle existing analysis
-        analysis = service.rerun_analysis(experiment_id, config)
+        # Execute the analysis (this actually runs Monte Carlo!)
+        analysis = execution_service.execute_analysis(experiment_id, config)
+
+        # Convert outcomes if present
+        outcomes_schema = None
+        if analysis.aggregated_outcomes:
+            outcomes_schema = _convert_outcomes_to_schema(analysis.aggregated_outcomes)
 
         return AnalysisResponse(
             id=analysis.id,
@@ -223,13 +236,18 @@ async def run_analysis(
             started_at=analysis.started_at,
             completed_at=analysis.completed_at,
             total_synths=analysis.total_synths,
-            aggregated_outcomes=None,
+            aggregated_outcomes=outcomes_schema,
             execution_time_seconds=analysis.execution_time_seconds,
         )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Analysis execution failed: {str(e)}",
         )
 
 
@@ -483,6 +501,160 @@ async def generate_insights(
             )
         ],
         generated_at=datetime.now(timezone.utc),
+    )
+
+
+# =============================================================================
+# Chart Endpoints
+# =============================================================================
+
+
+@router.get(
+    "/{experiment_id}/analysis/charts/try-vs-success",
+    response_model=TryVsSuccessChart,
+)
+async def get_try_vs_success_chart(
+    experiment_id: str,
+    attempt_rate_threshold: float = Query(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Minimum attempt rate for high engagement quadrants",
+    ),
+    success_rate_threshold: float = Query(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Minimum success rate for high performance quadrants",
+    ),
+) -> TryVsSuccessChart:
+    """
+    Get Try vs Success scatter plot data for an analysis.
+
+    Each point represents one synth with attempt rate vs success rate.
+    """
+    service = get_analysis_service()
+    chart_service = get_chart_data_service()
+    outcome_repo = get_outcome_repository()
+
+    analysis = service.get_analysis(experiment_id)
+    if analysis is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No analysis found for experiment {experiment_id}",
+        )
+
+    if analysis.status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Analysis must be completed (status: {analysis.status})",
+        )
+
+    outcomes, _ = outcome_repo.get_outcomes(analysis.id)
+    if not outcomes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No outcomes found for this analysis",
+        )
+
+    return chart_service.get_try_vs_success(
+        simulation_id=analysis.id,
+        outcomes=outcomes,
+        x_threshold=attempt_rate_threshold,
+        y_threshold=success_rate_threshold,
+    )
+
+
+@router.get(
+    "/{experiment_id}/analysis/charts/distribution",
+    response_model=OutcomeDistributionChart,
+)
+async def get_distribution_chart(
+    experiment_id: str,
+    sort_by: str = Query(
+        default="success_rate",
+        description="Field to sort by: success_rate, failed_rate, did_not_try_rate",
+    ),
+    order: str = Query(default="desc", description="Sort order: asc or desc"),
+    limit: int = Query(default=50, ge=1, le=1000, description="Maximum results"),
+) -> OutcomeDistributionChart:
+    """
+    Get outcome distribution chart data for an analysis.
+
+    Shows distribution of outcomes across synths.
+    """
+    service = get_analysis_service()
+    chart_service = get_chart_data_service()
+    outcome_repo = get_outcome_repository()
+
+    analysis = service.get_analysis(experiment_id)
+    if analysis is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No analysis found for experiment {experiment_id}",
+        )
+
+    if analysis.status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Analysis must be completed (status: {analysis.status})",
+        )
+
+    outcomes, _ = outcome_repo.get_outcomes(analysis.id)
+    if not outcomes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No outcomes found for this analysis",
+        )
+
+    return chart_service.get_outcome_distribution(
+        simulation_id=analysis.id,
+        outcomes=outcomes,
+        sort_by=sort_by,
+        order=order,
+        limit=limit,
+    )
+
+
+@router.get(
+    "/{experiment_id}/analysis/charts/sankey",
+    response_model=SankeyChart,
+)
+async def get_sankey_chart(
+    experiment_id: str,
+) -> SankeyChart:
+    """
+    Get Sankey diagram data for an analysis.
+
+    Shows the flow of users through try/success/fail states.
+    """
+    service = get_analysis_service()
+    chart_service = get_chart_data_service()
+    outcome_repo = get_outcome_repository()
+
+    analysis = service.get_analysis(experiment_id)
+    if analysis is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No analysis found for experiment {experiment_id}",
+        )
+
+    if analysis.status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Analysis must be completed (status: {analysis.status})",
+        )
+
+    outcomes, _ = outcome_repo.get_outcomes(analysis.id)
+    if not outcomes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No outcomes found for this analysis",
+        )
+
+    return chart_service.get_sankey(
+        simulation_id=analysis.id,
+        outcomes=outcomes,
     )
 
 

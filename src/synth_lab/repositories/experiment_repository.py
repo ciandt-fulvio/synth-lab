@@ -29,6 +29,9 @@ class ExperimentSummary(BaseModel):
     description: str | None = Field(default=None, description="Additional context.")
     has_scorecard: bool = Field(default=False, description="Whether scorecard is filled.")
     has_analysis: bool = Field(default=False, description="Whether analysis exists.")
+    has_interview_guide: bool = Field(
+        default=False, description="Whether interview guide is configured."
+    )
     interview_count: int = Field(default=0, description="Number of linked interviews.")
     created_at: datetime = Field(description="Creation timestamp.")
     updated_at: datetime | None = Field(default=None, description="Last update timestamp.")
@@ -101,7 +104,7 @@ class ExperimentRepository(BaseRepository):
         Returns:
             Paginated response with experiment summaries.
         """
-        # Query with analysis and interview counts
+        # Query with analysis, interview guide, and interview counts
         base_query = """
             SELECT
                 e.id,
@@ -112,9 +115,11 @@ class ExperimentRepository(BaseRepository):
                 e.created_at,
                 e.updated_at,
                 CASE WHEN ana.id IS NOT NULL THEN 1 ELSE 0 END as has_analysis,
+                CASE WHEN ig.experiment_id IS NOT NULL THEN 1 ELSE 0 END as has_interview_guide,
                 COALESCE(int.cnt, 0) as interview_count
             FROM experiments e
             LEFT JOIN analysis_runs ana ON e.id = ana.experiment_id
+            LEFT JOIN interview_guide ig ON e.id = ig.experiment_id
             LEFT JOIN (
                 SELECT experiment_id, COUNT(*) as cnt
                 FROM research_executions
@@ -288,6 +293,11 @@ class ExperimentRepository(BaseRepository):
             description=row["description"],
             has_scorecard=has_scorecard,
             has_analysis=bool(row["has_analysis"]) if "has_analysis" in row.keys() else False,
+            has_interview_guide=(
+                bool(row["has_interview_guide"])
+                if "has_interview_guide" in row.keys()
+                else False
+            ),
             interview_count=row["interview_count"] if "interview_count" in row.keys() else 0,
             created_at=created_at,
             updated_at=updated_at,

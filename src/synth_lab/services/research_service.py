@@ -27,11 +27,14 @@ from synth_lab.models.research import (
     TranscriptDetail,
     TranscriptSummary,
 )
+from synth_lab.repositories.interview_guide_repository import (
+    InterviewGuide,
+    InterviewGuideRepository,
+)
 from synth_lab.repositories.research_repository import ResearchRepository
-from synth_lab.repositories.topic_repository import TopicRepository
-from synth_lab.services.errors import SummaryNotFoundError, TopicNotFoundError
+from synth_lab.services.errors import SummaryNotFoundError
 from synth_lab.services.message_broker import BrokerMessage, MessageBroker
-from synth_lab.services.research_agentic.runner import ConversationMessage
+from synth_lab.services.research_agentic.runner import ConversationMessage, InterviewGuideData
 
 # GMT-3 timezone (São Paulo)
 TZ_GMT_MINUS_3 = timezone(timedelta(hours=-3))
@@ -40,14 +43,30 @@ TZ_GMT_MINUS_3 = timezone(timedelta(hours=-3))
 class ResearchService:
     """Service for research business logic (read operations)."""
 
-    def __init__(self, research_repo: ResearchRepository | None = None):
+    def __init__(
+        self,
+        research_repo: ResearchRepository | None = None,
+        interview_guide_repo: InterviewGuideRepository | None = None,
+    ):
         """
         Initialize research service.
 
         Args:
             research_repo: Research repository. Defaults to new instance.
+            interview_guide_repo: Interview guide repository. Defaults to new instance.
         """
         self.research_repo = research_repo or ResearchRepository()
+        self.interview_guide_repo = interview_guide_repo or InterviewGuideRepository()
+
+    def _guide_to_interview_guide_data(
+        self, guide: InterviewGuide
+    ) -> InterviewGuideData:
+        """Convert InterviewGuide from DB to InterviewGuideData for runner."""
+        return InterviewGuideData(
+            context_definition=guide.context_definition,
+            questions=guide.questions,
+            context_examples=guide.context_examples,
+        )
 
     def list_executions(
         self,
@@ -195,7 +214,7 @@ class ResearchService:
 
         return summary_state, prfaq_state
 
-    async def generate_summary(self, exec_id: str, model: str = "gpt-5") -> str:
+    async def generate_summary(self, exec_id: str, model: str = "gpt-4.1-mini") -> str:
         """
         Generate a summary for a completed execution.
 
@@ -286,8 +305,9 @@ class ResearchService:
         """
         Execute a new research session.
 
-        This method validates the topic, selects synths, creates the execution record,
-        runs interviews via the batch runner, and saves results to the database.
+        This method validates the interview guide exists, selects synths,
+        creates the execution record, runs interviews via the batch runner,
+        and saves results to the database.
 
         Args:
             request: Research execution request.
@@ -296,14 +316,19 @@ class ResearchService:
             ResearchExecuteResponse with execution ID and initial status.
 
         Raises:
-            TopicNotFoundError: If topic doesn't exist.
+            ValueError: If experiment doesn't have an interview_guide configured.
         """
-        # Validate topic exists
-        topic_repo = TopicRepository()
-        try:
-            topic_repo.get_by_name(request.topic_name)
-        except TopicNotFoundError:
-            raise
+        # Validate interview guide exists for experiment
+        if not request.experiment_id:
+            raise ValueError("experiment_id is required for research execution")
+
+        interview_guide = self.interview_guide_repo.get_by_experiment_id(
+            request.experiment_id
+        )
+        if interview_guide is None:
+            raise ValueError(
+                f"No interview guide configured for experiment {request.experiment_id}"
+            )
 
         # Determine synth count
         synth_count = request.synth_count or (
@@ -324,11 +349,15 @@ class ResearchService:
             experiment_id=request.experiment_id,
         )
 
+        # Convert to InterviewGuideData for runner
+        interview_guide_data = self._guide_to_interview_guide_data(interview_guide)
+
         # Start the batch interviews asynchronously
         asyncio.create_task(
             self._run_batch_and_save(
                 exec_id=exec_id,
-                topic_name=request.topic_name,
+                interview_guide_data=interview_guide_data,
+                guide_name=request.topic_name,
                 additional_context=request.additional_context,
                 synth_ids=request.synth_ids,
                 synth_count=synth_count,
@@ -351,7 +380,8 @@ class ResearchService:
     async def _run_batch_and_save(
         self,
         exec_id: str,
-        topic_name: str,
+        interview_guide_data: InterviewGuideData,
+        guide_name: str,
         additional_context: str | None,
         synth_ids: list[str] | None,
         synth_count: int,
@@ -368,7 +398,8 @@ class ResearchService:
 
         Args:
             exec_id: Execution ID.
-            topic_name: Topic guide name.
+            interview_guide_data: InterviewGuideData with context, questions, examples.
+            guide_name: Name identifier for the guide (for logging/tracing).
             additional_context: Optional additional context to complement the research scenario.
             synth_ids: Optional specific synth IDs.
             synth_count: Number of synths to interview.
@@ -459,7 +490,7 @@ class ResearchService:
             # Run the batch interviews (without summary generation first)
             # We'll generate summary separately after saving transcripts
             result = await run_batch_interviews(
-                topic_guide_name=topic_name,
+                interview_guide=interview_guide_data,
                 max_interviews=synth_count,
                 max_concurrent=max_concurrent,
                 max_turns=max_turns,
@@ -473,6 +504,7 @@ class ResearchService:
                 on_summary_start=None,  # Not used since we're not generating summary here
                 skip_interviewee_review=skip_interviewee_review,
                 additional_context=additional_context,
+                guide_name=guide_name,
             )
 
             # Save transcripts to database IMMEDIATELY after interviews complete
@@ -514,8 +546,8 @@ class ResearchService:
                 try:
                     summary_content = await summarize_interviews(
                         interview_results=result.successful_interviews,
-                        topic_guide_name=topic_name,
-                        model="gpt-5",
+                        topic_guide_name=guide_name,
+                        model="gpt-4.1-mini",
                     )
                     logger.info(
                         f"Summary generated: {len(summary_content) if summary_content else 0} chars"

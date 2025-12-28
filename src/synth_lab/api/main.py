@@ -101,14 +101,12 @@ from synth_lab.api.routers import (
     simulation,
     synth_groups,
     synths,
-    topics,
 )
 
 # Register routers
 app.include_router(synths.router, prefix="/synths", tags=["synths"])
 app.include_router(chat.router, prefix="/synths", tags=["chat"])
 app.include_router(research.router, prefix="/research", tags=["research"])
-app.include_router(topics.router, prefix="/topics", tags=["topics"])
 app.include_router(prfaq.router, prefix="/prfaq", tags=["prfaq"])
 app.include_router(simulation.router, prefix="/simulation", tags=["simulation"])
 app.include_router(experiments.router, prefix="/experiments", tags=["experiments"])

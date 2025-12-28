@@ -17,6 +17,7 @@ import type {
   ScorecardCreate,
   ScorecardResponse,
   ScorecardEstimateResponse,
+  AnalysisSummary,
 } from '@/types/experiment';
 import type { InterviewCreateRequest, ResearchExecuteResponse } from '@/types/research';
 import type { PaginationParams } from '@/types';
@@ -149,4 +150,83 @@ export async function estimateScorecardFromText(
       body: JSON.stringify(data),
     }
   );
+}
+
+/**
+ * Request for running analysis.
+ */
+export interface RunAnalysisRequest {
+  /** Number of synths to simulate (default: 500) */
+  n_synths?: number;
+  /** Number of Monte Carlo executions per synth (default: 100) */
+  n_executions?: number;
+  /** Standard deviation for noise (default: 0.05) */
+  sigma?: number;
+  /** Random seed for reproducibility */
+  seed?: number;
+}
+
+/**
+ * Run quantitative analysis for an experiment.
+ *
+ * Creates and executes a Monte Carlo simulation to estimate adoption rates.
+ * Requires the experiment to have a scorecard configured.
+ */
+export async function runAnalysis(
+  experimentId: string,
+  config?: RunAnalysisRequest
+): Promise<AnalysisSummary> {
+  return fetchAPI<AnalysisSummary>(`/experiments/${experimentId}/analysis`, {
+    method: 'POST',
+    body: config ? JSON.stringify(config) : undefined,
+  });
+}
+
+// =============================================================================
+// Analysis Chart Endpoints
+// =============================================================================
+
+import type {
+  TryVsSuccessChart,
+  OutcomeDistributionChart,
+  SankeyChart,
+} from '@/types/simulation';
+
+/**
+ * Get try vs success quadrant chart for experiment analysis.
+ */
+export async function getAnalysisTryVsSuccessChart(
+  experimentId: string,
+  attemptRateThreshold = 0.5,
+  successRateThreshold = 0.5
+): Promise<TryVsSuccessChart> {
+  const params = new URLSearchParams({
+    attempt_rate_threshold: String(attemptRateThreshold),
+    success_rate_threshold: String(successRateThreshold),
+  });
+  return fetchAPI(`/experiments/${experimentId}/analysis/charts/try-vs-success?${params}`);
+}
+
+/**
+ * Get outcome distribution chart for experiment analysis.
+ */
+export async function getAnalysisDistributionChart(
+  experimentId: string,
+  sortBy = 'success_rate',
+  order = 'desc',
+  limit = 50
+): Promise<OutcomeDistributionChart> {
+  const params = new URLSearchParams({
+    sort_by: sortBy,
+    order,
+    limit: String(limit),
+  });
+  return fetchAPI(`/experiments/${experimentId}/analysis/charts/distribution?${params}`);
+}
+
+/**
+ * Get sankey flow diagram for experiment analysis.
+ */
+export async function getAnalysisSankeyChart(experimentId: string): Promise<SankeyChart> {
+  return fetchAPI(`/experiments/${experimentId}/analysis/charts/sankey`);
 }

@@ -14,8 +14,6 @@ A navegacao atual do SynthLab apresenta abas separadas para "Entrevistas" e "Syn
 Implementar o modelo "Single Hub" onde:
 - **Experimento** e o conceito central (feature/hipotese a testar)
 - **Simulacoes** e **Entrevistas** existem apenas dentro de um Experimento
-- Navegacao simplificada sem abas - a home E a lista de experimentos
-- **Synths** movido para menu secundario (nao e parte do fluxo principal)
 
 ### Fluxo Conceitual
 ```
@@ -145,13 +143,6 @@ Experimento (Feature/Hipotese)
    - Agrupar synths por "safra" ou contexto de geracao
    - Filtrar synths por grupo no catalogo
 
-2. **Geracao de Synths com Grupo**: A geracao de synths aceita um `synth_group_id` opcional:
-   - Se o grupo existir: synths sao adicionados ao grupo existente
-   - Se o grupo NAO existir: cria o grupo automaticamente com o id fornecido
-   - Se nenhum grupo for informado: cria um novo grupo com nome baseado na data/hora
-
-3. **Scenarios sao pre-definidos**: Carregados de arquivos JSON (`data/simulation_scenarios/*.json`), nao persistidos no banco.
-
 4. **FeatureScorecard vs Experiment**: O scorecard e a definicao das dimensoes da feature. O experimento e o container que explica a feature (descricao da hipotese, contexto, anexos).
 
 5. **Experimentos sem status**: Nesta versao, experimentos nao tem campo de status. O estado e inferido pela existencia de simulacoes/entrevistas vinculadas (futuro: pode ser adicionado).
@@ -163,7 +154,7 @@ Experimento (Feature/Hipotese)
 
 ### User Story 1 - Visualizar Lista de Experimentos (Priority: P0)
 
-O usuario acessa o SynthLab e ve imediatamente a lista de todos os seus experimentos, com informacoes resumidas sobre o estado de cada um.
+O usuario acessa o SynthLab e ve imediatamente a lista de todos os seus experimentos, com informacoes resumidas sobre o estado de cada um. 
 
 **Why this priority**: E a pagina inicial do sistema - sem ela, nao ha navegacao.
 

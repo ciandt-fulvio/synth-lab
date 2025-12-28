@@ -75,7 +75,7 @@ def sample_outcomes():
         outcomes.append(
             SynthOutcome(
                 synth_id=f"synth_{i:03d}",
-                simulation_id="sim_12345678",
+                analysis_id="ana_12345678",
                 success_rate=success_rate,
                 failed_rate=failed_rate,
                 did_not_try_rate=did_not_try_rate,
@@ -558,7 +558,7 @@ class TestExplainabilityEdgeCases:
         few_outcomes = [
             SynthOutcome(
                 synth_id=f"synth_{i:03d}",
-                simulation_id="sim_12345678",
+                analysis_id="ana_12345678",
                 success_rate=0.5,
                 failed_rate=0.3,
                 did_not_try_rate=0.2,
