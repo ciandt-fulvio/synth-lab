@@ -217,9 +217,15 @@ class AnalysisSummary(BaseModel):
     """Summary of analysis linked to an experiment (1:1 relationship)."""
 
     id: str = Field(description="Analysis run ID.")
+    simulation_id: str = Field(description="Simulation ID for chart endpoints.")
     status: str = Field(description="Analysis status (pending, running, completed, failed).")
     started_at: datetime = Field(description="Start timestamp.")
     completed_at: datetime | None = Field(default=None, description="Completion timestamp.")
+    total_synths: int = Field(default=0, description="Number of synths analyzed.")
+    n_executions: int = Field(default=100, description="Monte Carlo executions per synth.")
+    execution_time_seconds: float | None = Field(
+        default=None, description="Time taken to run the analysis in seconds."
+    )
     aggregated_outcomes: AggregatedOutcomesSchema | None = Field(
         default=None,
         description="Aggregated outcomes from analysis.",
@@ -256,6 +262,9 @@ class ExperimentResponse(BaseModel):
         description="Embedded scorecard data.",
     )
     has_scorecard: bool = Field(default=False, description="Whether scorecard is filled.")
+    has_interview_guide: bool = Field(
+        default=False, description="Whether interview guide is configured."
+    )
     created_at: datetime = Field(description="Creation timestamp.")
     updated_at: datetime | None = Field(default=None, description="Last update timestamp.")
 
@@ -269,6 +278,9 @@ class ExperimentSummary(BaseModel):
     description: str | None = Field(default=None, description="Additional context.")
     has_scorecard: bool = Field(default=False, description="Whether scorecard is filled.")
     has_analysis: bool = Field(default=False, description="Whether analysis exists.")
+    has_interview_guide: bool = Field(
+        default=False, description="Whether interview guide is configured."
+    )
     interview_count: int = Field(default=0, description="Number of linked interviews.")
     created_at: datetime = Field(description="Creation timestamp.")
     updated_at: datetime | None = Field(default=None, description="Last update timestamp.")
@@ -433,6 +445,7 @@ if __name__ == "__main__":
         )
         analysis = AnalysisSummary(
             id="ana_12345678",
+            simulation_id="ana_12345678",
             status="completed",
             started_at=datetime.now(timezone.utc),
             completed_at=datetime.now(timezone.utc),
@@ -442,6 +455,8 @@ if __name__ == "__main__":
             all_validation_failures.append("aggregated_outcomes should not be None")
         elif analysis.aggregated_outcomes.success_rate != 0.5:
             all_validation_failures.append("success_rate mismatch")
+        elif analysis.simulation_id != analysis.id:
+            all_validation_failures.append("simulation_id should match id")
     except Exception as e:
         all_validation_failures.append(f"AnalysisSummary creation failed: {e}")
 
@@ -450,6 +465,7 @@ if __name__ == "__main__":
     try:
         analysis = AnalysisSummary(
             id="ana_12345678",
+            simulation_id="ana_12345678",
             status="completed",
             started_at=datetime.now(timezone.utc),
         )
