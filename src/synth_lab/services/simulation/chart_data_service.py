@@ -210,16 +210,21 @@ class ChartDataService:
         outcomes: list[SynthOutcome],
     ) -> SankeyChart:
         """
-        Generate Sankey diagram data.
+        Generate Sankey diagram data using dominant outcome classification.
 
-        Flow: All -> [Attempted, Not Attempted] -> [Success, Failed]
+        Each synth is categorized by its dominant outcome (highest rate):
+        - If did_not_try_rate is highest -> "Não Tentou"
+        - If success_rate is highest -> "Sucesso"
+        - If failed_rate is highest -> "Falhou"
+
+        Flow: All -> [Tentaram, Não Tentaram] -> [Sucesso, Falharam]
 
         Args:
             simulation_id: ID of the simulation.
             outcomes: List of SynthOutcome entities.
 
         Returns:
-            SankeyChart with nodes and links.
+            SankeyChart with nodes and links (discrete counts).
         """
         logger.info(f"Generating Sankey diagram for {simulation_id}")
 
@@ -232,29 +237,36 @@ class ChartDataService:
                 links=[],
             )
 
-        # Calculate aggregate values using weighted averages
-        # For Sankey, we need to determine threshold for "attempted" vs "not attempted"
-        # We'll count synths that attempted (did_not_try_rate < 0.5) vs not
+        # Classify each synth by dominant outcome
+        not_attempted = 0
+        success = 0
+        failed = 0
 
-        # Alternative approach: use the expected value (rate * n_synths)
-        # This gives us the "expected number" at each stage
-        total_attempted = sum(1.0 - o.did_not_try_rate for o in outcomes)
-        total_not_attempted = sum(o.did_not_try_rate for o in outcomes)
-        total_success = sum(o.success_rate for o in outcomes)
-        total_failed = sum(o.failed_rate for o in outcomes)
+        for o in outcomes:
+            # Find dominant outcome
+            rates = {
+                "did_not_try": o.did_not_try_rate,
+                "success": o.success_rate,
+                "failed": o.failed_rate,
+            }
+            dominant = max(rates, key=rates.get)
 
-        # Round to integers for display
-        attempted = round(total_attempted)
-        not_attempted = round(total_not_attempted)
-        success = round(total_success)
-        failed = round(total_failed)
+            if dominant == "did_not_try":
+                not_attempted += 1
+            elif dominant == "success":
+                success += 1
+            else:
+                failed += 1
+
+        # Attempted = success + failed (those who tried)
+        attempted = success + failed
 
         # Create nodes
         nodes = [
             SankeyNode(id="all", label=f"Todos ({total})", value=total),
             SankeyNode(id="attempted", label=f"Tentaram ({attempted})", value=attempted),
             SankeyNode(
-                id="not_attempted", label=f"Não tentaram ({not_attempted})", value=not_attempted
+                id="not_attempted", label=f"Não Tentaram ({not_attempted})", value=not_attempted
             ),
             SankeyNode(id="success", label=f"Sucesso ({success})", value=success),
             SankeyNode(id="failed", label=f"Falharam ({failed})", value=failed),
