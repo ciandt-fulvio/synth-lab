@@ -1,20 +1,12 @@
 // src/components/synths/SynthList.tsx
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SynthCard } from './SynthCard';
 import { SynthDetailDialog } from './SynthDetailDialog';
 import { useSynthsList } from '@/hooks/use-synths';
 import { useSynthGroups } from '@/hooks/use-synth-groups';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Users, Filter, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Loader2, Users } from 'lucide-react';
 import {
   Pagination,
   PaginationContent,
@@ -27,33 +19,27 @@ import {
 
 const ITEMS_PER_PAGE = 45;
 
-export function SynthList() {
+interface SynthListProps {
+  selectedGroupId?: string;
+}
+
+export function SynthList({ selectedGroupId }: SynthListProps) {
   const [selectedSynthId, setSelectedSynthId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(undefined);
 
-  // Fetch synth groups for filter dropdown
-  const { data: groupsData, isLoading: groupsLoading } = useSynthGroups({ limit: 100 });
+  // Reset to first page when filter changes
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [selectedGroupId]);
+
+  // Fetch synth groups for displaying group names on cards
+  const { data: groupsData } = useSynthGroups({ limit: 100 });
 
   const { data, isLoading, error } = useSynthsList({
     limit: ITEMS_PER_PAGE,
     offset: currentPage * ITEMS_PER_PAGE,
     synth_group_id: selectedGroupId,
   });
-
-  const handleGroupChange = (value: string) => {
-    if (value === 'all') {
-      setSelectedGroupId(undefined);
-    } else {
-      setSelectedGroupId(value);
-    }
-    setCurrentPage(0); // Reset to first page when filter changes
-  };
-
-  const clearFilter = () => {
-    setSelectedGroupId(undefined);
-    setCurrentPage(0);
-  };
 
   if (isLoading) {
     return (
@@ -131,57 +117,9 @@ export function SynthList() {
 
   const pageNumbers = getPageNumbers();
 
-  // Get current group name for display
-  const currentGroupName = selectedGroupId && groupsData?.data
-    ? groupsData.data.find(g => g.id === selectedGroupId)?.name
-    : null;
-
   return (
     <>
-      {/* Filter Section */}
-      <div className="mb-6 flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Filtrar por grupo:</span>
-        </div>
-        <Select
-          value={selectedGroupId || 'all'}
-          onValueChange={handleGroupChange}
-          disabled={groupsLoading}
-        >
-          <SelectTrigger className="w-[250px]">
-            <SelectValue placeholder="Todos os grupos" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os grupos</SelectItem>
-            {groupsData?.data.map((group) => (
-              <SelectItem key={group.id} value={group.id}>
-                {group.name} ({group.synth_count})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {selectedGroupId && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearFilter}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-4 w-4 mr-1" />
-            Limpar
-          </Button>
-        )}
-      </div>
-
-      {/* Active Filter Badge */}
-      {currentGroupName && (
-        <div className="mb-4 text-sm text-muted-foreground">
-          Exibindo synths do grupo: <span className="font-semibold text-foreground">{currentGroupName}</span>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {data.data.map((synth) => (
           <SynthCard
             key={synth.id}
@@ -195,7 +133,7 @@ export function SynthList() {
       </div>
 
       {totalPages > 1 && (
-        <div className="mt-8">
+        <div className="px-4 pb-4 pt-2">
           <Pagination>
             <PaginationContent>
               <PaginationItem>
