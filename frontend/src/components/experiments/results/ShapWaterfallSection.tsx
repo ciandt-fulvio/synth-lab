@@ -1,5 +1,6 @@
 // frontend/src/components/experiments/results/ShapWaterfallSection.tsx
 // Section with SHAP Waterfall chart for individual synth explanation
+// Click-to-explain: Shows explanation for the selected synth (no dropdown)
 
 import { useState } from 'react';
 import { HelpCircle, Activity, Sparkles, Loader2 } from 'lucide-react';
@@ -10,30 +11,20 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { ChartErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { ShapWaterfallChart } from './charts/ShapWaterfallChart';
-import { useAnalysisShapExplanation, useAnalysisExtremeCases } from '@/hooks/use-analysis-charts';
+import { useAnalysisShapExplanation } from '@/hooks/use-analysis-charts';
 import { useGenerateAnalysisChartInsight } from '@/hooks/use-insights';
 
 interface ShapWaterfallSectionProps {
   experimentId: string;
+  selectedSynthId: string;
 }
 
-export function ShapWaterfallSection({ experimentId }: ShapWaterfallSectionProps) {
+export function ShapWaterfallSection({ experimentId, selectedSynthId }: ShapWaterfallSectionProps) {
   const [showExplanation, setShowExplanation] = useState(false);
-  const [selectedSynthId, setSelectedSynthId] = useState<string>('');
-
-  // Get extreme cases to populate the synth selector
-  const extremeCases = useAnalysisExtremeCases(experimentId, 5);
 
   // Get SHAP explanation for selected synth
   const shapExplanation = useAnalysisShapExplanation(experimentId, selectedSynthId, !!selectedSynthId);
@@ -49,20 +40,6 @@ export function ShapWaterfallSection({ experimentId }: ShapWaterfallSectionProps
         prediction: shapExplanation.data.prediction,
         contributions: shapExplanation.data.contributions,
       },
-    });
-  };
-
-  // Build synth options from extreme cases
-  const synthOptions: Array<{ id: string; label: string; type: string }> = [];
-  if (extremeCases.data) {
-    extremeCases.data.worst_failures.forEach((s) => {
-      synthOptions.push({ id: s.synth_id, label: `${s.synth_id.substring(0, 8)}...`, type: 'Pior Falha' });
-    });
-    extremeCases.data.best_successes.forEach((s) => {
-      synthOptions.push({ id: s.synth_id, label: `${s.synth_id.substring(0, 8)}...`, type: 'Melhor Sucesso' });
-    });
-    extremeCases.data.unexpected_cases.slice(0, 3).forEach((s) => {
-      synthOptions.push({ id: s.synth_id, label: `${s.synth_id.substring(0, 8)}...`, type: 'Inesperado' });
     });
   }
 
@@ -134,62 +111,23 @@ export function ShapWaterfallSection({ experimentId }: ShapWaterfallSectionProps
               </div>
 
               <div>
-                <h4 className="font-semibold text-slate-800 mb-1 text-sm">Por que selecionar um synth?</h4>
+                <h4 className="font-semibold text-slate-800 mb-1 text-sm">Click-to-explain</h4>
                 <p className="text-xs">
-                  Cada synth tem uma história única. Entender <strong>por que</strong> um synth
-                  específico falhou ou teve sucesso ajuda a criar intervenções mais eficazes.
+                  Clique em qualquer card de caso extremo ou outlier acima para ver a explicação
+                  detalhada de <strong>por que</strong> aquele synth específico falhou ou teve sucesso.
                 </p>
               </div>
             </CollapsibleContent>
           </div>
         </Collapsible>
 
-        {/* Synth selector */}
-        <div className="bg-slate-50 rounded-lg p-4">
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-600">Selecione um synth:</span>
-            <Select value={selectedSynthId} onValueChange={setSelectedSynthId}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="Escolha um synth..." />
-              </SelectTrigger>
-              <SelectContent>
-                {extremeCases.isLoading && (
-                  <SelectItem value="loading" disabled>Carregando...</SelectItem>
-                )}
-                {synthOptions.map((opt) => (
-                  <SelectItem key={opt.id} value={opt.id}>
-                    <span className="flex items-center gap-2">
-                      <span className={`text-xs px-1.5 py-0.5 rounded ${
-                        opt.type === 'Pior Falha' ? 'bg-red-100 text-red-700' :
-                        opt.type === 'Melhor Sucesso' ? 'bg-green-100 text-green-700' :
-                        'bg-amber-100 text-amber-700'
-                      }`}>
-                        {opt.type}
-                      </span>
-                      <span className="font-mono text-xs">{opt.label}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* Synth ID display */}
+        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-indigo-700 font-medium">Explicando synth:</span>
+            <span className="font-mono text-sm text-indigo-900">{selectedSynthId.substring(0, 12)}...</span>
           </div>
         </div>
-
-        {/* No selection state */}
-        {!selectedSynthId && (
-          <div
-            className="flex flex-col items-center justify-center gap-4 text-center"
-            style={{ height: 350 }}
-          >
-            <div className="icon-box-neutral">
-              <Activity className="h-6 w-6 text-slate-400" />
-            </div>
-            <div>
-              <p className="text-body text-slate-500 font-medium mb-1">Selecione um Synth</p>
-              <p className="text-meta">Escolha um synth acima para ver a explicação detalhada.</p>
-            </div>
-          </div>
-        )}
 
         {/* Loading state */}
         {selectedSynthId && shapExplanation.isLoading && (

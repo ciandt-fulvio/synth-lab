@@ -111,6 +111,36 @@ export async function createInterviewForExperiment(
 }
 
 /**
+ * Create an automatic interview with extreme cases (top 5 + bottom 5 performers).
+ *
+ * Automatically selects the 10 most extreme synths from the experiment's
+ * simulation results and creates an interview with them.
+ */
+/**
+ * Get auto-interview for an experiment if it exists.
+ *
+ * Returns the most recent auto-interview (extreme cases) created for this experiment.
+ */
+export async function getAutoInterview(
+  experimentId: string
+): Promise<ResearchExecuteResponse | null> {
+  return fetchAPI<ResearchExecuteResponse | null>(
+    `/experiments/${experimentId}/interviews/auto`
+  );
+}
+
+/**
+ * Create auto-interview with extreme cases (5 best + 5 worst).
+ */
+export async function createAutoInterview(
+  experimentId: string
+): Promise<ResearchExecuteResponse> {
+  return fetchAPI<ResearchExecuteResponse>(`/experiments/${experimentId}/interviews/auto`, {
+    method: 'POST',
+  });
+}
+
+/**
  * Estimate scorecard dimensions using AI.
  *
  * Uses the experiment's name, hypothesis, and description to generate
@@ -275,17 +305,6 @@ export async function getAnalysisScatterCorrelation(
     show_trendline: String(showTrendline),
   });
   return fetchAPI(`/experiments/${experimentId}/analysis/charts/scatter?${params}`);
-}
-
-/**
- * Get attribute correlations chart for experiment analysis.
- *
- * Shows correlation of each synth attribute with attempt_rate and success_rate.
- */
-export async function getAnalysisAttributeCorrelations(
-  experimentId: string
-): Promise<AttributeCorrelationChart> {
-  return fetchAPI(`/experiments/${experimentId}/analysis/charts/attribute-correlations`);
 }
 
 // =============================================================================
