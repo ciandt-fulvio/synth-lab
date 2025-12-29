@@ -57,7 +57,11 @@ class ChartInsight(BaseModel):
 
     def to_cache_json(self) -> dict:
         """Convert to JSON format for storage in analysis_cache.data."""
-        return self.model_dump()
+        data = self.model_dump()
+        # Convert datetime to ISO string for JSON serialization
+        if isinstance(data.get("generation_timestamp"), datetime):
+            data["generation_timestamp"] = data["generation_timestamp"].isoformat()
+        return data
 
     @classmethod
     def from_cache_json(cls, data: dict) -> "ChartInsight":

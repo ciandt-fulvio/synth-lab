@@ -268,11 +268,6 @@
 
 ### Phase Dependencies
 
-- **Setup (Phase 1)**: No dependencies - can start immediately
-- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
-- **User Story 3 (Phase 3)**: Depends on Foundational - Backend infrastructure for automatic generation
-- **User Story 1 (Phase 4)**: Depends on Foundational - Can start in parallel with US3 backend, requires US3 API endpoints for full integration
-- **User Story 2 (Phase 5)**: Depends on Foundational + US3 backend (executive summary generation)
 - **Polish (Phase 6)**: Depends on all user stories being complete
 
 ### User Story Dependencies
@@ -400,5 +395,4 @@ With multiple developers:
 - Polish: 12 tasks (4 tests + 8 cleanup)
 
 **Parallel Opportunities**: 45+ tasks can run in parallel across phases
-**MVP Scope**: Phases 1-4 (42 tasks - Setup + Foundational + US3 + US1)
-**Estimated MVP Effort**: ~2-3 weeks with test-first approach
+
