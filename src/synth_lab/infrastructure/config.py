@@ -62,6 +62,7 @@ def configure_logging() -> None:
 
 # LLM configuration
 DEFAULT_MODEL = os.getenv("SYNTHLAB_DEFAULT_MODEL", "gpt-4o-mini")
+REASONING_MODEL = "o1-mini"  # Reasoning-capable model for insight generation
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 LLM_TIMEOUT = float(os.getenv("SYNTHLAB_LLM_TIMEOUT", "120.0"))
 LLM_MAX_RETRIES = int(os.getenv("SYNTHLAB_LLM_MAX_RETRIES", "3"))

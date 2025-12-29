@@ -81,6 +81,18 @@ class CacheKeys:
     # Phase 5: Explainability
     SHAP_SUMMARY = "shap_summary"
 
+    # AI-Generated Insights (Individual Charts)
+    INSIGHT_TRY_VS_SUCCESS = "insight_try_vs_success"
+    INSIGHT_SHAP_SUMMARY = "insight_shap_summary"
+    INSIGHT_PDP = "insight_pdp"
+    INSIGHT_PCA_SCATTER = "insight_pca_scatter"
+    INSIGHT_RADAR_COMPARISON = "insight_radar_comparison"
+    INSIGHT_EXTREME_CASES = "insight_extreme_cases"
+    INSIGHT_OUTLIERS = "insight_outliers"
+
+    # AI-Generated Executive Summary
+    EXECUTIVE_SUMMARY = "executive_summary"
+
 
 if __name__ == "__main__":
     import sys
