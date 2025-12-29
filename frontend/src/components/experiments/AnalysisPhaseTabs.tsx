@@ -11,7 +11,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   TrendingUp,
-  Target,
+  PieChart,
   Users,
   UserCheck,
   Microscope,
@@ -45,7 +45,7 @@ export const ANALYSIS_PHASES: AnalysisPhase[] = [
     id: 'visao-geral',
     title: 'Visão Geral',
     shortTitle: 'Geral',
-    icon: <TrendingUp className="w-4 h-4" />,
+    icon: <PieChart className="w-4 h-4" />,
     question: 'O que aconteceu?',
     description:
       'Panorama completo dos resultados: taxa de sucesso, falha e desistência. Identifica se o problema está na adoção ou na execução.',
@@ -54,7 +54,7 @@ export const ANALYSIS_PHASES: AnalysisPhase[] = [
     id: 'localizacao',
     title: 'Influência',
     shortTitle: 'Influência',
-    icon: <Target className="w-4 h-4" />,
+    icon: <TrendingUp className="w-4 h-4" />,
     question: 'Quais características dos usuários mais influenciam o resultado?',
     description:
       'Analisa correlações entre atributos dos synths e taxas de sucesso ou falha. Revela quais características importam mais para prever comportamento.',
@@ -147,7 +147,7 @@ export function AnalysisPhaseTabs({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-xl text-white shadow-lg shadow-violet-200/50">
-              <TrendingUp className="h-5 w-5" />
+              <PieChart className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-slate-900">
