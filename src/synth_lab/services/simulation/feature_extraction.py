@@ -136,6 +136,8 @@ def get_attribute_value(outcome: SynthOutcome, attribute: str) -> float:
         return outcome.failed_rate
     elif attribute == "did_not_try_rate":
         return outcome.did_not_try_rate
+    elif attribute == "attempt_rate":
+        return 1.0 - outcome.did_not_try_rate
 
     raise ValueError(f"Unknown attribute: {attribute}")
 
