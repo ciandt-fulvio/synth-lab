@@ -18,6 +18,7 @@ import {
   deleteExperiment,
   createScorecardForExperiment,
   createInterviewForExperiment,
+  getAutoInterview,
   createAutoInterview,
   estimateScorecardForExperiment,
   estimateScorecardFromText,
@@ -242,6 +243,17 @@ export function useCreateInterviewForExperiment() {
 }
 
 /**
+ * Hook to check if an auto-interview exists for an experiment.
+ */
+export function useAutoInterview(experimentId: string) {
+  return useQuery({
+    queryKey: queryKeys.autoInterview(experimentId),
+    queryFn: () => getAutoInterview(experimentId),
+    enabled: !!experimentId,
+  });
+}
+
+/**
  * Hook to create an automatic interview with extreme cases (top 5 + bottom 5).
  */
 export function useCreateAutoInterview() {
@@ -250,9 +262,12 @@ export function useCreateAutoInterview() {
   return useMutation({
     mutationFn: (experimentId: string) => createAutoInterview(experimentId),
     onSuccess: (_, experimentId) => {
-      // Invalidate experiment detail to show the new interview
+      // Invalidate experiment detail and auto-interview query
       queryClient.invalidateQueries({
         queryKey: queryKeys.experimentDetail(experimentId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.autoInterview(experimentId),
       });
     },
   });

@@ -635,6 +635,42 @@ async def create_interview_for_experiment(
         )
 
 
+@router.get(
+    "/{experiment_id}/interviews/auto",
+    response_model=ResearchExecuteResponse | None,
+)
+async def get_auto_interview_for_experiment(
+    experiment_id: str,
+) -> ResearchExecuteResponse | None:
+    """
+    Get the auto-interview execution for this experiment if it exists.
+
+    Returns the most recent auto-interview (extreme cases) created for this experiment.
+    Returns None if no auto-interview has been created yet.
+
+    Args:
+        experiment_id: Experiment ID.
+
+    Returns:
+        ResearchExecuteResponse with interview details, or None if not found.
+    """
+    db = get_database()
+    research_repo = ResearchRepository(db)
+
+    execution = research_repo.get_auto_interview_for_experiment(experiment_id)
+
+    if execution is None:
+        return None
+
+    return ResearchExecuteResponse(
+        exec_id=execution.exec_id,
+        status=execution.status,
+        topic_name=execution.topic_name,
+        synth_count=execution.synth_count,
+        started_at=execution.started_at,
+    )
+
+
 @router.post(
     "/{experiment_id}/interviews/auto",
     response_model=ResearchExecuteResponse,

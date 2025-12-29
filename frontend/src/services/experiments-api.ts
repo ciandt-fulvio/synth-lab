@@ -116,6 +116,22 @@ export async function createInterviewForExperiment(
  * Automatically selects the 10 most extreme synths from the experiment's
  * simulation results and creates an interview with them.
  */
+/**
+ * Get auto-interview for an experiment if it exists.
+ *
+ * Returns the most recent auto-interview (extreme cases) created for this experiment.
+ */
+export async function getAutoInterview(
+  experimentId: string
+): Promise<ResearchExecuteResponse | null> {
+  return fetchAPI<ResearchExecuteResponse | null>(
+    `/experiments/${experimentId}/interviews/auto`
+  );
+}
+
+/**
+ * Create auto-interview with extreme cases (5 best + 5 worst).
+ */
 export async function createAutoInterview(
   experimentId: string
 ): Promise<ResearchExecuteResponse> {

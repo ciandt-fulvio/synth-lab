@@ -24,6 +24,7 @@ class ExtremeSynth(BaseModel):
     """Single extreme case synth for qualitative analysis."""
 
     synth_id: str = Field(..., description="Synth identifier")
+    synth_name: str = Field(default="", description="Synth display name")
     category: str = Field(
         ...,
         description="Category: worst_failure, best_success, or unexpected",

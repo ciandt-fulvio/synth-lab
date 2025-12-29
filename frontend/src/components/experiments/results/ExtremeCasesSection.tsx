@@ -13,7 +13,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, RefreshCw, Users } from 'lucide-react';
 import { useAnalysisExtremeCases } from '@/hooks/use-analysis-charts';
-import { useCreateAutoInterview } from '@/hooks/use-experiments';
+import { useAutoInterview, useCreateAutoInterview } from '@/hooks/use-experiments';
 import { toast } from 'sonner';
 import type { ExtremeSynth } from '@/types/simulation';
 
@@ -60,10 +60,15 @@ function SynthCard({ synth, variant, onClick, isSelected }: SynthCardProps) {
       }`}
     >
       <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2">
-          {styles.icon}
-          <span className="text-xs font-mono text-slate-600 truncate max-w-32">
-            {synth.synth_id.substring(0, 12)}...
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            {styles.icon}
+            <span className="text-sm font-medium text-slate-800 truncate max-w-40">
+              {synth.synth_name || synth.synth_id.substring(0, 8)}
+            </span>
+          </div>
+          <span className="text-xs font-mono text-slate-400 truncate max-w-40 ml-6">
+            {synth.synth_id}
           </span>
         </div>
         <span className={`text-sm font-bold ${styles.rateColor}`}>
@@ -94,15 +99,14 @@ export function ExtremeCasesSection({
   selectedSynthId,
 }: ExtremeCasesSectionProps) {
   const [showExplanation, setShowExplanation] = useState(false);
-  const [interviewId, setInterviewId] = useState<string | null>(null);
 
   const extremeCases = useAnalysisExtremeCases(experimentId, 10);
+  const autoInterview = useAutoInterview(experimentId);
   const createAutoInterview = useCreateAutoInterview();
 
   const handleCreateInterview = () => {
     createAutoInterview.mutate(experimentId, {
-      onSuccess: (response) => {
-        setInterviewId(response.interview_id);
+      onSuccess: () => {
         toast.success('Entrevista criada com sucesso', {
           description: '10 casos extremos selecionados (5 melhores + 5 piores)',
         });
@@ -282,28 +286,28 @@ export function ExtremeCasesSection({
               <div>
                 <h4 className="text-sm font-medium text-slate-700 mb-1">Entrevista Automática</h4>
                 <p className="text-xs text-slate-500">
-                  Crie uma entrevista com os 10 casos mais extremos (5 melhores + 5 piores)
+                  {autoInterview.data
+                    ? 'Entrevista criada com os 10 casos mais extremos'
+                    : 'Crie uma entrevista com os 10 casos mais extremos (5 melhores + 5 piores)'}
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                {interviewId && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                    className="btn-secondary"
-                  >
-                    <a href={`/interviews/${interviewId}`}>
-                      <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                      Ver Entrevista
-                    </a>
-                  </Button>
-                )}
-
+              {autoInterview.data ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="btn-secondary"
+                >
+                  <a href={`/interviews/${autoInterview.data.exec_id}`}>
+                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                    Ver Entrevista
+                  </a>
+                </Button>
+              ) : (
                 <Button
                   onClick={handleCreateInterview}
-                  disabled={createAutoInterview.isPending || !!interviewId}
+                  disabled={createAutoInterview.isPending}
                   size="sm"
                   className="btn-primary"
                 >
@@ -315,11 +319,11 @@ export function ExtremeCasesSection({
                   ) : (
                     <>
                       <Users className="h-3.5 w-3.5 mr-1.5" />
-                      {interviewId ? 'Entrevista Criada' : 'Criar Entrevista'}
+                      Criar Entrevista
                     </>
                   )}
                 </Button>
-              </div>
+              )}
             </div>
           </div>
         )}

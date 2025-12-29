@@ -312,6 +312,7 @@ export interface PCAScatterChart {
 /** Synth identified as extreme case */
 export interface ExtremeSynth {
   synth_id: string;
+  synth_name: string;
   success_rate: number;
   failed_rate: number;
   did_not_try_rate: number;
