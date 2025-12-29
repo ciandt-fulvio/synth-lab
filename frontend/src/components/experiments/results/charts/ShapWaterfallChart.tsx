@@ -92,6 +92,24 @@ export function ShapWaterfallChart({ data }: ShapWaterfallChartProps) {
     cumulative += contributionValue;
   });
 
+  // Validation: SHAP values should sum to predicted value
+  const calculatedPrediction = cumulative;
+  const difference = Math.abs(calculatedPrediction - predicted_success_rate);
+
+  if (difference > 0.001) {
+    console.warn(
+      `SHAP values inconsistency detected:\n` +
+      `  Baseline: ${(baseline_prediction * 100).toFixed(2)}%\n` +
+      `  Sum of contributions: ${((cumulative - baseline_prediction) * 100).toFixed(2)}%\n` +
+      `  Calculated prediction: ${(calculatedPrediction * 100).toFixed(2)}%\n` +
+      `  Model predicted: ${(predicted_success_rate * 100).toFixed(2)}%\n` +
+      `  Difference: ${(difference * 100).toFixed(2)}%`
+    );
+  }
+
+  // Use calculated value (sum of contributions) as the true prediction
+  const finalPrediction = calculatedPrediction;
+
   // Custom label component
   const CustomLabel = (props: any) => {
     const { x, y, width, index } = props;
@@ -190,15 +208,15 @@ export function ShapWaterfallChart({ data }: ShapWaterfallChartProps) {
 
           {/* Prediction line - dashed horizontal line at final value */}
           <ReferenceLine
-            y={predicted_success_rate}
-            stroke={predicted_success_rate >= 0.5 ? '#16a34a' : '#dc2626'}
+            y={finalPrediction}
+            stroke={finalPrediction >= 0.5 ? '#16a34a' : '#dc2626'}
             strokeDasharray="6 3"
             strokeWidth={2}
           >
             <Label
-              value={`Predição: ${(predicted_success_rate * 100).toFixed(1)}%`}
+              value={`Predição: ${(finalPrediction * 100).toFixed(1)}%`}
               position="right"
-              fill={predicted_success_rate >= 0.5 ? '#16a34a' : '#dc2626'}
+              fill={finalPrediction >= 0.5 ? '#16a34a' : '#dc2626'}
               fontSize={11}
               fontWeight="600"
             />
