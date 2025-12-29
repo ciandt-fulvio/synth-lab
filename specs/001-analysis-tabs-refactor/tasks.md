@@ -15,14 +15,16 @@
 
 ## Implementation Strategy
 
-**MVP Scope**: User Stories 1, 2, 5 (P1 priorities)
-- US1: Visualizar Influência (move SHAP/PDP)
-- US2: Click-to-explain em Casos Extremos
-- US5: Navegação com 5 fases (remove Deep Dive)
+**Complete Feature Delivery**: Implementar todas as user stories em sequência
 
-**Post-MVP**: User Stories 3, 4 (P2 priorities)
-- US3: Auto-interview creation
-- US4: Simplificar Outliers
+**User Stories** (em ordem de implementação):
+- US5 (P1): Navegação com 5 fases (remove Deep Dive)
+- US1 (P1): Visualizar Influência (move SHAP/PDP)
+- US2 (P1): Click-to-explain em Casos Extremos
+- US3 (P2): Auto-interview creation
+- US4 (P2): Simplificar Outliers
+
+**Commit Strategy**: 1 commit ao final de cada Phase (9 commits no total)
 
 ---
 
@@ -52,7 +54,7 @@
 
 ---
 
-## Phase 3: User Story 5 - Navegação Simplificada (Priority: P1) 🎯 MVP
+## Phase 3: User Story 5 - Navegação Simplificada (Priority: P1)
 
 **Goal**: Remove aba "Deep Dive" e atualizar indicador para "5 fases"
 
@@ -69,7 +71,7 @@
 
 ---
 
-## Phase 4: User Story 1 - Visualizar Influência (Priority: P1) 🎯 MVP
+## Phase 4: User Story 1 - Visualizar Influência (Priority: P1)
 
 **Goal**: Mover SHAP Summary e PDP para aba Influência, remover gráficos antigos
 
@@ -91,7 +93,7 @@
 
 ---
 
-## Phase 5: User Story 2 - Click-to-Explain (Priority: P1) 🎯 MVP
+## Phase 5: User Story 2 - Click-to-Explain (Priority: P1)
 
 **Goal**: Adicionar click-to-explain em casos extremos, mover SHAP Waterfall para aba Especiais
 
@@ -236,31 +238,42 @@ Phase 5 (US2 - Click-to-Explain)               |
 
 ## Execution Recommendations
 
-### MVP (Minimum Viable Product)
-**Deliver First**: US5 + US1 + US2 (Tasks T007-T032)
-- User sees 5 phases
-- Influência tab has correct charts
-- Click-to-explain works for extreme cases
-- **Estimated**: ~15-20 tasks
+### Implementation Strategy
 
-### Incremental Delivery
-1. **Sprint 1**: Phase 1-5 (Setup + US5/US1/US2) + Phase 6 (Cleanup)
-2. **Sprint 2**: Phase 7 (US3 - Auto-interview) + Phase 8 (US4 - Outliers)
-3. **Sprint 3**: Phase 9 (Polish + Final testing)
+**Complete Feature**: Implementar todas as fases em sequência, sem MVP intermediário.
 
-### Parallel Execution Example (Sprint 1)
+**Commit Strategy**:
+- **1 commit ao final de cada Phase** (9 commits no total)
+- Cada commit deve incluir todos os tasks da fase completos
+- Mensagens de commit devem referenciar a Phase (ex: "feat: Phase 3 - Remove Deep Dive tab")
 
-**Team Member A**:
-- T007-T010 (US5 - Remove Deep Dive)
-- T033-T039 (Backend Cleanup)
+### Sequential Execution with Parallel Tasks
 
-**Team Member B**:
-- T011-T019 (US1 - Move SHAP/PDP)
+Execute as fases em ordem, mas dentro de cada fase, execute tasks [P] em paralelo quando possível:
 
-**Team Member C**:
-- T020-T032 (US2 - Click-to-Explain)
+**Phase 1** (Setup):
+- Execute T001-T004 em paralelo → **Commit 1**: "chore: Phase 1 - Code audit complete"
 
-**All members can work simultaneously** as US1, US2, US5 modify different components.
+**Phase 2** (Foundational):
+- Execute T005-T006 em paralelo → **Commit 2**: "feat: Phase 2 - Backend preparation"
+
+**Phases 3-5** (US5/US1/US2 - podem ser executadas em paralelo):
+- Execute todas as 3 fases simultaneamente
+- **Commit 3**: "feat: Phase 3 - Remove Deep Dive tab (US5)"
+- **Commit 4**: "feat: Phase 4 - Move SHAP/PDP to Influência (US1)"
+- **Commit 5**: "feat: Phase 5 - Add click-to-explain for extreme cases (US2)"
+
+**Phase 6** (Backend Cleanup):
+- Execute T033-T039 → **Commit 6**: "refactor: Phase 6 - Remove unused backend code"
+
+**Phase 7** (US3 - Auto-interview):
+- Execute T040-T053 → **Commit 7**: "feat: Phase 7 - Add auto-interview creation (US3)"
+
+**Phase 8** (US4 - Outliers):
+- Execute T054-T061 → **Commit 8**: "feat: Phase 8 - Simplify outliers UI (US4)"
+
+**Phase 9** (Polish):
+- Execute T062-T070 → **Commit 9**: "polish: Phase 9 - Final testing and polish"
 
 ---
 
@@ -279,6 +292,6 @@ Phase 5 (US2 - Click-to-Explain)               |
 
 **Parallel Opportunities**: ~40% of tasks marked [P] can run in parallel
 
-**MVP Scope**: 33 tasks (Phases 1-6)
-**Post-MVP**: 28 tasks (Phases 7-8)
-**Polish**: 9 tasks (Phase 9)
+**Commit Strategy**: 9 commits (1 per Phase)
+
+**Implementation**: Complete feature delivery - todas as fases devem ser implementadas em sequência
