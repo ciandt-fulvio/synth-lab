@@ -30,6 +30,7 @@ results, summary = await run_batch_interviews(
 """
 
 import asyncio
+import math
 import random
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -50,6 +51,7 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
+from synth_lab.infrastructure.config import AVATARS_DIR
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
 
 from .runner import ConversationMessage, InterviewGuideData, InterviewResult, run_interview
@@ -151,6 +153,63 @@ def _select_synths_for_interview(
                 f"Randomly selected {max_interviews} synths from {len(all_synths)} available"
             )
             return selected
+
+
+def _ensure_avatars_for_synths(synths: list[dict[str, Any]]) -> None:
+    """
+    Garante que todos os synths tenham avatares gerados.
+
+    Verifica quais synths não têm arquivo de avatar e gera automaticamente
+    antes das entrevistas iniciarem.
+
+    Args:
+        synths: Lista de synths selecionados para entrevista
+
+    Note:
+        - Avatares são gerados em blocos de 9 (requisito da API OpenAI)
+        - Synths temporários são usados para completar blocos incompletos
+        - Avatares já existentes não são sobrescritos
+    """
+    # Garantir que o diretório de avatares existe
+    AVATARS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Verificar quais synths não têm avatar
+    synths_without_avatar = []
+    for synth in synths:
+        synth_id = synth.get("id")
+        if not synth_id:
+            continue
+
+        avatar_file = AVATARS_DIR / f"{synth_id}.png"
+        if not avatar_file.exists():
+            synths_without_avatar.append(synth)
+
+    if not synths_without_avatar:
+        logger.debug("Todos os synths selecionados já possuem avatares")
+        return
+
+    # Calcular número de blocos (1 bloco = 9 avatares, otimização da API OpenAI)
+    num_blocks = math.ceil(len(synths_without_avatar) / 9)
+
+    logger.info(
+        f"Gerando avatares para {len(synths_without_avatar)} synths "
+        f"em {num_blocks} bloco(s) de até 9"
+    )
+
+    # Importar gerador de avatares
+    from synth_lab.gen_synth.avatar_generator import generate_avatars
+
+    try:
+        # Gerar avatares em blocos de 9 (otimização da API OpenAI)
+        # A função generate_avatars já divide internamente em blocos
+        generated_paths = generate_avatars(synths=synths_without_avatar)
+        logger.info(f"Avatares gerados com sucesso: {len(generated_paths)} arquivos")
+    except Exception as e:
+        # Log do erro mas não interrompe as entrevistas
+        # Avatares são úteis mas não essenciais para o fluxo
+        logger.warning(
+            f"Erro ao gerar avatares (entrevistas continuarão sem avatares): {e}"
+        )
 
 
 async def run_single_interview_safe(
@@ -333,6 +392,9 @@ async def run_batch_interviews(
         synth_ids=synth_ids,
         max_interviews=max_interviews,
     )
+
+    # Ensure avatars exist for selected synths (auto-generate if missing)
+    _ensure_avatars_for_synths(synths_to_interview)
 
     logger.info(
         f"Starting batch {batch_id}: {len(synths_to_interview)} synths, "
@@ -636,6 +698,45 @@ if __name__ == "__main__":
         print("✓ _select_synths_for_interview: uses all synths when max >= total")
     except Exception as e:
         all_validation_failures.append(f"_select_synths (max >= total): {e}")
+
+    # Test 9: _ensure_avatars_for_synths - empty list
+    total_tests += 1
+    try:
+        # Empty list should return immediately without error
+        _ensure_avatars_for_synths([])
+        print("✓ _ensure_avatars_for_synths: handles empty list")
+    except Exception as e:
+        all_validation_failures.append(f"_ensure_avatars (empty): {e}")
+
+    # Test 10: _ensure_avatars_for_synths - synths without id are skipped
+    total_tests += 1
+    try:
+        # Synths without 'id' field should be skipped
+        synths_no_id = [{"nome": "Test"}, {"nome": "Test2"}]
+        _ensure_avatars_for_synths(synths_no_id)
+        print("✓ _ensure_avatars_for_synths: skips synths without id")
+    except Exception as e:
+        all_validation_failures.append(f"_ensure_avatars (no id): {e}")
+
+    # Test 11: _ensure_avatars_for_synths - synths with existing avatars are skipped
+    total_tests += 1
+    try:
+        # Check if any avatars exist
+        from synth_lab.infrastructure.config import AVATARS_DIR
+        if AVATARS_DIR.exists():
+            avatar_files = list(AVATARS_DIR.glob("*.png"))
+            if avatar_files:
+                # Test with synth that has existing avatar
+                synth_id = avatar_files[0].stem
+                test_synths = [{"id": synth_id, "nome": "Test"}]
+                _ensure_avatars_for_synths(test_synths)
+                print(f"✓ _ensure_avatars_for_synths: skips existing avatar ({synth_id})")
+            else:
+                print("○ _ensure_avatars_for_synths: no existing avatars to test skip logic")
+        else:
+            print("○ _ensure_avatars_for_synths: avatars dir doesn't exist")
+    except Exception as e:
+        all_validation_failures.append(f"_ensure_avatars (existing): {e}")
 
     # Final validation result
     print()
