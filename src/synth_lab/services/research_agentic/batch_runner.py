@@ -163,69 +163,22 @@ async def _ensure_avatars_for_synths(
     """
     Garante que todos os synths tenham avatares gerados.
 
-    Verifica quais synths não têm arquivo de avatar e gera automaticamente
-    antes das entrevistas iniciarem.
+    DEPRECATED: Use AvatarService.ensure_avatars_for_synths() directly.
+    This function is kept for backward compatibility.
 
     Args:
         synths: Lista de synths selecionados para entrevista
         on_avatar_generation_start: Callback async quando geração inicia (recebe count)
         on_avatar_generation_complete: Callback async quando geração completa (recebe count)
-
-    Note:
-        - Avatares são gerados em blocos de 9 (requisito da API OpenAI)
-        - Synths temporários são usados para completar blocos incompletos
-        - Avatares já existentes não são sobrescritos
     """
-    # Garantir que o diretório de avatares existe
-    AVATARS_DIR.mkdir(parents=True, exist_ok=True)
+    from synth_lab.services.avatar_service import AvatarService
 
-    # Verificar quais synths não têm avatar
-    synths_without_avatar = []
-    for synth in synths:
-        synth_id = synth.get("id")
-        if not synth_id:
-            continue
-
-        avatar_file = AVATARS_DIR / f"{synth_id}.png"
-        if not avatar_file.exists():
-            synths_without_avatar.append(synth)
-
-    if not synths_without_avatar:
-        logger.debug("Todos os synths selecionados já possuem avatares")
-        return
-
-    # Calcular número de blocos (1 bloco = 9 avatares, otimização da API OpenAI)
-    num_blocks = math.ceil(len(synths_without_avatar) / 9)
-    count_to_generate = len(synths_without_avatar)
-
-    logger.info(
-        f"Gerando avatares para {count_to_generate} synths "
-        f"em {num_blocks} bloco(s) de até 9"
+    avatar_service = AvatarService()
+    await avatar_service.ensure_avatars_for_synths(
+        synths=synths,
+        on_generation_start=on_avatar_generation_start,
+        on_generation_complete=on_avatar_generation_complete,
     )
-
-    # Notificar início da geração de avatares
-    if on_avatar_generation_start:
-        await on_avatar_generation_start(count_to_generate)
-
-    # Importar gerador de avatares
-    from synth_lab.gen_synth.avatar_generator import generate_avatars
-
-    try:
-        # Gerar avatares em blocos de 9 (otimização da API OpenAI)
-        # A função generate_avatars já divide internamente em blocos
-        generated_paths = generate_avatars(synths=synths_without_avatar)
-        logger.info(f"Avatares gerados com sucesso: {len(generated_paths)} arquivos")
-
-        # Notificar conclusão da geração de avatares
-        if on_avatar_generation_complete:
-            await on_avatar_generation_complete(len(generated_paths))
-
-    except Exception as e:
-        # Log do erro mas não interrompe as entrevistas
-        # Avatares são úteis mas não essenciais para o fluxo
-        logger.warning(
-            f"Erro ao gerar avatares (entrevistas continuarão sem avatares): {e}"
-        )
 
 
 async def run_single_interview_safe(
