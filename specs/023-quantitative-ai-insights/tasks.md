@@ -29,12 +29,12 @@
 
 ### In Progress
 
-- 🔄 **Phase 3: User Story 3 - Backend Infrastructure** (T014-T041) - 0/28 tasks
-  - Next: Create unit tests for entities and services
-  - Then: Implement InsightService and ExecutiveSummaryService
-  - Then: Hook into analysis workflow for automatic generation
+- 🔄 **Phase 3: User Story 3 - Backend Infrastructure** (T014-T041) - 24/28 tasks
+  - ✅ Unit and integration tests created (T014-T020)
+  - ✅ InsightService and ExecutiveSummaryService with all prompts and error handling (T021-T037)
+  - 🔄 Next: Hook into analysis workflow for automatic generation (T038-T041)
 
-### Total Progress: 13/107 tasks (12%)
+### Total Progress: 37/107 tasks (35%)
 
 ---
 
@@ -95,33 +95,33 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T014 [P] [US3] Unit test for ChartInsight entity in tests/unit/domain/entities/test_chart_insight.py (validate structure, JSON serialization)
-- [ ] T015 [P] [US3] Unit test for ExecutiveSummary entity in tests/unit/domain/entities/test_executive_summary.py (validate structure, JSON serialization)
-- [ ] T016 [P] [US3] Unit test for InsightService._build_prompt_try_vs_success() in tests/unit/services/test_insight_service.py (mocked LLM)
-- [ ] T017 [P] [US3] Unit test for InsightService._parse_insight_response() in tests/unit/services/test_insight_service.py
-- [ ] T018 [P] [US3] Unit test for ExecutiveSummaryService.generate_summary() in tests/unit/services/test_executive_summary_service.py (mocked LLM)
-- [ ] T019 [P] [US3] Integration test for repository insight methods in tests/integration/repositories/test_analysis_repository_insights.py
-- [ ] T020 [US3] Integration test for automatic trigger workflow in tests/integration/services/test_insight_workflow.py (verify parallel execution)
+- [x] T014 [P] [US3] Unit test for ChartInsight entity in tests/unit/domain/entities/test_chart_insight.py (validate structure, JSON serialization)
+- [x] T015 [P] [US3] Unit test for ExecutiveSummary entity in tests/unit/domain/entities/test_executive_summary.py (validate structure, JSON serialization)
+- [x] T016 [P] [US3] Unit test for InsightService._build_prompt_try_vs_success() in tests/unit/services/test_insight_service.py (mocked LLM)
+- [x] T017 [P] [US3] Unit test for InsightService._parse_insight_response() in tests/unit/services/test_insight_service.py
+- [x] T018 [P] [US3] Unit test for ExecutiveSummaryService.generate_summary() in tests/unit/services/test_executive_summary_service.py (mocked LLM)
+- [x] T019 [P] [US3] Integration test for repository insight methods in tests/integration/repositories/test_analysis_repository_insights.py
+- [x] T020 [US3] Integration test for automatic trigger workflow in tests/integration/services/test_insight_workflow.py (verify parallel execution)
 
 ### Implementation for User Story 3
 
-- [ ] T021 [P] [US3] Create InsightService class skeleton in src/synth_lab/services/insight_service.py (init, logger, tracer)
-- [ ] T022 [P] [US3] Create ExecutiveSummaryService class skeleton in src/synth_lab/services/executive_summary_service.py
-- [ ] T023 [US3] Implement InsightService._build_prompt_try_vs_success() for Try vs Success chart
-- [ ] T024 [US3] Implement InsightService._build_prompt_shap_summary() for SHAP Summary chart
-- [ ] T025 [US3] Implement InsightService._build_prompt_pdp() for PDP chart
-- [ ] T026 [US3] Implement InsightService._build_prompt_pca_scatter() for PCA Scatter chart
-- [ ] T027 [US3] Implement InsightService._build_prompt_radar_comparison() for Radar Comparison chart
-- [ ] T028 [US3] Implement InsightService._build_prompt_extreme_cases() for Extreme Cases chart
-- [ ] T029 [US3] Implement InsightService._build_prompt_outliers() for Outliers chart
-- [ ] T030 [US3] Implement InsightService._parse_insight_response() to parse LLM JSON response into ChartInsight
-- [ ] T031 [US3] Implement InsightService.generate_insight() main method (read chart data, build prompt, call LLM with o1-mini, parse, store)
-- [ ] T032 [US3] Add Phoenix tracing to InsightService.generate_insight() with span per chart type
-- [ ] T033 [US3] Implement ExecutiveSummaryService._build_synthesis_prompt() to combine all insights
-- [ ] T034 [US3] Implement ExecutiveSummaryService.generate_summary() (read all insights, build prompt, call LLM, parse, store)
-- [ ] T035 [US3] Add Phoenix tracing to ExecutiveSummaryService.generate_summary()
-- [ ] T036 [US3] Add error handling to InsightService with retry logic (catch LLM errors, mark as failed, continue)
-- [ ] T037 [US3] Add error handling to ExecutiveSummaryService (handle partial insights, < 3 charts)
+- [x] T021 [P] [US3] Create InsightService class skeleton in src/synth_lab/services/insight_service.py (init, logger, tracer)
+- [x] T022 [P] [US3] Create ExecutiveSummaryService class skeleton in src/synth_lab/services/executive_summary_service.py
+- [x] T023 [US3] Implement InsightService._build_prompt_try_vs_success() for Try vs Success chart
+- [x] T024 [US3] Implement InsightService._build_prompt_shap_summary() for SHAP Summary chart
+- [x] T025 [US3] Implement InsightService._build_prompt_pdp() for PDP chart
+- [x] T026 [US3] Implement InsightService._build_prompt_pca_scatter() for PCA Scatter chart
+- [x] T027 [US3] Implement InsightService._build_prompt_radar_comparison() for Radar Comparison chart
+- [x] T028 [US3] Implement InsightService._build_prompt_extreme_cases() for Extreme Cases chart
+- [x] T029 [US3] Implement InsightService._build_prompt_outliers() for Outliers chart
+- [x] T030 [US3] Implement InsightService._parse_insight_response() to parse LLM JSON response into ChartInsight
+- [x] T031 [US3] Implement InsightService.generate_insight() main method (read chart data, build prompt, call LLM with o1-mini, parse, store)
+- [x] T032 [US3] Add Phoenix tracing to InsightService.generate_insight() with span per chart type
+- [x] T033 [US3] Implement ExecutiveSummaryService._build_synthesis_prompt() to combine all insights
+- [x] T034 [US3] Implement ExecutiveSummaryService.generate_summary() (read all insights, build prompt, call LLM, parse, store)
+- [x] T035 [US3] Add Phoenix tracing to ExecutiveSummaryService.generate_summary()
+- [x] T036 [US3] Add error handling to InsightService with retry logic (catch LLM errors, mark as failed, continue)
+- [x] T037 [US3] Add error handling to ExecutiveSummaryService (handle partial insights, < 3 charts)
 - [ ] T038 [US3] Implement _trigger_insight_generation() in src/synth_lab/services/simulation/analysis_service.py
 - [ ] T039 [US3] Implement _generate_insights_parallel() async method in analysis_service.py (parallel asyncio tasks for 7 charts)
 - [ ] T040 [US3] Hook _trigger_insight_generation() into _pre_compute_cache() in analysis_service.py (daemon thread pattern)
