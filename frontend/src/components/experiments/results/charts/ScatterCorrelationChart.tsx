@@ -87,24 +87,26 @@ export function ScatterCorrelationChart({ data }: ScatterCorrelationChartProps) 
         <span className="text-sm text-slate-600">Correlação:</span>
         <span
           className={`text-lg font-bold ${
-            Math.abs(correlationValue) >= 0.8
+            Math.abs(correlationValue) >= 0.7
               ? 'text-green-600'
-              : Math.abs(correlationValue) >= 0.6
+              : Math.abs(correlationValue) >= 0.4
                 ? 'text-amber-600'
-                : 'text-slate-500'
+                : Math.abs(correlationValue) >= 0.2
+                  ? 'text-slate-500'
+                  : 'text-slate-400'
           }`}
         >
           r = {correlationValue.toFixed(3)}
         </span>
         <span className="text-xs text-slate-400">
           (
-          {Math.abs(correlationValue) >= 0.8
+          {Math.abs(correlationValue) >= 0.7
             ? 'forte'
-            : Math.abs(correlationValue) >= 0.6
+            : Math.abs(correlationValue) >= 0.4
               ? 'moderada'
-              : Math.abs(correlationValue) >= 0.3
+              : Math.abs(correlationValue) >= 0.2
                 ? 'fraca'
-                : 'muito fraca'}
+                : 'irrelevante'}
           )
         </span>
         {isSignificant && (
