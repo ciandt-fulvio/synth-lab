@@ -79,6 +79,10 @@ Auto-generated from all feature plans. Last updated: 2025-12-22
   - PostCSS 8.4.47+, Autoprefixer 10.4.20+
   - @dyad-sh/react-vite-component-tagger 0.8.0+
 
+## When debuging issues
+See BACKEND_LOG at /tmp/synth-lab-backend.log
+See FRONTEND_LOG at /tmp/synth-lab-frontend.log
+
 ## Project Structure
 
 ```text
@@ -331,10 +335,12 @@ DEBUG=true
 LOG_LEVEL=INFO
 ```
 
+
+
 ## Recent Changes
+- 021-analysis-charts-frontend: Added TypeScript 5.5.3 (frontend) + React 18.3.1, TanStack React Query 5.56+, Recharts 2.12.7+, shadcn/ui (Radix UI), Tailwind CSS 3.4+
 - 020-experiment-results-frontend: Added TypeScript 5.5.3 (frontend) + React 18.3.1, TanStack React Query 5.56+, Recharts 2.12.7+, shadcn/ui (Radix UI), Tailwind CSS 3.4+
 - 019-experiment-refactor: Added Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI 0.109+, Pydantic 2.5+, React 18, TanStack Query 5.56+, shadcn/ui
-- 018-experiment-hub: Added Python 3.13+ (backend), TypeScript 5.5.3 (frontend)
 
 
 <!-- MANUAL ADDITIONS START -->

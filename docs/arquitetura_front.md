@@ -528,22 +528,57 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
 ### 3. Notificações (Sonner/Toast)
 
-**Padrão:**
+**Configuração:** O `Toaster` está configurado globalmente em `App.tsx`:
+- Posição: `top-right`
+- Auto-dismiss: 5 segundos
+- Botão de fechar: habilitado
+- Cores semânticas: habilitadas
+
+**Tipos de toast e cores:**
+
+| Tipo | Uso | Background | Border |
+|------|-----|------------|--------|
+| `toast.success()` | Operações bem-sucedidas | `green-50` | `green-200` |
+| `toast.error()` | Erros de API/validação | `red-50` | `red-200` |
+| `toast.warning()` | Avisos não-críticos | `amber-50` | `amber-200` |
+| `toast.info()` | Informações neutras | `indigo-50` | `indigo-200` |
+
+**Padrão para mutations:**
 ```tsx
 import { toast } from 'sonner';
 
-// Em hooks ou componentes
 const mutation = useCreateExperiment();
 
-const handleCreate = async (data) => {
-  try {
-    await mutation.mutateAsync(data);
-    toast.success('Experiment created');
-  } catch (error) {
-    toast.error('Failed to create experiment');
-  }
+const handleCreate = (data: FormData) => {
+  mutation.mutate(data, {
+    onSuccess: () => toast.success('Experimento criado com sucesso'),
+    onError: (error) => toast.error(error.message),  // Mensagem vem da API
+  });
 };
 ```
+
+**Toast com descrição:**
+```tsx
+toast.error('Não foi possível executar', {
+  description: 'Verifique se todos os campos estão preenchidos.',
+});
+```
+
+**Toast com ação:**
+```tsx
+toast.error('Análise falhou', {
+  action: {
+    label: 'Tentar novamente',
+    onClick: () => handleRetry(),
+  },
+});
+```
+
+**IMPORTANTE:**
+- Sempre mostrar toast em erros de mutation
+- Mensagens de erro vêm do backend (campo `detail` do FastAPI)
+- Evitar toasts duplicados (React Query gerencia isso)
+- Manter mensagens concisas (máximo 2 linhas)
 
 ---
 
@@ -604,6 +639,11 @@ export function NewExperimentForm({ onSubmit }: Props) {
 - [ ] Função em `services/*-api.ts`?
 - [ ] Usa `fetchAPI` base?
 - [ ] Types correspondentes em `types/`?
+
+### Para mutations:
+- [ ] Toast de sucesso em `onSuccess`?
+- [ ] Toast de erro em `onError` com `error.message`?
+- [ ] Mensagens em português?
 
 ### Geral:
 - [ ] TypeScript sem `any`?
