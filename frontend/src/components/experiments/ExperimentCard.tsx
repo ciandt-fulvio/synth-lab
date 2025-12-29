@@ -10,17 +10,19 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Calendar, FlaskConical, MessageSquare, CheckCircle } from 'lucide-react';
+import { Calendar, FlaskConical, MessageSquare, CheckCircle, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { ExperimentSummary } from '@/types/experiment';
 
 interface ExperimentCardProps {
-  experiment: ExperimentSummary;
+  experiment: ExperimentSummary & { _isOptimistic?: boolean };
   onClick: (id: string) => void;
 }
 
 export function ExperimentCard({ experiment, onClick }: ExperimentCardProps) {
+  const isOptimistic = experiment._isOptimistic;
+
   const formattedDate = formatDistanceToNow(new Date(experiment.created_at), {
     addSuffix: true,
     locale: ptBR,
@@ -33,21 +35,30 @@ export function ExperimentCard({ experiment, onClick }: ExperimentCardProps) {
 
   return (
     <Card
-      className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-purple-200"
-      onClick={() => onClick(experiment.id)}
+      className={`transition-all duration-200 ${
+        isOptimistic
+          ? 'opacity-70 cursor-wait border-purple-300 bg-purple-50/50'
+          : 'cursor-pointer hover:shadow-lg hover:border-purple-200'
+      }`}
+      onClick={() => !isOptimistic && onClick(experiment.id)}
     >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-1">
             {experiment.name}
           </CardTitle>
-          {experiment.has_scorecard && (
+          {isOptimistic ? (
+            <Badge variant="outline" className="text-purple-600 border-purple-300 text-xs">
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              Criando...
+            </Badge>
+          ) : experiment.has_scorecard ? (
             <Badge variant="outline" className="text-purple-600 border-purple-300 text-xs">
               Scorecard
             </Badge>
-          )}
+          ) : null}
         </div>
-        <CardDescription className="text-sm text-gray-600 line-clamp-2">
+        <CardDescription className="text-sm text-gray-600 line-clamp-2 min-h-[2.5rem]">
           {truncatedHypothesis}
         </CardDescription>
       </CardHeader>
