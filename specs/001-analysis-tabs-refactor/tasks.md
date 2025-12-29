@@ -7,6 +7,53 @@
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
+---
+
+## ⚠️ PHASE 1 AUDIT RESULTS (CRITICAL - READ FIRST)
+
+**Current Phase Structure** (6 phases - see AnalysisPhaseTabs.tsx):
+1. **visao-geral** → "Geral" (PhaseOverview.tsx)
+2. **localizacao** → "Influência" (PhaseLocation.tsx) ← Contains AttributeCorrelationSection
+3. **segmentacao** → "Segmentos" (PhaseSegmentation.tsx)
+4. **casos-especiais** → "Especiais" (PhaseEdgeCases.tsx)
+5. **aprofundamento** → "Deep Dive" (PhaseExplainability.tsx) ← Contains SHAP+PDP
+6. **insights** → "Insights" (PhaseInsights.tsx)
+
+**FILE NAME CORRECTIONS** (Spec assumed wrong names):
+- ❌ Spec said "PhaseDeepDive.tsx" → ✅ ACTUAL: "PhaseExplainability.tsx"
+- ❌ Spec said "PhaseInfluence.tsx" → ✅ ACTUAL: "PhaseLocation.tsx" (id: 'localizacao')
+- ❌ Spec said "PhaseSpecial.tsx" → ✅ ACTUAL: "PhaseEdgeCases.tsx" (id: 'casos-especiais')
+
+**CHARTS AUDIT**:
+- ✅ AttributeCorrelationChart.tsx EXISTS (used by PhaseLocation)
+- ❌ AttributeImportanceChart.tsx DOES NOT EXIST
+- ✅ ShapSummarySection EXISTS (in PhaseExplainability)
+- ✅ PDPSection EXISTS (in PhaseExplainability)
+- ✅ ShapWaterfallSection EXISTS (in PhaseExplainability)
+
+**ENDPOINTS AUDIT**:
+- ✅ `attribute-correlation` endpoint EXISTS (used by PhaseLocation)
+- ⚠️ `attribute-importance` endpoint NOT FOUND (may not exist)
+
+**REFACTOR MAPPING** (What needs to move):
+- **FROM PhaseExplainability (Deep Dive)** → **TO PhaseLocation (Influência)**:
+  - ShapSummarySection
+  - PDPSection
+
+- **FROM PhaseLocation (Influência)** → **DELETE**:
+  - AttributeCorrelationSection
+  - ScatterSection (check if should be deleted)
+
+- **FROM PhaseExplainability (Deep Dive)** → **TO PhaseEdgeCases (Especiais)**:
+  - ShapWaterfallSection (remove dropdown, add click-to-explain)
+
+**NAVIGATION CHANGES**:
+- Remove "aprofundamento" phase (Deep Dive / PhaseExplainability.tsx)
+- Update "6 fases" → "5 fases" in AnalysisPhaseTabs.tsx (line 171)
+- Delete PhaseExplainability from ExperimentDetail.tsx and ANALYSIS_PHASES array
+
+---
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
