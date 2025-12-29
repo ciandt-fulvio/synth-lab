@@ -8,7 +8,7 @@
  * Overview → Location → Segmentation → Edge Cases → Deep Dive → Insights
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   TrendingUp,
   Target,
@@ -52,12 +52,12 @@ export const ANALYSIS_PHASES: AnalysisPhase[] = [
   },
   {
     id: 'localizacao',
-    title: 'Localização',
-    shortTitle: 'Local',
+    title: 'Influência',
+    shortTitle: 'Influência',
     icon: <Target className="w-4 h-4" />,
-    question: 'Onde exatamente a experiência tem mais potencial de problema?',
+    question: 'Quais características dos usuários mais influenciam o resultado?',
     description:
-      'Mapeia pontos específicos de fricção na jornada. Revela onde usuários abandonam ou encontram dificuldades.',
+      'Analisa correlações entre atributos dos synths e taxas de sucesso ou falha. Revela quais características importam mais para prever comportamento.',
   },
   {
     id: 'segmentacao',

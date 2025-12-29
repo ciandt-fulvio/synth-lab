@@ -1,8 +1,7 @@
 // frontend/src/components/experiments/results/PhaseLocation.tsx
-// Phase 2: Problem Location - Attribute importance, Heatmap, Scatter charts
+// Phase 2: Attribute Influence - Understanding how user characteristics affect outcomes
 // Composes section components that each handle their own state and data fetching
 
-import { HeatmapSection } from './HeatmapSection';
 import { ScatterSection } from './ScatterSection';
 import { AttributeCorrelationSection } from './AttributeCorrelationSection';
 
@@ -18,9 +17,6 @@ export function PhaseLocation({ experimentId }: PhaseLocationProps) {
 
       {/* Row 2: Scatter Chart - explore specific attribute correlations */}
       <ScatterSection experimentId={experimentId} />
-
-      {/* Row 3: Failure Heatmap */}
-      <HeatmapSection experimentId={experimentId} />
     </div>
   );
 }
