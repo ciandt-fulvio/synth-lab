@@ -25,6 +25,7 @@ import { PDPChart } from './charts/PDPChart';
 import { PDPComparisonChart } from './charts/PDPComparisonChart';
 import { useAnalysisPDP, useAnalysisPDPComparison } from '@/hooks/use-analysis-charts';
 import { useGenerateAnalysisChartInsight } from '@/hooks/use-insights';
+import { InsightSection } from './InsightSection';
 
 interface PDPSectionProps {
   experimentId: string;
@@ -266,6 +267,9 @@ export function PDPSection({ experimentId }: PDPSectionProps) {
             </ChartErrorBoundary>
           </div>
         )}
+
+        {/* AI-Generated Insights */}
+        <InsightSection experimentId={experimentId} chartType="pdp" />
       </CardContent>
     </Card>
   );

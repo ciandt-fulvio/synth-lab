@@ -9,6 +9,7 @@ References:
     - Engine: src/synth_lab/services/simulation/engine.py
 """
 
+import asyncio
 import json
 import threading
 from datetime import datetime, timezone
@@ -386,6 +387,9 @@ class AnalysisExecutionService:
                 logger_ref.info(
                     f"Pre-computed {success_count}/{len(results)} chart caches for {analysis_id}"
                 )
+
+                # Trigger insight generation after cache is ready
+                self._trigger_insight_generation(analysis_id)
             except Exception as e:
                 # Cache failures shouldn't affect the analysis result
                 logger_ref.warning(f"Failed to pre-compute cache for {analysis_id}: {e}")
@@ -393,6 +397,115 @@ class AnalysisExecutionService:
         thread = threading.Thread(target=_compute_in_background, daemon=True)
         thread.start()
         self.logger.debug(f"Started background cache pre-computation for {analysis_id}")
+
+    def _trigger_insight_generation(self, analysis_id: str) -> None:
+        """
+        Trigger AI insight generation for all charts after cache is ready.
+
+        Runs in background thread (daemon) to generate chart insights and executive summary.
+        Uses asyncio for parallel LLM calls to minimize total generation time.
+        Failures are logged but don't affect the analysis result.
+
+        Args:
+            analysis_id: Analysis ID to generate insights for.
+
+        References:
+            - Spec: specs/023-quantitative-ai-insights/spec.md (US3, automatic generation)
+            - Service: src/synth_lab/services/insight_service.py
+            - Service: src/synth_lab/services/executive_summary_service.py
+        """
+        logger_ref = self.logger  # Capture logger for thread
+
+        def _generate_in_background() -> None:
+            try:
+                # Run async insight generation
+                asyncio.run(self._generate_insights_parallel(analysis_id))
+            except Exception as e:
+                logger_ref.warning(f"Failed to generate insights for {analysis_id}: {e}")
+
+        thread = threading.Thread(target=_generate_in_background, daemon=True)
+        thread.start()
+        logger_ref.info(f"Started background insight generation for {analysis_id}")
+
+    async def _generate_insights_parallel(self, analysis_id: str) -> None:
+        """
+        Generate insights for all 7 chart types in parallel using asyncio.
+
+        Creates concurrent tasks for each chart type to minimize total generation time.
+        After all insights complete, generates executive summary.
+
+        Args:
+            analysis_id: Analysis ID to generate insights for.
+
+        References:
+            - Spec: specs/023-quantitative-ai-insights/spec.md (US3, parallel generation)
+        """
+        logger_ref = self.logger
+
+        try:
+            from synth_lab.repositories.analysis_cache_repository import (
+                AnalysisCacheRepository,
+            )
+            from synth_lab.services.executive_summary_service import (
+                ExecutiveSummaryService,
+            )
+            from synth_lab.services.insight_service import InsightService
+
+            cache_repo = AnalysisCacheRepository()
+            insight_service = InsightService(cache_repo=cache_repo)
+            summary_service = ExecutiveSummaryService(cache_repo=cache_repo)
+
+            # Define all chart types to generate insights for
+            chart_types = [
+                "try_vs_success",
+                "shap_summary",
+                "pdp",
+                "pca_scatter",
+                "radar_comparison",
+                "extreme_cases",
+                "outliers",
+            ]
+
+            logger_ref.info(f"Generating insights for {len(chart_types)} charts: {analysis_id}")
+
+            # Generate all insights in parallel
+            async def generate_single_insight(chart_type: str) -> None:
+                try:
+                    # Get chart data from cache
+                    chart_data = cache_repo.get_chart_data(analysis_id, chart_type)
+                    if chart_data is None:
+                        logger_ref.warning(
+                            f"No chart data for {chart_type} in analysis {analysis_id}, skipping"
+                        )
+                        return
+
+                    # Generate insight
+                    insight = insight_service.generate_insight(
+                        analysis_id, chart_type, chart_data
+                    )
+                    logger_ref.info(
+                        f"Generated {chart_type} insight for {analysis_id}: {insight.status}"
+                    )
+                except Exception as e:
+                    logger_ref.error(f"Failed to generate {chart_type} insight: {e}")
+
+            # Run all tasks in parallel
+            tasks = [generate_single_insight(ct) for ct in chart_types]
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+            logger_ref.info(f"All chart insights completed for {analysis_id}")
+
+            # Generate executive summary after all insights
+            try:
+                summary = summary_service.generate_summary(analysis_id)
+                logger_ref.info(
+                    f"Generated executive summary for {analysis_id}: {summary.status}"
+                )
+            except Exception as e:
+                logger_ref.error(f"Failed to generate executive summary: {e}")
+
+        except Exception as e:
+            logger_ref.error(f"Insight generation failed for {analysis_id}: {e}")
 
 
 if __name__ == "__main__":

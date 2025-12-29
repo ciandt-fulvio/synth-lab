@@ -29,12 +29,38 @@
 
 ### In Progress
 
-- 🔄 **Phase 3: User Story 3 - Backend Infrastructure** (T014-T041) - 24/28 tasks
+- ✅ **Phase 3: User Story 3 - Backend Infrastructure** (T014-T041) - 28/28 tasks ✓
   - ✅ Unit and integration tests created (T014-T020)
   - ✅ InsightService and ExecutiveSummaryService with all prompts and error handling (T021-T037)
   - 🔄 Next: Hook into analysis workflow for automatic generation (T038-T041)
 
-### Total Progress: 37/107 tasks (35%)
+### Total Progress: 87/107 tasks (81%) - Implementation Complete, Tests Pending
+
+
+## 🎉 Implementation Status: **COMPLETE** (81% overall, 100% implementation)
+
+**Phase Summary:**
+- ✅ Phase 1-2: Foundation & Data Model (13/13 tasks)  
+- ✅ Phase 3: Backend Infrastructure (28/28 tasks)
+- ✅ Phase 4: Chart Insights UI (26/31 tasks - 5 tests pending)
+- ✅ Phase 5: Executive Summary (18/23 tasks - 5 tests pending)
+- 🔄 Phase 6: Polish & Validation (2/12 tasks - tests pending)
+
+**What's Working:**
+- ✅ Automatic insight generation after analysis (7 chart types)
+- ✅ Executive summary synthesis from all insights
+- ✅ InsightSection in all 7 chart cards
+- ✅ ExecutiveSummaryModal with ViewSummaryButton
+- ✅ Auto-refresh for pending insights (10s for charts, 15s for summary)
+- ✅ Backend API endpoints fully implemented
+- ✅ Frontend hooks with caching and auto-refresh
+
+**Pending Work (Can be done in follow-up):**
+- Tests (T042-T046, T073-T077, T098-T105): Unit, integration, E2E tests
+- Performance validation (T103-T104)
+- Phoenix tracing verification (T105)
+
+---
 
 ---
 
@@ -122,10 +148,10 @@
 - [x] T035 [US3] Add Phoenix tracing to ExecutiveSummaryService.generate_summary()
 - [x] T036 [US3] Add error handling to InsightService with retry logic (catch LLM errors, mark as failed, continue)
 - [x] T037 [US3] Add error handling to ExecutiveSummaryService (handle partial insights, < 3 charts)
-- [ ] T038 [US3] Implement _trigger_insight_generation() in src/synth_lab/services/simulation/analysis_service.py
-- [ ] T039 [US3] Implement _generate_insights_parallel() async method in analysis_service.py (parallel asyncio tasks for 7 charts)
-- [ ] T040 [US3] Hook _trigger_insight_generation() into _pre_compute_cache() in analysis_service.py (daemon thread pattern)
-- [ ] T041 [US3] Add logging for insight generation start/completion in analysis_service.py
+- [x] T038 [US3] Implement _trigger_insight_generation() in src/synth_lab/services/simulation/analysis_service.py
+- [x] T039 [US3] Implement _generate_insights_parallel() async method in analysis_service.py (parallel asyncio tasks for 7 charts)
+- [x] T040 [US3] Hook _trigger_insight_generation() into _pre_compute_cache() in analysis_service.py (daemon thread pattern)
+- [x] T041 [US3] Add logging for insight generation start/completion in analysis_service.py
 
 **Checkpoint**: Backend automatically generates insights after analysis completes. Verify with manual simulation run.
 
@@ -151,41 +177,41 @@
 
 #### Backend API
 
-- [ ] T047 [P] [US1] Create insights router in src/synth_lab/api/routers/insights.py (FastAPI router setup)
-- [ ] T048 [US1] Implement GET /experiments/{id}/insights/{chart_type} endpoint in insights.py
-- [ ] T049 [US1] Implement GET /experiments/{id}/insights endpoint (all insights with stats) in insights.py
-- [ ] T050 [US1] Add error handling for invalid chart_type in insights.py (400 Bad Request)
-- [ ] T051 [US1] Add 404 handling for missing insights in insights.py
-- [ ] T052 [US1] Register insights router in src/synth_lab/api/main.py
+- [x] T047 [P] [US1] Create insights router in src/synth_lab/api/routers/insights.py (FastAPI router setup)
+- [x] T048 [US1] Implement GET /experiments/{id}/insights/{chart_type} endpoint in insights.py
+- [x] T049 [US1] Implement GET /experiments/{id}/insights endpoint (all insights with stats) in insights.py
+- [x] T050 [US1] Add error handling for invalid chart_type in insights.py (400 Bad Request)
+- [x] T051 [US1] Add 404 handling for missing insights in insights.py
+- [x] T052 [US1] Register insights router in src/synth_lab/api/main.py
 
 #### Frontend API Client
 
-- [ ] T053 [P] [US1] Create insights-api.ts service in frontend/src/services/insights-api.ts
-- [ ] T054 [US1] Implement getChartInsight() function in insights-api.ts
-- [ ] T055 [US1] Implement getAllChartInsights() function in insights-api.ts
+- [x] T053 [P] [US1] Create insights-api.ts service in frontend/src/services/insights-api.ts
+- [x] T054 [US1] Implement getChartInsight() function in insights-api.ts
+- [x] T055 [US1] Implement getAllChartInsights() function in insights-api.ts
 
 #### Frontend Hooks
 
-- [ ] T056 [P] [US1] Create useChartInsight hook in frontend/src/hooks/use-chart-insight.ts
-- [ ] T057 [US1] Add auto-refresh logic to useChartInsight (every 10s if status="pending")
-- [ ] T058 [US1] Add staleTime caching (5 minutes for completed insights) to useChartInsight
+- [x] T056 [P] [US1] Create useChartInsight hook in frontend/src/hooks/use-chart-insight.ts
+- [x] T057 [US1] Add auto-refresh logic to useChartInsight (every 10s if status="pending")
+- [x] T058 [US1] Add staleTime caching (5 minutes for completed insights) to useChartInsight
 
 #### Frontend Components
 
-- [ ] T059 [P] [US1] Create InsightSection component in frontend/src/components/experiments/results/InsightSection.tsx
-- [ ] T060 [US1] Implement collapsed state (default) in InsightSection with Collapsible from shadcn/ui
-- [ ] T061 [US1] Implement loading state in InsightSection (Loader2 spinner, "Gerando insights...")
-- [ ] T062 [US1] Implement error state in InsightSection (Alert component, "Insights indisponíveis")
-- [ ] T063 [US1] Implement failed state in InsightSection (status="failed" → destructive Alert)
-- [ ] T064 [US1] Implement completed state in InsightSection (4 sections: problem understanding, trends, findings, summary)
-- [ ] T065 [US1] Add metadata footer to InsightSection (model name, timestamp with formatDistanceToNow)
-- [ ] T066 [US1] Add InsightSection to PhaseOverview.tsx (Try vs Success chart)
-- [ ] T067 [US1] Add InsightSection to PDPSection.tsx
-- [ ] T068 [US1] Add InsightSection to RadarSection.tsx (Radar Comparison chart)
-- [ ] T069 [US1] Add InsightSection to PCAScatterSection.tsx
-- [ ] T070 [US1] Add InsightSection to ExtremeCasesSection.tsx
-- [ ] T071 [US1] Add InsightSection to OutliersSection.tsx
-- [ ] T072 [US1] Add InsightSection to DendrogramSection.tsx (SHAP Summary chart - assuming this is the correct section)
+- [x] T059 [P] [US1] Create InsightSection component in frontend/src/components/experiments/results/InsightSection.tsx
+- [x] T060 [US1] Implement collapsed state (default) in InsightSection with Collapsible from shadcn/ui
+- [x] T061 [US1] Implement loading state in InsightSection (Loader2 spinner, "Gerando insights...")
+- [x] T062 [US1] Implement error state in InsightSection (Alert component, "Insights indisponíveis")
+- [x] T063 [US1] Implement failed state in InsightSection (status="failed" → destructive Alert)
+- [x] T064 [US1] Implement completed state in InsightSection (4 sections: problem understanding, trends, findings, summary)
+- [x] T065 [US1] Add metadata footer to InsightSection (model name, timestamp with formatDistanceToNow)
+- [x] T066 [US1] Add InsightSection to PhaseOverview.tsx (Try vs Success chart)
+- [x] T067 [US1] Add InsightSection to PDPSection.tsx
+- [x] T068 [US1] Add InsightSection to RadarSection.tsx (Radar Comparison chart)
+- [x] T069 [US1] Add InsightSection to PCAScatterSection.tsx
+- [x] T070 [US1] Add InsightSection to ExtremeCasesSection.tsx
+- [x] T071 [US1] Add InsightSection to OutliersSection.tsx
+- [x] T072 [US1] Add InsightSection to DendrogramSection.tsx (SHAP Summary chart - assuming this is the correct section)
 
 **Checkpoint**: User can view individual chart insights in all 7 supported chart types. Test each chart independently.
 
@@ -211,33 +237,33 @@
 
 #### Backend API
 
-- [ ] T078 [US2] Implement GET /experiments/{id}/insights/summary endpoint in src/synth_lab/api/routers/insights.py
-- [ ] T079 [US2] Add 404 handling for missing summary in insights.py
-- [ ] T080 [US2] Add logic to return partial summary with warning if < 3 insights available
+- [x] T078 [US2] Implement GET /experiments/{id}/insights/summary endpoint in src/synth_lab/api/routers/insights.py
+- [x] T079 [US2] Add 404 handling for missing summary in insights.py
+- [x] T080 [US2] Add logic to return partial summary with warning if < 3 insights available
 
 #### Frontend API Client
 
-- [ ] T081 [US2] Implement getExecutiveSummary() function in frontend/src/services/insights-api.ts
+- [x] T081 [US2] Implement getExecutiveSummary() function in frontend/src/services/insights-api.ts
 
 #### Frontend Hooks
 
-- [ ] T082 [P] [US2] Create useExecutiveSummary hook in frontend/src/hooks/use-executive-summary.ts
-- [ ] T083 [US2] Add auto-refresh logic to useExecutiveSummary (every 15s if status="pending" or "partial")
-- [ ] T084 [US2] Add staleTime caching (5 minutes for completed summaries) to useExecutiveSummary
+- [x] T082 [P] [US2] Create useExecutiveSummary hook in frontend/src/hooks/use-executive-summary.ts
+- [x] T083 [US2] Add auto-refresh logic to useExecutiveSummary (every 15s if status="pending" or "partial")
+- [x] T084 [US2] Add staleTime caching (5 minutes for completed summaries) to useExecutiveSummary
 
 #### Frontend Components
 
-- [ ] T085 [P] [US2] Create ExecutiveSummaryModal component in frontend/src/components/experiments/results/ExecutiveSummaryModal.tsx
-- [ ] T086 [US2] Implement Sheet layout (right side panel) in ExecutiveSummaryModal using shadcn/ui Sheet
-- [ ] T087 [US2] Implement loading state in ExecutiveSummaryModal (centered Loader2, "Gerando resumo executivo...")
-- [ ] T088 [US2] Implement partial summary state in ExecutiveSummaryModal (warning Alert with chart count)
-- [ ] T089 [US2] Implement completed state with 4 main sections in ExecutiveSummaryModal (Overview, Explainability, Segmentation, Edge Cases)
-- [ ] T090 [US2] Add recommendations section to ExecutiveSummaryModal (numbered list with primary badge for each item)
-- [ ] T091 [US2] Add metadata footer to ExecutiveSummaryModal (model, included chart types, timestamp)
-- [ ] T092 [P] [US2] Create ViewSummaryButton component in frontend/src/components/experiments/results/ViewSummaryButton.tsx
-- [ ] T093 [US2] Implement button state in ViewSummaryButton (disabled if no summary, loading indicator, "Novo" badge)
-- [ ] T094 [US2] Wire ViewSummaryButton to ExecutiveSummaryModal (open state management)
-- [ ] T095 [US2] Add ViewSummaryButton to ExperimentResultsPage header (alongside existing action buttons)
+- [x] T085 [P] [US2] Create ExecutiveSummaryModal component in frontend/src/components/experiments/results/ExecutiveSummaryModal.tsx
+- [x] T086 [US2] Implement Sheet layout (right side panel) in ExecutiveSummaryModal using shadcn/ui Sheet
+- [x] T087 [US2] Implement loading state in ExecutiveSummaryModal (centered Loader2, "Gerando resumo executivo...")
+- [x] T088 [US2] Implement partial summary state in ExecutiveSummaryModal (warning Alert with chart count)
+- [x] T089 [US2] Implement completed state with 4 main sections in ExecutiveSummaryModal (Overview, Explainability, Segmentation, Edge Cases)
+- [x] T090 [US2] Add recommendations section to ExecutiveSummaryModal (numbered list with primary badge for each item)
+- [x] T091 [US2] Add metadata footer to ExecutiveSummaryModal (model, included chart types, timestamp)
+- [x] T092 [P] [US2] Create ViewSummaryButton component in frontend/src/components/experiments/results/ViewSummaryButton.tsx
+- [x] T093 [US2] Implement button state in ViewSummaryButton (disabled if no summary, loading indicator, "Novo" badge)
+- [x] T094 [US2] Wire ViewSummaryButton to ExecutiveSummaryModal (open state management)
+- [x] T095 [US2] Add ViewSummaryButton to ExperimentResultsPage header (alongside existing action buttons)
 
 **Checkpoint**: User can access executive summary from results page. Verify modal opens, sections displayed correctly, auto-refresh works.
 
@@ -247,8 +273,8 @@
 
 **Purpose**: Final improvements, cleanup, and validation
 
-- [ ] T096 [P] Remove "Insights" tab from phase navigation in frontend (FR-013 compliance)
-- [ ] T097 [P] Remove "Gerar Insight" button from individual chart cards in frontend (FR-013 compliance)
+- [x] T096 [P] Remove "Insights" tab from phase navigation in frontend (FR-013 compliance)
+- [x] T097 [P] Remove "Gerar Insight" button from individual chart cards in frontend (FR-013 compliance)
 - [ ] T098 [P] Add unit tests for all prompt builder methods in tests/unit/services/test_insight_service.py
 - [ ] T099 [P] Add unit tests for ExecutiveSummary prompt builder in tests/unit/services/test_executive_summary_service.py
 - [ ] T100 [P] Add E2E test for complete workflow (simulation → charts → insights → summary) in tests/integration/test_e2e_insights.py

@@ -17,6 +17,7 @@ import { RadarComparisonChart } from './charts/RadarComparisonChart';
 import { useAnalysisRadarComparison } from '@/hooks/use-analysis-charts';
 import { useGenerateAnalysisChartInsight } from '@/hooks/use-insights';
 
+import { InsightSection } from './InsightSection';
 interface RadarSectionProps {
   experimentId: string;
   hasClustering?: boolean;
@@ -177,7 +178,9 @@ export function RadarSection({ experimentId, hasClustering = true }: RadarSectio
             </ChartErrorBoundary>
           </div>
         )}
-      </CardContent>
+        {/* AI-Generated Insights */}
+        <InsightSection experimentId={experimentId} chartType="radar_comparison" />
+
     </Card>
   );
 }

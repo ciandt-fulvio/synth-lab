@@ -94,6 +94,8 @@ interface AnalysisPhaseTabsProps {
   children?: React.ReactNode;
   /** Render function for each phase */
   renderPhase?: (phaseId: string) => React.ReactNode;
+  /** Optional action buttons to render in header */
+  actions?: React.ReactNode;
 }
 
 export function AnalysisPhaseTabs({
@@ -103,6 +105,7 @@ export function AnalysisPhaseTabs({
   isLoading = false,
   children,
   renderPhase,
+  actions,
 }: AnalysisPhaseTabsProps) {
   const [activePhase, setActivePhase] = useState<string>('visao-geral');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -161,8 +164,11 @@ export function AnalysisPhaseTabs({
               </p>
             </div>
           </div>
-          <div className="text-xs text-slate-400 font-medium tracking-wider uppercase">
-            Fase {currentIndex + 1} de 5
+          <div className="flex items-center gap-4">
+            {actions}
+            <div className="text-xs text-slate-400 font-medium tracking-wider uppercase">
+              Fase {currentIndex + 1} de 5
+            </div>
           </div>
         </div>
       </div>

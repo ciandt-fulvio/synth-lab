@@ -17,6 +17,7 @@ import { useAutoInterview, useCreateAutoInterview } from '@/hooks/use-experiment
 import { toast } from 'sonner';
 import type { ExtremeSynth } from '@/types/simulation';
 
+import { InsightSection } from './InsightSection';
 interface ExtremeCasesSectionProps {
   experimentId: string;
   onSynthClick?: (synthId: string) => void;
@@ -327,7 +328,9 @@ export function ExtremeCasesSection({
             </div>
           </div>
         )}
-      </CardContent>
+        {/* AI-Generated Insights */}
+        <InsightSection experimentId={experimentId} chartType="extreme_cases" />
+
     </Card>
   );
 }

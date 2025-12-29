@@ -17,6 +17,7 @@ import { DendrogramChart } from './charts/DendrogramChart';
 import { useAnalysisDendrogram } from '@/hooks/use-analysis-charts';
 import { useGenerateAnalysisChartInsight } from '@/hooks/use-insights';
 
+import { InsightSection } from './InsightSection';
 interface DendrogramSectionProps {
   experimentId: string;
   onCutHeight?: (height: number) => void;
@@ -181,7 +182,9 @@ export function DendrogramSection({ experimentId, onCutHeight }: DendrogramSecti
             </ChartErrorBoundary>
           </div>
         )}
-      </CardContent>
+        {/* AI-Generated Insights */}
+        <InsightSection experimentId={experimentId} chartType="shap_summary" />
+
     </Card>
   );
 }

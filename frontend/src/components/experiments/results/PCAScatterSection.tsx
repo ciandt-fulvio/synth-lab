@@ -12,6 +12,7 @@ import { PCAScatterChart } from './charts/PCAScatterChart';
 import { useAnalysisPCAScatter } from '@/hooks/use-analysis-charts';
 import { useGenerateAnalysisChartInsight } from '@/hooks/use-insights';
 
+import { InsightSection } from './InsightSection';
 interface PCAScatterSectionProps {
   experimentId: string;
   hasClustering?: boolean;
@@ -168,7 +169,9 @@ export function PCAScatterSection({
             </ChartErrorBoundary>
           </div>
         )}
-      </CardContent>
+        {/* AI-Generated Insights */}
+        <InsightSection experimentId={experimentId} chartType="pca_scatter" />
+
     </Card>
   );
 }
