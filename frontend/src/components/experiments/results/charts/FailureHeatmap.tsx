@@ -31,15 +31,27 @@ function formatAxisLabel(label: string): string {
   return labelMap[label] || label;
 }
 
-export function FailureHeatmap({ data }: FailureHeatmapProps) {
-  const { cells, x_axis, y_axis, x_bins, y_bins, metric } = data;
+// Parse bin string to get the lower bound for sorting
+// e.g., "0.0-0.2" -> 0.0
+function parseBinStart(bin: string): number {
+  const match = bin.match(/^([\d.]+)-/);
+  return match ? parseFloat(match[1]) : 0;
+}
 
-  // Get unique bin labels
-  const xLabels = [...new Set(cells.map((c) => c.x_bin))].sort((a, b) => a - b);
-  const yLabels = [...new Set(cells.map((c) => c.y_bin))].sort((a, b) => b - a); // Reverse for visual display
+export function FailureHeatmap({ data }: FailureHeatmapProps) {
+  const { cells, x_axis, y_axis, metric } = data;
+
+  // Get unique bin labels sorted by their numeric start value
+  const xLabels = [...new Set(cells.map((c) => c.x_bin))].sort(
+    (a, b) => parseBinStart(a) - parseBinStart(b)
+  );
+  // Y-axis reversed for visual display (higher values at top)
+  const yLabels = [...new Set(cells.map((c) => c.y_bin))].sort(
+    (a, b) => parseBinStart(b) - parseBinStart(a)
+  );
 
   // Create a lookup map for cells
-  const cellMap = new Map<string, typeof cells[0]>();
+  const cellMap = new Map<string, (typeof cells)[0]>();
   cells.forEach((cell) => {
     cellMap.set(`${cell.x_bin}-${cell.y_bin}`, cell);
   });
@@ -67,33 +79,31 @@ export function FailureHeatmap({ data }: FailureHeatmapProps) {
             </div>
 
             {/* Grid */}
-            <div className="flex-1">
+            <div className="flex-1 flex justify-center">
               <div
-                className="grid gap-1"
+                className="grid gap-0.5"
                 style={{
-                  gridTemplateColumns: `repeat(${xLabels.length}, minmax(60px, 1fr))`,
+                  gridTemplateColumns: `repeat(${xLabels.length}, 48px)`,
                 }}
               >
                 {yLabels.map((yBin) =>
                   xLabels.map((xBin) => {
                     const cell = cellMap.get(`${xBin}-${yBin}`);
-                    const value = cell?.value ?? 0;
-                    const count = cell?.count ?? 0;
+                    const value = cell?.metric_value ?? 0;
+                    const count = cell?.synth_count ?? 0;
 
                     return (
                       <div
                         key={`${xBin}-${yBin}`}
                         className={`
-                          aspect-square rounded-lg flex flex-col items-center justify-center
-                          transition-all hover:scale-105 cursor-default
+                          w-12 h-12 rounded flex flex-col items-center justify-center
+                          transition-all hover:scale-110 cursor-default
                           ${getHeatColor(value)}
                         `}
                         title={`${formatAxisLabel(x_axis)}: ${xBin}, ${formatAxisLabel(y_axis)}: ${yBin}\n${metric}: ${(value * 100).toFixed(1)}%\nSynths: ${count}`}
                       >
-                        <span className="text-lg font-bold">
-                          {(value * 100).toFixed(0)}%
-                        </span>
-                        <span className="text-xs opacity-70">n={count}</span>
+                        <span className="text-xs font-bold">{(value * 100).toFixed(0)}%</span>
+                        <span className="text-[10px] opacity-70">n={count}</span>
                       </div>
                     );
                   })
