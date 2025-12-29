@@ -155,7 +155,11 @@ def _select_synths_for_interview(
             return selected
 
 
-def _ensure_avatars_for_synths(synths: list[dict[str, Any]]) -> None:
+async def _ensure_avatars_for_synths(
+    synths: list[dict[str, Any]],
+    on_avatar_generation_start: Callable[[int], Awaitable[None]] | None = None,
+    on_avatar_generation_complete: Callable[[int], Awaitable[None]] | None = None,
+) -> None:
     """
     Garante que todos os synths tenham avatares gerados.
 
@@ -164,6 +168,8 @@ def _ensure_avatars_for_synths(synths: list[dict[str, Any]]) -> None:
 
     Args:
         synths: Lista de synths selecionados para entrevista
+        on_avatar_generation_start: Callback async quando geração inicia (recebe count)
+        on_avatar_generation_complete: Callback async quando geração completa (recebe count)
 
     Note:
         - Avatares são gerados em blocos de 9 (requisito da API OpenAI)
@@ -190,11 +196,16 @@ def _ensure_avatars_for_synths(synths: list[dict[str, Any]]) -> None:
 
     # Calcular número de blocos (1 bloco = 9 avatares, otimização da API OpenAI)
     num_blocks = math.ceil(len(synths_without_avatar) / 9)
+    count_to_generate = len(synths_without_avatar)
 
     logger.info(
-        f"Gerando avatares para {len(synths_without_avatar)} synths "
+        f"Gerando avatares para {count_to_generate} synths "
         f"em {num_blocks} bloco(s) de até 9"
     )
+
+    # Notificar início da geração de avatares
+    if on_avatar_generation_start:
+        await on_avatar_generation_start(count_to_generate)
 
     # Importar gerador de avatares
     from synth_lab.gen_synth.avatar_generator import generate_avatars
@@ -204,6 +215,11 @@ def _ensure_avatars_for_synths(synths: list[dict[str, Any]]) -> None:
         # A função generate_avatars já divide internamente em blocos
         generated_paths = generate_avatars(synths=synths_without_avatar)
         logger.info(f"Avatares gerados com sucesso: {len(generated_paths)} arquivos")
+
+        # Notificar conclusão da geração de avatares
+        if on_avatar_generation_complete:
+            await on_avatar_generation_complete(len(generated_paths))
+
     except Exception as e:
         # Log do erro mas não interrompe as entrevistas
         # Avatares são úteis mas não essenciais para o fluxo
@@ -332,6 +348,8 @@ async def run_batch_interviews(
     on_transcription_completed: Callable[[
         str, int, int], Awaitable[None]] | None = None,
     on_summary_start: Callable[[str], Awaitable[None]] | None = None,
+    on_avatar_generation_start: Callable[[int], Awaitable[None]] | None = None,
+    on_avatar_generation_complete: Callable[[int], Awaitable[None]] | None = None,
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
     guide_name: str = "interview",
@@ -394,7 +412,11 @@ async def run_batch_interviews(
     )
 
     # Ensure avatars exist for selected synths (auto-generate if missing)
-    _ensure_avatars_for_synths(synths_to_interview)
+    await _ensure_avatars_for_synths(
+        synths=synths_to_interview,
+        on_avatar_generation_start=on_avatar_generation_start,
+        on_avatar_generation_complete=on_avatar_generation_complete,
+    )
 
     logger.info(
         f"Starting batch {batch_id}: {len(synths_to_interview)} synths, "
