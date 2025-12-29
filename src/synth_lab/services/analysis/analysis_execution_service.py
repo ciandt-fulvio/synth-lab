@@ -84,10 +84,13 @@ class AnalysisExecutionService:
         # Validate experiment
         experiment = self.experiment_repo.get_by_id(experiment_id)
         if experiment is None:
-            raise ValueError(f"Experiment not found: {experiment_id}")
+            raise ValueError(f"Experimento não encontrado: {experiment_id}")
 
         if not experiment.has_scorecard():
-            raise ValueError(f"Experiment {experiment_id} must have a scorecard")
+            raise ValueError(
+                f"O experimento '{experiment.name}' precisa ter um scorecard configurado. "
+                "Edite o experimento e preencha o scorecard antes de executar a análise."
+            )
 
         # Delete existing analysis if present
         existing = self.analysis_repo.get_by_experiment_id(experiment_id)
@@ -103,7 +106,10 @@ class AnalysisExecutionService:
         # Load synths
         synths = self._load_synths(limit=config.n_synths)
         if not synths:
-            raise ValueError("No synths found for analysis")
+            raise ValueError(
+                "Nenhum synth encontrado para análise. "
+                "Gere personas sintéticas antes de executar a análise."
+            )
 
         self.logger.info(f"Loaded {len(synths)} synths for analysis")
 
@@ -277,20 +283,71 @@ class AnalysisExecutionService:
         )
 
     def _load_default_scenario(self) -> Scenario:
-        """Load baseline scenario from JSON file."""
+        """Load the baseline scenario for analysis."""
+        return self._default_scenario("baseline")
+
+    def _load_all_scenarios(self) -> list[Scenario]:
+        """Load all scenarios (baseline, crisis, first-use) from JSON file."""
+        scenario_ids = ["baseline", "crisis", "first-use"]
         scenarios_path = Path("data/scenarios.json")
+
         if scenarios_path.exists():
             with open(scenarios_path) as f:
-                scenarios = json.load(f)
-                for s in scenarios.get("scenarios", []):
-                    if s.get("id") == "baseline":
-                        return Scenario.model_validate(s)
+                data = json.load(f)
+                scenarios_data = data.get("scenarios", [])
 
-        # Default scenario if file not found
+                loaded = []
+                for sid in scenario_ids:
+                    for s in scenarios_data:
+                        if s.get("id") == sid:
+                            loaded.append(Scenario.model_validate(s))
+                            break
+                    else:
+                        # Scenario not found, use default
+                        loaded.append(self._default_scenario(sid))
+
+                return loaded
+
+        # Default scenarios if file not found
+        return [self._default_scenario(sid) for sid in scenario_ids]
+
+    def _default_scenario(self, scenario_id: str) -> Scenario:
+        """Create a default scenario by ID."""
+        defaults = {
+            "baseline": {
+                "name": "Baseline",
+                "description": "Standard adoption scenario",
+                "motivation_modifier": 0.0,
+                "trust_modifier": 0.0,
+                "friction_modifier": 0.0,
+                "task_criticality": 0.5,
+            },
+            "crisis": {
+                "name": "Crisis",
+                "description": "High urgency scenario",
+                "motivation_modifier": 0.2,
+                "trust_modifier": -0.1,
+                "friction_modifier": -0.15,
+                "task_criticality": 0.85,
+            },
+            "first-use": {
+                "name": "First Use",
+                "description": "Initial exploration scenario",
+                "motivation_modifier": 0.1,
+                "trust_modifier": -0.2,
+                "friction_modifier": 0.0,
+                "task_criticality": 0.2,
+            },
+        }
+        cfg = defaults.get(scenario_id, defaults["baseline"])
         return Scenario(
-            id="baseline",
-            name="Baseline",
-            description="Standard adoption scenario",
+            id=scenario_id,
+            name=cfg["name"],
+            description=cfg["description"],
+            motivation_modifier=cfg["motivation_modifier"],
+            trust_modifier=cfg["trust_modifier"],
+            friction_modifier=cfg["friction_modifier"],
+            task_criticality=cfg["task_criticality"],
             w_complexity=0.25,
             w_effort=0.25,
             w_risk=0.25,
