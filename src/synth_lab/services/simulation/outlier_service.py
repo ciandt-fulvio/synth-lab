@@ -151,6 +151,7 @@ class OutlierService:
                     anomaly_score=float(anomaly_scores[idx]),
                     success_rate=synth.success_rate,
                     failed_rate=synth.failed_rate,
+                    did_not_try_rate=synth.did_not_try_rate,
                     explanation=explanation,
                     capability_mean=synth.synth_attributes.latent_traits.capability_mean,
                     trust_mean=synth.synth_attributes.latent_traits.trust_mean,
@@ -216,32 +217,32 @@ class OutlierService:
 
         if category == "worst_failure":
             questions = [
-                "What were the main obstacles that prevented you from succeeding?",
-                "Can you describe a specific moment when you felt stuck or frustrated?",
-                "What would have helped you overcome these challenges?",
+                "Quais foram os principais obstáculos que impediram seu sucesso?",
+                "Pode descrever um momento específico em que se sentiu travado ou frustrado?",
+                "O que teria ajudado você a superar esses desafios?",
             ]
         elif category == "best_success":
             questions = [
-                "What strategies did you use to achieve success?",
-                "Can you walk me through your typical interaction with the feature?",
-                "What aspects of the feature did you find most helpful?",
+                "Quais estratégias você usou para alcançar o sucesso?",
+                "Pode me guiar por uma interação típica sua com a funcionalidade?",
+                "Quais aspectos da funcionalidade você achou mais úteis?",
             ]
         else:  # unexpected
             traits = outcome.synth_attributes.latent_traits
             if traits.capability_mean < 0.4 and outcome.success_rate > 0.7:
                 questions = [
-                    "Despite lower capability scores, you succeeded. What made the difference?",
-                    "Did you find the feature particularly easy to use? Why?",
+                    "Apesar de pontuação baixa de capacidade, você teve sucesso. O que fez a diferença?",
+                    "Você achou a funcionalidade particularmente fácil de usar? Por quê?",
                 ]
             elif traits.capability_mean > 0.6 and outcome.failed_rate > 0.5:
                 questions = [
-                    "You have high capability but experienced failures. What went wrong?",
-                    "Were there unexpected barriers or confusing aspects?",
+                    "Você tem alta capacidade mas experimentou falhas. O que deu errado?",
+                    "Houve barreiras inesperadas ou aspectos confusos?",
                 ]
             else:
                 questions = [
-                    "Your profile is unusual. Can you describe your experience?",
-                    "What factors influenced your outcome?",
+                    "Seu perfil é incomum. Pode descrever sua experiência?",
+                    "Quais fatores influenciaram seu resultado?",
                 ]
 
         return questions

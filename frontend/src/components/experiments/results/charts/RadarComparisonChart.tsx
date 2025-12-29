@@ -17,44 +17,33 @@ interface RadarComparisonChartProps {
   data: RadarData;
 }
 
-// Generate distinct colors for clusters
-const CLUSTER_COLORS = [
-  '#6366f1', // indigo
-  '#22c55e', // green
-  '#f59e0b', // amber
-  '#ef4444', // red
-  '#8b5cf6', // violet
-  '#06b6d4', // cyan
-  '#ec4899', // pink
-  '#84cc16', // lime
-];
-
 function formatAxisLabel(label: string): string {
   const labelMap: Record<string, string> = {
+    'Capability Mean': 'Capacidade',
+    'Trust Mean': 'Confiança',
+    'Friction Tolerance Mean': 'Tolerância',
     capability_mean: 'Capacidade',
     trust_mean: 'Confiança',
+    friction_tolerance_mean: 'Tolerância',
     complexity: 'Complexidade',
     initial_effort: 'Esforço',
     perceived_risk: 'Risco',
     time_to_value: 'Tempo/Valor',
-    openness: 'Abertura',
-    conscientiousness: 'Consciência',
-    extraversion: 'Extroversão',
-    agreeableness: 'Amabilidade',
-    neuroticism: 'Neuroticismo',
   };
   return labelMap[label] || label.replace(/_/g, ' ');
 }
 
 export function RadarComparisonChart({ data }: RadarComparisonChartProps) {
-  const { axes, series } = data;
+  const { clusters, axis_labels } = data;
 
   // Transform data for Recharts radar format
-  const chartData = axes.map((axis) => {
-    const point: Record<string, unknown> = { axis: formatAxisLabel(axis) };
-    series.forEach((s) => {
-      const valueIndex = axes.indexOf(axis);
-      point[s.name] = s.values[valueIndex];
+  // Each point in chartData represents one axis with values from all clusters
+  const chartData = axis_labels.map((axisLabel, axisIndex) => {
+    const point: Record<string, unknown> = { axis: formatAxisLabel(axisLabel) };
+    clusters.forEach((cluster) => {
+      // Use normalized value (0-1 scale) for radar chart
+      const axisData = cluster.axes[axisIndex];
+      point[cluster.label] = axisData?.normalized ?? 0;
     });
     return point;
   });
@@ -82,7 +71,7 @@ export function RadarComparisonChart({ data }: RadarComparisonChartProps) {
               borderRadius: '8px',
               boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             }}
-            formatter={(value: number) => value.toFixed(3)}
+            formatter={(value: number) => value.toFixed(2)}
           />
           <Legend
             wrapperStyle={{ paddingTop: '20px' }}
@@ -91,13 +80,13 @@ export function RadarComparisonChart({ data }: RadarComparisonChartProps) {
             )}
           />
 
-          {series.map((s, index) => (
+          {clusters.map((cluster) => (
             <Radar
-              key={s.name}
-              name={s.name}
-              dataKey={s.name}
-              stroke={CLUSTER_COLORS[index % CLUSTER_COLORS.length]}
-              fill={CLUSTER_COLORS[index % CLUSTER_COLORS.length]}
+              key={cluster.cluster_id}
+              name={cluster.label}
+              dataKey={cluster.label}
+              stroke={cluster.color}
+              fill={cluster.color}
               fillOpacity={0.2}
               strokeWidth={2}
             />
@@ -106,19 +95,19 @@ export function RadarComparisonChart({ data }: RadarComparisonChartProps) {
       </ResponsiveContainer>
 
       {/* Cluster summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {series.map((s, index) => (
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {clusters.map((cluster) => (
           <div
-            key={s.name}
+            key={cluster.cluster_id}
             className="p-3 bg-slate-50 rounded-lg text-center"
           >
             <div
               className="w-4 h-4 rounded-full mx-auto mb-2"
-              style={{ backgroundColor: CLUSTER_COLORS[index % CLUSTER_COLORS.length] }}
+              style={{ backgroundColor: cluster.color }}
             />
-            <p className="text-sm font-medium text-slate-800">{s.name}</p>
+            <p className="text-sm font-medium text-slate-800">{cluster.label}</p>
             <p className="text-xs text-slate-500">
-              {s.count} synths ({((s.count / data.total_synths) * 100).toFixed(0)}%)
+              Taxa de sucesso: {(cluster.success_rate * 100).toFixed(0)}%
             </p>
           </div>
         ))}

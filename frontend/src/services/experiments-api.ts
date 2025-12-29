@@ -198,6 +198,7 @@ import type {
   HierarchicalResult,
   CutDendrogramRequest,
   RadarComparisonChart,
+  PCAScatterChart,
   ElbowPoint,
 } from '@/types/simulation';
 
@@ -305,6 +306,18 @@ export async function createAnalysisClustering(
 }
 
 /**
+ * Create automatic K-Means clustering with optimal K detection.
+ * Executes Elbow method and uses recommended K automatically.
+ */
+export async function createAutoAnalysisClustering(
+  experimentId: string
+): Promise<KMeansResult> {
+  return fetchAPI(`/experiments/${experimentId}/analysis/clusters/auto`, {
+    method: 'POST',
+  });
+}
+
+/**
  * Get cached clustering for experiment analysis.
  */
 export async function getAnalysisClustering(
@@ -340,6 +353,15 @@ export async function getAnalysisRadarComparison(
   experimentId: string
 ): Promise<RadarComparisonChart> {
   return fetchAPI(`/experiments/${experimentId}/analysis/clusters/radar`);
+}
+
+/**
+ * Get PCA 2D scatter plot with cluster colors.
+ */
+export async function getAnalysisPCAScatter(
+  experimentId: string
+): Promise<PCAScatterChart> {
+  return fetchAPI(`/experiments/${experimentId}/analysis/clusters/pca-scatter`);
 }
 
 /**

@@ -113,6 +113,17 @@ export function DendrogramSection({ experimentId, onCutHeight }: DendrogramSecti
                   clusters (mais específicos), cortes mais altos criam menos clusters (mais gerais).
                 </p>
               </div>
+
+              <div>
+                <h4 className="font-semibold text-slate-800 mb-1 text-sm">
+                  Dendrograma como Validação
+                </h4>
+                <p className="text-xs">
+                  Use o dendrograma para <strong>validar o K-Means</strong>. Se o dendrograma
+                  sugerir um K diferente do usado no K-Means, pode valer a pena testar esse K
+                  alternativo. As sugestões de corte mostram K's com boa separação hierárquica.
+                </p>
+              </div>
             </CollapsibleContent>
           </div>
         </Collapsible>

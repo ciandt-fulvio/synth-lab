@@ -75,11 +75,11 @@ function SynthCard({ synth, variant }: SynthCardProps) {
           <p className="font-medium text-slate-600">{(synth.did_not_try_rate * 100).toFixed(0)}%</p>
         </div>
       </div>
-      {synth.suggested_questions && synth.suggested_questions.length > 0 && (
+      {synth.interview_questions && synth.interview_questions.length > 0 && (
         <div className="mt-2 pt-2 border-t border-slate-200">
           <p className="text-xs text-slate-500 mb-1">Perguntas sugeridas:</p>
           <ul className="text-xs text-slate-600 list-disc ml-3 space-y-0.5">
-            {synth.suggested_questions.slice(0, 2).map((q, i) => (
+            {synth.interview_questions.slice(0, 2).map((q, i) => (
               <li key={i}>{q}</li>
             ))}
           </ul>

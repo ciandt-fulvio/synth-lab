@@ -11,6 +11,10 @@ function formatFeatureName(feature: string): string {
   const labelMap: Record<string, string> = {
     capability_mean: 'Capacidade',
     trust_mean: 'Confiança',
+    friction_tolerance_mean: 'Tolerância',
+    exploration_prob: 'Exploração',
+    digital_literacy: 'Lit. Digital',
+    similar_tool_experience: 'Exp. Similar',
     complexity: 'Complexidade',
     initial_effort: 'Esforço Inicial',
     perceived_risk: 'Risco',
@@ -25,7 +29,7 @@ function formatFeatureName(feature: string): string {
 }
 
 export function ShapWaterfallChart({ data }: ShapWaterfallChartProps) {
-  const { base_value, predicted_value, contributions } = data;
+  const { baseline_prediction, predicted_success_rate, contributions } = data;
 
   // Sort contributions by absolute SHAP value
   const sortedContributions = [...contributions].sort(
@@ -33,7 +37,7 @@ export function ShapWaterfallChart({ data }: ShapWaterfallChartProps) {
   );
 
   // Calculate cumulative values for waterfall
-  let cumulative = base_value;
+  let cumulative = baseline_prediction;
   const waterfallData = sortedContributions.map((c) => {
     const start = cumulative;
     cumulative += c.shap_value;
@@ -46,7 +50,7 @@ export function ShapWaterfallChart({ data }: ShapWaterfallChartProps) {
   });
 
   // Find max extent for scaling
-  const allValues = [base_value, predicted_value, ...waterfallData.flatMap((w) => [w.start, w.end])];
+  const allValues = [baseline_prediction, predicted_success_rate, ...waterfallData.flatMap((w) => [w.start, w.end])];
   const minVal = Math.min(...allValues);
   const maxVal = Math.max(...allValues);
   const range = maxVal - minVal || 1;
@@ -80,19 +84,19 @@ export function ShapWaterfallChart({ data }: ShapWaterfallChartProps) {
               Base
             </text>
             <circle
-              cx={scaleX(base_value)}
+              cx={scaleX(baseline_prediction)}
               cy={barHeight / 2}
               r={6}
               fill="#6366f1"
             />
             <text
-              x={scaleX(base_value) + 12}
+              x={scaleX(baseline_prediction) + 12}
               y={barHeight / 2}
               dominantBaseline="middle"
               fontSize={11}
               fill="#64748b"
             >
-              {base_value.toFixed(3)}
+              {baseline_prediction.toFixed(3)}
             </text>
           </g>
 
@@ -105,7 +109,7 @@ export function ShapWaterfallChart({ data }: ShapWaterfallChartProps) {
             const barWidth = Math.abs(x2 - x1);
 
             return (
-              <g key={item.feature} transform={`translate(0, ${y})`}>
+              <g key={item.feature_name} transform={`translate(0, ${y})`}>
                 {/* Feature label */}
                 <text
                   x={margin.left - 10}
@@ -115,7 +119,7 @@ export function ShapWaterfallChart({ data }: ShapWaterfallChartProps) {
                   fontSize={11}
                   fill="#334155"
                 >
-                  {formatFeatureName(item.feature)}
+                  {formatFeatureName(item.feature_name)}
                 </text>
 
                 {/* Connector line from previous */}
@@ -160,7 +164,7 @@ export function ShapWaterfallChart({ data }: ShapWaterfallChartProps) {
                   fontSize={10}
                   fill="#94a3b8"
                 >
-                  ({item.value.toFixed(2)})
+                  ({item.feature_value.toFixed(2)})
                 </text>
               </g>
             );
@@ -180,20 +184,20 @@ export function ShapWaterfallChart({ data }: ShapWaterfallChartProps) {
               Predição
             </text>
             <circle
-              cx={scaleX(predicted_value)}
+              cx={scaleX(predicted_success_rate)}
               cy={barHeight / 2}
               r={8}
-              fill={predicted_value >= 0.5 ? '#22c55e' : '#ef4444'}
+              fill={predicted_success_rate >= 0.5 ? '#22c55e' : '#ef4444'}
             />
             <text
-              x={scaleX(predicted_value) + 14}
+              x={scaleX(predicted_success_rate) + 14}
               y={barHeight / 2}
               dominantBaseline="middle"
               fontSize={12}
               fontWeight="600"
-              fill={predicted_value >= 0.5 ? '#16a34a' : '#dc2626'}
+              fill={predicted_success_rate >= 0.5 ? '#16a34a' : '#dc2626'}
             >
-              {(predicted_value * 100).toFixed(1)}%
+              {(predicted_success_rate * 100).toFixed(1)}%
             </text>
           </g>
         </svg>

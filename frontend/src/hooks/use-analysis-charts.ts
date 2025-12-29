@@ -11,10 +11,12 @@ import {
   getAnalysisScatterCorrelation,
   getAnalysisAttributeCorrelations,
   createAnalysisClustering,
+  createAutoAnalysisClustering,
   getAnalysisClustering,
   getAnalysisElbow,
   getAnalysisDendrogram,
   getAnalysisRadarComparison,
+  getAnalysisPCAScatter,
   cutAnalysisDendrogram,
   // Phase 4: Edge Cases
   getAnalysisExtremeCases,
@@ -123,6 +125,11 @@ export function useAnalysisClustering(experimentId: string, enabled = true) {
     queryFn: () => getAnalysisClustering(experimentId),
     enabled: !!experimentId && enabled,
     staleTime: 10 * 60 * 1000,
+    // Don't retry on 404 (clustering not created yet)
+    retry: (failureCount, error) => {
+      if (error instanceof Error && error.message.includes('404')) return false;
+      return failureCount < 3;
+    },
   });
 }
 
@@ -135,6 +142,20 @@ export function useCreateAnalysisClustering(experimentId: string) {
       queryClient.invalidateQueries({ queryKey: queryKeys.analysis.clusters(experimentId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.analysis.elbow(experimentId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.analysis.radarComparison(experimentId) });
+    },
+  });
+}
+
+export function useAutoAnalysisClustering(experimentId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => createAutoAnalysisClustering(experimentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.clusters(experimentId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.radarComparison(experimentId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.pcaScatter(experimentId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.dendrogram(experimentId) });
     },
   });
 }
@@ -163,6 +184,25 @@ export function useAnalysisRadarComparison(experimentId: string, enabled = true)
     queryFn: () => getAnalysisRadarComparison(experimentId),
     enabled: !!experimentId && enabled,
     staleTime: 10 * 60 * 1000,
+    // Don't retry on 404 (clustering not created yet)
+    retry: (failureCount, error) => {
+      if (error instanceof Error && error.message.includes('404')) return false;
+      return failureCount < 3;
+    },
+  });
+}
+
+export function useAnalysisPCAScatter(experimentId: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.analysis.pcaScatter(experimentId),
+    queryFn: () => getAnalysisPCAScatter(experimentId),
+    enabled: !!experimentId && enabled,
+    staleTime: 10 * 60 * 1000,
+    // Don't retry on 404 (clustering not created yet)
+    retry: (failureCount, error) => {
+      if (error instanceof Error && error.message.includes('404')) return false;
+      return failureCount < 3;
+    },
   });
 }
 

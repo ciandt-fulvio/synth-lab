@@ -220,45 +220,63 @@ export interface KMeansResult {
   features_used: string[];
 }
 
-/** Node in dendrogram tree */
-export interface DendrogramNode {
-  id: number;
-  left?: DendrogramNode;
-  right?: DendrogramNode;
-  distance: number;
-  synth_count: number;
-  synth_ids: string[];
+/** Node in dendrogram tree (hierarchical structure for rendering) */
+export interface DendrogramTreeNode {
+  id: string;
+  height: number;
+  count: number;
+  children?: DendrogramTreeNode[] | null;
 }
 
 /** Suggested cut point for hierarchical clustering */
 export interface SuggestedCut {
   n_clusters: number;
   distance: number;
-  silhouette: number;
+  silhouette_estimate: number;
+}
+
+/** Flat node structure from backend */
+export interface DendrogramNode {
+  id: number;
+  synth_id?: string;
+  left_child?: number;
+  right_child?: number;
+  distance: number;
+  count: number;
 }
 
 /** Hierarchical clustering result */
 export interface HierarchicalResult {
   simulation_id: string;
-  dendrogram: DendrogramNode;
+  method: 'hierarchical';
   linkage_method: 'ward' | 'complete' | 'average' | 'single';
-  suggested_cuts: SuggestedCut[];
   features_used: string[];
+  nodes: DendrogramNode[];
+  suggested_cuts: SuggestedCut[];
   cluster_assignments?: Record<string, number>;
-  cluster_profiles?: ClusterProfile[];
+  n_clusters?: number;
+  cut_height?: number;
+  // Computed properties from backend
+  dendrogram_tree: DendrogramTreeNode;
+  total_synths: number;
+  max_height: number;
 }
 
 /** Radar chart axis value */
 export interface RadarAxis {
-  axis: string;
+  name: string;
+  label: string;
   value: number;
+  normalized: number;
 }
 
 /** Cluster radar data */
 export interface ClusterRadar {
   cluster_id: number;
   label: string;
-  data: RadarAxis[];
+  color: string;
+  axes: RadarAxis[];
+  success_rate: number;
 }
 
 /** Radar chart comparison data */
@@ -266,7 +284,25 @@ export interface RadarChart {
   simulation_id: string;
   clusters: ClusterRadar[];
   axis_labels: string[];
-  baseline?: RadarAxis[];
+  baseline: number[];
+}
+
+/** Point in PCA scatter plot */
+export interface PCAScatterPoint {
+  synth_id: string;
+  x: number;
+  y: number;
+  cluster_id: number;
+  cluster_label: string;
+  color: string;
+}
+
+/** PCA 2D scatter chart with cluster colors */
+export interface PCAScatterChart {
+  simulation_id: string;
+  points: PCAScatterPoint[];
+  explained_variance: [number, number];
+  total_variance: number;
 }
 
 // =============================================================================
@@ -279,9 +315,12 @@ export interface ExtremeSynth {
   success_rate: number;
   failed_rate: number;
   did_not_try_rate: number;
-  attributes: Record<string, number>;
   category: 'worst_failure' | 'best_success' | 'unexpected';
-  suggested_questions: string[];
+  profile_summary: string;
+  interview_questions: string[];
+  capability_mean: number;
+  trust_mean: number;
+  friction_tolerance_mean: number;
 }
 
 /** Table of extreme cases */
@@ -290,6 +329,7 @@ export interface ExtremeCasesTable {
   worst_failures: ExtremeSynth[];
   best_successes: ExtremeSynth[];
   unexpected_cases: ExtremeSynth[];
+  total_synths: number;
 }
 
 /** Synth identified as statistical outlier */
@@ -299,9 +339,13 @@ export interface OutlierSynth {
   success_rate: number;
   failed_rate: number;
   did_not_try_rate: number;
-  attributes: Record<string, number>;
-  outlier_type: 'attribute_outlier' | 'outcome_outlier' | 'both';
+  outlier_type: 'unexpected_failure' | 'unexpected_success' | 'atypical_profile';
   explanation: string;
+  capability_mean: number;
+  trust_mean: number;
+  friction_tolerance_mean: number;
+  digital_literacy: number;
+  similar_tool_experience: number;
 }
 
 /** Outlier detection result */
@@ -311,7 +355,9 @@ export interface OutlierResult {
   contamination: number;
   outliers: OutlierSynth[];
   total_synths: number;
+  n_outliers: number;
   outlier_percentage: number;
+  features_used: string[];
 }
 
 // =============================================================================
@@ -320,58 +366,59 @@ export interface OutlierResult {
 
 /** Single SHAP contribution */
 export interface ShapContribution {
-  feature: string;
-  value: number;
+  feature_name: string;
+  feature_value: number;
   shap_value: number;
+  baseline_value: number;
+  impact: 'positive' | 'negative';
 }
 
 /** SHAP explanation for a single synth */
 export interface ShapExplanation {
   simulation_id: string;
   synth_id: string;
-  base_value: number;
-  predicted_value: number;
+  predicted_success_rate: number;
+  actual_success_rate: number;
+  baseline_prediction: number;
   contributions: ShapContribution[];
-  explanation_text?: string;
-}
-
-/** Feature importance from SHAP summary */
-export interface FeatureImportance {
-  feature: string;
-  mean_abs_shap: number;
-  direction: 'positive' | 'negative' | 'mixed';
+  explanation_text: string;
+  model_type: string;
 }
 
 /** SHAP summary (global feature importance) */
 export interface ShapSummary {
   simulation_id: string;
-  feature_importance: FeatureImportance[];
+  feature_importances: Record<string, number>;
   top_features: string[];
-  explanation_text?: string;
+  total_synths: number;
+  model_score: number;
 }
 
 /** Point in PDP curve */
 export interface PDPPoint {
   feature_value: number;
-  avg_prediction: number;
-  std_prediction?: number;
+  predicted_success: number;
+  confidence_lower?: number;
+  confidence_upper?: number;
 }
 
 /** Partial Dependence Plot result */
 export interface PDPResult {
   simulation_id: string;
-  feature: string;
-  points: PDPPoint[];
-  feature_range: [number, number];
-  effect_type: 'linear' | 'monotonic' | 'nonlinear' | 'threshold';
+  feature_name: string;
+  feature_display_name: string;
+  pdp_values: PDPPoint[];
+  effect_type: 'monotonic_increasing' | 'monotonic_decreasing' | 'non_linear' | 'flat';
   effect_strength: number;
+  baseline_value: number;
 }
 
 /** PDP comparison across features */
 export interface PDPComparison {
   simulation_id: string;
-  pdps: PDPResult[];
+  pdp_results: PDPResult[];
   feature_ranking: string[];
+  total_synths: number;
 }
 
 // =============================================================================
@@ -389,6 +436,7 @@ export type ChartType =
   | 'elbow'
   | 'radar'
   | 'dendrogram'
+  | 'pca_scatter'
   | 'extreme_cases'
   | 'outliers'
   | 'shap_summary'

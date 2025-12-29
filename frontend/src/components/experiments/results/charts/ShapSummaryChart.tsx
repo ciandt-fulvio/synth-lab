@@ -9,7 +9,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell,
 } from 'recharts';
 import type { ShapSummary } from '@/types/simulation';
 
@@ -17,27 +16,20 @@ interface ShapSummaryChartProps {
   data: ShapSummary;
 }
 
-const DIRECTION_COLORS = {
-  positive: '#22c55e', // green-500
-  negative: '#ef4444', // red-500
-  mixed: '#f59e0b', // amber-500
-};
-
 function formatFeatureName(feature: string): string {
   const labelMap: Record<string, string> = {
     capability_mean: 'Capacidade',
     trust_mean: 'Confiança',
+    friction_tolerance_mean: 'Tolerância',
+    exploration_prob: 'Exploração',
+    digital_literacy: 'Lit. Digital',
+    similar_tool_experience: 'Exp. Similar',
     complexity: 'Complexidade',
     initial_effort: 'Esforço Inicial',
     perceived_risk: 'Risco',
     time_to_value: 'Tempo p/ Valor',
-    openness: 'Abertura',
-    conscientiousness: 'Consciência',
-    extraversion: 'Extroversão',
-    agreeableness: 'Amabilidade',
-    neuroticism: 'Neuroticismo',
   };
-  return labelMap[feature] || feature.replace(/_/g, ' ');
+  return labelMap[feature] || feature.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 interface CustomTooltipProps {
@@ -45,8 +37,8 @@ interface CustomTooltipProps {
   payload?: Array<{
     payload: {
       feature: string;
+      displayName: string;
       importance: number;
-      direction: string;
     };
   }>;
 }
@@ -55,38 +47,50 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!active || !payload || !payload[0]) return null;
 
   const d = payload[0].payload;
-  const directionText = {
-    positive: 'Aumenta sucesso',
-    negative: 'Diminui sucesso',
-    mixed: 'Efeito misto',
-  }[d.direction as keyof typeof DIRECTION_COLORS] || 'Desconhecido';
 
   return (
     <div className="bg-white rounded-lg shadow-lg border border-slate-200 p-3 text-sm">
-      <p className="font-medium text-slate-800 mb-1">{formatFeatureName(d.feature)}</p>
-      <div className="space-y-1 text-slate-600">
-        <p>Importância: <span className="font-medium">{d.importance.toFixed(3)}</span></p>
-        <p>Direção: <span className="font-medium">{directionText}</span></p>
+      <p className="font-medium text-slate-800 mb-1">{d.displayName}</p>
+      <div className="text-slate-600">
+        <p>Importância SHAP: <span className="font-medium text-indigo-600">{d.importance.toFixed(4)}</span></p>
       </div>
     </div>
   );
 }
 
 export function ShapSummaryChart({ data }: ShapSummaryChartProps) {
-  const chartData = data.feature_importance.map((fi) => ({
-    feature: fi.feature,
-    displayName: formatFeatureName(fi.feature),
-    importance: fi.mean_abs_shap,
-    direction: fi.direction,
+  // Convert feature_importances dict to array for charting
+  const chartData = Object.entries(data.feature_importances || {}).map(([feature, importance]) => ({
+    feature,
+    displayName: formatFeatureName(feature),
+    importance,
   }));
 
   // Sort by importance descending
   chartData.sort((a, b) => b.importance - a.importance);
 
+  if (chartData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-slate-500">
+        Sem dados de importância de features
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
+      {/* Model quality indicator */}
+      <div className="flex items-center justify-between px-2">
+        <span className="text-xs text-slate-500">
+          Qualidade do modelo: R² = {(data.model_score * 100).toFixed(1)}%
+        </span>
+        <span className="text-xs text-slate-500">
+          {data.total_synths} synths analisados
+        </span>
+      </div>
+
       {/* Chart */}
-      <ResponsiveContainer width="100%" height={Math.max(300, chartData.length * 35)}>
+      <ResponsiveContainer width="100%" height={Math.max(250, chartData.length * 40)}>
         <BarChart
           data={chartData}
           layout="vertical"
@@ -96,52 +100,34 @@ export function ShapSummaryChart({ data }: ShapSummaryChartProps) {
           <XAxis
             type="number"
             stroke="#64748b"
-            fontSize={12}
-            tickFormatter={(v) => v.toFixed(2)}
+            fontSize={11}
+            tickFormatter={(v) => v.toFixed(3)}
           />
           <YAxis
             type="category"
             dataKey="displayName"
             stroke="#64748b"
-            fontSize={12}
+            fontSize={11}
             width={90}
             tickLine={false}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Bar dataKey="importance" radius={[0, 4, 4, 0]} maxBarSize={25}>
-            {chartData.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={DIRECTION_COLORS[entry.direction as keyof typeof DIRECTION_COLORS] || DIRECTION_COLORS.mixed}
-              />
-            ))}
-          </Bar>
+          <Bar
+            dataKey="importance"
+            fill="#6366f1"
+            radius={[0, 4, 4, 0]}
+            maxBarSize={28}
+          />
         </BarChart>
       </ResponsiveContainer>
 
-      {/* Legend */}
-      <div className="flex justify-center gap-6 text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-3 rounded" style={{ backgroundColor: DIRECTION_COLORS.positive }} />
-          <span className="text-slate-600">Aumenta Sucesso</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-3 rounded" style={{ backgroundColor: DIRECTION_COLORS.negative }} />
-          <span className="text-slate-600">Diminui Sucesso</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-3 rounded" style={{ backgroundColor: DIRECTION_COLORS.mixed }} />
-          <span className="text-slate-600">Efeito Misto</span>
-        </div>
-      </div>
-
       {/* Top features summary */}
       {data.top_features && data.top_features.length > 0 && (
-        <div className="text-center p-3 bg-slate-50 rounded-lg">
-          <span className="text-sm text-slate-600">
-            Features mais importantes:{' '}
-            <span className="font-medium text-slate-800">
-              {data.top_features.map(formatFeatureName).join(', ')}
+        <div className="text-center p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+          <span className="text-sm text-indigo-700">
+            Features mais influentes:{' '}
+            <span className="font-medium">
+              {data.top_features.slice(0, 5).map(formatFeatureName).join(', ')}
             </span>
           </span>
         </div>

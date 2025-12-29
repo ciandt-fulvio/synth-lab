@@ -3,11 +3,16 @@
 
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Users, PlayCircle, Calendar, FlaskConical } from 'lucide-react';
-import { ChartContainer } from '@/components/shared/ChartContainer';
+import { Users, PlayCircle, Calendar, FlaskConical, PieChart, Sparkles, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertCircle, RefreshCw } from 'lucide-react';
+import { ChartErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { OutcomeDistributionChart } from './charts/OutcomeDistributionChart';
 import { TryVsSuccessSection } from './TryVsSuccessSection';
 import { useAnalysisDistributionChart } from '@/hooks/use-analysis-charts';
+import { useGenerateAnalysisChartInsight } from '@/hooks/use-insights';
 import type { AnalysisSummary } from '@/types/experiment';
 
 interface PhaseOverviewProps {
@@ -94,6 +99,20 @@ function SimulationSummary({ analysis }: { analysis: AnalysisSummary }) {
 
 export function PhaseOverview({ experimentId, analysis }: PhaseOverviewProps) {
   const distribution = useAnalysisDistributionChart(experimentId);
+  const generateInsight = useGenerateAnalysisChartInsight(experimentId);
+
+  const handleGenerateInsight = () => {
+    if (!distribution.data) return;
+    generateInsight.mutate({
+      chartType: 'distribution',
+      chartData: {
+        success_rate: distribution.data.success_rate,
+        failed_rate: distribution.data.failed_rate,
+        did_not_try_rate: distribution.data.did_not_try_rate,
+        total_synths: distribution.data.total_synths,
+      },
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -103,19 +122,93 @@ export function PhaseOverview({ experimentId, analysis }: PhaseOverviewProps) {
       )}
 
       {/* Row 1: Distribution (main highlight) */}
-      <ChartContainer
-        title="Distribuição de Resultados"
-        description="Proporção média de synths que tiveram sucesso, falharam ou não tentaram"
-        isLoading={distribution.isLoading}
-        isError={distribution.isError}
-        isEmpty={!distribution.data}
-        onRetry={() => distribution.refetch()}
-        height={400}
-      >
-        {distribution.data && (
-          <OutcomeDistributionChart data={distribution.data} />
-        )}
-      </ChartContainer>
+      <Card className="card">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-card-title flex items-center gap-2">
+                <PieChart className="h-4 w-4 text-slate-500" />
+                Distribuição de Resultados
+              </CardTitle>
+              <p className="text-meta">Proporção média de synths que tiveram sucesso, falharam ou não tentaram</p>
+            </div>
+            {distribution.data && (
+              <Button
+                onClick={handleGenerateInsight}
+                disabled={generateInsight.isPending}
+                variant="outline"
+                size="sm"
+                className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+              >
+                {generateInsight.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4 mr-2" />
+                )}
+                Gerar Insight
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {/* Loading state */}
+          {distribution.isLoading && (
+            <div className="flex flex-col items-center justify-center gap-4" style={{ height: 400 }}>
+              <Skeleton className="w-full h-full rounded-lg" />
+            </div>
+          )}
+
+          {/* Error state */}
+          {distribution.isError && !distribution.isLoading && (
+            <div
+              className="flex flex-col items-center justify-center gap-4 text-center"
+              style={{ height: 400 }}
+            >
+              <div className="icon-box-neutral">
+                <AlertCircle className="h-6 w-6 text-red-500" />
+              </div>
+              <div>
+                <p className="text-body text-red-600 font-medium mb-1">Erro</p>
+                <p className="text-meta">Erro ao carregar os dados. Tente novamente.</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => distribution.refetch()}
+                className="btn-secondary"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Tentar Novamente
+              </Button>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!distribution.data && !distribution.isLoading && !distribution.isError && (
+            <div
+              className="flex flex-col items-center justify-center gap-4 text-center"
+              style={{ height: 400 }}
+            >
+              <div className="icon-box-neutral">
+                <PieChart className="h-6 w-6 text-slate-400" />
+              </div>
+              <div>
+                <p className="text-body text-slate-500 font-medium mb-1">Sem Dados</p>
+                <p className="text-meta">Nenhum dado disponível para este gráfico.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Chart */}
+          {!distribution.isLoading && !distribution.isError && distribution.data && (
+            <div style={{ minHeight: 400 }}>
+              <ChartErrorBoundary chartName="Distribuição de Resultados">
+                <OutcomeDistributionChart data={distribution.data} />
+              </ChartErrorBoundary>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Row 2: Try vs Success with explanation and controls */}
       <TryVsSuccessSection experimentId={experimentId} />
