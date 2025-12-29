@@ -151,3 +151,82 @@ export default function NewPage() {
 | `.gradient-light` | Light background gradient |
 | `.gradient-decorative` | Logo/decorative elements |
 | `.logo-glow` | Logo glow effect |
+
+---
+
+## Toast Notifications (Sonner)
+
+**IMPORTANT**: Use Sonner for all user feedback notifications.
+
+### Configuration
+
+The Toaster component is configured globally in `App.tsx`:
+- Position: `top-right`
+- Auto-dismiss: 5 seconds
+- Close button: enabled
+- Rich colors: enabled (semantic styling)
+
+### Usage
+
+```tsx
+import { toast } from 'sonner';
+
+// Success - Use after successful operations
+toast.success('Operação realizada com sucesso');
+
+// Error - Use for API errors and validation failures
+toast.error('Erro ao executar operação');
+
+// Warning - Use for non-critical issues
+toast.warning('Atenção: verifique os dados');
+
+// Info - Use for neutral information
+toast.info('Processando sua solicitação...');
+
+// With description
+toast.error('Falha ao executar análise', {
+  description: 'Gere personas sintéticas antes de continuar.',
+});
+
+// With action button
+toast.error('Análise falhou', {
+  action: {
+    label: 'Tentar novamente',
+    onClick: () => handleRetry(),
+  },
+});
+```
+
+### Color Mapping (Design System)
+
+| Toast Type | Background | Text | Border |
+|------------|------------|------|--------|
+| `success` | `green-50` | `green-900` | `green-200` |
+| `error` | `red-50` | `red-900` | `red-200` |
+| `warning` | `amber-50` | `amber-900` | `amber-200` |
+| `info` | `indigo-50` | `indigo-900` | `indigo-200` |
+
+### Best Practices
+
+1. **Always show toast on mutation errors**:
+```tsx
+const mutation = useSomeMutation();
+
+const handleAction = () => {
+  mutation.mutate(data, {
+    onSuccess: () => toast.success('Salvo com sucesso'),
+    onError: (error) => toast.error(error.message),
+  });
+};
+```
+
+2. **Use descriptions for actionable errors**:
+```tsx
+toast.error('Não foi possível executar', {
+  description: 'Verifique se todos os campos estão preenchidos.',
+});
+```
+
+3. **Avoid duplicate toasts** - React Query handles this automatically
+
+4. **Keep messages concise** - Max 2 lines (title + description)

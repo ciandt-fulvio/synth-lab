@@ -11,10 +11,17 @@ ifeq ($(ENV),dev)
     PHOENIX_ENABLED := true
     LOG_LEVEL := DEBUG
     UVICORN_RELOAD := --reload
+    # Log files for dev (allows Claude to read errors)
+    BACKEND_LOG := /tmp/synth-lab-backend.log
+    FRONTEND_LOG := /tmp/synth-lab-frontend.log
+    TEE_BACKEND := 2>&1 | tee $(BACKEND_LOG)
+    TEE_FRONTEND := 2>&1 | tee $(FRONTEND_LOG)
 else
     PHOENIX_ENABLED := false
     LOG_LEVEL := INFO
     UVICORN_RELOAD :=
+    TEE_BACKEND :=
+    TEE_FRONTEND :=
 endif
 
 # Default target
@@ -88,15 +95,19 @@ serve:
 	@echo "ENV=$(ENV) → tracing=$(PHOENIX_ENABLED), log=$(LOG_LEVEL), reload=$(if $(UVICORN_RELOAD),on,off)"
 ifeq ($(PHOENIX_ENABLED),true)
 	@echo "Phoenix dashboard: http://127.0.0.1:6006 (run 'make phoenix' first)"
+	@echo "Log file: $(BACKEND_LOG)"
 endif
 	@echo ""
-	PHOENIX_ENABLED=$(PHOENIX_ENABLED) LOG_LEVEL=$(LOG_LEVEL) uv run uvicorn synth_lab.api.main:app --host 127.0.0.1 --port 8000 $(UVICORN_RELOAD)
+	PHOENIX_ENABLED=$(PHOENIX_ENABLED) LOG_LEVEL=$(LOG_LEVEL) uv run uvicorn synth_lab.api.main:app --host 127.0.0.1 --port 8000 $(UVICORN_RELOAD) $(TEE_BACKEND)
 
 serve-front:
 	@echo "Starting frontend dev server on http://localhost:8080"
 	@echo "API proxy: http://localhost:8000"
+ifeq ($(ENV),dev)
+	@echo "Log file: $(FRONTEND_LOG)"
+endif
 	@echo ""
-	@cd frontend && pnpm dev
+	@cd frontend && pnpm dev $(TEE_FRONTEND)
 
 # CLI commands (respect ENV settings)
 gensynth:

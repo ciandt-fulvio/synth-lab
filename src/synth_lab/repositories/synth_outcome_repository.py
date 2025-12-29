@@ -120,6 +120,7 @@ class SynthOutcomeRepository(BaseRepository):
         self,
         analysis_id: str,
         params: PaginationParams | None = None,
+        scenario_id: str = "baseline",
     ) -> PaginatedResponse[SynthOutcome]:
         """
         List outcomes for an analysis with pagination.
@@ -127,28 +128,34 @@ class SynthOutcomeRepository(BaseRepository):
         Args:
             analysis_id: Parent analysis run ID.
             params: Pagination parameters.
+            scenario_id: Scenario to filter by (default: baseline).
 
         Returns:
             Paginated list of synth outcomes.
         """
         params = params or PaginationParams()
 
-        # Get total count
+        # Get total count - filter by scenario_id with fallback for legacy data
         count_row = self.db.fetchone(
-            "SELECT COUNT(*) as count FROM synth_outcomes WHERE analysis_id = ?",
-            (analysis_id,),
+            """
+            SELECT COUNT(*) as count FROM synth_outcomes
+            WHERE analysis_id = ?
+            AND (scenario_id = ? OR scenario_id IS NULL OR scenario_id = 'baseline')
+            """,
+            (analysis_id, scenario_id),
         )
         total = count_row["count"] if count_row else 0
 
-        # Get paginated results
+        # Get paginated results - filter by scenario_id
         rows = self.db.fetchall(
             """
             SELECT * FROM synth_outcomes
             WHERE analysis_id = ?
+            AND (scenario_id = ? OR scenario_id IS NULL OR scenario_id = 'baseline')
             ORDER BY synth_id
             LIMIT ? OFFSET ?
             """,
-            (analysis_id, params.limit, params.offset),
+            (analysis_id, scenario_id, params.limit, params.offset),
         )
 
         outcomes = [self._row_to_outcome(row) for row in rows]
