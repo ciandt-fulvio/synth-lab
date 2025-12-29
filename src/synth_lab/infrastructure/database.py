@@ -19,7 +19,7 @@ from loguru import logger
 
 from synth_lab.infrastructure.config import DB_PATH
 
-# Database schema SQL - Version 11 (2025-12)
+# Database schema SQL - Version 12 (2025-12)
 # Changes:
 #   - v4: synths.data: single JSON field for all nested data
 #   - v5: Added simulation tables (feature_scorecards, simulation_runs, synth_outcomes,
@@ -33,6 +33,7 @@ from synth_lab.infrastructure.config import DB_PATH
 #   - v9: Added sensitivity_results and chart_insights tables
 #   - v10: Added status field to experiments table for soft delete
 #   - v11: Added scenario_id field to analysis_runs table
+#   - v12: Added analysis_cache table for pre-computed chart data
 SCHEMA_SQL = """
 -- Enable recommended settings
 PRAGMA journal_mode=WAL;
@@ -271,6 +272,19 @@ CREATE TABLE IF NOT EXISTS chart_insights (
 
 CREATE INDEX IF NOT EXISTS idx_chart_insights_simulation ON chart_insights(simulation_id);
 CREATE INDEX IF NOT EXISTS idx_chart_insights_type ON chart_insights(insight_type);
+
+-- Analysis Cache table (pre-computed chart data, v12)
+CREATE TABLE IF NOT EXISTS analysis_cache (
+    analysis_id TEXT NOT NULL,
+    cache_key TEXT NOT NULL,
+    data TEXT NOT NULL CHECK(json_valid(data)),
+    params TEXT CHECK(json_valid(params) OR params IS NULL),
+    computed_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (analysis_id, cache_key),
+    FOREIGN KEY (analysis_id) REFERENCES analysis_runs(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_analysis_cache_analysis ON analysis_cache(analysis_id);
 """
 
 

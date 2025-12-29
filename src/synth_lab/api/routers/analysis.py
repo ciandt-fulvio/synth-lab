@@ -25,6 +25,7 @@ from synth_lab.api.schemas.analysis_run import (
     SynthAttributesSchema,
     SynthOutcomeResponse,
 )
+from synth_lab.domain.entities.analysis_cache import CacheKeys
 from synth_lab.domain.entities.chart_data import (
     AttributeCorrelationChart,
     FailureHeatmapChart,
@@ -60,6 +61,7 @@ from synth_lab.repositories.analysis_repository import AnalysisRepository
 from synth_lab.repositories.experiment_repository import ExperimentRepository
 from synth_lab.services.analysis.analysis_service import AnalysisService
 from synth_lab.services.analysis.analysis_execution_service import AnalysisExecutionService
+from synth_lab.services.analysis.analysis_cache_service import AnalysisCacheService
 from synth_lab.services.experiment_service import ExperimentService
 
 router = APIRouter()
@@ -98,6 +100,11 @@ def get_chart_data_service() -> ChartDataService:
 def get_outcome_repository() -> AnalysisOutcomeRepository:
     """Get analysis outcome repository instance."""
     return AnalysisOutcomeRepository()
+
+
+def get_cache_service() -> AnalysisCacheService:
+    """Get analysis cache service instance."""
+    return AnalysisCacheService()
 
 
 def _convert_config_schema_to_domain(schema: AnalysisConfigSchema) -> AnalysisConfig:
@@ -553,10 +560,9 @@ async def get_try_vs_success_chart(
     Get Try vs Success scatter plot data for an analysis.
 
     Each point represents one synth with attempt rate vs success rate.
+    Uses cache for default parameters (0.5, 0.5).
     """
     service = get_analysis_service()
-    chart_service = get_chart_data_service()
-    outcome_repo = get_outcome_repository()
 
     analysis = service.get_analysis(experiment_id)
     if analysis is None:
@@ -570,6 +576,18 @@ async def get_try_vs_success_chart(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Analysis must be completed (status: {analysis.status})",
         )
+
+    # Check cache for default parameters
+    is_default = attempt_rate_threshold == 0.5 and success_rate_threshold == 0.5
+    if is_default:
+        cache_service = get_cache_service()
+        cached = cache_service.get_cached(analysis.id, CacheKeys.TRY_VS_SUCCESS)
+        if cached:
+            return TryVsSuccessChart.model_validate(cached)
+
+    # Compute on-demand (cache miss or custom parameters)
+    chart_service = get_chart_data_service()
+    outcome_repo = get_outcome_repository()
 
     outcomes, _ = outcome_repo.get_outcomes(analysis.id)
     if not outcomes:
@@ -603,10 +621,9 @@ async def get_distribution_chart(
     Get outcome distribution chart data for an analysis.
 
     Shows distribution of outcomes across synths.
+    Uses cache for default parameters.
     """
     service = get_analysis_service()
-    chart_service = get_chart_data_service()
-    outcome_repo = get_outcome_repository()
 
     analysis = service.get_analysis(experiment_id)
     if analysis is None:
@@ -620,6 +637,18 @@ async def get_distribution_chart(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Analysis must be completed (status: {analysis.status})",
         )
+
+    # Check cache for default parameters
+    is_default = sort_by == "success_rate" and order == "desc" and limit == 50
+    if is_default:
+        cache_service = get_cache_service()
+        cached = cache_service.get_cached(analysis.id, CacheKeys.DISTRIBUTION)
+        if cached:
+            return OutcomeDistributionChart.model_validate(cached)
+
+    # Compute on-demand
+    chart_service = get_chart_data_service()
+    outcome_repo = get_outcome_repository()
 
     outcomes, _ = outcome_repo.get_outcomes(analysis.id)
     if not outcomes:
@@ -648,10 +677,9 @@ async def get_sankey_chart(
     Get Sankey diagram data for an analysis.
 
     Shows the flow of users through try/success/fail states.
+    Uses cache (no parameters).
     """
     service = get_analysis_service()
-    chart_service = get_chart_data_service()
-    outcome_repo = get_outcome_repository()
 
     analysis = service.get_analysis(experiment_id)
     if analysis is None:
@@ -665,6 +693,16 @@ async def get_sankey_chart(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Analysis must be completed (status: {analysis.status})",
         )
+
+    # Check cache (sankey has no parameters, always use cache)
+    cache_service = get_cache_service()
+    cached = cache_service.get_cached(analysis.id, CacheKeys.SANKEY)
+    if cached:
+        return SankeyChart.model_validate(cached)
+
+    # Compute on-demand
+    chart_service = get_chart_data_service()
+    outcome_repo = get_outcome_repository()
 
     outcomes, _ = outcome_repo.get_outcomes(analysis.id)
     if not outcomes:
@@ -685,7 +723,7 @@ async def get_sankey_chart(
 )
 async def get_failure_heatmap_chart(
     experiment_id: str,
-    x_axis: str = Query(default="capability_mean", description="X-axis attribute"),
+    x_axis: str = Query(default="digital_literacy", description="X-axis attribute"),
     y_axis: str = Query(default="trust_mean", description="Y-axis attribute"),
     bins: int = Query(default=5, ge=2, le=20, description="Number of bins per axis"),
     metric: str = Query(
@@ -697,10 +735,9 @@ async def get_failure_heatmap_chart(
     Get failure heatmap data for an analysis.
 
     Creates a 2D binned heatmap showing metric values across two attributes.
+    Uses cache for default parameters.
     """
     service = get_analysis_service()
-    chart_service = get_chart_data_service()
-    outcome_repo = get_outcome_repository()
 
     analysis = service.get_analysis(experiment_id)
     if analysis is None:
@@ -721,6 +758,23 @@ async def get_failure_heatmap_chart(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid metric: {metric}. Must be one of {valid_metrics}",
         )
+
+    # Check cache for default parameters
+    is_default = (
+        x_axis == "digital_literacy"
+        and y_axis == "trust_mean"
+        and bins == 5
+        and metric == "failed_rate"
+    )
+    if is_default:
+        cache_service = get_cache_service()
+        cached = cache_service.get_cached(analysis.id, CacheKeys.HEATMAP)
+        if cached:
+            return FailureHeatmapChart.model_validate(cached)
+
+    # Compute on-demand
+    chart_service = get_chart_data_service()
+    outcome_repo = get_outcome_repository()
 
     outcomes, _ = outcome_repo.get_outcomes(analysis.id)
     if not outcomes:
@@ -745,7 +799,7 @@ async def get_failure_heatmap_chart(
 )
 async def get_scatter_correlation_chart(
     experiment_id: str,
-    x_axis: str = Query(default="trust_mean", description="X-axis attribute"),
+    x_axis: str = Query(default="capability_mean", description="X-axis attribute"),
     y_axis: str = Query(default="success_rate", description="Y-axis attribute"),
     show_trendline: bool = Query(default=True, description="Include trend line"),
 ) -> ScatterCorrelationChart:
@@ -753,10 +807,9 @@ async def get_scatter_correlation_chart(
     Get scatter correlation chart data for an analysis.
 
     Shows correlation between two attributes with optional trend line.
+    Uses cache for default parameters.
     """
     service = get_analysis_service()
-    chart_service = get_chart_data_service()
-    outcome_repo = get_outcome_repository()
 
     analysis = service.get_analysis(experiment_id)
     if analysis is None:
@@ -770,6 +823,18 @@ async def get_scatter_correlation_chart(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Analysis must be completed (status: {analysis.status})",
         )
+
+    # Check cache for default parameters
+    is_default = x_axis == "capability_mean" and y_axis == "success_rate"
+    if is_default:
+        cache_service = get_cache_service()
+        cached = cache_service.get_cached(analysis.id, CacheKeys.SCATTER)
+        if cached:
+            return ScatterCorrelationChart.model_validate(cached)
+
+    # Compute on-demand
+    chart_service = get_chart_data_service()
+    outcome_repo = get_outcome_repository()
 
     outcomes, _ = outcome_repo.get_outcomes(analysis.id)
     if not outcomes:
@@ -799,10 +864,9 @@ async def get_attribute_correlations_chart(
 
     Shows how each synth attribute correlates with attempt_rate and success_rate.
     Useful for understanding which attributes most influence outcomes.
+    Uses cache (no parameters).
     """
     service = get_analysis_service()
-    chart_service = get_chart_data_service()
-    outcome_repo = get_outcome_repository()
 
     analysis = service.get_analysis(experiment_id)
     if analysis is None:
@@ -816,6 +880,16 @@ async def get_attribute_correlations_chart(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Analysis must be completed (status: {analysis.status})",
         )
+
+    # Check cache (correlations has no parameters, always use cache)
+    cache_service = get_cache_service()
+    cached = cache_service.get_cached(analysis.id, CacheKeys.CORRELATIONS)
+    if cached:
+        return AttributeCorrelationChart.model_validate(cached)
+
+    # Compute on-demand
+    chart_service = get_chart_data_service()
+    outcome_repo = get_outcome_repository()
 
     outcomes, _ = outcome_repo.get_outcomes(analysis.id)
     if not outcomes:
