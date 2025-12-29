@@ -49,16 +49,119 @@ export function useExperiment(id: string) {
   });
 }
 
+// Type for experiment list cache data
+type ExperimentListCache = {
+  data: Array<{
+    id: string;
+    name: string;
+    hypothesis: string;
+    description?: string | null;
+    has_scorecard: boolean;
+    has_analysis: boolean;
+    has_interview_guide: boolean;
+    interview_count: number;
+    created_at: string;
+    updated_at?: string | null;
+    _isOptimistic?: boolean;
+  }>;
+  pagination: { total: number; limit: number; offset: number };
+};
+
 /**
- * Hook to create a new experiment.
+ * Hook to create a new experiment with optimistic update.
+ *
+ * Shows the experiment card immediately while the API call is in progress.
+ * Rolls back if the creation fails.
  */
 export function useCreateExperiment() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (data: ExperimentCreate) => createExperiment(data),
-    onSuccess: () => {
-      // Invalidate experiments list to show the new experiment
+
+    // Optimistic update: add placeholder to cache immediately
+    onMutate: async (newExperiment) => {
+      // Cancel any outgoing refetches to avoid overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: queryKeys.experimentsList });
+
+      // Get all experiment list queries (they include params in the key)
+      const queries = queryClient.getQueriesData<ExperimentListCache>({
+        queryKey: queryKeys.experimentsList,
+      });
+
+      // Snapshot all queries for rollback
+      const previousQueries = queries.map(([key, data]) => ({ key, data }));
+
+      // Create optimistic experiment with temporary ID
+      const optimisticExperiment = {
+        id: `temp_${Date.now()}`,
+        name: newExperiment.name,
+        hypothesis: newExperiment.hypothesis,
+        description: newExperiment.description ?? null,
+        has_scorecard: !!newExperiment.scorecard_data,
+        has_analysis: false,
+        has_interview_guide: false,
+        interview_count: 0,
+        created_at: new Date().toISOString(),
+        updated_at: null,
+        _isOptimistic: true,
+      };
+
+      // Update all experiment list caches
+      queries.forEach(([key, data]) => {
+        if (data) {
+          queryClient.setQueryData(key, {
+            ...data,
+            data: [optimisticExperiment, ...data.data],
+            pagination: {
+              ...data.pagination,
+              total: data.pagination.total + 1,
+            },
+          });
+        }
+      });
+
+      return { previousQueries };
+    },
+
+    // On success: replace optimistic item with real data
+    onSuccess: (createdExperiment) => {
+      const queries = queryClient.getQueriesData<ExperimentListCache>({
+        queryKey: queryKeys.experimentsList,
+      });
+
+      queries.forEach(([key, data]) => {
+        if (data) {
+          const newData = data.data.map((exp) =>
+            exp._isOptimistic
+              ? {
+                  id: createdExperiment.id,
+                  name: createdExperiment.name,
+                  hypothesis: createdExperiment.hypothesis,
+                  description: createdExperiment.description ?? null,
+                  has_scorecard: createdExperiment.has_scorecard,
+                  has_analysis: !!createdExperiment.analysis,
+                  has_interview_guide: createdExperiment.has_interview_guide,
+                  interview_count: createdExperiment.interview_count,
+                  created_at: createdExperiment.created_at,
+                  updated_at: createdExperiment.updated_at ?? null,
+                }
+              : exp
+          );
+          queryClient.setQueryData(key, { ...data, data: newData });
+        }
+      });
+    },
+
+    // On error: rollback to previous state
+    onError: (_err, _newExperiment, context) => {
+      context?.previousQueries?.forEach(({ key, data }) => {
+        queryClient.setQueryData(key, data);
+      });
+    },
+
+    // Always refetch after error or success to ensure consistency
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.experimentsList });
     },
   });
