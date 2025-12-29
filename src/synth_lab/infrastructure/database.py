@@ -242,21 +242,6 @@ CREATE TABLE IF NOT EXISTS region_analyses (
 
 CREATE INDEX IF NOT EXISTS idx_regions_simulation ON region_analyses(simulation_id);
 
--- Assumption Log (audit trail)
-CREATE TABLE IF NOT EXISTS assumption_log (
-    id TEXT PRIMARY KEY,
-    timestamp TEXT NOT NULL,
-    action TEXT NOT NULL,
-    scorecard_id TEXT,
-    simulation_id TEXT,
-    data TEXT CHECK(json_valid(data) OR data IS NULL),
-    user TEXT
-);
-
-CREATE INDEX IF NOT EXISTS idx_log_timestamp ON assumption_log(timestamp DESC);
-CREATE INDEX IF NOT EXISTS idx_log_action ON assumption_log(action);
-CREATE INDEX IF NOT EXISTS idx_log_scorecard ON assumption_log(scorecard_id);
-
 -- Sensitivity Results table (OAT sensitivity analysis)
 CREATE TABLE IF NOT EXISTS sensitivity_results (
     id TEXT PRIMARY KEY,
