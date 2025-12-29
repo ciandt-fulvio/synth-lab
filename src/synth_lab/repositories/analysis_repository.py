@@ -48,14 +48,15 @@ class AnalysisRepository(BaseRepository):
         self.db.execute(
             """
             INSERT INTO analysis_runs (
-                id, experiment_id, config, status, started_at, completed_at,
+                id, experiment_id, scenario_id, config, status, started_at, completed_at,
                 total_synths, aggregated_outcomes, execution_time_seconds
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 analysis.id,
                 analysis.experiment_id,
+                analysis.scenario_id,
                 config_json,
                 analysis.status,
                 analysis.started_at.isoformat(),
@@ -212,9 +213,13 @@ class AnalysisRepository(BaseRepository):
             outcomes_dict = json.loads(row["aggregated_outcomes"])
             aggregated_outcomes = AggregatedOutcomes(**outcomes_dict)
 
+        # Handle scenario_id (may not exist in old records)
+        scenario_id = row["scenario_id"] if "scenario_id" in row.keys() else "baseline"
+
         return AnalysisRun(
             id=row["id"],
             experiment_id=row["experiment_id"],
+            scenario_id=scenario_id,
             config=config,
             status=row["status"],
             started_at=started_at,
