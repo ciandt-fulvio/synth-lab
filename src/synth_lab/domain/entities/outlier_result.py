@@ -17,7 +17,7 @@ Expected Output:
     OutlierResult: Synths identified as outliers with anomaly scores
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 
 class ExtremeSynth(BaseModel):
@@ -74,6 +74,7 @@ class OutlierSynth(BaseModel):
     )
     success_rate: float = Field(..., description="Success rate (0-1)")
     failed_rate: float = Field(..., description="Failed rate (0-1)")
+    did_not_try_rate: float = Field(..., description="Did not try rate (0-1)")
     explanation: str = Field(
         ..., description="Explanation of why this synth is an outlier"
     )
@@ -104,3 +105,11 @@ class OutlierResult(BaseModel):
     features_used: list[str] = Field(
         ..., description="Features used for outlier detection"
     )
+
+    @computed_field
+    @property
+    def outlier_percentage(self) -> float:
+        """Calculate outlier percentage for frontend display."""
+        if self.total_synths == 0:
+            return 0.0
+        return (self.n_outliers / self.total_synths) * 100

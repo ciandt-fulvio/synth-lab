@@ -565,6 +565,57 @@ class ExplainabilityService:
             total_synths=len(outcomes),
         )
 
+    # =============================================================================
+    # Router-compatible wrapper methods
+    # =============================================================================
+
+    def get_shap_explanation(
+        self,
+        simulation_id: str,
+        outcomes: list[SynthOutcome],
+        synth_id: str,
+        features: list[str] | None = None,
+    ) -> ShapExplanation:
+        """Wrapper for explain_synth for API router compatibility."""
+        return self.explain_synth(
+            simulation_id=simulation_id,
+            outcomes=outcomes,
+            synth_id=synth_id,
+            features=features,
+        )
+
+    def get_pdp(
+        self,
+        simulation_id: str,
+        outcomes: list[SynthOutcome],
+        feature: str,
+        features: list[str] | None = None,
+        grid_resolution: int = 20,
+    ) -> PDPResult:
+        """Wrapper for calculate_pdp for API router compatibility."""
+        return self.calculate_pdp(
+            simulation_id=simulation_id,
+            outcomes=outcomes,
+            feature=feature,
+            features=features,
+            grid_resolution=grid_resolution,
+        )
+
+    def get_pdp_comparison(
+        self,
+        simulation_id: str,
+        outcomes: list[SynthOutcome],
+        features: list[str],
+        grid_resolution: int = 20,
+    ) -> PDPComparison:
+        """Wrapper for compare_pdps for API router compatibility."""
+        return self.compare_pdps(
+            simulation_id=simulation_id,
+            outcomes=outcomes,
+            features=features,
+            grid_resolution=grid_resolution,
+        )
+
 
 # =============================================================================
 # Validation

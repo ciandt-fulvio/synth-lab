@@ -2,7 +2,6 @@
 // Line chart showing Partial Dependence Plot for a single feature
 
 import {
-  LineChart,
   Line,
   XAxis,
   YAxis,
@@ -18,23 +17,11 @@ interface PDPChartProps {
   data: PDPResult;
 }
 
-function formatFeatureName(feature: string): string {
-  const labelMap: Record<string, string> = {
-    capability_mean: 'Capacidade',
-    trust_mean: 'Confiança',
-    complexity: 'Complexidade',
-    initial_effort: 'Esforço Inicial',
-    perceived_risk: 'Risco',
-    time_to_value: 'Tempo p/ Valor',
-  };
-  return labelMap[feature] || feature.replace(/_/g, ' ');
-}
-
-const EFFECT_TYPE_LABELS = {
-  linear: { label: 'Linear', color: 'text-blue-600', bg: 'bg-blue-100' },
-  monotonic: { label: 'Monotônico', color: 'text-green-600', bg: 'bg-green-100' },
-  nonlinear: { label: 'Não Linear', color: 'text-amber-600', bg: 'bg-amber-100' },
-  threshold: { label: 'Com Threshold', color: 'text-purple-600', bg: 'bg-purple-100' },
+const EFFECT_TYPE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+  monotonic_increasing: { label: 'Crescente', color: 'text-green-600', bg: 'bg-green-100' },
+  monotonic_decreasing: { label: 'Decrescente', color: 'text-red-600', bg: 'bg-red-100' },
+  non_linear: { label: 'Não Linear', color: 'text-amber-600', bg: 'bg-amber-100' },
+  flat: { label: 'Sem Efeito', color: 'text-slate-600', bg: 'bg-slate-100' },
 };
 
 interface CustomTooltipProps {
@@ -42,44 +29,43 @@ interface CustomTooltipProps {
   payload?: Array<{
     payload: {
       feature_value: number;
-      avg_prediction: number;
-      std_prediction?: number;
+      predicted_success: number;
+      confidence_lower?: number;
+      confidence_upper?: number;
     };
   }>;
-  feature: string;
+  featureDisplayName: string;
 }
 
-function CustomTooltip({ active, payload, feature }: CustomTooltipProps) {
+function CustomTooltip({ active, payload, featureDisplayName }: CustomTooltipProps) {
   if (!active || !payload || !payload[0]) return null;
 
   const d = payload[0].payload;
   return (
     <div className="bg-white rounded-lg shadow-lg border border-slate-200 p-3 text-sm">
-      <p className="font-medium text-slate-800 mb-1">{formatFeatureName(feature)}</p>
+      <p className="font-medium text-slate-800 mb-1">{featureDisplayName}</p>
       <div className="space-y-1 text-slate-600">
         <p>Valor: <span className="font-medium">{d.feature_value.toFixed(2)}</span></p>
-        <p>Predição: <span className="font-medium">{(d.avg_prediction * 100).toFixed(1)}%</span></p>
-        {d.std_prediction !== undefined && (
-          <p>Desvio: <span className="font-medium">±{(d.std_prediction * 100).toFixed(1)}%</span></p>
-        )}
+        <p>Predição: <span className="font-medium text-indigo-600">{(d.predicted_success * 100).toFixed(1)}%</span></p>
       </div>
     </div>
   );
 }
 
 export function PDPChart({ data }: PDPChartProps) {
-  const { feature, points, effect_type, effect_strength } = data;
+  const { feature_name, feature_display_name, pdp_values, effect_type, effect_strength, baseline_value } = data;
 
-  const effectStyle = EFFECT_TYPE_LABELS[effect_type] || EFFECT_TYPE_LABELS.linear;
+  const effectStyle = EFFECT_TYPE_LABELS[effect_type] || EFFECT_TYPE_LABELS.flat;
 
   // Prepare chart data with confidence band if available
-  const chartData = points.map((p) => ({
-    ...p,
-    upper: p.std_prediction ? p.avg_prediction + p.std_prediction : p.avg_prediction,
-    lower: p.std_prediction ? p.avg_prediction - p.std_prediction : p.avg_prediction,
+  const chartData = pdp_values.map((p) => ({
+    feature_value: p.feature_value,
+    predicted_success: p.predicted_success,
+    confidence_lower: p.confidence_lower,
+    confidence_upper: p.confidence_upper,
   }));
 
-  const hasStd = points.some((p) => p.std_prediction !== undefined);
+  const hasConfidence = pdp_values.some((p) => p.confidence_lower !== undefined);
 
   return (
     <div className="space-y-4">
@@ -90,9 +76,12 @@ export function PDPChart({ data }: PDPChartProps) {
         </span>
         <span className="text-sm text-slate-600">
           Força do efeito:{' '}
-          <span className={`font-bold ${effect_strength > 0.5 ? 'text-green-600' : 'text-slate-500'}`}>
-            {(effect_strength * 100).toFixed(0)}%
+          <span className={`font-bold ${effect_strength > 0.1 ? 'text-indigo-600' : 'text-slate-500'}`}>
+            {(effect_strength * 100).toFixed(1)}%
           </span>
+        </span>
+        <span className="text-xs text-slate-400">
+          Baseline: {baseline_value.toFixed(2)}
         </span>
       </div>
 
@@ -106,7 +95,7 @@ export function PDPChart({ data }: PDPChartProps) {
             fontSize={12}
             tickFormatter={(v) => v.toFixed(2)}
             label={{
-              value: formatFeatureName(feature),
+              value: feature_display_name,
               position: 'insideBottom',
               offset: -10,
               style: { fontSize: 12, fill: '#64748b' },
@@ -124,22 +113,22 @@ export function PDPChart({ data }: PDPChartProps) {
             }}
             domain={[0, 1]}
           />
-          <Tooltip content={<CustomTooltip feature={feature} />} />
+          <Tooltip content={<CustomTooltip featureDisplayName={feature_display_name} />} />
 
           {/* Confidence band */}
-          {hasStd && (
+          {hasConfidence && (
             <Area
               type="monotone"
-              dataKey="upper"
+              dataKey="confidence_upper"
               stroke="none"
               fill="#6366f1"
               fillOpacity={0.1}
             />
           )}
-          {hasStd && (
+          {hasConfidence && (
             <Area
               type="monotone"
-              dataKey="lower"
+              dataKey="confidence_lower"
               stroke="none"
               fill="#ffffff"
               fillOpacity={1}
@@ -149,7 +138,7 @@ export function PDPChart({ data }: PDPChartProps) {
           {/* Main line */}
           <Line
             type="monotone"
-            dataKey="avg_prediction"
+            dataKey="predicted_success"
             stroke="#6366f1"
             strokeWidth={3}
             dot={{ r: 4, fill: '#6366f1' }}
@@ -160,10 +149,10 @@ export function PDPChart({ data }: PDPChartProps) {
 
       {/* Interpretation */}
       <div className="text-center text-xs text-slate-500">
-        {effect_type === 'linear' && 'Relação aproximadamente linear entre a feature e a probabilidade de sucesso'}
-        {effect_type === 'monotonic' && 'Quanto maior o valor, maior (ou menor) a probabilidade de sucesso'}
-        {effect_type === 'nonlinear' && 'Relação complexa - o efeito varia dependendo do valor da feature'}
-        {effect_type === 'threshold' && 'Existe um ponto de corte onde o comportamento muda significativamente'}
+        {effect_type === 'monotonic_increasing' && 'Quanto maior o valor, maior a probabilidade de sucesso'}
+        {effect_type === 'monotonic_decreasing' && 'Quanto maior o valor, menor a probabilidade de sucesso'}
+        {effect_type === 'non_linear' && 'Relação complexa - o efeito varia dependendo do valor da feature'}
+        {effect_type === 'flat' && 'Esta feature tem pouco impacto na probabilidade de sucesso'}
       </div>
     </div>
   );

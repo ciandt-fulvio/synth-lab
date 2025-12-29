@@ -15,6 +15,7 @@ import numpy as np
 from loguru import logger
 from scipy.cluster import hierarchy
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 
@@ -25,6 +26,8 @@ from synth_lab.domain.entities import (
     ElbowDataPoint,
     HierarchicalResult,
     KMeansResult,
+    PCAScatterChart,
+    PCAScatterPoint,
     RadarAxis,
     RadarChart,
     SuggestedCut,
@@ -65,7 +68,7 @@ class ClusteringService:
         self,
         simulation_id: str,
         outcomes: list[SynthOutcome],
-        n_clusters: int = 4,
+        n_clusters: int | None = None,
         features: list[str] | None = None,
     ) -> KMeansResult:
         """
@@ -74,7 +77,7 @@ class ClusteringService:
         Args:
             simulation_id: ID of the simulation.
             outcomes: List of SynthOutcome entities.
-            n_clusters: Number of clusters to create.
+            n_clusters: Number of clusters to create. If None, uses automatic detection.
             features: List of feature names to use. Defaults to DEFAULT_FEATURES.
 
         Returns:
@@ -88,23 +91,34 @@ class ClusteringService:
                 f"Clustering requires at least 10 synths, got {len(outcomes)}"
             )
 
-        if n_clusters >= len(outcomes):
-            raise ValueError(
-                f"n_clusters ({n_clusters}) must be less than number of synths ({len(outcomes)})"
-            )
-
         # Use default features if none provided or empty
         if not features:
             features = self.DEFAULT_FEATURES
-
-        logger.info(
-            f"K-Means clustering {len(outcomes)} synths into {n_clusters} clusters"
-        )
 
         # Extract and normalize features
         X, synth_ids = self._extract_features(outcomes, features)
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
+
+        # Calculate elbow data and detect recommended K
+        elbow_data = self._calculate_elbow(X_scaled, max_k=min(10, len(outcomes) - 1))
+        recommended_k = self._detect_knee_point(elbow_data)
+
+        # Use automatic K detection if n_clusters not provided
+        if n_clusters is None:
+            n_clusters = recommended_k
+            logger.info(
+                f"Using automatic K detection: K={n_clusters} (from {len(outcomes)} synths)"
+            )
+        else:
+            logger.info(
+                f"Using manual K={n_clusters} (recommended was K={recommended_k} from {len(outcomes)} synths)"
+            )
+
+        if n_clusters >= len(outcomes):
+            raise ValueError(
+                f"n_clusters ({n_clusters}) must be less than number of synths ({len(outcomes)})"
+            )
 
         # Perform K-Means
         kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
@@ -113,9 +127,6 @@ class ClusteringService:
         # Calculate metrics
         silhouette = silhouette_score(X_scaled, labels)
         inertia = kmeans.inertia_
-
-        # Calculate elbow data (k from 2 to min(10, n_synths-1))
-        elbow_data = self._calculate_elbow(X_scaled, max_k=min(10, len(outcomes) - 1))
 
         # Build cluster profiles
         clusters = self._build_cluster_profiles(
@@ -140,6 +151,7 @@ class ClusteringService:
             clusters=clusters,
             synth_assignments=synth_assignments,
             elbow_data=elbow_data,
+            recommended_k=recommended_k,
         )
 
     def cluster_hierarchical(
@@ -196,6 +208,110 @@ class ClusteringService:
             nodes=nodes,
             linkage_matrix=linkage_matrix.tolist(),
             suggested_cuts=suggested_cuts,
+        )
+
+    # =========================================================================
+    # Convenience Wrapper Methods (for router compatibility)
+    # =========================================================================
+
+    def kmeans(
+        self,
+        outcomes: list[SynthOutcome],
+        k: int = 4,
+        features: list[str] | None = None,
+    ) -> KMeansResult:
+        """
+        Convenience wrapper for cluster_kmeans.
+
+        Args:
+            outcomes: List of SynthOutcome entities.
+            k: Number of clusters.
+            features: Optional feature list.
+
+        Returns:
+            KMeansResult with cluster profiles.
+        """
+        # Extract analysis_id from first outcome if available
+        analysis_id = outcomes[0].analysis_id if outcomes else "unknown"
+        return self.cluster_kmeans(
+            simulation_id=analysis_id,
+            outcomes=outcomes,
+            n_clusters=k,
+            features=features,
+        )
+
+    def hierarchical(
+        self,
+        outcomes: list[SynthOutcome],
+        features: list[str] | None = None,
+    ) -> HierarchicalResult:
+        """
+        Convenience wrapper for cluster_hierarchical.
+
+        Args:
+            outcomes: List of SynthOutcome entities.
+            features: Optional feature list.
+
+        Returns:
+            HierarchicalResult with dendrogram data.
+        """
+        analysis_id = outcomes[0].analysis_id if outcomes else "unknown"
+        return self.cluster_hierarchical(
+            simulation_id=analysis_id,
+            outcomes=outcomes,
+            features=features,
+        )
+
+    def elbow_method(
+        self,
+        outcomes: list[SynthOutcome],
+        max_k: int = 10,
+        features: list[str] | None = None,
+    ) -> list[ElbowDataPoint]:
+        """
+        Calculate elbow method data for K selection.
+
+        Args:
+            outcomes: List of SynthOutcome entities.
+            max_k: Maximum K to test.
+            features: Optional feature list.
+
+        Returns:
+            List of ElbowDataPoint with inertia and silhouette for each K.
+        """
+        if len(outcomes) < 10:
+            raise ValueError(
+                f"Elbow method requires at least 10 synths, got {len(outcomes)}"
+            )
+
+        if not features:
+            features = self.DEFAULT_FEATURES
+
+        # Extract and normalize features
+        X, _ = self._extract_features(outcomes, features)
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+
+        # Calculate elbow data
+        actual_max_k = min(max_k, len(outcomes) - 1)
+        return self._calculate_elbow(X_scaled, max_k=actual_max_k)
+
+    def radar_comparison(
+        self,
+        kmeans_result: KMeansResult,
+    ) -> RadarChart:
+        """
+        Convenience wrapper for get_radar_chart.
+
+        Args:
+            kmeans_result: K-Means clustering result.
+
+        Returns:
+            RadarChart for cluster comparison.
+        """
+        return self.get_radar_chart(
+            simulation_id=kmeans_result.simulation_id,
+            kmeans_result=kmeans_result,
         )
 
     def cut_dendrogram(
@@ -327,6 +443,70 @@ class ClusteringService:
             baseline=baseline_values,
         )
 
+    def get_pca_scatter(
+        self,
+        simulation_id: str,
+        outcomes: list[SynthOutcome],
+        kmeans_result: KMeansResult,
+    ) -> PCAScatterChart:
+        """
+        Generate PCA 2D scatter plot with cluster colors.
+
+        Args:
+            simulation_id: ID of the simulation.
+            outcomes: List of synth outcomes.
+            kmeans_result: K-Means clustering result.
+
+        Returns:
+            PCAScatterChart with 2D projections and cluster colors.
+        """
+        logger.info(f"Generating PCA scatter for {len(outcomes)} synths")
+
+        # Extract features (same as clustering)
+        X, synth_ids = self._extract_features(outcomes, kmeans_result.features_used)
+        X_scaled = StandardScaler().fit_transform(X)
+
+        # PCA to 2D
+        pca = PCA(n_components=2, random_state=42)
+        X_pca = pca.fit_transform(X_scaled)
+
+        # Build points with cluster assignment and colors
+        points = []
+        for i, synth_id in enumerate(synth_ids):
+            cluster_id = kmeans_result.synth_assignments.get(synth_id, -1)
+            cluster_profile = next(
+                (c for c in kmeans_result.clusters if c.cluster_id == cluster_id),
+                None,
+            )
+
+            if cluster_profile:
+                color = self.CLUSTER_COLORS[cluster_id % len(self.CLUSTER_COLORS)]
+                label = cluster_profile.suggested_label
+            else:
+                color = "#94a3b8"  # Cinza para não atribuído
+                label = "Não atribuído"
+
+            points.append(
+                PCAScatterPoint(
+                    synth_id=synth_id,
+                    x=float(X_pca[i, 0]),
+                    y=float(X_pca[i, 1]),
+                    cluster_id=cluster_id,
+                    cluster_label=label,
+                    color=color,
+                )
+            )
+
+        return PCAScatterChart(
+            simulation_id=simulation_id,
+            points=points,
+            explained_variance=[
+                float(pca.explained_variance_ratio_[0]),
+                float(pca.explained_variance_ratio_[1]),
+            ],
+            total_variance=float(pca.explained_variance_ratio_.sum()),
+        )
+
     # =========================================================================
     # Private Helper Methods
     # =========================================================================
@@ -384,6 +564,42 @@ class ClusteringService:
             )
 
         return elbow_data
+
+    def _detect_knee_point(self, elbow_data: list[ElbowDataPoint]) -> int:
+        """
+        Detecta knee point usando KneeLocator.
+
+        Args:
+            elbow_data: Lista de pontos do elbow method.
+
+        Returns:
+            K recomendado.
+        """
+        from kneed import KneeLocator
+
+        if len(elbow_data) < 3:
+            logger.warning("Menos de 3 pontos elbow, usando K=3 default")
+            return 3
+
+        k_values = [point.k for point in elbow_data]
+        inertias = [point.inertia for point in elbow_data]
+
+        try:
+            kl = KneeLocator(k_values, inertias, curve="convex", direction="decreasing")
+            knee_k = kl.knee
+
+            if knee_k is None:
+                # Fallback: melhor silhouette
+                best = max(elbow_data, key=lambda x: x.silhouette)
+                knee_k = best.k
+                logger.warning(f"Knee detection failed, usando best silhouette K={knee_k}")
+            else:
+                logger.info(f"Knee detectado em K={knee_k}")
+
+            return knee_k
+        except Exception as e:
+            logger.warning(f"Erro knee detection: {e}, default K=3")
+            return 3
 
     def _build_cluster_profiles(
         self,

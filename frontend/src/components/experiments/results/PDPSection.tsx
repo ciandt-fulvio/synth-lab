@@ -33,13 +33,16 @@ interface PDPSectionProps {
 const FEATURE_OPTIONS = [
   { value: 'capability_mean', label: 'Capacidade' },
   { value: 'trust_mean', label: 'Confiança' },
-  { value: 'complexity', label: 'Complexidade' },
-  { value: 'initial_effort', label: 'Esforço Inicial' },
-  { value: 'perceived_risk', label: 'Risco Percebido' },
-  { value: 'time_to_value', label: 'Tempo p/ Valor' },
+  { value: 'friction_tolerance_mean', label: 'Tolerância' },
+  { value: 'exploration_prob', label: 'Exploração' },
+  { value: 'digital_literacy', label: 'Lit. Digital' },
+  { value: 'similar_tool_experience', label: 'Exp. Similar' },
+  { value: 'motor_ability', label: 'Hab. Motora' },
+  { value: 'time_availability', label: 'Disponibilidade' },
+  { value: 'domain_expertise', label: 'Expertise' },
 ];
 
-const DEFAULT_COMPARISON_FEATURES = ['capability_mean', 'trust_mean', 'complexity'];
+const DEFAULT_COMPARISON_FEATURES = ['capability_mean', 'trust_mean', 'friction_tolerance_mean'];
 
 export function PDPSection({ experimentId }: PDPSectionProps) {
   const [showExplanation, setShowExplanation] = useState(false);

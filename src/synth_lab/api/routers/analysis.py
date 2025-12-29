@@ -38,6 +38,7 @@ from synth_lab.api.schemas.analysis import ClusterRequest, CutDendrogramRequest
 from synth_lab.domain.entities.cluster_result import (
     KMeansResult,
     HierarchicalResult,
+    PCAScatterChart,
     RadarChart,
 )
 from synth_lab.domain.entities.outlier_result import ExtremeCasesTable, OutlierResult
@@ -962,6 +963,56 @@ async def create_analysis_clustering(
     return result
 
 
+@router.post(
+    "/{experiment_id}/analysis/clusters/auto",
+    response_model=KMeansResult,
+)
+async def create_auto_analysis_clustering(
+    experiment_id: str,
+) -> KMeansResult:
+    """
+    Automatically create K-Means clustering with optimal K detection.
+
+    Executes Elbow method, detects optimal K, and runs K-Means clustering.
+    """
+    service = get_analysis_service()
+    clustering_service = get_clustering_service()
+    outcome_repo = get_outcome_repository()
+
+    analysis = service.get_analysis(experiment_id)
+    if analysis is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No analysis found for experiment {experiment_id}",
+        )
+
+    if analysis.status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Analysis must be completed (status: {analysis.status})",
+        )
+
+    outcomes, _ = outcome_repo.get_outcomes(analysis.id)
+    if not outcomes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No outcomes found for this analysis",
+        )
+
+    # Execute K-Means with automatic K detection (via elbow + knee detection)
+    result = clustering_service.cluster_kmeans(
+        simulation_id=analysis.id,
+        outcomes=outcomes,
+        n_clusters=None,  # Will use recommended_k from elbow
+    )
+
+    # Cache result
+    cache_key = f"{analysis.id}:kmeans"
+    _analysis_clustering_cache[cache_key] = result
+
+    return result
+
+
 @router.get(
     "/{experiment_id}/analysis/clusters",
     response_model=KMeansResult | HierarchicalResult,
@@ -1140,9 +1191,55 @@ async def cut_analysis_dendrogram(
             detail="Cut only available for hierarchical clustering",
         )
 
-    cut_result = clustering_service.cut_dendrogram(hierarchical_result, request.cut_height)
+    cut_result = clustering_service.cut_dendrogram(hierarchical_result, request.n_clusters)
     _analysis_clustering_cache[cache_key] = cut_result
     return cut_result
+
+
+@router.get(
+    "/{experiment_id}/analysis/clusters/pca-scatter",
+    response_model=PCAScatterChart,
+)
+async def get_analysis_pca_scatter(experiment_id: str) -> PCAScatterChart:
+    """Get PCA 2D scatter plot with cluster colors."""
+    service = get_analysis_service()
+    clustering_service = get_clustering_service()
+    outcome_repo = get_outcome_repository()
+
+    analysis = service.get_analysis(experiment_id)
+    if analysis is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No analysis found for experiment {experiment_id}",
+        )
+
+    cache_key = f"{analysis.id}:kmeans"
+    if cache_key not in _analysis_clustering_cache:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No K-Means clustering found for experiment {experiment_id}. "
+            "Create clustering first via POST /clusters",
+        )
+
+    kmeans_result = _analysis_clustering_cache[cache_key]
+    if not isinstance(kmeans_result, KMeansResult):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="PCA scatter only available for K-Means clustering",
+        )
+
+    outcomes, _ = outcome_repo.get_outcomes(analysis.id)
+    if not outcomes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No outcomes found for this analysis",
+        )
+
+    return clustering_service.get_pca_scatter(
+        simulation_id=analysis.id,
+        outcomes=outcomes,
+        kmeans_result=kmeans_result,
+    )
 
 
 # =============================================================================
@@ -1327,7 +1424,7 @@ async def get_analysis_shap_explanation(
     return explain_service.get_shap_explanation(
         simulation_id=analysis.id,
         outcomes=outcomes,
-        target_synth=target_synth,
+        synth_id=synth_id,
     )
 
 

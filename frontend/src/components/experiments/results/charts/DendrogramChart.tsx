@@ -2,29 +2,22 @@
 // Dendrogram visualization for hierarchical clustering
 
 import { useState } from 'react';
-import type { HierarchicalResult } from '@/types/simulation';
+import type { HierarchicalResult, DendrogramTreeNode } from '@/types/simulation';
 
 interface DendrogramChartProps {
   data: HierarchicalResult;
   onCutHeight?: (height: number) => void;
 }
 
-interface DendrogramNode {
-  id: string;
-  children?: DendrogramNode[];
-  height: number;
-  count: number;
-}
-
 // Recursive component to render dendrogram branches
 interface BranchProps {
-  node: DendrogramNode;
+  node: DendrogramTreeNode;
   x: number;
   y: number;
   width: number;
   heightScale: (h: number) => number;
   cutHeight?: number;
-  onNodeClick?: (node: DendrogramNode) => void;
+  onNodeClick?: (node: DendrogramTreeNode) => void;
 }
 
 function Branch({ node, x, y, width, heightScale, cutHeight, onNodeClick }: BranchProps) {
@@ -133,20 +126,43 @@ function Branch({ node, x, y, width, heightScale, cutHeight, onNodeClick }: Bran
 export function DendrogramChart({ data, onCutHeight }: DendrogramChartProps) {
   const [selectedHeight, setSelectedHeight] = useState<number | null>(null);
 
-  const { dendrogram_tree, cut_height, n_clusters, total_synths } = data;
+  const { dendrogram_tree, cut_height, n_clusters, total_synths, max_height } = data;
+
+  // Check if dendrogram_tree is valid
+  if (!dendrogram_tree || Object.keys(dendrogram_tree).length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 text-center" style={{ height: 350 }}>
+        <p className="text-body text-slate-500">Dados do dendrograma não disponíveis</p>
+        <p className="text-meta">Gere um clustering hierárquico primeiro.</p>
+      </div>
+    );
+  }
 
   // Parse dendrogram tree if it's a string
-  const tree: DendrogramNode = typeof dendrogram_tree === 'string'
+  const tree: DendrogramTreeNode = typeof dendrogram_tree === 'string'
     ? JSON.parse(dendrogram_tree)
     : dendrogram_tree;
 
-  // Find max height for scaling
-  const findMaxHeight = (node: DendrogramNode): number => {
-    if (!node.children || node.children.length === 0) return node.height;
-    return Math.max(node.height, ...node.children.map(findMaxHeight));
-  };
+  // Validate tree has required fields
+  if (!tree.id || tree.height === undefined) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 text-center" style={{ height: 350 }}>
+        <p className="text-body text-slate-500">Estrutura do dendrograma inválida</p>
+        <p className="text-meta">Tente gerar o clustering novamente.</p>
+      </div>
+    );
+  }
 
-  const maxHeight = findMaxHeight(tree);
+  // Use max_height from backend, or calculate if not available
+  const maxHeight = max_height || (() => {
+    const findMaxHeight = (node: DendrogramTreeNode): number => {
+      if (!node || node.height === undefined) return 0;
+      if (!node.children || node.children.length === 0) return node.height;
+      return Math.max(node.height, ...node.children.map(findMaxHeight));
+    };
+    return findMaxHeight(tree);
+  })() || 1; // Fallback to 1 to avoid division by zero
+
   const svgHeight = 350;
   const svgWidth = 600;
   const margin = { top: 30, bottom: 40, left: 60, right: 20 };
@@ -157,7 +173,7 @@ export function DendrogramChart({ data, onCutHeight }: DendrogramChartProps) {
   const heightScale = (h: number) =>
     margin.top + plotHeight - (h / maxHeight) * plotHeight;
 
-  const handleNodeClick = (node: DendrogramNode) => {
+  const handleNodeClick = (node: DendrogramTreeNode) => {
     setSelectedHeight(node.height);
     onCutHeight?.(node.height);
   };

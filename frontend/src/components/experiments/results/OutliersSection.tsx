@@ -26,12 +26,12 @@ interface OutlierCardProps {
 
 function OutlierCard({ outlier }: OutlierCardProps) {
   const typeStyles = {
-    attribute_outlier: { label: 'Atributo', color: 'bg-indigo-100 text-indigo-700' },
-    outcome_outlier: { label: 'Resultado', color: 'bg-amber-100 text-amber-700' },
-    both: { label: 'Ambos', color: 'bg-red-100 text-red-700' },
+    unexpected_failure: { label: 'Falha Inesperada', color: 'bg-red-100 text-red-700' },
+    unexpected_success: { label: 'Sucesso Inesperado', color: 'bg-green-100 text-green-700' },
+    atypical_profile: { label: 'Perfil Atípico', color: 'bg-indigo-100 text-indigo-700' },
   };
 
-  const style = typeStyles[outlier.outlier_type] || typeStyles.attribute_outlier;
+  const style = typeStyles[outlier.outlier_type] || typeStyles.atypical_profile;
 
   return (
     <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">

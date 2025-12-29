@@ -19,7 +19,7 @@ Expected Output:
 from datetime import UTC, datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 
 class ClusterProfile(BaseModel):
@@ -68,6 +68,9 @@ class KMeansResult(BaseModel):
     elbow_data: list[ElbowDataPoint] = Field(
         default_factory=list, description="Elbow method data points"
     )
+    recommended_k: int | None = Field(
+        None, description="K recomendado pelo método elbow"
+    )
     created_at: str = Field(
         default_factory=lambda: datetime.now(UTC).isoformat(),
         description="Creation timestamp",
@@ -93,6 +96,17 @@ class SuggestedCut(BaseModel):
     silhouette_estimate: float = Field(..., description="Estimated silhouette score")
 
 
+class DendrogramTreeNode(BaseModel):
+    """Hierarchical tree node for frontend rendering."""
+
+    id: str = Field(..., description="Node identifier")
+    height: float = Field(..., description="Node height (distance)")
+    count: int = Field(..., description="Number of leaves")
+    children: list["DendrogramTreeNode"] | None = Field(
+        None, description="Child nodes (None for leaves)"
+    )
+
+
 class HierarchicalResult(BaseModel):
     """Result of hierarchical clustering."""
 
@@ -113,10 +127,71 @@ class HierarchicalResult(BaseModel):
         None, description="Synth to cluster mapping if cut"
     )
     n_clusters: int | None = Field(None, description="Number of clusters if cut")
+    cut_height: float | None = Field(None, description="Cut height if cut applied")
     created_at: str = Field(
         default_factory=lambda: datetime.now(UTC).isoformat(),
         description="Creation timestamp",
     )
+
+    @computed_field
+    @property
+    def total_synths(self) -> int:
+        """Get total number of synths (leaf nodes)."""
+        return sum(1 for node in self.nodes if node.synth_id is not None)
+
+    @computed_field
+    @property
+    def max_height(self) -> float:
+        """Get maximum height in the dendrogram."""
+        return max(node.distance for node in self.nodes) if self.nodes else 0.0
+
+    @computed_field
+    @property
+    def dendrogram_tree(self) -> dict:
+        """Build hierarchical tree structure for frontend rendering."""
+        if not self.nodes:
+            return {}
+
+        # Build lookup dict by node ID
+        node_dict = {node.id: node for node in self.nodes}
+
+        # Find the root node (highest ID, usually the last merged node)
+        max_id = max(node.id for node in self.nodes)
+        root_node = node_dict.get(max_id)
+
+        if not root_node:
+            return {}
+
+        def build_tree(node_id: int) -> dict:
+            """Recursively build tree from node ID."""
+            node = node_dict.get(node_id)
+            if not node:
+                return {"id": str(node_id), "height": 0, "count": 1, "children": None}
+
+            # Leaf node
+            if node.synth_id is not None:
+                return {
+                    "id": str(node.id),
+                    "height": node.distance,
+                    "count": node.count,
+                    "children": None,
+                }
+
+            # Internal node - build children
+            children = []
+            if node.left_child is not None:
+                children.append(build_tree(node.left_child))
+            if node.right_child is not None:
+                children.append(build_tree(node.right_child))
+
+            return {
+                "id": str(node.id),
+                "height": node.distance,
+                "count": node.count,
+                "children": children if children else None,
+            }
+
+        return build_tree(max_id)
 
 
 class RadarAxis(BaseModel):
@@ -169,6 +244,28 @@ class DendrogramChart(BaseModel):
     cut_lines: list[dict] = Field(..., description="Suggested cut lines")
     width: float = Field(..., description="Chart width")
     height: float = Field(..., description="Chart height")
+
+
+class PCAScatterPoint(BaseModel):
+    """Ponto no scatter PCA 2D."""
+
+    synth_id: str = Field(..., description="Synth identifier")
+    x: float = Field(..., description="Componente principal 1")
+    y: float = Field(..., description="Componente principal 2")
+    cluster_id: int = Field(..., description="Cluster identifier")
+    cluster_label: str = Field(..., description="Cluster label")
+    color: str = Field(..., description="Color for visualization (hex)")
+
+
+class PCAScatterChart(BaseModel):
+    """Scatter PCA 2D com cores por cluster."""
+
+    simulation_id: str = Field(..., description="Simulation identifier")
+    points: list[PCAScatterPoint] = Field(..., description="Scatter points")
+    explained_variance: list[float] = Field(
+        ..., description="Variance explained by each component [PC1, PC2]"
+    )
+    total_variance: float = Field(..., description="Total variance explained")
 
 
 if __name__ == "__main__":
