@@ -35,17 +35,19 @@ from synth_lab.domain.entities import (
     SynthOutcome,
     TryVsSuccessChart,
 )
-from synth_lab.domain.entities.chart_insight import (
-    ChartInsight,
-    ChartType,
-    SimulationInsights,
-)
+# NOTE: ChartInsight entities temporarily disabled during feature 023 migration
+# from synth_lab.domain.entities.chart_insight import (
+#     ChartInsight,
+#     ChartType,
+#     SimulationInsights,
+# )
 from synth_lab.infrastructure.database import get_database
 from synth_lab.repositories.scorecard_repository import ScorecardRepository
 from synth_lab.services.simulation.chart_data_service import ChartDataService
 from synth_lab.services.simulation.clustering_service import ClusteringService
 from synth_lab.services.simulation.explainability_service import ExplainabilityService
-from synth_lab.services.simulation.insight_service import InsightGenerationError, InsightService
+# NOTE: InsightService temporarily disabled during feature 023 migration
+# from synth_lab.services.simulation.insight_service import InsightGenerationError, InsightService
 from synth_lab.services.simulation.outlier_service import OutlierService
 from synth_lab.services.simulation.scorecard_llm import ScorecardLLM
 from synth_lab.services.simulation.scorecard_service import (
@@ -1954,191 +1956,193 @@ async def get_pdp_comparison(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# --- LLM Insight Endpoints (User Story 6) ---
+# --- LLM Insight Endpoints (Feature 023 - under construction) ---
 
+# NOTE: These endpoints are temporarily commented out during feature 023 migration.
+# They will be replaced with new insight endpoints in Phase 4 of the migration.
 
-def get_insight_service() -> InsightService:
-    """Get insight service instance."""
-    return InsightService()
-
-
-# Request/Response models for insights
-class GenerateChartInsightRequest(BaseModel):
-    """Request model for generating chart insight."""
-
-    chart_data: dict = Field(description="Chart data to analyze")
-    force_regenerate: bool = Field(
-        default=False, description="Force regenerate even if cached"
-    )
-
-
-class ExecutiveSummaryResponse(BaseModel):
-    """Response model for executive summary."""
-
-    simulation_id: str
-    summary: str | None
-    total_insights: int
-
-
-@router.get(
-    "/simulations/{simulation_id}/insights",
-    response_model=SimulationInsights,
-)
-async def get_all_insights(
-    simulation_id: str,
-) -> SimulationInsights:
-    """
-    Get all cached insights for a simulation.
-
-    Returns all previously generated chart insights and metadata.
-    Use the POST endpoint to generate new insights.
-
-    Args:
-        simulation_id: ID of the simulation.
-
-    Returns:
-        SimulationInsights with all cached insights.
-    """
-    sim_service = get_simulation_service()
-
-    # Verify simulation exists
-    run = sim_service.get_simulation(simulation_id)
-    if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
-
-    insight_service = get_insight_service()
-    return insight_service.get_all_insights(simulation_id)
-
-
-# IMPORTANT: executive-summary must be defined BEFORE {chart_type} to avoid route conflict
-@router.post(
-    "/simulations/{simulation_id}/insights/executive-summary",
-    response_model=ExecutiveSummaryResponse,
-)
-async def generate_executive_summary(
-    simulation_id: str,
-) -> ExecutiveSummaryResponse:
-    """
-    Generate executive summary across all insights.
-
-    Synthesizes all chart insights into a concise executive summary
-    highlighting key findings and prioritized recommendations.
-
-    Requires at least one insight to be generated first.
-
-    Args:
-        simulation_id: ID of the simulation.
-
-    Returns:
-        ExecutiveSummaryResponse with summary text.
-    """
-    sim_service = get_simulation_service()
-
-    # Verify simulation exists
-    run = sim_service.get_simulation(simulation_id)
-    if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
-
-    insight_service = get_insight_service()
-
-    # Check if there are any insights to summarize
-    all_insights = insight_service.get_all_insights(simulation_id)
-    if len(all_insights.insights) == 0:
-        raise HTTPException(
-            status_code=400,
-            detail="No insights available to summarize. Generate chart insights first.",
-        )
-
-    try:
-        summary = insight_service.generate_executive_summary(simulation_id)
-        return ExecutiveSummaryResponse(
-            simulation_id=simulation_id,
-            summary=summary,
-            total_insights=len(all_insights.insights),
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to generate executive summary: {e}"
-        )
-
-
-@router.post(
-    "/simulations/{simulation_id}/insights/{chart_type}",
-    response_model=ChartInsight,
-)
-async def generate_chart_insight(
-    simulation_id: str,
-    chart_type: ChartType,
-    request: GenerateChartInsightRequest,
-) -> ChartInsight:
-    """
-    Generate LLM insight for a specific chart.
-
-    Analyzes the chart data and generates:
-    - Short caption (<=20 tokens)
-    - Detailed explanation (<=200 tokens)
-    - Evidence from data
-    - Actionable recommendation
-
-    Results are cached for subsequent requests.
-
-    Args:
-        simulation_id: ID of the simulation.
-        chart_type: Type of chart to analyze.
-        request: Chart data and options.
-
-    Returns:
-        ChartInsight with analysis.
-    """
-    sim_service = get_simulation_service()
-
-    # Verify simulation exists and is completed
-    run = sim_service.get_simulation(simulation_id)
-    if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
-    if run.status != "completed":
-        raise HTTPException(
-            status_code=400,
-            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
-        )
-
-    insight_service = get_insight_service()
-
-    try:
-        insight = insight_service.generate_insight(
-            simulation_id=simulation_id,
-            chart_type=chart_type,
-            chart_data=request.chart_data,
-            force=request.force_regenerate,
-        )
-        return insight
-    except InsightGenerationError as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.delete(
-    "/simulations/{simulation_id}/insights",
-    status_code=204,
-)
-async def clear_insights(
-    simulation_id: str,
-) -> None:
-    """
-    Clear all cached insights for a simulation.
-
-    Removes all cached insights, requiring regeneration on next request.
-
-    Args:
-        simulation_id: ID of the simulation.
-    """
-    insight_service = get_insight_service()
-    insight_service.clear_insights(simulation_id=simulation_id)
+# def get_insight_service() -> InsightService:
+#     """Get insight service instance."""
+#     return InsightService()
+#
+#
+# # Request/Response models for insights
+# class GenerateChartInsightRequest(BaseModel):
+#     """Request model for generating chart insight."""
+#
+#     chart_data: dict = Field(description="Chart data to analyze")
+#     force_regenerate: bool = Field(
+#         default=False, description="Force regenerate even if cached"
+#     )
+#
+#
+# class ExecutiveSummaryResponse(BaseModel):
+#     """Response model for executive summary."""
+#
+#     simulation_id: str
+#     summary: str | None
+#     total_insights: int
+#
+#
+# @router.get(
+#     "/simulations/{simulation_id}/insights",
+#     response_model=SimulationInsights,
+# )
+# async def get_all_insights(
+#     simulation_id: str,
+# ) -> SimulationInsights:
+#     """
+#     Get all cached insights for a simulation.
+#
+#     Returns all previously generated chart insights and metadata.
+#     Use the POST endpoint to generate new insights.
+#
+#     Args:
+#         simulation_id: ID of the simulation.
+#
+#     Returns:
+#         SimulationInsights with all cached insights.
+#     """
+#     sim_service = get_simulation_service()
+#
+#     # Verify simulation exists
+#     run = sim_service.get_simulation(simulation_id)
+#     if run is None:
+#         raise HTTPException(
+#             status_code=404, detail=f"Simulation {simulation_id} not found"
+#         )
+#
+#     insight_service = get_insight_service()
+#     return insight_service.get_all_insights(simulation_id)
+#
+#
+# # IMPORTANT: executive-summary must be defined BEFORE {chart_type} to avoid route conflict
+# @router.post(
+#     "/simulations/{simulation_id}/insights/executive-summary",
+#     response_model=ExecutiveSummaryResponse,
+# )
+# async def generate_executive_summary(
+#     simulation_id: str,
+# ) -> ExecutiveSummaryResponse:
+#     """
+#     Generate executive summary across all insights.
+#
+#     Synthesizes all chart insights into a concise executive summary
+#     highlighting key findings and prioritized recommendations.
+#
+#     Requires at least one insight to be generated first.
+#
+#     Args:
+#         simulation_id: ID of the simulation.
+#
+#     Returns:
+#         ExecutiveSummaryResponse with summary text.
+#     """
+#     sim_service = get_simulation_service()
+#
+#     # Verify simulation exists
+#     run = sim_service.get_simulation(simulation_id)
+#     if run is None:
+#         raise HTTPException(
+#             status_code=404, detail=f"Simulation {simulation_id} not found"
+#         )
+#
+#     insight_service = get_insight_service()
+#
+#     # Check if there are any insights to summarize
+#     all_insights = insight_service.get_all_insights(simulation_id)
+#     if len(all_insights.insights) == 0:
+#         raise HTTPException(
+#             status_code=400,
+#             detail="No insights available to summarize. Generate chart insights first.",
+#         )
+#
+#     try:
+#         summary = insight_service.generate_executive_summary(simulation_id)
+#         return ExecutiveSummaryResponse(
+#             simulation_id=simulation_id,
+#             summary=summary,
+#             total_insights=len(all_insights.insights),
+#         )
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=500, detail=f"Failed to generate executive summary: {e}"
+#         )
+#
+#
+# @router.post(
+#     "/simulations/{simulation_id}/insights/{chart_type}",
+#     response_model=ChartInsight,
+# )
+# async def generate_chart_insight(
+#     simulation_id: str,
+#     chart_type: ChartType,
+#     request: GenerateChartInsightRequest,
+# ) -> ChartInsight:
+#     """
+#     Generate LLM insight for a specific chart.
+#
+#     Analyzes the chart data and generates:
+#     - Short caption (<=20 tokens)
+#     - Detailed explanation (<=200 tokens)
+#     - Evidence from data
+#     - Actionable recommendation
+#
+#     Results are cached for subsequent requests.
+#
+#     Args:
+#         simulation_id: ID of the simulation.
+#         chart_type: Type of chart to analyze.
+#         request: Chart data and options.
+#
+#     Returns:
+#         ChartInsight with analysis.
+#     """
+#     sim_service = get_simulation_service()
+#
+#     # Verify simulation exists and is completed
+#     run = sim_service.get_simulation(simulation_id)
+#     if run is None:
+#         raise HTTPException(
+#             status_code=404, detail=f"Simulation {simulation_id} not found"
+#         )
+#     if run.status != "completed":
+#         raise HTTPException(
+#             status_code=400,
+#             detail=f"Simulation {simulation_id} not completed (status: {run.status})",
+#         )
+#
+#     insight_service = get_insight_service()
+#
+#     try:
+#         insight = insight_service.generate_insight(
+#             simulation_id=simulation_id,
+#             chart_type=chart_type,
+#             chart_data=request.chart_data,
+#             force=request.force_regenerate,
+#         )
+#         return insight
+#     except InsightGenerationError as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+#
+#
+# @router.delete(
+#     "/simulations/{simulation_id}/insights",
+#     status_code=204,
+# )
+# async def clear_insights(
+#     simulation_id: str,
+# ) -> None:
+#     """
+#     Clear all cached insights for a simulation.
+#
+#     Removes all cached insights, requiring regeneration on next request.
+#
+#     Args:
+#         simulation_id: ID of the simulation.
+#     """
+#     insight_service = get_insight_service()
+#     insight_service.clear_insights(simulation_id=simulation_id)
 
 
 if __name__ == "__main__":

@@ -39,16 +39,16 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 [P] Create ChartInsight entity in src/synth_lab/domain/entities/chart_insight.py
-- [ ] T005 [P] Create ExecutiveSummary entity in src/synth_lab/domain/entities/executive_summary.py
-- [ ] T006 [P] Update __init__.py in src/synth_lab/domain/entities/ to export new entities
-- [ ] T007 Add store_chart_insight() method to AnalysisRepository in src/synth_lab/repositories/analysis_repository.py
-- [ ] T008 Add get_chart_insight() method to AnalysisRepository in src/synth_lab/repositories/analysis_repository.py
-- [ ] T009 Add get_all_chart_insights() method to AnalysisRepository in src/synth_lab/repositories/analysis_repository.py
-- [ ] T010 Add store_executive_summary() method to AnalysisRepository in src/synth_lab/repositories/analysis_repository.py
-- [ ] T011 Add get_executive_summary() method to AnalysisRepository in src/synth_lab/repositories/analysis_repository.py
-- [ ] T012 [P] Create TypeScript types in frontend/src/types/insights.ts (ChartInsight, ExecutiveSummary, ChartTypeWithInsight)
-- [ ] T013 Add insight query keys to frontend/src/lib/query-keys.ts
+- [x] T004 [P] Create ChartInsight entity in src/synth_lab/domain/entities/chart_insight.py
+- [x] T005 [P] Create ExecutiveSummary entity in src/synth_lab/domain/entities/executive_summary.py
+- [x] T006 [P] Update __init__.py in src/synth_lab/domain/entities/ to export new entities
+- [x] T007 Add store_chart_insight() method to AnalysisCacheRepository in src/synth_lab/repositories/analysis_cache_repository.py
+- [x] T008 Add get_chart_insight() method to AnalysisCacheRepository in src/synth_lab/repositories/analysis_cache_repository.py
+- [x] T009 Add get_all_chart_insights() method to AnalysisCacheRepository in src/synth_lab/repositories/analysis_cache_repository.py
+- [x] T010 Add store_executive_summary() method to AnalysisCacheRepository in src/synth_lab/repositories/analysis_cache_repository.py
+- [x] T011 Add get_executive_summary() method to AnalysisCacheRepository in src/synth_lab/repositories/analysis_cache_repository.py
+- [x] T012 [P] Create TypeScript types in frontend/src/types/insights.ts (ChartInsight, ExecutiveSummary, ChartTypeWithInsight)
+- [x] T013 Add insight query keys to frontend/src/lib/query-keys.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

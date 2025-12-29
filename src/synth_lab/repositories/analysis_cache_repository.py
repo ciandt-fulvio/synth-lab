@@ -13,7 +13,9 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
-from synth_lab.domain.entities.analysis_cache import AnalysisCache
+from synth_lab.domain.entities.analysis_cache import AnalysisCache, CacheKeys
+from synth_lab.domain.entities.chart_insight import ChartInsight
+from synth_lab.domain.entities.executive_summary import ExecutiveSummary
 from synth_lab.infrastructure.database import DatabaseManager, get_database
 from synth_lab.repositories.base import BaseRepository
 
@@ -200,6 +202,111 @@ class AnalysisCacheRepository(BaseRepository):
             params=params,
             computed_at=computed_at,
         )
+
+    # Insight-specific methods (Feature 023)
+
+    def store_chart_insight(self, insight: ChartInsight) -> ChartInsight:
+        """
+        Store a chart insight in the cache.
+
+        Args:
+            insight: ChartInsight entity to store.
+
+        Returns:
+            Stored insight.
+        """
+        cache_key = self._get_insight_cache_key(insight.chart_type)
+        self.save(insight.analysis_id, cache_key, insight.to_cache_json())
+        return insight
+
+    def get_chart_insight(self, analysis_id: str, chart_type: str) -> ChartInsight | None:
+        """
+        Get a chart insight from the cache.
+
+        Args:
+            analysis_id: Analysis ID.
+            chart_type: Chart type (e.g., 'try_vs_success').
+
+        Returns:
+            ChartInsight if found, None otherwise.
+        """
+        cache_key = self._get_insight_cache_key(chart_type)
+        cache = self.get(analysis_id, cache_key)
+        if cache is None:
+            return None
+        return ChartInsight.from_cache_json(cache.data)
+
+    def get_all_chart_insights(self, analysis_id: str) -> list[ChartInsight]:
+        """
+        Get all chart insights for an analysis.
+
+        Args:
+            analysis_id: Analysis ID.
+
+        Returns:
+            List of ChartInsight entities.
+        """
+        all_cache = self.get_all(analysis_id)
+        insights = []
+        for cache in all_cache:
+            if cache.cache_key.startswith("insight_"):
+                try:
+                    insight = ChartInsight.from_cache_json(cache.data)
+                    insights.append(insight)
+                except Exception:
+                    # Skip invalid insight entries
+                    continue
+        return insights
+
+    def store_executive_summary(self, summary: ExecutiveSummary) -> ExecutiveSummary:
+        """
+        Store an executive summary in the cache.
+
+        Args:
+            summary: ExecutiveSummary entity to store.
+
+        Returns:
+            Stored summary.
+        """
+        self.save(summary.analysis_id, CacheKeys.EXECUTIVE_SUMMARY, summary.to_cache_json())
+        return summary
+
+    def get_executive_summary(self, analysis_id: str) -> ExecutiveSummary | None:
+        """
+        Get the executive summary from the cache.
+
+        Args:
+            analysis_id: Analysis ID.
+
+        Returns:
+            ExecutiveSummary if found, None otherwise.
+        """
+        cache = self.get(analysis_id, CacheKeys.EXECUTIVE_SUMMARY)
+        if cache is None:
+            return None
+        return ExecutiveSummary.from_cache_json(cache.data)
+
+    def _get_insight_cache_key(self, chart_type: str) -> str:
+        """
+        Get the cache key for a chart insight.
+
+        Args:
+            chart_type: Chart type (e.g., 'try_vs_success').
+
+        Returns:
+            Cache key (e.g., 'insight_try_vs_success').
+        """
+        # Map chart types to their insight cache keys
+        insight_key_map = {
+            "try_vs_success": CacheKeys.INSIGHT_TRY_VS_SUCCESS,
+            "shap_summary": CacheKeys.INSIGHT_SHAP_SUMMARY,
+            "pdp": CacheKeys.INSIGHT_PDP,
+            "pca_scatter": CacheKeys.INSIGHT_PCA_SCATTER,
+            "radar_comparison": CacheKeys.INSIGHT_RADAR_COMPARISON,
+            "extreme_cases": CacheKeys.INSIGHT_EXTREME_CASES,
+            "outliers": CacheKeys.INSIGHT_OUTLIERS,
+        }
+        return insight_key_map.get(chart_type, f"insight_{chart_type}")
 
 
 if __name__ == "__main__":
