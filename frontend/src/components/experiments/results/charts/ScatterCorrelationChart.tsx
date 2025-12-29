@@ -20,14 +20,21 @@ interface ScatterCorrelationChartProps {
 
 function formatAxisLabel(label: string): string {
   const labelMap: Record<string, string> = {
+    // Synth attributes (latent traits)
     capability_mean: 'Capacidade Média',
     trust_mean: 'Confiança Média',
+    friction_tolerance_mean: 'Tolerância a Atrito',
+    exploration_prob: 'Propensão a Explorar',
+    // Synth attributes (observables)
+    digital_literacy: 'Literacia Digital',
+    similar_tool_experience: 'Experiência Similar',
+    motor_ability: 'Habilidade Motora',
+    time_availability: 'Tempo Disponível',
+    domain_expertise: 'Expertise no Domínio',
+    // Outcome metrics
+    attempt_rate: 'Taxa de Tentativa',
     success_rate: 'Taxa de Sucesso',
     failed_rate: 'Taxa de Falha',
-    complexity: 'Complexidade',
-    initial_effort: 'Esforço Inicial',
-    perceived_risk: 'Risco Percebido',
-    time_to_value: 'Tempo p/ Valor',
   };
   return labelMap[label] || label.replace(/_/g, ' ');
 }
@@ -80,9 +87,9 @@ export function ScatterCorrelationChart({ data }: ScatterCorrelationChartProps) 
         <span className="text-sm text-slate-600">Correlação:</span>
         <span
           className={`text-lg font-bold ${
-            Math.abs(correlationValue) > 0.7
+            Math.abs(correlationValue) >= 0.8
               ? 'text-green-600'
-              : Math.abs(correlationValue) > 0.4
+              : Math.abs(correlationValue) >= 0.6
                 ? 'text-amber-600'
                 : 'text-slate-500'
           }`}
@@ -91,11 +98,13 @@ export function ScatterCorrelationChart({ data }: ScatterCorrelationChartProps) 
         </span>
         <span className="text-xs text-slate-400">
           (
-          {Math.abs(correlationValue) > 0.7
+          {Math.abs(correlationValue) >= 0.8
             ? 'forte'
-            : Math.abs(correlationValue) > 0.4
+            : Math.abs(correlationValue) >= 0.6
               ? 'moderada'
-              : 'fraca'}
+              : Math.abs(correlationValue) >= 0.3
+                ? 'fraca'
+                : 'muito fraca'}
           )
         </span>
         {isSignificant && (

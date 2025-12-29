@@ -2,7 +2,7 @@
 // Section showing correlation of synth attributes with attempt and success rates
 
 import { useState } from 'react';
-import { BarChart3, HelpCircle, Sparkles, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { BarChart3, HelpCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,7 +14,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ChartErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { AttributeCorrelationChart } from './charts/AttributeCorrelationChart';
 import { useAnalysisAttributeCorrelations } from '@/hooks/use-analysis-charts';
-import { useGenerateAnalysisChartInsight } from '@/hooks/use-insights';
 
 interface AttributeCorrelationSectionProps {
   experimentId: string;
@@ -24,48 +23,18 @@ export function AttributeCorrelationSection({ experimentId }: AttributeCorrelati
   const [showExplanation, setShowExplanation] = useState(false);
 
   const correlations = useAnalysisAttributeCorrelations(experimentId);
-  const generateInsight = useGenerateAnalysisChartInsight(experimentId);
-
-  const handleGenerateInsight = () => {
-    if (!correlations.data) return;
-    generateInsight.mutate({
-      chartType: 'attribute_correlations',
-      chartData: {
-        correlations: correlations.data.correlations,
-        total_synths: correlations.data.total_synths,
-      },
-    });
-  };
 
   return (
     <Card className="card">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-card-title flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-slate-500" />
-              Importância dos Atributos
-            </CardTitle>
-            <p className="text-meta">
-              Quais características dos usuários mais influenciam tentativa e sucesso
-            </p>
-          </div>
-          {correlations.data && (
-            <Button
-              onClick={handleGenerateInsight}
-              disabled={generateInsight.isPending}
-              variant="outline"
-              size="sm"
-              className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-            >
-              {generateInsight.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
-              )}
-              Gerar Insight
-            </Button>
-          )}
+        <div>
+          <CardTitle className="text-card-title flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-slate-500" />
+            Importância dos Atributos
+          </CardTitle>
+          <p className="text-meta">
+            Quais características dos usuários mais influenciam tentativa e sucesso
+          </p>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

@@ -17,11 +17,11 @@ export function PhaseLocation({ experimentId }: PhaseLocationProps) {
       {/* Row 1: Attribute Correlations - quick overview of important attributes */}
       <AttributeCorrelationSection experimentId={experimentId} />
 
-      {/* Row 2: Failure Heatmap */}
-      <HeatmapSection experimentId={experimentId} />
-
-      {/* Row 3: Scatter Chart */}
+      {/* Row 2: Scatter Chart - explore specific attribute correlations */}
       <ScatterSection experimentId={experimentId} />
+
+      {/* Row 3: Failure Heatmap */}
+      <HeatmapSection experimentId={experimentId} />
 
       {/* Row 4: Tornado Chart */}
       <TornadoSection experimentId={experimentId} />

@@ -612,8 +612,21 @@ class ChartDataService:
         y_arr = np.array(y_values)
 
         if len(x_arr) >= 2:
-            pearson_r, p_value = stats.pearsonr(x_arr, y_arr)
-            slope, intercept = np.polyfit(x_arr, y_arr, 1)
+            try:
+                pearson_r, p_value = stats.pearsonr(x_arr, y_arr)
+                # Handle NaN (occurs when variance is zero)
+                if np.isnan(pearson_r) or np.isnan(p_value):
+                    pearson_r, p_value = 0.0, 1.0
+            except Exception:
+                pearson_r, p_value = 0.0, 1.0
+
+            try:
+                slope, intercept = np.polyfit(x_arr, y_arr, 1)
+                # Handle NaN from polyfit
+                if np.isnan(slope) or np.isnan(intercept):
+                    slope, intercept = 0.0, float(np.mean(y_arr))
+            except Exception:
+                slope, intercept = 0.0, float(np.mean(y_arr)) if len(y_arr) > 0 else 0.0
         else:
             pearson_r, p_value = 0.0, 1.0
             slope, intercept = 0.0, 0.0
@@ -622,7 +635,7 @@ class ChartDataService:
             pearson_r=float(pearson_r),
             p_value=float(p_value),
             r_squared=float(pearson_r**2),
-            is_significant=p_value < 0.05,
+            is_significant=p_value < 0.05 and not np.isnan(p_value),
             trend_slope=float(slope),
             trend_intercept=float(intercept),
         )
@@ -796,8 +809,8 @@ class ChartDataService:
                 )
             )
 
-        # Sort by absolute correlation with success (descending)
-        correlations.sort(key=lambda c: abs(c.correlation_success), reverse=True)
+        # Keep fixed order (same as X_AXIS_OPTIONS in frontend)
+        # No sorting - order matches dropdown for consistency
 
         return AttributeCorrelationChart(
             simulation_id=simulation_id,
