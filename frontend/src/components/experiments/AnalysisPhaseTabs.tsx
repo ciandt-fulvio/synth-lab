@@ -116,6 +116,14 @@ export function AnalysisPhaseTabs({
   renderPhase,
 }: AnalysisPhaseTabsProps) {
   const [activePhase, setActivePhase] = useState<string>('visao-geral');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to top of container when changing phase
+  const scrollToContainer = useCallback(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
 
   // Keyboard navigation (←/→)
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
@@ -124,13 +132,19 @@ export function AnalysisPhaseTabs({
     if (event.key === 'ArrowRight') {
       event.preventDefault();
       const nextIndex = Math.min(ANALYSIS_PHASES.length - 1, currentIndex + 1);
-      setActivePhase(ANALYSIS_PHASES[nextIndex].id);
+      if (nextIndex !== currentIndex) {
+        setActivePhase(ANALYSIS_PHASES[nextIndex].id);
+        scrollToContainer();
+      }
     } else if (event.key === 'ArrowLeft') {
       event.preventDefault();
       const prevIndex = Math.max(0, currentIndex - 1);
-      setActivePhase(ANALYSIS_PHASES[prevIndex].id);
+      if (prevIndex !== currentIndex) {
+        setActivePhase(ANALYSIS_PHASES[prevIndex].id);
+        scrollToContainer();
+      }
     }
-  }, [activePhase]);
+  }, [activePhase, scrollToContainer]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -141,7 +155,7 @@ export function AnalysisPhaseTabs({
   const currentIndex = ANALYSIS_PHASES.findIndex((p) => p.id === activePhase);
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div ref={containerRef} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       {/* Header */}
       <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
         <div className="flex items-center justify-between">
@@ -276,7 +290,10 @@ export function AnalysisPhaseTabs({
               <button
                 onClick={() => {
                   const prevIndex = Math.max(0, currentIndex - 1);
-                  setActivePhase(ANALYSIS_PHASES[prevIndex].id);
+                  if (prevIndex !== currentIndex) {
+                    setActivePhase(ANALYSIS_PHASES[prevIndex].id);
+                    scrollToContainer();
+                  }
                 }}
                 disabled={currentIndex === 0}
                 className={cn(
@@ -293,7 +310,10 @@ export function AnalysisPhaseTabs({
               <button
                 onClick={() => {
                   const nextIndex = Math.min(ANALYSIS_PHASES.length - 1, currentIndex + 1);
-                  setActivePhase(ANALYSIS_PHASES[nextIndex].id);
+                  if (nextIndex !== currentIndex) {
+                    setActivePhase(ANALYSIS_PHASES[nextIndex].id);
+                    scrollToContainer();
+                  }
                 }}
                 disabled={currentIndex === ANALYSIS_PHASES.length - 1}
                 className={cn(
