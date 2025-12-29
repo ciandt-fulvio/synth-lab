@@ -10,7 +10,6 @@ export { SankeyDiagram } from './SankeyDiagram';
 export { FailureHeatmap } from './FailureHeatmap';
 export { BoxPlotChart } from './BoxPlotChart';
 export { ScatterCorrelationChart } from './ScatterCorrelationChart';
-export { TornadoChart } from './TornadoChart';
 export { AttributeCorrelationChart } from './AttributeCorrelationChart';
 
 // Phase 3: Segmentation

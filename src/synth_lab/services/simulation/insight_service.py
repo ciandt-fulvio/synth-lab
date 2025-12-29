@@ -219,7 +219,6 @@ class InsightService:
             "sankey": "flow diagram showing user journey transitions",
             "failure_heatmap": "heatmap showing failure patterns",
             "scatter": "scatter plot showing correlation between variables",
-            "tornado": "tornado chart showing sensitivity analysis",
             "box_plot": "box plot showing value distributions by category",
             "clustering": "cluster visualization showing user segments",
             "outliers": "outlier detection chart highlighting anomalies",

@@ -217,35 +217,7 @@ class ScatterCorrelationChart(BaseModel):
 
 
 # =============================================================================
-# 7. Tornado Chart
-# =============================================================================
-
-
-class TornadoBar(BaseModel):
-    """Bar in tornado diagram."""
-
-    dimension: str = Field(description="Dimension name.")
-    rank: int = Field(ge=1, description="Rank by sensitivity.")
-    sensitivity_index: float = Field(ge=0.0, description="Sensitivity index value.")
-    negative_impact: float = Field(description="Impact when dimension is reduced.")
-    positive_impact: float = Field(description="Impact when dimension is increased.")
-    baseline_value: float = Field(description="Baseline value for dimension.")
-    label_negative: str = Field(description='Label for negative: "-10% -> +5% success"')
-    label_positive: str = Field(description='Label for positive: "+10% -> -8% success"')
-
-
-class TornadoChart(BaseModel):
-    """Data for tornado diagram."""
-
-    simulation_id: str = Field(description="ID of the simulation.")
-    baseline_success: float = Field(description="Baseline success rate.")
-    bars: list[TornadoBar] = Field(description="Bars sorted by sensitivity_index desc.")
-    deltas_used: list[float] = Field(description="Delta values used in analysis.")
-    most_sensitive: str = Field(description="Name of most sensitive dimension.")
-
-
-# =============================================================================
-# 8. Attribute Correlation Chart
+# 7. Attribute Correlation Chart
 # =============================================================================
 
 
@@ -395,25 +367,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"CorrelationStats creation failed: {e}")
 
-    # Test 8: TornadoBar creation
-    total_tests += 1
-    try:
-        bar = TornadoBar(
-            dimension="capability_mean",
-            rank=1,
-            sensitivity_index=0.35,
-            negative_impact=-0.08,
-            positive_impact=0.12,
-            baseline_value=0.55,
-            label_negative="-10% -> +8% success",
-            label_positive="+10% -> -12% success",
-        )
-        if bar.rank != 1:
-            all_validation_failures.append(f"rank mismatch: {bar.rank}")
-    except Exception as e:
-        all_validation_failures.append(f"TornadoBar creation failed: {e}")
-
-    # Test 9: Reject invalid quadrant
+    # Test 8: Reject invalid quadrant
     total_tests += 1
     try:
         TryVsSuccessPoint(
@@ -428,7 +382,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Unexpected error for invalid quadrant: {e}")
 
-    # Test 10: Reject attempt_rate > 1
+    # Test 9: Reject attempt_rate > 1
     total_tests += 1
     try:
         TryVsSuccessPoint(

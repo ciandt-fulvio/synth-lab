@@ -9,7 +9,6 @@ import type {
   FailureHeatmapChart,
   BoxPlotChart,
   ScatterCorrelationChart,
-  TornadoChart,
   KMeansResult,
   HierarchicalResult,
   ElbowDataPoint,
@@ -102,10 +101,6 @@ export async function getScatterCorrelation(
     show_trendline: String(showTrendline),
   });
   return fetchAPI(`/simulation/simulations/${simulationId}/charts/scatter?${params}`);
-}
-
-export async function getTornadoChart(simulationId: string): Promise<TornadoChart> {
-  return fetchAPI(`/simulation/simulations/${simulationId}/charts/tornado`);
 }
 
 // =============================================================================

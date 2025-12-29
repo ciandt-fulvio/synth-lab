@@ -28,7 +28,6 @@ ChartType = Literal[
     "sankey",
     "failure_heatmap",
     "scatter",
-    "tornado",
     "box_plot",
     "clustering",
     "outliers",

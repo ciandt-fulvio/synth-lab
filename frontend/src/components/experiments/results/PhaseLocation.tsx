@@ -1,10 +1,9 @@
 // frontend/src/components/experiments/results/PhaseLocation.tsx
-// Phase 2: Problem Location - Attribute importance, Heatmap, Scatter, Tornado charts
+// Phase 2: Problem Location - Attribute importance, Heatmap, Scatter charts
 // Composes section components that each handle their own state and data fetching
 
 import { HeatmapSection } from './HeatmapSection';
 import { ScatterSection } from './ScatterSection';
-import { TornadoSection } from './TornadoSection';
 import { AttributeCorrelationSection } from './AttributeCorrelationSection';
 
 interface PhaseLocationProps {
@@ -22,9 +21,6 @@ export function PhaseLocation({ experimentId }: PhaseLocationProps) {
 
       {/* Row 3: Failure Heatmap */}
       <HeatmapSection experimentId={experimentId} />
-
-      {/* Row 4: Tornado Chart */}
-      <TornadoSection experimentId={experimentId} />
     </div>
   );
 }

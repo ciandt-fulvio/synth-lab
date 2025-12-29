@@ -192,7 +192,6 @@ import type {
   SankeyChart,
   FailureHeatmapChart,
   ScatterCorrelationChart,
-  TornadoChart,
   AttributeCorrelationChart,
   ClusterRequest,
   KMeansResult,
@@ -275,13 +274,6 @@ export async function getAnalysisScatterCorrelation(
     show_trendline: String(showTrendline),
   });
   return fetchAPI(`/experiments/${experimentId}/analysis/charts/scatter?${params}`);
-}
-
-/**
- * Get tornado chart for experiment analysis.
- */
-export async function getAnalysisTornadoChart(experimentId: string): Promise<TornadoChart> {
-  return fetchAPI(`/experiments/${experimentId}/analysis/charts/tornado`);
 }
 
 /**

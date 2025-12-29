@@ -33,7 +33,6 @@ from synth_lab.domain.entities import (
     ShapExplanation,
     ShapSummary,
     SynthOutcome,
-    TornadoChart,
     TryVsSuccessChart,
 )
 from synth_lab.domain.entities.chart_insight import (
@@ -1248,54 +1247,6 @@ async def get_scatter_correlation_chart(
         x_axis=x_axis,
         y_axis=y_axis,
         show_trendline=show_trendline,
-    )
-
-
-@router.get(
-    "/simulations/{simulation_id}/charts/tornado",
-    response_model=TornadoChart,
-)
-async def get_tornado_chart(
-    simulation_id: str,
-) -> TornadoChart:
-    """
-    Get tornado diagram data from sensitivity analysis.
-
-    Requires sensitivity analysis to be run first via /sensitivity endpoint.
-    Shows which dimensions have the greatest impact on outcomes.
-    """
-    sim_service = get_simulation_service()
-    chart_service = get_chart_data_service()
-
-    # Verify simulation exists and is completed
-    run = sim_service.get_simulation(simulation_id)
-    if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
-    if run.status != "completed":
-        raise HTTPException(
-            status_code=400,
-            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
-        )
-
-    # Get sensitivity result from database
-    from synth_lab.repositories.sensitivity_repository import SensitivityRepository
-
-    db = get_database()
-    sensitivity_repo = SensitivityRepository(db)
-    sensitivity_result = sensitivity_repo.get_by_simulation(simulation_id)
-
-    if sensitivity_result is None:
-        raise HTTPException(
-            status_code=400,
-            detail=f"No sensitivity analysis found for simulation {simulation_id}. "
-            "Run /sensitivity endpoint first.",
-        )
-
-    return chart_service.get_tornado(
-        simulation_id=simulation_id,
-        sensitivity_result=sensitivity_result,
     )
 
 
