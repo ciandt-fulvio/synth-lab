@@ -10,11 +10,22 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useExperiment, useRunAnalysis } from '@/hooks/use-experiments';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useExperiment, useRunAnalysis, useDeleteExperiment } from '@/hooks/use-experiments';
 import { NewInterviewFromExperimentDialog } from '@/components/experiments/NewInterviewFromExperimentDialog';
 import { AnalysisPhaseTabs, type AnalysisPhaseId } from '@/components/experiments/AnalysisPhaseTabs';
 import {
@@ -36,6 +47,7 @@ import {
   Loader2,
   AlertTriangle,
   ArrowLeft,
+  Trash2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -113,13 +125,47 @@ export default function ExperimentDetail() {
   const [isInterviewsOpen, setIsInterviewsOpen] = useState(false);
   const [isNewInterviewOpen, setIsNewInterviewOpen] = useState(false);
   const [interviewPage, setInterviewPage] = useState(0);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const { data: experiment, isLoading, isError, error } = useExperiment(id ?? '');
   const runAnalysisMutation = useRunAnalysis();
+  const deleteMutation = useDeleteExperiment();
 
   const handleRunAnalysis = () => {
     if (!id) return;
-    runAnalysisMutation.mutate({ experimentId: id });
+    runAnalysisMutation.mutate(
+      { experimentId: id },
+      {
+        onSuccess: () => {
+          toast.success('Análise iniciada com sucesso');
+        },
+        onError: (error) => {
+          // Extract error message from API response
+          const message =
+            error instanceof Error
+              ? error.message
+              : 'Erro desconhecido ao executar análise';
+          toast.error(message);
+        },
+      }
+    );
+  };
+
+  const handleDelete = () => {
+    if (!id) return;
+    deleteMutation.mutate(id, {
+      onSuccess: () => {
+        toast.success('Experimento excluído com sucesso');
+        navigate('/');
+      },
+      onError: (error) => {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Erro desconhecido ao excluir experimento';
+        toast.error(message);
+      },
+    });
   };
 
   // Loading state
@@ -465,21 +511,33 @@ export default function ExperimentDetail() {
                   // Uses experiment ID for new analysis chart endpoints
                   return <PhaseOverview experimentId={expId} analysis={analysis} />;
                 case 'localizacao':
-                  return <PhaseLocation simulationId={simId} />;
+                  return <PhaseLocation experimentId={expId} />;
                 case 'segmentacao':
-                  return <PhaseSegmentation simulationId={simId} />;
+                  return <PhaseSegmentation experimentId={expId} />;
                 case 'casos-especiais':
-                  return <PhaseEdgeCases simulationId={simId} />;
+                  return <PhaseEdgeCases experimentId={expId} />;
                 case 'aprofundamento':
-                  return <PhaseExplainability simulationId={simId} />;
+                  return <PhaseExplainability experimentId={expId} />;
                 case 'insights':
-                  return <PhaseInsights simulationId={simId} />;
+                  return <PhaseInsights experimentId={expId} />;
                 default:
                   return null;
               }
             }}
           />
         )}
+
+        {/* Delete Section */}
+        <div className="mt-8 pt-6 border-t border-slate-200">
+          <Button
+            variant="outline"
+            onClick={() => setIsDeleteDialogOpen(true)}
+            className="text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700 hover:border-red-400"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Deletar
+          </Button>
+        </div>
       </main>
 
       {/* New Interview Modal */}
@@ -488,6 +546,34 @@ export default function ExperimentDetail() {
         onOpenChange={setIsNewInterviewOpen}
         experimentId={id ?? ''}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir experimento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O experimento "{experiment?.name}" será
+              permanentemente removido da listagem.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -78,14 +78,16 @@ class ExperimentRepository(BaseRepository):
         """
         Get an experiment by ID.
 
+        Only returns active experiments (not soft-deleted).
+
         Args:
             experiment_id: Experiment ID to retrieve.
 
         Returns:
-            Experiment if found, None otherwise.
+            Experiment if found and active, None otherwise.
         """
         row = self.db.fetchone(
-            "SELECT * FROM experiments WHERE id = ?",
+            "SELECT * FROM experiments WHERE id = ? AND (status = 'active' OR status IS NULL)",
             (experiment_id,),
         )
         if row is None:
@@ -98,6 +100,8 @@ class ExperimentRepository(BaseRepository):
         """
         List experiments with pagination.
 
+        Only returns active experiments (not soft-deleted).
+
         Args:
             params: Pagination parameters.
 
@@ -105,6 +109,7 @@ class ExperimentRepository(BaseRepository):
             Paginated response with experiment summaries.
         """
         # Query with analysis, interview guide, and interview counts
+        # Filter out deleted experiments
         base_query = """
             SELECT
                 e.id,
@@ -126,10 +131,14 @@ class ExperimentRepository(BaseRepository):
                 WHERE experiment_id IS NOT NULL
                 GROUP BY experiment_id
             ) int ON e.id = int.experiment_id
+            WHERE (e.status = 'active' OR e.status IS NULL)
             ORDER BY e.created_at DESC
         """
 
-        count_query = "SELECT COUNT(*) as count FROM experiments"
+        count_query = """
+            SELECT COUNT(*) as count FROM experiments
+            WHERE (status = 'active' OR status IS NULL)
+        """
 
         # Get total count
         count_row = self.db.fetchone(count_query)
@@ -228,7 +237,9 @@ class ExperimentRepository(BaseRepository):
 
     def delete(self, experiment_id: str) -> bool:
         """
-        Delete an experiment.
+        Soft delete an experiment by setting status to 'deleted'.
+
+        The experiment data is preserved but will be hidden from listings.
 
         Args:
             experiment_id: ID of experiment to delete.
@@ -236,12 +247,16 @@ class ExperimentRepository(BaseRepository):
         Returns:
             True if deleted, False if not found.
         """
-        # Check if exists
+        # Check if exists and is active
         existing = self.get_by_id(experiment_id)
         if existing is None:
             return False
 
-        self.db.execute("DELETE FROM experiments WHERE id = ?", (experiment_id,))
+        updated_at = datetime.now(timezone.utc)
+        self.db.execute(
+            "UPDATE experiments SET status = 'deleted', updated_at = ? WHERE id = ?",
+            (updated_at.isoformat(), experiment_id),
+        )
         return True
 
     def _row_to_experiment(self, row) -> Experiment:

@@ -19,7 +19,7 @@ from loguru import logger
 
 from synth_lab.infrastructure.config import DB_PATH
 
-# Database schema SQL - Version 8 (2025-12)
+# Database schema SQL - Version 10 (2025-12)
 # Changes:
 #   - v4: synths.data: single JSON field for all nested data
 #   - v5: Added simulation tables (feature_scorecards, simulation_runs, synth_outcomes,
@@ -30,25 +30,30 @@ from synth_lab.infrastructure.config import DB_PATH
 #         analysis_runs replaces simulation_runs with 1:1 relationship to experiment,
 #         synth_outcomes now references analysis_runs
 #   - v8: Removed topic_guides_cache, added interview_guide table (1:1 with experiment)
+#   - v9: Added sensitivity_results and chart_insights tables
+#   - v10: Added status field to experiments table for soft delete
 SCHEMA_SQL = """
 -- Enable recommended settings
 PRAGMA journal_mode=WAL;
 PRAGMA foreign_keys=ON;
 PRAGMA synchronous=NORMAL;
 
--- Experiments table (MODIFIED in v7 - scorecard embedded, length constraints)
+-- Experiments table (MODIFIED in v10 - added status for soft delete)
 CREATE TABLE IF NOT EXISTS experiments (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL CHECK(length(name) <= 100),
     hypothesis TEXT NOT NULL CHECK(length(hypothesis) <= 500),
     description TEXT CHECK(length(description) <= 2000),
     scorecard_data TEXT CHECK(json_valid(scorecard_data) OR scorecard_data IS NULL),
+    status TEXT NOT NULL DEFAULT 'active',
     created_at TEXT NOT NULL,
-    updated_at TEXT
+    updated_at TEXT,
+    CHECK(status IN ('active', 'deleted'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_experiments_created ON experiments(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_experiments_name ON experiments(name);
+-- idx_experiments_status is created by migration v10
 
 -- Analysis Runs table (NEW in v7 - replaces simulation_runs, 1:1 with experiment)
 CREATE TABLE IF NOT EXISTS analysis_runs (
@@ -249,6 +254,36 @@ CREATE TABLE IF NOT EXISTS assumption_log (
 CREATE INDEX IF NOT EXISTS idx_log_timestamp ON assumption_log(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_log_action ON assumption_log(action);
 CREATE INDEX IF NOT EXISTS idx_log_scorecard ON assumption_log(scorecard_id);
+
+-- Sensitivity Results table (OAT sensitivity analysis)
+CREATE TABLE IF NOT EXISTS sensitivity_results (
+    id TEXT PRIMARY KEY,
+    simulation_id TEXT NOT NULL,
+    analyzed_at TEXT NOT NULL,
+    deltas_used TEXT NOT NULL CHECK(json_valid(deltas_used)),
+    baseline_success REAL NOT NULL,
+    most_sensitive_dimension TEXT NOT NULL,
+    dimensions TEXT NOT NULL CHECK(json_valid(dimensions)),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (simulation_id) REFERENCES simulation_runs(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sensitivity_simulation ON sensitivity_results(simulation_id);
+CREATE INDEX IF NOT EXISTS idx_sensitivity_analyzed_at ON sensitivity_results(analyzed_at);
+
+-- Chart Insights table (LLM-generated insights for charts)
+CREATE TABLE IF NOT EXISTS chart_insights (
+    id TEXT PRIMARY KEY,
+    simulation_id TEXT NOT NULL,
+    insight_type TEXT NOT NULL,
+    response_json TEXT NOT NULL CHECK(json_valid(response_json)),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(simulation_id, insight_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_chart_insights_simulation ON chart_insights(simulation_id);
+CREATE INDEX IF NOT EXISTS idx_chart_insights_type ON chart_insights(insight_type);
 """
 
 
@@ -276,6 +311,20 @@ def init_database(db_path: Path | None = None) -> None:
     try:
         conn.executescript(SCHEMA_SQL)
         logger.info("Database schema created successfully")
+
+        # Migration v10: Add status column to experiments if not exists
+        cursor = conn.execute("PRAGMA table_info(experiments)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if "status" not in columns:
+            logger.info("Migrating experiments table: adding status column")
+            conn.execute(
+                "ALTER TABLE experiments ADD COLUMN status TEXT NOT NULL DEFAULT 'active'"
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_experiments_status ON experiments(status)"
+            )
+            conn.commit()
+            logger.info("Migration v10 completed: status column added")
 
         # Ensure default synth group exists (ID=1, always present)
         conn.execute(
