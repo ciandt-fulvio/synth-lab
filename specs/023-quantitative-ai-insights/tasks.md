@@ -7,6 +7,37 @@
 
 **Organization**: Tasks grouped by user story to enable independent implementation and testing.
 
+---
+
+## 📊 Progress Summary
+
+**Last Updated**: 2025-12-29
+
+### Completed Phases
+
+- ✅ **Phase 1: Setup** (T001-T003) - 3/3 tasks complete
+  - Feature branch created
+  - REASONING_MODEL constant added to config
+  - CacheKeys enum extended with 8 new insight keys
+
+- ✅ **Phase 2: Foundational** (T004-T013) - 10/10 tasks complete
+  - ChartInsight and ExecutiveSummary entities created with validation
+  - AnalysisCacheRepository extended with insight methods
+  - Frontend TypeScript types and query keys added
+  - Old feature 017 insight service temporarily disabled
+  - All 484 tests passing
+
+### In Progress
+
+- 🔄 **Phase 3: User Story 3 - Backend Infrastructure** (T014-T041) - 0/28 tasks
+  - Next: Create unit tests for entities and services
+  - Then: Implement InsightService and ExecutiveSummaryService
+  - Then: Hook into analysis workflow for automatic generation
+
+### Total Progress: 13/107 tasks (12%)
+
+---
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
