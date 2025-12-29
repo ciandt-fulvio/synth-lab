@@ -13,7 +13,6 @@ export { PhaseInsights } from './PhaseInsights';
 export { HeatmapSection } from './HeatmapSection';
 export { BoxPlotSection } from './BoxPlotSection';
 export { ScatterSection } from './ScatterSection';
-export { TornadoSection } from './TornadoSection';
 export { AttributeCorrelationSection } from './AttributeCorrelationSection';
 
 // Section components (Phase 3: Segmentation)

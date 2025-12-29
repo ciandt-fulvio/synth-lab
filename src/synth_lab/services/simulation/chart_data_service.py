@@ -34,8 +34,6 @@ from synth_lab.domain.entities import (
     SensitivityResult,
     SynthDistribution,
     SynthOutcome,
-    TornadoBar,
-    TornadoChart,
     TrendlinePoint,
     TryVsSuccessChart,
     TryVsSuccessPoint,
@@ -658,60 +656,6 @@ class ChartDataService:
             trendline=trendline,
         )
 
-    def get_tornado(
-        self,
-        simulation_id: str,
-        sensitivity_result: SensitivityResult | None,
-    ) -> TornadoChart:
-        """
-        Generate tornado diagram data from sensitivity analysis.
-
-        Args:
-            simulation_id: ID of the simulation.
-            sensitivity_result: Existing sensitivity analysis result.
-
-        Returns:
-            TornadoChart with bars sorted by sensitivity.
-        """
-        logger.info(f"Generating tornado for {simulation_id}")
-
-        if not sensitivity_result:
-            return TornadoChart(
-                simulation_id=simulation_id,
-                baseline_success=0.0,
-                bars=[],
-                deltas_used=[],
-                most_sensitive="",
-            )
-
-        bars: list[TornadoBar] = []
-
-        # Sort dimensions by sensitivity index
-        sorted_dims = sorted(
-            sensitivity_result.dimensions, key=lambda d: d.sensitivity_index, reverse=True
-        )
-
-        for rank, dim in enumerate(sorted_dims, 1):
-            bar = TornadoBar(
-                dimension=dim.dimension,
-                rank=rank,
-                sensitivity_index=dim.sensitivity_index,
-                negative_impact=dim.delta_success_low,
-                positive_impact=dim.delta_success_high,
-                baseline_value=dim.baseline_value,
-                label_negative=f"-{abs(dim.delta_pct):.0f}% → {dim.delta_success_low:+.1%}",
-                label_positive=f"+{abs(dim.delta_pct):.0f}% → {dim.delta_success_high:+.1%}",
-            )
-            bars.append(bar)
-
-        return TornadoChart(
-            simulation_id=simulation_id,
-            baseline_success=sensitivity_result.baseline_success,
-            bars=bars,
-            deltas_used=[dim.delta_pct for dim in sorted_dims] if sorted_dims else [],
-            most_sensitive=sorted_dims[0].dimension if sorted_dims else "",
-        )
-
     # =========================================================================
     # Phase 2b: Attribute Correlations
     # =========================================================================
@@ -976,16 +920,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"box_plot failed: {e}")
 
-    # Test 9: get_tornado without sensitivity
-    total_tests += 1
-    try:
-        chart = service.get_tornado("sim_test", sensitivity_result=None)
-        if len(chart.bars) != 0:
-            all_validation_failures.append(f"tornado bars without sensitivity: {len(chart.bars)}")
-    except Exception as e:
-        all_validation_failures.append(f"tornado failed: {e}")
-
-    # Test 10: empty outcomes
+    # Test 9: empty outcomes
     total_tests += 1
     try:
         chart = service.get_try_vs_success("sim_test", [])

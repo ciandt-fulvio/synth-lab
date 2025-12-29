@@ -89,7 +89,7 @@ export interface SankeyChart {
 }
 
 // =============================================================================
-// Phase 2: Problem Location Charts (Heatmap, Box Plot, Scatter, Tornado)
+// Phase 2: Problem Location Charts (Heatmap, Box Plot, Scatter)
 // =============================================================================
 
 /** Cell in failure heatmap */
@@ -166,21 +166,6 @@ export interface ScatterCorrelationChart {
   y_axis: string;
   correlation: CorrelationStats;
   trendline: TrendlinePoint[];
-}
-
-/** Bar in tornado chart */
-export interface TornadoBar {
-  dimension: string;
-  low_delta: number;
-  high_delta: number;
-  impact_score: number;
-}
-
-/** Tornado chart data */
-export interface TornadoChart {
-  simulation_id: string;
-  bars: TornadoBar[];
-  baseline_success: number;
 }
 
 /** Correlation of single attribute with outcomes */
@@ -401,7 +386,6 @@ export type ChartType =
   | 'failure_heatmap'
   | 'box_plot'
   | 'scatter'
-  | 'tornado'
   | 'elbow'
   | 'radar'
   | 'dendrogram'

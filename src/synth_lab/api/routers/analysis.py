@@ -31,7 +31,6 @@ from synth_lab.domain.entities.chart_data import (
     OutcomeDistributionChart,
     SankeyChart,
     ScatterCorrelationChart,
-    TornadoChart,
     TryVsSuccessChart,
 )
 from synth_lab.api.schemas.analysis import ClusterRequest, CutDendrogramRequest
@@ -828,53 +827,6 @@ async def get_attribute_correlations_chart(
     return chart_service.get_attribute_correlations(
         simulation_id=analysis.id,
         outcomes=outcomes,
-    )
-
-
-@router.get(
-    "/{experiment_id}/analysis/charts/tornado",
-    response_model=TornadoChart,
-)
-async def get_tornado_chart(
-    experiment_id: str,
-) -> TornadoChart:
-    """
-    Get tornado diagram data from sensitivity analysis.
-
-    Shows which dimensions have the greatest impact on outcomes.
-    """
-    from synth_lab.repositories.sensitivity_repository import SensitivityRepository
-
-    service = get_analysis_service()
-    chart_service = get_chart_data_service()
-
-    analysis = service.get_analysis(experiment_id)
-    if analysis is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
-
-    if analysis.status != "completed":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
-
-    db = get_database()
-    sensitivity_repo = SensitivityRepository(db)
-    sensitivity_result = sensitivity_repo.get_by_simulation(analysis.id)
-
-    if sensitivity_result is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"No sensitivity analysis found for experiment {experiment_id}. "
-            "Run sensitivity analysis first.",
-        )
-
-    return chart_service.get_tornado(
-        simulation_id=analysis.id,
-        sensitivity_result=sensitivity_result,
     )
 
 

@@ -10,7 +10,6 @@ import {
   getFailureHeatmap,
   getBoxPlotChart,
   getScatterCorrelation,
-  getTornadoChart,
 } from '@/services/simulation-api';
 
 // =============================================================================
@@ -103,11 +102,3 @@ export function useScatterCorrelation(
   });
 }
 
-export function useTornadoChart(simulationId: string, enabled = true) {
-  return useQuery({
-    queryKey: queryKeys.simulation.tornado(simulationId),
-    queryFn: () => getTornadoChart(simulationId),
-    enabled: !!simulationId && enabled,
-    staleTime: 5 * 60 * 1000,
-  });
-}
