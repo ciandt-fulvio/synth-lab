@@ -182,7 +182,7 @@ class TestExtremeCases:
         assert result.total_synths == 50
 
     def test_worst_failures_have_highest_failure_rate(self, sample_outcomes):
-        """Test that worst failures are correctly ranked."""
+        """Test that worst failures are correctly ranked by lowest success rate."""
         service = OutlierService()
         result = service.get_extreme_cases(
             simulation_id="sim_test_001",
@@ -190,13 +190,13 @@ class TestExtremeCases:
             n_per_category=10,
         )
 
-        # Check that failures are sorted by failure rate (descending)
-        failure_rates = [synth.failed_rate for synth in result.worst_failures]
-        assert failure_rates == sorted(failure_rates, reverse=True)
+        # Check that failures are sorted by success rate (ascending)
+        success_rates = [synth.success_rate for synth in result.worst_failures]
+        assert success_rates == sorted(success_rates, reverse=False)
 
-        # All should have high failure rates
+        # All should have low success rates
         for synth in result.worst_failures:
-            assert synth.failed_rate > 0.5
+            assert synth.success_rate < 0.5
             assert synth.category == "worst_failure"
 
     def test_best_successes_have_highest_success_rate(self, sample_outcomes):

@@ -58,9 +58,9 @@ class OutlierService:
                 f"Extreme cases requires at least 10 synths, got {len(outcomes)}"
             )
 
-        # Sort by failure rate (descending) for worst failures
+        # Sort by success rate (ascending) for worst failures
         sorted_by_failure = sorted(
-            outcomes, key=lambda x: x.failed_rate, reverse=True
+            outcomes, key=lambda x: x.success_rate, reverse=False
         )
 
         # Sort by success rate (descending) for best successes
