@@ -277,17 +277,6 @@ export async function getAnalysisScatterCorrelation(
   return fetchAPI(`/experiments/${experimentId}/analysis/charts/scatter?${params}`);
 }
 
-/**
- * Get attribute correlations chart for experiment analysis.
- *
- * Shows correlation of each synth attribute with attempt_rate and success_rate.
- */
-export async function getAnalysisAttributeCorrelations(
-  experimentId: string
-): Promise<AttributeCorrelationChart> {
-  return fetchAPI(`/experiments/${experimentId}/analysis/charts/attribute-correlations`);
-}
-
 // =============================================================================
 // Phase 3: Clustering Endpoints
 // =============================================================================
