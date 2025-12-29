@@ -364,12 +364,16 @@ async def run_batch_interviews(
         max_interviews=max_interviews,
     )
 
-    # Ensure avatars exist for selected synths (auto-generate if missing)
-    await _ensure_avatars_for_synths(
-        synths=synths_to_interview,
-        on_avatar_generation_start=on_avatar_generation_start,
-        on_avatar_generation_complete=on_avatar_generation_complete,
+    # Start avatar generation in background (non-blocking)
+    # Avatars will be generated while interviews run in parallel
+    avatar_task = asyncio.create_task(
+        _ensure_avatars_for_synths(
+            synths=synths_to_interview,
+            on_avatar_generation_start=on_avatar_generation_start,
+            on_avatar_generation_complete=on_avatar_generation_complete,
+        )
     )
+    logger.info("Avatar generation started in background (non-blocking)")
 
     logger.info(
         f"Starting batch {batch_id}: {len(synths_to_interview)} synths, "
@@ -479,6 +483,17 @@ async def run_batch_interviews(
             f"Skipping summary generation: generate_summary={generate_summary}, "
             f"successful_interviews={len(successful_interviews)}"
         )
+
+    # Wait for avatar generation to complete (if still running)
+    # This runs in background thread so won't block, just ensures cleanup
+    try:
+        if not avatar_task.done():
+            logger.debug("Waiting for avatar generation to complete...")
+            await avatar_task
+            logger.debug("Avatar generation completed")
+    except Exception as e:
+        # Avatar generation errors are non-fatal
+        logger.warning(f"Avatar generation task error (non-fatal): {e}")
 
     return BatchResult(
         successful_interviews=successful_interviews,
