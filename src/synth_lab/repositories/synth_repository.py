@@ -188,6 +188,67 @@ class SynthRepository(BaseRepository):
         from synth_lab.infrastructure.config import AVATARS_DIR
         return AVATARS_DIR / f"{synth_id}.png"
 
+    def get_extreme_cases(self, experiment_id: str, top_n: int = 5) -> tuple[list[str], list[str]]:
+        """
+        Get extreme case synth IDs for an experiment (top and bottom performers).
+
+        Args:
+            experiment_id: Experiment ID to get extreme cases for.
+            top_n: Number of top/bottom performers to return (default: 5).
+
+        Returns:
+            Tuple of (top_performer_ids, bottom_performer_ids).
+            Each list contains synth IDs ordered by success_rate.
+
+        Raises:
+            ValueError: If experiment has no analysis or insufficient synths.
+        """
+        # Get analysis_id for this experiment
+        analysis_row = self.db.fetchone(
+            "SELECT id FROM analysis_runs WHERE experiment_id = ? AND status = 'completed'",
+            (experiment_id,),
+        )
+        if not analysis_row:
+            raise ValueError(f"No completed analysis found for experiment {experiment_id}")
+
+        analysis_id = analysis_row["id"]
+
+        # Get top performers (highest success_rate)
+        top_rows = self.db.fetchall(
+            """
+            SELECT synth_id, success_rate
+            FROM synth_outcomes
+            WHERE analysis_id = ?
+            ORDER BY success_rate DESC
+            LIMIT ?
+            """,
+            (analysis_id, top_n),
+        )
+
+        # Get bottom performers (lowest success_rate)
+        bottom_rows = self.db.fetchall(
+            """
+            SELECT synth_id, success_rate
+            FROM synth_outcomes
+            WHERE analysis_id = ?
+            ORDER BY success_rate ASC
+            LIMIT ?
+            """,
+            (analysis_id, top_n),
+        )
+
+        # Validate we have enough synths
+        total_synths = len(top_rows) + len(bottom_rows)
+        if total_synths < top_n * 2:
+            raise ValueError(
+                f"Insufficient synths for extreme cases: need {top_n * 2}, found {total_synths}"
+            )
+
+        top_performer_ids = [row["synth_id"] for row in top_rows]
+        bottom_performer_ids = [row["synth_id"] for row in bottom_rows]
+
+        return (top_performer_ids, bottom_performer_ids)
+
     def get_fields(self) -> list[SynthFieldInfo]:
         """Get available synth field metadata following schema v1.
 
