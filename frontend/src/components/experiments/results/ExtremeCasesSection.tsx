@@ -2,7 +2,7 @@
 // Section with extreme cases tables and explanation
 
 import { useState } from 'react';
-import { HelpCircle, UserX, UserCheck } from 'lucide-react';
+import { HelpCircle, UserX, UserCheck, Loader2, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,6 +13,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, RefreshCw, Users } from 'lucide-react';
 import { useAnalysisExtremeCases } from '@/hooks/use-analysis-charts';
+import { useCreateAutoInterview } from '@/hooks/use-experiments';
+import { toast } from 'sonner';
 import type { ExtremeSynth } from '@/types/simulation';
 
 interface ExtremeCasesSectionProps {
@@ -92,8 +94,27 @@ export function ExtremeCasesSection({
   selectedSynthId,
 }: ExtremeCasesSectionProps) {
   const [showExplanation, setShowExplanation] = useState(false);
+  const [interviewId, setInterviewId] = useState<string | null>(null);
 
   const extremeCases = useAnalysisExtremeCases(experimentId, 10);
+  const createAutoInterview = useCreateAutoInterview();
+
+  const handleCreateInterview = () => {
+    createAutoInterview.mutate(experimentId, {
+      onSuccess: (response) => {
+        setInterviewId(response.interview_id);
+        toast.success('Entrevista criada com sucesso', {
+          description: '10 casos extremos selecionados (5 melhores + 5 piores)',
+        });
+      },
+      onError: (error) => {
+        const errorMessage = error instanceof Error ? error.message : 'Erro ao criar entrevista';
+        toast.error('Falha ao criar entrevista', {
+          description: errorMessage,
+        });
+      },
+    });
+  };
 
   return (
     <Card className="card">
@@ -249,6 +270,55 @@ export function ExtremeCasesSection({
                 {extremeCases.data.best_successes.length === 0 && (
                   <p className="text-xs text-slate-400 italic">Nenhum caso encontrado</p>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Auto-Interview Button */}
+        {!extremeCases.isLoading && !extremeCases.isError && extremeCases.data && (
+          <div className="mt-6 pt-4 border-t border-slate-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-slate-700 mb-1">Entrevista Automática</h4>
+                <p className="text-xs text-slate-500">
+                  Crie uma entrevista com os 10 casos mais extremos (5 melhores + 5 piores)
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {interviewId && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="btn-secondary"
+                  >
+                    <a href={`/interviews/${interviewId}`}>
+                      <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                      Ver Entrevista
+                    </a>
+                  </Button>
+                )}
+
+                <Button
+                  onClick={handleCreateInterview}
+                  disabled={createAutoInterview.isPending || !!interviewId}
+                  size="sm"
+                  className="btn-primary"
+                >
+                  {createAutoInterview.isPending ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      Criando...
+                    </>
+                  ) : (
+                    <>
+                      <Users className="h-3.5 w-3.5 mr-1.5" />
+                      {interviewId ? 'Entrevista Criada' : 'Criar Entrevista'}
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           </div>
