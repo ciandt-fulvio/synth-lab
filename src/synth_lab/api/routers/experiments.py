@@ -8,7 +8,10 @@ References:
     - OpenAPI: specs/019-experiment-refactor/contracts/experiment-api.yaml
 """
 
+import asyncio
+
 from fastapi import APIRouter, HTTPException, Query, status
+from loguru import logger
 from pydantic import BaseModel, Field
 
 from synth_lab.api.schemas.experiments import (
@@ -39,6 +42,9 @@ from synth_lab.repositories.analysis_repository import AnalysisRepository
 from synth_lab.repositories.interview_guide_repository import InterviewGuideRepository
 from synth_lab.repositories.research_repository import ResearchRepository
 from synth_lab.services.experiment_service import ExperimentService
+from synth_lab.services.interview_guide_generator_service import (
+    generate_interview_guide_async,
+)
 from synth_lab.services.research_service import ResearchService
 from synth_lab.services.scorecard_estimator import (
     ScorecardEstimationError,
@@ -159,6 +165,17 @@ async def create_experiment(data: ExperimentCreateSchema) -> ExperimentResponse:
             description=data.description,
             scorecard_data=scorecard_data,
         )
+
+        # Trigger async interview guide generation (non-blocking)
+        asyncio.create_task(
+            generate_interview_guide_async(
+                experiment_id=experiment.id,
+                name=experiment.name,
+                hypothesis=experiment.hypothesis,
+                description=experiment.description,
+            )
+        )
+        logger.info(f"Interview guide generation started for experiment: {experiment.id}")
 
         # Build response with scorecard if present
         scorecard_schema = None
