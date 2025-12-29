@@ -111,6 +111,20 @@ export async function createInterviewForExperiment(
 }
 
 /**
+ * Create an automatic interview with extreme cases (top 5 + bottom 5 performers).
+ *
+ * Automatically selects the 10 most extreme synths from the experiment's
+ * simulation results and creates an interview with them.
+ */
+export async function createAutoInterview(
+  experimentId: string
+): Promise<ResearchExecuteResponse> {
+  return fetchAPI<ResearchExecuteResponse>(`/experiments/${experimentId}/interviews/auto`, {
+    method: 'POST',
+  });
+}
+
+/**
  * Estimate scorecard dimensions using AI.
  *
  * Uses the experiment's name, hypothesis, and description to generate

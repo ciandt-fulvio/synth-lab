@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { ExtremeCasesSection } from './ExtremeCasesSection';
 import { OutliersSection } from './OutliersSection';
 import { ShapWaterfallSection } from './ShapWaterfallSection';
+import { AutoInterviewButton } from './AutoInterviewButton';
 
 interface PhaseEdgeCasesProps {
   experimentId: string;
@@ -26,6 +27,9 @@ export function PhaseEdgeCases({ experimentId }: PhaseEdgeCasesProps) {
         onSynthClick={handleSynthClick}
         selectedSynthId={selectedSynthId}
       />
+
+      {/* Auto-Interview Button: Create interview with extreme cases */}
+      <AutoInterviewButton experimentId={experimentId} />
 
       {/* Statistical Outliers with Isolation Forest */}
       <OutliersSection

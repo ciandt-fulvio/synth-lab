@@ -18,6 +18,7 @@ import {
   deleteExperiment,
   createScorecardForExperiment,
   createInterviewForExperiment,
+  createAutoInterview,
   estimateScorecardForExperiment,
   estimateScorecardFromText,
   runAnalysis,
@@ -235,6 +236,23 @@ export function useCreateInterviewForExperiment() {
       // Invalidate experiment detail to show the new interview
       queryClient.invalidateQueries({
         queryKey: queryKeys.experimentDetail(variables.experimentId),
+      });
+    },
+  });
+}
+
+/**
+ * Hook to create an automatic interview with extreme cases (top 5 + bottom 5).
+ */
+export function useCreateAutoInterview() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (experimentId: string) => createAutoInterview(experimentId),
+    onSuccess: (_, experimentId) => {
+      // Invalidate experiment detail to show the new interview
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.experimentDetail(experimentId),
       });
     },
   });
