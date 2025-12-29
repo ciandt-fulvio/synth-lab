@@ -10,6 +10,7 @@ References:
 """
 
 import json
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -17,17 +18,17 @@ from typing import Any
 from loguru import logger
 
 from synth_lab.domain.entities import Scenario
-from synth_lab.domain.entities.feature_scorecard import (
-    FeatureScorecard,
-    ScorecardDimension,
-    ScorecardIdentification,
-)
 from synth_lab.domain.entities.analysis_run import (
     AggregatedOutcomes,
     AnalysisConfig,
     AnalysisRun,
 )
 from synth_lab.domain.entities.experiment import Experiment
+from synth_lab.domain.entities.feature_scorecard import (
+    FeatureScorecard,
+    ScorecardDimension,
+    ScorecardIdentification,
+)
 from synth_lab.infrastructure.database import DatabaseManager, get_database
 from synth_lab.repositories.analysis_outcome_repository import AnalysisOutcomeRepository
 from synth_lab.repositories.analysis_repository import AnalysisRepository
@@ -222,7 +223,8 @@ class AnalysisExecutionService:
                 # trust_mean: agreeableness - neuroticism (willingness to trust new things)
                 trust_mean = round(0.6 * agreeableness + 0.4 * (1 - neuroticism), 3)
                 # friction_tolerance_mean: conscientiousness + low neuroticism
-                friction_tolerance_mean = round(0.5 * conscientiousness + 0.5 * (1 - neuroticism), 3)
+                friction_tolerance = 0.5 * conscientiousness + 0.5 * (1 - neuroticism)
+                friction_tolerance_mean = round(friction_tolerance, 3)
                 # exploration_prob: openness + extraversion
                 exploration_prob = round(0.6 * openness + 0.4 * extraversion, 3)
 
@@ -359,29 +361,38 @@ class AnalysisExecutionService:
 
     def _pre_compute_cache(self, analysis_id: str) -> None:
         """
-        Pre-compute chart cache for an analysis.
+        Pre-compute chart cache for an analysis in background thread.
 
-        Runs after analysis completes to populate cache for fast retrieval.
+        Runs asynchronously after analysis completes to populate cache.
+        Uses a separate thread to avoid blocking the response.
         Failures are logged but don't affect the analysis result.
 
         Args:
             analysis_id: Analysis ID to cache charts for.
         """
-        try:
-            from synth_lab.services.analysis.analysis_cache_service import (
-                AnalysisCacheService,
-            )
+        logger_ref = self.logger  # Capture logger for thread
 
-            cache_service = AnalysisCacheService(db=self.db)
-            results = cache_service.pre_compute_all(analysis_id)
+        def _compute_in_background() -> None:
+            try:
+                from synth_lab.services.analysis.analysis_cache_service import (
+                    AnalysisCacheService,
+                )
 
-            success_count = sum(1 for v in results.values() if v)
-            self.logger.info(
-                f"Pre-computed {success_count}/{len(results)} chart caches for {analysis_id}"
-            )
-        except Exception as e:
-            # Cache failures shouldn't affect the analysis result
-            self.logger.warning(f"Failed to pre-compute cache for {analysis_id}: {e}")
+                # Create fresh cache service (with new DB connection for thread safety)
+                cache_service = AnalysisCacheService()
+                results = cache_service.pre_compute_all(analysis_id)
+
+                success_count = sum(1 for v in results.values() if v)
+                logger_ref.info(
+                    f"Pre-computed {success_count}/{len(results)} chart caches for {analysis_id}"
+                )
+            except Exception as e:
+                # Cache failures shouldn't affect the analysis result
+                logger_ref.warning(f"Failed to pre-compute cache for {analysis_id}: {e}")
+
+        thread = threading.Thread(target=_compute_in_background, daemon=True)
+        thread.start()
+        self.logger.debug(f"Started background cache pre-computation for {analysis_id}")
 
 
 if __name__ == "__main__":
