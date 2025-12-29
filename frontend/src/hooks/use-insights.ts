@@ -9,6 +9,11 @@ import {
   generateExecutiveSummary,
   clearInsights,
 } from '@/services/simulation-api';
+import {
+  getAnalysisInsights,
+  generateAnalysisChartInsight,
+  generateAnalysisExecutiveSummary,
+} from '@/services/experiments-api';
 import type { ChartType } from '@/types/simulation';
 
 export function useSimulationInsights(simulationId: string, enabled = true) {
@@ -58,6 +63,47 @@ export function useClearInsights(simulationId: string) {
     mutationFn: () => clearInsights(simulationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.simulation.insights(simulationId) });
+    },
+  });
+}
+
+// =============================================================================
+// Analysis Insights Hooks (using experiment ID)
+// =============================================================================
+
+export function useAnalysisInsights(experimentId: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.analysis.insights(experimentId),
+    queryFn: () => getAnalysisInsights(experimentId),
+    enabled: !!experimentId && enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useGenerateAnalysisChartInsight(experimentId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      chartType,
+      chartData,
+    }: {
+      chartType: string;
+      chartData: Record<string, unknown>;
+    }) => generateAnalysisChartInsight(experimentId, chartType, chartData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.insights(experimentId) });
+    },
+  });
+}
+
+export function useGenerateAnalysisExecutiveSummary(experimentId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => generateAnalysisExecutiveSummary(experimentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.insights(experimentId) });
     },
   });
 }
