@@ -175,6 +175,9 @@ class AnalysisExecutionService:
                 f"with {results.total_synths} synths"
             )
 
+            # Pre-compute chart cache for fast retrieval
+            self._pre_compute_cache(analysis.id)
+
             return updated_analysis or analysis
 
         except Exception as e:
@@ -353,6 +356,32 @@ class AnalysisExecutionService:
             w_risk=0.25,
             w_time_to_value=0.25,
         )
+
+    def _pre_compute_cache(self, analysis_id: str) -> None:
+        """
+        Pre-compute chart cache for an analysis.
+
+        Runs after analysis completes to populate cache for fast retrieval.
+        Failures are logged but don't affect the analysis result.
+
+        Args:
+            analysis_id: Analysis ID to cache charts for.
+        """
+        try:
+            from synth_lab.services.analysis.analysis_cache_service import (
+                AnalysisCacheService,
+            )
+
+            cache_service = AnalysisCacheService(db=self.db)
+            results = cache_service.pre_compute_all(analysis_id)
+
+            success_count = sum(1 for v in results.values() if v)
+            self.logger.info(
+                f"Pre-computed {success_count}/{len(results)} chart caches for {analysis_id}"
+            )
+        except Exception as e:
+            # Cache failures shouldn't affect the analysis result
+            self.logger.warning(f"Failed to pre-compute cache for {analysis_id}: {e}")
 
 
 if __name__ == "__main__":
