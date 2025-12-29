@@ -33,7 +33,6 @@ import {
   PhaseLocation,
   PhaseSegmentation,
   PhaseEdgeCases,
-  PhaseExplainability,
   PhaseInsights,
 } from '@/components/experiments/results';
 import {
@@ -516,8 +515,6 @@ export default function ExperimentDetail() {
                   return <PhaseSegmentation experimentId={expId} />;
                 case 'casos-especiais':
                   return <PhaseEdgeCases experimentId={expId} />;
-                case 'aprofundamento':
-                  return <PhaseExplainability experimentId={expId} />;
                 case 'insights':
                   return <PhaseInsights experimentId={expId} />;
                 default:
