@@ -94,12 +94,13 @@ export interface SankeyChart {
 
 /** Cell in failure heatmap */
 export interface HeatmapCell {
-  x_bin: number;
-  y_bin: number;
-  x_label: string;
-  y_label: string;
-  count: number;
+  x_bin: string;
+  y_bin: string;
+  x_range: [number, number];
+  y_range: [number, number];
   metric_value: number;
+  synth_count: number;
+  synth_ids: string[];
 }
 
 /** Failure heatmap chart data */
@@ -108,9 +109,12 @@ export interface FailureHeatmapChart {
   cells: HeatmapCell[];
   x_axis: string;
   y_axis: string;
-  x_labels: string[];
-  y_labels: string[];
   metric: 'failed_rate' | 'success_rate' | 'did_not_try_rate';
+  bins: number;
+  max_value: number;
+  min_value: number;
+  critical_cells: HeatmapCell[];
+  critical_threshold: number;
 }
 
 /** Box plot statistics */
@@ -134,16 +138,24 @@ export interface BoxPlotChart {
 /** Point in scatter correlation chart */
 export interface ScatterPoint {
   synth_id: string;
-  x: number;
-  y: number;
-  outcome: 'success' | 'failed' | 'did_not_try';
+  x_value: number;
+  y_value: number;
 }
 
-/** Trend line in scatter chart */
-export interface TrendLine {
-  slope: number;
-  intercept: number;
+/** Correlation statistics */
+export interface CorrelationStats {
+  pearson_r: number;
+  p_value: number;
   r_squared: number;
+  is_significant: boolean;
+  trend_slope: number;
+  trend_intercept: number;
+}
+
+/** Point on the trend line */
+export interface TrendlinePoint {
+  x: number;
+  y: number;
 }
 
 /** Scatter correlation chart data */
@@ -152,9 +164,8 @@ export interface ScatterCorrelationChart {
   points: ScatterPoint[];
   x_axis: string;
   y_axis: string;
-  correlation: number;
-  p_value: number;
-  trendline?: TrendLine;
+  correlation: CorrelationStats;
+  trendline: TrendlinePoint[];
 }
 
 /** Bar in tornado chart */

@@ -1,5 +1,5 @@
 // frontend/src/components/experiments/results/charts/ScatterCorrelationChart.tsx
-// Scatter plot showing correlation between two variables with optional trendline
+// Scatter plot showing correlation between two variables with trendline
 
 import {
   ScatterChart,
@@ -9,20 +9,14 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ReferenceLine,
+  Line,
+  ComposedChart,
 } from 'recharts';
-import type { ScatterCorrelationChart as ScatterData } from '@/types/simulation';
+import type { ScatterCorrelationChart as ScatterData, ScatterPoint } from '@/types/simulation';
 
 interface ScatterCorrelationChartProps {
   data: ScatterData;
 }
-
-// Outcome colors
-const OUTCOME_COLORS = {
-  success: '#22c55e',
-  failed: '#ef4444',
-  did_not_try: '#94a3b8',
-} as const;
 
 function formatAxisLabel(label: string): string {
   const labelMap: Record<string, string> = {
@@ -41,7 +35,7 @@ function formatAxisLabel(label: string): string {
 interface CustomTooltipProps {
   active?: boolean;
   payload?: Array<{
-    payload: ScatterData['points'][0];
+    payload: { x: number; y: number; synth_id: string };
   }>;
 }
 
@@ -49,22 +43,17 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!active || !payload || !payload[0]) return null;
 
   const point = payload[0].payload;
-  const outcomeColor = OUTCOME_COLORS[point.outcome as keyof typeof OUTCOME_COLORS] || '#64748b';
 
   return (
     <div className="bg-white rounded-lg shadow-lg border border-slate-200 p-3 text-sm">
-      <div className="flex items-center gap-2 mb-2">
-        <div
-          className="w-3 h-3 rounded-full"
-          style={{ backgroundColor: outcomeColor }}
-        />
-        <span className="font-medium text-slate-800 capitalize">
-          {point.outcome === 'did_not_try' ? 'Não Tentou' : point.outcome === 'success' ? 'Sucesso' : 'Falhou'}
-        </span>
-      </div>
+      <div className="font-medium text-slate-800 mb-2">Synth: {point.synth_id}</div>
       <div className="space-y-1 text-slate-600">
-        <p>X: <span className="font-medium">{point.x.toFixed(3)}</span></p>
-        <p>Y: <span className="font-medium">{point.y.toFixed(3)}</span></p>
+        <p>
+          X: <span className="font-medium">{point.x.toFixed(3)}</span>
+        </p>
+        <p>
+          Y: <span className="font-medium">{point.y.toFixed(3)}</span>
+        </p>
       </div>
     </div>
   );
@@ -73,45 +62,52 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
 export function ScatterCorrelationChart({ data }: ScatterCorrelationChartProps) {
   const { points, x_axis, y_axis, trendline, correlation } = data;
 
-  // Group points by outcome for different colors
-  const successPoints = points.filter((p) => p.outcome === 'success');
-  const failedPoints = points.filter((p) => p.outcome === 'failed');
-  const didNotTryPoints = points.filter((p) => p.outcome === 'did_not_try');
+  // Transform points to use x/y for recharts
+  const chartPoints = points.map((p) => ({
+    x: p.x_value,
+    y: p.y_value,
+    synth_id: p.synth_id,
+  }));
 
-  // Calculate trendline endpoints if available
-  const trendlinePoints = trendline
-    ? [
-        { x: Math.min(...points.map((p) => p.x)), y: trendline.intercept + trendline.slope * Math.min(...points.map((p) => p.x)) },
-        { x: Math.max(...points.map((p) => p.x)), y: trendline.intercept + trendline.slope * Math.max(...points.map((p) => p.x)) },
-      ]
-    : [];
+  // Get correlation value (pearson_r)
+  const correlationValue = correlation?.pearson_r ?? 0;
+  const isSignificant = correlation?.is_significant ?? false;
 
   return (
     <div className="space-y-4">
       {/* Correlation indicator */}
-      {correlation !== undefined && (
-        <div className="flex items-center justify-center gap-2">
-          <span className="text-sm text-slate-600">Correlação:</span>
-          <span
-            className={`text-lg font-bold ${
-              Math.abs(correlation) > 0.7
-                ? 'text-green-600'
-                : Math.abs(correlation) > 0.4
+      <div className="flex items-center justify-center gap-2">
+        <span className="text-sm text-slate-600">Correlação:</span>
+        <span
+          className={`text-lg font-bold ${
+            Math.abs(correlationValue) > 0.7
+              ? 'text-green-600'
+              : Math.abs(correlationValue) > 0.4
                 ? 'text-amber-600'
                 : 'text-slate-500'
-            }`}
-          >
-            r = {correlation.toFixed(3)}
+          }`}
+        >
+          r = {correlationValue.toFixed(3)}
+        </span>
+        <span className="text-xs text-slate-400">
+          (
+          {Math.abs(correlationValue) > 0.7
+            ? 'forte'
+            : Math.abs(correlationValue) > 0.4
+              ? 'moderada'
+              : 'fraca'}
+          )
+        </span>
+        {isSignificant && (
+          <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+            p {'<'} 0.05
           </span>
-          <span className="text-xs text-slate-400">
-            ({Math.abs(correlation) > 0.7 ? 'forte' : Math.abs(correlation) > 0.4 ? 'moderada' : 'fraca'})
-          </span>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Chart */}
       <ResponsiveContainer width="100%" height={350}>
-        <ScatterChart margin={{ top: 20, right: 20, bottom: 40, left: 60 }}>
+        <ComposedChart margin={{ top: 20, right: 20, bottom: 40, left: 60 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis
             type="number"
@@ -119,6 +115,7 @@ export function ScatterCorrelationChart({ data }: ScatterCorrelationChartProps) 
             name={formatAxisLabel(x_axis)}
             stroke="#64748b"
             fontSize={12}
+            domain={['dataMin', 'dataMax']}
             label={{
               value: formatAxisLabel(x_axis),
               position: 'insideBottom',
@@ -132,6 +129,7 @@ export function ScatterCorrelationChart({ data }: ScatterCorrelationChartProps) 
             name={formatAxisLabel(y_axis)}
             stroke="#64748b"
             fontSize={12}
+            domain={['dataMin', 'dataMax']}
             label={{
               value: formatAxisLabel(y_axis),
               angle: -90,
@@ -142,65 +140,45 @@ export function ScatterCorrelationChart({ data }: ScatterCorrelationChartProps) 
           <Tooltip content={<CustomTooltip />} />
 
           {/* Trendline */}
-          {trendline && trendlinePoints.length === 2 && (
-            <ReferenceLine
-              segment={[
-                { x: trendlinePoints[0].x, y: trendlinePoints[0].y },
-                { x: trendlinePoints[1].x, y: trendlinePoints[1].y },
-              ]}
+          {trendline && trendline.length >= 2 && (
+            <Line
+              type="linear"
+              dataKey="y"
+              data={trendline}
               stroke="#6366f1"
               strokeWidth={2}
               strokeDasharray="5 5"
+              dot={false}
+              isAnimationActive={false}
             />
           )}
 
-          {/* Success points */}
-          <Scatter
-            name="Sucesso"
-            data={successPoints}
-            fill={OUTCOME_COLORS.success}
-            opacity={0.7}
-          />
-
-          {/* Failed points */}
-          <Scatter
-            name="Falhou"
-            data={failedPoints}
-            fill={OUTCOME_COLORS.failed}
-            opacity={0.7}
-          />
-
-          {/* Did not try points */}
-          <Scatter
-            name="Não Tentou"
-            data={didNotTryPoints}
-            fill={OUTCOME_COLORS.did_not_try}
-            opacity={0.7}
-          />
-        </ScatterChart>
+          {/* Scatter points */}
+          <Scatter name="Synths" data={chartPoints} fill="#6366f1" opacity={0.6} />
+        </ComposedChart>
       </ResponsiveContainer>
 
       {/* Legend */}
       <div className="flex justify-center gap-6 text-sm">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: OUTCOME_COLORS.success }} />
-          <span className="text-slate-600">Sucesso</span>
+          <div className="w-3 h-3 rounded-full bg-indigo-500" />
+          <span className="text-slate-600">Synths ({points.length})</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: OUTCOME_COLORS.failed }} />
-          <span className="text-slate-600">Falhou</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: OUTCOME_COLORS.did_not_try }} />
-          <span className="text-slate-600">Não Tentou</span>
-        </div>
-        {trendline && (
+        {trendline && trendline.length > 0 && (
           <div className="flex items-center gap-2">
-            <div className="w-6 h-0.5 bg-indigo-500" style={{ borderStyle: 'dashed' }} />
+            <div className="w-6 h-0.5 bg-indigo-500 border-dashed" />
             <span className="text-slate-600">Tendência</span>
           </div>
         )}
       </div>
+
+      {/* R-squared info */}
+      {correlation && (
+        <p className="text-center text-xs text-slate-400">
+          R² = {correlation.r_squared.toFixed(3)} (a linha de tendência explica{' '}
+          {(correlation.r_squared * 100).toFixed(1)}% da variância)
+        </p>
+      )}
     </div>
   );
 }
