@@ -123,6 +123,32 @@ export interface InterviewSummary {
   completed_at?: string | null;
 }
 
+/**
+ * Request to create an automatic interview with extreme cases.
+ */
+export interface AutoInterviewRequest {
+  /** Number of turns for the interview (fixed at 4) */
+  num_turns: number;
+}
+
+/**
+ * Response from creating an automatic interview.
+ */
+export interface AutoInterviewResponse {
+  /** Created interview ID */
+  interview_id: string;
+  /** Parent experiment ID */
+  experiment_id: string;
+  /** Synth IDs included in the interview (top 5 + bottom 5) */
+  synth_ids: string[];
+  /** Number of turns */
+  num_turns: number;
+  /** Interview status */
+  status: 'pending' | 'running' | 'generating_summary' | 'completed' | 'failed';
+  /** Creation timestamp */
+  created_at: string;
+}
+
 // =============================================================================
 // Experiment Request Types
 // =============================================================================

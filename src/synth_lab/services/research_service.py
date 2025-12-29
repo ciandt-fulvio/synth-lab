@@ -461,6 +461,34 @@ class ResearchService:
                 status=ExecutionStatus.GENERATING_SUMMARY,
             )
 
+        async def on_avatar_generation_start(count: int) -> None:
+            """Publish avatar_generation_started event."""
+            await broker.publish(
+                exec_id,
+                BrokerMessage(
+                    event_type="avatar_generation_started",
+                    data={
+                        "count": count,
+                    },
+                    timestamp=datetime.now(UTC),
+                ),
+            )
+            logger.debug(f"Published avatar_generation_started for {count} synths")
+
+        async def on_avatar_generation_complete(count: int) -> None:
+            """Publish avatar_generation_completed event."""
+            await broker.publish(
+                exec_id,
+                BrokerMessage(
+                    event_type="avatar_generation_completed",
+                    data={
+                        "count": count,
+                    },
+                    timestamp=datetime.now(UTC),
+                ),
+            )
+            logger.debug(f"Published avatar_generation_completed for {count} synths")
+
         async def on_interview_complete(
             exec_id: str, synth_id: str, total_turns: int
         ) -> None:
@@ -503,6 +531,8 @@ class ResearchService:
                 on_interview_completed=on_interview_complete,
                 on_transcription_completed=on_transcription_complete_with_save,
                 on_summary_start=None,  # Not used since we're not generating summary here
+                on_avatar_generation_start=on_avatar_generation_start,
+                on_avatar_generation_complete=on_avatar_generation_complete,
                 skip_interviewee_review=skip_interviewee_review,
                 additional_context=additional_context,
                 guide_name=guide_name,

@@ -1,9 +1,9 @@
 // frontend/src/components/experiments/results/PhaseLocation.tsx
-// Phase 2: Attribute Influence - Understanding how user characteristics affect outcomes
-// Composes section components that each handle their own state and data fetching
+// Phase 2: Influência - Understanding how features influence outcomes
+// Shows SHAP Summary for global importance and PDP for partial dependence
 
-import { ScatterSection } from './ScatterSection';
-import { AttributeCorrelationSection } from './AttributeCorrelationSection';
+import { ShapSummarySection } from './ShapSummarySection';
+import { PDPSection } from './PDPSection';
 
 interface PhaseLocationProps {
   experimentId: string;
@@ -12,11 +12,11 @@ interface PhaseLocationProps {
 export function PhaseLocation({ experimentId }: PhaseLocationProps) {
   return (
     <div className="space-y-6">
-      {/* Row 1: Attribute Correlations - quick overview of important attributes */}
-      <AttributeCorrelationSection experimentId={experimentId} />
+      {/* SHAP Summary: Global feature importance */}
+      <ShapSummarySection experimentId={experimentId} />
 
-      {/* Row 2: Scatter Chart - explore specific attribute correlations */}
-      <ScatterSection experimentId={experimentId} />
+      {/* PDP: Partial Dependence Plots */}
+      <PDPSection experimentId={experimentId} />
     </div>
   );
 }

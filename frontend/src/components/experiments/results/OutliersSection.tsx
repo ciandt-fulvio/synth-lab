@@ -18,45 +18,30 @@ import type { OutlierSynth } from '@/types/simulation';
 
 interface OutliersSectionProps {
   experimentId: string;
+  onSynthClick?: (synthId: string) => void;
+  selectedSynthId?: string | null;
 }
 
 interface OutlierCardProps {
   outlier: OutlierSynth;
+  onClick?: () => void;
+  isSelected?: boolean;
 }
 
-function OutlierCard({ outlier }: OutlierCardProps) {
-  const typeStyles = {
-    unexpected_failure: { label: 'Falha Inesperada', color: 'bg-red-100 text-red-700' },
-    unexpected_success: { label: 'Sucesso Inesperado', color: 'bg-green-100 text-green-700' },
-    atypical_profile: { label: 'Perfil Atípico', color: 'bg-indigo-100 text-indigo-700' },
-  };
-
-  const style = typeStyles[outlier.outlier_type] || typeStyles.atypical_profile;
-
+function OutlierCard({ outlier, onClick, isSelected }: OutlierCardProps) {
   return (
-    <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+    <button
+      onClick={onClick}
+      className={`bg-amber-50 border border-amber-200 rounded-lg p-3 w-full text-left transition-all cursor-pointer hover:bg-amber-100 hover:border-amber-300 ${
+        isSelected ? 'ring-2 ring-amber-400 bg-amber-100' : ''
+      }`}
+    >
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-amber-500" />
           <span className="text-xs font-mono text-slate-600 truncate max-w-32">
             {outlier.synth_id.substring(0, 12)}...
           </span>
-        </div>
-        <span className={`text-xs px-2 py-0.5 rounded-full ${style.color}`}>
-          {style.label}
-        </span>
-      </div>
-
-      <div className="mb-2">
-        <div className="flex items-center justify-between text-xs mb-1">
-          <span className="text-slate-500">Anomalia</span>
-          <span className="font-bold text-amber-600">{(outlier.anomaly_score * 100).toFixed(0)}%</span>
-        </div>
-        <div className="w-full bg-slate-200 rounded-full h-1.5">
-          <div
-            className="bg-amber-500 h-1.5 rounded-full"
-            style={{ width: `${outlier.anomaly_score * 100}%` }}
-          />
         </div>
       </div>
 
@@ -78,11 +63,11 @@ function OutlierCard({ outlier }: OutlierCardProps) {
       <p className="text-xs text-slate-600 italic">
         {outlier.explanation}
       </p>
-    </div>
+    </button>
   );
 }
 
-export function OutliersSection({ experimentId }: OutliersSectionProps) {
+export function OutliersSection({ experimentId, onSynthClick, selectedSynthId }: OutliersSectionProps) {
   const [showExplanation, setShowExplanation] = useState(false);
   const [contamination, setContamination] = useState(0.1);
 
@@ -145,10 +130,10 @@ export function OutliersSection({ experimentId }: OutliersSectionProps) {
           </div>
         </Collapsible>
 
-        {/* Contamination slider */}
+        {/* Sensitivity slider */}
         <div className="bg-slate-50 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-slate-600">Sensibilidade (Contaminação)</span>
+            <span className="text-sm text-slate-600">Sensibilidade de Detecção</span>
             <span className="text-sm font-medium text-slate-800">{(contamination * 100).toFixed(0)}%</span>
           </div>
           <Slider
@@ -239,7 +224,12 @@ export function OutliersSection({ experimentId }: OutliersSectionProps) {
         {!outliers.isLoading && !outliers.isError && outliers.data && outliers.data.outliers.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {outliers.data.outliers.map((outlier) => (
-              <OutlierCard key={outlier.synth_id} outlier={outlier} />
+              <OutlierCard
+                key={outlier.synth_id}
+                outlier={outlier}
+                onClick={() => onSynthClick?.(outlier.synth_id)}
+                isSelected={selectedSynthId === outlier.synth_id}
+              />
             ))}
           </div>
         )}

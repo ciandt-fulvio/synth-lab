@@ -5,7 +5,7 @@
  * from broad overview to actionable insights.
  *
  * Each phase represents a step in the research investigation:
- * Overview → Location → Segmentation → Edge Cases → Deep Dive → Insights
+ * Overview → Influência → Segmentation → Edge Cases → Insights
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -14,7 +14,6 @@ import {
   PieChart,
   Users,
   UserCheck,
-  Microscope,
   Lightbulb,
   ChevronRight,
   Play,
@@ -37,7 +36,6 @@ export type AnalysisPhaseId =
   | 'localizacao'
   | 'segmentacao'
   | 'casos-especiais'
-  | 'aprofundamento'
   | 'insights';
 
 export const ANALYSIS_PHASES: AnalysisPhase[] = [
@@ -76,15 +74,6 @@ export const ANALYSIS_PHASES: AnalysisPhase[] = [
     question: 'Quem devemos entrevistar primeiro?',
     description:
       'Destaca outliers e casos extremos. Prioriza synths para entrevistas qualitativas aprofundadas.',
-  },
-  {
-    id: 'aprofundamento',
-    title: 'Aprofundamento',
-    shortTitle: 'Deep Dive',
-    icon: <Microscope className="w-4 h-4" />,
-    question: 'Por que esse usuário específico falhou?',
-    description:
-      'Análise detalhada de casos individuais. Explora motivações, barreiras e contexto específico.',
   },
   {
     id: 'insights',
@@ -168,12 +157,12 @@ export function AnalysisPhaseTabs({
                 Análise Quantitativa
               </h3>
               <p className="text-xs text-slate-500">
-                6 fases de investigação
+                5 fases de investigação
               </p>
             </div>
           </div>
           <div className="text-xs text-slate-400 font-medium tracking-wider uppercase">
-            Fase {currentIndex + 1} de 6
+            Fase {currentIndex + 1} de 5
           </div>
         </div>
       </div>

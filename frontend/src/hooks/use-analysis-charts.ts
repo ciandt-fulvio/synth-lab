@@ -9,7 +9,6 @@ import {
   getAnalysisSankeyChart,
   getAnalysisFailureHeatmap,
   getAnalysisScatterCorrelation,
-  getAnalysisAttributeCorrelations,
   createAnalysisClustering,
   createAutoAnalysisClustering,
   getAnalysisClustering,
@@ -101,15 +100,6 @@ export function useAnalysisScatterCorrelation(
   return useQuery({
     queryKey: [...queryKeys.analysis.scatter(experimentId), xAxis, yAxis, showTrendline],
     queryFn: () => getAnalysisScatterCorrelation(experimentId, xAxis, yAxis, showTrendline),
-    enabled: !!experimentId && enabled,
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useAnalysisAttributeCorrelations(experimentId: string, enabled = true) {
-  return useQuery({
-    queryKey: queryKeys.analysis.attributeCorrelations(experimentId),
-    queryFn: () => getAnalysisAttributeCorrelations(experimentId),
     enabled: !!experimentId && enabled,
     staleTime: 5 * 60 * 1000,
   });

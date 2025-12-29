@@ -54,6 +54,7 @@ from synth_lab.services.simulation.explainability_service import ExplainabilityS
 from synth_lab.services.simulation.insight_service import InsightService
 from synth_lab.domain.entities.chart_insight import ChartInsight, SimulationInsights
 from synth_lab.repositories.analysis_outcome_repository import AnalysisOutcomeRepository
+from synth_lab.repositories.synth_repository import SynthRepository
 from synth_lab.services.simulation.chart_data_service import ChartDataService
 from synth_lab.domain.entities.analysis_run import AggregatedOutcomes, AnalysisConfig
 from synth_lab.infrastructure.database import get_database
@@ -853,58 +854,6 @@ async def get_scatter_correlation_chart(
     )
 
 
-@router.get(
-    "/{experiment_id}/analysis/charts/attribute-correlations",
-    response_model=AttributeCorrelationChart,
-)
-async def get_attribute_correlations_chart(
-    experiment_id: str,
-) -> AttributeCorrelationChart:
-    """
-    Get attribute correlation chart data for an analysis.
-
-    Shows how each synth attribute correlates with attempt_rate and success_rate.
-    Useful for understanding which attributes most influence outcomes.
-    Uses cache (no parameters).
-    """
-    service = get_analysis_service()
-
-    analysis = service.get_analysis(experiment_id)
-    if analysis is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
-
-    if analysis.status != "completed":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
-
-    # Check cache (correlations has no parameters, always use cache)
-    cache_service = get_cache_service()
-    cached = cache_service.get_cached(analysis.id, CacheKeys.CORRELATIONS)
-    if cached:
-        return AttributeCorrelationChart.model_validate(cached)
-
-    # Compute on-demand
-    chart_service = get_chart_data_service()
-    outcome_repo = get_outcome_repository()
-
-    outcomes, _ = outcome_repo.get_outcomes(analysis.id)
-    if not outcomes:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No outcomes found for this analysis",
-        )
-
-    return chart_service.get_attribute_correlations(
-        simulation_id=analysis.id,
-        outcomes=outcomes,
-    )
-
-
 # =============================================================================
 # Phase 3: Clustering Endpoints
 # =============================================================================
@@ -1269,6 +1218,7 @@ async def get_analysis_extreme_cases(
     service = get_analysis_service()
     outlier_service = get_outlier_service()
     outcome_repo = get_outcome_repository()
+    synth_repo = SynthRepository(get_database())
 
     analysis = service.get_analysis(experiment_id)
     if analysis is None:
@@ -1290,11 +1240,39 @@ async def get_analysis_extreme_cases(
             detail="Extreme cases requires at least 10 synths",
         )
 
-    return outlier_service.get_extreme_cases(
+    result = outlier_service.get_extreme_cases(
         simulation_id=analysis.id,
         outcomes=outcomes,
         n_per_category=n_per_category,
     )
+
+    # Collect all synth IDs to fetch names
+    all_synth_ids = set()
+    for synth in result.worst_failures:
+        all_synth_ids.add(synth.synth_id)
+    for synth in result.best_successes:
+        all_synth_ids.add(synth.synth_id)
+    for synth in result.unexpected_cases:
+        all_synth_ids.add(synth.synth_id)
+
+    # Fetch synth names
+    synth_names: dict[str, str] = {}
+    for synth_id in all_synth_ids:
+        try:
+            synth_detail = synth_repo.get_by_id(synth_id)
+            synth_names[synth_id] = synth_detail.nome
+        except Exception:
+            synth_names[synth_id] = ""
+
+    # Enrich extreme synths with names
+    for synth in result.worst_failures:
+        synth.synth_name = synth_names.get(synth.synth_id, "")
+    for synth in result.best_successes:
+        synth.synth_name = synth_names.get(synth.synth_id, "")
+    for synth in result.unexpected_cases:
+        synth.synth_name = synth_names.get(synth.synth_id, "")
+
+    return result
 
 
 @router.get(

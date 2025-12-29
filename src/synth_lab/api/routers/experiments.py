@@ -41,6 +41,7 @@ from synth_lab.models.research import ResearchExecuteRequest, ResearchExecuteRes
 from synth_lab.repositories.analysis_repository import AnalysisRepository
 from synth_lab.repositories.interview_guide_repository import InterviewGuideRepository
 from synth_lab.repositories.research_repository import ResearchRepository
+from synth_lab.repositories.synth_repository import SynthRepository
 from synth_lab.services.experiment_service import ExperimentService
 from synth_lab.services.interview_guide_generator_service import (
     generate_interview_guide_async,
@@ -621,6 +622,118 @@ async def create_interview_for_experiment(
         synth_count=request.synth_count,
         max_turns=request.max_turns,
         generate_summary=request.generate_summary,
+    )
+
+    # Execute via research service
+    research_service = get_research_service()
+    try:
+        return await research_service.execute_research(research_request)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
+
+
+@router.get(
+    "/{experiment_id}/interviews/auto",
+    response_model=ResearchExecuteResponse | None,
+)
+async def get_auto_interview_for_experiment(
+    experiment_id: str,
+) -> ResearchExecuteResponse | None:
+    """
+    Get the auto-interview execution for this experiment if it exists.
+
+    Returns the most recent auto-interview (extreme cases) created for this experiment.
+    Returns None if no auto-interview has been created yet.
+
+    Args:
+        experiment_id: Experiment ID.
+
+    Returns:
+        ResearchExecuteResponse with interview details, or None if not found.
+    """
+    db = get_database()
+    research_repo = ResearchRepository(db)
+
+    execution = research_repo.get_auto_interview_for_experiment(experiment_id)
+
+    if execution is None:
+        return None
+
+    return ResearchExecuteResponse(
+        exec_id=execution.exec_id,
+        status=execution.status,
+        topic_name=execution.topic_name,
+        synth_count=execution.synth_count,
+        started_at=execution.started_at,
+    )
+
+
+@router.post(
+    "/{experiment_id}/interviews/auto",
+    response_model=ResearchExecuteResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_auto_interview_for_experiment(
+    experiment_id: str,
+) -> ResearchExecuteResponse:
+    """
+    Create an interview with extreme case synths (top 5 + bottom 5).
+
+    Automatically selects the 10 most extreme cases (5 best + 5 worst performers)
+    from the experiment's simulation results and creates an interview with them.
+
+    Requires:
+    - Experiment must exist
+    - Experiment must have an interview guide configured
+    - Simulation must have at least 10 synths
+
+    Returns:
+        ResearchExecuteResponse: Interview execution details with ID
+    """
+    # Validate experiment exists
+    exp_service = get_experiment_service()
+    experiment = exp_service.get_experiment_detail(experiment_id)
+    if experiment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Experiment {experiment_id} not found",
+        )
+
+    # Validate experiment has interview guide
+    db = get_database()
+    interview_guide_repo = InterviewGuideRepository(db)
+    if not interview_guide_repo.exists(experiment_id):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Experiment does not have an interview guide configured",
+        )
+
+    # Get extreme cases (top 5 + bottom 5)
+    synth_repo = SynthRepository(db)
+    bottom_ids, top_ids = synth_repo.get_extreme_cases(experiment_id, top_n=5)
+
+    # Validate we have at least 10 synths
+    total_synths = len(bottom_ids) + len(top_ids)
+    if total_synths < 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Not enough synths for auto-interview. Found {total_synths}, need 10 (5 best + 5 worst).",
+        )
+
+    # Combine extreme cases (bottom 5 first, then top 5)
+    extreme_synth_ids = bottom_ids[:5] + top_ids[:5]
+
+    # Create research execution request with extreme synth IDs
+    research_request = ResearchExecuteRequest(
+        topic_name=f"exp_{experiment_id}_auto",
+        experiment_id=experiment_id,
+        additional_context="Entrevista automática com casos extremos (5 piores + 5 melhores resultados)",
+        synth_ids=extreme_synth_ids,
+        max_turns=5,
+        generate_summary=True,
     )
 
     # Execute via research service

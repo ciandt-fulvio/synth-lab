@@ -451,6 +451,35 @@ class ResearchRepository(BaseRepository):
         executions = [self._row_to_summary(row) for row in rows]
         return PaginatedResponse(data=executions, pagination=meta)
 
+    def get_auto_interview_for_experiment(
+        self, experiment_id: str
+    ) -> ResearchExecutionSummary | None:
+        """
+        Get the most recent auto-interview for an experiment.
+
+        Auto-interviews have topic_name pattern: "exp_{experiment_id}_auto".
+
+        Args:
+            experiment_id: Experiment ID to search for.
+
+        Returns:
+            Most recent auto-interview execution summary, or None if not found.
+        """
+        query = """
+            SELECT * FROM research_executions
+            WHERE experiment_id = ?
+            AND topic_name LIKE ?
+            ORDER BY started_at DESC
+            LIMIT 1
+        """
+        topic_pattern = f"exp_{experiment_id}_auto%"
+        row = self.db.fetchone(query, (experiment_id, topic_pattern))
+
+        if row is None:
+            return None
+
+        return self._row_to_summary(row)
+
     def check_summaries_exist_batch(self, exec_ids: list[str]) -> dict[str, bool]:
         """
         Check which executions have summary_content.
