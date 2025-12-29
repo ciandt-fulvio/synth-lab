@@ -111,6 +111,7 @@ class AnalysisRun(BaseModel):
     Attributes:
         id: Unique identifier (ana_[a-f0-9]{8})
         experiment_id: Parent experiment ID (UNIQUE constraint enforces 1:1)
+        scenario_id: Scenario ID used (baseline, crisis, first-use)
         config: Analysis configuration
         status: Current status (pending, running, completed, failed)
         started_at: When analysis started
@@ -129,6 +130,11 @@ class AnalysisRun(BaseModel):
     experiment_id: str = Field(
         pattern=r"^exp_[a-f0-9]{8}$",
         description="Parent experiment ID (enforces 1:1 relationship).",
+    )
+
+    scenario_id: str = Field(
+        default="baseline",
+        description="Scenario ID used for this analysis (baseline, crisis, first-use).",
     )
 
     config: AnalysisConfig = Field(

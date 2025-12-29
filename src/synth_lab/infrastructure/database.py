@@ -19,7 +19,7 @@ from loguru import logger
 
 from synth_lab.infrastructure.config import DB_PATH
 
-# Database schema SQL - Version 10 (2025-12)
+# Database schema SQL - Version 11 (2025-12)
 # Changes:
 #   - v4: synths.data: single JSON field for all nested data
 #   - v5: Added simulation tables (feature_scorecards, simulation_runs, synth_outcomes,
@@ -32,6 +32,7 @@ from synth_lab.infrastructure.config import DB_PATH
 #   - v8: Removed topic_guides_cache, added interview_guide table (1:1 with experiment)
 #   - v9: Added sensitivity_results and chart_insights tables
 #   - v10: Added status field to experiments table for soft delete
+#   - v11: Added scenario_id field to analysis_runs table
 SCHEMA_SQL = """
 -- Enable recommended settings
 PRAGMA journal_mode=WAL;
@@ -55,10 +56,11 @@ CREATE INDEX IF NOT EXISTS idx_experiments_created ON experiments(created_at DES
 CREATE INDEX IF NOT EXISTS idx_experiments_name ON experiments(name);
 -- idx_experiments_status is created by migration v10
 
--- Analysis Runs table (NEW in v7 - replaces simulation_runs, 1:1 with experiment)
+-- Analysis Runs table (MODIFIED in v11 - added scenario_id)
 CREATE TABLE IF NOT EXISTS analysis_runs (
     id TEXT PRIMARY KEY,
     experiment_id TEXT NOT NULL UNIQUE,
+    scenario_id TEXT NOT NULL DEFAULT 'baseline',
     config TEXT NOT NULL CHECK(json_valid(config)),
     status TEXT NOT NULL DEFAULT 'pending',
     started_at TEXT NOT NULL,
@@ -325,6 +327,17 @@ def init_database(db_path: Path | None = None) -> None:
             )
             conn.commit()
             logger.info("Migration v10 completed: status column added")
+
+        # Migration v11: Add scenario_id column to analysis_runs if not exists
+        cursor = conn.execute("PRAGMA table_info(analysis_runs)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if "scenario_id" not in columns:
+            logger.info("Migrating analysis_runs table: adding scenario_id column")
+            conn.execute(
+                "ALTER TABLE analysis_runs ADD COLUMN scenario_id TEXT NOT NULL DEFAULT 'baseline'"
+            )
+            conn.commit()
+            logger.info("Migration v11 completed: scenario_id column added")
 
         # Ensure default synth group exists (ID=1, always present)
         conn.execute(
