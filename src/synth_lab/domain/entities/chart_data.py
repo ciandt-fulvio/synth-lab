@@ -245,6 +245,38 @@ class TornadoChart(BaseModel):
 
 
 # =============================================================================
+# 8. Attribute Correlation Chart
+# =============================================================================
+
+
+class AttributeCorrelation(BaseModel):
+    """Correlation of a single attribute with outcome metrics."""
+
+    attribute: str = Field(description="Attribute name (e.g., 'capability_mean').")
+    attribute_label: str = Field(description="Display label in Portuguese.")
+    correlation_attempt: float = Field(
+        ge=-1.0, le=1.0, description="Pearson correlation with attempt_rate."
+    )
+    correlation_success: float = Field(
+        ge=-1.0, le=1.0, description="Pearson correlation with success_rate."
+    )
+    p_value_attempt: float = Field(ge=0.0, description="P-value for attempt correlation.")
+    p_value_success: float = Field(ge=0.0, description="P-value for success correlation.")
+    is_significant_attempt: bool = Field(description="True if p < 0.05 for attempt.")
+    is_significant_success: bool = Field(description="True if p < 0.05 for success.")
+
+
+class AttributeCorrelationChart(BaseModel):
+    """Data for attribute correlation chart."""
+
+    simulation_id: str = Field(description="ID of the simulation.")
+    correlations: list[AttributeCorrelation] = Field(
+        description="Correlations sorted by abs(correlation_success) desc."
+    )
+    total_synths: int = Field(description="Total number of synths analyzed.")
+
+
+# =============================================================================
 # Validation
 # =============================================================================
 

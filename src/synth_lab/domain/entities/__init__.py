@@ -20,6 +20,8 @@ from synth_lab.domain.entities.assumption_log import (
     generate_log_id,
 )
 from synth_lab.domain.entities.chart_data import (
+    AttributeCorrelation,
+    AttributeCorrelationChart,
     BoxPlotChart,
     BoxPlotStats,
     CorrelationPoint,
@@ -132,6 +134,8 @@ __all__ = [
     "LogEntry",
     "generate_log_id",
     # Chart data (analysis)
+    "AttributeCorrelation",
+    "AttributeCorrelationChart",
     "BoxPlotChart",
     "BoxPlotStats",
     "CorrelationPoint",

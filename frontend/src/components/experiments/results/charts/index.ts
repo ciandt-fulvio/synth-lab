@@ -11,6 +11,7 @@ export { FailureHeatmap } from './FailureHeatmap';
 export { BoxPlotChart } from './BoxPlotChart';
 export { ScatterCorrelationChart } from './ScatterCorrelationChart';
 export { TornadoChart } from './TornadoChart';
+export { AttributeCorrelationChart } from './AttributeCorrelationChart';
 
 // Phase 3: Segmentation
 export { ElbowChart } from './ElbowChart';
@@ -18,7 +19,10 @@ export { RadarComparisonChart } from './RadarComparisonChart';
 export { DendrogramChart } from './DendrogramChart';
 
 // Phase 5: Explainability
-// TODO: Export ShapWaterfallChart, ShapSummaryChart, PDPChart
+export { ShapSummaryChart } from './ShapSummaryChart';
+export { ShapWaterfallChart } from './ShapWaterfallChart';
+export { PDPChart } from './PDPChart';
+export { PDPComparisonChart } from './PDPComparisonChart';
 
 // Phase 6: Insights
 // TODO: Export InsightCard

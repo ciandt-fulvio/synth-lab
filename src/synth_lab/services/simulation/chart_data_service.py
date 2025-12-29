@@ -16,6 +16,8 @@ from loguru import logger
 from scipy import stats
 
 from synth_lab.domain.entities import (
+    AttributeCorrelation,
+    AttributeCorrelationChart,
     BoxPlotChart,
     BoxPlotStats,
     CorrelationPoint,
@@ -695,6 +697,112 @@ class ChartDataService:
             bars=bars,
             deltas_used=[dim.delta_pct for dim in sorted_dims] if sorted_dims else [],
             most_sensitive=sorted_dims[0].dimension if sorted_dims else "",
+        )
+
+    # =========================================================================
+    # Phase 2b: Attribute Correlations
+    # =========================================================================
+
+    # Attribute labels in Portuguese
+    ATTRIBUTE_LABELS: dict[str, str] = {
+        "capability_mean": "Capacidade Média",
+        "trust_mean": "Confiança Média",
+        "friction_tolerance_mean": "Tolerância a Atrito",
+        "exploration_prob": "Propensão a Explorar",
+        "digital_literacy": "Literacia Digital",
+        "similar_tool_experience": "Experiência Similar",
+        "motor_ability": "Habilidade Motora",
+        "time_availability": "Tempo Disponível",
+        "domain_expertise": "Expertise no Domínio",
+    }
+
+    def get_attribute_correlations(
+        self,
+        simulation_id: str,
+        outcomes: list[SynthOutcome],
+    ) -> AttributeCorrelationChart:
+        """
+        Calculate correlation of each synth attribute with attempt_rate and success_rate.
+
+        Returns correlations sorted by absolute correlation with success_rate (descending).
+
+        Args:
+            simulation_id: ID of the simulation.
+            outcomes: List of SynthOutcome entities.
+
+        Returns:
+            AttributeCorrelationChart with correlations for each attribute.
+        """
+        logger.info(f"Calculating attribute correlations for {simulation_id}")
+
+        if not outcomes or len(outcomes) < 3:
+            return AttributeCorrelationChart(
+                simulation_id=simulation_id,
+                correlations=[],
+                total_synths=len(outcomes),
+            )
+
+        # Calculate attempt_rate and success_rate for each synth
+        attempt_rates = np.array([1.0 - o.did_not_try_rate for o in outcomes])
+        success_rates = np.array([o.success_rate for o in outcomes])
+
+        # All attributes to analyze
+        all_attributes = [
+            "capability_mean",
+            "trust_mean",
+            "friction_tolerance_mean",
+            "exploration_prob",
+            "digital_literacy",
+            "similar_tool_experience",
+            "motor_ability",
+            "time_availability",
+            "domain_expertise",
+        ]
+
+        correlations: list[AttributeCorrelation] = []
+
+        for attr in all_attributes:
+            # Extract attribute values
+            attr_values = np.array([get_attribute_value(o, attr) for o in outcomes])
+
+            # Calculate correlation with attempt_rate
+            try:
+                corr_attempt, p_attempt = stats.pearsonr(attr_values, attempt_rates)
+                # Handle NaN (occurs when variance is zero)
+                if np.isnan(corr_attempt) or np.isnan(p_attempt):
+                    corr_attempt, p_attempt = 0.0, 1.0
+            except Exception:
+                corr_attempt, p_attempt = 0.0, 1.0
+
+            # Calculate correlation with success_rate
+            try:
+                corr_success, p_success = stats.pearsonr(attr_values, success_rates)
+                # Handle NaN (occurs when variance is zero)
+                if np.isnan(corr_success) or np.isnan(p_success):
+                    corr_success, p_success = 0.0, 1.0
+            except Exception:
+                corr_success, p_success = 0.0, 1.0
+
+            correlations.append(
+                AttributeCorrelation(
+                    attribute=attr,
+                    attribute_label=self.ATTRIBUTE_LABELS.get(attr, attr),
+                    correlation_attempt=float(corr_attempt),
+                    correlation_success=float(corr_success),
+                    p_value_attempt=float(p_attempt),
+                    p_value_success=float(p_success),
+                    is_significant_attempt=p_attempt < 0.05,
+                    is_significant_success=p_success < 0.05,
+                )
+            )
+
+        # Sort by absolute correlation with success (descending)
+        correlations.sort(key=lambda c: abs(c.correlation_success), reverse=True)
+
+        return AttributeCorrelationChart(
+            simulation_id=simulation_id,
+            correlations=correlations,
+            total_synths=len(outcomes),
         )
 
 

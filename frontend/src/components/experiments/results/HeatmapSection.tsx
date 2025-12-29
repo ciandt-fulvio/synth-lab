@@ -1,18 +1,17 @@
 // frontend/src/components/experiments/results/HeatmapSection.tsx
-// Section with Failure Heatmap chart showing 3 fixed axis combinations
+// Failure Heatmap section with professional view switching
 
 import { useState } from 'react';
-import { HelpCircle, Grid3X3, Sparkles, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Sparkles, Loader2, AlertCircle, RefreshCw, Info } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { ChartErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { FailureHeatmap } from './charts/FailureHeatmap';
 import { useAnalysisFailureHeatmap } from '@/hooks/use-analysis-charts';
@@ -22,46 +21,39 @@ interface HeatmapSectionProps {
   experimentId: string;
 }
 
-// Fixed axis combinations for UX analysis
-const HEATMAP_VIEWS = [
+// Analysis perspectives for the heatmap
+const PERSPECTIVES = [
   {
     id: 'capability-trust',
-    label: 'Capacidade × Confiança',
-    shortLabel: 'Cap × Conf',
+    name: 'Habilidade vs Confiança',
     xAxis: 'capability_mean',
     yAxis: 'trust_mean',
-    description: 'Identifica usuários com baixa capacidade e/ou confiança que falham mais',
+    insight: 'Usuários com baixa capacidade e/ou confiança tendem a falhar mais',
   },
   {
     id: 'friction-exploration',
-    label: 'Tolerância a Atrito × Exploração',
-    shortLabel: 'Atrito × Explor',
+    name: 'Atrito vs Exploração',
     xAxis: 'friction_tolerance_mean',
     yAxis: 'exploration_prob',
-    description: 'Mostra como tolerância a dificuldades e propensão a explorar afetam falhas',
+    insight: 'Tolerância a dificuldades e propensão a explorar afetam o sucesso',
   },
   {
     id: 'time-expertise',
-    label: 'Tempo Disponível × Expertise',
-    shortLabel: 'Tempo × Expert',
+    name: 'Tempo vs Expertise',
     xAxis: 'time_availability',
     yAxis: 'domain_expertise',
-    description: 'Revela se falta de tempo ou expertise contribuem para falhas',
+    insight: 'Falta de tempo ou expertise no domínio podem causar falhas',
   },
 ] as const;
 
-function HeatmapView({
+function HeatmapContent({
   experimentId,
-  xAxis,
-  yAxis,
-  description,
+  perspective,
 }: {
   experimentId: string;
-  xAxis: string;
-  yAxis: string;
-  description: string;
+  perspective: (typeof PERSPECTIVES)[number];
 }) {
-  const heatmap = useAnalysisFailureHeatmap(experimentId, xAxis, yAxis);
+  const heatmap = useAnalysisFailureHeatmap(experimentId, perspective.xAxis, perspective.yAxis);
   const generateInsight = useGenerateAnalysisChartInsight(experimentId);
 
   const handleGenerateInsight = () => {
@@ -69,8 +61,8 @@ function HeatmapView({
     generateInsight.mutate({
       chartType: 'failure_heatmap',
       chartData: {
-        x_axis: xAxis,
-        y_axis: yAxis,
+        x_axis: perspective.xAxis,
+        y_axis: perspective.yAxis,
         cells: heatmap.data.cells,
       },
     });
@@ -78,185 +70,138 @@ function HeatmapView({
 
   if (heatmap.isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4" style={{ height: 400 }}>
-        <Skeleton className="w-full h-full rounded-lg" />
+      <div className="space-y-4 animate-pulse">
+        <div className="h-4 w-48 bg-slate-200 rounded" />
+        <Skeleton className="w-full aspect-square max-w-md mx-auto rounded-lg" />
+        <div className="h-3 w-32 bg-slate-200 rounded mx-auto" />
       </div>
     );
   }
 
   if (heatmap.isError) {
     return (
-      <div
-        className="flex flex-col items-center justify-center gap-4 text-center"
-        style={{ height: 400 }}
-      >
-        <div className="icon-box-neutral">
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-3">
           <AlertCircle className="h-6 w-6 text-red-500" />
         </div>
-        <div>
-          <p className="text-body text-red-600 font-medium mb-1">Erro</p>
-          <p className="text-meta">Erro ao carregar os dados. Tente novamente.</p>
-        </div>
+        <p className="text-sm text-slate-600 mb-1">Erro ao carregar dados</p>
+        <p className="text-xs text-slate-400 mb-4">Não foi possível buscar o mapa de calor</p>
         <Button
           variant="outline"
           size="sm"
           onClick={() => heatmap.refetch()}
-          className="btn-secondary"
+          className="text-xs"
         >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Tentar Novamente
+          <RefreshCw className="h-3 w-3 mr-1.5" />
+          Tentar novamente
         </Button>
       </div>
     );
   }
 
-  if (!heatmap.data) {
+  if (!heatmap.data || heatmap.data.cells.length === 0) {
     return (
-      <div
-        className="flex flex-col items-center justify-center gap-4 text-center"
-        style={{ height: 400 }}
-      >
-        <div className="icon-box-neutral">
-          <Grid3X3 className="h-6 w-6 text-slate-400" />
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+          <Info className="h-5 w-5 text-slate-400" />
         </div>
-        <div>
-          <p className="text-body text-slate-500 font-medium mb-1">Sem Dados</p>
-          <p className="text-meta">Nenhum dado disponível para este gráfico.</p>
-        </div>
+        <p className="text-sm text-slate-500">Nenhum dado disponível</p>
+        <p className="text-xs text-slate-400">Execute uma análise para ver o mapa de calor</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* View description and insight button */}
+      {/* Insight hint */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-600">{description}</p>
+        <p className="text-xs text-slate-500 italic">💡 {perspective.insight}</p>
         <Button
           onClick={handleGenerateInsight}
           disabled={generateInsight.isPending}
-          variant="outline"
+          variant="ghost"
           size="sm"
-          className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+          className="text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 h-7 px-2"
         >
           {generateInsight.isPending ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
           ) : (
-            <Sparkles className="h-4 w-4 mr-2" />
+            <Sparkles className="h-3 w-3 mr-1.5" />
           )}
-          Gerar Insight
+          Gerar análise IA
         </Button>
       </div>
 
       {/* Chart */}
-      <div style={{ minHeight: 400 }}>
-        <ChartErrorBoundary chartName="Mapa de Calor">
-          <FailureHeatmap data={heatmap.data} />
-        </ChartErrorBoundary>
-      </div>
+      <ChartErrorBoundary chartName="Mapa de Calor">
+        <FailureHeatmap data={heatmap.data} />
+      </ChartErrorBoundary>
     </div>
   );
 }
 
 export function HeatmapSection({ experimentId }: HeatmapSectionProps) {
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [activeView, setActiveView] = useState(HEATMAP_VIEWS[0].id);
+  const [activeId, setActiveId] = useState(PERSPECTIVES[0].id);
+  const activePerspective = PERSPECTIVES.find((p) => p.id === activeId) || PERSPECTIVES[0];
 
   return (
-    <Card className="card">
-      <CardHeader className="pb-2">
-        <div>
-          <CardTitle className="text-card-title flex items-center gap-2">
-            <Grid3X3 className="h-4 w-4 text-slate-500" />
-            Mapa de Calor de Falhas
-          </CardTitle>
-          <p className="text-meta">
-            Identifica regiões com alta taxa de falha em duas dimensões de perfil de usuário
-          </p>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Explanation section - collapsible */}
-        <Collapsible open={showExplanation} onOpenChange={setShowExplanation}>
-          <div className="bg-gradient-to-r from-slate-50 to-indigo-50 border border-slate-200 rounded-lg p-3">
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full flex items-center justify-between p-0 h-auto hover:bg-transparent"
-              >
-                <div className="flex items-center gap-2 text-indigo-700">
-                  <HelpCircle className="h-4 w-4" />
-                  <span className="text-sm font-medium">Como interpretar este gráfico?</span>
-                </div>
-                <span className="text-xs text-indigo-600">
-                  {showExplanation ? 'Ocultar' : 'Ver explicação'}
-                </span>
-              </Button>
-            </CollapsibleTrigger>
-
-            <CollapsibleContent className="mt-3 space-y-3 text-sm text-slate-700">
-              <div>
-                <h4 className="font-semibold text-slate-800 mb-1 text-sm">
-                  O que este gráfico mostra?
-                </h4>
-                <p className="text-xs">
-                  O mapa de calor divide os synths em uma grade baseada em{' '}
-                  <strong>dois atributos de perfil</strong>. Cada célula mostra a taxa de falha
-                  média dos synths naquela combinação de atributos.
-                </p>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-slate-800 mb-1 text-sm">Como ler as cores?</h4>
-                <ul className="mt-1 ml-4 list-disc space-y-0.5 text-xs">
-                  <li>
-                    <strong className="text-green-600">Verde</strong>: Baixa taxa de falha (bom!)
-                  </li>
-                  <li>
-                    <strong className="text-amber-600">Amarelo/Laranja</strong>: Taxa de falha
-                    moderada
-                  </li>
-                  <li>
-                    <strong className="text-red-600">Vermelho</strong>: Alta taxa de falha
-                    (problema!)
-                  </li>
-                </ul>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-slate-800 mb-1 text-sm">O que fazer com isso?</h4>
-                <p className="text-xs">
-                  Procure por <strong>regiões vermelhas</strong> - elas indicam combinações de
-                  perfil onde os usuários falham mais. Isso ajuda a identificar{' '}
-                  <strong>limiares</strong> ("a partir daqui quebra") e{' '}
-                  <strong>regiões críticas</strong> do espaço de usuários.
-                </p>
-              </div>
-            </CollapsibleContent>
+    <Card className="overflow-hidden border-slate-200">
+      {/* Header with view switcher */}
+      <div className="bg-gradient-to-r from-slate-50 to-white border-b border-slate-100 px-5 py-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-800">
+              Mapa de Calor de Falhas
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Visualize onde os usuários falham com base em seus atributos
+            </p>
           </div>
-        </Collapsible>
 
-        {/* Tabs for different views */}
-        <Tabs value={activeView} onValueChange={setActiveView} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            {HEATMAP_VIEWS.map((view) => (
-              <TabsTrigger key={view.id} value={view.id} className="text-xs sm:text-sm">
-                {view.shortLabel}
-              </TabsTrigger>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="p-1.5 rounded-md hover:bg-slate-100 transition-colors">
+                  <Info className="h-4 w-4 text-slate-400" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-xs text-xs">
+                <p className="font-medium mb-1">Como interpretar</p>
+                <p className="text-slate-400">
+                  Cada célula mostra a taxa de falha para usuários com aquela combinação de atributos.
+                  Cores mais quentes (laranja/vermelho) indicam maior taxa de falha.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+
+        {/* Segmented control for perspectives */}
+        <div className="mt-4">
+          <div className="inline-flex p-0.5 bg-slate-100 rounded-lg">
+            {PERSPECTIVES.map((perspective) => (
+              <button
+                key={perspective.id}
+                onClick={() => setActiveId(perspective.id)}
+                className={`
+                  px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200
+                  ${
+                    activeId === perspective.id
+                      ? 'bg-white text-slate-800 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }
+                `}
+              >
+                {perspective.name}
+              </button>
             ))}
-          </TabsList>
+          </div>
+        </div>
+      </div>
 
-          {HEATMAP_VIEWS.map((view) => (
-            <TabsContent key={view.id} value={view.id} className="mt-4">
-              <HeatmapView
-                experimentId={experimentId}
-                xAxis={view.xAxis}
-                yAxis={view.yAxis}
-                description={view.description}
-              />
-            </TabsContent>
-          ))}
-        </Tabs>
+      {/* Content */}
+      <CardContent className="p-5">
+        <HeatmapContent experimentId={experimentId} perspective={activePerspective} />
       </CardContent>
     </Card>
   );

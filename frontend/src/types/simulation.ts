@@ -183,6 +183,25 @@ export interface TornadoChart {
   baseline_success: number;
 }
 
+/** Correlation of single attribute with outcomes */
+export interface AttributeCorrelation {
+  attribute: string;
+  attribute_label: string;
+  correlation_attempt: number;
+  correlation_success: number;
+  p_value_attempt: number;
+  p_value_success: number;
+  is_significant_attempt: boolean;
+  is_significant_success: boolean;
+}
+
+/** Attribute correlation chart data */
+export interface AttributeCorrelationChart {
+  simulation_id: string;
+  correlations: AttributeCorrelation[];
+  total_synths: number;
+}
+
 // =============================================================================
 // Phase 3: Clustering (K-Means, Hierarchical, Radar)
 // =============================================================================

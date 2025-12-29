@@ -190,6 +190,16 @@ import type {
   TryVsSuccessChart,
   OutcomeDistributionChart,
   SankeyChart,
+  FailureHeatmapChart,
+  ScatterCorrelationChart,
+  TornadoChart,
+  AttributeCorrelationChart,
+  ClusterRequest,
+  KMeansResult,
+  HierarchicalResult,
+  CutDendrogramRequest,
+  RadarComparisonChart,
+  ElbowPoint,
 } from '@/types/simulation';
 
 /**
@@ -229,4 +239,255 @@ export async function getAnalysisDistributionChart(
  */
 export async function getAnalysisSankeyChart(experimentId: string): Promise<SankeyChart> {
   return fetchAPI(`/experiments/${experimentId}/analysis/charts/sankey`);
+}
+
+/**
+ * Get failure heatmap chart for experiment analysis.
+ */
+export async function getAnalysisFailureHeatmap(
+  experimentId: string,
+  xAxis = 'capability_mean',
+  yAxis = 'trust_mean',
+  bins = 5,
+  metric = 'failed_rate'
+): Promise<FailureHeatmapChart> {
+  const params = new URLSearchParams({
+    x_axis: xAxis,
+    y_axis: yAxis,
+    bins: String(bins),
+    metric,
+  });
+  return fetchAPI(`/experiments/${experimentId}/analysis/charts/failure-heatmap?${params}`);
+}
+
+/**
+ * Get scatter correlation chart for experiment analysis.
+ */
+export async function getAnalysisScatterCorrelation(
+  experimentId: string,
+  xAxis = 'trust_mean',
+  yAxis = 'success_rate',
+  showTrendline = true
+): Promise<ScatterCorrelationChart> {
+  const params = new URLSearchParams({
+    x_axis: xAxis,
+    y_axis: yAxis,
+    show_trendline: String(showTrendline),
+  });
+  return fetchAPI(`/experiments/${experimentId}/analysis/charts/scatter?${params}`);
+}
+
+/**
+ * Get tornado chart for experiment analysis.
+ */
+export async function getAnalysisTornadoChart(experimentId: string): Promise<TornadoChart> {
+  return fetchAPI(`/experiments/${experimentId}/analysis/charts/tornado`);
+}
+
+/**
+ * Get attribute correlations chart for experiment analysis.
+ *
+ * Shows correlation of each synth attribute with attempt_rate and success_rate.
+ */
+export async function getAnalysisAttributeCorrelations(
+  experimentId: string
+): Promise<AttributeCorrelationChart> {
+  return fetchAPI(`/experiments/${experimentId}/analysis/charts/attribute-correlations`);
+}
+
+// =============================================================================
+// Phase 3: Clustering Endpoints
+// =============================================================================
+
+/**
+ * Create clustering for experiment analysis.
+ */
+export async function createAnalysisClustering(
+  experimentId: string,
+  request: ClusterRequest
+): Promise<KMeansResult | HierarchicalResult> {
+  return fetchAPI(`/experiments/${experimentId}/analysis/clusters`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+/**
+ * Get cached clustering for experiment analysis.
+ */
+export async function getAnalysisClustering(
+  experimentId: string
+): Promise<KMeansResult | HierarchicalResult> {
+  return fetchAPI(`/experiments/${experimentId}/analysis/clusters`);
+}
+
+/**
+ * Get elbow method data for experiment analysis.
+ */
+export async function getAnalysisElbow(
+  experimentId: string,
+  maxK = 10
+): Promise<ElbowPoint[]> {
+  const params = new URLSearchParams({ max_k: String(maxK) });
+  return fetchAPI(`/experiments/${experimentId}/analysis/clusters/elbow?${params}`);
+}
+
+/**
+ * Get dendrogram data for experiment analysis.
+ */
+export async function getAnalysisDendrogram(
+  experimentId: string
+): Promise<HierarchicalResult> {
+  return fetchAPI(`/experiments/${experimentId}/analysis/clusters/dendrogram`);
+}
+
+/**
+ * Get radar comparison chart for experiment analysis.
+ */
+export async function getAnalysisRadarComparison(
+  experimentId: string
+): Promise<RadarComparisonChart> {
+  return fetchAPI(`/experiments/${experimentId}/analysis/clusters/radar`);
+}
+
+/**
+ * Cut dendrogram at specified height.
+ */
+export async function cutAnalysisDendrogram(
+  experimentId: string,
+  request: CutDendrogramRequest
+): Promise<HierarchicalResult> {
+  return fetchAPI(`/experiments/${experimentId}/analysis/clusters/cut`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+// =============================================================================
+// Phase 4: Edge Cases & Outliers Endpoints
+// =============================================================================
+
+import type {
+  ExtremeCasesTable,
+  OutlierResult,
+  ShapSummary,
+  ShapExplanation,
+  PDPResult,
+  PDPComparison,
+} from '@/types/simulation';
+
+/**
+ * Get extreme cases for qualitative research.
+ */
+export async function getAnalysisExtremeCases(
+  experimentId: string,
+  nPerCategory = 10
+): Promise<ExtremeCasesTable> {
+  const params = new URLSearchParams({ n_per_category: String(nPerCategory) });
+  return fetchAPI(`/experiments/${experimentId}/analysis/extreme-cases?${params}`);
+}
+
+/**
+ * Get statistical outliers using Isolation Forest.
+ */
+export async function getAnalysisOutliers(
+  experimentId: string,
+  contamination = 0.1
+): Promise<OutlierResult> {
+  const params = new URLSearchParams({ contamination: String(contamination) });
+  return fetchAPI(`/experiments/${experimentId}/analysis/outliers?${params}`);
+}
+
+// =============================================================================
+// Phase 5: Explainability (SHAP & PDP) Endpoints
+// =============================================================================
+
+/**
+ * Get global SHAP summary showing feature importance.
+ */
+export async function getAnalysisShapSummary(experimentId: string): Promise<ShapSummary> {
+  return fetchAPI(`/experiments/${experimentId}/analysis/shap/summary`);
+}
+
+/**
+ * Get SHAP explanation for a specific synth.
+ */
+export async function getAnalysisShapExplanation(
+  experimentId: string,
+  synthId: string
+): Promise<ShapExplanation> {
+  return fetchAPI(`/experiments/${experimentId}/analysis/shap/${synthId}`);
+}
+
+/**
+ * Get Partial Dependence Plot for a single feature.
+ */
+export async function getAnalysisPDP(
+  experimentId: string,
+  feature: string,
+  gridResolution = 20
+): Promise<PDPResult> {
+  const params = new URLSearchParams({
+    feature,
+    grid_resolution: String(gridResolution),
+  });
+  return fetchAPI(`/experiments/${experimentId}/analysis/pdp?${params}`);
+}
+
+/**
+ * Get PDP comparison for multiple features.
+ */
+export async function getAnalysisPDPComparison(
+  experimentId: string,
+  features: string[],
+  gridResolution = 20
+): Promise<PDPComparison> {
+  const params = new URLSearchParams({
+    features: features.join(','),
+    grid_resolution: String(gridResolution),
+  });
+  return fetchAPI(`/experiments/${experimentId}/analysis/pdp/comparison?${params}`);
+}
+
+// =============================================================================
+// Phase 6: Insights Endpoints
+// =============================================================================
+
+import type { SimulationInsights, ChartInsight } from '@/types/simulation';
+
+/**
+ * Get all cached insights for experiment analysis.
+ */
+export async function getAnalysisInsights(experimentId: string): Promise<SimulationInsights> {
+  return fetchAPI(`/experiments/${experimentId}/analysis/insights`);
+}
+
+/**
+ * Generate LLM insight for a specific chart.
+ */
+export async function generateAnalysisChartInsight(
+  experimentId: string,
+  chartType: string,
+  chartData: Record<string, unknown>
+): Promise<ChartInsight> {
+  return fetchAPI(`/experiments/${experimentId}/analysis/insights/${chartType}`, {
+    method: 'POST',
+    body: JSON.stringify({ chart_type: chartType, chart_data: chartData }),
+  });
+}
+
+interface GenerateSummaryResponse {
+  executive_summary: string;
+  total_insights: number;
+}
+
+/**
+ * Generate executive summary from all insights.
+ */
+export async function generateAnalysisExecutiveSummary(
+  experimentId: string
+): Promise<GenerateSummaryResponse> {
+  return fetchAPI(`/experiments/${experimentId}/analysis/insights/executive-summary`, {
+    method: 'POST',
+  });
 }
