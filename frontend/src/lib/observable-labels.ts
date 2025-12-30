@@ -1,13 +1,42 @@
 /**
  * Observable label utilities for synth-lab frontend.
  *
- * Provides color mapping for observable values based on their labels.
- * Used in ObservablesDisplay component for visual representation.
+ * Provides:
+ * - Centralized labels for observable attributes (used across all charts)
+ * - Color mapping for observable values based on their labels
  *
  * Reference: specs/022-observable-latent-traits/spec.md (US4)
  */
 
 import type { ObservableWithLabel } from '@/types/synth';
+
+/**
+ * Centralized labels for observable attributes.
+ * These are the ONLY labels that should be displayed to the PM.
+ * (Latent traits are internal and should NOT be shown in UI)
+ */
+export const OBSERVABLE_LABELS: Record<string, string> = {
+  digital_literacy: 'Familiaridade com tecnologia',
+  similar_tool_experience: 'Experiência com ferramentas similares',
+  motor_ability: 'Habilidade física',
+  time_availability: 'Disponibilidade de Tempo',
+  domain_expertise: 'Conhecimento do assunto',
+};
+
+/**
+ * Format a feature name to its display label.
+ * Falls back to title-case formatting if not found.
+ *
+ * @param feature - The feature key (e.g., 'digital_literacy')
+ * @returns The display label (e.g., 'Familiaridade com tecnologia')
+ */
+export function formatFeatureName(feature: string): string {
+  if (OBSERVABLE_LABELS[feature]) {
+    return OBSERVABLE_LABELS[feature];
+  }
+  // Fallback: convert snake_case to Title Case
+  return feature.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 /**
  * Label type for type safety.

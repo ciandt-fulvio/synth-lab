@@ -196,10 +196,10 @@ export function ExperimentForm({
   if (!showScorecard) {
     return (
       <form
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
           if (validateStep1()) {
-            handleSubmit();
+            await handleSubmit();
           }
         }}
         className="space-y-4"
@@ -440,7 +440,7 @@ export function ExperimentForm({
               </Button>
               <Button
                 type="button"
-                onClick={handleSubmit}
+                onClick={async () => await handleSubmit()}
                 disabled={isSubmitting || estimateMutation.isPending}
                 className="btn-primary"
               >

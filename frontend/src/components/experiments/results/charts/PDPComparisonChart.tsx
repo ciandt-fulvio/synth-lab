@@ -12,6 +12,7 @@ import {
   Legend,
 } from 'recharts';
 import type { PDPComparison } from '@/types/simulation';
+import { formatFeatureName } from '@/lib/observable-labels';
 
 interface PDPComparisonChartProps {
   data: PDPComparison;
@@ -25,18 +26,6 @@ const FEATURE_COLORS = [
   '#8b5cf6', // violet
   '#06b6d4', // cyan
 ];
-
-function formatFeatureName(feature: string): string {
-  const labelMap: Record<string, string> = {
-    capability_mean: 'Capacidade',
-    trust_mean: 'Confiança',
-    complexity: 'Complexidade',
-    initial_effort: 'Esforço Inicial',
-    perceived_risk: 'Risco',
-    time_to_value: 'Tempo p/ Valor',
-  };
-  return labelMap[feature] || feature.replace(/_/g, ' ');
-}
 
 interface CustomTooltipProps {
   active?: boolean;

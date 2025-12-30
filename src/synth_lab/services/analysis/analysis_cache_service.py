@@ -40,12 +40,12 @@ class AnalysisCacheService:
         CacheKeys.SANKEY: {},
         CacheKeys.HEATMAP: {
             "x_axis": "digital_literacy",
-            "y_axis": "trust_mean",
+            "y_axis": "domain_expertise",
             "bins": 5,
             "metric": "failed_rate",
         },
         CacheKeys.SCATTER: {
-            "x_axis": "capability_mean",
+            "x_axis": "digital_literacy",
             "y_axis": "success_rate",
         },
         CacheKeys.CORRELATIONS: {},
@@ -310,6 +310,8 @@ class AnalysisCacheService:
             CacheKeys.EXTREME_CASES,
             CacheKeys.OUTLIERS,
             CacheKeys.SHAP_SUMMARY,
+            CacheKeys.PCA_SCATTER,
+            CacheKeys.RADAR_COMPARISON,
         ]
 
         cached = self.cache_repo.get_all(analysis_id)

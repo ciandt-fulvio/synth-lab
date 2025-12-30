@@ -2,7 +2,7 @@
 // Failure Heatmap section with professional view switching
 
 import { useState } from 'react';
-import { AlertCircle, RefreshCw, Info } from 'lucide-react';
+import { AlertCircle, RefreshCw, Info, Loader2, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,33 +15,34 @@ import {
 import { ChartErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { FailureHeatmap } from './charts/FailureHeatmap';
 import { useAnalysisFailureHeatmap } from '@/hooks/use-analysis-charts';
+import { useGenerateAnalysisChartInsight } from '@/hooks/use-insights';
 
 interface HeatmapSectionProps {
   experimentId: string;
 }
 
-// Analysis perspectives for the heatmap
+// Analysis perspectives for the heatmap - only observable attributes
 const PERSPECTIVES = [
   {
-    id: 'capability-trust',
-    name: 'Habilidade vs Confiança',
-    xAxis: 'capability_mean',
-    yAxis: 'trust_mean',
-    insight: 'Usuários com baixa capacidade e/ou confiança tendem a falhar mais',
+    id: 'tech-experience',
+    name: 'Tecnologia vs Experiência',
+    xAxis: 'digital_literacy',
+    yAxis: 'similar_tool_experience',
+    insight: 'Usuários com baixa familiaridade tecnológica e pouca experiência tendem a falhar mais',
   },
   {
-    id: 'friction-exploration',
-    name: 'Atrito vs Exploração',
-    xAxis: 'friction_tolerance_mean',
-    yAxis: 'exploration_prob',
-    insight: 'Tolerância a dificuldades e propensão a explorar afetam o sucesso',
+    id: 'knowledge-time',
+    name: 'Conhecimento vs Tempo',
+    xAxis: 'domain_expertise',
+    yAxis: 'time_availability',
+    insight: 'Falta de conhecimento do assunto ou tempo disponível podem causar falhas',
   },
   {
-    id: 'time-expertise',
-    name: 'Tempo vs Expertise',
-    xAxis: 'time_availability',
-    yAxis: 'domain_expertise',
-    insight: 'Falta de tempo ou expertise no domínio podem causar falhas',
+    id: 'tech-physical',
+    name: 'Tecnologia vs Físico',
+    xAxis: 'digital_literacy',
+    yAxis: 'motor_ability',
+    insight: 'Limitações físicas combinadas com baixa familiaridade tecnológica afetam o sucesso',
   },
 ] as const;
 
@@ -53,6 +54,7 @@ function HeatmapContent({
   perspective: (typeof PERSPECTIVES)[number];
 }) {
   const heatmap = useAnalysisFailureHeatmap(experimentId, perspective.xAxis, perspective.yAxis);
+  const generateInsight = useGenerateAnalysisChartInsight(experimentId);
 
   const handleGenerateInsight = () => {
     if (!heatmap.data) return;
