@@ -30,7 +30,6 @@ results, summary = await run_batch_interviews(
 """
 
 import asyncio
-import math
 import random
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass

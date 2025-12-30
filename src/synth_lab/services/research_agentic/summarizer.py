@@ -29,7 +29,6 @@ from openai.types.shared import Reasoning
 from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
 from synth_lab.infrastructure.llm_client import supports_reasoning_effort
-
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
 
 from .runner import InterviewResult

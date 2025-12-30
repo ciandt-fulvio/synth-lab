@@ -29,14 +29,12 @@ from synth_lab.api.schemas.analysis_run import (
 from synth_lab.domain.entities.analysis_cache import CacheKeys
 from synth_lab.domain.entities.analysis_run import AggregatedOutcomes, AnalysisConfig
 from synth_lab.domain.entities.chart_data import (
-    AttributeCorrelationChart,
     FailureHeatmapChart,
     OutcomeDistributionChart,
     SankeyChart,
     ScatterCorrelationChart,
     TryVsSuccessChart,
 )
-from synth_lab.domain.entities.chart_insight import ChartInsight, SimulationInsights
 from synth_lab.domain.entities.cluster_result import (
     HierarchicalResult,
     KMeansResult,
@@ -55,6 +53,7 @@ from synth_lab.models.pagination import PaginationParams
 from synth_lab.repositories.analysis_outcome_repository import AnalysisOutcomeRepository
 from synth_lab.repositories.analysis_repository import AnalysisRepository
 from synth_lab.repositories.experiment_repository import ExperimentRepository
+from synth_lab.repositories.synth_repository import SynthRepository
 from synth_lab.services.analysis.analysis_cache_service import AnalysisCacheService
 from synth_lab.services.analysis.analysis_execution_service import AnalysisExecutionService
 from synth_lab.services.analysis.analysis_service import AnalysisService
@@ -62,7 +61,6 @@ from synth_lab.services.experiment_service import ExperimentService
 from synth_lab.services.simulation.chart_data_service import ChartDataService
 from synth_lab.services.simulation.clustering_service import ClusteringService
 from synth_lab.services.simulation.explainability_service import ExplainabilityService
-from synth_lab.services.simulation.insight_service import InsightService
 from synth_lab.services.simulation.outlier_service import OutlierService
 
 router = APIRouter()
