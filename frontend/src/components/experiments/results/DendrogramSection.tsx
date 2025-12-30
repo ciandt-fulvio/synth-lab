@@ -161,7 +161,7 @@ export function DendrogramSection({ experimentId, onCutHeight }: DendrogramSecti
           </div>
         )}
         {/* AI-Generated Insights */}
-        <InsightSection experimentId={experimentId} chartType="shap_summary" />
+        <InsightSection experimentId={experimentId} chartType="dendrogram" />
       </CardContent>
     </Card>
   );
