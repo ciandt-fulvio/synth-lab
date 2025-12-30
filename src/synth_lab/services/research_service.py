@@ -324,6 +324,13 @@ class ResearchService:
                 f"No interview guide configured for experiment {request.experiment_id}"
             )
 
+        # Get analysis_id for simulation context in interviews
+        from synth_lab.repositories.analysis_repository import AnalysisRepository
+
+        analysis_repo = AnalysisRepository()
+        analysis = analysis_repo.get_by_experiment_id(request.experiment_id)
+        analysis_id = analysis.id if analysis else None
+
         # Determine synth count
         synth_count = request.synth_count or (len(request.synth_ids) if request.synth_ids else 5)
 
@@ -360,6 +367,7 @@ class ResearchService:
                 model=request.model,
                 generate_summary=request.generate_summary,
                 skip_interviewee_review=request.skip_interviewee_review,
+                analysis_id=analysis_id,
             )
         )
 
@@ -384,6 +392,7 @@ class ResearchService:
         generate_summary: bool,
         model: str = "gpt-4o-mini",
         skip_interviewee_review: bool = True,
+        analysis_id: str | None = None,
     ) -> None:
         """
         Run batch interviews and save results to database.
@@ -526,6 +535,7 @@ class ResearchService:
                 skip_interviewee_review=skip_interviewee_review,
                 additional_context=additional_context,
                 guide_name=guide_name,
+                analysis_id=analysis_id,
             )
 
             # Save transcripts to database IMMEDIATELY after interviews complete
