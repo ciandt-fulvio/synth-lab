@@ -195,12 +195,17 @@ def create_summarizer_agent(
         interviews_content=interviews_content,
     )
 
-    return Agent(
-        name="Research Summarizer",
-        instructions=instructions,
-        model=model,
-        model_settings=_get_model_settings(model, reasoning_effort),
-    )
+    # Build agent kwargs - only include model_settings if model supports it
+    agent_kwargs = {
+        "name": "Research Summarizer",
+        "instructions": instructions,
+        "model": model,
+    }
+    model_settings = _get_model_settings(model, reasoning_effort)
+    if model_settings is not None:
+        agent_kwargs["model_settings"] = model_settings
+
+    return Agent(**agent_kwargs)
 
 
 async def summarize_interviews(
