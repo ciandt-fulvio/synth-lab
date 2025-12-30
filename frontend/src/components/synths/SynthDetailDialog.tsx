@@ -5,7 +5,6 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Loader2, User } from 'lucide-react';
-import { ObservablesDisplay } from './ObservablesDisplay';
 import { useSynthDetail } from '@/hooks/use-synths';
 import { getSynthAvatarUrl } from '@/services/synths-api';
 
@@ -47,17 +46,12 @@ export function SynthDetailDialog({ synthId, open, onOpenChange }: SynthDetailDi
               </div>
             </DialogHeader>
 
-            <Tabs defaultValue="capabilities" className="mt-4">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="capabilities">Capacidades</TabsTrigger>
+            <Tabs defaultValue="demographics" className="mt-4">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="demographics">Demografia</TabsTrigger>
                 <TabsTrigger value="psychographics">Psicografia</TabsTrigger>
-                <TabsTrigger value="tech">Tecnologia</TabsTrigger>
+                <TabsTrigger value="tech">Capacidades Técnicas</TabsTrigger>
               </TabsList>
-
-              <TabsContent value="capabilities" className="space-y-4">
-                <ObservablesDisplay simulationAttributes={synth.simulation_attributes} />
-              </TabsContent>
 
               <TabsContent value="demographics" className="space-y-4">
                 {synth.demografia && (
@@ -149,15 +143,15 @@ export function SynthDetailDialog({ synthId, open, onOpenChange }: SynthDetailDi
                     <CardContent className="space-y-3">
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <span className="font-semibold">Literacia Digital:</span>{' '}
+                          <span className="font-semibold">Familiaridade com tecnologia:</span>{' '}
                           {((synth.observables.digital_literacy ?? 0) * 100).toFixed(0)}%
                         </div>
                         <div>
-                          <span className="font-semibold">Experiência com Ferramentas:</span>{' '}
+                          <span className="font-semibold">Experiência com ferramentas similares:</span>{' '}
                           {((synth.observables.similar_tool_experience ?? 0) * 100).toFixed(0)}%
                         </div>
                         <div>
-                          <span className="font-semibold">Habilidade Motora:</span>{' '}
+                          <span className="font-semibold">Habilidade física:</span>{' '}
                           {((synth.observables.motor_ability ?? 0) * 100).toFixed(0)}%
                         </div>
                         <div>
@@ -165,7 +159,7 @@ export function SynthDetailDialog({ synthId, open, onOpenChange }: SynthDetailDi
                           {((synth.observables.time_availability ?? 0) * 100).toFixed(0)}%
                         </div>
                         <div>
-                          <span className="font-semibold">Expertise no Domínio:</span>{' '}
+                          <span className="font-semibold">Conhecimento do assunto:</span>{' '}
                           {((synth.observables.domain_expertise ?? 0) * 100).toFixed(0)}%
                         </div>
                       </div>
