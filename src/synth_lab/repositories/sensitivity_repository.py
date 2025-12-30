@@ -49,9 +49,7 @@ class SensitivityRepository:
         result_id = generate_sensitivity_id()
 
         # Serialize dimensions to JSON
-        dimensions_json = json.dumps(
-            [dim.model_dump() for dim in result.dimensions]
-        )
+        dimensions_json = json.dumps([dim.model_dump() for dim in result.dimensions])
 
         # Serialize deltas_used to JSON
         deltas_json = json.dumps(result.deltas_used)
@@ -150,9 +148,7 @@ class SensitivityRepository:
         cursor = self.db.execute(sql, (simulation_id,))
         deleted = cursor.rowcount
 
-        self.logger.info(
-            f"Deleted {deleted} sensitivity results for simulation {simulation_id}"
-        )
+        self.logger.info(f"Deleted {deleted} sensitivity results for simulation {simulation_id}")
 
         return deleted
 
@@ -173,9 +169,7 @@ class SensitivityRepository:
         dimensions_data = json.loads(row["dimensions"])
 
         # Reconstruct DimensionSensitivity objects
-        dimensions = [
-            DimensionSensitivity(**dim_data) for dim_data in dimensions_data
-        ]
+        dimensions = [DimensionSensitivity(**dim_data) for dim_data in dimensions_data]
 
         # Parse datetime
         analyzed_at = datetime.fromisoformat(row["analyzed_at"])
@@ -249,9 +243,7 @@ if __name__ == "__main__":
         if retrieved is None:
             all_validation_failures.append("Failed to retrieve saved result")
         elif retrieved.simulation_id != test_simulation_id:
-            all_validation_failures.append(
-                f"Simulation ID mismatch: {retrieved.simulation_id}"
-            )
+            all_validation_failures.append(f"Simulation ID mismatch: {retrieved.simulation_id}")
         elif len(retrieved.dimensions) != 1:
             all_validation_failures.append(
                 f"Dimensions count mismatch: {len(retrieved.dimensions)}"
@@ -290,8 +282,6 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results"
-        )
+        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("SensitivityRepository is validated and ready for use")
         sys.exit(0)

@@ -76,24 +76,14 @@ class TestEscolaridadeFunctions:
 
     def test_escolaridade_compativel_true(self):
         """Test compatibility check when escolaridade meets minimum."""
-        assert utils.escolaridade_compativel(
-            "Superior completo", "Médio completo"
-        ) is True
-        assert utils.escolaridade_compativel(
-            "Pós-graduação", "Superior completo"
-        ) is True
+        assert utils.escolaridade_compativel("Superior completo", "Médio completo") is True
+        assert utils.escolaridade_compativel("Pós-graduação", "Superior completo") is True
 
     def test_escolaridade_compativel_false(self):
         """Test compatibility check when escolaridade doesn't meet minimum."""
-        assert utils.escolaridade_compativel(
-            "Médio completo", "Superior completo"
-        ) is False
-        assert utils.escolaridade_compativel(
-            "Fundamental completo", "Médio completo"
-        ) is False
+        assert utils.escolaridade_compativel("Médio completo", "Superior completo") is False
+        assert utils.escolaridade_compativel("Fundamental completo", "Médio completo") is False
 
     def test_escolaridade_compativel_equal(self):
         """Test compatibility when escolaridades are equal."""
-        assert utils.escolaridade_compativel(
-            "Superior completo", "Superior completo"
-        ) is True
+        assert utils.escolaridade_compativel("Superior completo", "Superior completo") is True

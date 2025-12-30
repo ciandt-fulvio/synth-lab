@@ -9,8 +9,9 @@ References:
     - Data model: specs/016-feature-impact-simulation/data-model.md
 """
 
-from pydantic import BaseModel, Field, model_validator
 from typing import Self
+
+from pydantic import BaseModel, Field, model_validator
 
 
 class SimulationObservables(BaseModel):
@@ -72,8 +73,7 @@ class SimulationLatentTraits(BaseModel):
     trust_mean: float = Field(
         ge=0.0,
         le=1.0,
-        description="Mean trust level. "
-        "0.60*similar_tool_experience + 0.40*digital_literacy",
+        description="Mean trust level. 0.60*similar_tool_experience + 0.40*digital_literacy",
     )
 
     friction_tolerance_mean: float = Field(
@@ -109,14 +109,10 @@ class SimulationAttributes(BaseModel):
         """Ensure all values are within [0, 1] range."""
         for field_name, value in self.observables.model_dump().items():
             if not 0.0 <= value <= 1.0:
-                raise ValueError(
-                    f"Observable {field_name} must be in [0,1], got {value}"
-                )
+                raise ValueError(f"Observable {field_name} must be in [0,1], got {value}")
         for field_name, value in self.latent_traits.model_dump().items():
             if not 0.0 <= value <= 1.0:
-                raise ValueError(
-                    f"Latent trait {field_name} must be in [0,1], got {value}"
-                )
+                raise ValueError(f"Latent trait {field_name} must be in [0,1], got {value}")
         return self
 
 
@@ -137,9 +133,7 @@ if __name__ == "__main__":
             domain_expertise=0.55,
         )
         if obs.digital_literacy != 0.35:
-            all_validation_failures.append(
-                f"digital_literacy mismatch: {obs.digital_literacy}"
-            )
+            all_validation_failures.append(f"digital_literacy mismatch: {obs.digital_literacy}")
     except Exception as e:
         all_validation_failures.append(f"SimulationObservables creation failed: {e}")
 
@@ -153,9 +147,7 @@ if __name__ == "__main__":
             exploration_prob=0.38,
         )
         if traits.capability_mean != 0.42:
-            all_validation_failures.append(
-                f"capability_mean mismatch: {traits.capability_mean}"
-            )
+            all_validation_failures.append(f"capability_mean mismatch: {traits.capability_mean}")
     except Exception as e:
         all_validation_failures.append(f"SimulationLatentTraits creation failed: {e}")
 

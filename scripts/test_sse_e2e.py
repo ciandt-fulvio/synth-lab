@@ -25,7 +25,6 @@ import argparse
 import asyncio
 import json
 import os
-import signal
 import subprocess
 import sys
 import time
@@ -41,7 +40,6 @@ from rich.table import Table
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from synth_lab.gen_synth.gen_synth import main as generate_synths
-from synth_lab.gen_synth.storage import count_synths, load_synths
 from synth_lab.infrastructure.config import DB_PATH, OUTPUT_DIR
 from synth_lab.infrastructure.database import init_database
 
@@ -277,7 +275,9 @@ async def test_sse_streaming(exec_id: str) -> None:
                                 interviews_by_synth[synth_id].append(data)
 
                                 # Display
-                                prefix = "[dim][replay][/dim]" if is_replay else "[bold][live][/bold]"
+                                prefix = (
+                                    "[dim][replay][/dim]" if is_replay else "[bold][live][/bold]"
+                                )
                                 speaker_color = "blue" if speaker == "Interviewer" else "green"
                                 console.print(
                                     f"{prefix} [{speaker_color}]{speaker}[/{speaker_color}] "
@@ -288,7 +288,9 @@ async def test_sse_streaming(exec_id: str) -> None:
                                 pass
 
         except httpx.ReadTimeout:
-            console.print("[yellow]Stream timeout (this is normal if execution takes long)[/yellow]")
+            console.print(
+                "[yellow]Stream timeout (this is normal if execution takes long)[/yellow]"
+            )
 
     # Summary
     console.print("\n")
@@ -337,8 +339,7 @@ async def main_async(with_avatars: bool = False) -> None:
     """Main async function."""
     console.print(
         Panel.fit(
-            "[bold]SSE End-to-End Test[/bold]\n"
-            "Testing real-time interview message streaming",
+            "[bold]SSE End-to-End Test[/bold]\nTesting real-time interview message streaming",
             title="synth-lab",
         )
     )

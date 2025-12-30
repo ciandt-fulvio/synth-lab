@@ -84,7 +84,7 @@ class TraceVisualizerProcessor(TracingProcessor):
         if self._verbose:
             logger.debug(f"[TraceVisualizerProcessor] Trace started: {trace.name}")
             logger.debug(f"  trace_id: {trace.trace_id}")
-            if hasattr(trace, 'metadata') and trace.metadata:
+            if hasattr(trace, "metadata") and trace.metadata:
                 logger.debug(f"  metadata: {trace.metadata}")
 
     def on_trace_end(self, trace: Trace) -> None:
@@ -104,16 +104,16 @@ class TraceVisualizerProcessor(TracingProcessor):
         Args:
             span: The span that started
         """
-        span_type_name = type(span.span_data).__name__ if hasattr(span, 'span_data') else 'unknown'
+        span_type_name = type(span.span_data).__name__ if hasattr(span, "span_data") else "unknown"
 
         if self._verbose:
             logger.debug(f"[TraceVisualizerProcessor] Span started: {span_type_name}")
 
             # Log span details
-            if hasattr(span, 'span_data'):
+            if hasattr(span, "span_data"):
                 span_data = span.span_data
                 for key in dir(span_data):
-                    if not key.startswith('_'):
+                    if not key.startswith("_"):
                         try:
                             value = getattr(span_data, key)
                             if not callable(value):
@@ -136,15 +136,15 @@ class TraceVisualizerProcessor(TracingProcessor):
         Args:
             span: The completed span
         """
-        span_type_name = type(span.span_data).__name__ if hasattr(span, 'span_data') else 'unknown'
+        span_type_name = type(span.span_data).__name__ if hasattr(span, "span_data") else "unknown"
 
         if self._verbose:
             logger.debug(f"[TraceVisualizerProcessor] Span ended: {span_type_name}")
 
             # Log span results
-            if hasattr(span, 'span_data'):
+            if hasattr(span, "span_data"):
                 span_data = span.span_data
-                if hasattr(span_data, 'output'):
+                if hasattr(span_data, "output"):
                     output = str(span_data.output)
                     if len(output) > 300:
                         output = output[:300] + "..."
@@ -156,10 +156,10 @@ class TraceVisualizerProcessor(TracingProcessor):
 
     def _is_tool_span(self, span: Span[Any]) -> bool:
         """Check if the span is a tool/function call span."""
-        if not hasattr(span, 'span_data'):
+        if not hasattr(span, "span_data"):
             return False
         span_data_type = type(span.span_data).__name__.lower()
-        return 'function' in span_data_type or 'tool' in span_data_type
+        return "function" in span_data_type or "tool" in span_data_type
 
     def _handle_tool_span_start(self, span: Span[Any]) -> None:
         """
@@ -171,8 +171,8 @@ class TraceVisualizerProcessor(TracingProcessor):
         span_id = id(span)
 
         # Extract tool information
-        tool_name = getattr(span_data, 'name', 'unknown_tool')
-        tool_input = getattr(span_data, 'input', None)
+        tool_name = getattr(span_data, "name", "unknown_tool")
+        tool_input = getattr(span_data, "input", None)
 
         # Log tool call (always, not just verbose)
         logger.info(f"[Tool Call] {tool_name} started")
@@ -206,9 +206,9 @@ class TraceVisualizerProcessor(TracingProcessor):
         span_id = id(span)
 
         # Extract tool information
-        tool_name = getattr(span_data, 'name', 'unknown_tool')
-        tool_output = getattr(span_data, 'output', None)
-        tool_error = getattr(span_data, 'error', None)
+        tool_name = getattr(span_data, "name", "unknown_tool")
+        tool_output = getattr(span_data, "output", None)
+        tool_error = getattr(span_data, "error", None)
 
         # Log tool completion (always, not just verbose)
         if tool_error:
@@ -230,7 +230,9 @@ class TraceVisualizerProcessor(TracingProcessor):
                 output_str = str(tool_output)
                 # Truncate very long outputs (like base64 images)
                 if len(output_str) > 1000:
-                    output_str = output_str[:1000] + f"... (truncated, {len(str(tool_output))} chars total)"
+                    output_str = (
+                        output_str[:1000] + f"... (truncated, {len(str(tool_output))} chars total)"
+                    )
                 tracer_span.set_attribute("output", output_str)
 
             if tool_error:
@@ -265,13 +267,13 @@ def extract_span_attributes(span: Span[Any]) -> dict[str, Any]:
     """
     attributes: dict[str, Any] = {}
 
-    if not hasattr(span, 'span_data'):
+    if not hasattr(span, "span_data"):
         return attributes
 
     span_data = span.span_data
 
     # Extract common attributes
-    for key in ['name', 'input', 'output', 'error', 'model', 'agent_name']:
+    for key in ["name", "input", "output", "error", "model", "agent_name"]:
         if hasattr(span_data, key):
             value = getattr(span_data, key)
             if value is not None:
@@ -297,17 +299,17 @@ def map_span_type(span: Span[Any]) -> SpanType:
     Returns:
         Corresponding SpanType enum value
     """
-    if not hasattr(span, 'span_data'):
+    if not hasattr(span, "span_data"):
         return SpanType.LOGIC
 
     span_data_type = type(span.span_data).__name__.lower()
 
     # Map known span types
-    if 'llm' in span_data_type or 'generation' in span_data_type or 'model' in span_data_type:
+    if "llm" in span_data_type or "generation" in span_data_type or "model" in span_data_type:
         return SpanType.LLM_CALL
-    elif 'tool' in span_data_type or 'function' in span_data_type:
+    elif "tool" in span_data_type or "function" in span_data_type:
         return SpanType.TOOL_CALL
-    elif 'error' in span_data_type:
+    elif "error" in span_data_type:
         return SpanType.ERROR
     else:
         return SpanType.LOGIC

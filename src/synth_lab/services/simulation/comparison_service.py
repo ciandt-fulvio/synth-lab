@@ -47,9 +47,7 @@ class ComparisonService:
         self.region_repo = RegionRepository(db)
         self.logger = logger.bind(component="comparison_service")
 
-    def compare_simulations(
-        self, simulation_ids: list[str]
-    ) -> dict[str, Any]:
+    def compare_simulations(self, simulation_ids: list[str]) -> dict[str, Any]:
         """
         Compare multiple simulations across scenarios.
 
@@ -79,11 +77,13 @@ class ComparisonService:
             if not run:
                 raise ValueError(f"Simulation not found: {sim_id}")
 
-            simulations.append({
-                "id": run.id,
-                "scenario_id": run.scenario_id,
-                "aggregated_outcomes": run.aggregated_outcomes or {},
-            })
+            simulations.append(
+                {
+                    "id": run.id,
+                    "scenario_id": run.scenario_id,
+                    "aggregated_outcomes": run.aggregated_outcomes or {},
+                }
+            )
 
         # Get regions for each simulation
         regions_by_simulation = {}
@@ -92,9 +92,7 @@ class ComparisonService:
             regions_by_simulation[sim_id] = regions
 
         # Identify most affected regions (highest variance across scenarios)
-        most_affected = self._find_most_affected_regions(
-            simulations, regions_by_simulation
-        )
+        most_affected = self._find_most_affected_regions(simulations, regions_by_simulation)
 
         self.logger.info(
             f"Comparison complete: {len(simulations)} simulations, "
@@ -156,14 +154,16 @@ class ComparisonService:
             mean_rate = sum(failure_rates) / len(failure_rates)
             variance = sum((rate - mean_rate) ** 2 for rate in failure_rates) / len(failure_rates)
 
-            region_variances.append({
-                "rule_text": rule_text,
-                "outcomes_by_scenario": {
-                    scenario_id: round(rate, 3)
-                    for scenario_id, rate in outcomes_by_scenario.items()
-                },
-                "variance": round(variance, 3),
-            })
+            region_variances.append(
+                {
+                    "rule_text": rule_text,
+                    "outcomes_by_scenario": {
+                        scenario_id: round(rate, 3)
+                        for scenario_id, rate in outcomes_by_scenario.items()
+                    },
+                    "variance": round(variance, 3),
+                }
+            )
 
         # Sort by variance descending and return top regions
         region_variances.sort(key=lambda x: x["variance"], reverse=True)
@@ -171,10 +171,12 @@ class ComparisonService:
         # Return top 10 most affected regions
         most_affected = []
         for region in region_variances[:10]:
-            most_affected.append({
-                "rule_text": region["rule_text"],
-                "outcomes_by_scenario": region["outcomes_by_scenario"],
-            })
+            most_affected.append(
+                {
+                    "rule_text": region["rule_text"],
+                    "outcomes_by_scenario": region["outcomes_by_scenario"],
+                }
+            )
 
         return most_affected
 

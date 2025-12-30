@@ -11,7 +11,6 @@ Módulos disponíveis:
 - psychographics: Geração psicográfica
 - behavior: Geração comportamental
 - disabilities: Geração de deficiências
-- tech_capabilities: Geração de capacidades tecnológicas
 - biases: Geração de vieses comportamentais
 - derivations: Derivações (arquétipo, lifestyle, descrição)
 - storage: Salvamento de synths
@@ -33,7 +32,6 @@ from synth_lab.gen_synth import (
     psychographics,
     storage,
     synth_builder,
-    tech_capabilities,
     utils,
     validation,
 )
@@ -88,7 +86,6 @@ __all__ = [
     "psychographics",
     "behavior",
     "disabilities",
-    "tech_capabilities",
     "biases",
     "derivations",
     "storage",

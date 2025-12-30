@@ -23,8 +23,6 @@ Expected output:
     UserState with capability, trust, friction_tolerance, explores values
 """
 
-from typing import Any
-
 import numpy as np
 from numpy.random import Generator
 from pydantic import BaseModel, Field
@@ -39,9 +37,7 @@ class UserState(BaseModel):
 
     capability: float = Field(ge=0.0, le=1.0, description="User capability level")
     trust: float = Field(ge=0.0, le=1.0, description="User trust level")
-    friction_tolerance: float = Field(
-        ge=0.0, le=1.0, description="Tolerance for friction"
-    )
+    friction_tolerance: float = Field(ge=0.0, le=1.0, description="Tolerance for friction")
     explores: bool = Field(description="Whether user explores the feature")
     motivation: float = Field(ge=0.0, le=1.0, description="User motivation level")
 
@@ -138,10 +134,7 @@ def sample_user_states_batch(
     Returns:
         List of UserState instances
     """
-    return [
-        sample_user_state(traits, scenario, sigma, rng)
-        for traits in latent_traits_batch
-    ]
+    return [sample_user_state(traits, scenario, sigma, rng) for traits in latent_traits_batch]
 
 
 if __name__ == "__main__":
@@ -172,9 +165,7 @@ if __name__ == "__main__":
         state = sample_user_state(latent_traits, scenario, sigma=0.1, rng=rng)
 
         if not 0.0 <= state.capability <= 1.0:
-            all_validation_failures.append(
-                f"Capability out of range: {state.capability}"
-            )
+            all_validation_failures.append(f"Capability out of range: {state.capability}")
         if not 0.0 <= state.trust <= 1.0:
             all_validation_failures.append(f"Trust out of range: {state.trust}")
         if not 0.0 <= state.friction_tolerance <= 1.0:
@@ -182,9 +173,7 @@ if __name__ == "__main__":
                 f"Friction tolerance out of range: {state.friction_tolerance}"
             )
         if not isinstance(state.explores, bool):
-            all_validation_failures.append(
-                f"Explores should be bool: {type(state.explores)}"
-            )
+            all_validation_failures.append(f"Explores should be bool: {type(state.explores)}")
         print(f"Test 1 PASSED: Basic sampling (capability={state.capability:.3f})")
     except Exception as e:
         all_validation_failures.append(f"Basic sampling failed: {e}")
@@ -251,15 +240,11 @@ if __name__ == "__main__":
             "task_criticality": 0.5,
         }
 
-        state = sample_user_state(
-            latent_traits, extreme_scenario, sigma=0.1, rng=rng
-        )
+        state = sample_user_state(latent_traits, extreme_scenario, sigma=0.1, rng=rng)
 
         # Values should be clamped to [0, 1]
         if state.trust < 0.0 or state.trust > 1.0:
-            all_validation_failures.append(
-                f"Trust not clamped: {state.trust}"
-            )
+            all_validation_failures.append(f"Trust not clamped: {state.trust}")
         if state.friction_tolerance < 0.0 or state.friction_tolerance > 1.0:
             all_validation_failures.append(
                 f"Friction tolerance not clamped: {state.friction_tolerance}"
@@ -322,9 +307,7 @@ if __name__ == "__main__":
     # Final result
     print()
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:"
-        )
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)

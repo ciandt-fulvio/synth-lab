@@ -26,14 +26,10 @@ def create_parser() -> argparse.ArgumentParser:
         version=f"%(prog)s {__version__}",
     )
 
-    subparsers = parser.add_subparsers(
-        dest="command", help="Comandos disponíveis", required=False
-    )
+    subparsers = parser.add_subparsers(dest="command", help="Comandos disponíveis", required=False)
 
     # gensynth subcommand
-    gensynth_parser = subparsers.add_parser(
-        "gensynth", help="Gerar personas sintéticas"
-    )
+    gensynth_parser = subparsers.add_parser("gensynth", help="Gerar personas sintéticas")
     gensynth_parser.add_argument(
         "-n",
         "--quantidade",

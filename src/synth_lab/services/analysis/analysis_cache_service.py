@@ -16,14 +16,13 @@ from typing import Any
 from loguru import logger
 
 from synth_lab.domain.entities.analysis_cache import CacheKeys
-from synth_lab.domain.entities.synth_outcome import SynthOutcome
 from synth_lab.infrastructure.database import DatabaseManager, get_database
 from synth_lab.repositories.analysis_cache_repository import AnalysisCacheRepository
 from synth_lab.repositories.analysis_outcome_repository import AnalysisOutcomeRepository
 from synth_lab.services.simulation.chart_data_service import ChartDataService
 from synth_lab.services.simulation.clustering_service import ClusteringService
-from synth_lab.services.simulation.outlier_service import OutlierService
 from synth_lab.services.simulation.explainability_service import ExplainabilityService
+from synth_lab.services.simulation.outlier_service import OutlierService
 
 
 class AnalysisCacheService:

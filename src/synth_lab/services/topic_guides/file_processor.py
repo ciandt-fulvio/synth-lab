@@ -178,7 +178,10 @@ def encode_image_for_vision(image_path: Path) -> str:
 
 
 def call_openai_api(
-    prompt: str, image_base64: str | None = None, api_key: str | None = None, tracer: Tracer | None = None
+    prompt: str,
+    image_base64: str | None = None,
+    api_key: str | None = None,
+    tracer: Tracer | None = None,
 ) -> str:
     """
     Call OpenAI API with retry logic and exponential backoff.
@@ -207,14 +210,11 @@ def call_openai_api(
         api_key = os.environ.get("OPENAI_API_KEY")
 
     if not api_key:
-        raise ValueError(
-            "OpenAI API key not found. Set OPENAI_API_KEY environment variable.")
+        raise ValueError("OpenAI API key not found. Set OPENAI_API_KEY environment variable.")
 
     client = OpenAI(api_key=api_key)
 
-    @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10)
-    )
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     def _make_request():
         if image_base64:
             # Vision API call
@@ -248,21 +248,22 @@ def call_openai_api(
 
     # Execute with optional tracing
     if tracer:
-        with tracer.start_span(SpanType.LLM_CALL, attributes={
-            "prompt": prompt[:500] + "..." if len(prompt) > 500 else prompt,
-            "model": "gpt-5-mini-mini",
-            "has_image": image_base64 is not None,
-        }) as span:
+        with tracer.start_span(
+            SpanType.LLM_CALL,
+            attributes={
+                "prompt": prompt[:500] + "..." if len(prompt) > 500 else prompt,
+                "model": "gpt-5-mini-mini",
+                "has_image": image_base64 is not None,
+            },
+        ) as span:
             try:
                 response = _make_request()
                 content = response.choices[0].message.content
 
                 span.set_attribute("response", content)
-                if hasattr(response, 'usage') and response.usage:
-                    span.set_attribute(
-                        "tokens_input", response.usage.prompt_tokens)
-                    span.set_attribute(
-                        "tokens_output", response.usage.completion_tokens)
+                if hasattr(response, "usage") and response.usage:
+                    span.set_attribute("tokens_input", response.usage.prompt_tokens)
+                    span.set_attribute("tokens_output", response.usage.completion_tokens)
                 span.set_status(SpanStatus.SUCCESS)
 
                 return content
@@ -314,9 +315,7 @@ def generate_file_description(file_path: Path, api_key: str | None = None) -> st
             if not text_preview:
                 return "PDF document (content could not be extracted)"
 
-            prompt = (
-                f"Summarize this PDF content in 1-2 sentences:\n\n{text_preview[:2000]}"
-            )
+            prompt = f"Summarize this PDF content in 1-2 sentences:\n\n{text_preview[:2000]}"
             return call_openai_api(prompt, api_key=api_key)
 
         elif file_type in [FileType.MD, FileType.TXT]:
@@ -332,7 +331,9 @@ def generate_file_description(file_path: Path, api_key: str | None = None) -> st
     return None
 
 
-def generate_context_overview(file_descriptions: list[str], api_key: str | None = None) -> str | None:
+def generate_context_overview(
+    file_descriptions: list[str], api_key: str | None = None
+) -> str | None:
     """
     Generate contextual overview based on all file descriptions in the topic guide.
 
@@ -469,7 +470,6 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("File processor functions are validated and formal tests can now be written")
         sys.exit(0)

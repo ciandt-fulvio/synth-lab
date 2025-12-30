@@ -285,11 +285,16 @@ class SimulationService:
         """
         Load synths from database with simulation_attributes.
 
+        For v2.3.0+ synths: Uses pre-computed observables from synth.data
+        and derives latent_traits at simulation time.
+
+        For legacy synths: Generates default observables based on demographics.
+
         Args:
             synth_ids: Optional list of synth IDs to load (default: all)
 
         Returns:
-            List of synth dicts with simulation_attributes
+            List of synth dicts with simulation_attributes (observables + latent_traits)
         """
         # Build query
         if synth_ids:
@@ -316,10 +321,12 @@ class SimulationService:
 
     def _generate_simulation_attributes(self, synth_data: dict[str, Any]) -> dict[str, Any]:
         """
-        Generate simulation_attributes from real synth data.
+        Generate simulation_attributes from synth data.
 
-        Converts demografia, psicografia, capacidades_tecnologicas, and deficiencias
-        into observables and latent_traits for simulation.
+        For v2.3.0+ synths: Uses pre-computed observables from synth data and
+        derives latent_traits using the standard derivation formulas.
+
+        For legacy synths: Creates default observables based on available data.
 
         Args:
             synth_data: Raw synth data from database
@@ -329,18 +336,42 @@ class SimulationService:
         """
         from synth_lab.domain.entities.simulation_attributes import (
             SimulationObservables,
-            SimulationLatentTraits,
         )
+        from synth_lab.gen_synth.simulation_attributes import derive_latent_traits
 
-        # Extract data with safe defaults
-        capacidades = synth_data.get("capacidades_tecnologicas", {})
+        # Check if synth already has pre-computed observables (v2.3.0+)
+        existing_observables = synth_data.get("observables")
+        if existing_observables and all(
+            k in existing_observables
+            for k in [
+                "digital_literacy",
+                "similar_tool_experience",
+                "motor_ability",
+                "time_availability",
+                "domain_expertise",
+            ]
+        ):
+            # Use existing observables and derive latent traits
+            observables = SimulationObservables.model_validate(existing_observables)
+            latent_traits = derive_latent_traits(observables)
+
+            return {
+                "observables": observables.model_dump(),
+                "latent_traits": latent_traits.model_dump(),
+            }
+
+        # Legacy synth - generate default observables
         deficiencias = synth_data.get("deficiencias", {})
-        psicografia = synth_data.get("psicografia", {})
         demografia = synth_data.get("demografia", {})
 
-        # 1. digital_literacy: from alfabetizacao_digital (0-100) -> normalize to 0-1
-        alfabetizacao_digital = capacidades.get("alfabetizacao_digital", 50)  # default: medium
-        digital_literacy = min(max(alfabetizacao_digital / 100.0, 0.0), 1.0)
+        # 1. digital_literacy: default based on escolaridade
+        escolaridade = demografia.get("escolaridade", "").lower()
+        if "superior" in escolaridade or "pós" in escolaridade:
+            digital_literacy = 0.7
+        elif "médio" in escolaridade:
+            digital_literacy = 0.5
+        else:
+            digital_literacy = 0.3
 
         # 2. motor_ability: from deficiencias.motora
         motora = deficiencias.get("motora", {})
@@ -353,15 +384,15 @@ class SimulationService:
         }
         motor_ability = motor_ability_map.get(tipo_motora, 1.0)
 
-        # 3. similar_tool_experience: derive from personality traits (conscienciosidade + abertura)
-        # Higher conscientiousness + openness suggests more tool experience
-        big_five = psicografia.get("personalidade_big_five", {})
-        conscienciosidade = big_five.get("conscienciosidade", 50) / 100.0
-        abertura = big_five.get("abertura", 50) / 100.0
-        similar_tool_experience = (conscienciosidade * 0.6 + abertura * 0.4)
+        # 3. similar_tool_experience: default based on escolaridade
+        if "superior" in escolaridade or "pós" in escolaridade:
+            similar_tool_experience = 0.6
+        elif "médio" in escolaridade:
+            similar_tool_experience = 0.4
+        else:
+            similar_tool_experience = 0.3
 
         # 4. time_availability: derive from idade and ocupacao
-        # Younger and aposentados have more time
         idade = demografia.get("idade", 40)
         ocupacao = demografia.get("ocupacao", "").lower()
 
@@ -373,15 +404,14 @@ class SimulationService:
             time_availability = 0.4
 
         # 5. domain_expertise: derive from escolaridade
-        escolaridade = demografia.get("escolaridade", "").lower()
         if "superior" in escolaridade or "pós" in escolaridade:
             domain_expertise = 0.7
-        elif "médio" in escolaridade or "técnico" in escolaridade:
+        elif "médio" in escolaridade:
             domain_expertise = 0.5
         else:
             domain_expertise = 0.3
 
-        # Create observables (round to 3 decimal places)
+        # Create observables
         observables = SimulationObservables(
             digital_literacy=round(digital_literacy, 3),
             similar_tool_experience=round(similar_tool_experience, 3),
@@ -390,44 +420,9 @@ class SimulationService:
             domain_expertise=round(domain_expertise, 3),
         )
 
-        # Calculate latent traits using formulas from spec (round to 3 decimal places)
-        capability_mean = round(
-            0.40 * digital_literacy
-            + 0.35 * similar_tool_experience
-            + 0.15 * motor_ability
-            + 0.10 * domain_expertise,
-            3
-        )
+        # Derive latent traits using standard formula
+        latent_traits = derive_latent_traits(observables)
 
-        trust_mean = round(
-            0.60 * similar_tool_experience
-            + 0.40 * digital_literacy,
-            3
-        )
-
-        friction_tolerance_mean = round(
-            0.40 * time_availability
-            + 0.35 * digital_literacy
-            + 0.25 * similar_tool_experience,
-            3
-        )
-
-        exploration_prob = round(
-            0.50 * digital_literacy
-            + 0.30 * (1 - similar_tool_experience)
-            + 0.20 * time_availability,
-            3
-        )
-
-        # Create latent traits
-        latent_traits = SimulationLatentTraits(
-            capability_mean=capability_mean,
-            trust_mean=trust_mean,
-            friction_tolerance_mean=friction_tolerance_mean,
-            exploration_prob=exploration_prob,
-        )
-
-        # Return as dict
         return {
             "observables": observables.model_dump(),
             "latent_traits": latent_traits.model_dump(),
@@ -443,7 +438,7 @@ class SimulationService:
         Convert engine results to SynthOutcome entities.
 
         Args:
-            simulation_id: ID of the simulation run
+            simulation_id: ID of the simulation run (used as analysis_id)
             results: SimulationResults from Monte Carlo engine
             synths: Original synth dicts with simulation_attributes
 
@@ -480,21 +475,23 @@ class SimulationService:
             sim_attrs = synth.get("simulation_attributes", {})
             if sim_attrs and sim_attrs.get("observables") and sim_attrs.get("latent_traits"):
                 try:
-                    synth_attrs_map[synth_id] = SimulationAttributes.model_validate(
-                        sim_attrs
-                    )
+                    synth_attrs_map[synth_id] = SimulationAttributes.model_validate(sim_attrs)
                 except Exception:
                     # Use defaults if validation fails
                     synth_attrs_map[synth_id] = create_default_attrs()
             else:
                 synth_attrs_map[synth_id] = create_default_attrs()
 
+        # Convert simulation_id to analysis_id format (sim_ -> ana_)
+        # SynthOutcome expects ana_ prefix for analysis_id
+        analysis_id = simulation_id.replace("sim_", "ana_")
+
         outcomes = []
         for result in results.synth_outcomes:
             synth_attrs = synth_attrs_map.get(result.synth_id, create_default_attrs())
             outcomes.append(
                 SynthOutcome(
-                    simulation_id=simulation_id,
+                    analysis_id=analysis_id,
                     synth_id=result.synth_id,
                     did_not_try_rate=result.did_not_try_rate,
                     failed_rate=result.failed_rate,
@@ -518,10 +515,7 @@ def list_scenarios() -> list[dict[str, Any]]:
 
         # Load from project root data/config directory
         scenarios_path = (
-            Path(__file__).parent.parent.parent.parent.parent
-            / "data"
-            / "config"
-            / "scenarios.json"
+            Path(__file__).parent.parent.parent.parent.parent / "data" / "config" / "scenarios.json"
         )
         with open(scenarios_path) as f:
             scenarios_data = json.load(f)
@@ -548,10 +542,7 @@ def get_scenario(scenario_id: str) -> dict[str, Any] | None:
 
         # Load from project root data/config directory
         scenarios_path = (
-            Path(__file__).parent.parent.parent.parent.parent
-            / "data"
-            / "config"
-            / "scenarios.json"
+            Path(__file__).parent.parent.parent.parent.parent / "data" / "config" / "scenarios.json"
         )
         with open(scenarios_path) as f:
             scenarios_data = json.load(f)
@@ -599,9 +590,11 @@ if __name__ == "__main__":
         if scenario is None:
             all_validation_failures.append("get_scenario('baseline') returned None")
         elif scenario.get("id") != "baseline":
-            all_validation_failures.append(f"get_scenario returned wrong scenario: {scenario.get('id')}")
+            all_validation_failures.append(
+                f"get_scenario returned wrong scenario: {scenario.get('id')}"
+            )
         else:
-            print(f"Test 2 PASSED: get_scenario returned baseline scenario")
+            print("Test 2 PASSED: get_scenario returned baseline scenario")
     except Exception as e:
         all_validation_failures.append(f"get_scenario failed: {e}")
 
@@ -639,30 +632,19 @@ if __name__ == "__main__":
         )
         scorecard_repo.create_scorecard(test_scorecard)
 
-        # Create test synths with simulation_attributes
-        from synth_lab.domain.entities.simulation_attributes import (
-            SimulationLatentTraits,
-            SimulationObservables,
-        )
+        # Create test synths with observables (new v2.3.0 format)
 
         test_synths_data = []
         for i in range(5):
             synth_id = f"simsynth{i}"
+            # New format: observables at top level of synth data
             synth_data = {
-                "simulation_attributes": {
-                    "observables": {
-                        "digital_literacy": 0.4 + i * 0.1,
-                        "similar_tool_experience": 0.5,
-                        "motor_ability": 1.0,
-                        "time_availability": 0.5,
-                        "domain_expertise": 0.5,
-                    },
-                    "latent_traits": {
-                        "capability_mean": 0.4 + i * 0.1,
-                        "trust_mean": 0.5,
-                        "friction_tolerance_mean": 0.5,
-                        "exploration_prob": 0.5,
-                    },
+                "observables": {
+                    "digital_literacy": 0.4 + i * 0.1,
+                    "similar_tool_experience": 0.5,
+                    "motor_ability": 1.0,
+                    "time_availability": 0.5,
+                    "domain_expertise": 0.5,
                 },
             }
             # Insert synth into database with required columns
@@ -673,6 +655,9 @@ if __name__ == "__main__":
             with db.transaction() as conn:
                 conn.execute(sql, (synth_id, f"Test Synth {i}", json.dumps(synth_data)))
             test_synths_data.append(synth_id)
+
+        # Note: analysis_runs entries are automatically created by the repository
+        # when saving synth_outcomes (see _ensure_analysis_run_exists)
 
         # Test 4: Execute simulation
         total_tests += 1
@@ -717,7 +702,9 @@ if __name__ == "__main__":
         try:
             result = service.list_simulations()
             if result["total"] < 1:
-                all_validation_failures.append(f"Expected at least 1 simulation, got {result['total']}")
+                all_validation_failures.append(
+                    f"Expected at least 1 simulation, got {result['total']}"
+                )
             else:
                 print(f"Test 6 PASSED: Listed {result['total']} simulations")
         except Exception as e:
@@ -770,9 +757,7 @@ if __name__ == "__main__":
     # Final result
     print()
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:"
-        )
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)

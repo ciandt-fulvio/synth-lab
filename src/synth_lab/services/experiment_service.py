@@ -157,9 +157,7 @@ class ExperimentService:
         # Validate max lengths if provided
         if name is not None:
             if len(name) > self.NAME_MAX_LENGTH:
-                raise ValueError(
-                    f"name must not exceed {self.NAME_MAX_LENGTH} characters"
-                )
+                raise ValueError(f"name must not exceed {self.NAME_MAX_LENGTH} characters")
         if hypothesis is not None:
             if len(hypothesis) > self.HYPOTHESIS_MAX_LENGTH:
                 raise ValueError(

@@ -35,8 +35,8 @@ class TestRealOpenAIIntegration:
                     "idade": 25 + (i * 5),
                     "genero_biologico": "masculino" if i % 2 == 0 else "feminino",
                     "raca_etnia": ["branco", "pardo", "preto"][i % 3],
-                    "ocupacao": ["engenheiro", "professor", "médico"][i % 3]
-                }
+                    "ocupacao": ["engenheiro", "professor", "médico"][i % 3],
+                },
             }
             for i in range(9)
         ]
@@ -66,10 +66,7 @@ class TestRealOpenAIIntegration:
 
         # Generate real avatars
         result = generate_avatars(
-            real_synths,
-            blocks=None,
-            avatar_dir=temp_avatar_dir,
-            api_key=api_key
+            real_synths, blocks=None, avatar_dir=temp_avatar_dir, api_key=api_key
         )
 
         # Verifications
@@ -81,6 +78,7 @@ class TestRealOpenAIIntegration:
 
             # Verify it's a valid PNG
             from PIL import Image
+
             img = Image.open(path)
             assert img.width == 341 or img.height == 341, f"Incorrect dimension: {img.size}"
 
@@ -90,15 +88,17 @@ class TestRealOpenAIIntegration:
         """
         from synth_lab.gen_synth.avatar_generator import generate_avatars
 
-        invalid_synths = [{
-            "id": "test01",
-            "demografia": {
-                "idade": 30,
-                "genero_biologico": "masculino",
-                "raca_etnia": "branco",
-                "ocupacao": "teste"
+        invalid_synths = [
+            {
+                "id": "test01",
+                "demografia": {
+                    "idade": 30,
+                    "genero_biologico": "masculino",
+                    "raca_etnia": "branco",
+                    "ocupacao": "teste",
+                },
             }
-        }] * 9
+        ] * 9
 
         # Should fail with invalid API key
         with pytest.raises(Exception):  # ValueError or AuthenticationError
@@ -106,7 +106,7 @@ class TestRealOpenAIIntegration:
                 invalid_synths,
                 blocks=None,
                 avatar_dir=temp_avatar_dir,
-                api_key="sk-invalid-key-for-testing"
+                api_key="sk-invalid-key-for-testing",
             )
 
 
@@ -145,8 +145,8 @@ class TestAvatarGeneratorFunctions:
                 "idade": 30,
                 "genero_biologico": "masculino",
                 "raca_etnia": "branco",
-                "ocupacao": "engenheiro"
-            }
+                "ocupacao": "engenheiro",
+            },
         }
 
         assert validate_synth_for_avatar(valid_synth) is True
@@ -160,7 +160,7 @@ class TestAvatarGeneratorFunctions:
                 "idade": 30,
                 "genero_biologico": "masculino",
                 "raca_etnia": "branco",
-                "ocupacao": "engenheiro"
+                "ocupacao": "engenheiro",
             }
         }
 
@@ -175,8 +175,8 @@ class TestAvatarGeneratorFunctions:
             "demografia": {
                 "genero_biologico": "masculino",
                 "raca_etnia": "branco",
-                "ocupacao": "engenheiro"
-            }
+                "ocupacao": "engenheiro",
+            },
         }
 
         assert validate_synth_for_avatar(invalid_synth) is False

@@ -63,7 +63,9 @@ def sample_outcomes():
         noise = np.random.randn() * 0.1
         success_rate = np.clip(base_success + noise, 0.05, 0.95)
 
-        failed_rate = np.clip(0.5 - 0.3 * capability - 0.2 * trust + np.random.randn() * 0.1, 0.05, 0.5)
+        failed_rate = np.clip(
+            0.5 - 0.3 * capability - 0.2 * trust + np.random.randn() * 0.1, 0.05, 0.5
+        )
         did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
 
         # Normalize
@@ -121,9 +123,7 @@ class TestShapEndpoints:
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
-        response = client.get(
-            "/simulation/simulations/sim_12345678/shap/synth_010"
-        )
+        response = client.get("/simulation/simulations/sim_12345678/shap/synth_010")
 
         # Assertions
         assert response.status_code == 200
@@ -156,9 +156,7 @@ class TestShapEndpoints:
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
-        response = client.get(
-            "/simulation/simulations/sim_12345678/shap/synth_025"
-        )
+        response = client.get("/simulation/simulations/sim_12345678/shap/synth_025")
 
         assert response.status_code == 200
         data = response.json()
@@ -185,9 +183,7 @@ class TestShapEndpoints:
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
-        response = client.get(
-            "/simulation/simulations/sim_12345678/shap/summary"
-        )
+        response = client.get("/simulation/simulations/sim_12345678/shap/summary")
 
         # Assertions
         assert response.status_code == 200
@@ -221,9 +217,7 @@ class TestShapEndpoints:
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
-        response = client.get(
-            "/simulation/simulations/sim_12345678/shap/summary"
-        )
+        response = client.get("/simulation/simulations/sim_12345678/shap/summary")
 
         assert response.status_code == 200
         data = response.json()
@@ -249,9 +243,7 @@ class TestShapEndpoints:
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request with non-existent synth
-        response = client.get(
-            "/simulation/simulations/sim_12345678/shap/nonexistent_synth"
-        )
+        response = client.get("/simulation/simulations/sim_12345678/shap/nonexistent_synth")
 
         # Should return 404
         assert response.status_code == 404
@@ -279,9 +271,7 @@ class TestPDPEndpoints:
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
-        response = client.get(
-            "/simulation/simulations/sim_12345678/pdp?feature=trust_mean"
-        )
+        response = client.get("/simulation/simulations/sim_12345678/pdp?feature=trust_mean")
 
         # Assertions
         assert response.status_code == 200
@@ -313,9 +303,7 @@ class TestPDPEndpoints:
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
-        response = client.get(
-            "/simulation/simulations/sim_12345678/pdp?feature=capability_mean"
-        )
+        response = client.get("/simulation/simulations/sim_12345678/pdp?feature=capability_mean")
 
         assert response.status_code == 200
         data = response.json()
@@ -368,9 +356,7 @@ class TestPDPEndpoints:
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
-        response = client.get(
-            "/simulation/simulations/sim_12345678/pdp?feature=trust_mean"
-        )
+        response = client.get("/simulation/simulations/sim_12345678/pdp?feature=trust_mean")
 
         assert response.status_code == 200
         data = response.json()
@@ -401,9 +387,7 @@ class TestPDPEndpoints:
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request with invalid feature
-        response = client.get(
-            "/simulation/simulations/sim_12345678/pdp?feature=invalid_feature"
-        )
+        response = client.get("/simulation/simulations/sim_12345678/pdp?feature=invalid_feature")
 
         # Should return 400
         assert response.status_code == 400
@@ -513,9 +497,7 @@ class TestExplainabilityEdgeCases:
         mock_get_service.return_value = mock_service
 
         # Try to get SHAP
-        response = client.get(
-            "/simulation/simulations/sim_nonexistent/shap/synth_000"
-        )
+        response = client.get("/simulation/simulations/sim_nonexistent/shap/synth_000")
 
         # Should return 404
         assert response.status_code == 404
@@ -540,9 +522,7 @@ class TestExplainabilityEdgeCases:
         mock_get_service.return_value = mock_service
 
         # Try to get SHAP
-        response = client.get(
-            "/simulation/simulations/sim_abcd1234/shap/synth_000"
-        )
+        response = client.get("/simulation/simulations/sim_abcd1234/shap/synth_000")
 
         # Should return 400
         assert response.status_code == 400
@@ -550,9 +530,7 @@ class TestExplainabilityEdgeCases:
 
     @patch("synth_lab.api.routers.simulation.get_simulation_service")
     @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
-    def test_shap_requires_minimum_synths(
-        self, mock_get_outcomes, mock_get_service, client
-    ):
+    def test_shap_requires_minimum_synths(self, mock_get_outcomes, mock_get_service, client):
         """Test that SHAP requires at least 20 synths."""
         # Setup mocks with only 10 synths
         few_outcomes = [
@@ -597,9 +575,7 @@ class TestExplainabilityEdgeCases:
         mock_get_outcomes.return_value = few_outcomes
 
         # Try to get SHAP
-        response = client.get(
-            "/simulation/simulations/sim_12345678/shap/synth_000"
-        )
+        response = client.get("/simulation/simulations/sim_12345678/shap/synth_000")
 
         # Should return 400
         assert response.status_code == 400

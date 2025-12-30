@@ -9,8 +9,6 @@ References:
     - Spec: specs/017-analysis-ux-research/spec.md
 """
 
-from typing import Literal
-
 import numpy as np
 from loguru import logger
 from scipy.cluster import hierarchy
@@ -87,9 +85,7 @@ class ClusteringService:
             ValueError: If too few synths or invalid parameters.
         """
         if len(outcomes) < 10:
-            raise ValueError(
-                f"Clustering requires at least 10 synths, got {len(outcomes)}"
-            )
+            raise ValueError(f"Clustering requires at least 10 synths, got {len(outcomes)}")
 
         # Use default features if none provided or empty
         if not features:
@@ -138,9 +134,7 @@ class ClusteringService:
         )
 
         # Build synth assignments
-        synth_assignments = {
-            synth_id: int(label) for synth_id, label in zip(synth_ids, labels)
-        }
+        synth_assignments = {synth_id: int(label) for synth_id, label in zip(synth_ids, labels)}
 
         return KMeansResult(
             simulation_id=simulation_id,
@@ -174,16 +168,12 @@ class ClusteringService:
             HierarchicalResult with dendrogram data.
         """
         if len(outcomes) < 10:
-            raise ValueError(
-                f"Clustering requires at least 10 synths, got {len(outcomes)}"
-            )
+            raise ValueError(f"Clustering requires at least 10 synths, got {len(outcomes)}")
 
         if not features:
             features = self.DEFAULT_FEATURES
 
-        logger.info(
-            f"Hierarchical clustering {len(outcomes)} synths with {linkage_method} linkage"
-        )
+        logger.info(f"Hierarchical clustering {len(outcomes)} synths with {linkage_method} linkage")
 
         # Extract and normalize features
         X, synth_ids = self._extract_features(outcomes, features)
@@ -197,9 +187,7 @@ class ClusteringService:
         nodes = self._build_dendrogram_nodes(linkage_matrix, synth_ids)
 
         # Suggest good cut points
-        suggested_cuts = self._suggest_cuts(
-            X_scaled=X_scaled, linkage_matrix=linkage_matrix
-        )
+        suggested_cuts = self._suggest_cuts(X_scaled=X_scaled, linkage_matrix=linkage_matrix)
 
         return HierarchicalResult(
             simulation_id=simulation_id,
@@ -280,9 +268,7 @@ class ClusteringService:
             List of ElbowDataPoint with inertia and silhouette for each K.
         """
         if len(outcomes) < 10:
-            raise ValueError(
-                f"Elbow method requires at least 10 synths, got {len(outcomes)}"
-            )
+            raise ValueError(f"Elbow method requires at least 10 synths, got {len(outcomes)}")
 
         if not features:
             features = self.DEFAULT_FEATURES
@@ -332,22 +318,16 @@ class ClusteringService:
         linkage_matrix = np.array(hierarchical_result.linkage_matrix)
 
         # Cut the dendrogram
-        labels = hierarchy.fcluster(
-            linkage_matrix, n_clusters, criterion="maxclust"
-        )
+        labels = hierarchy.fcluster(linkage_matrix, n_clusters, criterion="maxclust")
 
         # Convert labels to 0-indexed
         labels = labels - 1
 
         # Build synth to cluster mapping
         # Extract synth_ids from leaf nodes
-        synth_ids = [
-            node.synth_id for node in hierarchical_result.nodes if node.synth_id
-        ]
+        synth_ids = [node.synth_id for node in hierarchical_result.nodes if node.synth_id]
 
-        cluster_assignments = {
-            synth_id: int(label) for synth_id, label in zip(synth_ids, labels)
-        }
+        cluster_assignments = {synth_id: int(label) for synth_id, label in zip(synth_ids, labels)}
 
         # Return updated result
         return HierarchicalResult(
@@ -386,8 +366,7 @@ class ClusteringService:
         baseline = {}
         for feature in kmeans_result.features_used:
             weighted_sum = sum(
-                centroid.get(feature, 0) * size
-                for centroid, size in zip(all_centroids, all_sizes)
+                centroid.get(feature, 0) * size for centroid, size in zip(all_centroids, all_sizes)
             )
             baseline[feature] = weighted_sum / sum(all_sizes)
 
@@ -431,9 +410,7 @@ class ClusteringService:
             )
 
         # Build axis labels and baseline
-        axis_labels = [
-            feature.replace("_", " ").title() for feature in kmeans_result.features_used
-        ]
+        axis_labels = [feature.replace("_", " ").title() for feature in kmeans_result.features_used]
         baseline_values = [baseline[feature] for feature in kmeans_result.features_used]
 
         return RadarChart(
@@ -537,9 +514,7 @@ class ClusteringService:
 
         return np.array(X), synth_ids
 
-    def _calculate_elbow(
-        self, X_scaled: np.ndarray, max_k: int = 10
-    ) -> list[ElbowDataPoint]:
+    def _calculate_elbow(self, X_scaled: np.ndarray, max_k: int = 10) -> list[ElbowDataPoint]:
         """
         Calculate elbow method data for k from 2 to max_k.
 
@@ -756,11 +731,7 @@ class ClusteringService:
 
         # Add leaf nodes
         for i, synth_id in enumerate(synth_ids):
-            nodes.append(
-                DendrogramNode(
-                    id=i, synth_id=synth_id, distance=0.0, count=1
-                )
-            )
+            nodes.append(DendrogramNode(id=i, synth_id=synth_id, distance=0.0, count=1))
 
         # Add internal nodes from linkage matrix
         for i, row in enumerate(linkage_matrix):
@@ -782,9 +753,7 @@ class ClusteringService:
 
         return nodes
 
-    def _suggest_cuts(
-        self, X_scaled: np.ndarray, linkage_matrix: np.ndarray
-    ) -> list[SuggestedCut]:
+    def _suggest_cuts(self, X_scaled: np.ndarray, linkage_matrix: np.ndarray) -> list[SuggestedCut]:
         """
         Suggest good cut points for the dendrogram.
 
@@ -834,7 +803,12 @@ if __name__ == "__main__":
     """Validation: Test clustering service with sample data."""
     import sys
 
-    from synth_lab.domain.entities import SynthOutcome, SimulationAttributes, SimulationLatentTraits, SimulationObservables
+    from synth_lab.domain.entities import (
+        SimulationAttributes,
+        SimulationLatentTraits,
+        SimulationObservables,
+        SynthOutcome,
+    )
 
     all_validation_failures = []
     total_tests = 0
@@ -881,9 +855,7 @@ if __name__ == "__main__":
             )
 
         service = ClusteringService()
-        result = service.cluster_kmeans(
-            simulation_id="sim_test", outcomes=outcomes, n_clusters=3
-        )
+        result = service.cluster_kmeans(simulation_id="sim_test", outcomes=outcomes, n_clusters=3)
 
         if result.n_clusters != 3 or len(result.clusters) != 3:
             all_validation_failures.append(
@@ -900,27 +872,21 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         service = ClusteringService()
-        result = service.cluster_hierarchical(
-            simulation_id="sim_test", outcomes=outcomes
-        )
+        result = service.cluster_hierarchical(simulation_id="sim_test", outcomes=outcomes)
 
         if result.method != "hierarchical":
             all_validation_failures.append(
                 f"Hierarchical: Expected method='hierarchical', got '{result.method}'"
             )
         if len(result.nodes) == 0:
-            all_validation_failures.append(
-                "Hierarchical: Expected dendrogram nodes, got none"
-            )
+            all_validation_failures.append("Hierarchical: Expected dendrogram nodes, got none")
     except Exception as e:
         all_validation_failures.append(f"Hierarchical clustering failed: {e}")
 
     # Test 3: Radar chart generation
     total_tests += 1
     try:
-        kmeans = service.cluster_kmeans(
-            simulation_id="sim_test", outcomes=outcomes, n_clusters=3
-        )
+        kmeans = service.cluster_kmeans(simulation_id="sim_test", outcomes=outcomes, n_clusters=3)
         radar = service.get_radar_chart(simulation_id="sim_test", kmeans_result=kmeans)
 
         if len(radar.clusters) != 3:
@@ -941,8 +907,6 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results"
-        )
+        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("ClusteringService is validated and ready for use")
         sys.exit(0)

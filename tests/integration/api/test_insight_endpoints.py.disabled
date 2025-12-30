@@ -29,6 +29,7 @@ def client():
 def sample_simulation():
     """Create a mock simulation run with unique ID per test."""
     import uuid
+
     unique_id = f"sim_{uuid.uuid4().hex[:8]}"
     return SimulationRun(
         id=unique_id,
@@ -44,20 +45,22 @@ def sample_simulation():
 @pytest.fixture
 def mock_llm_response():
     """Mock LLM response for insight generation."""
-    return json.dumps({
-        "caption": "42% of synths struggle with the feature",
-        "explanation": "Nearly half of users encountered difficulties. "
-                      "Low digital literacy correlates with failure.",
-        "evidence": [
-            "42% in struggle quadrant",
-            "Average success rate: 0.35",
-            "Correlation with digital_literacy: -0.65",
-        ],
-        "recommendation": "Add progressive disclosure to reduce cognitive load",
-        "key_metric": "struggle_percentage",
-        "key_value": 42.0,
-        "confidence": 0.92,
-    })
+    return json.dumps(
+        {
+            "caption": "42% of synths struggle with the feature",
+            "explanation": "Nearly half of users encountered difficulties. "
+            "Low digital literacy correlates with failure.",
+            "evidence": [
+                "42% in struggle quadrant",
+                "Average success rate: 0.35",
+                "Correlation with digital_literacy: -0.65",
+            ],
+            "recommendation": "Add progressive disclosure to reduce cognitive load",
+            "key_metric": "struggle_percentage",
+            "key_value": 42.0,
+            "confidence": 0.92,
+        }
+    )
 
 
 # =============================================================================
@@ -70,9 +73,7 @@ class TestGetAllInsights:
 
     def test_get_insights_empty_simulation(self, client, sample_simulation):
         """Get insights for simulation with no insights returns empty."""
-        with patch(
-            "synth_lab.api.routers.simulation.get_simulation_service"
-        ) as mock_sim_service:
+        with patch("synth_lab.api.routers.simulation.get_simulation_service") as mock_sim_service:
             mock_service = MagicMock()
             mock_service.get_simulation.return_value = sample_simulation
             mock_sim_service.return_value = mock_service
@@ -87,9 +88,7 @@ class TestGetAllInsights:
 
     def test_get_insights_simulation_not_found(self, client):
         """Get insights for non-existent simulation returns 404."""
-        with patch(
-            "synth_lab.api.routers.simulation.get_simulation_service"
-        ) as mock_sim_service:
+        with patch("synth_lab.api.routers.simulation.get_simulation_service") as mock_sim_service:
             mock_service = MagicMock()
             mock_service.get_simulation.return_value = None
             mock_sim_service.return_value = mock_service
@@ -103,15 +102,12 @@ class TestGetAllInsights:
 class TestGenerateChartInsight:
     """Tests for POST /simulations/{simulation_id}/insights/{chart_type}."""
 
-    def test_generate_insight_try_vs_success(
-        self, client, sample_simulation, mock_llm_response
-    ):
+    def test_generate_insight_try_vs_success(self, client, sample_simulation, mock_llm_response):
         """Generate insight for try_vs_success chart."""
-        with patch(
-            "synth_lab.api.routers.simulation.get_simulation_service"
-        ) as mock_sim_service, patch(
-            "synth_lab.services.simulation.insight_service.get_llm_client"
-        ) as mock_get_llm:
+        with (
+            patch("synth_lab.api.routers.simulation.get_simulation_service") as mock_sim_service,
+            patch("synth_lab.services.simulation.insight_service.get_llm_client") as mock_get_llm,
+        ):
             # Setup simulation service mock
             mock_service = MagicMock()
             mock_service.get_simulation.return_value = sample_simulation
@@ -144,25 +140,24 @@ class TestGenerateChartInsight:
             assert "evidence" in data
             assert "recommendation" in data
 
-    def test_generate_insight_clustering(
-        self, client, sample_simulation, mock_llm_response
-    ):
+    def test_generate_insight_clustering(self, client, sample_simulation, mock_llm_response):
         """Generate insight for clustering chart."""
-        mock_clustering_response = json.dumps({
-            "caption": "3 distinct user segments identified",
-            "explanation": "K-means clustering reveals clear separation.",
-            "evidence": ["Silhouette score: 0.72", "40% in struggler segment"],
-            "recommendation": "Target strugglers with simplified onboarding",
-            "key_metric": "n_clusters",
-            "key_value": 3,
-            "confidence": 0.85,
-        })
+        mock_clustering_response = json.dumps(
+            {
+                "caption": "3 distinct user segments identified",
+                "explanation": "K-means clustering reveals clear separation.",
+                "evidence": ["Silhouette score: 0.72", "40% in struggler segment"],
+                "recommendation": "Target strugglers with simplified onboarding",
+                "key_metric": "n_clusters",
+                "key_value": 3,
+                "confidence": 0.85,
+            }
+        )
 
-        with patch(
-            "synth_lab.api.routers.simulation.get_simulation_service"
-        ) as mock_sim_service, patch(
-            "synth_lab.services.simulation.insight_service.get_llm_client"
-        ) as mock_get_llm:
+        with (
+            patch("synth_lab.api.routers.simulation.get_simulation_service") as mock_sim_service,
+            patch("synth_lab.services.simulation.insight_service.get_llm_client") as mock_get_llm,
+        ):
             mock_service = MagicMock()
             mock_service.get_simulation.return_value = sample_simulation
             mock_sim_service.return_value = mock_service
@@ -189,9 +184,7 @@ class TestGenerateChartInsight:
 
     def test_generate_insight_simulation_not_found(self, client):
         """Generate insight for non-existent simulation returns 404."""
-        with patch(
-            "synth_lab.api.routers.simulation.get_simulation_service"
-        ) as mock_sim_service:
+        with patch("synth_lab.api.routers.simulation.get_simulation_service") as mock_sim_service:
             mock_service = MagicMock()
             mock_service.get_simulation.return_value = None
             mock_sim_service.return_value = mock_service
@@ -215,9 +208,7 @@ class TestGenerateChartInsight:
             seed=42,
         )
 
-        with patch(
-            "synth_lab.api.routers.simulation.get_simulation_service"
-        ) as mock_sim_service:
+        with patch("synth_lab.api.routers.simulation.get_simulation_service") as mock_sim_service:
             mock_service = MagicMock()
             mock_service.get_simulation.return_value = incomplete_sim
             mock_sim_service.return_value = mock_service
@@ -230,9 +221,7 @@ class TestGenerateChartInsight:
             assert response.status_code == 400
             assert "not completed" in response.json()["detail"].lower()
 
-    def test_generate_insight_caching(
-        self, client, sample_simulation, mock_llm_response
-    ):
+    def test_generate_insight_caching(self, client, sample_simulation, mock_llm_response):
         """Generated insights are cached and returned on subsequent requests."""
         from synth_lab.services.simulation.insight_service import InsightService
 
@@ -241,11 +230,10 @@ class TestGenerateChartInsight:
         mock_llm.complete_json.return_value = mock_llm_response
         shared_service = InsightService(llm_client=mock_llm)
 
-        with patch(
-            "synth_lab.api.routers.simulation.get_simulation_service"
-        ) as mock_sim_service, patch(
-            "synth_lab.api.routers.simulation.get_insight_service"
-        ) as mock_insight_service:
+        with (
+            patch("synth_lab.api.routers.simulation.get_simulation_service") as mock_sim_service,
+            patch("synth_lab.api.routers.simulation.get_insight_service") as mock_insight_service,
+        ):
             mock_service = MagicMock()
             mock_service.get_simulation.return_value = sample_simulation
             mock_sim_service.return_value = mock_service
@@ -270,15 +258,12 @@ class TestGenerateChartInsight:
             # LLM should only be called once (caching)
             assert mock_llm.complete_json.call_count == 1
 
-    def test_generate_insight_force_regenerate(
-        self, client, sample_simulation, mock_llm_response
-    ):
+    def test_generate_insight_force_regenerate(self, client, sample_simulation, mock_llm_response):
         """Force regenerate bypasses cache."""
-        with patch(
-            "synth_lab.api.routers.simulation.get_simulation_service"
-        ) as mock_sim_service, patch(
-            "synth_lab.services.simulation.insight_service.get_llm_client"
-        ) as mock_get_llm:
+        with (
+            patch("synth_lab.api.routers.simulation.get_simulation_service") as mock_sim_service,
+            patch("synth_lab.services.simulation.insight_service.get_llm_client") as mock_get_llm,
+        ):
             mock_service = MagicMock()
             mock_service.get_simulation.return_value = sample_simulation
             mock_sim_service.return_value = mock_service
@@ -308,9 +293,7 @@ class TestGenerateChartInsight:
 class TestExecutiveSummary:
     """Tests for POST /simulations/{simulation_id}/insights/executive-summary."""
 
-    def test_generate_executive_summary(
-        self, client, sample_simulation, mock_llm_response
-    ):
+    def test_generate_executive_summary(self, client, sample_simulation, mock_llm_response):
         """Generate executive summary with insights available."""
         from synth_lab.services.simulation.insight_service import InsightService
 
@@ -326,11 +309,10 @@ class TestExecutiveSummary:
         mock_llm.complete.return_value = mock_summary
         shared_service = InsightService(llm_client=mock_llm)
 
-        with patch(
-            "synth_lab.api.routers.simulation.get_simulation_service"
-        ) as mock_sim_service, patch(
-            "synth_lab.api.routers.simulation.get_insight_service"
-        ) as mock_insight_service:
+        with (
+            patch("synth_lab.api.routers.simulation.get_simulation_service") as mock_sim_service,
+            patch("synth_lab.api.routers.simulation.get_insight_service") as mock_insight_service,
+        ):
             mock_service = MagicMock()
             mock_service.get_simulation.return_value = sample_simulation
             mock_sim_service.return_value = mock_service
@@ -364,11 +346,10 @@ class TestExecutiveSummary:
         # Create a fresh service with no insights
         service = InsightService(llm_client=MagicMock())
 
-        with patch(
-            "synth_lab.api.routers.simulation.get_simulation_service"
-        ) as mock_sim_service, patch(
-            "synth_lab.api.routers.simulation.get_insight_service"
-        ) as mock_insight_svc:
+        with (
+            patch("synth_lab.api.routers.simulation.get_simulation_service") as mock_sim_service,
+            patch("synth_lab.api.routers.simulation.get_insight_service") as mock_insight_svc,
+        ):
             mock_service = MagicMock()
             mock_service.get_simulation.return_value = sample_simulation
             mock_sim_service.return_value = mock_service
@@ -383,16 +364,12 @@ class TestExecutiveSummary:
 
     def test_executive_summary_simulation_not_found(self, client):
         """Executive summary for non-existent simulation returns 404."""
-        with patch(
-            "synth_lab.api.routers.simulation.get_simulation_service"
-        ) as mock_sim_service:
+        with patch("synth_lab.api.routers.simulation.get_simulation_service") as mock_sim_service:
             mock_service = MagicMock()
             mock_service.get_simulation.return_value = None
             mock_sim_service.return_value = mock_service
 
-            response = client.post(
-                "/simulation/simulations/nonexistent/insights/executive-summary"
-            )
+            response = client.post("/simulation/simulations/nonexistent/insights/executive-summary")
 
             assert response.status_code == 404
 
@@ -409,11 +386,10 @@ class TestClearInsights:
         mock_llm.complete_json.return_value = mock_llm_response
         shared_service = InsightService(llm_client=mock_llm)
 
-        with patch(
-            "synth_lab.api.routers.simulation.get_simulation_service"
-        ) as mock_sim_service, patch(
-            "synth_lab.api.routers.simulation.get_insight_service"
-        ) as mock_insight_service:
+        with (
+            patch("synth_lab.api.routers.simulation.get_simulation_service") as mock_sim_service,
+            patch("synth_lab.api.routers.simulation.get_insight_service") as mock_insight_service,
+        ):
             mock_service = MagicMock()
             mock_service.get_simulation.return_value = sample_simulation
             mock_sim_service.return_value = mock_service
@@ -460,11 +436,10 @@ class TestAllChartTypes:
         self, client, sample_simulation, mock_llm_response, chart_type
     ):
         """Generate insight works for all chart types."""
-        with patch(
-            "synth_lab.api.routers.simulation.get_simulation_service"
-        ) as mock_sim_service, patch(
-            "synth_lab.services.simulation.insight_service.get_llm_client"
-        ) as mock_get_llm:
+        with (
+            patch("synth_lab.api.routers.simulation.get_simulation_service") as mock_sim_service,
+            patch("synth_lab.services.simulation.insight_service.get_llm_client") as mock_get_llm,
+        ):
             mock_service = MagicMock()
             mock_service.get_simulation.return_value = sample_simulation
             mock_sim_service.return_value = mock_service

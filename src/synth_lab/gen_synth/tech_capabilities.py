@@ -94,8 +94,7 @@ if __name__ == "__main__":
                 f"alfabetizacao_digital={tech_caps['alfabetizacao_digital']}"
             )
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 1 (young educated tech caps): {str(e)}")
+        all_validation_failures.append(f"Test 1 (young educated tech caps): {str(e)}")
 
     # Test 2: Generate tech capabilities for old person with low education
     total_tests += 1
@@ -121,8 +120,7 @@ if __name__ == "__main__":
                 f"alfabetizacao_digital={tech_caps['alfabetizacao_digital']}"
             )
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 2 (old low edu tech caps): {str(e)}")
+        all_validation_failures.append(f"Test 2 (old low edu tech caps): {str(e)}")
 
     # Test 3: Batch consistency test
     total_tests += 1
@@ -147,8 +145,7 @@ if __name__ == "__main__":
                 "motora": {"tipo": "nenhuma", "usa_cadeira_rodas": False},
                 "cognitiva": {"tipo": "nenhuma"},
             }
-            tech_caps = generate_tech_capabilities(
-                test_demo, test_disabilities)
+            tech_caps = generate_tech_capabilities(test_demo, test_disabilities)
 
             # Verify alfabetizacao_digital is in range
             if not (10 <= tech_caps["alfabetizacao_digital"] <= 100):
@@ -165,15 +162,13 @@ if __name__ == "__main__":
         all_validation_failures.append(f"Test 3 (batch consistency): {str(e)}")
 
     # Final validation result
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Function is validated and formal tests can now be written")
         sys.exit(0)

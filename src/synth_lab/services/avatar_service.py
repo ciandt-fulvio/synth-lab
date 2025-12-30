@@ -17,7 +17,7 @@ Expected Output:
 
 import math
 from pathlib import Path
-from typing import Any, Callable, Awaitable
+from typing import Any, Awaitable, Callable
 
 from loguru import logger
 
@@ -95,6 +95,7 @@ class AvatarService:
 
         # Import avatar generator
         import asyncio
+
         from synth_lab.gen_synth.avatar_generator import generate_avatars
 
         generated_paths: dict[str, Path] = {}
@@ -154,8 +155,8 @@ if __name__ == "__main__":
 
     Tests basic functionality without making actual API calls.
     """
-    import sys
     import asyncio
+    import sys
 
     async def run_tests():
         all_validation_failures = []

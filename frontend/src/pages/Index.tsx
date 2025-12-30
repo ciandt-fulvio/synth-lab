@@ -165,7 +165,7 @@ export default function Index() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-slate-900">
-                      {experiments.filter((e) => e.interview_count > 0).length}
+                      {experiments.filter((e) => (e.interview_count ?? 0) > 0).length}
                     </p>
                     <p className="text-xs text-slate-500 uppercase tracking-wide">Com Entrevistas</p>
                   </div>
@@ -178,7 +178,7 @@ export default function Index() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-slate-900">
-                      {experiments.reduce((acc, e) => acc + e.interview_count, 0)}
+                      {experiments.reduce((acc, e) => acc + (e.interview_count ?? 0), 0)}
                     </p>
                     <p className="text-xs text-slate-500 uppercase tracking-wide">Total Entrevistas</p>
                   </div>

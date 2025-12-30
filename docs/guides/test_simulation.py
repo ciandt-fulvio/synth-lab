@@ -103,7 +103,7 @@ def main():
         print(f"     - Total synths: {simulation['total_synths']}")
         print(f"     - Execuções: {simulation['config']['n_executions']}")
         print(f"     - Tempo: {simulation['execution_time_seconds']:.4f}s")
-        print(f"     - Resultados agregados:")
+        print("     - Resultados agregados:")
         agg = simulation["aggregated_outcomes"]
         print(f"       • Did not try: {agg['did_not_try']:.1%}")
         print(f"       • Failed:      {agg['failed']:.1%}")

@@ -222,9 +222,7 @@ if __name__ == "__main__":
             )
             result = repo.create(guide)
             if result.experiment_id != "exp_test1":
-                all_validation_failures.append(
-                    f"ID mismatch: {result.experiment_id} != exp_test1"
-                )
+                all_validation_failures.append(f"ID mismatch: {result.experiment_id} != exp_test1")
         except Exception as e:
             all_validation_failures.append(f"Create guide failed: {e}")
 
@@ -235,9 +233,7 @@ if __name__ == "__main__":
             if retrieved is None:
                 all_validation_failures.append("Get by experiment ID returned None")
             elif retrieved.context_definition != "Test context definition":
-                all_validation_failures.append(
-                    f"Context mismatch: {retrieved.context_definition}"
-                )
+                all_validation_failures.append(f"Context mismatch: {retrieved.context_definition}")
         except Exception as e:
             all_validation_failures.append(f"Get by experiment ID failed: {e}")
 
@@ -250,9 +246,7 @@ if __name__ == "__main__":
 
             not_exists = repo.exists("exp_nonexistent")
             if not_exists:
-                all_validation_failures.append(
-                    "exists() should return False for non-existent"
-                )
+                all_validation_failures.append("exists() should return False for non-existent")
         except Exception as e:
             all_validation_failures.append(f"exists() test failed: {e}")
 
@@ -263,9 +257,7 @@ if __name__ == "__main__":
             if updated is None:
                 all_validation_failures.append("Update returned None")
             elif updated.context_definition != "Updated context":
-                all_validation_failures.append(
-                    f"Context not updated: {updated.context_definition}"
-                )
+                all_validation_failures.append(f"Context not updated: {updated.context_definition}")
             elif updated.updated_at is None:
                 all_validation_failures.append("updated_at not set")
         except Exception as e:
@@ -276,9 +268,7 @@ if __name__ == "__main__":
         try:
             result = repo.get_by_experiment_id("exp_nonexistent")
             if result is not None:
-                all_validation_failures.append(
-                    "Should return None for non-existent guide"
-                )
+                all_validation_failures.append("Should return None for non-existent guide")
         except Exception as e:
             all_validation_failures.append(f"Get non-existent failed: {e}")
 
@@ -298,9 +288,7 @@ if __name__ == "__main__":
         try:
             result = repo.delete("exp_nonexistent")
             if result:
-                all_validation_failures.append(
-                    "Delete non-existent should return False"
-                )
+                all_validation_failures.append("Delete non-existent should return False")
         except Exception as e:
             all_validation_failures.append(f"Delete non-existent failed: {e}")
 
@@ -308,9 +296,7 @@ if __name__ == "__main__":
 
     # Final validation result
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:"
-        )
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)

@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from synth_lab.domain.entities.synth_group import SynthGroup, generate_synth_group_id
+from synth_lab.domain.entities.synth_group import SynthGroup
 from synth_lab.infrastructure.database import DatabaseManager, init_database
 from synth_lab.models.pagination import PaginationParams
 
@@ -54,9 +54,7 @@ class TestSynthGroupRepositoryCreate:
         assert result.description == "Synths for checkout testing"
         assert result.created_at is not None
 
-    def test_create_synth_group_generates_id_if_not_provided(
-        self, synth_group_repo
-    ) -> None:
+    def test_create_synth_group_generates_id_if_not_provided(self, synth_group_repo) -> None:
         """Verify synth group ID is generated when not provided."""
         group = SynthGroup(name="Test Group")
 
@@ -109,9 +107,7 @@ class TestSynthGroupRepositoryGet:
 
         assert result is None
 
-    def test_get_synth_group_includes_synth_count(
-        self, synth_group_repo, test_db
-    ) -> None:
+    def test_get_synth_group_includes_synth_count(self, synth_group_repo, test_db) -> None:
         """Verify retrieved group includes synth count."""
         group = SynthGroup(name="Group with Synths")
         synth_group_repo.create(group)
@@ -164,9 +160,7 @@ class TestSynthGroupRepositoryList:
         assert result.data[0].name == "Default"
         assert result.pagination.total == 1
 
-    def test_list_synth_groups_with_synth_count(
-        self, synth_group_repo, test_db
-    ) -> None:
+    def test_list_synth_groups_with_synth_count(self, synth_group_repo, test_db) -> None:
         """Verify listed groups include synth counts."""
         # Create groups with different synth counts
         group1 = SynthGroup(name="Group 1")
@@ -212,9 +206,7 @@ class TestSynthGroupRepositoryList:
         assert groups_by_name["Group 1"].synth_count == 2
         assert groups_by_name["Group 2"].synth_count == 5
 
-    def test_list_synth_groups_sorted_by_created_at_desc(
-        self, synth_group_repo
-    ) -> None:
+    def test_list_synth_groups_sorted_by_created_at_desc(self, synth_group_repo) -> None:
         """Verify groups are sorted by created_at descending."""
         grp1 = SynthGroup(name="First")
         grp2 = SynthGroup(name="Second")
@@ -290,9 +282,7 @@ class TestSynthGroupRepositoryDelete:
 
         assert result is False
 
-    def test_delete_group_nullifies_synth_references(
-        self, synth_group_repo, test_db
-    ) -> None:
+    def test_delete_group_nullifies_synth_references(self, synth_group_repo, test_db) -> None:
         """Verify deleting group sets synth.synth_group_id to NULL."""
         group = SynthGroup(name="Group with Synths")
         synth_group_repo.create(group)

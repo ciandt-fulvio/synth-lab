@@ -30,7 +30,6 @@ results, summary = await run_batch_interviews(
 """
 
 import asyncio
-import math
 import random
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -124,8 +123,7 @@ def _select_synths_for_interview(
     if synth_ids is not None:
         # Filter synths to only those in the provided list
         synth_id_set = set(synth_ids)
-        filtered_synths = [
-            s for s in all_synths if s.get("id") in synth_id_set]
+        filtered_synths = [s for s in all_synths if s.get("id") in synth_id_set]
 
         if len(filtered_synths) <= max_interviews:
             # Use all synths from the filtered list
@@ -191,10 +189,8 @@ async def run_single_interview_safe(
     batch_id: str,
     model: str = "gpt-4.1-mini",
     exec_id: str | None = None,
-    message_callback: Callable[[
-        str, str, int, ConversationMessage], Awaitable[None]] | None = None,
-    on_interview_completed: Callable[[
-        str, str, int], Awaitable[None]] | None = None,
+    message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
+    on_interview_completed: Callable[[str, str, int], Awaitable[None]] | None = None,
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
     guide_name: str = "interview",
@@ -237,8 +233,7 @@ async def run_single_interview_safe(
             },
         ) as span:
             logger.info(f"Starting interview with {synth_name} ({synth_id})")
-            progress.update(
-                task_id, description=f"[cyan]Entrevistando {synth_name}...")
+            progress.update(task_id, description=f"[cyan]Entrevistando {synth_name}...")
 
             try:
                 # Generate trace path for debugging (still saved to filesystem)
@@ -262,8 +257,7 @@ async def run_single_interview_safe(
                     guide_name=guide_name,
                 )
 
-                logger.info(
-                    f"Completed interview with {synth_name} ({synth_id})")
+                logger.info(f"Completed interview with {synth_name} ({synth_id})")
                 progress.advance(task_id)
                 if span:
                     span.set_attribute("status", "success")
@@ -276,8 +270,7 @@ async def run_single_interview_safe(
                 return result, synth, None
 
             except Exception as e:
-                logger.error(
-                    f"Failed interview with {synth_name} ({synth_id}): {e}")
+                logger.error(f"Failed interview with {synth_name} ({synth_id}): {e}")
                 progress.advance(task_id)
                 if span:
                     span.set_attribute("status", "error")
@@ -294,12 +287,9 @@ async def run_batch_interviews(
     generate_summary: bool = True,
     exec_id: str | None = None,
     synth_ids: list[str] | None = None,
-    message_callback: Callable[[
-        str, str, int, ConversationMessage], Awaitable[None]] | None = None,
-    on_interview_completed: Callable[[
-        str, str, int], Awaitable[None]] | None = None,
-    on_transcription_completed: Callable[[
-        str, int, int], Awaitable[None]] | None = None,
+    message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
+    on_interview_completed: Callable[[str, str, int], Awaitable[None]] | None = None,
+    on_transcription_completed: Callable[[str, int, int], Awaitable[None]] | None = None,
     on_summary_start: Callable[[str], Awaitable[None]] | None = None,
     on_avatar_generation_start: Callable[[int], Awaitable[None]] | None = None,
     on_avatar_generation_complete: Callable[[int], Awaitable[None]] | None = None,
@@ -436,8 +426,7 @@ async def run_batch_interviews(
 
     # Log summary
     logger.info(
-        f"Batch complete: {len(successful_interviews)} successful, "
-        f"{len(failed_interviews)} failed"
+        f"Batch complete: {len(successful_interviews)} successful, {len(failed_interviews)} failed"
     )
 
     # Notify that all transcriptions are complete (before summary generation)
@@ -462,8 +451,7 @@ async def run_batch_interviews(
 
         console.print()
         console.print("[cyan]Gerando síntese das entrevistas...[/cyan]")
-        logger.info(
-            f"Starting summary generation for {len(successful_interviews)} interviews")
+        logger.info(f"Starting summary generation for {len(successful_interviews)} interviews")
 
         try:
             # Summarizer uses gpt-4.1-mini for faster generation
@@ -473,7 +461,8 @@ async def run_batch_interviews(
                 model="gpt-4.1-mini",
             )
             logger.info(
-                f"Summary generated successfully. Length: {len(summary) if summary else 0} chars")
+                f"Summary generated successfully. Length: {len(summary) if summary else 0} chars"
+            )
 
         except Exception as e:
             logger.error(f"Failed to generate summary: {e}", exc_info=True)
@@ -515,10 +504,8 @@ def run_batch_interviews_sync(
     generate_summary: bool = True,
     exec_id: str | None = None,
     synth_ids: list[str] | None = None,
-    message_callback: Callable[[
-        str, str, int, ConversationMessage], Awaitable[None]] | None = None,
-    on_transcription_completed: Callable[[
-        str, int, int], Awaitable[None]] | None = None,
+    message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
+    on_transcription_completed: Callable[[str, int, int], Awaitable[None]] | None = None,
     on_summary_start: Callable[[str], Awaitable[None]] | None = None,
     skip_interviewee_review: bool = True,
     guide_name: str = "interview",
@@ -580,6 +567,7 @@ if __name__ == "__main__":
             load_all_synths,
             run_batch_interviews,
         )
+
         print("✓ All imports successful")
     except Exception as e:
         all_validation_failures.append(f"Import: {e}")
@@ -629,14 +617,12 @@ if __name__ == "__main__":
     # Test 5: _select_synths_for_interview - no synth_ids (random sampling)
     total_tests += 1
     try:
-        mock_synths = [{"id": f"s{i}", "nome": f"Synth {i}"}
-                       for i in range(10)]
+        mock_synths = [{"id": f"s{i}", "nome": f"Synth {i}"} for i in range(10)]
 
         # Case 1: No synth_ids, max_interviews < total synths (should random sample)
         result = _select_synths_for_interview(mock_synths, None, 5)
         assert len(result) == 5, f"Expected 5 synths, got {len(result)}"
-        assert all(
-            s in mock_synths for s in result), "Selected synths not in original list"
+        assert all(s in mock_synths for s in result), "Selected synths not in original list"
         print("✓ _select_synths_for_interview: random sampling works")
     except Exception as e:
         all_validation_failures.append(f"_select_synths (random): {e}")
@@ -644,14 +630,11 @@ if __name__ == "__main__":
     # Test 6: _select_synths_for_interview - synth_ids with less than max
     total_tests += 1
     try:
-        mock_synths = [{"id": f"s{i}", "nome": f"Synth {i}"}
-                       for i in range(10)]
+        mock_synths = [{"id": f"s{i}", "nome": f"Synth {i}"} for i in range(10)]
 
         # Case 2: synth_ids provided with fewer than max_interviews
-        result = _select_synths_for_interview(
-            mock_synths, ["s1", "s3", "s5"], 10)
-        assert len(
-            result) == 3, f"Expected 3 synths (all from list), got {len(result)}"
+        result = _select_synths_for_interview(mock_synths, ["s1", "s3", "s5"], 10)
+        assert len(result) == 3, f"Expected 3 synths (all from list), got {len(result)}"
         ids = {s["id"] for s in result}
         assert ids == {"s1", "s3", "s5"}, f"Expected s1,s3,s5, got {ids}"
         print("✓ _select_synths_for_interview: uses all from list when less than max")
@@ -661,18 +644,14 @@ if __name__ == "__main__":
     # Test 7: _select_synths_for_interview - synth_ids with more than max
     total_tests += 1
     try:
-        mock_synths = [{"id": f"s{i}", "nome": f"Synth {i}"}
-                       for i in range(10)]
+        mock_synths = [{"id": f"s{i}", "nome": f"Synth {i}"} for i in range(10)]
 
         # Case 3: synth_ids provided with more than max_interviews (should sample)
-        result = _select_synths_for_interview(
-            mock_synths, ["s1", "s2", "s3", "s4", "s5"], 3)
-        assert len(
-            result) == 3, f"Expected 3 synths (sampled), got {len(result)}"
+        result = _select_synths_for_interview(mock_synths, ["s1", "s2", "s3", "s4", "s5"], 3)
+        assert len(result) == 3, f"Expected 3 synths (sampled), got {len(result)}"
         valid_ids = {"s1", "s2", "s3", "s4", "s5"}
         result_ids = {s["id"] for s in result}
-        assert result_ids.issubset(
-            valid_ids), f"Selected IDs {result_ids} not in {valid_ids}"
+        assert result_ids.issubset(valid_ids), f"Selected IDs {result_ids} not in {valid_ids}"
         print("✓ _select_synths_for_interview: randomly samples when list > max")
     except Exception as e:
         all_validation_failures.append(f"_select_synths (list > max): {e}")
@@ -713,6 +692,7 @@ if __name__ == "__main__":
     try:
         # Check if any avatars exist
         from synth_lab.infrastructure.config import AVATARS_DIR
+
         if AVATARS_DIR.exists():
             avatar_files = list(AVATARS_DIR.glob("*.png"))
             if avatar_files:
@@ -738,8 +718,6 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results"
-        )
+        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Batch runner module is validated and ready for use")
         sys.exit(0)

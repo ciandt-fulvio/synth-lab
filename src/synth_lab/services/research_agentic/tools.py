@@ -21,7 +21,6 @@ agent = Agent(name="Interviewee", tools=[tool])
 """
 
 import base64
-import os
 from pathlib import Path
 
 from agents import FunctionTool, function_tool
@@ -47,9 +46,7 @@ def load_image_base64(filename: str, topic_guide_name: str) -> str:
     guide_path = resolve_topic_guide_path(topic_guide_name)
     if guide_path is None:
         logger.error(f"Topic guide not found: {topic_guide_name}")
-        raise FileNotFoundError(
-            f"Topic guide '{topic_guide_name}' not found"
-        )
+        raise FileNotFoundError(f"Topic guide '{topic_guide_name}' not found")
 
     image_path = guide_path / filename
 
@@ -158,9 +155,7 @@ def get_available_images(topic_guide_name: str) -> list[str]:
 
     image_extensions = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
     images = [
-        f.name
-        for f in guide_path.iterdir()
-        if f.is_file() and f.suffix.lower() in image_extensions
+        f.name for f in guide_path.iterdir() if f.is_file() and f.suffix.lower() in image_extensions
     ]
 
     logger.info(f"Found {len(images)} images in topic guide '{topic_guide_name}'")
@@ -184,9 +179,7 @@ if __name__ == "__main__":
             print(f"✓ get_available_images found {len(images)} images")
             print(f"  Images: {images[:3]}...")
         else:
-            all_validation_failures.append(
-                "get_available_images: No images found in compra-amazon"
-            )
+            all_validation_failures.append("get_available_images: No images found in compra-amazon")
     except Exception as e:
         all_validation_failures.append(f"get_available_images: {e}")
 
@@ -227,9 +220,7 @@ if __name__ == "__main__":
             if image_data and len(image_data) > 100:
                 print(f"✓ load_image_base64 loaded image ({len(image_data)} bytes)")
             else:
-                all_validation_failures.append(
-                    "load_image_base64: Image data too small or empty"
-                )
+                all_validation_failures.append("load_image_base64: Image data too small or empty")
         else:
             print("⚠ Skipping load_image_base64 test - no images available")
     except Exception as e:
@@ -259,8 +250,6 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results"
-        )
+        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Tools module is validated and ready for use")
         sys.exit(0)

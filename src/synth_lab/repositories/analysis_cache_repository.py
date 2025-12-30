@@ -16,7 +16,7 @@ from typing import Any
 from synth_lab.domain.entities.analysis_cache import AnalysisCache, CacheKeys
 from synth_lab.domain.entities.chart_insight import ChartInsight
 from synth_lab.domain.entities.executive_summary import ExecutiveSummary
-from synth_lab.infrastructure.database import DatabaseManager, get_database
+from synth_lab.infrastructure.database import DatabaseManager
 from synth_lab.repositories.base import BaseRepository
 
 

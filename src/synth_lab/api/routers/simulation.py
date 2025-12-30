@@ -35,6 +35,7 @@ from synth_lab.domain.entities import (
     SynthOutcome,
     TryVsSuccessChart,
 )
+
 # NOTE: ChartInsight entities temporarily disabled during feature 023 migration
 # from synth_lab.domain.entities.chart_insight import (
 #     ChartInsight,
@@ -46,6 +47,7 @@ from synth_lab.repositories.scorecard_repository import ScorecardRepository
 from synth_lab.services.simulation.chart_data_service import ChartDataService
 from synth_lab.services.simulation.clustering_service import ClusteringService
 from synth_lab.services.simulation.explainability_service import ExplainabilityService
+
 # NOTE: InsightService temporarily disabled during feature 023 migration
 # from synth_lab.services.simulation.insight_service import InsightGenerationError, InsightService
 from synth_lab.services.simulation.outlier_service import OutlierService
@@ -79,9 +81,7 @@ class ScorecardCreate(BaseModel):
     use_scenario: str = Field(description="Usage scenario")
     description_text: str = Field(description="Feature description")
     evaluators: list[str] = Field(default_factory=list, description="List of evaluators")
-    description_media_urls: list[str] = Field(
-        default_factory=list, description="Media URLs"
-    )
+    description_media_urls: list[str] = Field(default_factory=list, description="Media URLs")
     complexity: DimensionCreate | None = None
     initial_effort: DimensionCreate | None = None
     perceived_risk: DimensionCreate | None = None
@@ -359,10 +359,7 @@ def load_scenarios() -> dict[str, Scenario]:
 
     # Load from project root data/config directory
     scenarios_path = (
-        Path(__file__).parent.parent.parent.parent.parent
-        / "data"
-        / "config"
-        / "scenarios.json"
+        Path(__file__).parent.parent.parent.parent.parent / "data" / "config" / "scenarios.json"
     )
 
     if not scenarios_path.exists():
@@ -659,9 +656,7 @@ async def get_simulation_endpoint(simulation_id: str) -> SimulationResponse:
     run = service.get_simulation(simulation_id)
 
     if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
 
     return simulation_to_response(run)
 
@@ -685,9 +680,7 @@ async def get_simulation_outcomes(
     # Verify simulation exists
     run = service.get_simulation(simulation_id)
     if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
 
     result = service.get_simulation_outcomes(
         run_id=simulation_id,
@@ -747,9 +740,7 @@ async def analyze_simulation_regions(
     # Verify simulation exists
     run = service.get_simulation(simulation_id)
     if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
 
     # Get simulation outcomes
     outcomes_result = service.get_simulation_outcomes(
@@ -862,9 +853,7 @@ async def compare_simulations(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Comparison failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Comparison failed: {str(e)}")
 
 
 # NOTE: Sensitivity analysis results are persisted in the database
@@ -922,9 +911,7 @@ async def analyze_sensitivity(
             )
 
     try:
-        result = analyzer.analyze_sensitivity(
-            simulation_id=simulation_id, deltas=delta_values
-        )
+        result = analyzer.analyze_sensitivity(simulation_id=simulation_id, deltas=delta_values)
 
         # Note: Result is automatically persisted to database by analyzer
 
@@ -951,9 +938,7 @@ async def analyze_sensitivity(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Sensitivity analysis failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Sensitivity analysis failed: {str(e)}")
 
 
 # --- Analysis Chart Endpoints (User Story 1 & 2) ---
@@ -1046,9 +1031,7 @@ async def get_try_vs_success_chart(
     # Verify simulation exists and is completed
     run = sim_service.get_simulation(simulation_id)
     if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
@@ -1089,9 +1072,7 @@ async def get_distribution_chart(
     # Verify simulation exists and is completed
     run = sim_service.get_simulation(simulation_id)
     if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
@@ -1141,9 +1122,7 @@ async def get_sankey_chart(
     # Verify simulation exists and is completed
     run = sim_service.get_simulation(simulation_id)
     if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
@@ -1181,9 +1160,7 @@ async def get_failure_heatmap_chart(
     # Verify simulation exists and is completed
     run = sim_service.get_simulation(simulation_id)
     if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
@@ -1232,9 +1209,7 @@ async def get_scatter_correlation_chart(
     # Verify simulation exists and is completed
     run = sim_service.get_simulation(simulation_id)
     if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
@@ -1311,9 +1286,7 @@ async def create_clustering(
     # Verify simulation exists and is completed
     run = sim_service.get_simulation(simulation_id)
     if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
@@ -1593,9 +1566,7 @@ def get_outlier_service() -> OutlierService:
 )
 async def get_extreme_cases(
     simulation_id: str,
-    n_per_category: int = Query(
-        10, ge=1, le=50, description="Number of synths per category"
-    ),
+    n_per_category: int = Query(10, ge=1, le=50, description="Number of synths per category"),
 ) -> ExtremeCasesTable:
     """
     Get extreme cases for qualitative research.
@@ -1616,9 +1587,7 @@ async def get_extreme_cases(
     # Verify simulation exists and is completed
     run = sim_service.get_simulation(simulation_id)
     if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
@@ -1676,9 +1645,7 @@ async def detect_outliers(
     # Verify simulation exists and is completed
     run = sim_service.get_simulation(simulation_id)
     if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
@@ -1737,9 +1704,7 @@ async def get_shap_summary(
     # Verify simulation exists and is completed
     run = sim_service.get_simulation(simulation_id)
     if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
@@ -1792,9 +1757,7 @@ async def get_shap_explanation(
     # Verify simulation exists and is completed
     run = sim_service.get_simulation(simulation_id)
     if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
@@ -1854,9 +1817,7 @@ async def get_pdp(
     # Verify simulation exists and is completed
     run = sim_service.get_simulation(simulation_id)
     if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
@@ -1918,9 +1879,7 @@ async def get_pdp_comparison(
     # Verify simulation exists and is completed
     run = sim_service.get_simulation(simulation_id)
     if run is None:
-        raise HTTPException(
-            status_code=404, detail=f"Simulation {simulation_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
@@ -1961,188 +1920,8 @@ async def get_pdp_comparison(
 # NOTE: These endpoints are temporarily commented out during feature 023 migration.
 # They will be replaced with new insight endpoints in Phase 4 of the migration.
 
-# def get_insight_service() -> InsightService:
-#     """Get insight service instance."""
-#     return InsightService()
-#
-#
-# # Request/Response models for insights
-# class GenerateChartInsightRequest(BaseModel):
-#     """Request model for generating chart insight."""
-#
-#     chart_data: dict = Field(description="Chart data to analyze")
-#     force_regenerate: bool = Field(
-#         default=False, description="Force regenerate even if cached"
-#     )
-#
-#
-# class ExecutiveSummaryResponse(BaseModel):
-#     """Response model for executive summary."""
-#
-#     simulation_id: str
-#     summary: str | None
-#     total_insights: int
-#
-#
-# @router.get(
-#     "/simulations/{simulation_id}/insights",
-#     response_model=SimulationInsights,
-# )
-# async def get_all_insights(
-#     simulation_id: str,
-# ) -> SimulationInsights:
-#     """
-#     Get all cached insights for a simulation.
-#
-#     Returns all previously generated chart insights and metadata.
-#     Use the POST endpoint to generate new insights.
-#
-#     Args:
-#         simulation_id: ID of the simulation.
-#
-#     Returns:
-#         SimulationInsights with all cached insights.
-#     """
-#     sim_service = get_simulation_service()
-#
-#     # Verify simulation exists
-#     run = sim_service.get_simulation(simulation_id)
-#     if run is None:
-#         raise HTTPException(
-#             status_code=404, detail=f"Simulation {simulation_id} not found"
-#         )
-#
-#     insight_service = get_insight_service()
-#     return insight_service.get_all_insights(simulation_id)
-#
-#
-# # IMPORTANT: executive-summary must be defined BEFORE {chart_type} to avoid route conflict
-# @router.post(
-#     "/simulations/{simulation_id}/insights/executive-summary",
-#     response_model=ExecutiveSummaryResponse,
-# )
-# async def generate_executive_summary(
-#     simulation_id: str,
-# ) -> ExecutiveSummaryResponse:
-#     """
-#     Generate executive summary across all insights.
-#
-#     Synthesizes all chart insights into a concise executive summary
-#     highlighting key findings and prioritized recommendations.
-#
-#     Requires at least one insight to be generated first.
-#
-#     Args:
-#         simulation_id: ID of the simulation.
-#
-#     Returns:
-#         ExecutiveSummaryResponse with summary text.
-#     """
-#     sim_service = get_simulation_service()
-#
-#     # Verify simulation exists
-#     run = sim_service.get_simulation(simulation_id)
-#     if run is None:
-#         raise HTTPException(
-#             status_code=404, detail=f"Simulation {simulation_id} not found"
-#         )
-#
-#     insight_service = get_insight_service()
-#
-#     # Check if there are any insights to summarize
-#     all_insights = insight_service.get_all_insights(simulation_id)
-#     if len(all_insights.insights) == 0:
-#         raise HTTPException(
-#             status_code=400,
-#             detail="No insights available to summarize. Generate chart insights first.",
-#         )
-#
-#     try:
-#         summary = insight_service.generate_executive_summary(simulation_id)
-#         return ExecutiveSummaryResponse(
-#             simulation_id=simulation_id,
-#             summary=summary,
-#             total_insights=len(all_insights.insights),
-#         )
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=500, detail=f"Failed to generate executive summary: {e}"
-#         )
-#
-#
-# @router.post(
-#     "/simulations/{simulation_id}/insights/{chart_type}",
-#     response_model=ChartInsight,
-# )
-# async def generate_chart_insight(
-#     simulation_id: str,
-#     chart_type: ChartType,
-#     request: GenerateChartInsightRequest,
-# ) -> ChartInsight:
-#     """
-#     Generate LLM insight for a specific chart.
-#
-#     Analyzes the chart data and generates:
-#     - Short caption (<=20 tokens)
-#     - Detailed explanation (<=200 tokens)
-#     - Evidence from data
-#     - Actionable recommendation
-#
-#     Results are cached for subsequent requests.
-#
-#     Args:
-#         simulation_id: ID of the simulation.
-#         chart_type: Type of chart to analyze.
-#         request: Chart data and options.
-#
-#     Returns:
-#         ChartInsight with analysis.
-#     """
-#     sim_service = get_simulation_service()
-#
-#     # Verify simulation exists and is completed
-#     run = sim_service.get_simulation(simulation_id)
-#     if run is None:
-#         raise HTTPException(
-#             status_code=404, detail=f"Simulation {simulation_id} not found"
-#         )
-#     if run.status != "completed":
-#         raise HTTPException(
-#             status_code=400,
-#             detail=f"Simulation {simulation_id} not completed (status: {run.status})",
-#         )
-#
-#     insight_service = get_insight_service()
-#
-#     try:
-#         insight = insight_service.generate_insight(
-#             simulation_id=simulation_id,
-#             chart_type=chart_type,
-#             chart_data=request.chart_data,
-#             force=request.force_regenerate,
-#         )
-#         return insight
-#     except InsightGenerationError as e:
-#         raise HTTPException(status_code=500, detail=str(e))
-#
-#
-# @router.delete(
-#     "/simulations/{simulation_id}/insights",
-#     status_code=204,
-# )
-# async def clear_insights(
-#     simulation_id: str,
-# ) -> None:
-#     """
-#     Clear all cached insights for a simulation.
-#
-#     Removes all cached insights, requiring regeneration on next request.
-#
-#     Args:
-#         simulation_id: ID of the simulation.
-#     """
-#     insight_service = get_insight_service()
-#     insight_service.clear_insights(simulation_id=simulation_id)
+# NOTE: Insight endpoints moved to routers/insights.py in feature 023
+# Legacy endpoints removed to avoid duplication
 
 
 if __name__ == "__main__":
@@ -2157,9 +1936,7 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         if len(router.routes) < 10:
-            all_validation_failures.append(
-                f"Expected at least 10 routes, got {len(router.routes)}"
-            )
+            all_validation_failures.append(f"Expected at least 10 routes, got {len(router.routes)}")
         else:
             print(f"Test 1 PASSED: Router has {len(router.routes)} routes")
     except Exception as e:
@@ -2218,9 +1995,7 @@ if __name__ == "__main__":
     try:
         scenarios = load_scenarios()
         if len(scenarios) != 3:
-            all_validation_failures.append(
-                f"Expected 3 scenarios, got {len(scenarios)}"
-            )
+            all_validation_failures.append(f"Expected 3 scenarios, got {len(scenarios)}")
         elif "baseline" not in scenarios:
             all_validation_failures.append("Missing baseline scenario")
         else:
@@ -2252,9 +2027,7 @@ if __name__ == "__main__":
     # Final result
     print()
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:"
-        )
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)

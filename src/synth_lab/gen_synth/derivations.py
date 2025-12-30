@@ -110,9 +110,9 @@ def derive_description(synth_data: dict[str, Any]) -> str:
     Gera descrição textual do Synth (mínimo 50 caracteres).
 
     Creates a human-readable description combining:
-    - Gender, age, occupation, location
-    - Notable personality traits
-    - Interests (if description is still short)
+    - Gender (from genero_biologico), age, occupation, location
+    - Education level and marital status
+    - Interests
 
     Args:
         synth_data: Complete synth dictionary with all attributes
@@ -123,11 +123,11 @@ def derive_description(synth_data: dict[str, Any]) -> str:
     demo = synth_data["demografia"]
     psico = synth_data["psicografia"]
 
-    # Usar identidade de gênero para artigo
-    identidade = demo["identidade_genero"]
-    if identidade in ["mulher cis", "mulher trans"]:
+    # Usar gênero biológico para artigo
+    genero = demo.get("genero_biologico", "")
+    if genero == "feminino":
         genero_artigo = "Mulher"
-    elif identidade in ["homem cis", "homem trans"]:
+    elif genero == "masculino":
         genero_artigo = "Homem"
     else:
         genero_artigo = "Pessoa"
@@ -135,14 +135,15 @@ def derive_description(synth_data: dict[str, Any]) -> str:
     desc = f"{genero_artigo} de {demo['idade']} anos, {demo['ocupacao'].lower()}, "
     desc += f"mora em {demo['localizacao']['cidade']}, {demo['localizacao']['estado']}. "
 
-    big_five = psico["personalidade_big_five"]
-    tracos_altos = [k.capitalize() for k, v in big_five.items() if v > 60]
-    if tracos_altos:
-        desc += f"Possui traços marcantes de {', '.join(tracos_altos[:2])}. "
+    # Adicionar escolaridade se disponível
+    escolaridade = demo.get("escolaridade", "")
+    if escolaridade:
+        desc += f"Escolaridade: {escolaridade}. "
 
-    # Adicionar informação sobre interesses se descrição ainda curta
-    if len(desc) < 50 and psico["interesses"]:
-        desc += f"Interesses: {', '.join(psico['interesses'][:3])}."
+    # Adicionar informação sobre interesses
+    interesses = psico.get("interesses", [])
+    if interesses:
+        desc += f"Interesses: {', '.join(interesses[:3])}."
 
     return desc
 
@@ -190,11 +191,9 @@ if __name__ == "__main__":
 
         # Should contain age group, region, and personality
         if "Jovem Adulto" not in archetype:
-            all_validation_failures.append(
-                f"Archetype should contain 'Jovem Adulto': {archetype}")
+            all_validation_failures.append(f"Archetype should contain 'Jovem Adulto': {archetype}")
         if "Sudeste" not in archetype:
-            all_validation_failures.append(
-                f"Archetype should contain 'Sudeste': {archetype}")
+            all_validation_failures.append(f"Archetype should contain 'Sudeste': {archetype}")
         if "Criativo" not in archetype:
             all_validation_failures.append(
                 f"Archetype should contain 'Criativo' (highest trait): {archetype}"
@@ -203,8 +202,7 @@ if __name__ == "__main__":
         if not any(f.startswith("Test 1") for f in all_validation_failures):
             print(f"Test 1: derive_archetype() -> {archetype}")
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 1 (derive_archetype young): {str(e)}")
+        all_validation_failures.append(f"Test 1 (derive_archetype young): {str(e)}")
 
     # Test 2: Derive archetype for elderly
     total_tests += 1
@@ -220,11 +218,9 @@ if __name__ == "__main__":
         archetype = derive_archetype(demo, big_five)
 
         if "Idoso" not in archetype:
-            all_validation_failures.append(
-                f"Archetype should contain 'Idoso': {archetype}")
+            all_validation_failures.append(f"Archetype should contain 'Idoso': {archetype}")
         if "Sul" not in archetype:
-            all_validation_failures.append(
-                f"Archetype should contain 'Sul': {archetype}")
+            all_validation_failures.append(f"Archetype should contain 'Sul': {archetype}")
         if "Organizado" not in archetype:
             all_validation_failures.append(
                 f"Archetype should contain 'Organizado' (highest trait): {archetype}"
@@ -233,8 +229,7 @@ if __name__ == "__main__":
         if not any(f.startswith("Test 2") for f in all_validation_failures):
             print(f"Test 2: derive_archetype(elderly) -> {archetype}")
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 2 (derive_archetype elderly): {str(e)}")
+        all_validation_failures.append(f"Test 2 (derive_archetype elderly): {str(e)}")
 
     # Test 3: Derive lifestyle - active and social
     total_tests += 1
@@ -250,15 +245,12 @@ if __name__ == "__main__":
 
         if lifestyle != "Ativo e social":
             all_validation_failures.append(
-                f"Expected 'Ativo e social', got '{lifestyle}' "
-                f"(extroversao=75, neuroticismo=30)"
+                f"Expected 'Ativo e social', got '{lifestyle}' (extroversao=75, neuroticismo=30)"
             )
         else:
-            print(
-                f"Test 3: derive_lifestyle(high extraversion) -> {lifestyle}")
+            print(f"Test 3: derive_lifestyle(high extraversion) -> {lifestyle}")
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 3 (derive_lifestyle active): {str(e)}")
+        all_validation_failures.append(f"Test 3 (derive_lifestyle active): {str(e)}")
 
     # Test 4: Derive lifestyle - reserved and cautious
     total_tests += 1
@@ -280,8 +272,7 @@ if __name__ == "__main__":
         else:
             print(f"Test 4: derive_lifestyle(low extraversion) -> {lifestyle}")
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 4 (derive_lifestyle reserved): {str(e)}")
+        all_validation_failures.append(f"Test 4 (derive_lifestyle reserved): {str(e)}")
 
     # Test 5: Derive lifestyle - creative and explorer
     total_tests += 1
@@ -302,8 +293,7 @@ if __name__ == "__main__":
         else:
             print(f"Test 5: derive_lifestyle(high openness) -> {lifestyle}")
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 5 (derive_lifestyle creative): {str(e)}")
+        all_validation_failures.append(f"Test 5 (derive_lifestyle creative): {str(e)}")
 
     # Test 6: Derive description
     total_tests += 1
@@ -311,18 +301,12 @@ if __name__ == "__main__":
         synth = {
             "demografia": {
                 "idade": 32,
-                "identidade_genero": "mulher cis",
+                "genero_biologico": "feminino",
                 "ocupacao": "Analista de Sistemas",
+                "escolaridade": "Superior completo",
                 "localizacao": {"cidade": "São Paulo", "estado": "SP"},
             },
             "psicografia": {
-                "personalidade_big_five": {
-                    "abertura": 75,
-                    "conscienciosidade": 65,
-                    "extroversao": 45,
-                    "amabilidade": 55,
-                    "neuroticismo": 40,
-                },
                 "interesses": ["tecnologia", "cinema", "leitura"],
             },
         }
@@ -338,17 +322,19 @@ if __name__ == "__main__":
         if "32 anos" not in description:
             all_validation_failures.append("Description should contain age")
         if "analista de sistemas" not in description.lower():
-            all_validation_failures.append(
-                "Description should contain occupation")
+            all_validation_failures.append("Description should contain occupation")
         if "São Paulo" not in description:
             all_validation_failures.append("Description should contain city")
+        if "Mulher" not in description:
+            all_validation_failures.append("Description should contain 'Mulher' for feminino")
+        if "Superior completo" not in description:
+            all_validation_failures.append("Description should contain escolaridade")
 
         if not any(f.startswith("Test 6") for f in all_validation_failures):
             print(f"Test 6: derive_description() -> {len(description)} chars")
             print(f"  Sample: {description[:80]}...")
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 6 (derive_description): {str(e)}")
+        all_validation_failures.append(f"Test 6 (derive_description): {str(e)}")
 
     # Test 7: Generate photo link
     total_tests += 1
@@ -357,14 +343,11 @@ if __name__ == "__main__":
         photo_link = generate_photo_link(name)
 
         if not photo_link.startswith("https://ui-avatars.com/api/"):
-            all_validation_failures.append(
-                f"Invalid photo link URL: {photo_link}")
+            all_validation_failures.append(f"Invalid photo link URL: {photo_link}")
         if "name=Maria+Silva+Santos" not in photo_link:
-            all_validation_failures.append(
-                f"Photo link should contain encoded name: {photo_link}")
+            all_validation_failures.append(f"Photo link should contain encoded name: {photo_link}")
         if "size=256" not in photo_link:
-            all_validation_failures.append(
-                f"Photo link should have size=256: {photo_link}")
+            all_validation_failures.append(f"Photo link should have size=256: {photo_link}")
         if "background=random" not in photo_link:
             all_validation_failures.append(
                 f"Photo link should have background=random: {photo_link}"
@@ -373,8 +356,7 @@ if __name__ == "__main__":
         if not any(f.startswith("Test 7") for f in all_validation_failures):
             print(f"Test 7: generate_photo_link() -> {photo_link}")
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 7 (generate_photo_link): {str(e)}")
+        all_validation_failures.append(f"Test 7 (generate_photo_link): {str(e)}")
 
     # Test 8: Test all age groups
     total_tests += 1
@@ -411,16 +393,26 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         lifestyle_tests = [
-            ({"extroversao": 75, "neuroticismo": 30, "abertura": 50,
-             "conscienciosidade": 50}, "Ativo e social"),
-            ({"extroversao": 30, "neuroticismo": 70, "abertura": 50,
-             "conscienciosidade": 50}, "Reservado e cauteloso"),
-            ({"extroversao": 50, "neuroticismo": 50, "abertura": 80,
-             "conscienciosidade": 50}, "Criativo e explorador"),
-            ({"extroversao": 50, "neuroticismo": 50, "abertura": 50,
-             "conscienciosidade": 80}, "Disciplinado e focado"),
-            ({"extroversao": 50, "neuroticismo": 50, "abertura": 50,
-             "conscienciosidade": 50}, "Equilibrado e moderado"),
+            (
+                {"extroversao": 75, "neuroticismo": 30, "abertura": 50, "conscienciosidade": 50},
+                "Ativo e social",
+            ),
+            (
+                {"extroversao": 30, "neuroticismo": 70, "abertura": 50, "conscienciosidade": 50},
+                "Reservado e cauteloso",
+            ),
+            (
+                {"extroversao": 50, "neuroticismo": 50, "abertura": 80, "conscienciosidade": 50},
+                "Criativo e explorador",
+            ),
+            (
+                {"extroversao": 50, "neuroticismo": 50, "abertura": 50, "conscienciosidade": 80},
+                "Disciplinado e focado",
+            ),
+            (
+                {"extroversao": 50, "neuroticismo": 50, "abertura": 50, "conscienciosidade": 50},
+                "Equilibrado e moderado",
+            ),
         ]
 
         for traits, expected_lifestyle in lifestyle_tests:
@@ -434,19 +426,16 @@ if __name__ == "__main__":
         if not any(f.startswith("Test 9") for f in all_validation_failures):
             print("Test 9: All lifestyle patterns work correctly")
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 9 (lifestyle patterns): {str(e)}")
+        all_validation_failures.append(f"Test 9 (lifestyle patterns): {str(e)}")
 
     # Final validation result
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Function is validated and formal tests can now be written")
         sys.exit(0)

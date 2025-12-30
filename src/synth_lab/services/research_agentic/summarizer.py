@@ -29,7 +29,6 @@ from openai.types.shared import Reasoning
 from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
 from synth_lab.infrastructure.llm_client import supports_reasoning_effort
-
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
 
 from .runner import InterviewResult
@@ -241,7 +240,7 @@ async def summarize_interviews(
         # Format all interviews
         interviews_content_parts = []
         for i, (result, synth_data) in enumerate(interview_results):
-            logger.debug(f"Formatting interview {i+1}/{len(interview_results)}")
+            logger.debug(f"Formatting interview {i + 1}/{len(interview_results)}")
             formatted = format_interview_for_summary(result, synth_data)
             interviews_content_parts.append(formatted)
 
@@ -292,6 +291,7 @@ if __name__ == "__main__":
             create_summarizer_agent,
             format_interview_for_summary,
         )
+
         print("✓ All imports successful")
     except Exception as e:
         all_validation_failures.append(f"Import: {e}")
@@ -347,7 +347,7 @@ if __name__ == "__main__":
             model="gpt-4.1-mini",
         )
         assert agent.name == "Research Summarizer"
-        assert "test-guide" in agent.instructions # type: ignore
+        assert "test-guide" in agent.instructions  # type: ignore
         print("✓ create_summarizer_agent works correctly")
     except Exception as e:
         all_validation_failures.append(f"create_summarizer_agent: {e}")
@@ -362,8 +362,6 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results"
-        )
+        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Summarizer module is validated and ready for use")
         sys.exit(0)

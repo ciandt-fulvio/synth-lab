@@ -76,20 +76,14 @@ def generate_prfaq_from_content(
         few_shot_examples = get_few_shot_examples()
 
         # Format few-shot examples as conversation
-        messages = [
-            {"role": "system", "content": system_prompt}
-        ]
+        messages = [{"role": "system", "content": system_prompt}]
 
         # Add few-shot examples (user research → assistant PR-FAQ MD)
         for example in few_shot_examples:
-            messages.append({
-                "role": "user",
-                "content": f"Research Report:\n\n{example['research_summary']}"
-            })
-            messages.append({
-                "role": "assistant",
-                "content": example['prfaq_output']
-            })
+            messages.append(
+                {"role": "user", "content": f"Research Report:\n\n{example['research_summary']}"}
+            )
+            messages.append({"role": "assistant", "content": example["prfaq_output"]})
 
         # Add current research report
         user_prompt = f"""Research Report:
@@ -99,7 +93,7 @@ def generate_prfaq_from_content(
 Based on this research batch summary, generate a complete PR-FAQ document in Markdown format following the Amazon Working Backwards framework.
 
 Batch ID: {batch_id}
-Generated: {datetime.now().strftime('%Y-%m-%d')}
+Generated: {datetime.now().strftime("%Y-%m-%d")}
 
 Generate the PR-FAQ with:
 - Press Release sections (Heading, Subheading, Summary, Problem, Solution, Quotes)
@@ -119,19 +113,17 @@ Return ONLY the Markdown-formatted PR-FAQ document."""
         # 16000 max tokens allows for comprehensive PR-FAQ output.
         try:
             response = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                max_completion_tokens=16000
+                model=model, messages=messages, max_completion_tokens=16000
             )
 
-            logger.info(
-                f"OpenAI API call successful. Tokens used: {response.usage.total_tokens}")
+            logger.info(f"OpenAI API call successful. Tokens used: {response.usage.total_tokens}")
 
             # Extract Markdown response
             prfaq_markdown = response.choices[0].message.content.strip()
 
             logger.info(
-                f"PR-FAQ Markdown generation successful for {batch_id} ({len(prfaq_markdown)} characters)")
+                f"PR-FAQ Markdown generation successful for {batch_id} ({len(prfaq_markdown)} characters)"
+            )
 
             if span:
                 span.set_attribute("tokens_used", response.usage.total_tokens)
@@ -158,6 +150,7 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         from synth_lab.services.research_prfaq.generator import generate_prfaq_from_content
+
         print("✓ Import successful")
     except Exception as e:
         validation_failures.append(f"Import failed: {e}")
@@ -187,35 +180,31 @@ if __name__ == "__main__":
                 batch_id="test_validation",
                 model="gpt-4.1-mini",
             )
-            logger.info(
-                f"Generated PR-FAQ Markdown ({len(prfaq_md)} characters)")
+            logger.info(f"Generated PR-FAQ Markdown ({len(prfaq_md)} characters)")
 
             # Verify structure
             if "Press Release" not in prfaq_md and "FAQ" not in prfaq_md:
-                validation_failures.append(
-                    "Generated PR-FAQ missing key sections")
+                validation_failures.append("Generated PR-FAQ missing key sections")
             else:
                 print(f"✓ Generated PR-FAQ with {len(prfaq_md)} characters")
 
         except Exception as e:
             validation_failures.append(f"PR-FAQ generation failed: {str(e)}")
             import traceback
+
             logger.error(traceback.format_exc())
 
     # Report results
     if validation_failures:
-        print(
-            f"\n❌ VALIDATION FAILED - {len(validation_failures)} of {total_tests} tests failed:")
+        print(f"\n❌ VALIDATION FAILED - {len(validation_failures)} of {total_tests} tests failed:")
         for failure in validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
         if api_key and total_tests > 2:
-            print(
-                f"\n✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
+            print(f"\n✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
             print("Generator is validated and ready for use")
         else:
-            print(
-                f"\n⚠️  PARTIAL VALIDATION - {total_tests} basic test(s) passed")
+            print(f"\n⚠️  PARTIAL VALIDATION - {total_tests} basic test(s) passed")
             print("   Set OPENAI_API_KEY to run full validation")
         sys.exit(0)
