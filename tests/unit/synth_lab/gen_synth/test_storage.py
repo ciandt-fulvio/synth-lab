@@ -42,7 +42,7 @@ def test_save_synth_to_database(temp_db, sample_synth):
 
 
 def test_save_synth_with_json_fields(temp_db, sample_synth):
-    """Test saving synth with JSON fields (demografia, psicografia, etc.)."""
+    """Test saving synth with JSON fields (demografia, psicografia, observables, etc.)."""
     storage.save_synth(sample_synth)
 
     loaded = storage.get_synth_by_id(sample_synth["id"])
@@ -50,10 +50,11 @@ def test_save_synth_with_json_fields(temp_db, sample_synth):
 
     # Check JSON fields are properly stored and loaded
     assert loaded["demografia"]["idade"] == sample_synth["demografia"]["idade"]
-    assert (
-        loaded["psicografia"]["personalidade_big_five"]["abertura"]
-        == sample_synth["psicografia"]["personalidade_big_five"]["abertura"]
-    )
+    assert loaded["psicografia"]["interesses"] == sample_synth["psicografia"]["interesses"]
+
+    # Check observables (v2.3.0)
+    assert loaded["observables"]["digital_literacy"] == sample_synth["observables"]["digital_literacy"]
+    assert loaded["observables"]["motor_ability"] == sample_synth["observables"]["motor_ability"]
 
 
 def test_save_multiple_synths(temp_db, sample_synth):
