@@ -22,21 +22,6 @@ from synth_lab.domain.entities import (
     SimulationObservables,
     SynthOutcome,
 )
-
-# Check if shap module is available (optional dependency for explainability)
-try:
-    import shap  # noqa: F401
-
-    SHAP_AVAILABLE = True
-except ImportError:
-    SHAP_AVAILABLE = False
-
-# Skip all tests if shap is not available
-pytestmark = pytest.mark.skipif(
-    not SHAP_AVAILABLE,
-    reason="shap module not installed (optional dependency for explainability)",
-)
-
 from synth_lab.services.simulation.explainability_service import ExplainabilityService
 
 

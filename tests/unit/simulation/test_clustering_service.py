@@ -18,21 +18,6 @@ from synth_lab.domain.entities import (
     SimulationObservables,
     SynthOutcome,
 )
-
-# Check if kneed module is available (optional dependency for elbow method)
-try:
-    import kneed  # noqa: F401
-
-    KNEED_AVAILABLE = True
-except ImportError:
-    KNEED_AVAILABLE = False
-
-# Skip all tests if kneed is not available
-pytestmark = pytest.mark.skipif(
-    not KNEED_AVAILABLE,
-    reason="kneed module not installed (optional dependency for clustering)",
-)
-
 from synth_lab.services.simulation.clustering_service import ClusteringService
 
 
