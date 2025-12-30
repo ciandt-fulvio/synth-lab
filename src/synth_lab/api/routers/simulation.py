@@ -35,6 +35,7 @@ from synth_lab.domain.entities import (
     SynthOutcome,
     TryVsSuccessChart,
 )
+
 # NOTE: ChartInsight entities temporarily disabled during feature 023 migration
 # from synth_lab.domain.entities.chart_insight import (
 #     ChartInsight,
@@ -46,6 +47,7 @@ from synth_lab.repositories.scorecard_repository import ScorecardRepository
 from synth_lab.services.simulation.chart_data_service import ChartDataService
 from synth_lab.services.simulation.clustering_service import ClusteringService
 from synth_lab.services.simulation.explainability_service import ExplainabilityService
+
 # NOTE: InsightService temporarily disabled during feature 023 migration
 # from synth_lab.services.simulation.insight_service import InsightGenerationError, InsightService
 from synth_lab.services.simulation.outlier_service import OutlierService

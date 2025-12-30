@@ -29,6 +29,7 @@ from synth_lab.services.simulation.feature_extraction import (
     get_available_attributes,
     get_outcome_value,
 )
+
 # NOTE: InsightService temporarily disabled during feature 023 migration
 # from synth_lab.services.simulation.insight_service import (
 #     InsightGenerationError,
