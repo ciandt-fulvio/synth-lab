@@ -33,7 +33,8 @@ TRACES_DIR = OUTPUT_DIR / "traces"
 
 # Logging configuration
 # LOG_LEVEL from Makefile (ENV-based), fallback to SYNTHLAB_LOG_LEVEL
-LOG_LEVEL = os.getenv("LOG_LEVEL", os.getenv("SYNTHLAB_LOG_LEVEL", "INFO")).upper()
+LOG_LEVEL = os.getenv("LOG_LEVEL", os.getenv(
+    "SYNTHLAB_LOG_LEVEL", "INFO")).upper()
 
 
 def configure_logging() -> None:
@@ -60,8 +61,10 @@ def configure_logging() -> None:
 
     logger.debug(f"Logging configured with level: {LOG_LEVEL}")
 
+
 # LLM configuration
 DEFAULT_MODEL = os.getenv("SYNTHLAB_DEFAULT_MODEL", "gpt-4o-mini")
+REASONING_MODEL = "gpt-4.1-mini"  # Fast model for executive summary generation
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 LLM_TIMEOUT = float(os.getenv("SYNTHLAB_LLM_TIMEOUT", "120.0"))
 LLM_MAX_RETRIES = int(os.getenv("SYNTHLAB_LLM_MAX_RETRIES", "3"))
@@ -117,7 +120,8 @@ if __name__ == "__main__":
     # Test 1: PROJECT_ROOT exists
     total_tests += 1
     if not PROJECT_ROOT.exists():
-        all_validation_failures.append(f"PROJECT_ROOT does not exist: {PROJECT_ROOT}")
+        all_validation_failures.append(
+            f"PROJECT_ROOT does not exist: {PROJECT_ROOT}")
 
     # Test 2: DB_PATH parent can be created
     total_tests += 1
@@ -129,13 +133,15 @@ if __name__ == "__main__":
     # Test 3: Default values are set
     total_tests += 1
     if DEFAULT_MODEL != "gpt-4o-mini":
-        all_validation_failures.append(f"DEFAULT_MODEL should be gpt-4o-mini, got {DEFAULT_MODEL}")
+        all_validation_failures.append(
+            f"DEFAULT_MODEL should be gpt-4o-mini, got {DEFAULT_MODEL}")
 
     # Test 4: LOG_LEVEL is valid
     total_tests += 1
     valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
     if LOG_LEVEL.upper() not in valid_levels:
-        all_validation_failures.append(f"LOG_LEVEL {LOG_LEVEL} not in {valid_levels}")
+        all_validation_failures.append(
+            f"LOG_LEVEL {LOG_LEVEL} not in {valid_levels}")
 
     # Test 5: ensure_directories works
     total_tests += 1
@@ -157,7 +163,8 @@ if __name__ == "__main__":
     examples_dir = TOPIC_GUIDES_DIR / "examples"
     if examples_dir.exists():
         # Find any existing example
-        existing_examples = [d.name for d in examples_dir.iterdir() if d.is_dir()]
+        existing_examples = [
+            d.name for d in examples_dir.iterdir() if d.is_dir()]
         if existing_examples:
             example_name = existing_examples[0]
             result = resolve_topic_guide_path(example_name)
@@ -169,12 +176,14 @@ if __name__ == "__main__":
 
     # Final validation result
     if all_validation_failures:
-        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(
+            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         print(f"  PROJECT_ROOT: {PROJECT_ROOT}")
         print(f"  DB_PATH: {DB_PATH}")
         print(f"  DEFAULT_MODEL: {DEFAULT_MODEL}")

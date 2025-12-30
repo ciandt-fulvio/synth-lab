@@ -2,7 +2,7 @@
 // Failure Heatmap section with professional view switching
 
 import { useState } from 'react';
-import { Sparkles, Loader2, AlertCircle, RefreshCw, Info } from 'lucide-react';
+import { AlertCircle, RefreshCw, Info } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,7 +15,6 @@ import {
 import { ChartErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { FailureHeatmap } from './charts/FailureHeatmap';
 import { useAnalysisFailureHeatmap } from '@/hooks/use-analysis-charts';
-import { useGenerateAnalysisChartInsight } from '@/hooks/use-insights';
 
 interface HeatmapSectionProps {
   experimentId: string;
@@ -54,7 +53,6 @@ function HeatmapContent({
   perspective: (typeof PERSPECTIVES)[number];
 }) {
   const heatmap = useAnalysisFailureHeatmap(experimentId, perspective.xAxis, perspective.yAxis);
-  const generateInsight = useGenerateAnalysisChartInsight(experimentId);
 
   const handleGenerateInsight = () => {
     if (!heatmap.data) return;

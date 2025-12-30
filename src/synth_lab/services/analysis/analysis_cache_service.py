@@ -50,9 +50,9 @@ class AnalysisCacheService:
             "y_axis": "success_rate",
         },
         CacheKeys.CORRELATIONS: {},
-        CacheKeys.EXTREME_CASES: {"top_n": 5},
+        CacheKeys.EXTREME_CASES: {"n_per_category": 5},
         CacheKeys.OUTLIERS: {"contamination": 0.1},
-        CacheKeys.SHAP_SUMMARY: {"max_features": 10},
+        CacheKeys.SHAP_SUMMARY: {"features": None},
     }
 
     def __init__(
@@ -207,6 +207,42 @@ class AnalysisCacheService:
         except Exception as e:
             self.logger.error(f"Failed to compute {CacheKeys.SHAP_SUMMARY}: {e}")
             results[CacheKeys.SHAP_SUMMARY] = False
+
+        # Phase 3: Segmentation (auto clustering + PCA + Radar)
+        kmeans_result = None
+        try:
+            # Run automatic K-Means clustering
+            kmeans_result = self.clustering_service.cluster_kmeans(
+                simulation_id=analysis_id,
+                outcomes=outcomes,
+                n_clusters=None,  # Auto-detect via elbow
+            )
+            self.logger.info(f"Auto-clustering completed with k={kmeans_result.n_clusters}")
+        except Exception as e:
+            self.logger.warning(f"Failed to auto-cluster: {e}")
+
+        if kmeans_result:
+            # PCA Scatter
+            try:
+                chart = self.clustering_service.get_pca_scatter(
+                    simulation_id=analysis_id,
+                    outcomes=outcomes,
+                    kmeans_result=kmeans_result,
+                )
+                cache_entries[CacheKeys.PCA_SCATTER] = chart.model_dump()
+                results[CacheKeys.PCA_SCATTER] = True
+            except Exception as e:
+                self.logger.error(f"Failed to compute {CacheKeys.PCA_SCATTER}: {e}")
+                results[CacheKeys.PCA_SCATTER] = False
+
+            # Radar Comparison
+            try:
+                chart = self.clustering_service.radar_comparison(kmeans_result)
+                cache_entries[CacheKeys.RADAR_COMPARISON] = chart.model_dump()
+                results[CacheKeys.RADAR_COMPARISON] = True
+            except Exception as e:
+                self.logger.error(f"Failed to compute {CacheKeys.RADAR_COMPARISON}: {e}")
+                results[CacheKeys.RADAR_COMPARISON] = False
 
         # Save all entries to cache
         if cache_entries:

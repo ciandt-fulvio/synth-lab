@@ -25,6 +25,8 @@ from typing import Any
 from agents import Agent, ModelSettings
 from openai.types.shared import Reasoning
 
+from synth_lab.infrastructure.llm_client import supports_reasoning_effort
+
 from .instructions import (
     format_interviewee_instructions,
     format_interviewee_reviewer_instructions,
@@ -34,9 +36,21 @@ from .instructions import (
 )
 
 
-def _get_model_settings(reasoning_effort: str = "low") -> ModelSettings:
-    """Get model settings with reasoning effort configured."""
-    return ModelSettings(reasoning=Reasoning(effort=reasoning_effort))  # type: ignore
+def _get_model_settings(model: str, reasoning_effort: str = "low") -> ModelSettings | None:
+    """
+    Get model settings with reasoning effort configured.
+
+    Args:
+        model: Model name to check for reasoning_effort support.
+        reasoning_effort: Reasoning effort level ("low", "medium", "high").
+
+    Returns:
+        ModelSettings with reasoning configured if supported, None otherwise.
+    """
+    if supports_reasoning_effort(model):
+        return ModelSettings(reasoning=Reasoning(effort=reasoning_effort))  # type: ignore
+    # Model doesn't support reasoning_effort, return None (no special settings)
+    return None
 
 
 def create_interviewer(
@@ -78,7 +92,7 @@ def create_interviewer(
         instructions=instructions,
         mcp_servers=mcp_servers or [],
         model=model,
-        model_settings=_get_model_settings(reasoning_effort),
+        model_settings=_get_model_settings(model, reasoning_effort),
     )
 
 
@@ -122,7 +136,7 @@ def create_interviewee(
         mcp_servers=mcp_servers or [],
         tools=tools or [],
         model=model,
-        model_settings=_get_model_settings(reasoning_effort),
+        model_settings=_get_model_settings(model, reasoning_effort),
     )
 
 
@@ -151,7 +165,7 @@ def create_interviewer_reviewer(
         name="InterviewerReviewer",
         instructions=instructions,
         model=model,
-        model_settings=_get_model_settings(reasoning_effort),
+        model_settings=_get_model_settings(model, reasoning_effort),
     )
 
 
@@ -184,7 +198,7 @@ def create_interviewee_reviewer(
         name=f"IntervieweeReviewer ({synth_name})",
         instructions=instructions,
         model=model,
-        model_settings=_get_model_settings(reasoning_effort),
+        model_settings=_get_model_settings(model, reasoning_effort),
     )
 
 
@@ -215,5 +229,5 @@ def create_orchestrator(
         name="Orchestrator",
         instructions=instructions,
         model=model,
-        model_settings=_get_model_settings(reasoning_effort),
+        model_settings=_get_model_settings(model, reasoning_effort),
     )

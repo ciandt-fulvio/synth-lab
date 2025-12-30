@@ -29,10 +29,11 @@ from synth_lab.services.simulation.feature_extraction import (
     get_available_attributes,
     get_outcome_value,
 )
-from synth_lab.services.simulation.insight_service import (
-    InsightGenerationError,
-    InsightService,
-)
+# NOTE: InsightService temporarily disabled during feature 023 migration
+# from synth_lab.services.simulation.insight_service import (
+#     InsightGenerationError,
+#     InsightService,
+# )
 from synth_lab.services.simulation.outlier_service import OutlierService
 from synth_lab.services.simulation.scorecard_llm import ScorecardLLM
 from synth_lab.services.simulation.scorecard_service import (
@@ -61,8 +62,9 @@ __all__ = [
     "ClusteringService",
     "OutlierService",
     "ExplainabilityService",
-    "InsightService",
-    "InsightGenerationError",
+    # NOTE: InsightService temporarily disabled during feature 023 migration
+    # "InsightService",
+    # "InsightGenerationError",
     # Feature extraction
     "DEFAULT_FEATURES",
     "extract_features",

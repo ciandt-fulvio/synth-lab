@@ -94,13 +94,15 @@ class AvatarService:
             await on_generation_start(count_to_generate)
 
         # Import avatar generator
+        import asyncio
         from synth_lab.gen_synth.avatar_generator import generate_avatars
 
         generated_paths: dict[str, Path] = {}
 
         try:
-            # Generate avatars (function handles batching internally)
-            paths = generate_avatars(synths=synths_without_avatar)
+            # Run avatar generation in a separate thread to avoid blocking the event loop
+            # generate_avatars uses time.sleep() and synchronous API calls
+            paths = await asyncio.to_thread(generate_avatars, synths=synths_without_avatar)
             self.logger.info(f"Successfully generated {len(paths)} avatar files")
 
             # Build result dict

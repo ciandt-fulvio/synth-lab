@@ -3,7 +3,7 @@
 // Click-to-explain: Shows explanation for the selected synth (no dropdown)
 
 import { useState } from 'react';
-import { HelpCircle, Activity, Sparkles, Loader2 } from 'lucide-react';
+import { HelpCircle, Activity } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,7 +16,6 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 import { ChartErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { ShapWaterfallChart } from './charts/ShapWaterfallChart';
 import { useAnalysisShapExplanation } from '@/hooks/use-analysis-charts';
-import { useGenerateAnalysisChartInsight } from '@/hooks/use-insights';
 
 interface ShapWaterfallSectionProps {
   experimentId: string;
@@ -28,7 +27,6 @@ export function ShapWaterfallSection({ experimentId, selectedSynthId }: ShapWate
 
   // Get SHAP explanation for selected synth
   const shapExplanation = useAnalysisShapExplanation(experimentId, selectedSynthId, !!selectedSynthId);
-  const generateInsight = useGenerateAnalysisChartInsight(experimentId);
 
   const handleGenerateInsight = () => {
     if (!shapExplanation.data) return;
@@ -46,31 +44,11 @@ export function ShapWaterfallSection({ experimentId, selectedSynthId }: ShapWate
   return (
     <Card className="card">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-card-title flex items-center gap-2">
-              <Activity className="h-4 w-4 text-slate-500" />
-              Explicação Individual (SHAP Waterfall)
-            </CardTitle>
-            <p className="text-meta">Como cada atributo contribuiu para o resultado de um synth específico</p>
-          </div>
-          {shapExplanation.data && (
-            <Button
-              onClick={handleGenerateInsight}
-              disabled={generateInsight.isPending}
-              variant="outline"
-              size="sm"
-              className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-            >
-              {generateInsight.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
-              )}
-              Gerar Insight
-            </Button>
-          )}
-        </div>
+        <CardTitle className="text-card-title flex items-center gap-2">
+          <Activity className="h-4 w-4 text-slate-500" />
+          Explicação Individual (SHAP Waterfall)
+        </CardTitle>
+        <p className="text-meta">Como cada atributo contribuiu para o resultado de um synth específico</p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Explanation section - collapsible */}

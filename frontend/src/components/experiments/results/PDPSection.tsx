@@ -2,7 +2,7 @@
 // Section with PDP charts and feature selector
 
 import { useState } from 'react';
-import { HelpCircle, LineChart as LineChartIcon, Sparkles, Loader2 } from 'lucide-react';
+import { HelpCircle, LineChart as LineChartIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,7 +24,6 @@ import { ChartErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { PDPChart } from './charts/PDPChart';
 import { PDPComparisonChart } from './charts/PDPComparisonChart';
 import { useAnalysisPDP, useAnalysisPDPComparison } from '@/hooks/use-analysis-charts';
-import { useGenerateAnalysisChartInsight } from '@/hooks/use-insights';
 
 interface PDPSectionProps {
   experimentId: string;
@@ -60,60 +59,16 @@ export function PDPSection({ experimentId }: PDPSectionProps) {
     viewMode === 'comparison'
   );
 
-  const generateInsight = useGenerateAnalysisChartInsight(experimentId);
-
-  const handleGenerateInsight = () => {
-    if (viewMode === 'single' && pdp.data) {
-      generateInsight.mutate({
-        chartType: 'pdp',
-        chartData: {
-          feature: selectedFeature,
-          points: pdp.data.points,
-          effect_type: pdp.data.effect_type,
-        },
-      });
-    } else if (viewMode === 'comparison' && pdpComparison.data) {
-      generateInsight.mutate({
-        chartType: 'pdp_comparison',
-        chartData: {
-          features: pdpComparison.data.features,
-          ranking: pdpComparison.data.ranking,
-        },
-      });
-    }
-  };
-
   const currentData = viewMode === 'single' ? pdp : pdpComparison;
-  const hasData = viewMode === 'single' ? !!pdp.data : !!pdpComparison.data;
 
   return (
     <Card className="card">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-card-title flex items-center gap-2">
-              <LineChartIcon className="h-4 w-4 text-slate-500" />
-              Dependência Parcial (PDP)
-            </CardTitle>
-            <p className="text-meta">Como a probabilidade de sucesso varia conforme o valor de cada atributo</p>
-          </div>
-          {hasData && (
-            <Button
-              onClick={handleGenerateInsight}
-              disabled={generateInsight.isPending}
-              variant="outline"
-              size="sm"
-              className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-            >
-              {generateInsight.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
-              )}
-              Gerar Insight
-            </Button>
-          )}
-        </div>
+        <CardTitle className="text-card-title flex items-center gap-2">
+          <LineChartIcon className="h-4 w-4 text-slate-500" />
+          Dependência Parcial (PDP)
+        </CardTitle>
+        <p className="text-meta">Como a probabilidade de sucesso varia conforme o valor de cada atributo</p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Explanation section - collapsible */}

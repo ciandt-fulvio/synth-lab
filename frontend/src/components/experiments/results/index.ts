@@ -6,7 +6,6 @@ export { PhaseOverview } from './PhaseOverview';
 export { PhaseLocation } from './PhaseLocation';
 export { PhaseSegmentation } from './PhaseSegmentation';
 export { PhaseEdgeCases } from './PhaseEdgeCases';
-export { PhaseInsights } from './PhaseInsights';
 
 // Section components (Phase 2: Influência - moved from Phase 5)
 export { ShapSummarySection } from './ShapSummarySection';
@@ -25,10 +24,6 @@ export { RadarSection } from './RadarSection';
 export { ExtremeCasesSection } from './ExtremeCasesSection';
 export { OutliersSection } from './OutliersSection';
 export { ShapWaterfallSection } from './ShapWaterfallSection';
-
-// Section components (Phase 5: Insights)
-export { InsightsListSection } from './InsightsListSection';
-export { ExecutiveSummarySection } from './ExecutiveSummarySection';
 
 // Chart components (re-exported from charts/)
 export * from './charts';

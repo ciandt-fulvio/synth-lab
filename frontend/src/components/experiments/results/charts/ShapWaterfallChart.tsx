@@ -1,10 +1,10 @@
 // frontend/src/components/experiments/results/charts/ShapWaterfallChart.tsx
-// Classic waterfall chart showing SHAP contributions for a single synth
+// Vertical waterfall chart showing SHAP contributions for a single synth
+// Redesigned for clarity with vertical bars and clean data presentation
 
 import {
-  ComposedChart,
+  BarChart,
   Bar,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -13,6 +13,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
   Label,
+  LabelList,
 } from 'recharts';
 import type { ShapExplanation } from '@/types/simulation';
 
@@ -43,13 +44,13 @@ function formatFeatureName(feature: string): string {
 
 interface WaterfallDataPoint {
   name: string;
-  base: number; // Where this bar starts (transparent)
-  value: number; // The visible bar height
-  cumulative: number; // Total cumulative value at this point
+  value: number; // Cumulative value to display
+  contribution: number; // The change from previous step
   isBase?: boolean;
   isPrediction?: boolean;
   isPositive?: boolean;
   displayValue: string;
+  cumulativeValue: number;
 }
 
 export function ShapWaterfallChart({ data }: ShapWaterfallChartProps) {
@@ -60,59 +61,60 @@ export function ShapWaterfallChart({ data }: ShapWaterfallChartProps) {
     (a, b) => Math.abs(b.shap_value) - Math.abs(a.shap_value)
   );
 
-  // Build waterfall data with floating bars
+  // Build waterfall data
   const waterfallData: WaterfallDataPoint[] = [];
 
-  // Base value - starts at 0
+  // Base value
   waterfallData.push({
     name: 'Base',
-    base: 0,
     value: baseline_prediction,
-    cumulative: baseline_prediction,
+    contribution: baseline_prediction,
     isBase: true,
     isPositive: true,
     displayValue: (baseline_prediction * 100).toFixed(1) + '%',
+    cumulativeValue: baseline_prediction,
   });
 
-  // Contributions - floating bars
+  // Contributions
   let cumulative = baseline_prediction;
   sortedContributions.forEach((item) => {
     const contributionValue = item.shap_value;
     const isPositive = contributionValue >= 0;
 
+    cumulative += contributionValue;
+
     waterfallData.push({
       name: formatFeatureName(item.feature_name),
-      base: isPositive ? cumulative : cumulative + contributionValue,
-      value: Math.abs(contributionValue),
-      cumulative: cumulative + contributionValue,
+      value: cumulative,
+      contribution: contributionValue,
       isPositive,
       displayValue: `${isPositive ? '+' : ''}${(contributionValue * 100).toFixed(1)}%`,
+      cumulativeValue: cumulative,
     });
-
-    cumulative += contributionValue;
   });
 
-  // Validation: SHAP values should sum to predicted value
-  const calculatedPrediction = cumulative;
-  const difference = Math.abs(calculatedPrediction - predicted_success_rate);
+  // Add prediction marker
+  waterfallData.push({
+    name: 'Predição',
+    value: cumulative,
+    contribution: 0,
+    isPrediction: true,
+    isPositive: cumulative >= baseline_prediction,
+    displayValue: (cumulative * 100).toFixed(1) + '%',
+    cumulativeValue: cumulative,
+  });
 
-  if (difference > 0.001) {
-    console.warn(
-      `SHAP values inconsistency detected:\n` +
-      `  Baseline: ${(baseline_prediction * 100).toFixed(2)}%\n` +
-      `  Sum of contributions: ${((cumulative - baseline_prediction) * 100).toFixed(2)}%\n` +
-      `  Calculated prediction: ${(calculatedPrediction * 100).toFixed(2)}%\n` +
-      `  Model predicted: ${(predicted_success_rate * 100).toFixed(2)}%\n` +
-      `  Difference: ${(difference * 100).toFixed(2)}%`
-    );
-  }
+  const finalPrediction = cumulative;
 
-  // Use calculated value (sum of contributions) as the true prediction
-  const finalPrediction = calculatedPrediction;
+  // Find min/max for Y-axis domain
+  const allValues = waterfallData.map((d) => d.value);
+  const minValue = Math.min(...allValues, 0);
+  const maxValue = Math.max(...allValues, 1);
+  const yDomain = [Math.max(0, minValue - 0.1), Math.min(1, maxValue + 0.1)];
 
-  // Custom label component
+  // Custom label component for bar tops
   const CustomLabel = (props: any) => {
-    const { x, y, width, index } = props;
+    const { x, y, width, value, index } = props;
     const dataPoint = waterfallData[index];
 
     if (!dataPoint) return null;
@@ -121,17 +123,25 @@ export function ShapWaterfallChart({ data }: ShapWaterfallChartProps) {
     const labelY = y - 8;
     const labelX = x + width / 2;
 
+    let color = '#64748b';
+    if (dataPoint.isBase) color = '#6366f1';
+    else if (dataPoint.isPrediction) color = '#8b5cf6';
+    else if (dataPoint.isPositive) color = '#16a34a';
+    else color = '#dc2626';
+
     return (
       <text
         x={labelX}
         y={labelY}
-        fill={dataPoint.isPositive ? '#16a34a' : '#dc2626'}
-        fontSize={10}
-        fontWeight={dataPoint.isBase ? '700' : '600'}
+        fill={color}
+        fontSize={11}
+        fontWeight={dataPoint.isBase || dataPoint.isPrediction ? '700' : '600'}
         textAnchor="middle"
         dominantBaseline="bottom"
       >
-        {dataPoint.displayValue}
+        {dataPoint.isBase || dataPoint.isPrediction
+          ? dataPoint.displayValue
+          : dataPoint.displayValue}
       </text>
     );
   };
@@ -143,15 +153,17 @@ export function ShapWaterfallChart({ data }: ShapWaterfallChartProps) {
     const dataPoint = payload[0].payload as WaterfallDataPoint;
 
     return (
-      <div className="bg-white border border-slate-200 shadow-lg rounded-lg p-3">
-        <p className="text-sm font-semibold text-slate-800 mb-1">{dataPoint.name}</p>
-        {!dataPoint.isBase && (
-          <p className="text-xs text-slate-600">
+      <div className="bg-white/95 backdrop-blur-sm border-2 border-slate-200 shadow-xl rounded-lg p-3.5">
+        <p className="text-sm font-bold text-slate-900 mb-2 tracking-tight">
+          {dataPoint.name}
+        </p>
+        {!dataPoint.isBase && !dataPoint.isPrediction && (
+          <p className="text-xs text-slate-600 mb-1">
             Contribuição:{' '}
             <span
-              className={
-                dataPoint.isPositive ? 'text-green-600 font-medium' : 'text-red-600 font-medium'
-              }
+              className={`font-semibold ${
+                dataPoint.isPositive ? 'text-green-600' : 'text-red-600'
+              }`}
             >
               {dataPoint.displayValue}
             </span>
@@ -159,8 +171,8 @@ export function ShapWaterfallChart({ data }: ShapWaterfallChartProps) {
         )}
         <p className="text-xs text-slate-600">
           Acumulado:{' '}
-          <span className="font-medium text-slate-800">
-            {(dataPoint.cumulative * 100).toFixed(1)}%
+          <span className="font-semibold text-slate-900">
+            {(dataPoint.cumulativeValue * 100).toFixed(1)}%
           </span>
         </p>
       </div>
@@ -168,104 +180,133 @@ export function ShapWaterfallChart({ data }: ShapWaterfallChartProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Waterfall Chart */}
-      <ResponsiveContainer width="100%" height={400}>
-        <ComposedChart
+      <ResponsiveContainer width="100%" height={450}>
+        <BarChart
           data={waterfallData}
-          margin={{ top: 30, right: 20, bottom: 60, left: 50 }}
+          margin={{ top: 40, right: 30, bottom: 80, left: 60 }}
+          barCategoryGap="20%"
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+          {/* Clean grid */}
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="#e2e8f0"
+            vertical={false}
+            opacity={0.6}
+          />
 
+          {/* X-axis with angled labels */}
           <XAxis
             dataKey="name"
             angle={-45}
             textAnchor="end"
-            height={80}
-            tick={{ fill: '#475569', fontSize: 11, fontWeight: 500 }}
-            axisLine={{ stroke: '#cbd5e1' }}
+            height={100}
+            interval={0}
+            tick={{
+              fill: '#475569',
+              fontSize: 12,
+              fontWeight: 600,
+            }}
+            axisLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
+            tickLine={{ stroke: '#cbd5e1' }}
           />
 
+          {/* Y-axis */}
           <YAxis
-            domain={[0, 'auto']}
-            tick={{ fill: '#64748b', fontSize: 11 }}
-            axisLine={{ stroke: '#cbd5e1' }}
+            domain={yDomain}
+            tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }}
+            axisLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
+            tickLine={{ stroke: '#cbd5e1' }}
             tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
             label={{
               value: 'Probabilidade de Sucesso',
               angle: -90,
               position: 'insideLeft',
-              style: { fill: '#475569', fontSize: 12, fontWeight: 600 },
+              style: {
+                fill: '#334155',
+                fontSize: 13,
+                fontWeight: 700,
+                letterSpacing: '-0.02em',
+              },
             }}
           />
 
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(99, 102, 241, 0.08)' }} />
 
           {/* Reference line at 50% threshold */}
-          <ReferenceLine y={0.5} stroke="#94a3b8" strokeDasharray="4 4" strokeWidth={1.5}>
-            <Label value="50%" position="right" fill="#64748b" fontSize={10} />
-          </ReferenceLine>
-
-          {/* Prediction line - dashed horizontal line at final value */}
-          <ReferenceLine
-            y={finalPrediction}
-            stroke={finalPrediction >= 0.5 ? '#16a34a' : '#dc2626'}
-            strokeDasharray="6 3"
-            strokeWidth={2}
-          >
+          <ReferenceLine y={0.5} stroke="#94a3b8" strokeDasharray="5 5" strokeWidth={2}>
             <Label
-              value={`Predição: ${(finalPrediction * 100).toFixed(1)}%`}
+              value="50% (limiar)"
               position="right"
-              fill={finalPrediction >= 0.5 ? '#16a34a' : '#dc2626'}
+              fill="#64748b"
               fontSize={11}
               fontWeight="600"
+              offset={10}
             />
           </ReferenceLine>
 
-          {/* Transparent base bars to create floating effect */}
-          <Bar dataKey="base" stackId="stack" fill="transparent" />
-
-          {/* Visible bars (contributions) */}
-          <Bar dataKey="value" stackId="stack" label={<CustomLabel />} radius={[4, 4, 0, 0]}>
+          {/* Bars */}
+          <Bar dataKey="value" radius={[6, 6, 0, 0]} label={<CustomLabel />}>
             {waterfallData.map((entry, index) => {
-              let fill = '#22c55e'; // Default green
+              let fill = '#22c55e'; // Green for positive
+              let opacity = 0.9;
+              let strokeWidth = 0;
+              let stroke = 'none';
 
               if (entry.isBase) {
                 fill = '#6366f1'; // Indigo for base
+                opacity = 1;
+                strokeWidth = 3;
+                stroke = '#4f46e5';
+              } else if (entry.isPrediction) {
+                fill = '#8b5cf6'; // Purple for prediction
+                opacity = 1;
+                strokeWidth = 3;
+                stroke = '#7c3aed';
               } else if (!entry.isPositive) {
-                fill = '#ef4444'; // Red for negative contributions
+                fill = '#ef4444'; // Red for negative
+                opacity = 0.9;
               }
 
-              return <Cell key={`cell-${index}`} fill={fill} fillOpacity={0.85} />;
+              return (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={fill}
+                  fillOpacity={opacity}
+                  stroke={stroke}
+                  strokeWidth={strokeWidth}
+                />
+              );
             })}
           </Bar>
-        </ComposedChart>
+        </BarChart>
       </ResponsiveContainer>
 
-      {/* Legend */}
-      <div className="flex items-center justify-center gap-6 text-sm pb-2">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-indigo-500" />
-          <span className="text-slate-600 text-xs">Base</span>
+      {/* Enhanced Legend */}
+      <div className="flex items-center justify-center gap-8 text-sm pb-2 border-t border-slate-200 pt-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-4 h-4 rounded-md bg-indigo-500 border-2 border-indigo-700 shadow-sm" />
+          <span className="text-slate-700 text-sm font-medium">Base</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-green-500" />
-          <span className="text-slate-600 text-xs">Aumenta probabilidade</span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-4 h-4 rounded-md bg-green-500 shadow-sm" />
+          <span className="text-slate-700 text-sm font-medium">Aumenta (+)</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-red-500" />
-          <span className="text-slate-600 text-xs">Diminui probabilidade</span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-4 h-4 rounded-md bg-red-500 shadow-sm" />
+          <span className="text-slate-700 text-sm font-medium">Diminui (−)</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-2 border-t-2 border-dashed border-green-600" />
-          <span className="text-slate-600 text-xs">Predição final</span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-4 h-4 rounded-md bg-purple-500 border-2 border-purple-700 shadow-sm" />
+          <span className="text-slate-700 text-sm font-medium">Predição</span>
         </div>
       </div>
 
       {/* Explanation text */}
       {data.explanation_text && (
-        <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
-          <p className="text-sm text-indigo-800">{data.explanation_text}</p>
+        <div className="p-4 bg-gradient-to-r from-indigo-50 to-violet-50 border-l-4 border-indigo-400 rounded-r-lg">
+          <p className="text-sm text-indigo-900 leading-relaxed">{data.explanation_text}</p>
         </div>
       )}
     </div>

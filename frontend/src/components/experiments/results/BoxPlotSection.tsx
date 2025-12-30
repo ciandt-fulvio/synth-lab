@@ -2,7 +2,7 @@
 // Section with Box Plot chart, attribute selector, and explanation
 
 import { useState } from 'react';
-import { HelpCircle, BarChart2, Sparkles, Loader2 } from 'lucide-react';
+import { HelpCircle, BarChart2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -58,31 +58,11 @@ export function BoxPlotSection({ simulationId }: BoxPlotSectionProps) {
   return (
     <Card className="card">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-card-title flex items-center gap-2">
-              <BarChart2 className="h-4 w-4 text-slate-500" />
-              Distribuição por Resultado
-            </CardTitle>
-            <p className="text-meta">Compara como um atributo varia entre os grupos de resultado</p>
-          </div>
-          {boxPlot.data && (
-            <Button
-              onClick={handleGenerateInsight}
-              disabled={generateInsight.isPending}
-              variant="outline"
-              size="sm"
-              className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-            >
-              {generateInsight.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
-              )}
-              Gerar Insight
-            </Button>
-          )}
-        </div>
+        <CardTitle className="text-card-title flex items-center gap-2">
+          <BarChart2 className="h-4 w-4 text-slate-500" />
+          Distribuição por Resultado
+        </CardTitle>
+        <p className="text-meta">Compara como um atributo varia entre os grupos de resultado</p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Explanation section - collapsible */}

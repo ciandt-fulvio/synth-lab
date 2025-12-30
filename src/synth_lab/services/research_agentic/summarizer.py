@@ -28,6 +28,8 @@ from loguru import logger
 from openai.types.shared import Reasoning
 from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
+from synth_lab.infrastructure.llm_client import supports_reasoning_effort
+
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
 
 from .runner import InterviewResult
@@ -109,9 +111,21 @@ Estruture seu relatório nas seguintes seções:
 """
 
 
-def _get_model_settings(reasoning_effort: str = "medium") -> ModelSettings:
-    """Get model settings with reasoning effort configured."""
-    return ModelSettings(reasoning=Reasoning(effort=reasoning_effort))  # type: ignore
+def _get_model_settings(model: str, reasoning_effort: str = "medium") -> ModelSettings | None:
+    """
+    Get model settings with reasoning effort configured.
+
+    Args:
+        model: Model name to check for reasoning_effort support.
+        reasoning_effort: Reasoning effort level ("low", "medium", "high").
+
+    Returns:
+        ModelSettings with reasoning configured if supported, None otherwise.
+    """
+    if supports_reasoning_effort(model):
+        return ModelSettings(reasoning=Reasoning(effort=reasoning_effort))  # type: ignore
+    # Model doesn't support reasoning_effort, return None (no special settings)
+    return None
 
 
 def format_interview_for_summary(
@@ -186,7 +200,7 @@ def create_summarizer_agent(
         name="Research Summarizer",
         instructions=instructions,
         model=model,
-        model_settings=_get_model_settings(reasoning_effort),
+        model_settings=_get_model_settings(model, reasoning_effort),
     )
 
 

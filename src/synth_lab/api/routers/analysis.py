@@ -51,8 +51,9 @@ from synth_lab.domain.entities.explainability import (
 from synth_lab.services.simulation.clustering_service import ClusteringService
 from synth_lab.services.simulation.outlier_service import OutlierService
 from synth_lab.services.simulation.explainability_service import ExplainabilityService
-from synth_lab.services.simulation.insight_service import InsightService
-from synth_lab.domain.entities.chart_insight import ChartInsight, SimulationInsights
+# NOTE: InsightService temporarily disabled during feature 023 migration
+# from synth_lab.services.simulation.insight_service import InsightService
+# from synth_lab.domain.entities.chart_insight import ChartInsight, SimulationInsights
 from synth_lab.repositories.analysis_outcome_repository import AnalysisOutcomeRepository
 from synth_lab.repositories.synth_repository import SynthRepository
 from synth_lab.services.simulation.chart_data_service import ChartDataService
@@ -1498,126 +1499,128 @@ async def get_analysis_pdp_comparison(
 
 
 # =============================================================================
-# Phase 6: Insights Endpoints
+# Phase 6: Insights Endpoints (Feature 023 - under construction)
 # =============================================================================
 
+# NOTE: These endpoints are temporarily commented out during feature 023 migration.
+# They will be replaced with new insight endpoints in Phase 4 of the migration.
 
-def get_insight_service() -> InsightService:
-    """Get insight service instance."""
-    return InsightService()
-
-
-class GenerateChartInsightRequest(BaseModel):
-    """Request for generating chart insight."""
-    chart_type: str = Field(..., description="Type of chart")
-    chart_data: dict = Field(..., description="Chart data for context")
-
-
-class GenerateSummaryResponse(BaseModel):
-    """Response for executive summary generation."""
-    executive_summary: str
-    total_insights: int
-
-
-@router.get(
-    "/{experiment_id}/analysis/insights",
-    response_model=SimulationInsights,
-)
-async def get_analysis_insights(
-    experiment_id: str,
-) -> SimulationInsights:
-    """Get all cached insights for experiment analysis."""
-    service = get_analysis_service()
-    insight_service = get_insight_service()
-
-    analysis = service.get_analysis(experiment_id)
-    if analysis is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
-
-    # Use the analysis.id as the simulation_id for insight storage
-    return insight_service.get_all_insights(analysis.id)
-
-
-@router.post(
-    "/{experiment_id}/analysis/insights/{chart_type}",
-    response_model=ChartInsight,
-)
-async def generate_analysis_chart_insight(
-    experiment_id: str,
-    chart_type: str,
-    request: GenerateChartInsightRequest,
-) -> ChartInsight:
-    """Generate LLM insight for a specific chart."""
-    service = get_analysis_service()
-    insight_service = get_insight_service()
-
-    analysis = service.get_analysis(experiment_id)
-    if analysis is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
-
-    if analysis.status != "completed":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
-
-    try:
-        insight = insight_service.generate_chart_insight(
-            simulation_id=analysis.id,
-            chart_type=chart_type,
-            chart_data=request.chart_data,
-        )
-        return insight
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate insight: {str(e)}",
-        )
-
-
-@router.post(
-    "/{experiment_id}/analysis/insights/executive-summary",
-    response_model=GenerateSummaryResponse,
-)
-async def generate_analysis_executive_summary(
-    experiment_id: str,
-) -> GenerateSummaryResponse:
-    """Generate executive summary from all insights."""
-    service = get_analysis_service()
-    insight_service = get_insight_service()
-
-    analysis = service.get_analysis(experiment_id)
-    if analysis is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
-
-    # Check if there are any insights to summarize
-    all_insights = insight_service.get_all_insights(analysis.id)
-    if len(all_insights.insights) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No insights available to summarize. Generate chart insights first.",
-        )
-
-    try:
-        summary = insight_service.generate_executive_summary(analysis.id)
-        return GenerateSummaryResponse(
-            executive_summary=summary,
-            total_insights=len(all_insights.insights),
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate summary: {str(e)}",
-        )
+# def get_insight_service() -> InsightService:
+#     """Get insight service instance."""
+#     return InsightService()
+#
+#
+# class GenerateChartInsightRequest(BaseModel):
+#     """Request for generating chart insight."""
+#     chart_type: str = Field(..., description="Type of chart")
+#     chart_data: dict = Field(..., description="Chart data for context")
+#
+#
+# class GenerateSummaryResponse(BaseModel):
+#     """Response for executive summary generation."""
+#     executive_summary: str
+#     total_insights: int
+#
+#
+# @router.get(
+#     "/{experiment_id}/analysis/insights",
+#     response_model=SimulationInsights,
+# )
+# async def get_analysis_insights(
+#     experiment_id: str,
+# ) -> SimulationInsights:
+#     """Get all cached insights for experiment analysis."""
+#     service = get_analysis_service()
+#     insight_service = get_insight_service()
+#
+#     analysis = service.get_analysis(experiment_id)
+#     if analysis is None:
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail=f"No analysis found for experiment {experiment_id}",
+#         )
+#
+#     # Use the analysis.id as the simulation_id for insight storage
+#     return insight_service.get_all_insights(analysis.id)
+#
+#
+# @router.post(
+#     "/{experiment_id}/analysis/insights/{chart_type}",
+#     response_model=ChartInsight,
+# )
+# async def generate_analysis_chart_insight(
+#     experiment_id: str,
+#     chart_type: str,
+#     request: GenerateChartInsightRequest,
+# ) -> ChartInsight:
+#     """Generate LLM insight for a specific chart."""
+#     service = get_analysis_service()
+#     insight_service = get_insight_service()
+#
+#     analysis = service.get_analysis(experiment_id)
+#     if analysis is None:
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail=f"No analysis found for experiment {experiment_id}",
+#         )
+#
+#     if analysis.status != "completed":
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail=f"Analysis must be completed (status: {analysis.status})",
+#         )
+#
+#     try:
+#         insight = insight_service.generate_chart_insight(
+#             simulation_id=analysis.id,
+#             chart_type=chart_type,
+#             chart_data=request.chart_data,
+#         )
+#         return insight
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"Failed to generate insight: {str(e)}",
+#         )
+#
+#
+# @router.post(
+#     "/{experiment_id}/analysis/insights/executive-summary",
+#     response_model=GenerateSummaryResponse,
+# )
+# async def generate_analysis_executive_summary(
+#     experiment_id: str,
+# ) -> GenerateSummaryResponse:
+#     """Generate executive summary from all insights."""
+#     service = get_analysis_service()
+#     insight_service = get_insight_service()
+#
+#     analysis = service.get_analysis(experiment_id)
+#     if analysis is None:
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail=f"No analysis found for experiment {experiment_id}",
+#         )
+#
+#     # Check if there are any insights to summarize
+#     all_insights = insight_service.get_all_insights(analysis.id)
+#     if len(all_insights.insights) == 0:
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail="No insights available to summarize. Generate chart insights first.",
+#         )
+#
+#     try:
+#         summary = insight_service.generate_executive_summary(analysis.id)
+#         return GenerateSummaryResponse(
+#             executive_summary=summary,
+#             total_insights=len(all_insights.insights),
+#         )
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"Failed to generate summary: {str(e)}",
+#         )
 
 
 # =============================================================================

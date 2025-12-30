@@ -33,8 +33,8 @@ import {
   PhaseLocation,
   PhaseSegmentation,
   PhaseEdgeCases,
-  PhaseInsights,
 } from '@/components/experiments/results';
+import { ViewSummaryButton } from '@/components/experiments/results/ViewSummaryButton';
 import {
   ChevronDown,
   ChevronUp,
@@ -502,6 +502,7 @@ export default function ExperimentDetail() {
           <AnalysisPhaseTabs
             simulationId={analysis.simulation_id}
             hasAnalysis={true}
+            actions={id ? <ViewSummaryButton experimentId={id} /> : null}
             renderPhase={(phaseId) => {
               const expId = id ?? '';
               const simId = analysis.simulation_id;
@@ -515,8 +516,6 @@ export default function ExperimentDetail() {
                   return <PhaseSegmentation experimentId={expId} />;
                 case 'casos-especiais':
                   return <PhaseEdgeCases experimentId={expId} />;
-                case 'insights':
-                  return <PhaseInsights experimentId={expId} />;
                 default:
                   return null;
               }

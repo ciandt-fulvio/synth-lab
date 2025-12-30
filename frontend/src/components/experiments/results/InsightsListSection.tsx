@@ -230,8 +230,7 @@ export function InsightsListSection({ experimentId }: InsightsListSectionProps) 
             <div>
               <p className="text-body text-slate-500 font-medium mb-1">Sem Insights</p>
               <p className="text-meta">
-                Nenhum insight foi gerado ainda. Use o botão "Gerar Insight"
-                nos gráficos para criar análises automáticas.
+                Nenhum insight foi gerado ainda. Execute a análise para gerar insights automáticos.
               </p>
             </div>
           </div>

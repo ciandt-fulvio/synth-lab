@@ -16,6 +16,7 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 import { useAnalysisOutliers } from '@/hooks/use-analysis-charts';
 import type { OutlierSynth } from '@/types/simulation';
 
+import { InsightSection } from './InsightSection';
 interface OutliersSectionProps {
   experimentId: string;
   onSynthClick?: (synthId: string) => void;
@@ -233,6 +234,8 @@ export function OutliersSection({ experimentId, onSynthClick, selectedSynthId }:
             ))}
           </div>
         )}
+        {/* AI-Generated Insights */}
+        <InsightSection experimentId={experimentId} chartType="outliers" />
       </CardContent>
     </Card>
   );

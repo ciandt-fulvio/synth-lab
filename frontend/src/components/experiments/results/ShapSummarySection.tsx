@@ -2,7 +2,7 @@
 // Section with SHAP Summary chart and explanation
 
 import { useState } from 'react';
-import { HelpCircle, BarChart3, Sparkles, Loader2 } from 'lucide-react';
+import { HelpCircle, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,7 +15,6 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 import { ChartErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { ShapSummaryChart } from './charts/ShapSummaryChart';
 import { useAnalysisShapSummary } from '@/hooks/use-analysis-charts';
-import { useGenerateAnalysisChartInsight } from '@/hooks/use-insights';
 
 interface ShapSummarySectionProps {
   experimentId: string;
@@ -25,46 +24,15 @@ export function ShapSummarySection({ experimentId }: ShapSummarySectionProps) {
   const [showExplanation, setShowExplanation] = useState(false);
 
   const shapSummary = useAnalysisShapSummary(experimentId);
-  const generateInsight = useGenerateAnalysisChartInsight(experimentId);
-
-  const handleGenerateInsight = () => {
-    if (!shapSummary.data) return;
-    generateInsight.mutate({
-      chartType: 'shap_summary',
-      chartData: {
-        features: shapSummary.data.features,
-      },
-    });
-  };
 
   return (
     <Card className="card">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-card-title flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-slate-500" />
-              Importância de Features (SHAP)
-            </CardTitle>
-            <p className="text-meta">Quanto cada atributo contribui para o sucesso ou falha</p>
-          </div>
-          {shapSummary.data && (
-            <Button
-              onClick={handleGenerateInsight}
-              disabled={generateInsight.isPending}
-              variant="outline"
-              size="sm"
-              className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-            >
-              {generateInsight.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
-              )}
-              Gerar Insight
-            </Button>
-          )}
-        </div>
+        <CardTitle className="text-card-title flex items-center gap-2">
+          <BarChart3 className="h-4 w-4 text-slate-500" />
+          Importância de Features (SHAP)
+        </CardTitle>
+        <p className="text-meta">Quanto cada atributo contribui para o sucesso ou falha</p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Explanation section - collapsible */}
