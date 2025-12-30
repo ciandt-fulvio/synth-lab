@@ -310,6 +310,8 @@ class AnalysisCacheService:
             CacheKeys.EXTREME_CASES,
             CacheKeys.OUTLIERS,
             CacheKeys.SHAP_SUMMARY,
+            CacheKeys.PCA_SCATTER,
+            CacheKeys.RADAR_COMPARISON,
         ]
 
         cached = self.cache_repo.get_all(analysis_id)

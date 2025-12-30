@@ -467,10 +467,29 @@ class AnalysisExecutionService:
                 "radar_comparison": CacheKeys.RADAR_COMPARISON,
             }
 
-            # Only generate insights for charts that have pre-computed cache
-            chart_types = list(CHART_TYPE_TO_CACHE_KEY.keys())
+            # Filter to only charts that actually exist in cache
+            cached_entries = cache_repo.get_all(analysis_id)
+            cached_keys = {entry.cache_key for entry in cached_entries}
 
-            logger_ref.info(f"Generating insights for {len(chart_types)} charts: {analysis_id}")
+            chart_types = [
+                chart_type
+                for chart_type, cache_key in CHART_TYPE_TO_CACHE_KEY.items()
+                if cache_key in cached_keys
+            ]
+
+            skipped = [
+                chart_type
+                for chart_type, cache_key in CHART_TYPE_TO_CACHE_KEY.items()
+                if cache_key not in cached_keys
+            ]
+            if skipped:
+                logger_ref.debug(
+                    f"Skipping insights for charts not in cache: {skipped}"
+                )
+
+            logger_ref.info(
+                f"Generating insights for {len(chart_types)} charts: {analysis_id}"
+            )
 
             # Generate all insights in parallel
             async def generate_single_insight(chart_type: str) -> None:
