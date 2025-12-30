@@ -59,7 +59,7 @@ Host: localhost:8000
   "summary": "O novo fluxo de checkout mostra boa descoberabilidade (85% tentam usar) mas enfrenta desafios de conversão na etapa de pagamento. Análise sugere simplificar formulário de pagamento e adicionar sinais visuais de segurança para aumentar confiança.",
   "generationTimestamp": "2025-12-29T10:30:00Z",
   "status": "completed",
-  "model": "o1-mini",
+  "model": "04-mini",
   "reasoningTrace": null
 }
 ```
@@ -71,7 +71,7 @@ Host: localhost:8000
   "chartType": "try_vs_success",
   "status": "pending",
   "generationTimestamp": "2025-12-29T10:28:00Z",
-  "model": "o1-mini"
+  "model": "04-mini"
 }
 ```
 
@@ -89,7 +89,7 @@ Host: localhost:8000
   "chartType": "try_vs_success",
   "status": "failed",
   "generationTimestamp": "2025-12-29T10:30:00Z",
-  "model": "o1-mini"
+  "model": "04-mini"
 }
 ```
 
@@ -134,7 +134,7 @@ Host: localhost:8000
       "summary": "...",
       "generationTimestamp": "2025-12-29T10:30:00Z",
       "status": "completed",
-      "model": "o1-mini"
+      "model": "04-mini"
     },
     {
       "analysisId": "ana_12345678",
@@ -145,7 +145,7 @@ Host: localhost:8000
       "summary": "...",
       "generationTimestamp": "2025-12-29T10:31:00Z",
       "status": "completed",
-      "model": "o1-mini"
+      "model": "04-mini"
     }
     // ... other insights
   ],
@@ -209,7 +209,7 @@ Host: localhost:8000
   ],
   "generationTimestamp": "2025-12-29T10:35:00Z",
   "status": "completed",
-  "model": "o1-mini"
+  "model": "04-mini"
 }
 ```
 
@@ -219,7 +219,7 @@ Host: localhost:8000
   "analysisId": "ana_12345678",
   "status": "pending",
   "generationTimestamp": "2025-12-29T10:33:00Z",
-  "model": "o1-mini",
+  "model": "04-mini",
   "includedChartTypes": []
 }
 ```
@@ -238,7 +238,7 @@ Host: localhost:8000
   "includedChartTypes": ["try_vs_success"],
   "generationTimestamp": "2025-12-29T10:35:00Z",
   "status": "partial",
-  "model": "o1-mini"
+  "model": "04-mini"
 }
 ```
 

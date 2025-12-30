@@ -33,7 +33,6 @@ import {
   PhaseLocation,
   PhaseSegmentation,
   PhaseEdgeCases,
-  PhaseInsights,
 } from '@/components/experiments/results';
 import { ViewSummaryButton } from '@/components/experiments/results/ViewSummaryButton';
 import {
@@ -517,8 +516,6 @@ export default function ExperimentDetail() {
                   return <PhaseSegmentation experimentId={expId} />;
                 case 'casos-especiais':
                   return <PhaseEdgeCases experimentId={expId} />;
-                case 'insights':
-                  return <PhaseInsights experimentId={expId} />;
                 default:
                   return null;
               }

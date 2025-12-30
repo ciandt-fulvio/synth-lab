@@ -28,7 +28,7 @@ Research technical approach for implementing automatic AI-generated insights for
        "insight_text": "...",  # ≤200 words
        "generation_timestamp": "2025-12-29T...",
        "status": "completed",  # pending|completed|failed
-       "model": "o1-mini",
+       "model": "04-mini",
        "reasoning_trace": "..."  # optional, for debugging
      }
      ```
@@ -41,11 +41,11 @@ Research technical approach for implementing automatic AI-generated insights for
    - **Decision**: Use threading.Thread(daemon=True) to match existing pattern in analysis service
 
 3. **Which LLM model should be used for reasoning?**
-   - Spec requires o1-mini or equivalent reasoning-capable model
+   - Spec requires 04-mini or equivalent reasoning-capable model
    - Current system uses gpt-4o (DEFAULT_MODEL in config.py)
-   - **Decision**: Use o1-mini for insight generation (reasoning capability)
+   - **Decision**: Use 04-mini for insight generation (reasoning capability)
    - LLMClient already supports custom model selection via `model=` parameter
-   - Add config constant: `REASONING_MODEL = "o1-mini"`
+   - Add config constant: `REASONING_MODEL = "04-mini"`
 
 4. **How should chart data be formatted for LLM input?**
    - Analysis cache stores chart data as JSON (already structured)
@@ -216,7 +216,7 @@ class MyService:
             response = self.llm.complete_json(
                 messages=[{"role": "system", "content": "..."},
                           {"role": "user", "content": prompt}],
-                model="o1-mini",  # Use reasoning model
+                model="04-mini",  # Use reasoning model
             )
             return self._parse_response(response)
 ```
@@ -372,7 +372,7 @@ async def _generate_insights_parallel(self):
    - `get_all_insights(analysis_id) -> list[ChartInsight]`
    - `store_executive_summary(analysis_id, summary_data)`
    - `get_executive_summary(analysis_id) -> ExecutiveSummary | None`
-4. **LLM Model**: Use `o1-mini` (reasoning model) for all insight generation
+4. **LLM Model**: Use `04-mini` (reasoning model) for all insight generation
 5. **Async Pattern**: Hybrid threading + asyncio (daemon thread with parallel async LLM calls)
 6. **Error Handling**:
    - Retry LLM calls up to 3 times (existing LLMClient retry logic)
@@ -395,7 +395,7 @@ class ChartInsight(BaseModel):
     summary: str  # ≤200 words
     generation_timestamp: datetime
     status: str  # pending | completed | failed
-    model: str  # o1-mini
+    model: str  # 04-mini
     reasoning_trace: str | None = None  # optional debugging
 ```
 
@@ -494,7 +494,7 @@ Forneça sua resposta em JSON com esta estrutura:
 - **Architecture (Backend)**: [docs/arquitetura.md](../../docs/arquitetura.md)
 - **Architecture (Frontend)**: [docs/arquitetura_front.md](../../docs/arquitetura_front.md)
 - **Analysis Cache Exploration**: Conducted 2025-12-29 during planning session
-- **OpenAI o1-mini**: https://platform.openai.com/docs/models/o1
+- **OpenAI 04-mini**: https://platform.openai.com/docs/models/o1
 - **LLMClient**: [src/synth_lab/infrastructure/llm_client.py](../../src/synth_lab/infrastructure/llm_client.py)
 - **AnalysisRepository**: [src/synth_lab/repositories/analysis_repository.py](../../src/synth_lab/repositories/analysis_repository.py)
 

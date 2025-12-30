@@ -73,7 +73,7 @@ As a system user, I expect insights to be generated automatically in the backgro
 #### Chart Insight Generation
 
 - **FR-001**: System MUST automatically trigger insight generation for each supported chart type (Try vs Success, SHAP Summary, PDP, PCA Scatter, Radar Comparison, Extreme Cases, Outliers) immediately after that chart's data is cached in analysis_cache table
-- **FR-002**: System MUST generate insights using a reasoning-capable LLM model (o1-mini or equivalent) with input including: experiment hypothesis/description, simulation metadata (synth count, scorecard), chart-specific data in tabular format
+- **FR-002**: System MUST generate insights using a reasoning-capable LLM model (04-mini or equivalent) with input including: experiment hypothesis/description, simulation metadata (synth count, scorecard), chart-specific data in tabular format
 - **FR-003**: Each individual insight MUST include: (a) what the AI understood about the problem context, (b) what trends/patterns it observed in the chart data, (c) 2-4 key findings specific to that chart, (d) a concise summary in ≤200 words
 - **FR-004**: System MUST run insight generation tasks in parallel for all chart types, not sequentially
 - **FR-005**: System MUST store generated insights in analysis_cache table with foreign key to experiment_id, chart_type identifier, insight text content, generation timestamp, and status (pending/completed/failed)
@@ -121,7 +121,7 @@ As a system user, I expect insights to be generated automatically in the backgro
 
 ## Assumptions
 
-1. **LLM Access**: System has reliable access to o1-mini or equivalent reasoning-capable model via existing LLM infrastructure
+1. **LLM Access**: System has reliable access to 04-mini or equivalent reasoning-capable model via existing LLM infrastructure
 2. **Data Format**: Chart data in analysis_cache is already structured in a format suitable for LLM consumption (JSON with clear schemas)
 3. **Concurrency**: Backend infrastructure supports running 7+ parallel async tasks for insight generation without resource contention
 4. **Token Limits**: Chart data can be represented within LLM context window limits (~10K tokens for input per chart)
@@ -130,7 +130,7 @@ As a system user, I expect insights to be generated automatically in the backgro
 ## Dependencies
 
 - **DEP-001**: Analysis cache system (analysis_cache table) must be operational and reliably storing chart data
-- **DEP-002**: LLM client infrastructure with support for reasoning models (o1-mini)
+- **DEP-002**: LLM client infrastructure with support for reasoning models (04-mini)
 - **DEP-003**: Async task queue/worker system for running parallel insight generation
 - **DEP-004**: Experiment metadata (hypothesis, description) available via experiment repository
 

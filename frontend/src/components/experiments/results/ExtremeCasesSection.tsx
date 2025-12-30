@@ -330,7 +330,7 @@ export function ExtremeCasesSection({
         )}
         {/* AI-Generated Insights */}
         <InsightSection experimentId={experimentId} chartType="extreme_cases" />
-
+      </CardContent>
     </Card>
   );
 }

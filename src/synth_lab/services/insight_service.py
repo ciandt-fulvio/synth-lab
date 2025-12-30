@@ -1,14 +1,13 @@
 """
 InsightService for AI-generated chart insights.
 
-Generates LLM-powered insights for individual chart types using o1-mini reasoning model.
+Generates LLM-powered insights for individual chart types using gpt-4.1-mini model.
 Stores results in analysis_cache table for retrieval by frontend.
 
 References:
     - Entity: src/synth_lab/domain/entities/chart_insight.py
     - Repository: src/synth_lab/repositories/analysis_cache_repository.py
     - Spec: specs/023-quantitative-ai-insights/spec.md (User Story 1, 3)
-    - Config: src/synth_lab/infrastructure/config.py (REASONING_MODEL)
 
 Sample usage:
     from synth_lab.services.insight_service import InsightService
@@ -18,20 +17,25 @@ Sample usage:
     insight = service.generate_insight("ana_12345678", "try_vs_success", chart_data)
 
 Expected output:
-    ChartInsight with problem_understanding, trends_observed, key_findings, and summary
+    ChartInsight with summary field containing the AI-generated insight
 """
 
+import json
 from typing import Any
 
 from loguru import logger
 
 from synth_lab.domain.entities.chart_insight import ChartInsight
-from synth_lab.infrastructure.config import REASONING_MODEL
 from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
 from synth_lab.repositories.analysis_cache_repository import AnalysisCacheRepository
+from synth_lab.repositories.analysis_repository import AnalysisRepository
+from synth_lab.repositories.experiment_repository import ExperimentRepository
 
 _tracer = get_tracer()
+
+# Model for chart insights (fast, no reasoning)
+INSIGHT_MODEL = "gpt-4.1-mini"
 
 
 class InsightService:
@@ -41,17 +45,43 @@ class InsightService:
         self,
         llm_client: LLMClient | None = None,
         cache_repo: AnalysisCacheRepository | None = None,
+        analysis_repo: AnalysisRepository | None = None,
+        experiment_repo: ExperimentRepository | None = None,
     ):
         """
         Initialize InsightService.
 
         Args:
-            llm_client: LLM client for reasoning. Defaults to singleton.
+            llm_client: LLM client for generation. Defaults to singleton.
             cache_repo: Cache repository for persistence. Defaults to new instance.
+            analysis_repo: Analysis repository for fetching analysis data.
+            experiment_repo: Experiment repository for fetching hypothesis.
         """
         self.llm = llm_client or get_llm_client()
         self.cache_repo = cache_repo or AnalysisCacheRepository()
+        self.analysis_repo = analysis_repo or AnalysisRepository()
+        self.experiment_repo = experiment_repo or ExperimentRepository()
         self.logger = logger.bind(component="insight_service")
+
+    def _get_hypothesis(self, analysis_id: str) -> str:
+        """
+        Get hypothesis from experiment linked to analysis.
+
+        Args:
+            analysis_id: Analysis ID
+
+        Returns:
+            Hypothesis string or empty string if not found
+        """
+        analysis = self.analysis_repo.get_by_id(analysis_id)
+        if analysis is None:
+            return ""
+
+        experiment = self.experiment_repo.get_by_id(analysis.experiment_id)
+        if experiment is None:
+            return ""
+
+        return experiment.hypothesis or ""
 
     def generate_insight(
         self,
@@ -75,317 +105,287 @@ class InsightService:
         """
         with _tracer.start_as_current_span(f"generate_insight_{chart_type}"):
             try:
-                # Build prompt based on chart type
-                prompt = self._build_prompt_for_chart_type(chart_type, chart_data)
+                # Get hypothesis for context
+                hypothesis = self._get_hypothesis(analysis_id)
 
-                # Call LLM with reasoning model
-                self.logger.info(f"Generating insight for {chart_type} (analysis: {analysis_id})")
-                llm_response = self.llm.complete_json(
+                # Build prompt based on chart type
+                prompt = self._build_prompt_for_chart_type(
+                    chart_type, chart_data, hypothesis)
+
+                # Call LLM with gpt-4.1-mini (no reasoning)
+                self.logger.info(
+                    f"Generating insight for {chart_type} (analysis: {analysis_id})")
+                llm_response_str = self.llm.complete_json(
                     messages=[{"role": "user", "content": prompt}],
-                    model=REASONING_MODEL,
+                    model=INSIGHT_MODEL,
                 )
 
-                # Parse response into ChartInsight
-                insight = self._parse_insight_response(llm_response, analysis_id, chart_type)
+                # Parse JSON string to dict
+                llm_response = json.loads(llm_response_str)
+
+                # Extract summary from response
+                summary = llm_response.get("resumo_key_findings", "")
+                if not summary:
+                    # Fallback to other possible field names
+                    summary = llm_response.get("summary", str(llm_response))
+
+                # Create ChartInsight
+                insight = ChartInsight(
+                    analysis_id=analysis_id,
+                    chart_type=chart_type,
+                    summary=summary,
+                    status="completed",
+                    model=INSIGHT_MODEL,
+                )
 
                 # Store in cache
                 self.cache_repo.store_chart_insight(insight)
-                self.logger.info(f"Insight generated for {chart_type}: {insight.status}")
+                self.logger.info(
+                    f"Insight generated for {chart_type}: {insight.status}")
 
                 return insight
 
             except Exception as e:
-                self.logger.error(f"Failed to generate insight for {chart_type}: {e}")
+                self.logger.error(
+                    f"Failed to generate insight for {chart_type}: {e}")
                 # Create failed insight
                 failed_insight = ChartInsight(
                     analysis_id=analysis_id,
                     chart_type=chart_type,
-                    problem_understanding="Failed to generate insight",
-                    trends_observed="Error occurred during generation",
-                    key_findings=["Generation failed", str(e)],
-                    summary="Insight generation failed due to error",
+                    summary=f"Falha ao gerar insight: {e}",
                     status="failed",
+                    model=INSIGHT_MODEL,
                 )
                 self.cache_repo.store_chart_insight(failed_insight)
                 return failed_insight
 
-    def _build_prompt_for_chart_type(self, chart_type: str, chart_data: dict[str, Any]) -> str:
+    def _create_pending_insight(
+        self,
+        analysis_id: str,
+        chart_type: str,
+    ) -> ChartInsight:
+        """
+        Create a pending insight immediately to return to the client.
+
+        Args:
+            analysis_id: Analysis ID
+            chart_type: Chart type
+
+        Returns:
+            ChartInsight with status="pending"
+        """
+        pending_insight = ChartInsight(
+            analysis_id=analysis_id,
+            chart_type=chart_type,
+            summary="Gerando insight... Aguarde.",
+            status="pending",
+            model=INSIGHT_MODEL,
+        )
+        self.cache_repo.store_chart_insight(pending_insight)
+        return pending_insight
+
+    def _build_prompt_for_chart_type(
+        self, chart_type: str, chart_data: dict[str, Any], hypothesis: str
+    ) -> str:
         """
         Build LLM prompt for specific chart type.
 
         Args:
             chart_type: Type of chart
             chart_data: Chart data
+            hypothesis: Experiment hypothesis for context
 
         Returns:
             Formatted prompt string
         """
+        # Charts with pre-computed cache data (PDP excluded - dynamic with params)
         prompt_builders = {
             "try_vs_success": self._build_prompt_try_vs_success,
             "shap_summary": self._build_prompt_shap_summary,
-            "pdp": self._build_prompt_pdp,
-            "pca_scatter": self._build_prompt_pca_scatter,
-            "radar_comparison": self._build_prompt_radar_comparison,
             "extreme_cases": self._build_prompt_extreme_cases,
             "outliers": self._build_prompt_outliers,
+            "pca_scatter": self._build_prompt_pca_scatter,
+            "radar_comparison": self._build_prompt_radar_comparison,
         }
 
         builder = prompt_builders.get(chart_type)
         if builder is None:
             raise ValueError(f"Unknown chart type: {chart_type}")
 
-        return builder(chart_data)
+        return builder(chart_data, hypothesis)
 
-    def _build_prompt_try_vs_success(self, chart_data: dict[str, Any]) -> str:
+    def _build_prompt_try_vs_success(
+        self, chart_data: dict[str, Any], hypothesis: str
+    ) -> str:
         """Build prompt for Try vs Success chart."""
-        return f"""Analyze this "Try vs Success" chart data and provide AI-generated insight.
+        return f"""Analise estes dados do gráfico "Tentativa vs Sucesso" e forneça insights em PORTUGUÊS BRASILEIRO.
 
-**Chart Data:**
+**Hipótese:**
+{hypothesis}
+
+**Dados do Gráfico:**
 {chart_data}
 
-**Your Task:**
-You are a UX researcher analyzing quantitative data from a feature simulation. The "Try vs Success" chart shows:
-- How many users attempted the feature (tried)
-- How many succeeded after trying
-- How many failed after trying
-- How many didn't even try
+**Sua Tarefa:**
+Você é um pesquisador UX analisando dados quantitativos de uma simulação de feature. Sua função é olhar os dados e fazer análises profundas, sem dizer obviedades, nem ficar explicando como o gráfico funciona.
 
-**Required Output (JSON format):**
+**Diretrizes:**
+- A ideia aqui não é dar ideias de melhorias, mas tentar dar clareza de problemas.
+- Fale de forma clara e simples, sem complicações desnecessárias.
+- SEMPRE em português brasileiro
+
+**Formato de Saída (JSON):**
 {{
-  "problem_understanding": "Brief description of what is being tested (≤50 words)",
-  "trends_observed": "Key patterns in the data - try rate, success rate, failure patterns (≤100 words)",
-  "key_findings": [
-    "First actionable insight for product team",
-    "Second actionable insight",
-    "Third insight (if applicable)",
-    "Fourth insight (if applicable)"
-  ],
-  "summary": "Concise summary synthesizing the analysis (≤200 words)"
+  "problem_understanding": "Breve descrição do que está sendo testado (≤80 tokens)",
+  "trends_observed": "Padrões principais nos dados (≤80 tokens)",
+  "resumo_key_findings": "Suas conclusões (>120 E ≤200 tokens)"
 }}
-
-**Guidelines:**
-- 2-4 key findings required
-- Focus on actionable insights for product decisions
-- Explain what the numbers mean in human terms
-- Identify concerning patterns or opportunities
 """
 
-    def _build_prompt_shap_summary(self, chart_data: dict[str, Any]) -> str:
+    def _build_prompt_shap_summary(
+        self, chart_data: dict[str, Any], hypothesis: str
+    ) -> str:
         """Build prompt for SHAP Summary chart."""
-        return f"""Analyze this SHAP Summary chart data and provide AI-generated insight.
+        return f"""Analise estes dados do gráfico "SHAP Summary" e forneça insights em PORTUGUÊS BRASILEIRO.
 
-**Chart Data:**
+**Hipótese:**
+{hypothesis}
+
+**Dados do Gráfico:**
 {chart_data}
 
-**Your Task:**
-You are a data scientist explaining feature importance analysis. The SHAP Summary chart shows which user attributes most strongly influence success/failure.
+**Sua Tarefa:**
+Você é um pesquisador UX analisando dados de importância de features (SHAP). Sua função é explicar quais atributos dos usuários mais influenciam o sucesso/falha, de forma clara e não-técnica.
 
-**Required Output (JSON format):**
+**Diretrizes:**
+- Foque nos problemas revelados, não em sugestões de melhoria.
+- Traduza termos técnicos para linguagem de negócio.
+- Fale de forma clara e simples.
+- SEMPRE em português brasileiro
+
+**Formato de Saída (JSON):**
 {{
-  "problem_understanding": "What feature importance is being measured (≤50 words)",
-  "trends_observed": "Top 3-5 most important features and their impact direction (≤100 words)",
-  "key_findings": [
-    "Insight about the most important feature",
-    "Insight about surprising feature importance",
-    "Actionable recommendation based on feature analysis",
-    "Additional finding (if applicable)"
-  ],
-  "summary": "What this feature importance analysis tells us (≤200 words)"
+  "problem_understanding": "O que está sendo medido (≤80 tokens)",
+  "trends_observed": "Top 3 atributos mais importantes e seu impacto (≤80 tokens)",
+  "resumo_key_findings": "Suas conclusões sobre os drivers de sucesso/falha (>120 E ≤200 tokens)"
 }}
-
-**Guidelines:**
-- Explain SHAP values in non-technical terms
-- Identify which features to prioritize in product design
-- Highlight surprising or counterintuitive findings
 """
 
-    def _build_prompt_pdp(self, chart_data: dict[str, Any]) -> str:
-        """Build prompt for PDP (Partial Dependence Plot) chart."""
-        return f"""Analyze this Partial Dependence Plot (PDP) data and provide AI-generated insight.
-
-**Chart Data:**
-{chart_data}
-
-**Your Task:**
-Explain how a specific feature affects success probability across its range of values.
-
-**Required Output (JSON format):**
-{{
-  "problem_understanding": "Which feature-outcome relationship is being analyzed (≤50 words)",
-  "trends_observed": "How the feature affects success probability - linear, threshold, optimal range (≤100 words)",
-  "key_findings": [
-    "Insight about optimal feature value range",
-    "Insight about threshold effects or non-linear patterns",
-    "Product recommendation based on this relationship",
-    "Additional observation (if applicable)"
-  ],
-  "summary": "Synthesis of feature-outcome relationship (≤200 words)"
-}}
-
-**Guidelines:**
-- Identify sweet spots, thresholds, or diminishing returns
-- Recommend optimal feature value ranges
-- Explain non-linear effects if present
-"""
-
-    def _build_prompt_pca_scatter(self, chart_data: dict[str, Any]) -> str:
+    def _build_prompt_pca_scatter(
+        self, chart_data: dict[str, Any], hypothesis: str
+    ) -> str:
         """Build prompt for PCA Scatter chart."""
-        return f"""Analyze this PCA Scatter plot data and provide AI-generated insight.
+        return f"""Analise estes dados do gráfico "PCA Scatter" em PORTUGUÊS BRASILEIRO.
 
-**Chart Data:**
+**Hipótese:**
+{hypothesis}
+
+**Dados do Gráfico:**
 {chart_data}
 
-**Your Task:**
-Explain user segmentation patterns revealed by dimensionality reduction (PCA).
+**Sua Tarefa:**
+Você é um pesquisador UX explicando padrões de segmentação de usuários revelados pelo PCA. Descreva os clusters em termos comportamentais, não técnicos.
 
-**Required Output (JSON format):**
+**Diretrizes:**
+- Descreva segmentos em termos de comportamento, não de matemática.
+- Foque nos problemas revelados, não em sugestões.
+- Fale de forma clara e simples.
+- SEMPRE em português brasileiro
+
+**Formato de Saída (JSON):**
 {{
-  "problem_understanding": "What user segmentation is being revealed (≤50 words)",
-  "trends_observed": "How many clusters/segments, their characteristics, separation quality (≤100 words)",
-  "key_findings": [
-    "Insight about most distinct user segment",
-    "Insight about segment overlap or confusion",
-    "Product strategy recommendation for different segments",
-    "Additional pattern (if applicable)"
-  ],
-  "summary": "What these user segments mean for product strategy (≤200 words)"
+  "problem_understanding": "Qual segmentação de usuário está sendo revelada (≤80 tokens)",
+  "trends_observed": "Quantos clusters, suas características principais (≤80 tokens)",
+  "resumo_key_findings": "Suas conclusões sobre os segmentos e suas diferenças (>120 E ≤200 tokens)"
 }}
-
-**Guidelines:**
-- Describe segments in behavioral terms, not technical PCA terms
-- Identify which segments need different product experiences
-- Highlight segment sizes and success rates
 """
 
-    def _build_prompt_radar_comparison(self, chart_data: dict[str, Any]) -> str:
+    def _build_prompt_radar_comparison(
+        self, chart_data: dict[str, Any], hypothesis: str
+    ) -> str:
         """Build prompt for Radar Comparison chart."""
-        return f"""Analyze this Radar Comparison chart and provide AI-generated insight.
+        return f"""Analise este gráfico de "Comparação Radar" em PORTUGUÊS BRASILEIRO.
 
-**Chart Data:**
+**Hipótese:**
+{hypothesis}
+
+**Dados do Gráfico:**
 {chart_data}
 
-**Your Task:**
-Compare user cluster profiles across multiple dimensions (capability, motivation, trust, etc.).
+**Sua Tarefa:**
+Você é um pesquisador UX comparando perfis de clusters de usuários em múltiplas dimensões (capacidade, motivação, confiança, etc.).
 
-**Required Output (JSON format):**
+**Diretrizes:**
+- Compare clusters em termos de diferenças práticas.
+- Foque nos problemas revelados, não em sugestões.
+- Fale de forma clara e simples.
+- SEMPRE em português brasileiro
+
+**Formato de Saída (JSON):**
 {{
-  "problem_understanding": "What cluster profiles are being compared (≤50 words)",
-  "trends_observed": "Key differences between clusters across dimensions (≤100 words)",
-  "key_findings": [
-    "Insight about cluster with highest success potential",
-    "Insight about cluster needing most support",
-    "Design recommendation to serve different cluster needs",
-    "Additional comparison insight (if applicable)"
-  ],
-  "summary": "Strategic implications of cluster differences (≤200 words)"
+  "problem_understanding": "Quais perfis de cluster estão sendo comparados (≤80 tokens)",
+  "trends_observed": "Diferenças-chave entre os clusters (≤80 tokens)",
+  "resumo_key_findings": "Suas conclusões sobre como os grupos diferem (>120 E ≤200 tokens)"
 }}
-
-**Guidelines:**
-- Compare clusters on actionable dimensions
-- Identify which clusters to prioritize
-- Recommend targeted interventions per cluster
 """
 
-    def _build_prompt_extreme_cases(self, chart_data: dict[str, Any]) -> str:
+    def _build_prompt_extreme_cases(
+        self, chart_data: dict[str, Any], hypothesis: str
+    ) -> str:
         """Build prompt for Extreme Cases chart."""
-        return f"""Analyze this Extreme Cases data and provide AI-generated insight.
+        return f"""Analise estes dados de "Casos Extremos" em PORTUGUÊS BRASILEIRO.
 
-**Chart Data:**
+**Hipótese:**
+{hypothesis}
+
+**Dados do Gráfico:**
 {chart_data}
 
-**Your Task:**
-Explain surprising or counterintuitive success/failure cases.
+**Sua Tarefa:**
+Você é um pesquisador UX explicando casos surpreendentes ou contraintuitivos de sucesso/falha. Foque em anomalias que revelam problemas ocultos.
 
-**Required Output (JSON format):**
+**Diretrizes:**
+- Destaque o que é surpreendente ou inesperado.
+- Foque nos problemas revelados, não em sugestões.
+- Fale de forma clara e simples.
+- SEMPRE em português brasileiro
+
+**Formato de Saída (JSON):**
 {{
-  "problem_understanding": "What extreme cases are being examined (≤50 words)",
-  "trends_observed": "Patterns in unexpected successes and unexpected failures (≤100 words)",
-  "key_findings": [
-    "Insight from unexpected success cases",
-    "Insight from unexpected failure cases",
-    "Hypothesis about what makes these cases extreme",
-    "Product implication (if applicable)"
-  ],
-  "summary": "What extreme cases reveal about feature design (≤200 words)"
+  "problem_understanding": "Quais casos extremos estão sendo examinados (≤80 tokens)",
+  "trends_observed": "Padrões em sucessos/falhas inesperados (≤80 tokens)",
+  "resumo_key_findings": "Suas conclusões sobre o que os casos extremos revelam (>120 E ≤200 tokens)"
 }}
-
-**Guidelines:**
-- Focus on actionable insights from edge cases
-- Identify feature design blind spots
-- Suggest how to better serve extreme user profiles
 """
 
-    def _build_prompt_outliers(self, chart_data: dict[str, Any]) -> str:
+    def _build_prompt_outliers(
+        self, chart_data: dict[str, Any], hypothesis: str
+    ) -> str:
         """Build prompt for Outliers chart."""
-        return f"""Analyze this Outliers data and provide AI-generated insight.
+        return f"""Analise estes dados de "Outliers" em PORTUGUÊS BRASILEIRO.
 
-**Chart Data:**
+**Hipótese:**
+{hypothesis}
+
+**Dados do Gráfico:**
 {chart_data}
 
-**Your Task:**
-Identify and explain statistical outliers in user behavior.
+**Sua Tarefa:**
+Você é um pesquisador UX identificando outliers estatísticos no comportamento do usuário. Distingua entre ruído e outliers significativos.
 
-**Required Output (JSON format):**
+**Diretrizes:**
+- Foque em outliers que revelam problemas reais, não ruído estatístico.
+- Foque nos problemas revelados, não em sugestões.
+- Fale de forma clara e simples.
+- SEMPRE em português brasileiro
+
+**Formato de Saída (JSON):**
 {{
-  "problem_understanding": "What outlier behavior is being identified (≤50 words)",
-  "trends_observed": "Characteristics of outlier users, outlier frequency (≤100 words)",
-  "key_findings": [
-    "Insight about what makes users outliers",
-    "Insight about whether outliers should be addressed",
-    "Design recommendation for outlier cases",
-    "Additional pattern (if applicable)"
-  ],
-  "summary": "Strategic decision on handling outliers (≤200 words)"
+  "problem_understanding": "Qual comportamento outlier está sendo identificado (≤80 tokens)",
+  "trends_observed": "Características dos usuários outliers (≤80 tokens)",
+  "resumo_key_findings": "Suas conclusões sobre o que os outliers revelam (>120 E ≤200 tokens)"
 }}
-
-**Guidelines:**
-- Distinguish between noise and meaningful outliers
-- Recommend whether to design for outliers or focus on mainstream
-- Identify potential data quality issues
 """
-
-    def _parse_insight_response(
-        self,
-        llm_response: dict[str, Any],
-        analysis_id: str,
-        chart_type: str,
-    ) -> ChartInsight:
-        """
-        Parse LLM JSON response into ChartInsight entity.
-
-        Args:
-            llm_response: LLM response dict
-            analysis_id: Analysis ID
-            chart_type: Chart type
-
-        Returns:
-            ChartInsight entity
-
-        Raises:
-            ValueError: If response is invalid
-        """
-        # Validate required fields
-        required_fields = ["problem_understanding", "trends_observed", "key_findings", "summary"]
-        missing = [f for f in required_fields if f not in llm_response]
-        if missing:
-            raise ValueError(f"Missing required fields in LLM response: {missing}")
-
-        # Validate key_findings length
-        key_findings = llm_response["key_findings"]
-        if not isinstance(key_findings, list) or len(key_findings) < 2 or len(key_findings) > 4:
-            raise ValueError(f"key_findings must be a list of 2-4 items, got {len(key_findings)}")
-
-        return ChartInsight(
-            analysis_id=analysis_id,
-            chart_type=chart_type,
-            problem_understanding=llm_response["problem_understanding"],
-            trends_observed=llm_response["trends_observed"],
-            key_findings=key_findings,
-            summary=llm_response["summary"],
-            status="completed",
-            model=REASONING_MODEL,
-            reasoning_trace=llm_response.get("reasoning_trace"),
-        )
 
 
 if __name__ == "__main__":
@@ -405,33 +405,43 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Service instantiation failed: {e}")
 
-    # Test 2: Prompt building for all chart types
+    # Test 2: Prompt building for supported chart types (with pre-computed cache)
     total_tests += 1
     try:
         service = InsightService()
+        # Only test charts with pre-computed cache data (PDP excluded)
         chart_types = [
             "try_vs_success",
             "shap_summary",
-            "pdp",
-            "pca_scatter",
-            "radar_comparison",
             "extreme_cases",
             "outliers",
+            "pca_scatter",
+            "radar_comparison",
         ]
         for chart_type in chart_types:
-            prompt = service._build_prompt_for_chart_type(chart_type, {"test": "data"})
+            prompt = service._build_prompt_for_chart_type(
+                chart_type, {"test": "data"}, "Hipótese de teste")
             if len(prompt) < 100:
-                all_validation_failures.append(f"Prompt too short for {chart_type}")
+                all_validation_failures.append(
+                    f"Prompt too short for {chart_type}")
+            if "Hipótese" not in prompt:
+                all_validation_failures.append(
+                    f"Prompt missing hypothesis for {chart_type}")
+            if "resumo_key_findings" not in prompt:
+                all_validation_failures.append(
+                    f"Prompt missing resumo_key_findings for {chart_type}")
     except Exception as e:
         all_validation_failures.append(f"Prompt building failed: {e}")
 
     # Final validation result
     if all_validation_failures:
-        print(f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(
+            f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("InsightService is validated and ready for use")
         sys.exit(0)

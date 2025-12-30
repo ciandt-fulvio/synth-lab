@@ -2,7 +2,7 @@
 // Section with Radar Comparison chart and explanation
 
 import { useState } from 'react';
-import { HelpCircle, Hexagon, Sparkles, Loader2 } from 'lucide-react';
+import { HelpCircle, Hexagon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,7 +15,6 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 import { ChartErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { RadarComparisonChart } from './charts/RadarComparisonChart';
 import { useAnalysisRadarComparison } from '@/hooks/use-analysis-charts';
-import { useGenerateAnalysisChartInsight } from '@/hooks/use-insights';
 
 import { InsightSection } from './InsightSection';
 interface RadarSectionProps {
@@ -28,7 +27,6 @@ export function RadarSection({ experimentId, hasClustering = true }: RadarSectio
 
   // Only fetch radar data when clustering exists
   const radar = useAnalysisRadarComparison(experimentId, hasClustering);
-  const generateInsight = useGenerateAnalysisChartInsight(experimentId);
 
   const handleGenerateInsight = () => {
     if (!radar.data) return;
@@ -44,31 +42,11 @@ export function RadarSection({ experimentId, hasClustering = true }: RadarSectio
   return (
     <Card className="card">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-card-title flex items-center gap-2">
-              <Hexagon className="h-4 w-4 text-slate-500" />
-              Comparação de Perfis
-            </CardTitle>
-            <p className="text-meta">Compara os atributos médios de cada cluster</p>
-          </div>
-          {radar.data && hasClustering && (
-            <Button
-              onClick={handleGenerateInsight}
-              disabled={generateInsight.isPending}
-              variant="outline"
-              size="sm"
-              className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-            >
-              {generateInsight.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
-              )}
-              Gerar Insight
-            </Button>
-          )}
-        </div>
+        <CardTitle className="text-card-title flex items-center gap-2">
+          <Hexagon className="h-4 w-4 text-slate-500" />
+          Comparação de Perfis
+        </CardTitle>
+        <p className="text-meta">Compara os atributos médios de cada cluster</p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Explanation section - collapsible */}
@@ -180,7 +158,7 @@ export function RadarSection({ experimentId, hasClustering = true }: RadarSectio
         )}
         {/* AI-Generated Insights */}
         <InsightSection experimentId={experimentId} chartType="radar_comparison" />
-
+      </CardContent>
     </Card>
   );
 }

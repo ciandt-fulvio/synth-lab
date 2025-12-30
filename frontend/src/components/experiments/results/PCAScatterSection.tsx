@@ -2,7 +2,7 @@
 // PCA Scatter section with explanation and insight generation
 
 import { useState } from 'react';
-import { HelpCircle, Sparkles, Loader2, Hexagon, AlertCircle, RefreshCw } from 'lucide-react';
+import { HelpCircle, Hexagon, AlertCircle, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -10,7 +10,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ChartErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { PCAScatterChart } from './charts/PCAScatterChart';
 import { useAnalysisPCAScatter } from '@/hooks/use-analysis-charts';
-import { useGenerateAnalysisChartInsight } from '@/hooks/use-insights';
 
 import { InsightSection } from './InsightSection';
 interface PCAScatterSectionProps {
@@ -25,7 +24,6 @@ export function PCAScatterSection({
   const [showExplanation, setShowExplanation] = useState(false);
 
   const scatter = useAnalysisPCAScatter(experimentId, hasClustering);
-  const generateInsight = useGenerateAnalysisChartInsight(experimentId);
 
   const handleGenerateInsight = () => {
     if (!scatter.data) return;
@@ -41,31 +39,11 @@ export function PCAScatterSection({
   return (
     <Card className="card">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-card-title flex items-center gap-2">
-              <Hexagon className="h-4 w-4 text-slate-500" />
-              Visualização de Clusters (PCA)
-            </CardTitle>
-            <p className="text-meta">Projeção 2D dos synths coloridos por cluster</p>
-          </div>
-          {scatter.data && hasClustering && (
-            <Button
-              onClick={handleGenerateInsight}
-              disabled={generateInsight.isPending}
-              variant="outline"
-              size="sm"
-              className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-            >
-              {generateInsight.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
-              )}
-              Gerar Insight
-            </Button>
-          )}
-        </div>
+        <CardTitle className="text-card-title flex items-center gap-2">
+          <Hexagon className="h-4 w-4 text-slate-500" />
+          Visualização de Clusters (PCA)
+        </CardTitle>
+        <p className="text-meta">Projeção 2D dos synths coloridos por cluster</p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Explanation */}
@@ -171,7 +149,7 @@ export function PCAScatterSection({
         )}
         {/* AI-Generated Insights */}
         <InsightSection experimentId={experimentId} chartType="pca_scatter" />
-
+      </CardContent>
     </Card>
   );
 }

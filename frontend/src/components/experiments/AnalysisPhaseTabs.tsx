@@ -14,7 +14,6 @@ import {
   PieChart,
   Users,
   UserCheck,
-  Lightbulb,
   ChevronRight,
   Play,
   FlaskConical,
@@ -35,8 +34,7 @@ export type AnalysisPhaseId =
   | 'visao-geral'
   | 'localizacao'
   | 'segmentacao'
-  | 'casos-especiais'
-  | 'insights';
+  | 'casos-especiais';
 
 export const ANALYSIS_PHASES: AnalysisPhase[] = [
   {
@@ -74,15 +72,6 @@ export const ANALYSIS_PHASES: AnalysisPhase[] = [
     question: 'Quem devemos entrevistar primeiro?',
     description:
       'Destaca outliers e casos extremos. Prioriza synths para entrevistas qualitativas aprofundadas.',
-  },
-  {
-    id: 'insights',
-    title: 'Insights',
-    shortTitle: 'Insights',
-    icon: <Lightbulb className="w-4 h-4" />,
-    question: 'Como explico isso rapidamente para stakeholders?',
-    description:
-      'Síntese executiva com recomendações acionáveis. Narrativa clara para comunicar descobertas.',
   },
 ];
 
@@ -160,14 +149,14 @@ export function AnalysisPhaseTabs({
                 Análise Quantitativa
               </h3>
               <p className="text-xs text-slate-500">
-                5 fases de investigação
+                4 fases de investigação
               </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             {actions}
             <div className="text-xs text-slate-400 font-medium tracking-wider uppercase">
-              Fase {currentIndex + 1} de 5
+              Fase {currentIndex + 1} de 4
             </div>
           </div>
         </div>

@@ -236,7 +236,7 @@ export function OutliersSection({ experimentId, onSynthClick, selectedSynthId }:
         )}
         {/* AI-Generated Insights */}
         <InsightSection experimentId={experimentId} chartType="outliers" />
-
+      </CardContent>
     </Card>
   );
 }

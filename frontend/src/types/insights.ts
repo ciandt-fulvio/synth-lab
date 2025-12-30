@@ -11,18 +11,15 @@
 
 /**
  * AI-generated insight for a specific chart type.
+ * Simplified structure with only summary field.
  */
 export interface ChartInsight {
   analysis_id: string
   chart_type: string
-  problem_understanding: string
-  trends_observed: string
-  key_findings: string[] // 2-4 items
-  summary: string // ≤200 words
+  summary: string // AI-generated insight in Portuguese
   generation_timestamp: string // ISO 8601
   status: "pending" | "completed" | "failed"
-  model: string // e.g., "o1-mini"
-  reasoning_trace?: string | null
+  model: string // e.g., "gpt-4.1-mini"
 }
 
 /**
@@ -38,20 +35,20 @@ export interface ExecutiveSummary {
   included_chart_types: string[] // min 1
   generation_timestamp: string // ISO 8601
   status: "pending" | "completed" | "failed" | "partial"
-  model: string // e.g., "o1-mini"
+  model: string // e.g., "gpt-4.1-mini"
 }
 
 /**
  * Chart types that support AI-generated insights.
+ * Note: pdp is excluded (dynamic chart with user-selected feature parameter)
  */
 export type ChartTypeWithInsight =
   | "try_vs_success"
   | "shap_summary"
-  | "pdp"
-  | "pca_scatter"
-  | "radar_comparison"
   | "extreme_cases"
   | "outliers"
+  | "pca_scatter"
+  | "radar_comparison"
 
 /**
  * Response from GET /experiments/{id}/insights (all insights + stats).

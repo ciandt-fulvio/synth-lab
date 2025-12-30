@@ -73,6 +73,8 @@ class CacheKeys:
         return f"clustering_k{k}"
 
     ELBOW = "elbow"
+    PCA_SCATTER = "pca_scatter"
+    RADAR_COMPARISON = "radar_comparison"
 
     # Phase 4: Edge Cases
     EXTREME_CASES = "extreme_cases"

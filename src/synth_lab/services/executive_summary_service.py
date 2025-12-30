@@ -2,7 +2,7 @@
 ExecutiveSummaryService for AI-generated executive summaries.
 
 Synthesizes multiple chart insights into a comprehensive executive summary
-using o1-mini reasoning model. Aggregates insights across all chart types
+using gpt-4.1-mini model. Aggregates insights across all chart types
 to provide strategic recommendations.
 
 References:
@@ -72,13 +72,15 @@ class ExecutiveSummaryService:
         with _tracer.start_as_current_span("generate_executive_summary"):
             try:
                 # Retrieve all insights
-                all_insights = self.cache_repo.get_all_chart_insights(analysis_id)
-                completed_insights = [i for i in all_insights if i.status == "completed"]
+                all_insights = self.cache_repo.get_all_chart_insights(
+                    analysis_id)
+                completed_insights = [
+                    i for i in all_insights if i.status == "completed"]
 
-                # Validate minimum insights
-                if len(completed_insights) < 3:
+                # Validate minimum insights (need at least 2 out of 4 possible charts)
+                if len(completed_insights) < 2:
                     raise ValueError(
-                        f"Need at least 3 completed insights to generate summary, got {len(completed_insights)}"
+                        f"Need at least 2 completed insights to generate summary, got {len(completed_insights)}"
                     )
 
                 # Build synthesis prompt
@@ -88,13 +90,18 @@ class ExecutiveSummaryService:
                 self.logger.info(
                     f"Generating executive summary for {analysis_id} from {len(completed_insights)} insights"
                 )
-                llm_response = self.llm.complete_json(
+                llm_response_str = self.llm.complete_json(
                     messages=[{"role": "user", "content": prompt}],
                     model=REASONING_MODEL,
                 )
 
+                # Parse JSON string to dict
+                import json
+                llm_response = json.loads(llm_response_str)
+
                 # Determine status (partial if some insights failed)
-                status = "partial" if len(completed_insights) < len(all_insights) else "completed"
+                status = "partial" if len(completed_insights) < len(
+                    all_insights) else "completed"
 
                 # Parse response into ExecutiveSummary
                 summary = ExecutiveSummary(
@@ -104,14 +111,16 @@ class ExecutiveSummaryService:
                     segmentation=llm_response["segmentation"],
                     edge_cases=llm_response["edge_cases"],
                     recommendations=llm_response["recommendations"],
-                    included_chart_types=[i.chart_type for i in completed_insights],
+                    included_chart_types=[
+                        i.chart_type for i in completed_insights],
                     status=status,
                     model=REASONING_MODEL,
                 )
 
                 # Store in cache
                 self.cache_repo.store_executive_summary(summary)
-                self.logger.info(f"Executive summary generated: {summary.status}")
+                self.logger.info(
+                    f"Executive summary generated: {summary.status}")
 
                 return summary
 
@@ -120,14 +129,17 @@ class ExecutiveSummaryService:
             except Exception as e:
                 self.logger.error(f"Failed to generate executive summary: {e}")
                 # Create failed summary
+                # Note: included_chart_types must have at least 1 item for validation
+                # Using "unknown" as placeholder when generation fails
                 failed_summary = ExecutiveSummary(
                     analysis_id=analysis_id,
                     overview="Failed to generate summary",
                     explainability="Error occurred during generation",
                     segmentation="Summary generation failed",
                     edge_cases="Error details: " + str(e),
-                    recommendations=["Review error logs", "Retry summary generation"],
-                    included_chart_types=[],
+                    recommendations=["Review error logs",
+                                     "Retry summary generation"],
+                    included_chart_types=["unknown"],
                     status="failed",
                     model=REASONING_MODEL,
                 )
@@ -144,73 +156,51 @@ class ExecutiveSummaryService:
         Returns:
             Formatted synthesis prompt
         """
-        # Group insights by category
-        overview_charts = ["try_vs_success"]
-        explainability_charts = ["shap_summary", "pdp"]
-        segmentation_charts = ["pca_scatter", "radar_comparison"]
-        edge_case_charts = ["extreme_cases", "outliers"]
-
-        insights_by_category = {
-            "overview": [i for i in insights if i.chart_type in overview_charts],
-            "explainability": [i for i in insights if i.chart_type in explainability_charts],
-            "segmentation": [i for i in insights if i.chart_type in segmentation_charts],
-            "edge_cases": [i for i in insights if i.chart_type in edge_case_charts],
-        }
-
-        # Build insight summaries
+        # Build insight summaries (simplified - only summary field)
         insight_texts = []
         for insight in insights:
-            insight_text = f"""
-**Chart: {insight.chart_type}**
-- Problem: {insight.problem_understanding}
-- Trends: {insight.trends_observed}
-- Key Findings:
-{chr(10).join(f"  • {finding}" for finding in insight.key_findings)}
-- Summary: {insight.summary}
-"""
+            insight_text = f"""**{insight.chart_type}:** {insight.summary}"""
             insight_texts.append(insight_text)
 
-        all_insights_text = "\n".join(insight_texts)
+        all_insights_text = "\n\n".join(insight_texts)
 
-        return f"""You are a UX researcher creating an executive summary from quantitative analysis insights.
+        return f"""Você é um pesquisador UX criando um resumo executivo a partir de insights de análise quantitativa.
 
-**Your Task:**
-Synthesize the following {len(insights)} chart insights into a comprehensive executive summary for product stakeholders.
+**Sua Tarefa:**
+Sintetize os seguintes {len(insights)} insights de gráficos em um resumo executivo abrangente para stakeholders de produto.
 
-**All Chart Insights:**
+**Todos os Insights:**
 {all_insights_text}
 
-**Required Output (JSON format):**
+**Formato de Saída (JSON):**
 {{
-  "overview": "What was tested and overall results (≤200 words). Synthesize insights from Try vs Success and overall outcome distribution.",
-  "explainability": "Key drivers and feature impacts (≤200 words). Synthesize SHAP and PDP insights about what influences success.",
-  "segmentation": "User groups and behavioral patterns (≤200 words). Synthesize PCA and radar insights about user segments.",
-  "edge_cases": "Surprises, anomalies, unexpected findings (≤200 words). Synthesize extreme cases and outlier insights.",
+  "overview": "O que foi testado e resultados gerais (≤200 palavras). Sintetize insights de Tentativa vs Sucesso e distribuição de resultados.",
+  "explainability": "Principais drivers e impactos de features (≤200 palavras). Sintetize insights SHAP e PDP sobre o que influencia o sucesso.",
+  "segmentation": "Grupos de usuários e padrões comportamentais (≤200 palavras). Sintetize insights PCA e radar sobre segmentos de usuários.",
+  "edge_cases": "Surpresas, anomalias, descobertas inesperadas (≤200 palavras). Sintetize insights de casos extremos e outliers.",
   "recommendations": [
-    "First actionable recommendation for product team (based on cross-cutting insights)",
-    "Second actionable recommendation",
-    "Third recommendation (optional - only if strongly supported by insights)"
+    "Primeira recomendação acionável para o time de produto",
+    "Segunda recomendação acionável",
+    "Terceira recomendação (opcional - apenas se fortemente suportada pelos insights)"
   ]
 }}
 
-**Guidelines:**
-- 2-3 recommendations required (not 4+)
-- Synthesize across insights - don't just list individual findings
-- Focus on strategic implications for product decisions
-- Prioritize recommendations by impact and feasibility
-- Identify patterns that emerge across multiple chart types
-- Highlight the most important insight from each category
-- Make recommendations concrete and actionable
+**Diretrizes:**
+- 2-3 recomendações obrigatórias (não mais de 3)
+- Sintetize entre insights - não apenas liste descobertas individuais
+- Foque em implicações estratégicas para decisões de produto
+- Priorize recomendações por impacto e viabilidade
+- Identifique padrões que emergem de múltiplos tipos de gráficos
+- Destaque o insight mais importante de cada categoria
+- Faça recomendações concretas e acionáveis
+- SEMPRE responda em português brasileiro
 
-**Example Quality:**
-- ❌ BAD: "Users struggle with the feature" → Too vague
-- ✅ GOOD: "30% failure rate concentrated among low-trust users (SHAP #1 driver). Recommendation: Add visible security badges to checkout flow."
-
-**Cross-Insight Synthesis:**
-- Connect findings across charts (e.g., if SHAP shows trust matters AND extreme cases show high-capability failures, the issue might be security perception, not actual security)
-- Identify which user segments (from PCA) align with which feature importance patterns (from SHAP)
-- Prioritize recommendations based on segment size × success impact
+**Síntese Entre Insights:**
+- Conecte descobertas entre gráficos (ex: se SHAP mostra que confiança importa E casos extremos mostram falhas de usuários capazes, o problema pode ser percepção de segurança, não segurança real)
+- Identifique quais segmentos de usuário (do PCA) se alinham com quais padrões de importância de features (do SHAP)
+- Priorize recomendações baseado em tamanho do segmento × impacto no sucesso
 """
+
 
 if __name__ == "__main__":
     import sys
@@ -237,10 +227,7 @@ if __name__ == "__main__":
             ChartInsight(
                 analysis_id="ana_12345678",
                 chart_type=f"chart_{i}",
-                problem_understanding=f"Problem {i}",
-                trends_observed=f"Trends {i}",
-                key_findings=[f"F{i}1", f"F{i}2"],
-                summary=f"Summary {i}",
+                summary=f"Insight resumido número {i} sobre o gráfico",
                 status="completed",
             )
             for i in range(3)
@@ -255,11 +242,13 @@ if __name__ == "__main__":
 
     # Final validation result
     if all_validation_failures:
-        print(f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(
+            f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("ExecutiveSummaryService is validated and ready for use")
         sys.exit(0)

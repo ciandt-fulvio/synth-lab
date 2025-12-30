@@ -83,7 +83,7 @@
 **Purpose**: Project initialization and configuration
 
 - [x] T001 Create feature branch `023-quantitative-ai-insights` from main
-- [x] T002 Add REASONING_MODEL constant in src/synth_lab/infrastructure/config.py (value: "o1-mini")
+- [x] T002 Add REASONING_MODEL constant in src/synth_lab/infrastructure/config.py (value: "04-mini")
 - [x] T003 [P] Extend CacheKeys enum in src/synth_lab/repositories/analysis_repository.py with insight cache keys
 
 **Checkpoint**: Configuration ready for development
@@ -141,7 +141,7 @@
 - [x] T028 [US3] Implement InsightService._build_prompt_extreme_cases() for Extreme Cases chart
 - [x] T029 [US3] Implement InsightService._build_prompt_outliers() for Outliers chart
 - [x] T030 [US3] Implement InsightService._parse_insight_response() to parse LLM JSON response into ChartInsight
-- [x] T031 [US3] Implement InsightService.generate_insight() main method (read chart data, build prompt, call LLM with o1-mini, parse, store)
+- [x] T031 [US3] Implement InsightService.generate_insight() main method (read chart data, build prompt, call LLM with 04-mini, parse, store)
 - [x] T032 [US3] Add Phoenix tracing to InsightService.generate_insight() with span per chart type
 - [x] T033 [US3] Implement ExecutiveSummaryService._build_synthesis_prompt() to combine all insights
 - [x] T034 [US3] Implement ExecutiveSummaryService.generate_summary() (read all insights, build prompt, call LLM, parse, store)

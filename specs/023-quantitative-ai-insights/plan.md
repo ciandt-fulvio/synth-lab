@@ -63,7 +63,7 @@ Implement automatic AI-generated insights for quantitative analysis results. The
 - Files under 500 lines (services split by concern: InsightService, ExecutiveSummaryService)
 - Functions under 30 lines (prompt builders as separate methods)
 - No premature optimization - focus on working insights first
-- Dependencies well-justified (o1-mini for reasoning, existing LLMClient)
+- Dependencies well-justified (04-mini for reasoning, existing LLMClient)
 
 **Principle VI (Language)**: ✅ PASS
 - Code in English (InsightService, ChartInsight, etc.)

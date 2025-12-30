@@ -105,8 +105,8 @@ class ChartInsight(BaseModel):
         pattern="^(pending|completed|failed)$",
     )
     model: str = Field(
-        description="LLM model used (e.g., 'o1-mini')",
-        default="o1-mini",
+        description="LLM model used (e.g., '04-mini')",
+        default="04-mini",
     )
     reasoning_trace: str | None = Field(
         description="Optional: LLM reasoning steps for debugging",
@@ -181,8 +181,8 @@ class ExecutiveSummary(BaseModel):
         pattern="^(pending|completed|failed)$",
     )
     model: str = Field(
-        description="LLM model used (e.g., 'o1-mini')",
-        default="o1-mini",
+        description="LLM model used (e.g., '04-mini')",
+        default="04-mini",
     )
 
     def to_cache_json(self) -> dict:
@@ -223,10 +223,10 @@ VALUES (
         "summary": "O novo fluxo de checkout mostra boa descoberabilidade (85% tentam) mas enfrenta desafios de conversão na etapa de pagamento...",
         "generation_timestamp": "2025-12-29T10:30:00Z",
         "status": "completed",
-        "model": "o1-mini",
+        "model": "04-mini",
         "reasoning_trace": null
     }',
-    '{"model": "o1-mini", "temperature": 1.0}',
+    '{"model": "04-mini", "temperature": 1.0}',
     '2025-12-29 10:30:00'
 );
 ```
@@ -260,9 +260,9 @@ VALUES (
         ],
         "generation_timestamp": "2025-12-29T10:35:00Z",
         "status": "completed",
-        "model": "o1-mini"
+        "model": "04-mini"
     }',
-    '{"model": "o1-mini", "temperature": 1.0}',
+    '{"model": "04-mini", "temperature": 1.0}',
     '2025-12-29 10:35:00'
 );
 ```
@@ -418,7 +418,7 @@ def get_executive_summary(
            ├─> InsightService.generate_insight(chart_type="try_vs_success")
            │   ├─> Read chart data from analysis_cache
            │   ├─> Build prompt with experiment context
-           │   ├─> Call LLM (o1-mini)
+           │   ├─> Call LLM (04-mini)
            │   ├─> Parse JSON response → ChartInsight entity
            │   └─> AnalysisRepository.store_chart_insight()
            │       └─> INSERT INTO analysis_cache (cache_key="insight_try_vs_success")
@@ -428,7 +428,7 @@ def get_executive_summary(
            └─> ExecutiveSummaryService.generate_summary()
                ├─> AnalysisRepository.get_all_chart_insights()
                ├─> Build synthesis prompt
-               ├─> Call LLM (o1-mini)
+               ├─> Call LLM (04-mini)
                ├─> Parse JSON response → ExecutiveSummary entity
                └─> AnalysisRepository.store_executive_summary()
                    └─> INSERT INTO analysis_cache (cache_key="executive_summary")

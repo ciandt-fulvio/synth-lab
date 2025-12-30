@@ -94,7 +94,7 @@ This guide shows how to use AI-generated insights for interpreting quantitative 
 2. **Configure LLM Model**
    ```python
    # src/synth_lab/infrastructure/config.py
-   REASONING_MODEL = "o1-mini"  # For insight generation
+   REASONING_MODEL = "04-mini"  # For insight generation
    ```
 
 3. **Extend CacheKeys Enum**

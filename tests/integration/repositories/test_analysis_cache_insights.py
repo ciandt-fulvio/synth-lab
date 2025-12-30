@@ -9,7 +9,6 @@ References:
     - Spec: specs/023-quantitative-ai-insights/spec.md
 """
 
-import sys
 import tempfile
 from pathlib import Path
 
@@ -65,10 +64,7 @@ class TestStoreAndGetChartInsight:
         insight = ChartInsight(
             analysis_id=analysis_id,
             chart_type="try_vs_success",
-            problem_understanding="Testing checkout flow",
-            trends_observed="High try rate, moderate success",
-            key_findings=["Finding 1", "Finding 2"],
-            summary="Summary text",
+            summary="Checkout tem boa taxa de engajamento mas precisa melhorar conversão",
             status="completed",
         )
 
@@ -80,8 +76,7 @@ class TestStoreAndGetChartInsight:
         retrieved = cache_repo.get_chart_insight(analysis_id, "try_vs_success")
         assert retrieved is not None
         assert retrieved.chart_type == "try_vs_success"
-        assert retrieved.problem_understanding == "Testing checkout flow"
-        assert len(retrieved.key_findings) == 2
+        assert "engajamento" in retrieved.summary
         assert retrieved.status == "completed"
 
     def test_returns_none_for_missing_insight(self, cache_repo, analysis_id):
@@ -94,10 +89,7 @@ class TestStoreAndGetChartInsight:
         insight_v1 = ChartInsight(
             analysis_id=analysis_id,
             chart_type="shap_summary",
-            problem_understanding="Version 1",
-            trends_observed="Trends v1",
-            key_findings=["F1", "F2"],
-            summary="Summary v1",
+            summary="Version 1 - Insight inicial",
             status="completed",
         )
         cache_repo.store_chart_insight(insight_v1)
@@ -106,18 +98,14 @@ class TestStoreAndGetChartInsight:
         insight_v2 = ChartInsight(
             analysis_id=analysis_id,
             chart_type="shap_summary",
-            problem_understanding="Version 2 - Updated",
-            trends_observed="Trends v2",
-            key_findings=["F1 updated", "F2 updated"],
-            summary="Summary v2",
+            summary="Version 2 - Insight atualizado",
             status="completed",
         )
         cache_repo.store_chart_insight(insight_v2)
 
         # Should retrieve latest version
         retrieved = cache_repo.get_chart_insight(analysis_id, "shap_summary")
-        assert retrieved.problem_understanding == "Version 2 - Updated"
-        assert retrieved.key_findings[0] == "F1 updated"
+        assert "Version 2" in retrieved.summary
 
 
 class TestGetAllChartInsights:
@@ -129,10 +117,7 @@ class TestGetAllChartInsights:
             ChartInsight(
                 analysis_id=analysis_id,
                 chart_type=f"chart_{i}",
-                problem_understanding=f"Problem {i}",
-                trends_observed=f"Trends {i}",
-                key_findings=[f"F{i}1", f"F{i}2"],
-                summary=f"Summary {i}",
+                summary=f"Summary para chart {i}",
                 status="completed",
             )
             for i in range(3)

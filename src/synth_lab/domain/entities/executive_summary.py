@@ -54,8 +54,8 @@ class ExecutiveSummary(BaseModel):
         pattern="^(pending|completed|failed|partial)$",
     )
     model: str = Field(
-        description="LLM model used (e.g., 'o1-mini')",
-        default="o1-mini",
+        description="LLM model used (e.g., '04-mini')",
+        default="04-mini",
     )
 
     def to_cache_json(self) -> dict:
@@ -92,7 +92,8 @@ if __name__ == "__main__":
             status="completed",
         )
         if summary.analysis_id != "ana_12345678":
-            all_validation_failures.append(f"analysis_id mismatch: {summary.analysis_id}")
+            all_validation_failures.append(
+                f"analysis_id mismatch: {summary.analysis_id}")
     except Exception as e:
         all_validation_failures.append(f"Create minimal summary failed: {e}")
 
@@ -146,7 +147,8 @@ if __name__ == "__main__":
             status="partial",  # Should be valid
         )
         if summary.status != "partial":
-            all_validation_failures.append(f"Status 'partial' should be valid, got {summary.status}")
+            all_validation_failures.append(
+                f"Status 'partial' should be valid, got {summary.status}")
     except Exception as e:
         all_validation_failures.append(f"Partial status test failed: {e}")
 
@@ -182,13 +184,15 @@ if __name__ == "__main__":
                 f"JSON roundtrip analysis_id mismatch: {restored.analysis_id}"
             )
         if len(restored.recommendations) != len(original.recommendations):
-            all_validation_failures.append("JSON roundtrip recommendations count mismatch")
+            all_validation_failures.append(
+                "JSON roundtrip recommendations count mismatch")
         if len(restored.included_chart_types) != 7:
             all_validation_failures.append(
                 f"JSON roundtrip included_chart_types count: expected 7, got {len(restored.included_chart_types)}"
             )
     except Exception as e:
-        all_validation_failures.append(f"JSON serialization roundtrip failed: {e}")
+        all_validation_failures.append(
+            f"JSON serialization roundtrip failed: {e}")
 
     # Test 6: included_chart_types minimum length
     total_tests += 1
@@ -203,17 +207,20 @@ if __name__ == "__main__":
             included_chart_types=[],  # Should fail (min 1)
             status="completed",
         )
-        all_validation_failures.append("Should reject empty included_chart_types")
+        all_validation_failures.append(
+            "Should reject empty included_chart_types")
     except ValueError:
         pass  # Expected
 
     # Final validation result
     if all_validation_failures:
-        print(f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(
+            f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("ExecutiveSummary entity is validated and ready for use")
         sys.exit(0)

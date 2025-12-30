@@ -15,7 +15,7 @@ Endpoints:
     GET /experiments/{experiment_id}/insights/executive-summary - Get executive summary
 """
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 from pydantic import BaseModel, Field
 
 from synth_lab.domain.entities.chart_insight import ChartInsight
@@ -23,8 +23,17 @@ from synth_lab.domain.entities.executive_summary import ExecutiveSummary
 from synth_lab.repositories.analysis_cache_repository import AnalysisCacheRepository
 from synth_lab.repositories.analysis_repository import AnalysisRepository
 from synth_lab.repositories.experiment_repository import ExperimentRepository
+from synth_lab.services.insight_service import InsightService
 
 router = APIRouter()
+
+
+# Request models
+class GenerateInsightRequest(BaseModel):
+    """Request to generate insight for a chart."""
+
+    chart_type: str = Field(description="Chart type to generate insight for")
+    chart_data: dict = Field(description="Chart data for insight generation")
 
 
 # Response models
@@ -63,6 +72,149 @@ def get_cache_repo() -> AnalysisCacheRepository:
 
 
 # Endpoints
+# NOTE: More specific routes MUST come before parameterized routes in FastAPI
+
+@router.post(
+    "/{experiment_id}/analysis/insights/{chart_type}",
+    response_model=ChartInsight,
+    summary="Generate chart insight",
+    description="Generate or regenerate AI insight for a specific chart",
+)
+async def generate_chart_insight(
+    experiment_id: str,
+    chart_type: str,
+    request: GenerateInsightRequest,
+    background_tasks: BackgroundTasks,
+) -> ChartInsight:
+    """
+    Generate insight for a specific chart type.
+
+    This endpoint triggers insight generation using the InsightService.
+    The insight generation runs in the background and returns immediately
+    with a "pending" status. The actual insight will be generated asynchronously.
+
+    Args:
+        experiment_id: Experiment ID
+        chart_type: Chart type (try_vs_success, shap_summary, etc.)
+        request: Chart data for insight generation
+        background_tasks: FastAPI background tasks
+
+    Returns:
+        ChartInsight with "pending" status initially
+
+    Raises:
+        404: If experiment or analysis not found
+        400: If chart_type is invalid
+    """
+    # Validate chart type
+    valid_chart_types = [
+        "try_vs_success",
+        "distribution",
+        "shap_summary",
+        "pdp",
+        "pca_scatter",
+        "radar_comparison",
+        "extreme_cases",
+        "outliers",
+    ]
+    if chart_type not in valid_chart_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid chart_type. Must be one of: {', '.join(valid_chart_types)}",
+        )
+
+    # Get experiment and analysis
+    exp_repo = get_experiment_repo()
+    ana_repo = get_analysis_repo()
+
+    experiment = exp_repo.get_by_id(experiment_id)
+    if experiment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Experiment {experiment_id} not found",
+        )
+
+    analysis = ana_repo.get_by_experiment_id(experiment_id)
+    if analysis is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No analysis found for experiment {experiment_id}",
+        )
+
+    # Create pending insight immediately
+    insight_service = InsightService()
+    pending_insight = insight_service._create_pending_insight(
+        analysis.id, chart_type
+    )
+
+    # Generate insight in background
+    def generate_insight_task():
+        try:
+            insight_service.generate_insight(
+                analysis.id, chart_type, request.chart_data
+            )
+        except Exception as e:
+            # Log error but don't fail the request
+            from loguru import logger
+
+            logger.error(
+                f"Background insight generation failed for {chart_type}: {e}"
+            )
+
+    background_tasks.add_task(generate_insight_task)
+
+    return pending_insight
+
+
+@router.get(
+    "/{experiment_id}/insights/executive-summary",
+    response_model=ExecutiveSummary,
+    summary="Get executive summary",
+    description="Retrieve executive summary synthesizing all chart insights",
+)
+async def get_executive_summary(experiment_id: str) -> ExecutiveSummary:
+    """
+    Get executive summary for an experiment.
+
+    Args:
+        experiment_id: Experiment ID
+
+    Returns:
+        ExecutiveSummary synthesizing all insights
+
+    Raises:
+        404: If experiment, analysis, or summary not found
+    """
+    # Get experiment and analysis
+    exp_repo = get_experiment_repo()
+    ana_repo = get_analysis_repo()
+    cache_repo = get_cache_repo()
+
+    experiment = exp_repo.get_by_id(experiment_id)
+    if experiment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Experiment {experiment_id} not found",
+        )
+
+    analysis = ana_repo.get_by_experiment_id(experiment_id)
+    if analysis is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No analysis found for experiment {experiment_id}",
+        )
+
+    # Get executive summary
+    summary = cache_repo.get_executive_summary(analysis.id)
+    if summary is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Executive summary not found. Run analysis to generate summary.",
+        )
+
+    return summary
+
+
 @router.get(
     "/{experiment_id}/insights/{chart_type}",
     response_model=ChartInsight,
@@ -195,55 +347,6 @@ async def get_all_insights(experiment_id: str) -> AllInsightsResponse:
         executive_summary=summary,
         stats=stats,
     )
-
-
-@router.get(
-    "/{experiment_id}/insights/executive-summary",
-    response_model=ExecutiveSummary,
-    summary="Get executive summary",
-    description="Retrieve executive summary synthesizing all chart insights",
-)
-async def get_executive_summary(experiment_id: str) -> ExecutiveSummary:
-    """
-    Get executive summary for an experiment.
-
-    Args:
-        experiment_id: Experiment ID
-
-    Returns:
-        ExecutiveSummary synthesizing all insights
-
-    Raises:
-        404: If experiment, analysis, or summary not found
-    """
-    # Get experiment and analysis
-    exp_repo = get_experiment_repo()
-    ana_repo = get_analysis_repo()
-    cache_repo = get_cache_repo()
-
-    experiment = exp_repo.get_by_id(experiment_id)
-    if experiment is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found",
-        )
-
-    analysis = ana_repo.get_by_experiment_id(experiment_id)
-    if analysis is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
-
-    # Get executive summary
-    summary = cache_repo.get_executive_summary(analysis.id)
-    if summary is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Executive summary not found. Run analysis to generate summary.",
-        )
-
-    return summary
 
 
 if __name__ == "__main__":

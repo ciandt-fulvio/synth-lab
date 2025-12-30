@@ -455,29 +455,41 @@ class AnalysisExecutionService:
             insight_service = InsightService(cache_repo=cache_repo)
             summary_service = ExecutiveSummaryService(cache_repo=cache_repo)
 
-            # Define all chart types to generate insights for
-            chart_types = [
-                "try_vs_success",
-                "shap_summary",
-                "pdp",
-                "pca_scatter",
-                "radar_comparison",
-                "extreme_cases",
-                "outliers",
-            ]
+            # Map chart_type to cache_key (only charts with pre-computed cache)
+            from synth_lab.domain.entities.analysis_cache import CacheKeys
+
+            CHART_TYPE_TO_CACHE_KEY = {
+                "try_vs_success": CacheKeys.TRY_VS_SUCCESS,
+                "shap_summary": CacheKeys.SHAP_SUMMARY,
+                "extreme_cases": CacheKeys.EXTREME_CASES,
+                "outliers": CacheKeys.OUTLIERS,
+                "pca_scatter": CacheKeys.PCA_SCATTER,
+                "radar_comparison": CacheKeys.RADAR_COMPARISON,
+            }
+
+            # Only generate insights for charts that have pre-computed cache
+            chart_types = list(CHART_TYPE_TO_CACHE_KEY.keys())
 
             logger_ref.info(f"Generating insights for {len(chart_types)} charts: {analysis_id}")
 
             # Generate all insights in parallel
             async def generate_single_insight(chart_type: str) -> None:
                 try:
+                    # Get cache key for this chart type
+                    cache_key = CHART_TYPE_TO_CACHE_KEY.get(chart_type)
+                    if cache_key is None:
+                        logger_ref.warning(f"No cache key mapping for {chart_type}, skipping")
+                        return
+
                     # Get chart data from cache
-                    chart_data = cache_repo.get_chart_data(analysis_id, chart_type)
-                    if chart_data is None:
+                    cache_entry = cache_repo.get(analysis_id, cache_key)
+                    if cache_entry is None:
                         logger_ref.warning(
-                            f"No chart data for {chart_type} in analysis {analysis_id}, skipping"
+                            f"No cache entry for {cache_key} in analysis {analysis_id}, skipping"
                         )
                         return
+
+                    chart_data = cache_entry.data
 
                     # Generate insight
                     insight = insight_service.generate_insight(

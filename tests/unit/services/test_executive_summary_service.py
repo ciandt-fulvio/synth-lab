@@ -9,6 +9,7 @@ References:
     - Spec: specs/023-quantitative-ai-insights/spec.md
 """
 
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -45,28 +46,19 @@ def sample_insights():
         ChartInsight(
             analysis_id="ana_12345678",
             chart_type="try_vs_success",
-            problem_understanding="Testing checkout flow",
-            trends_observed="80% try rate, 50% success rate",
-            key_findings=["High engagement", "Moderate conversion"],
-            summary="Checkout has good engagement but needs conversion improvement",
+            summary="Checkout tem boa taxa de engajamento mas precisa melhorar conversão",
             status="completed",
         ),
         ChartInsight(
             analysis_id="ana_12345678",
             chart_type="shap_summary",
-            problem_understanding="Understanding feature importance",
-            trends_observed="Trust and capability are top drivers",
-            key_findings=["Trust is #1 driver", "Digital literacy matters"],
-            summary="User trust and capability strongly influence success",
+            summary="Confiança e capacidade do usuário influenciam fortemente o sucesso",
             status="completed",
         ),
         ChartInsight(
             analysis_id="ana_12345678",
             chart_type="pca_scatter",
-            problem_understanding="Identifying user segments",
-            trends_observed="3 distinct behavioral clusters",
-            key_findings=["Cluster 1: high success", "Cluster 2: low trust"],
-            summary="Clear segmentation shows diverse user needs",
+            summary="Segmentação clara mostra necessidades diversas de usuários",
             status="completed",
         ),
     ]
@@ -81,32 +73,29 @@ class TestBuildSynthesisPrompt:
 
         assert isinstance(prompt, str)
         assert len(prompt) > 200  # Should be substantial
-        # Should reference multiple charts
-        assert "try_vs_success" in prompt or "Try vs Success" in prompt
-        assert "shap" in prompt or "SHAP" in prompt
-        assert "pca" in prompt or "PCA" in prompt
+        # Should reference chart types
+        assert "try_vs_success" in prompt
+        assert "shap_summary" in prompt
+        assert "pca_scatter" in prompt
 
-    def test_prompt_includes_all_insight_content(self, summary_service, sample_insights):
-        """Should include key findings from all insights."""
+    def test_prompt_includes_all_insight_summaries(self, summary_service, sample_insights):
+        """Should include summaries from all insights."""
         prompt = summary_service._build_synthesis_prompt(sample_insights)
 
-        # Should include findings from insights
-        assert "engagement" in prompt.lower() or "conversion" in prompt.lower()
-        assert "trust" in prompt.lower() or "capability" in prompt.lower()
+        # Should include insight summaries
+        assert "engajamento" in prompt.lower() or "conversão" in prompt.lower()
+        assert "confiança" in prompt.lower() or "capacidade" in prompt.lower()
 
     def test_handles_minimum_insights(self, summary_service):
-        """Should handle minimum number of insights (3)."""
+        """Should handle minimum number of insights (2)."""
         min_insights = [
             ChartInsight(
                 analysis_id="ana_12345678",
                 chart_type=f"chart_{i}",
-                problem_understanding="Test",
-                trends_observed="Test",
-                key_findings=["Finding 1", "Finding 2"],
                 summary="Test summary",
                 status="completed",
             )
-            for i in range(3)
+            for i in range(2)
         ]
 
         prompt = summary_service._build_synthesis_prompt(min_insights)
@@ -125,16 +114,16 @@ class TestGenerateSummary:
 
         # Setup mocks
         mock_build_prompt.return_value = "Synthesize these insights..."
-        mock_llm_response = {
-            "overview": "Tested checkout with 500 synths, 50% success rate",
-            "explainability": "Trust and capability are main drivers",
-            "segmentation": "3 distinct user groups identified",
-            "edge_cases": "High-capability users failing unexpectedly",
+        mock_llm_response = json.dumps({
+            "overview": "Testado checkout com 500 synths, 50% taxa de sucesso",
+            "explainability": "Confiança e capacidade são os principais drivers",
+            "segmentation": "3 grupos de usuários distintos identificados",
+            "edge_cases": "Usuários de alta capacidade falhando inesperadamente",
             "recommendations": [
-                "Add trust signals to checkout",
-                "Simplify flow for low-literacy users",
+                "Adicionar sinais de confiança ao checkout",
+                "Simplificar fluxo para usuários de baixa literacia",
             ],
-        }
+        })
         summary_service.llm.complete_json.return_value = mock_llm_response
         summary_service.cache_repo.get_all_chart_insights.return_value = sample_insights
 
@@ -158,49 +147,37 @@ class TestGenerateSummary:
             ChartInsight(
                 analysis_id=analysis_id,
                 chart_type="try_vs_success",
-                problem_understanding="Test",
-                trends_observed="Test",
-                key_findings=["F1", "F2"],
                 summary="Test",
                 status="completed",
             ),
             ChartInsight(
                 analysis_id=analysis_id,
                 chart_type="shap_summary",
-                problem_understanding="Test",
-                trends_observed="Test",
-                key_findings=["F1", "F2"],
                 summary="Test",
                 status="failed",  # Failed insight
             ),
             ChartInsight(
                 analysis_id=analysis_id,
                 chart_type="pca_scatter",
-                problem_understanding="Test",
-                trends_observed="Test",
-                key_findings=["F1", "F2"],
                 summary="Test",
                 status="completed",
             ),
             ChartInsight(
                 analysis_id=analysis_id,
                 chart_type="radar_comparison",
-                problem_understanding="Test",
-                trends_observed="Test",
-                key_findings=["F1", "F2"],
                 summary="Test",
                 status="completed",
             ),
         ]
 
         summary_service.cache_repo.get_all_chart_insights.return_value = partial_insights
-        summary_service.llm.complete_json.return_value = {
+        summary_service.llm.complete_json.return_value = json.dumps({
             "overview": "Test",
             "explainability": "Test",
             "segmentation": "Test",
             "edge_cases": "Test",
             "recommendations": ["R1", "R2"],
-        }
+        })
 
         result = summary_service.generate_summary(analysis_id)
 
@@ -209,24 +186,12 @@ class TestGenerateSummary:
         assert len(result.included_chart_types) == 3  # Only completed ones
 
     def test_fails_with_too_few_insights(self, summary_service):
-        """Should fail if less than 3 completed insights."""
+        """Should fail if less than 2 completed insights."""
         analysis_id = "ana_12345678"
         too_few_insights = [
             ChartInsight(
                 analysis_id=analysis_id,
                 chart_type="try_vs_success",
-                problem_understanding="Test",
-                trends_observed="Test",
-                key_findings=["F1", "F2"],
-                summary="Test",
-                status="completed",
-            ),
-            ChartInsight(
-                analysis_id=analysis_id,
-                chart_type="shap_summary",
-                problem_understanding="Test",
-                trends_observed="Test",
-                key_findings=["F1", "F2"],
                 summary="Test",
                 status="completed",
             ),
@@ -234,7 +199,7 @@ class TestGenerateSummary:
 
         summary_service.cache_repo.get_all_chart_insights.return_value = too_few_insights
 
-        with pytest.raises(ValueError, match="at least 3"):
+        with pytest.raises(ValueError, match="at least 2"):
             summary_service.generate_summary(analysis_id)
 
 

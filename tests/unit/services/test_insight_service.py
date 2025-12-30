@@ -33,9 +33,28 @@ def mock_cache_repo():
 
 
 @pytest.fixture
-def insight_service(mock_llm_client, mock_cache_repo):
+def mock_analysis_repo():
+    """Mock analysis repository for testing."""
+    repo = MagicMock()
+    return repo
+
+
+@pytest.fixture
+def mock_experiment_repo():
+    """Mock experiment repository for testing."""
+    repo = MagicMock()
+    return repo
+
+
+@pytest.fixture
+def insight_service(mock_llm_client, mock_cache_repo, mock_analysis_repo, mock_experiment_repo):
     """Create InsightService with mocked dependencies."""
-    return InsightService(llm_client=mock_llm_client, cache_repo=mock_cache_repo)
+    return InsightService(
+        llm_client=mock_llm_client,
+        cache_repo=mock_cache_repo,
+        analysis_repo=mock_analysis_repo,
+        experiment_repo=mock_experiment_repo,
+    )
 
 
 @pytest.fixture
@@ -55,115 +74,86 @@ class TestBuildPromptTryVsSuccess:
     """Test _build_prompt_try_vs_success method."""
 
     def test_builds_prompt_with_chart_data(self, insight_service, sample_try_vs_success_data):
-        """Should build prompt including chart data and instructions."""
-        prompt = insight_service._build_prompt_try_vs_success(sample_try_vs_success_data)
+        """Should build prompt including chart data, hypothesis, and instructions."""
+        hypothesis = "Usuários com alta capacidade terão maior taxa de sucesso"
+        prompt = insight_service._build_prompt_try_vs_success(
+            sample_try_vs_success_data, hypothesis
+        )
 
         assert isinstance(prompt, str)
         assert len(prompt) > 100  # Should be substantial
-        assert "Try vs Success" in prompt or "try_vs_success" in prompt
-        # Should include data context
-        assert "500" in prompt or "0.2" in prompt or "0.3" in prompt or "0.5" in prompt
+        assert "Tentativa vs Sucesso" in prompt
+        # Should include hypothesis
+        assert hypothesis in prompt
+        # Should request Portuguese output
+        assert "PORTUGUÊS BRASILEIRO" in prompt
 
     def test_prompt_includes_output_format(self, insight_service, sample_try_vs_success_data):
-        """Should specify JSON output format."""
-        prompt = insight_service._build_prompt_try_vs_success(sample_try_vs_success_data)
-
-        # Should request structured output
-        assert "JSON" in prompt or "json" in prompt or "problem_understanding" in prompt
-
-
-class TestParseInsightResponse:
-    """Test _parse_insight_response method."""
-
-    def test_parses_valid_json_response(self, insight_service):
-        """Should parse valid LLM JSON response into ChartInsight."""
-        analysis_id = "ana_12345678"
-        chart_type = "try_vs_success"
-        llm_response = {
-            "problem_understanding": "Testing checkout flow with 500 synths",
-            "trends_observed": "High try rate (80%), moderate success rate (50%)",
-            "key_findings": [
-                "30% of users fail after trying",
-                "20% don't even attempt the feature",
-            ],
-            "summary": "Checkout has decent engagement but conversion needs improvement",
-        }
-
-        insight = insight_service._parse_insight_response(
-            llm_response, analysis_id, chart_type
+        """Should specify JSON output format with resumo_key_findings."""
+        hypothesis = "Test hypothesis"
+        prompt = insight_service._build_prompt_try_vs_success(
+            sample_try_vs_success_data, hypothesis
         )
 
-        assert isinstance(insight, ChartInsight)
-        assert insight.analysis_id == analysis_id
-        assert insight.chart_type == chart_type
-        assert insight.problem_understanding == llm_response["problem_understanding"]
-        assert len(insight.key_findings) == 2
-        assert insight.status == "completed"
+        # Should request structured JSON output
+        assert "JSON" in prompt
+        assert "resumo_key_findings" in prompt
 
-    def test_handles_missing_fields_gracefully(self, insight_service):
-        """Should handle incomplete LLM response."""
-        analysis_id = "ana_12345678"
-        chart_type = "shap_summary"
-        incomplete_response = {
-            "problem_understanding": "Test",
-            "trends_observed": "Test",
-            # Missing key_findings and summary
-        }
 
-        with pytest.raises((KeyError, ValueError)):
-            insight_service._parse_insight_response(
-                incomplete_response, analysis_id, chart_type
+class TestBuildPromptForChartType:
+    """Test _build_prompt_for_chart_type dispatcher."""
+
+    def test_dispatches_to_correct_builder(self, insight_service):
+        """Should call correct builder for each chart type."""
+        chart_data = {"test": "data"}
+        hypothesis = "Test hypothesis"
+
+        # All supported chart types should work
+        supported_types = [
+            "try_vs_success",
+            "shap_summary",
+            "extreme_cases",
+            "outliers",
+            "pca_scatter",
+            "radar_comparison",
+        ]
+
+        for chart_type in supported_types:
+            prompt = insight_service._build_prompt_for_chart_type(
+                chart_type, chart_data, hypothesis
             )
+            assert isinstance(prompt, str)
+            assert len(prompt) > 100
+            assert "resumo_key_findings" in prompt
 
-    def test_validates_key_findings_length(self, insight_service):
-        """Should enforce 2-4 key findings requirement."""
-        analysis_id = "ana_12345678"
-        chart_type = "pdp"
-
-        # Too few findings
-        response_too_few = {
-            "problem_understanding": "Test",
-            "trends_observed": "Test",
-            "key_findings": ["Only one"],  # Should be 2-4
-            "summary": "Test",
-        }
-
-        with pytest.raises(ValueError):
-            insight_service._parse_insight_response(response_too_few, analysis_id, chart_type)
+    def test_raises_for_unknown_chart_type(self, insight_service):
+        """Should raise ValueError for unknown chart type."""
+        with pytest.raises(ValueError, match="Unknown chart type"):
+            insight_service._build_prompt_for_chart_type(
+                "unknown_chart", {}, "hypothesis"
+            )
 
 
 class TestGenerateInsight:
     """Test generate_insight main method (integration with LLM)."""
 
-    @patch("synth_lab.services.insight_service.InsightService._build_prompt_try_vs_success")
-    @patch("synth_lab.services.insight_service.InsightService._parse_insight_response")
     def test_generates_insight_for_try_vs_success(
-        self, mock_parse, mock_build_prompt, insight_service, sample_try_vs_success_data
+        self, insight_service, sample_try_vs_success_data
     ):
-        """Should orchestrate prompt building, LLM call, parsing, and storage."""
+        """Should orchestrate prompt building, LLM call, and storage."""
         analysis_id = "ana_12345678"
         chart_type = "try_vs_success"
 
-        # Setup mocks
-        mock_build_prompt.return_value = "Generated prompt for try_vs_success"
-        mock_llm_response = {
+        # Mock hypothesis lookup (returns empty for simplicity)
+        insight_service.analysis_repo.get_by_id.return_value = None
+
+        # Mock LLM response as JSON string
+        mock_llm_response = json.dumps({
             "problem_understanding": "Testing feature adoption",
             "trends_observed": "High engagement, moderate success",
-            "key_findings": ["Finding 1", "Finding 2"],
-            "summary": "Summary text",
-        }
+            "resumo_key_findings": "O teste revelou que 50% dos usuários conseguiram completar a tarefa.",
+        })
         insight_service.llm.complete_json.return_value = mock_llm_response
-
-        expected_insight = ChartInsight(
-            analysis_id=analysis_id,
-            chart_type=chart_type,
-            problem_understanding="Testing feature adoption",
-            trends_observed="High engagement, moderate success",
-            key_findings=["Finding 1", "Finding 2"],
-            summary="Summary text",
-            status="completed",
-        )
-        mock_parse.return_value = expected_insight
 
         # Execute
         result = insight_service.generate_insight(
@@ -171,17 +161,22 @@ class TestGenerateInsight:
         )
 
         # Verify
-        mock_build_prompt.assert_called_once_with(sample_try_vs_success_data)
+        assert isinstance(result, ChartInsight)
+        assert result.analysis_id == analysis_id
+        assert result.chart_type == chart_type
+        assert result.status == "completed"
+        assert "50% dos usuários" in result.summary
         insight_service.llm.complete_json.assert_called_once()
-        mock_parse.assert_called_once_with(mock_llm_response, analysis_id, chart_type)
-        insight_service.cache_repo.store_chart_insight.assert_called_once_with(expected_insight)
-        assert result == expected_insight
+        insight_service.cache_repo.store_chart_insight.assert_called_once()
 
     def test_marks_insight_as_failed_on_llm_error(self, insight_service):
         """Should create failed insight if LLM call fails."""
         analysis_id = "ana_12345678"
         chart_type = "shap_summary"
         chart_data = {"features": []}
+
+        # Mock hypothesis lookup
+        insight_service.analysis_repo.get_by_id.return_value = None
 
         # Simulate LLM failure
         insight_service.llm.complete_json.side_effect = Exception("LLM API error")
@@ -192,6 +187,29 @@ class TestGenerateInsight:
         assert result.status == "failed"
         assert result.analysis_id == analysis_id
         assert result.chart_type == chart_type
+        assert "Falha ao gerar insight" in result.summary
+
+    def test_uses_summary_fallback_if_resumo_missing(self, insight_service):
+        """Should fallback to 'summary' field if 'resumo_key_findings' is missing."""
+        analysis_id = "ana_12345678"
+        chart_type = "try_vs_success"
+        chart_data = {"test": "data"}
+
+        # Mock hypothesis lookup
+        insight_service.analysis_repo.get_by_id.return_value = None
+
+        # Mock LLM response without resumo_key_findings
+        mock_llm_response = json.dumps({
+            "problem_understanding": "Test",
+            "trends_observed": "Test",
+            "summary": "Fallback summary text",
+        })
+        insight_service.llm.complete_json.return_value = mock_llm_response
+
+        result = insight_service.generate_insight(analysis_id, chart_type, chart_data)
+
+        assert result.status == "completed"
+        assert result.summary == "Fallback summary text"
 
 
 if __name__ == "__main__":

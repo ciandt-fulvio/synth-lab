@@ -11,7 +11,7 @@
  *   - Collapsed by default (collapsible UI)
  *   - Loading state with spinner
  *   - Error/failed states with alerts
- *   - Completed state with 4 sections: problem understanding, trends, findings, summary
+ *   - Completed state with summary text
  *   - Metadata footer with model and timestamp
  */
 
@@ -118,45 +118,13 @@ export function InsightSection({ experimentId, chartType }: InsightSectionProps)
               </div>
             )}
 
-            {/* Completed State */}
+            {/* Completed State - Simplified to just summary */}
             {insight?.status === 'completed' && (
               <div className="space-y-4 mt-4">
-                {/* Problem Understanding */}
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-700 mb-1">
-                    O que está sendo testado
-                  </h4>
-                  <p className="text-sm text-slate-600">{insight.problem_understanding}</p>
-                </div>
-
-                {/* Trends Observed */}
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-700 mb-1">
-                    Padrões observados
-                  </h4>
-                  <p className="text-sm text-slate-600">{insight.trends_observed}</p>
-                </div>
-
-                {/* Key Findings */}
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-700 mb-2">
-                    Principais descobertas
-                  </h4>
-                  <ul className="space-y-2">
-                    {insight.key_findings.map((finding, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <div className="h-1.5 w-1.5 rounded-full bg-indigo-600 mt-1.5 shrink-0" />
-                        <span className="text-sm text-slate-600">{finding}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
                 {/* Summary */}
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-700 mb-1">Resumo</h4>
-                  <p className="text-sm text-slate-600">{insight.summary}</p>
-                </div>
+                <p className="text-sm text-slate-700 leading-relaxed">
+                  {insight.summary}
+                </p>
 
                 {/* Metadata Footer */}
                 <div className="pt-3 border-t border-indigo-100 flex items-center justify-between text-xs text-slate-500">
