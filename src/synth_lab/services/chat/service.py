@@ -56,11 +56,37 @@ class ChatService:
         # Format interview history for context
         interview_history = self._format_transcript(transcript)
 
-        # Build system prompt
+        # Extract synth attributes for prompt
+        demo = synth.demografia
+        psico = synth.psicografia
+        loc = demo.localizacao if demo else None
+
+        # Format cognitive contract (same style as interview)
+        cognitive_contract_str = "Não informado"
+        if psico and psico.contrato_cognitivo:
+            cc = psico.contrato_cognitivo
+            regras_formatadas = "\n".join([f"  • {regra}" for regra in (cc.regras or [])])
+            cognitive_contract_str = f"""TIPO: {cc.tipo or 'N/A'}
+PERFIL: {cc.perfil_cognitivo or 'N/A'}
+REGRAS A SEGUIR:
+{regras_formatadas}
+EFEITO ESPERADO: {cc.efeito_esperado or 'N/A'}"""
+
+        # Format interests
+        interesses_str = ", ".join(psico.interesses[:5]) if psico and psico.interesses else "Vários"
+
+        # Build system prompt (same structure as interview interviewee)
         system_prompt = format_chat_instructions(
             synth_name=synth.nome,
-            synth_age=synth.demografia.idade if synth.demografia else None,
-            synth_profile=self._format_synth_profile(synth),
+            synth_idade=demo.idade if demo else "desconhecida",
+            synth_genero=demo.genero_biologico if demo else "pessoa",
+            synth_ocupacao=demo.ocupacao if demo else "não informada",
+            synth_escolaridade=demo.escolaridade if demo else "não informada",
+            synth_cidade=loc.cidade if loc else "não informada",
+            synth_estado=loc.estado if loc else "",
+            synth_descricao=synth.descricao or "",
+            synth_interesses=interesses_str,
+            synth_cognitive_contract=cognitive_contract_str,
             interview_history=interview_history,
         )
 
@@ -197,20 +223,11 @@ class ChatService:
             psico = synth.psicografia
             if psico.interesses:
                 parts.append(f"Interesses: {', '.join(psico.interesses[:5])}")
-            if psico.personalidade_big_five:
-                bf = psico.personalidade_big_five
-                traits = []
-                if bf.abertura and bf.abertura > 70:
-                    traits.append("criativo e curioso")
-                if bf.conscienciosidade and bf.conscienciosidade > 70:
-                    traits.append("organizado e responsável")
-                if bf.extroversao and bf.extroversao > 70:
-                    traits.append("extrovertido e sociável")
-                if bf.amabilidade and bf.amabilidade > 70:
-                    traits.append("amável e cooperativo")
-                if bf.neuroticismo and bf.neuroticismo > 70:
-                    traits.append("sensível e emotivo")
-                if traits:
-                    parts.append(f"Personalidade: {', '.join(traits)}")
+            if psico.contrato_cognitivo:
+                cc = psico.contrato_cognitivo
+                if cc.tipo:
+                    parts.append(f"Tipo cognitivo: {cc.tipo}")
+                if cc.perfil_cognitivo:
+                    parts.append(f"Perfil cognitivo: {cc.perfil_cognitivo}")
 
         return "\n".join(parts)
