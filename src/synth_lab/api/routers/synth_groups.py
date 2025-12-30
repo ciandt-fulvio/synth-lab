@@ -15,8 +15,6 @@ from pydantic import BaseModel, Field
 
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.repositories.synth_group_repository import (
-    SynthGroupDetail,
-    SynthGroupRepository,
     SynthGroupSummary,
 )
 from synth_lab.services.synth_group_service import SynthGroupService
@@ -25,6 +23,7 @@ router = APIRouter()
 
 
 # Request/Response Schemas
+
 
 class SynthGroupCreate(BaseModel):
     """Request schema for creating a synth group."""

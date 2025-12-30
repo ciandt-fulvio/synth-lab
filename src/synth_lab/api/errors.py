@@ -22,7 +22,9 @@ from synth_lab.services.errors import (
 )
 
 
-def error_response(status_code: int, code: str, message: str, details: dict | None = None) -> JSONResponse:
+def error_response(
+    status_code: int, code: str, message: str, details: dict | None = None
+) -> JSONResponse:
     """Create a standardized error response."""
     content = {
         "error": {
@@ -63,7 +65,9 @@ def register_exception_handlers(app: FastAPI) -> None:
         return error_response(422, exc.code, exc.message, exc.details)
 
     @app.exception_handler(GenerationFailedError)
-    async def generation_failed_handler(request: Request, exc: GenerationFailedError) -> JSONResponse:
+    async def generation_failed_handler(
+        request: Request, exc: GenerationFailedError
+    ) -> JSONResponse:
         """Handle generation failure errors."""
         logger.error(f"Generation failed: {exc.message}")
         return error_response(422, exc.code, exc.message, exc.details)

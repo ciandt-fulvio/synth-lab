@@ -3,24 +3,6 @@
 from synth_lab.gen_synth import demographics
 
 
-def test_generate_coherent_gender(config_data):
-    """Test coherent gender generation."""
-    genero_bio, identidade = demographics.generate_coherent_gender(
-        config_data["ibge"]
-    )
-
-    # Check valid values
-    assert genero_bio in ["masculino", "feminino", "intersexo"]
-    assert identidade in [
-        "homem cis",
-        "mulher cis",
-        "homem trans",
-        "mulher trans",
-        "não-binário",
-        "outro",
-    ]
-
-
 def test_generate_coherent_family_young(config_data):
     """Test family generation for young person."""
     estado_civil, composicao = demographics.generate_coherent_family(
@@ -72,7 +54,7 @@ def test_generate_coherent_occupation_young_student(config_data):
 
 def test_generate_name(config_data):
     """Test name generation."""
-    demo_data = {"identidade_genero": "mulher cis", "raca_etnia": "pardo"}
+    demo_data = {"genero_biologico": "feminino", "raca_etnia": "pardo"}
     nome = demographics.generate_name(demo_data)
     assert isinstance(nome, str)
     assert len(nome) > 0
@@ -84,11 +66,10 @@ def test_generate_demographics_structure(config_data):
     """Test that generate_demographics returns complete structure."""
     demo = demographics.generate_demographics(config_data)
 
-    # Check all required fields exist
+    # Check all required fields exist (v2.3.0 - identidade_genero removed)
     required_fields = [
         "idade",
         "genero_biologico",
-        "identidade_genero",
         "raca_etnia",
         "localizacao",
         "escolaridade",
@@ -115,7 +96,6 @@ def test_generate_demographics_types(config_data):
     assert isinstance(demo["idade"], int)
     assert 18 <= demo["idade"] <= 100  # Allow up to 100 for edge cases
     assert isinstance(demo["genero_biologico"], str)
-    assert isinstance(demo["identidade_genero"], str)
     assert isinstance(demo["renda_mensal"], (int, float))
     assert demo["renda_mensal"] >= 0
     assert isinstance(demo["composicao_familiar"]["numero_pessoas"], int)

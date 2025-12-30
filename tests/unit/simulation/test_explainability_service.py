@@ -13,14 +13,14 @@ References:
     - PDP: scikit-learn.org/stable/modules/partial_dependence.html
 """
 
-import pytest
 import numpy as np
+import pytest
 
 from synth_lab.domain.entities import (
-    SynthOutcome,
     SimulationAttributes,
     SimulationLatentTraits,
     SimulationObservables,
+    SynthOutcome,
 )
 from synth_lab.services.simulation.explainability_service import ExplainabilityService
 
@@ -45,7 +45,9 @@ def sample_outcomes() -> list[SynthOutcome]:
         success_rate = np.clip(base_success + noise, 0.0, 0.95)
 
         # Failed rate inversely related
-        failed_rate = np.clip(0.5 - 0.3 * capability - 0.2 * trust + np.random.randn() * 0.1, 0.05, 0.5)
+        failed_rate = np.clip(
+            0.5 - 0.3 * capability - 0.2 * trust + np.random.randn() * 0.1, 0.05, 0.5
+        )
 
         did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
 
@@ -350,7 +352,9 @@ class TestPDPComparison:
         )
 
         # Ranking should be by effect strength (descending)
-        strengths = [result.pdp_results[i].effect_strength for i in range(len(result.feature_ranking))]
+        strengths = [
+            result.pdp_results[i].effect_strength for i in range(len(result.feature_ranking))
+        ]
         # Feature ranking order should match effect strength order
         ranked_features = result.feature_ranking
         pdp_map = {pdp.feature_name: pdp.effect_strength for pdp in result.pdp_results}
@@ -422,10 +426,13 @@ class TestExplanationText:
         if result.contributions:
             top_feature = result.contributions[0].feature_name
             # Explanation should mention at least one feature
-            assert any(
-                c.feature_name in result.explanation_text
-                for c in result.contributions[:3]  # Top 3 features
-            ) or "feature" in result.explanation_text.lower()
+            assert (
+                any(
+                    c.feature_name in result.explanation_text
+                    for c in result.contributions[:3]  # Top 3 features
+                )
+                or "feature" in result.explanation_text.lower()
+            )
 
 
 class TestEdgeCases:

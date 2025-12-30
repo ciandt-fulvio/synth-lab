@@ -112,9 +112,7 @@ class FeatureScorecard(BaseModel):
     )
 
     # Dimensions
-    complexity: ScorecardDimension = Field(
-        description="Complexity dimension with score and rules."
-    )
+    complexity: ScorecardDimension = Field(description="Complexity dimension with score and rules.")
 
     initial_effort: ScorecardDimension = Field(
         description="Initial effort dimension with score and rules."

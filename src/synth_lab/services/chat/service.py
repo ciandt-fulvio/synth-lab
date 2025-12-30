@@ -90,9 +90,7 @@ class ChatService:
         Returns:
             ChatResponse with synth's message.
         """
-        self.logger.info(
-            f"Generating chat response for synth {synth_id}, exec {request.exec_id}"
-        )
+        self.logger.info(f"Generating chat response for synth {synth_id}, exec {request.exec_id}")
 
         messages, synth_name = self._build_messages(synth_id, request)
 

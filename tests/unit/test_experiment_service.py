@@ -13,7 +13,6 @@ from datetime import datetime, timezone
 
 import pytest
 
-from synth_lab.domain.entities.experiment import Experiment
 from synth_lab.infrastructure.database import DatabaseManager, init_database
 from synth_lab.models.pagination import PaginationParams
 from synth_lab.repositories.experiment_repository import ExperimentRepository
@@ -46,9 +45,7 @@ def experiment_service(experiment_repo):
 class TestExperimentServiceCreate:
     """Tests for experiment creation validation."""
 
-    def test_create_experiment_validates_name_required(
-        self, experiment_service
-    ) -> None:
+    def test_create_experiment_validates_name_required(self, experiment_service) -> None:
         """Verify name is required for experiment creation."""
         with pytest.raises(ValueError, match="name"):
             experiment_service.create_experiment(
@@ -56,9 +53,7 @@ class TestExperimentServiceCreate:
                 hypothesis="Valid hypothesis",
             )
 
-    def test_create_experiment_validates_hypothesis_required(
-        self, experiment_service
-    ) -> None:
+    def test_create_experiment_validates_hypothesis_required(self, experiment_service) -> None:
         """Verify hypothesis is required for experiment creation."""
         with pytest.raises(ValueError, match="hypothesis"):
             experiment_service.create_experiment(
@@ -66,9 +61,7 @@ class TestExperimentServiceCreate:
                 hypothesis="",
             )
 
-    def test_create_experiment_validates_name_max_length(
-        self, experiment_service
-    ) -> None:
+    def test_create_experiment_validates_name_max_length(self, experiment_service) -> None:
         """Verify name max length is enforced."""
         with pytest.raises(ValueError, match="100"):
             experiment_service.create_experiment(
@@ -76,9 +69,7 @@ class TestExperimentServiceCreate:
                 hypothesis="Valid hypothesis",
             )
 
-    def test_create_experiment_validates_hypothesis_max_length(
-        self, experiment_service
-    ) -> None:
+    def test_create_experiment_validates_hypothesis_max_length(self, experiment_service) -> None:
         """Verify hypothesis max length is enforced."""
         with pytest.raises(ValueError, match="500"):
             experiment_service.create_experiment(
@@ -117,17 +108,13 @@ class TestExperimentServiceGet:
         assert result.id == created.id
         assert result.name == "Test Feature"
 
-    def test_get_experiment_not_found_returns_none(
-        self, experiment_service
-    ) -> None:
+    def test_get_experiment_not_found_returns_none(self, experiment_service) -> None:
         """Verify get returns None for non-existent experiment."""
         result = experiment_service.get_experiment("exp_nonexist")
 
         assert result is None
 
-    def test_get_experiment_with_analysis_and_interviews(
-        self, experiment_service, test_db
-    ) -> None:
+    def test_get_experiment_with_analysis_and_interviews(self, experiment_service, test_db) -> None:
         """Verify experiment detail includes analysis and interviews."""
         created = experiment_service.create_experiment(
             name="Test Feature",
@@ -191,9 +178,7 @@ class TestExperimentServiceList:
         assert len(result.data) == 3
         assert result.pagination.total == 5
 
-    def test_list_experiments_empty_returns_empty_list(
-        self, experiment_service
-    ) -> None:
+    def test_list_experiments_empty_returns_empty_list(self, experiment_service) -> None:
         """Verify empty list is returned when no experiments exist."""
         params = PaginationParams(limit=10, offset=0)
         result = experiment_service.list_experiments(params)
@@ -221,9 +206,7 @@ class TestExperimentServiceUpdate:
         assert updated.name == "Updated Name"
         assert updated.hypothesis == "Original hypothesis"
 
-    def test_update_experiment_validates_name_max_length(
-        self, experiment_service
-    ) -> None:
+    def test_update_experiment_validates_name_max_length(self, experiment_service) -> None:
         """Verify update validates name max length."""
         created = experiment_service.create_experiment(
             name="Original Name",
@@ -236,9 +219,7 @@ class TestExperimentServiceUpdate:
                 name="x" * 101,
             )
 
-    def test_update_nonexistent_experiment_returns_none(
-        self, experiment_service
-    ) -> None:
+    def test_update_nonexistent_experiment_returns_none(self, experiment_service) -> None:
         """Verify update returns None for non-existent experiment."""
         result = experiment_service.update_experiment(
             "exp_nonexist",
@@ -263,9 +244,7 @@ class TestExperimentServiceDelete:
         assert result is True
         assert experiment_service.get_experiment(created.id) is None
 
-    def test_delete_nonexistent_experiment_returns_false(
-        self, experiment_service
-    ) -> None:
+    def test_delete_nonexistent_experiment_returns_false(self, experiment_service) -> None:
         """Verify delete returns False for non-existent experiment."""
         result = experiment_service.delete_experiment("exp_nonexist")
 

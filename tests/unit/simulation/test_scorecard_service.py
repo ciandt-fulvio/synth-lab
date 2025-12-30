@@ -14,11 +14,6 @@ from pathlib import Path
 
 import pytest
 
-from synth_lab.domain.entities import (
-    FeatureScorecard,
-    ScorecardDimension,
-    ScorecardIdentification,
-)
 from synth_lab.infrastructure.database import DatabaseManager, init_database
 from synth_lab.repositories.scorecard_repository import ScorecardRepository
 from synth_lab.services.simulation.scorecard_service import (
@@ -72,9 +67,7 @@ class TestScorecardCreation:
         assert scorecard.identification.feature_name == "Test Feature"
         assert scorecard.complexity.score == 0.4
 
-    def test_create_scorecard_with_default_dimensions(
-        self, service: ScorecardService
-    ) -> None:
+    def test_create_scorecard_with_default_dimensions(self, service: ScorecardService) -> None:
         """Missing dimensions get default score of 0.5."""
         data = {
             "feature_name": "Minimal",
@@ -128,9 +121,7 @@ class TestScorecardCreation:
 class TestScorecardValidation:
     """Tests for scorecard validation."""
 
-    def test_missing_feature_name_raises_error(
-        self, service: ScorecardService
-    ) -> None:
+    def test_missing_feature_name_raises_error(self, service: ScorecardService) -> None:
         """Missing feature_name raises ValidationError."""
         data = {
             "use_scenario": "Test",
@@ -142,9 +133,7 @@ class TestScorecardValidation:
 
         assert "feature_name is required" in str(exc_info.value)
 
-    def test_missing_use_scenario_raises_error(
-        self, service: ScorecardService
-    ) -> None:
+    def test_missing_use_scenario_raises_error(self, service: ScorecardService) -> None:
         """Missing use_scenario raises ValidationError."""
         data = {
             "feature_name": "Test",
@@ -156,9 +145,7 @@ class TestScorecardValidation:
 
         assert "use_scenario is required" in str(exc_info.value)
 
-    def test_missing_description_raises_error(
-        self, service: ScorecardService
-    ) -> None:
+    def test_missing_description_raises_error(self, service: ScorecardService) -> None:
         """Missing description_text raises ValidationError."""
         data = {
             "feature_name": "Test",
@@ -188,9 +175,7 @@ class TestScorecardRetrieval:
         assert retrieved.id == created.id
         assert retrieved.identification.feature_name == "Retrievable Feature"
 
-    def test_get_nonexistent_scorecard_raises_error(
-        self, service: ScorecardService
-    ) -> None:
+    def test_get_nonexistent_scorecard_raises_error(self, service: ScorecardService) -> None:
         """Non-existent scorecard raises ScorecardNotFoundError."""
         with pytest.raises(ScorecardNotFoundError):
             service.get_scorecard("nonexistent_id")
@@ -283,9 +268,7 @@ class TestScorecardInsights:
         assert updated.justification == "Only justification"
         assert updated.impact_hypotheses == []  # Unchanged
 
-    def test_update_insights_nonexistent_raises_error(
-        self, service: ScorecardService
-    ) -> None:
+    def test_update_insights_nonexistent_raises_error(self, service: ScorecardService) -> None:
         """Updating non-existent scorecard raises error."""
         with pytest.raises(ScorecardNotFoundError):
             service.update_scorecard_insights("nonexistent", justification="test")

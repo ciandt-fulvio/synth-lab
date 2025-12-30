@@ -74,8 +74,7 @@ def load_synth_by_id(synth_id: str, synths_file: str | Path | None = None) -> di
 
 
 def load_synths_by_ids(
-    synth_ids: list[str],
-    synths_file: str | Path | None = None
+    synth_ids: list[str], synths_file: str | Path | None = None
 ) -> list[dict[str, Any]]:
     """
     Carrega múltiplos synths por lista de IDs do banco de dados.
@@ -119,8 +118,7 @@ def load_synths_by_ids(
 
 
 def find_synths_without_avatars(
-    synths_file: str | Path | None = None,
-    avatar_dir: str | Path = "output/synths/avatar"
+    synths_file: str | Path | None = None, avatar_dir: str | Path = "output/synths/avatar"
 ) -> list[dict[str, Any]]:
     """
     Encontra todos os synths que ainda não possuem arquivo de avatar.
@@ -261,10 +259,7 @@ def validate_synth_for_avatar(synth: dict[str, Any]) -> bool:
 
 
 def generate_avatar_block(
-    synths: list[dict[str, Any]],
-    client: OpenAI,
-    avatar_dir: Path,
-    block_num: int = 1
+    synths: list[dict[str, Any]], client: OpenAI, avatar_dir: Path, block_num: int = 1
 ) -> list[str]:
     """
     Gera um bloco de 9 avatares via OpenAI API.
@@ -326,15 +321,17 @@ def generate_avatar_block(
                     model="gpt-image-1",  # Modelo gpt-image-1 (mini não suporta response_format)
                     prompt=prompt,
                     n=1,
-                    size="1024x1024"
+                    size="1024x1024",
                     # Nota: gpt-image-1 retorna b64_json por padrão
                 )
                 break  # Sucesso, sair do loop
 
             except RateLimitError as e:
                 if attempt < MAX_RETRIES - 1:
-                    wait_time = BACKOFF_FACTOR ** attempt  # 1s, 2s, 4s
-                    logger.warning(f"Rate limit excedido, tentando novamente em {wait_time}s... (tentativa {attempt + 1}/{MAX_RETRIES})")
+                    wait_time = BACKOFF_FACTOR**attempt  # 1s, 2s, 4s
+                    logger.warning(
+                        f"Rate limit excedido, tentando novamente em {wait_time}s... (tentativa {attempt + 1}/{MAX_RETRIES})"
+                    )
                     time.sleep(wait_time)
                 else:
                     logger.error(f"Rate limit excedido após {MAX_RETRIES} tentativas: {e}")
@@ -344,8 +341,10 @@ def generate_avatar_block(
 
             except APIConnectionError as e:
                 if attempt < MAX_RETRIES - 1:
-                    wait_time = BACKOFF_FACTOR ** attempt
-                    logger.warning(f"Erro de conexão, tentando novamente em {wait_time}s... (tentativa {attempt + 1}/{MAX_RETRIES})")
+                    wait_time = BACKOFF_FACTOR**attempt
+                    logger.warning(
+                        f"Erro de conexão, tentando novamente em {wait_time}s... (tentativa {attempt + 1}/{MAX_RETRIES})"
+                    )
                     time.sleep(wait_time)
                 else:
                     logger.error(f"Erro de conexão após {MAX_RETRIES} tentativas: {e}")
@@ -409,7 +408,7 @@ def generate_avatars(
     avatar_dir: Path | None = None,
     api_key: str | None = None,
     synth_ids: list[str] | None = None,
-    synths_file: str | Path = "output/synths/synths.json"
+    synths_file: str | Path = "output/synths/synths.json",
 ) -> list[str]:
     """
     Gera avatares para lista de synths.
@@ -468,12 +467,15 @@ def generate_avatars(
     block_count = calculate_block_count(len(synths), blocks=blocks)
 
     if block_count == 0:
-        console.print("[yellow]Nenhum bloco de avatares a gerar (synth_count=0, blocks=None)[/yellow]")
+        console.print(
+            "[yellow]Nenhum bloco de avatares a gerar (synth_count=0, blocks=None)[/yellow]"
+        )
         return []
 
     # Configurar diretório de avatares
     if avatar_dir is None:
         from synth_lab.gen_synth.config import SYNTHS_DIR
+
         avatar_dir = SYNTHS_DIR / "avatar"
 
     avatar_dir = Path(avatar_dir)
@@ -485,10 +487,12 @@ def generate_avatars(
         for synth in synths:
             avatar_file = avatar_dir / f"{synth['id']}.png"
             if avatar_file.exists():
-                existing_avatars.append(synth['id'])
+                existing_avatars.append(synth["id"])
 
         if existing_avatars:
-            console.print(f"\n[yellow]⚠️  Aviso: {len(existing_avatars)} avatar(es) já existe(m):[/yellow]")
+            console.print(
+                f"\n[yellow]⚠️  Aviso: {len(existing_avatars)} avatar(es) já existe(m):[/yellow]"
+            )
             for synth_id in existing_avatars[:5]:  # Show first 5
                 console.print(f"  - {synth_id}.png")
             if len(existing_avatars) > 5:
@@ -497,7 +501,7 @@ def generate_avatars(
             # Ask for confirmation
             console.print("\n[bold yellow]Sobrescrever avatares existentes?[/bold yellow]")
             response = input("Digite 'sim' para continuar, ou qualquer outra coisa para cancelar: ")
-            if response.lower() not in ['sim', 's', 'yes', 'y']:
+            if response.lower() not in ["sim", "s", "yes", "y"]:
                 console.print("[red]Geração de avatares cancelada pelo usuário.[/red]")
                 return []
 
@@ -526,13 +530,10 @@ def generate_avatars(
     for block_num in range(1, block_count + 1):
         # User Story 2: Mensagem de progresso com informação de blocos (T031)
         with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console
+            SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console
         ) as progress:
             task = progress.add_task(
-                f"[cyan]Gerando avatares (bloco {block_num} de {block_count})...[/cyan]",
-                total=None
+                f"[cyan]Gerando avatares (bloco {block_num} de {block_count})...[/cyan]", total=None
             )
 
             # Determinar synths para este bloco
@@ -545,7 +546,9 @@ def generate_avatars(
                 block_synths = synths[start_idx:] if start_idx < len(synths) else []
                 needed = 9 - len(block_synths)
                 if needed > 0:
-                    logger.info(f"Bloco {block_num}: {len(block_synths)} synths reais + {needed} fallbacks")
+                    logger.info(
+                        f"Bloco {block_num}: {len(block_synths)} synths reais + {needed} fallbacks"
+                    )
                     # Criar synths temporários para completar o bloco
                     for i in range(needed):
                         temp_synth = {
@@ -554,9 +557,17 @@ def generate_avatars(
                             "demografia": {
                                 "idade": 25 + i * 5,
                                 "genero_biologico": "masculino" if i % 2 == 0 else "feminino",
-                                "raca_etnia": ["branco", "pardo", "preto", "asiatico", "indigena"][i % 5],
-                                "ocupacao": ["profissional", "estudante", "comerciante", "artista", "servidor público"][i % 5]
-                            }
+                                "raca_etnia": ["branco", "pardo", "preto", "asiatico", "indigena"][
+                                    i % 5
+                                ],
+                                "ocupacao": [
+                                    "profissional",
+                                    "estudante",
+                                    "comerciante",
+                                    "artista",
+                                    "servidor público",
+                                ][i % 5],
+                            },
                         }
                         block_synths.append(temp_synth)
             else:
@@ -572,23 +583,20 @@ def generate_avatars(
             # Gerar bloco de avatares
             try:
                 block_paths = generate_avatar_block(
-                    block_synths,
-                    client,
-                    avatar_dir,
-                    block_num=block_num
+                    block_synths, client, avatar_dir, block_num=block_num
                 )
                 generated_paths.extend(block_paths)
 
-                progress.update(task, description=f"[green]✓ Bloco {block_num}/{block_count} completo[/green]")
+                progress.update(
+                    task, description=f"[green]✓ Bloco {block_num}/{block_count} completo[/green]"
+                )
                 console.print(
                     f"  [green]✓[/green] Bloco {block_num}/{block_count}: "
                     f"{len(block_paths)} avatares gerados"
                 )
             except Exception as e:
                 logger.error(f"Erro ao gerar bloco {block_num}: {e}")
-                console.print(
-                    f"  [red]✗[/red] Bloco {block_num}/{block_count} falhou: {e}"
-                )
+                console.print(f"  [red]✗[/red] Bloco {block_num}/{block_count} falhou: {e}")
                 raise
 
             # T049: Adicionar delay entre blocos para evitar rate limits
@@ -674,8 +682,8 @@ if __name__ == "__main__":
             "idade": 35,
             "genero_biologico": "masculino",
             "raca_etnia": "branco",
-            "ocupacao": "engenheiro"
-        }
+            "ocupacao": "engenheiro",
+        },
     }
     result = validate_synth_for_avatar(valid_synth)
     if result is not True:
@@ -692,7 +700,7 @@ if __name__ == "__main__":
             "idade": 35,
             "genero_biologico": "masculino",
             "raca_etnia": "branco",
-            "ocupacao": "engenheiro"
+            "ocupacao": "engenheiro",
         }
     }
     result = validate_synth_for_avatar(invalid_synth)
@@ -710,8 +718,8 @@ if __name__ == "__main__":
         "demografia": {
             "genero_biologico": "masculino",
             "raca_etnia": "branco",
-            "ocupacao": "engenheiro"
-        }
+            "ocupacao": "engenheiro",
+        },
     }
     result = validate_synth_for_avatar(invalid_synth_2)
     if result is not False:
@@ -722,7 +730,7 @@ if __name__ == "__main__":
         console.print("[green]✓[/green] validate_synth_for_avatar rejeita synth sem idade")
 
     # Final validation result
-    console.print(f"\n{'='*60}")
+    console.print(f"\n{'=' * 60}")
     if all_validation_failures:
         console.print(
             f"[red]❌ VALIDATION FAILED - {len(all_validation_failures)} de {total_tests} testes falharam:[/red]"

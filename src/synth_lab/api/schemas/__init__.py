@@ -1,9 +1,5 @@
 """API schemas for synth-lab."""
 
-from synth_lab.api.schemas.artifact_state import (
-    ArtifactState,
-    ArtifactStatesResponse,
-)
 from synth_lab.api.schemas.analysis import (
     BoxPlotParams,
     ClusterRequest,
@@ -18,6 +14,17 @@ from synth_lab.api.schemas.analysis import (
     ScatterParams,
     ShapParams,
     TryVsSuccessParams,
+)
+from synth_lab.api.schemas.artifact_state import (
+    ArtifactState,
+    ArtifactStatesResponse,
+)
+from synth_lab.api.schemas.synth_schemas import (
+    ObservableWithLabelResponse,
+    SimulationAttributesFormatted,
+    SimulationAttributesRaw,
+    SimulationLatentTraitsResponse,
+    SimulationObservablesResponse,
 )
 
 __all__ = [
@@ -38,4 +45,10 @@ __all__ = [
     "ScatterParams",
     "ShapParams",
     "TryVsSuccessParams",
+    # Synth schemas
+    "ObservableWithLabelResponse",
+    "SimulationAttributesFormatted",
+    "SimulationAttributesRaw",
+    "SimulationLatentTraitsResponse",
+    "SimulationObservablesResponse",
 ]

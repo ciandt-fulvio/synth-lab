@@ -53,9 +53,7 @@ class PaginatedResponse(BaseModel, Generic[T]):
     pagination: PaginationMeta
 
     @classmethod
-    def create(
-        cls, items: list[T], total: int, params: PaginationParams
-    ) -> "PaginatedResponse[T]":
+    def create(cls, items: list[T], total: int, params: PaginationParams) -> "PaginatedResponse[T]":
         """Create a paginated response from items and params."""
         return cls(
             data=items,

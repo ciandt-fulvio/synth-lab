@@ -195,7 +195,9 @@ if __name__ == "__main__":
             try:
                 avatar_path = service.get_avatar(synth_id)
                 if not str(avatar_path).endswith(".png"):
-                    all_validation_failures.append(f"Avatar path should end with .png: {avatar_path}")
+                    all_validation_failures.append(
+                        f"Avatar path should end with .png: {avatar_path}"
+                    )
                 print(f"  Avatar path: {avatar_path}")
             except AvatarNotFoundError:
                 print(f"  Avatar not found for {synth_id} (expected if no avatar file)")

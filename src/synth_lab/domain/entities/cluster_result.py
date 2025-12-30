@@ -32,16 +32,10 @@ class ClusterProfile(BaseModel):
     avg_success_rate: float = Field(..., description="Average success rate")
     avg_failed_rate: float = Field(..., description="Average failed rate")
     avg_did_not_try_rate: float = Field(..., description="Average did not try rate")
-    high_traits: list[str] = Field(
-        default_factory=list, description="Traits above the mean"
-    )
-    low_traits: list[str] = Field(
-        default_factory=list, description="Traits below the mean"
-    )
+    high_traits: list[str] = Field(default_factory=list, description="Traits above the mean")
+    low_traits: list[str] = Field(default_factory=list, description="Traits below the mean")
     suggested_label: str = Field(..., description="Human-readable label")
-    synth_ids: list[str] = Field(
-        default_factory=list, description="Synths in this cluster"
-    )
+    synth_ids: list[str] = Field(default_factory=list, description="Synths in this cluster")
 
 
 class ElbowDataPoint(BaseModel):
@@ -62,15 +56,11 @@ class KMeansResult(BaseModel):
     silhouette_score: float = Field(..., description="Overall silhouette score")
     inertia: float = Field(..., description="Within-cluster sum of squares")
     clusters: list[ClusterProfile] = Field(..., description="Cluster profiles")
-    synth_assignments: dict[str, int] = Field(
-        ..., description="Synth ID to cluster ID mapping"
-    )
+    synth_assignments: dict[str, int] = Field(..., description="Synth ID to cluster ID mapping")
     elbow_data: list[ElbowDataPoint] = Field(
         default_factory=list, description="Elbow method data points"
     )
-    recommended_k: int | None = Field(
-        None, description="K recomendado pelo método elbow"
-    )
+    recommended_k: int | None = Field(None, description="K recomendado pelo método elbow")
     created_at: str = Field(
         default_factory=lambda: datetime.now(UTC).isoformat(),
         description="Creation timestamp",
@@ -111,15 +101,11 @@ class HierarchicalResult(BaseModel):
     """Result of hierarchical clustering."""
 
     simulation_id: str = Field(..., description="Simulation identifier")
-    method: Literal["hierarchical"] = Field(
-        default="hierarchical", description="Clustering method"
-    )
+    method: Literal["hierarchical"] = Field(default="hierarchical", description="Clustering method")
     linkage_method: str = Field(..., description="Linkage method used")
     features_used: list[str] = Field(..., description="Features used for clustering")
     nodes: list[DendrogramNode] = Field(..., description="Dendrogram nodes")
-    linkage_matrix: list[list[float]] = Field(
-        ..., description="Scipy linkage matrix"
-    )
+    linkage_matrix: list[list[float]] = Field(..., description="Scipy linkage matrix")
     suggested_cuts: list[SuggestedCut] = Field(
         default_factory=list, description="Suggested cut points"
     )
@@ -332,10 +318,7 @@ if __name__ == "__main__":
             linkage_matrix=[[0, 1, 0.5, 2]],
             suggested_cuts=[cut],
         )
-        if (
-            hierarchical.method != "hierarchical"
-            or hierarchical.linkage_method != "ward"
-        ):
+        if hierarchical.method != "hierarchical" or hierarchical.linkage_method != "ward":
             all_validation_failures.append(
                 f"HierarchicalResult: Expected method='hierarchical' and linkage='ward', got '{hierarchical.method}' and '{hierarchical.linkage_method}'"
             )
@@ -345,9 +328,7 @@ if __name__ == "__main__":
     # Test 4: RadarChart creation
     total_tests += 1
     try:
-        axis = RadarAxis(
-            name="capability_mean", label="Capability", value=0.72, normalized=0.72
-        )
+        axis = RadarAxis(name="capability_mean", label="Capability", value=0.72, normalized=0.72)
         cluster_radar = ClusterRadar(
             cluster_id=0,
             label="Power Users",
@@ -404,8 +385,6 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results"
-        )
+        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Cluster entity models are validated and ready for use")
         sys.exit(0)

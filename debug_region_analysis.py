@@ -4,10 +4,12 @@ Execute: uv run python debug_region_analysis.py SIMULATION_ID
 """
 
 import sys
+
 import numpy as np
+
 from synth_lab.infrastructure.database import DatabaseManager
-from synth_lab.services.simulation.simulation_service import SimulationService
 from synth_lab.services.simulation.analyzer import RegionAnalyzer
+from synth_lab.services.simulation.simulation_service import SimulationService
 
 if len(sys.argv) < 2:
     print("Usage: uv run python debug_region_analysis.py SIMULATION_ID")
@@ -52,12 +54,12 @@ if len(outcomes) > 0:
     print(f"Success rate: {sample['success_rate']:.3f}")
     print(f"Did not try rate: {sample['did_not_try_rate']:.3f}")
 
-    if 'synth_attributes' in sample:
-        attrs = sample['synth_attributes']
+    if "synth_attributes" in sample:
+        attrs = sample["synth_attributes"]
         print(f"\nSimulation attributes present: {bool(attrs)}")
-        if attrs and 'latent_traits' in attrs:
-            latent = attrs['latent_traits']
-            print(f"Latent traits:")
+        if attrs and "latent_traits" in attrs:
+            latent = attrs["latent_traits"]
+            print("Latent traits:")
             for key, value in latent.items():
                 print(f"  - {key}: {value}")
     else:
@@ -75,8 +77,10 @@ print("\nFeature statistics:")
 for i, name in enumerate(feature_names):
     values = X[:, i]
     print(f"  {name}:")
-    print(f"    min={values.min():.3f}, max={values.max():.3f}, "
-          f"mean={values.mean():.3f}, std={values.std():.3f}")
+    print(
+        f"    min={values.min():.3f}, max={values.max():.3f}, "
+        f"mean={values.mean():.3f}, std={values.std():.3f}"
+    )
 
 # Check if features have variation
 has_variation = any(X[:, i].std() > 0.001 for i in range(X.shape[1]))
@@ -90,7 +94,7 @@ else:
 print("=== Label Extraction ===")
 y = analyzer._extract_labels(outcomes)
 print(f"Label array shape: {y.shape}")
-print(f"Label distribution:")
+print("Label distribution:")
 print(f"  Class 0 (low failure): {(y == 0).sum()} ({(y == 0).sum() / len(y) * 100:.1f}%)")
 print(f"  Class 1 (high failure): {(y == 1).sum()} ({(y == 1).sum() / len(y) * 100:.1f}%)")
 
@@ -105,8 +109,8 @@ else:
 
 # Check failure rate distribution
 print("=== Failure Rate Distribution ===")
-failure_rates = [o['failed_rate'] for o in outcomes]
-print(f"Failure rates:")
+failure_rates = [o["failed_rate"] for o in outcomes]
+print("Failure rates:")
 print(f"  min={min(failure_rates):.3f}, max={max(failure_rates):.3f}")
 print(f"  mean={np.mean(failure_rates):.3f}, std={np.std(failure_rates):.3f}")
 
@@ -116,7 +120,7 @@ hist, _ = np.histogram(failure_rates, bins=bins)
 print("\nHistogram of failure rates:")
 for i in range(len(bins) - 1):
     pct = hist[i] / len(failure_rates) * 100
-    print(f"  {bins[i]:.1f}-{bins[i+1]:.1f}: {hist[i]:4d} ({pct:5.1f}%)")
+    print(f"  {bins[i]:.1f}-{bins[i + 1]:.1f}: {hist[i]:4d} ({pct:5.1f}%)")
 
 # Try running the analysis with debug
 print("\n=== Running Analysis (min_failure_rate=0.5) ===")
@@ -144,6 +148,7 @@ try:
 except Exception as e:
     print(f"❌ Analysis failed: {e}")
     import traceback
+
     traceback.print_exc()
 
 print("\n=== Debug Complete ===")

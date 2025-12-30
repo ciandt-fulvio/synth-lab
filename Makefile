@@ -37,11 +37,15 @@ help:
 	@echo "  make reset-db     Delete and recreate database from scratch"
 	@echo ""
 	@echo "Development:"
-	@echo "  make serve        Start FastAPI API (tracing auto-enabled in dev)"
-	@echo "  make serve-front  Start frontend dev server (port 8080)"
+	@echo "  make serve        Start FastAPI API (default port 8000)"
+	@echo "  make serve-front  Start frontend dev server (default port 8080)"
 	@echo "  make gensynth     Run CLI: make gensynth ARGS='-n 3 --avatar'"
 	@echo "  make phoenix      Start Phoenix observability server (port 6006)"
 	@echo "  make lint-format  Run ruff linter and formatter"
+	@echo ""
+	@echo "  Custom ports (for running multiple instances):"
+	@echo "    make serve PORT=8001"
+	@echo "    make serve-front PORT=8001 FRONT_PORT=8081"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test         Run all tests"
@@ -90,24 +94,24 @@ reset-db:
 
 # Development
 serve:
-	@echo "Starting synth-lab API on http://127.0.0.1:8000"
-	@echo "OpenAPI docs: http://127.0.0.1:8000/docs"
+	@echo "Starting synth-lab API on http://127.0.0.1:$(or $(PORT),8000)"
+	@echo "OpenAPI docs: http://127.0.0.1:$(or $(PORT),8000)/docs"
 	@echo "ENV=$(ENV) → tracing=$(PHOENIX_ENABLED), log=$(LOG_LEVEL), reload=$(if $(UVICORN_RELOAD),on,off)"
 ifeq ($(PHOENIX_ENABLED),true)
 	@echo "Phoenix dashboard: http://127.0.0.1:6006 (run 'make phoenix' first)"
 	@echo "Log file: $(BACKEND_LOG)"
 endif
 	@echo ""
-	PHOENIX_ENABLED=$(PHOENIX_ENABLED) LOG_LEVEL=$(LOG_LEVEL) uv run uvicorn synth_lab.api.main:app --host 127.0.0.1 --port 8000 $(UVICORN_RELOAD) $(TEE_BACKEND)
+	PHOENIX_ENABLED=$(PHOENIX_ENABLED) LOG_LEVEL=$(LOG_LEVEL) uv run uvicorn synth_lab.api.main:app --host 127.0.0.1 --port $(or $(PORT),8000) $(UVICORN_RELOAD) $(TEE_BACKEND)
 
 serve-front:
-	@echo "Starting frontend dev server on http://localhost:8080"
-	@echo "API proxy: http://localhost:8000"
+	@echo "Starting frontend dev server on http://localhost:$(or $(FRONT_PORT),8080)"
+	@echo "API proxy: http://localhost:$(or $(PORT),8000)"
 ifeq ($(ENV),dev)
 	@echo "Log file: $(FRONTEND_LOG)"
 endif
 	@echo ""
-	@cd frontend && pnpm dev $(TEE_FRONTEND)
+	@cd frontend && VITE_PORT=$(or $(FRONT_PORT),8080) VITE_API_PORT=$(or $(PORT),8000) pnpm dev $(TEE_FRONTEND)
 
 # CLI commands (respect ENV settings)
 gensynth:

@@ -37,10 +37,7 @@ class TestTracerInit:
 
     def test_tracer_accepts_metadata(self):
         """Tracer accepts custom metadata."""
-        tracer = Tracer(
-            trace_id="trace-001",
-            metadata={"user_id": "user-123", "env": "dev"}
-        )
+        tracer = Tracer(trace_id="trace-001", metadata={"user_id": "user-123", "env": "dev"})
 
         assert tracer.trace.metadata["user_id"] == "user-123"
         assert tracer.trace.metadata["env"] == "dev"
@@ -125,10 +122,7 @@ class TestTracerStartSpan:
         tracer = Tracer()
 
         with tracer.start_turn(turn_number=1):
-            with tracer.start_span(
-                span_type=SpanType.LLM_CALL,
-                attributes={"prompt": "test"}
-            ):
+            with tracer.start_span(span_type=SpanType.LLM_CALL, attributes={"prompt": "test"}):
                 pass
 
         turn = tracer.trace.turns[0]

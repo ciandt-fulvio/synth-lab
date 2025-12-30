@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://synthlab.com/schemas/synth/v1.0.0",
+  "$id": "https://synthlab.com/schemas/synth/v2.3.0",
   "title": "Synth (Synthetic Persona)",
-  "description": "Schema completo para persona sintética brasileira com atributos demográficos, psicográficos, comportamentais e cognitivos baseados em distribuições reais do IBGE Censo 2022, PNAD 2023, PNS 2019 e pesquisas verificadas",
+  "description": "Schema completo para persona sintética brasileira com atributos demográficos, psicográficos, deficiências e observables para simulação. Baseado em distribuições reais do IBGE Censo 2022, PNAD 2023, PNS 2019.",
   "type": "object",
   "properties": {
     "id": {
@@ -46,18 +46,6 @@
           "type": "string",
           "enum": ["masculino", "feminino", "intersexo"],
           "description": "Gênero biológico"
-        },
-        "identidade_genero": {
-          "type": "string",
-          "enum": [
-            "homem cis",
-            "mulher cis",
-            "homem trans",
-            "mulher trans",
-            "não-binário",
-            "outro"
-          ],
-          "description": "Identidade de gênero autodeclarada"
         },
         "raca_etnia": {
           "type": "string",
@@ -148,46 +136,11 @@
     "psicografia": {
       "type": "object",
       "properties": {
-        "personalidade_big_five": {
-          "type": "object",
-          "properties": {
-            "abertura": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 100,
-              "description": "Abertura a experiências (0=baixa, 100=alta)"
-            },
-            "conscienciosidade": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 100,
-              "description": "Conscienciosidade (0=baixa, 100=alta)"
-            },
-            "extroversao": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 100,
-              "description": "Extroversão (0=introvertido, 100=extrovertido)"
-            },
-            "amabilidade": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 100,
-              "description": "Amabilidade (0=baixa, 100=alta)"
-            },
-            "neuroticismo": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 100,
-              "description": "Neuroticismo (0=estável, 100=neurótico)"
-            }
-          }
-        },
        "interesses": {
           "type": "array",
           "items": {"type": "string"},
           "uniqueItems": true,
-          "description": "Áreas de interesse (1-4 itens, correlacionado com trait de abertura: baixa=1-2, média=2-3, alta=3-4)"
+          "description": "Áreas de interesse (1-4 itens)"
         },
         "contrato_cognitivo": {
           "type": "object",
@@ -252,10 +205,6 @@
               "type": "string",
               "enum": ["nenhuma", "leve", "moderada", "severa"],
               "description": "Tipo de deficiência motora de membros inferiores (Prevalência: 3.8% da população - IBGE PNS 2019)"
-            },
-            "usa_cadeira_rodas": {
-              "type": "boolean",
-              "description": "Usa cadeira de rodas (tipicamente quando deficiência motora é severa)"
             }
           }
         },
@@ -271,90 +220,43 @@
         }
       }
     },
-    "capacidades_tecnologicas": {
+    "observables": {
       "type": "object",
+      "description": "Observable attributes for simulation (v2.3.0+). Latent traits are derived during simulation.",
       "properties": {
-        "alfabetizacao_digital": {
-          "type": "integer",
+        "digital_literacy": {
+          "type": "number",
           "minimum": 0,
-          "maximum": 100,
-          "description": "Nível de alfabetização digital"
-        }
-      }
-    },
-    "simulation_attributes": {
-      "type": "object",
-      "description": "Attributes for Monte Carlo feature impact simulation (v2.1.0+)",
-      "properties": {
-        "observables": {
-          "type": "object",
-          "properties": {
-            "digital_literacy": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1,
-              "description": "Digital literacy level (Beta(2,4) distribution)"
-            },
-            "similar_tool_experience": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1,
-              "description": "Experience with similar tools (Beta(3,3) distribution)"
-            },
-            "motor_ability": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1,
-              "description": "Motor ability derived from deficiencias.motora.tipo"
-            },
-            "time_availability": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1,
-              "description": "Time available for task (Beta(2,3) distribution)"
-            },
-            "domain_expertise": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1,
-              "description": "Domain-specific expertise (Beta(3,3) distribution)"
-            }
-          },
-          "required": ["digital_literacy", "similar_tool_experience", "motor_ability", "time_availability", "domain_expertise"]
+          "maximum": 1,
+          "description": "Digital literacy level - correlated with education"
         },
-        "latent_traits": {
-          "type": "object",
-          "properties": {
-            "capability_mean": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1,
-              "description": "Mean capability: 0.40*dl + 0.35*exp + 0.15*motor + 0.10*domain"
-            },
-            "trust_mean": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1,
-              "description": "Mean trust level: 0.60*exp + 0.40*dl"
-            },
-            "friction_tolerance_mean": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1,
-              "description": "Friction tolerance: 0.40*time + 0.35*dl + 0.25*exp"
-            },
-            "exploration_prob": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1,
-              "description": "Exploration probability: 0.50*dl + 0.30*(1-exp) + 0.20*time"
-            }
-          },
-          "required": ["capability_mean", "trust_mean", "friction_tolerance_mean", "exploration_prob"]
+        "similar_tool_experience": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Experience with similar tools - correlated with education"
+        },
+        "motor_ability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Motor ability - derived from disability severity and age"
+        },
+        "time_availability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Time available for task - inversely correlated with family pressure"
+        },
+        "domain_expertise": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Domain-specific expertise"
         }
       },
-      "required": ["observables", "latent_traits"]
+      "required": ["digital_literacy", "similar_tool_experience", "motor_ability", "time_availability", "domain_expertise"]
     }
   },
-  "required": ["id", "nome", "descricao", "link_photo", "created_at", "version", "demografia", "psicografia", "deficiencias", "capacidades_tecnologicas"]
+  "required": ["id", "nome", "descricao", "link_photo", "created_at", "version", "demografia", "psicografia", "deficiencias", "observables"]
 }

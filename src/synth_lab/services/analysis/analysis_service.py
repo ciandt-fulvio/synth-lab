@@ -107,9 +107,7 @@ class AnalysisService:
         # Check for existing analysis (1:1 constraint)
         existing = self.analysis_repo.get_by_experiment_id(experiment_id)
         if existing is not None:
-            raise RuntimeError(
-                f"Experiment {experiment_id} already has an analysis: {existing.id}"
-            )
+            raise RuntimeError(f"Experiment {experiment_id} already has an analysis: {existing.id}")
 
         # Create analysis with default or provided config
         analysis = AnalysisRun(

@@ -13,7 +13,6 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-
 # =============================================================================
 # Enums
 # =============================================================================
@@ -53,24 +52,14 @@ class ArtifactState(BaseModel):
 
     artifact_type: ArtifactType = Field(description="Type of artifact")
     state: ArtifactStateEnum = Field(description="Current state")
-    can_generate: bool = Field(
-        default=False, description="Whether generate action is available"
-    )
-    can_view: bool = Field(
-        default=False, description="Whether view action is available"
-    )
-    prerequisite_met: bool = Field(
-        default=True, description="Whether prerequisites are satisfied"
-    )
+    can_generate: bool = Field(default=False, description="Whether generate action is available")
+    can_view: bool = Field(default=False, description="Whether view action is available")
+    prerequisite_met: bool = Field(default=True, description="Whether prerequisites are satisfied")
     prerequisite_message: Optional[str] = Field(
         default=None, description="Message if prerequisite not met"
     )
-    error_message: Optional[str] = Field(
-        default=None, description="Last error message if failed"
-    )
-    started_at: Optional[datetime] = Field(
-        default=None, description="Generation start timestamp"
-    )
+    error_message: Optional[str] = Field(default=None, description="Last error message if failed")
+    started_at: Optional[datetime] = Field(default=None, description="Generation start timestamp")
     completed_at: Optional[datetime] = Field(
         default=None, description="Generation completion timestamp"
     )
@@ -88,9 +77,7 @@ class PRFAQGenerateRequest(BaseModel):
     """Request body for POST /prfaq/generate."""
 
     exec_id: str = Field(description="Research execution ID")
-    model: str = Field(
-        default="gpt-4o-mini", description="LLM model to use for generation"
-    )
+    model: str = Field(default="gpt-4o-mini", description="LLM model to use for generation")
 
 
 class PRFAQGenerateResponse(BaseModel):
@@ -102,9 +89,7 @@ class PRFAQGenerateResponse(BaseModel):
     generated_at: Optional[datetime] = Field(
         default=None, description="Completion timestamp if completed"
     )
-    error_message: Optional[str] = Field(
-        default=None, description="Error message if failed"
-    )
+    error_message: Optional[str] = Field(default=None, description="Error message if failed")
 
 
 # =============================================================================

@@ -11,7 +11,6 @@ Entrada: Dados de synth mockados
 Saída: Validação das funções de geração
 """
 
-
 import pytest
 
 # Placeholder imports - will be implemented
@@ -29,6 +28,7 @@ class TestCalculateBlockCount:
         """Dado 9 synths, quando calcular blocos, então retorna 1 bloco"""
         # Arrange
         from synth_lab.gen_synth.avatar_generator import calculate_block_count
+
         synth_count = 9
 
         # Act
@@ -40,6 +40,7 @@ class TestCalculateBlockCount:
     def test_18_synths_returns_2_blocks(self):
         """Dado 18 synths, quando calcular blocos, então retorna 2 blocos"""
         from synth_lab.gen_synth.avatar_generator import calculate_block_count
+
         synth_count = 18
 
         result = calculate_block_count(synth_count, blocks=None)
@@ -49,6 +50,7 @@ class TestCalculateBlockCount:
     def test_partial_block_rounds_up(self):
         """Dado 10 synths, quando calcular blocos, então retorna 2 blocos (arredonda para cima)"""
         from synth_lab.gen_synth.avatar_generator import calculate_block_count
+
         synth_count = 10
 
         result = calculate_block_count(synth_count, blocks=None)
@@ -58,6 +60,7 @@ class TestCalculateBlockCount:
     def test_blocks_parameter_overrides_synth_count(self):
         """Dado parâmetro blocks=3, quando calcular, então retorna 3 blocos independente de synth_count"""
         from synth_lab.gen_synth.avatar_generator import calculate_block_count
+
         synth_count = 9
         blocks_override = 3
 
@@ -68,6 +71,7 @@ class TestCalculateBlockCount:
     def test_zero_synths_returns_zero_blocks(self):
         """Dado 0 synths, quando calcular blocos, então retorna 0 blocos"""
         from synth_lab.gen_synth.avatar_generator import calculate_block_count
+
         synth_count = 0
 
         result = calculate_block_count(synth_count, blocks=None)
@@ -77,6 +81,7 @@ class TestCalculateBlockCount:
     def test_blocks_parameter_with_zero_returns_specified_blocks(self):
         """Dado blocks=5 e synth_count=0, quando calcular, então retorna 5 blocos"""
         from synth_lab.gen_synth.avatar_generator import calculate_block_count
+
         synth_count = 0
         blocks_override = 5
 
@@ -124,8 +129,8 @@ class TestValidateSynthForAvatar:
                 "idade": 35,
                 "genero_biologico": "masculino",
                 "raca_etnia": "branco",
-                "ocupacao": "engenheiro"
-            }
+                "ocupacao": "engenheiro",
+            },
         }
 
         result = validate_synth_for_avatar(synth)
@@ -141,7 +146,7 @@ class TestValidateSynthForAvatar:
                 "idade": 35,
                 "genero_biologico": "masculino",
                 "raca_etnia": "branco",
-                "ocupacao": "engenheiro"
+                "ocupacao": "engenheiro",
             }
         }
 
@@ -158,8 +163,8 @@ class TestValidateSynthForAvatar:
             "demografia": {
                 "genero_biologico": "masculino",
                 "raca_etnia": "branco",
-                "ocupacao": "engenheiro"
-            }
+                "ocupacao": "engenheiro",
+            },
         }
 
         result = validate_synth_for_avatar(synth)
@@ -190,15 +195,20 @@ if __name__ == "__main__":
     try:
         # Os testes devem falhar pois a implementação ainda não existe
         import pytest
+
         result = pytest.main([__file__, "-v", "--tb=short"])
         if result == 0:
-            all_validation_failures.append("Tests should fail before implementation (TDD requirement)")
+            all_validation_failures.append(
+                "Tests should fail before implementation (TDD requirement)"
+            )
     except ImportError as e:
         all_validation_failures.append(f"Test structure: Missing required dependency: {e}")
 
     # Final validation result
     if all_validation_failures:
-        print(f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(
+            f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:"
+        )
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)

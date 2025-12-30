@@ -23,7 +23,6 @@ Expected output:
 
 import json
 from pathlib import Path
-from typing import Any
 
 from loguru import logger
 
@@ -54,8 +53,7 @@ def load_scenarios_from_file() -> dict[str, Scenario]:
 
     if not scenarios_path.exists():
         raise FileNotFoundError(
-            f"Scenarios file not found: {scenarios_path}. "
-            "Expected at data/config/scenarios.json"
+            f"Scenarios file not found: {scenarios_path}. Expected at data/config/scenarios.json"
         )
 
     try:
@@ -126,9 +124,7 @@ if __name__ == "__main__":
         if baseline is None:
             all_validation_failures.append("Baseline scenario not found")
         elif baseline.id != "baseline":
-            all_validation_failures.append(
-                f"Baseline ID mismatch: {baseline.id}"
-            )
+            all_validation_failures.append(f"Baseline ID mismatch: {baseline.id}")
         else:
             print("Test 2 PASSED: Baseline scenario loaded correctly")
     except Exception as e:
@@ -154,9 +150,7 @@ if __name__ == "__main__":
     try:
         non_existent = load_scenario("non_existent_scenario")
         if non_existent is not None:
-            all_validation_failures.append(
-                "Should return None for non-existent scenario"
-            )
+            all_validation_failures.append("Should return None for non-existent scenario")
         else:
             print("Test 4 PASSED: Correctly handles non-existent scenario")
     except Exception as e:
@@ -182,9 +176,7 @@ if __name__ == "__main__":
                     missing.append(field)
 
             if missing:
-                all_validation_failures.append(
-                    f"Baseline missing fields: {missing}"
-                )
+                all_validation_failures.append(f"Baseline missing fields: {missing}")
             else:
                 print("Test 5 PASSED: Scenario has all required fields")
     except Exception as e:

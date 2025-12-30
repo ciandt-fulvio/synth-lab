@@ -83,9 +83,7 @@ if __name__ == "__main__":
         if summary.headline != "Nova Experiência de Compra":
             all_validation_failures.append(f"Headline mismatch: {summary.headline}")
         if summary.confidence_score != 0.95:
-            all_validation_failures.append(
-                f"Confidence score mismatch: {summary.confidence_score}"
-            )
+            all_validation_failures.append(f"Confidence score mismatch: {summary.confidence_score}")
     except Exception as e:
         all_validation_failures.append(f"PRFAQSummary full test failed: {e}")
 

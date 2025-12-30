@@ -13,7 +13,6 @@ from pathlib import Path
 from synth_lab.infrastructure.database import DatabaseManager
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.synth import (
-    BigFivePersonality,
     CognitiveContract,
     CognitiveDisability,
     Demographics,
@@ -23,10 +22,10 @@ from synth_lab.models.synth import (
     Location,
     MotorDisability,
     Psychographics,
+    SimulationAttributesForDisplay,
     SynthDetail,
     SynthFieldInfo,
     SynthSummary,
-    TechCapabilities,
     VisualDisability,
 )
 from synth_lab.repositories.base import BaseRepository
@@ -35,12 +34,36 @@ from synth_lab.services.errors import InvalidQueryError, SynthNotFoundError
 # Dangerous SQL keywords that should not be in WHERE clauses
 # This is a blacklist approach for power-user WHERE clause functionality
 # WARNING: This feature should only be exposed to trusted users
-BLOCKED_KEYWORDS = frozenset([
-    "INSERT", "UPDATE", "DELETE", "DROP", "CREATE", "ALTER", "TRUNCATE",
-    "EXEC", "EXECUTE", "GRANT", "REVOKE", "UNION", "INTO", "LOAD",
-    "ATTACH", "DETACH", "PRAGMA", "VACUUM", "REINDEX",
-    "--", ";", "/*", "*/", "@@", "CHAR(", "0x",
-])
+BLOCKED_KEYWORDS = frozenset(
+    [
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "DROP",
+        "CREATE",
+        "ALTER",
+        "TRUNCATE",
+        "EXEC",
+        "EXECUTE",
+        "GRANT",
+        "REVOKE",
+        "UNION",
+        "INTO",
+        "LOAD",
+        "ATTACH",
+        "DETACH",
+        "PRAGMA",
+        "VACUUM",
+        "REINDEX",
+        "--",
+        ";",
+        "/*",
+        "*/",
+        "@@",
+        "CHAR(",
+        "0x",
+    ]
+)
 
 # Maximum length for WHERE clauses to prevent DoS
 MAX_WHERE_CLAUSE_LENGTH = 1000
@@ -186,6 +209,7 @@ class SynthRepository(BaseRepository):
 
         # Default path if not in database
         from synth_lab.infrastructure.config import AVATARS_DIR
+
         return AVATARS_DIR / f"{synth_id}.png"
 
     def get_extreme_cases(self, experiment_id: str, top_n: int = 5) -> tuple[list[str], list[str]]:
@@ -281,7 +305,7 @@ class SynthRepository(BaseRepository):
                 name="data.psicografia",
                 type="object",
                 description="Psychographic data. Access via json_extract(data, '$.psicografia...')",
-                nested_fields=["personalidade_big_five", "interesses", "contrato_cognitivo"],
+                nested_fields=["interesses", "contrato_cognitivo"],
             ),
             SynthFieldInfo(
                 name="data.deficiencias",
@@ -290,10 +314,16 @@ class SynthRepository(BaseRepository):
                 nested_fields=["visual", "auditiva", "motora", "cognitiva"],
             ),
             SynthFieldInfo(
-                name="data.capacidades_tecnologicas",
+                name="data.observables",
                 type="object",
-                description="Technology capabilities. Access via json_extract(data, '$.capacidades_tecnologicas...')",
-                nested_fields=["alfabetizacao_digital"],
+                description="Observable simulation attributes (v2.3.0+). Access via json_extract(data, '$.observables...')",
+                nested_fields=[
+                    "digital_literacy",
+                    "similar_tool_experience",
+                    "motor_ability",
+                    "time_availability",
+                    "domain_expertise",
+                ],
             ),
         ]
 
@@ -377,6 +407,51 @@ class SynthRepository(BaseRepository):
             version=row["version"] if "version" in row.keys() else "2.0.0",
         )
 
+    def _format_simulation_attributes(
+        self, sim_attrs_data: dict
+    ) -> SimulationAttributesForDisplay | None:
+        """Format simulation attributes with labels for PM display."""
+        from synth_lab.domain.entities.simulation_attributes import SimulationObservables
+        from synth_lab.services.observable_labels import format_observables_with_labels
+
+        observables_data = sim_attrs_data.get("observables", {})
+        if not observables_data:
+            return None
+
+        # Create SimulationObservables entity
+        try:
+            observables = SimulationObservables(
+                digital_literacy=observables_data.get("digital_literacy", 0.5),
+                similar_tool_experience=observables_data.get("similar_tool_experience", 0.5),
+                motor_ability=observables_data.get("motor_ability", 1.0),
+                time_availability=observables_data.get("time_availability", 0.5),
+                domain_expertise=observables_data.get("domain_expertise", 0.5),
+            )
+
+            # Format with labels
+            formatted = format_observables_with_labels(observables)
+            formatted_dicts = [
+                {
+                    "key": f.key,
+                    "name": f.name,
+                    "value": f.value,
+                    "label": f.label,
+                    "description": f.description,
+                }
+                for f in formatted
+            ]
+
+            return SimulationAttributesForDisplay(
+                observables_formatted=formatted_dicts,
+                raw=sim_attrs_data,
+            )
+        except Exception:
+            # If formatting fails, return raw only
+            return SimulationAttributesForDisplay(
+                observables_formatted=[],
+                raw=sim_attrs_data,
+            )
+
     def _row_to_detail(self, row) -> SynthDetail:
         """Convert a database row to SynthDetail with nested objects following schema v1."""
         from datetime import datetime
@@ -419,16 +494,11 @@ class SynthRepository(BaseRepository):
         psicografia = None
         psico_data = data.get("psicografia")
         if psico_data:
-            # Big Five personality
-            big_five_data = psico_data.get("personalidade_big_five")
-            big_five = BigFivePersonality(**big_five_data) if big_five_data else None
-
             # Cognitive contract
             contract_data = psico_data.get("contrato_cognitivo")
             contract = CognitiveContract(**contract_data) if contract_data else None
 
             psicografia = Psychographics(
-                personalidade_big_five=big_five,
                 interesses=psico_data.get("interesses", []),
                 contrato_cognitivo=contract,
             )
@@ -460,13 +530,14 @@ class SynthRepository(BaseRepository):
                 cognitiva=cognitive,
             )
 
-        # Parse tech capabilities from data
-        capacidades_tecnologicas = None
-        tech_data = data.get("capacidades_tecnologicas")
-        if tech_data:
-            capacidades_tecnologicas = TechCapabilities(
-                alfabetizacao_digital=tech_data.get("alfabetizacao_digital"),
-            )
+        # Parse observables from data (v2.3.0+)
+        observables = data.get("observables")
+
+        # Parse and format simulation attributes
+        simulation_attributes = None
+        sim_attrs_data = data.get("simulation_attributes")
+        if sim_attrs_data:
+            simulation_attributes = self._format_simulation_attributes(sim_attrs_data)
 
         return SynthDetail(
             id=row["id"],
@@ -476,11 +547,12 @@ class SynthRepository(BaseRepository):
             link_photo=row["link_photo"],
             avatar_path=row["avatar_path"],
             created_at=created_at,
-            version=row["version"] or "2.0.0",
+            version=row["version"] or "2.3.0",
             demografia=demografia,
             psicografia=psicografia,
             deficiencias=deficiencias,
-            capacidades_tecnologicas=capacidades_tecnologicas,
+            observables=observables,
+            simulation_attributes=simulation_attributes,
         )
 
 

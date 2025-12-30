@@ -129,8 +129,7 @@ class TestGenerateBiasesWithCoherence:
 
             # aversao_perda should be high (70-95)
             assert 70 <= result["aversao_perda"] <= 95, (
-                f"aversao_perda should be 70-95 for high neuroticism, "
-                f"got {result['aversao_perda']}"
+                f"aversao_perda should be 70-95 for high neuroticism, got {result['aversao_perda']}"
             )
 
             # sobrecarga_informacao should be high (60-85)
@@ -195,8 +194,7 @@ class TestGenerateBiasesWithCoherence:
 
             # ancoragem should be high (60-85)
             assert 60 <= result["ancoragem"] <= 85, (
-                f"ancoragem should be 60-85 for low agreeableness, "
-                f"got {result['ancoragem']}"
+                f"ancoragem should be 60-85 for low agreeableness, got {result['ancoragem']}"
             )
 
     def test_high_extroversao_produces_coherent_biases(self):
@@ -287,10 +285,7 @@ class TestGenerateBiasesWithCoherence:
             assert 0 <= value <= 100, f"High personality {bias_name} out of range: {value}"
 
         # At least some biases should differ significantly between extremes
-        differences = [
-            abs(high_result[bias] - low_result[bias])
-            for bias in low_result.keys()
-        ]
+        differences = [abs(high_result[bias] - low_result[bias]) for bias in low_result.keys()]
         assert max(differences) >= 30, (
             "Extreme personalities should produce significantly different biases"
         )
@@ -317,7 +312,9 @@ class TestGenerateBiasesWithCoherence:
 
         # Averages should be reasonably centered (35-65 range)
         assert 35 <= avg_aversao <= 65, f"Average aversao_perda should be moderate: {avg_aversao}"
-        assert 35 <= avg_desconto <= 65, f"Average desconto_hiperbolico should be moderate: {avg_desconto}"
+        assert 35 <= avg_desconto <= 65, (
+            f"Average desconto_hiperbolico should be moderate: {avg_desconto}"
+        )
 
     def test_batch_consistency(self):
         """Test that batch generation produces consistently valid results."""
@@ -338,6 +335,4 @@ class TestGenerateBiasesWithCoherence:
 
             # Verify all values in range
             for bias_name, value in result.items():
-                assert 0 <= value <= 100, (
-                    f"Batch {i}: {bias_name} out of range: {value}"
-                )
+                assert 0 <= value <= 100, f"Batch {i}: {bias_name} out of range: {value}"

@@ -32,17 +32,13 @@ class ExtremeSynth(BaseModel):
     success_rate: float = Field(..., description="Success rate (0-1)")
     failed_rate: float = Field(..., description="Failed rate (0-1)")
     did_not_try_rate: float = Field(..., description="Did not try rate (0-1)")
-    profile_summary: str = Field(
-        ..., description="Human-readable summary of synth profile"
-    )
+    profile_summary: str = Field(..., description="Human-readable summary of synth profile")
     interview_questions: list[str] = Field(
         ..., description="Suggested questions for qualitative interview"
     )
     capability_mean: float = Field(..., description="Capability mean value")
     trust_mean: float = Field(..., description="Trust mean value")
-    friction_tolerance_mean: float = Field(
-        ..., description="Friction tolerance mean value"
-    )
+    friction_tolerance_mean: float = Field(..., description="Friction tolerance mean value")
 
 
 class ExtremeCasesTable(BaseModel):
@@ -70,24 +66,16 @@ class OutlierSynth(BaseModel):
         ...,
         description="Type: unexpected_failure, unexpected_success, or atypical_profile",
     )
-    anomaly_score: float = Field(
-        ..., description="Anomaly score from Isolation Forest (-1 to 1)"
-    )
+    anomaly_score: float = Field(..., description="Anomaly score from Isolation Forest (-1 to 1)")
     success_rate: float = Field(..., description="Success rate (0-1)")
     failed_rate: float = Field(..., description="Failed rate (0-1)")
     did_not_try_rate: float = Field(..., description="Did not try rate (0-1)")
-    explanation: str = Field(
-        ..., description="Explanation of why this synth is an outlier"
-    )
+    explanation: str = Field(..., description="Explanation of why this synth is an outlier")
     capability_mean: float = Field(..., description="Capability mean value")
     trust_mean: float = Field(..., description="Trust mean value")
-    friction_tolerance_mean: float = Field(
-        ..., description="Friction tolerance mean value"
-    )
+    friction_tolerance_mean: float = Field(..., description="Friction tolerance mean value")
     digital_literacy: float = Field(..., description="Digital literacy observable")
-    similar_tool_experience: float = Field(
-        ..., description="Similar tool experience observable"
-    )
+    similar_tool_experience: float = Field(..., description="Similar tool experience observable")
 
 
 class OutlierResult(BaseModel):
@@ -95,17 +83,11 @@ class OutlierResult(BaseModel):
 
     simulation_id: str = Field(..., description="Simulation identifier")
     method: str = Field(default="isolation_forest", description="Detection method used")
-    contamination: float = Field(
-        ..., description="Expected proportion of outliers (0-0.5)"
-    )
-    outliers: list[OutlierSynth] = Field(
-        ..., description="List of identified outliers"
-    )
+    contamination: float = Field(..., description="Expected proportion of outliers (0-0.5)")
+    outliers: list[OutlierSynth] = Field(..., description="List of identified outliers")
     total_synths: int = Field(..., description="Total number of synths analyzed")
     n_outliers: int = Field(..., description="Number of outliers detected")
-    features_used: list[str] = Field(
-        ..., description="Features used for outlier detection"
-    )
+    features_used: list[str] = Field(..., description="Features used for outlier detection")
 
     @computed_field
     @property

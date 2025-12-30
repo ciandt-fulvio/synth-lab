@@ -135,13 +135,10 @@ class SharedMemory:
         """Convert to dictionary for logging."""
         return {
             "conversation": [
-                {"speaker": msg.speaker, "text": msg.text}
-                for msg in self.conversation
+                {"speaker": msg.speaker, "text": msg.text} for msg in self.conversation
             ],
             "topic_guide": (
-                self.topic_guide[:200] + "..."
-                if len(self.topic_guide) > 200
-                else self.topic_guide
+                self.topic_guide[:200] + "..." if len(self.topic_guide) > 200 else self.topic_guide
             ),
             "synth_name": self.synth_name,
             "synth_id": self.synth.get("id", ""),
@@ -315,10 +312,42 @@ Responda APENAS com a experiência gerada, sem explicações adicionais."""
     result = await AgentRunner.run(context_agent, input=prompt)
     generated_context = result.final_output.strip()
 
-    logger.info(
-        f"Generated {sentiment} context for {nome}: {generated_context[:100]}...")
+    logger.info(f"Generated {sentiment} context for {nome}: {generated_context[:100]}...")
 
     return f"[EXPERIÊNCIA PRÉVIA - {sentiment.upper()}]: {generated_context}"
+
+
+def _get_simulation_context_for_synth(synth_id: str, analysis_id: str) -> str:
+    """
+    Fetch simulation results and format as context for interview.
+
+    Args:
+        synth_id: The synth ID
+        analysis_id: The analysis ID to fetch results from
+
+    Returns:
+        Formatted simulation context string, or empty string if not found
+    """
+    from synth_lab.repositories.synth_outcome_repository import SynthOutcomeRepository
+    from synth_lab.services.research_agentic.context_formatter import (
+        create_simulation_context_from_outcome,
+        format_simulation_context,
+    )
+
+    try:
+        repo = SynthOutcomeRepository()
+        outcome = repo.get_by_synth_and_analysis(synth_id, analysis_id)
+
+        if outcome is None:
+            logger.debug(f"No simulation results for synth {synth_id} in analysis {analysis_id}")
+            return ""
+
+        context = create_simulation_context_from_outcome(outcome)
+        return format_simulation_context(context)
+
+    except Exception as e:
+        logger.warning(f"Failed to fetch simulation context: {e}")
+        return ""
 
 
 def format_synth_profile(synth: dict[str, Any]) -> str:
@@ -376,11 +405,11 @@ async def run_interview(
     model: str = "gpt-4.1-mini",
     verbose: bool = True,
     exec_id: str | None = None,
-    message_callback: Callable[[
-        str, str, int, ConversationMessage], Awaitable[None]] | None = None,
+    message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
     guide_name: str = "interview",
+    analysis_id: str | None = None,
 ) -> InterviewResult:
     """
     Run an agentic interview with orchestrated turn-taking.
@@ -404,6 +433,9 @@ async def run_interview(
             If True, uses raw interviewee response without humanization review.
         additional_context: Optional additional context to complement the research scenario
         guide_name: Name identifier for the guide (for logging/tracing)
+        analysis_id: Optional analysis ID to fetch simulation results for context.
+            When provided, synth's simulation performance is included in the
+            interviewee prompt for coherent behavior.
 
     Returns:
         InterviewResult with conversation and metadata
@@ -418,7 +450,8 @@ async def run_interview(
     result = await run_interview(
         synth_id="abc123",
         interview_guide=guide,
-        max_turns=6
+        max_turns=6,
+        analysis_id="ana_12345678",  # Include simulation context
     )
     ```
     """
@@ -432,6 +465,13 @@ async def run_interview(
     # Get context examples for generating initial context
     context_examples = interview_guide.get_context_examples_dict()
 
+    # Fetch simulation context if analysis_id provided
+    simulation_context_text: str = ""
+    if analysis_id:
+        simulation_context_text = _get_simulation_context_for_synth(synth_id, analysis_id)
+        if simulation_context_text:
+            logger.info(f"Using simulation context for {synth_name} from {analysis_id}")
+
     # Initialize shared memory
     shared_memory = SharedMemory(
         topic_guide=topic_guide,
@@ -439,7 +479,8 @@ async def run_interview(
     )
 
     # Initial context will be generated in parallel with first interviewer turn
-    initial_context: str = ""
+    # If we have simulation context, prepend it
+    initial_context: str = simulation_context_text
 
     # Initialize tracer for visualization
     trace_id = f"agentic-interview-{synth_id}"
@@ -468,10 +509,13 @@ async def run_interview(
                 with tracer.start_turn(turn_number=turns + 1):
                     # === PART 1: Interviewer asks a question ===
                     interviewer_input = "Faça sua próxima pergunta ou comentário."
-                    with tracer.start_span(SpanType.LLM_CALL, {
-                        "speaker": "interviewer",
-                        "turn_number": turns + 1,
-                    }) as span:
+                    with tracer.start_span(
+                        SpanType.LLM_CALL,
+                        {
+                            "speaker": "interviewer",
+                            "turn_number": turns + 1,
+                        },
+                    ) as span:
                         interviewer = create_interviewer(
                             topic_guide=topic_guide,
                             conversation_history=shared_memory.format_history(),
@@ -482,15 +526,14 @@ async def run_interview(
 
                         # Log request
                         span.set_attribute(
-                            "request", f"[System Prompt]\n{interviewer.instructions}\n\n[Input]\n{interviewer_input}")
+                            "request",
+                            f"[System Prompt]\n{interviewer.instructions}\n\n[Input]\n{interviewer_input}",
+                        )
 
                         # On first turn, generate context in parallel with interviewer
                         if turns == 0 and context_examples:
                             # Run both in parallel
-                            interviewer_task = Runner.run(
-                                interviewer,
-                                input=interviewer_input
-                            )
+                            interviewer_task = Runner.run(interviewer, input=interviewer_input)
                             context_task = generate_initial_context(
                                 synth=synth,
                                 context_examples=context_examples,
@@ -499,16 +542,17 @@ async def run_interview(
                                 context_definition=interview_guide.context_definition,
                                 additional_context=additional_context,
                             )
-                            raw_result, initial_context = await asyncio.gather(
+                            raw_result, generated_context = await asyncio.gather(
                                 interviewer_task, context_task
                             )
-                            logger.info(
-                                f"Generated initial context: {initial_context[:80]}...")
+                            # Combine simulation context with generated context
+                            if initial_context and generated_context:
+                                initial_context = f"{initial_context}\n\n{generated_context}"
+                            elif generated_context:
+                                initial_context = generated_context
+                            logger.info(f"Generated initial context: {initial_context[:80]}...")
                         else:
-                            raw_result = await Runner.run(
-                                interviewer,
-                                input=interviewer_input
-                            )
+                            raw_result = await Runner.run(interviewer, input=interviewer_input)
 
                         interviewer_response = raw_result.final_output
                         span.set_attribute("response", interviewer_response)
@@ -537,10 +581,13 @@ async def run_interview(
 
                     # === PART 2: Interviewee responds ===
                     interviewee_input = "Responda à última pergunta."
-                    with tracer.start_span(SpanType.LLM_CALL, {
-                        "speaker": "interviewee",
-                        "turn_number": turns + 1,
-                    }) as span:
+                    with tracer.start_span(
+                        SpanType.LLM_CALL,
+                        {
+                            "speaker": "interviewee",
+                            "turn_number": turns + 1,
+                        },
+                    ) as span:
                         interviewee = create_interviewee(
                             synth=shared_memory.synth,
                             conversation_history=shared_memory.format_history(),
@@ -550,12 +597,11 @@ async def run_interview(
 
                         # Log request
                         span.set_attribute(
-                            "request", f"[System Prompt]\n{interviewee.instructions}\n\n[Input]\n{interviewee_input}")
-
-                        raw_result = await Runner.run(
-                            interviewee,
-                            input=interviewee_input
+                            "request",
+                            f"[System Prompt]\n{interviewee.instructions}\n\n[Input]\n{interviewee_input}",
                         )
+
+                        raw_result = await Runner.run(interviewee, input=interviewee_input)
                         raw_response = raw_result.final_output
                         span.set_attribute("response", raw_response)
                         span.set_status(SpanStatus.SUCCESS)
@@ -566,10 +612,13 @@ async def run_interview(
                         logger.debug("Skipping interviewee reviewer")
                     else:
                         reviewer_input = "Revise esta resposta para maior autenticidade."
-                        with tracer.start_span(SpanType.LLM_CALL, {
-                            "speaker": "interviewee_reviewer",
-                            "turn_number": turns + 1,
-                        }) as span:
+                        with tracer.start_span(
+                            SpanType.LLM_CALL,
+                            {
+                                "speaker": "interviewee_reviewer",
+                                "turn_number": turns + 1,
+                            },
+                        ) as span:
                             reviewer = create_interviewee_reviewer(
                                 synth=shared_memory.synth,
                                 raw_response=raw_response,
@@ -577,15 +626,13 @@ async def run_interview(
                             )
 
                             span.set_attribute(
-                                "request", f"[System Prompt]\n{reviewer.instructions}\n\n[Input]\n{reviewer_input}")
-
-                            review_result = await Runner.run(
-                                reviewer,
-                                input=reviewer_input
+                                "request",
+                                f"[System Prompt]\n{reviewer.instructions}\n\n[Input]\n{reviewer_input}",
                             )
+
+                            review_result = await Runner.run(reviewer, input=reviewer_input)
                             interviewee_response = review_result.final_output
-                            span.set_attribute(
-                                "response", interviewee_response)
+                            span.set_attribute("response", interviewee_response)
                             span.set_status(SpanStatus.SUCCESS)
 
                     # Parse and add interviewee message
@@ -670,8 +717,7 @@ async def run_interview_simple(
             "psicografia": {"interesses": []},
         }
     else:
-        raise ValueError(
-            "Either synth_id or persona_description must be provided")
+        raise ValueError("Either synth_id or persona_description must be provided")
 
     shared_memory = SharedMemory(
         topic_guide=f"Tema da entrevista: {topic}",
@@ -693,8 +739,7 @@ async def run_interview_simple(
         result = await Runner.run(interviewer, input="Ask your question.")
         response = result.final_output
 
-        visible_message, internal_notes, should_end, sentiment = parse_agent_response(
-            response)
+        visible_message, internal_notes, should_end, sentiment = parse_agent_response(response)
         interviewer_msg = ConversationMessage(
             speaker="Interviewer",
             text=visible_message,
@@ -719,8 +764,7 @@ async def run_interview_simple(
         result = await Runner.run(interviewee, input="Answer the question.")
         response = result.final_output
 
-        visible_message, internal_notes, should_end, _ = parse_agent_response(
-            response)
+        visible_message, internal_notes, should_end, _ = parse_agent_response(response)
         interviewee_msg = ConversationMessage(
             speaker="Interviewee",
             text=visible_message,
@@ -780,8 +824,7 @@ if __name__ == "__main__":
         messages = await run_interview_simple(
             topic="Experiência de compras online",
             persona_description=(
-                "Mulher, 35 anos, classe média, mora em São Paulo, "
-                "trabalha como professora"
+                "Mulher, 35 anos, classe média, mora em São Paulo, trabalha como professora"
             ),
             max_turns=4,
             verbose=True,

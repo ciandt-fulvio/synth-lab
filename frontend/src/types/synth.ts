@@ -15,7 +15,6 @@ export interface FamilyComposition {
 export interface Demographics {
   idade?: number;
   genero_biologico?: string;
-  identidade_genero?: string;
   raca_etnia?: string;
   localizacao?: Location;
   escolaridade?: string;
@@ -23,14 +22,6 @@ export interface Demographics {
   ocupacao?: string;
   estado_civil?: string;
   composicao_familiar?: FamilyComposition;
-}
-
-export interface BigFivePersonality {
-  abertura?: number; // 0-100
-  conscienciosidade?: number;
-  extroversao?: number;
-  amabilidade?: number;
-  neuroticismo?: number;
 }
 
 export interface CognitiveContract {
@@ -41,7 +32,6 @@ export interface CognitiveContract {
 }
 
 export interface Psychographics {
-  personalidade_big_five?: BigFivePersonality;
   interesses?: string[];
   contrato_cognitivo?: CognitiveContract;
 }
@@ -56,7 +46,6 @@ export interface HearingDisability {
 
 export interface MotorDisability {
   tipo?: string;
-  usa_cadeira_rodas?: boolean;
 }
 
 export interface CognitiveDisability {
@@ -70,8 +59,59 @@ export interface Disabilities {
   cognitiva?: CognitiveDisability;
 }
 
-export interface TechCapabilities {
-  alfabetizacao_digital?: number;
+// ============================================================================
+// Simulation Attributes (Observable vs Latent Traits)
+// ============================================================================
+
+/**
+ * Observable attribute with formatted label for PM display.
+ * Used in SynthDetail response.
+ */
+export interface ObservableWithLabel {
+  key: string;
+  name: string;
+  value: number;
+  label: 'Muito Baixo' | 'Baixo' | 'Médio' | 'Alto' | 'Muito Alto';
+  description: string;
+}
+
+/**
+ * Raw simulation observables (for internal use).
+ */
+export interface SimulationObservables {
+  digital_literacy: number;
+  similar_tool_experience: number;
+  motor_ability: number;
+  time_availability: number;
+  domain_expertise: number;
+}
+
+/**
+ * Latent traits derived from observables (internal use only).
+ * NOT shown to PM in frontend.
+ */
+export interface SimulationLatentTraits {
+  capability_mean: number;
+  trust_mean: number;
+  friction_tolerance_mean: number;
+  exploration_prob: number;
+}
+
+/**
+ * Raw simulation attributes (observables + latent traits).
+ */
+export interface SimulationAttributesRaw {
+  observables: SimulationObservables;
+  latent_traits: SimulationLatentTraits;
+}
+
+/**
+ * Formatted simulation attributes for PM display.
+ * Frontend should use `observables_formatted` and NEVER show `raw.latent_traits`.
+ */
+export interface SimulationAttributesFormatted {
+  observables_formatted: ObservableWithLabel[];
+  raw?: SimulationAttributesRaw;
 }
 
 export interface SynthSummary {
@@ -89,7 +129,8 @@ export interface SynthDetail extends SynthSummary {
   demografia?: Demographics;
   psicografia?: Psychographics;
   deficiencias?: Disabilities;
-  capacidades_tecnologicas?: TechCapabilities;
+  observables?: SimulationObservables;
+  simulation_attributes?: SimulationAttributesFormatted;
 }
 
 export interface SynthsListParams {

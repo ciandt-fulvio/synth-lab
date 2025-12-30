@@ -190,8 +190,7 @@ def create_interviewee_reviewer(
     Returns:
         Configured Agent instance
     """
-    instructions = format_interviewee_reviewer_instructions(
-        synth, raw_response)
+    instructions = format_interviewee_reviewer_instructions(synth, raw_response)
     synth_name = synth.get("nome", "Participante")
 
     return Agent(
@@ -222,8 +221,7 @@ def create_orchestrator(
     Returns:
         Configured Agent instance
     """
-    instructions = format_orchestrator_instructions(
-        conversation_history, last_message)
+    instructions = format_orchestrator_instructions(conversation_history, last_message)
 
     return Agent(
         name="Orchestrator",

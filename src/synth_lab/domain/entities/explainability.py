@@ -26,12 +26,8 @@ class ShapContribution(BaseModel):
 
     feature_name: str = Field(..., description="Name of the feature")
     feature_value: float = Field(..., description="Actual value of the feature")
-    shap_value: float = Field(
-        ..., description="SHAP value (contribution to prediction)"
-    )
-    baseline_value: float = Field(
-        ..., description="Average feature value in population"
-    )
+    shap_value: float = Field(..., description="SHAP value (contribution to prediction)")
+    baseline_value: float = Field(..., description="Average feature value in population")
     impact: str = Field(
         ...,
         description="Impact direction: positive (increases success), negative (decreases success)",
@@ -43,13 +39,9 @@ class ShapExplanation(BaseModel):
 
     synth_id: str = Field(..., description="Synth identifier")
     simulation_id: str = Field(..., description="Simulation identifier")
-    predicted_success_rate: float = Field(
-        ..., description="Model's predicted success rate"
-    )
+    predicted_success_rate: float = Field(..., description="Model's predicted success rate")
     actual_success_rate: float = Field(..., description="Actual observed success rate")
-    baseline_prediction: float = Field(
-        ..., description="Average prediction across all synths"
-    )
+    baseline_prediction: float = Field(..., description="Average prediction across all synths")
     contributions: list[ShapContribution] = Field(
         ..., description="SHAP contributions for each feature, sorted by absolute value"
     )
@@ -69,13 +61,9 @@ class ShapSummary(BaseModel):
     feature_importances: dict[str, float] = Field(
         ..., description="Average absolute SHAP value per feature"
     )
-    top_features: list[str] = Field(
-        ..., description="Top 10 most important features"
-    )
+    top_features: list[str] = Field(..., description="Top 10 most important features")
     total_synths: int = Field(..., description="Number of synths analyzed")
-    model_score: float = Field(
-        ..., description="Model R² score (goodness of fit)"
-    )
+    model_score: float = Field(..., description="Model R² score (goodness of fit)")
 
 
 class PDPPoint(BaseModel):
@@ -110,19 +98,13 @@ class PDPResult(BaseModel):
         ...,
         description="Strength of effect (range of predicted values)",
     )
-    baseline_value: float = Field(
-        ..., description="Average feature value in population"
-    )
+    baseline_value: float = Field(..., description="Average feature value in population")
 
 
 class PDPComparison(BaseModel):
     """Comparison of PDPs for multiple features."""
 
     simulation_id: str = Field(..., description="Simulation identifier")
-    pdp_results: list[PDPResult] = Field(
-        ..., description="PDP curves for different features"
-    )
-    feature_ranking: list[str] = Field(
-        ..., description="Features ranked by effect_strength"
-    )
+    pdp_results: list[PDPResult] = Field(..., description="PDP curves for different features")
+    feature_ranking: list[str] = Field(..., description="Features ranked by effect_strength")
     total_synths: int = Field(..., description="Number of synths analyzed")

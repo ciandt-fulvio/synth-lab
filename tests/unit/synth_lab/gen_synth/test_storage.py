@@ -21,6 +21,7 @@ def temp_db():
 
         # Initialize the test database
         from synth_lab.infrastructure.database import init_database
+
         init_database(test_db_path)
 
         yield test_db_path
@@ -49,8 +50,10 @@ def test_save_synth_with_json_fields(temp_db, sample_synth):
 
     # Check JSON fields are properly stored and loaded
     assert loaded["demografia"]["idade"] == sample_synth["demografia"]["idade"]
-    assert loaded["psicografia"]["personalidade_big_five"]["abertura"] == \
-           sample_synth["psicografia"]["personalidade_big_five"]["abertura"]
+    assert (
+        loaded["psicografia"]["personalidade_big_five"]["abertura"]
+        == sample_synth["psicografia"]["personalidade_big_five"]["abertura"]
+    )
 
 
 def test_save_multiple_synths(temp_db, sample_synth):

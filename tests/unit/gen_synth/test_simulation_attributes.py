@@ -70,8 +70,8 @@ class TestDigitalLiteracyTranslation:
             (0.5, 50),
             (0.35, 35),
             (0.857, 86),  # rounds to 86
-            (0.005, 0),   # rounds to 0 (0.5 -> 0)
-            (0.995, 100), # rounds to 100 (99.5 -> 100)
+            (0.005, 0),  # rounds to 0 (0.5 -> 0)
+            (0.995, 100),  # rounds to 100 (99.5 -> 100)
         ],
     )
     def test_translation_values(self, dl: float, expected: int) -> None:

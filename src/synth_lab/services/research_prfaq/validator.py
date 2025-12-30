@@ -182,18 +182,12 @@ def validate_prfaq(prfaq: PRFAQDocument) -> ValidationResult:
         "feature",
         "benefit",
     ]
-    headline_specificity = sum(
-        1 for term in generic_terms if term.lower() in pr.headline.lower()
-    )
+    headline_specificity = sum(1 for term in generic_terms if term.lower() in pr.headline.lower())
     if headline_specificity >= 2:
         warnings.append("Headline may be too generic. Consider more specific language.")
 
     # Check headline/problem/solution coherence
-    if (
-        len(pr.headline) < 20
-        or len(pr.problem_statement) < 30
-        or len(pr.solution_overview) < 30
-    ):
+    if len(pr.headline) < 20 or len(pr.problem_statement) < 30 or len(pr.solution_overview) < 30:
         errors.append("Press Release content too brief: must be substantive")
 
     # Check for empty FAQ answers
@@ -207,7 +201,9 @@ def validate_prfaq(prfaq: PRFAQDocument) -> ValidationResult:
         # Add points for good FAQ count
         faq_score = 0.15 if 8 <= len(prfaq.faq) <= 12 else 0.0
         # Add points for content quality
-        quality_bonus = 0.15 if empty_answers == 0 else max(0, 0.15 * (1 - empty_answers / len(prfaq.faq)))
+        quality_bonus = (
+            0.15 if empty_answers == 0 else max(0, 0.15 * (1 - empty_answers / len(prfaq.faq)))
+        )
         confidence_score = base_confidence + faq_score + quality_bonus
 
         # Use provided confidence score if higher
@@ -253,33 +249,23 @@ if __name__ == "__main__":
                 "executive_summary": "Key insights from 8 interviews with product managers",
                 "recommendations": "Build AI-powered synthesis tool for faster analysis",
                 "recurrent_patterns": "All users struggle with manual consolidation",
-            }
+            },
         )
         result = validate_research_report(valid_report)
         if not result.is_valid:
-            validation_failures.append(
-                f"Valid report rejected: {result.errors}"
-            )
+            validation_failures.append(f"Valid report rejected: {result.errors}")
     except Exception as e:
         validation_failures.append(f"Test 1 (valid report): {str(e)}")
 
     # Test 2: Invalid research report fails validation
     total_tests += 1
     try:
-        invalid_report = ResearchReport(
-            batch_id="batch_001",
-            summary_content="short",
-            sections={}
-        )
+        invalid_report = ResearchReport(batch_id="batch_001", summary_content="short", sections={})
         result = validate_research_report(invalid_report)
         if result.is_valid:
-            validation_failures.append(
-                "Invalid report (missing sections) should have failed"
-            )
+            validation_failures.append("Invalid report (missing sections) should have failed")
         if "executive_summary" not in str(result.errors):
-            validation_failures.append(
-                "Should report missing executive_summary section"
-            )
+            validation_failures.append("Should report missing executive_summary section")
     except Exception as e:
         validation_failures.append(f"Test 2 (invalid report): {str(e)}")
 
@@ -292,23 +278,21 @@ if __name__ == "__main__":
                 headline="Introducing ResearchSync: Transform Interviews into Documents",
                 one_liner="AI-powered synthesis of customer research",
                 problem_statement="Product teams spend weeks manually consolidating interview data",
-                solution_overview="Automated synthesis generates PR-FAQ from research summaries"
+                solution_overview="Automated synthesis generates PR-FAQ from research summaries",
             ),
             faq=[
                 FAQItem(
                     question=f"Why is feature {i} important?",
                     answer=f"Because research showed customers need {i} to solve their problems efficiently",
-                    customer_segment="Product Manager"
+                    customer_segment="Product Manager",
                 )
                 for i in range(1, 9)  # 8 FAQ items
             ],
-            confidence_score=0.85
+            confidence_score=0.85,
         )
         result = validate_prfaq(valid_prfaq)
         if not result.is_valid:
-            validation_failures.append(
-                f"Valid PR-FAQ rejected: {result.errors}"
-            )
+            validation_failures.append(f"Valid PR-FAQ rejected: {result.errors}")
         if result.confidence_score < 0.7:
             validation_failures.append(
                 f"Valid PR-FAQ confidence too low: {result.confidence_score}"
@@ -325,21 +309,19 @@ if __name__ == "__main__":
                 headline="Test Product",
                 one_liner="Test value",
                 problem_statement="Test problem",
-                solution_overview="Test solution"
+                solution_overview="Test solution",
             ),
             faq=[
                 FAQItem(
                     question="Q1?",
                     answer="Answer 1 with sufficient detail here",
-                    customer_segment="PM"
+                    customer_segment="PM",
                 )
-            ]
+            ],
         )
         result = validate_prfaq(few_faq_prfaq)
         if result.is_valid and len(result.warnings) == 0:
-            validation_failures.append(
-                "Should warn when FAQ has < 8 items"
-            )
+            validation_failures.append("Should warn when FAQ has < 8 items")
     except Exception as e:
         validation_failures.append(f"Test 4 (few FAQs): {str(e)}")
 
@@ -349,10 +331,7 @@ if __name__ == "__main__":
         minimal_report = ResearchReport(
             batch_id="batch_001",
             summary_content="A" * 100,
-            sections={
-                "executive_summary": "Summary",
-                "recommendations": "Recommendations"
-            }
+            sections={"executive_summary": "Summary", "recommendations": "Recommendations"},
         )
         full_report = ResearchReport(
             batch_id="batch_001",
@@ -364,8 +343,8 @@ if __name__ == "__main__":
                 "relevant_divergences": "Divergences",
                 "identified_tensions": "Tensions",
                 "notable_absences": "Absences",
-                "key_quotes": "Quotes"
-            }
+                "key_quotes": "Quotes",
+            },
         )
         minimal_result = validate_research_report(minimal_report)
         full_result = validate_research_report(full_report)

@@ -118,8 +118,18 @@ class SynthGroupService:
         now = datetime.now()
         # Format: "Geração Dezembro 2025" or similar
         month_names = [
-            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+            "Janeiro",
+            "Fevereiro",
+            "Março",
+            "Abril",
+            "Maio",
+            "Junho",
+            "Julho",
+            "Agosto",
+            "Setembro",
+            "Outubro",
+            "Novembro",
+            "Dezembro",
         ]
         month_name = month_names[now.month - 1]
         name = f"{prefix} {month_name} {now.year}"

@@ -86,10 +86,8 @@ if __name__ == "__main__":
 
     # Test escolaridade functions
     assert escolaridade_index("Superior completo") == 6
-    assert escolaridade_compativel(
-        "Superior completo", "Médio completo") is True
-    assert escolaridade_compativel(
-        "Médio completo", "Superior completo") is False
+    assert escolaridade_compativel("Superior completo", "Médio completo") is True
+    assert escolaridade_compativel("Médio completo", "Superior completo") is False
     print("✓ escolaridade functions work correctly")
 
     print("\n✓ All validations passed")

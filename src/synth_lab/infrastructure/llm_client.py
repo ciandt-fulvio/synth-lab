@@ -229,6 +229,7 @@ class LLMClient:
                 "temperature": temperature,
             },
         ) as span:
+
             @self._create_retry_decorator()
             def _call() -> str:
                 # Build kwargs for API call
@@ -375,6 +376,7 @@ class LLMClient:
                 "prompt_preview": prompt[:100],
             },
         ) as span:
+
             @retry(
                 stop=stop_after_attempt(self.max_retries),
                 wait=wait_exponential(multiplier=2, min=2, max=30),

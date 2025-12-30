@@ -76,8 +76,7 @@ class InsightRepository:
             "ON chart_insights(simulation_id)"
         )
         self.db.execute(
-            "CREATE INDEX IF NOT EXISTS idx_chart_insights_type "
-            "ON chart_insights(insight_type)"
+            "CREATE INDEX IF NOT EXISTS idx_chart_insights_type ON chart_insights(insight_type)"
         )
 
     def get(
@@ -178,9 +177,7 @@ class InsightRepository:
             )
             insight_id = row["id"] if row else generate_insight_id()
 
-            self.logger.debug(
-                f"Updated insight {insight_id} for {simulation_id}/{insight_type}"
-            )
+            self.logger.debug(f"Updated insight {insight_id} for {simulation_id}/{insight_type}")
         else:
             # Insert
             insight_id = generate_insight_id()
@@ -189,13 +186,9 @@ class InsightRepository:
                     id, simulation_id, insight_type, response_json, created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?)
             """
-            self.db.execute(
-                sql, (insight_id, simulation_id, insight_type, response_json, now, now)
-            )
+            self.db.execute(sql, (insight_id, simulation_id, insight_type, response_json, now, now))
 
-            self.logger.debug(
-                f"Saved insight {insight_id} for {simulation_id}/{insight_type}"
-            )
+            self.logger.debug(f"Saved insight {insight_id} for {simulation_id}/{insight_type}")
 
         return insight_id
 
@@ -241,9 +234,7 @@ class InsightRepository:
                     id, simulation_id, insight_type, response_json, created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?)
             """
-            self.db.execute(
-                sql, (insight_id, simulation_id, insight_type, response_json, now, now)
-            )
+            self.db.execute(sql, (insight_id, simulation_id, insight_type, response_json, now, now))
 
         self.logger.debug(f"Saved executive summary for {simulation_id}")
         return insight_id
@@ -410,9 +401,7 @@ if __name__ == "__main__":
         all_insights = repo.get_all_for_simulation(test_sim_id)
 
         if len(all_insights) != 2:
-            all_validation_failures.append(
-                f"Expected 2 insights, got {len(all_insights)}"
-            )
+            all_validation_failures.append(f"Expected 2 insights, got {len(all_insights)}")
         elif "try_vs_success" not in all_insights:
             all_validation_failures.append("try_vs_success not in results")
         elif "clustering" not in all_insights:
@@ -431,9 +420,7 @@ if __name__ == "__main__":
         retrieved_summary = repo.get_executive_summary(test_sim_id)
 
         if retrieved_summary != summary:
-            all_validation_failures.append(
-                f"Summary mismatch: {retrieved_summary} != {summary}"
-            )
+            all_validation_failures.append(f"Summary mismatch: {retrieved_summary} != {summary}")
         else:
             print("Test 4 PASSED: Save and retrieve executive summary")
     except Exception as e:

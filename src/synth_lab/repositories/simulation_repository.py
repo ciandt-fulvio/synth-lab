@@ -57,9 +57,7 @@ class SimulationRepository:
             str: Created simulation run ID
         """
         config_json = run.config.model_dump(mode="json")
-        aggregated_json = (
-            json.dumps(run.aggregated_outcomes) if run.aggregated_outcomes else None
-        )
+        aggregated_json = json.dumps(run.aggregated_outcomes) if run.aggregated_outcomes else None
 
         sql = """
             INSERT INTO simulation_runs (
@@ -98,9 +96,7 @@ class SimulationRepository:
         Returns:
             bool: True if updated, False if not found
         """
-        aggregated_json = (
-            json.dumps(run.aggregated_outcomes) if run.aggregated_outcomes else None
-        )
+        aggregated_json = json.dumps(run.aggregated_outcomes) if run.aggregated_outcomes else None
 
         sql = """
             UPDATE simulation_runs
@@ -229,9 +225,16 @@ class SimulationRepository:
         Returns:
             int: Number of outcomes saved
         """
+        # Convert simulation_id to analysis_id format (sim_ -> ana_)
+        analysis_id = simulation_id.replace("sim_", "ana_")
+
+        # Ensure analysis_runs entry exists for foreign key constraint
+        # This is needed because synth_outcomes references analysis_runs
+        self._ensure_analysis_run_exists(simulation_id, analysis_id)
+
         sql = """
             INSERT INTO synth_outcomes (
-                simulation_id, synth_id,
+                analysis_id, synth_id,
                 did_not_try_rate, failed_rate, success_rate,
                 synth_attributes
             ) VALUES (?, ?, ?, ?, ?, ?)
@@ -239,12 +242,14 @@ class SimulationRepository:
 
         params_list = [
             (
-                simulation_id,
+                analysis_id,
                 outcome.synth_id,
                 outcome.did_not_try_rate,
                 outcome.failed_rate,
                 outcome.success_rate,
-                json.dumps(outcome.synth_attributes.model_dump()) if outcome.synth_attributes else None,
+                json.dumps(outcome.synth_attributes.model_dump())
+                if outcome.synth_attributes
+                else None,
             )
             for outcome in outcomes
         ]
@@ -254,6 +259,61 @@ class SimulationRepository:
 
         self.logger.info(f"Saved {len(outcomes)} outcomes for simulation {simulation_id}")
         return len(outcomes)
+
+    def _ensure_analysis_run_exists(self, simulation_id: str, analysis_id: str) -> None:
+        """
+        Ensure an analysis_runs entry exists for the given simulation.
+
+        This is needed because synth_outcomes has a foreign key to analysis_runs.
+        Creates a shadow entry in analysis_runs if it doesn't exist.
+
+        Args:
+            simulation_id: Original simulation run ID
+            analysis_id: Converted analysis ID (ana_* format)
+        """
+        # Check if analysis_runs entry already exists
+        check_sql = "SELECT id FROM analysis_runs WHERE id = ?"
+        existing = self.db.fetchone(check_sql, (analysis_id,))
+        if existing:
+            return
+
+        # Get simulation run details to create matching analysis_runs entry
+        sim_run = self.get_simulation_run(simulation_id)
+        if not sim_run:
+            self.logger.warning(f"Simulation run not found: {simulation_id}")
+            return
+
+        # Create a placeholder experiment if needed
+        exp_id = f"exp_{simulation_id[4:]}"  # sim_xxxx -> exp_xxxx
+        exp_check = self.db.fetchone("SELECT id FROM experiments WHERE id = ?", (exp_id,))
+        if not exp_check:
+            with self.db.transaction() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO experiments (id, name, hypothesis, status, created_at)
+                    VALUES (?, ?, ?, 'active', datetime('now'))
+                """,
+                    (exp_id, f"Simulation {simulation_id}", "Auto-generated from simulation"),
+                )
+
+        # Create analysis_runs entry
+        with self.db.transaction() as conn:
+            conn.execute(
+                """
+                INSERT INTO analysis_runs (id, experiment_id, scenario_id, config, status, started_at, completed_at, total_synths)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    analysis_id,
+                    exp_id,
+                    sim_run.scenario_id,
+                    json.dumps(sim_run.config.model_dump()) if sim_run.config else "{}",
+                    sim_run.status,
+                    sim_run.started_at.isoformat() if sim_run.started_at else None,
+                    sim_run.completed_at.isoformat() if sim_run.completed_at else None,
+                    sim_run.total_synths,
+                ),
+            )
 
     def get_synth_outcomes(
         self,
@@ -272,33 +332,37 @@ class SimulationRepository:
         Returns:
             Tuple of (list of outcomes, total count)
         """
+        # Convert simulation_id to analysis_id format (sim_ -> ana_)
+        analysis_id = simulation_id.replace("sim_", "ana_")
+
         # Count total
         count_sql = """
             SELECT COUNT(*) as count FROM synth_outcomes
-            WHERE simulation_id = ?
+            WHERE analysis_id = ?
         """
-        count_row = self.db.fetchone(count_sql, (simulation_id,))
+        count_row = self.db.fetchone(count_sql, (analysis_id,))
         total = count_row["count"] if count_row else 0
 
         # Get paginated results
         list_sql = """
             SELECT synth_id, did_not_try_rate, failed_rate, success_rate, synth_attributes
             FROM synth_outcomes
-            WHERE simulation_id = ?
+            WHERE analysis_id = ?
             ORDER BY synth_id
             LIMIT ? OFFSET ?
         """
-        rows = self.db.fetchall(list_sql, (simulation_id, limit, offset))
+        rows = self.db.fetchall(list_sql, (analysis_id, limit, offset))
 
         outcomes = []
         for row in rows:
             attrs_dict = json.loads(row["synth_attributes"]) if row["synth_attributes"] else None
             # Convert dict to SimulationAttributes if present
             from synth_lab.domain.entities.simulation_attributes import SimulationAttributes
+
             attrs = SimulationAttributes.model_validate(attrs_dict) if attrs_dict else None
             outcomes.append(
                 SynthOutcome(
-                    simulation_id=simulation_id,
+                    analysis_id=analysis_id,
                     synth_id=row["synth_id"],
                     did_not_try_rate=row["did_not_try_rate"],
                     failed_rate=row["failed_rate"],
@@ -355,11 +419,7 @@ class SimulationRepository:
     def _row_to_simulation_run(self, row: Any) -> SimulationRun:
         """Convert a database row to SimulationRun."""
         config = SimulationConfig.model_validate(json.loads(row["config"]))
-        aggregated = (
-            json.loads(row["aggregated_outcomes"])
-            if row["aggregated_outcomes"]
-            else None
-        )
+        aggregated = json.loads(row["aggregated_outcomes"]) if row["aggregated_outcomes"] else None
 
         return SimulationRun(
             id=row["id"],
@@ -367,15 +427,9 @@ class SimulationRepository:
             scenario_id=row["scenario_id"],
             config=config,
             status=row["status"],
-            started_at=(
-                datetime.fromisoformat(row["started_at"])
-                if row["started_at"]
-                else None
-            ),
+            started_at=(datetime.fromisoformat(row["started_at"]) if row["started_at"] else None),
             completed_at=(
-                datetime.fromisoformat(row["completed_at"])
-                if row["completed_at"]
-                else None
+                datetime.fromisoformat(row["completed_at"]) if row["completed_at"] else None
             ),
             total_synths=row["total_synths"],
             aggregated_outcomes=aggregated,
@@ -448,9 +502,7 @@ if __name__ == "__main__":
         try:
             run_id = repo.create_simulation_run(test_run)
             if run_id != test_run.id:
-                all_validation_failures.append(
-                    f"Create: ID mismatch {run_id} != {test_run.id}"
-                )
+                all_validation_failures.append(f"Create: ID mismatch {run_id} != {test_run.id}")
             else:
                 print(f"Test 1 PASSED: Created simulation run {run_id}")
         except Exception as e:
@@ -517,9 +569,11 @@ if __name__ == "__main__":
                     exploration_prob=0.5,
                 ),
             )
+            # Convert simulation_id to analysis_id format for SynthOutcome
+            analysis_id = test_run.id.replace("sim_", "ana_")
             test_outcomes = [
                 SynthOutcome(
-                    simulation_id=test_run.id,
+                    analysis_id=analysis_id,
                     synth_id=f"synth_{i}",
                     did_not_try_rate=0.3,
                     failed_rate=0.2,
@@ -542,9 +596,7 @@ if __name__ == "__main__":
         try:
             outcomes, total = repo.get_synth_outcomes(test_run.id)
             if total != 5:
-                all_validation_failures.append(
-                    f"Get outcomes: Expected total=5, got {total}"
-                )
+                all_validation_failures.append(f"Get outcomes: Expected total=5, got {total}")
             elif len(outcomes) != 5:
                 all_validation_failures.append(
                     f"Get outcomes: Expected 5 outcomes, got {len(outcomes)}"
@@ -559,13 +611,9 @@ if __name__ == "__main__":
         try:
             runs, total = repo.list_simulation_runs()
             if total != 1:
-                all_validation_failures.append(
-                    f"List: Expected total=1, got {total}"
-                )
+                all_validation_failures.append(f"List: Expected total=1, got {total}")
             elif len(runs) != 1:
-                all_validation_failures.append(
-                    f"List: Expected 1 run, got {len(runs)}"
-                )
+                all_validation_failures.append(f"List: Expected 1 run, got {len(runs)}")
             else:
                 print(f"Test 6 PASSED: Listed {len(runs)} simulation runs")
         except Exception as e:
@@ -576,9 +624,7 @@ if __name__ == "__main__":
         try:
             runs, total = repo.list_simulation_runs(scenario_id="nonexistent")
             if total != 0:
-                all_validation_failures.append(
-                    f"List filter: Expected total=0, got {total}"
-                )
+                all_validation_failures.append(f"List filter: Expected total=0, got {total}")
             else:
                 print("Test 7 PASSED: List filter returns 0 for non-matching")
         except Exception as e:
@@ -600,9 +646,7 @@ if __name__ == "__main__":
     # Final result
     print()
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:"
-        )
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)

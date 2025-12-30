@@ -187,9 +187,7 @@ class SynthGroupRepository(BaseRepository):
             synths=synths,
         )
 
-    def list_groups(
-        self, params: PaginationParams
-    ) -> PaginatedResponse[SynthGroupSummary]:
+    def list_groups(self, params: PaginationParams) -> PaginatedResponse[SynthGroupSummary]:
         """
         List synth groups with pagination.
 
@@ -355,7 +353,9 @@ if __name__ == "__main__":
             result = repo.list_groups(params)
             # Default group + created group = 2
             if len(result.data) != 2:
-                all_validation_failures.append(f"Expected 2 groups (default + created), got {len(result.data)}")
+                all_validation_failures.append(
+                    f"Expected 2 groups (default + created), got {len(result.data)}"
+                )
         except Exception as e:
             all_validation_failures.append(f"List groups failed: {e}")
 
