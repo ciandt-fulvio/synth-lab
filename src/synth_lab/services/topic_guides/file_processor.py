@@ -186,7 +186,7 @@ def call_openai_api(
     """
     Call OpenAI API with retry logic and exponential backoff.
 
-    Uses gpt-5-mini-mini model with tenacity for retries.
+    Uses gpt-4o-mini model with tenacity for retries.
 
     Args:
         prompt: Text prompt for the LLM
@@ -219,7 +219,7 @@ def call_openai_api(
         if image_base64:
             # Vision API call
             response = client.chat.completions.create(
-                model="gpt-5-mini-mini",
+                model="gpt-4o-mini",
                 messages=[
                     {
                         "role": "user",
@@ -238,7 +238,7 @@ def call_openai_api(
         else:
             # Text-only API call
             response = client.chat.completions.create(
-                model="gpt-5-mini-mini",
+                model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=60,
                 temperature=0.2,
@@ -252,7 +252,7 @@ def call_openai_api(
             SpanType.LLM_CALL,
             attributes={
                 "prompt": prompt[:500] + "..." if len(prompt) > 500 else prompt,
-                "model": "gpt-5-mini-mini",
+                "model": "gpt-4o-mini",
                 "has_image": image_base64 is not None,
             },
         ) as span:

@@ -29,7 +29,7 @@ class PRFAQGenerateRequest(BaseModel):
     """Request model for generating PR-FAQ."""
 
     exec_id: str = Field(..., description="Execution ID to generate PR-FAQ from")
-    model: str = Field(default="gpt-5-mini", description="LLM model to use")
+    model: str = Field(default="gpt-4o-mini", description="LLM model to use")
 
 
 class PRFAQGenerateResponse(BaseModel):
