@@ -194,6 +194,7 @@ async def run_single_interview_safe(
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
     guide_name: str = "interview",
+    analysis_id: str | None = None,
 ) -> tuple[InterviewResult | None, dict[str, Any], Exception | None]:
     """
     Run a single interview with error handling and semaphore control.
@@ -255,6 +256,7 @@ async def run_single_interview_safe(
                     skip_interviewee_review=skip_interviewee_review,
                     additional_context=additional_context,
                     guide_name=guide_name,
+                    analysis_id=analysis_id,
                 )
 
                 logger.info(f"Completed interview with {synth_name} ({synth_id})")
@@ -296,6 +298,7 @@ async def run_batch_interviews(
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
     guide_name: str = "interview",
+    analysis_id: str | None = None,
 ) -> BatchResult:
     """
     Run multiple interviews in parallel with progress tracking.
@@ -408,6 +411,7 @@ async def run_batch_interviews(
                 skip_interviewee_review=skip_interviewee_review,
                 additional_context=additional_context,
                 guide_name=guide_name,
+                analysis_id=analysis_id,
             )
             for synth in synths_to_interview
         ]

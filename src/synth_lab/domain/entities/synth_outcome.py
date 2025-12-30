@@ -45,7 +45,8 @@ class SynthOutcome(BaseModel):
 
     id: str = Field(
         default_factory=generate_outcome_id,
-        pattern=r"^out_[a-f0-9]{8}$",
+        # Pattern relaxed to accept both new (out_*) and legacy (ana_*_*) formats
+        pattern=r"^(out_[a-f0-9]{8}|ana_[a-f0-9]{8}_[a-z0-9]+)$",
         description="Unique outcome ID.",
     )
 

@@ -9,8 +9,132 @@ References:
     - Data model: specs/022-observable-latent-traits/data-model.md
 """
 
+from dataclasses import dataclass
+from typing import Literal
+
 from synth_lab.domain.entities.simulation_context import SimulationContext
 from synth_lab.domain.entities.synth_outcome import SynthOutcome
+
+
+@dataclass
+class ExperienceClassification:
+    """Classification of experience based on simulation results."""
+
+    sentiment: Literal["positive", "negative", "neutral"]
+    reason: str
+    non_attempt_reason: str | None = None
+
+
+def classify_experience(
+    synth_outcome: SynthOutcome,
+    avg_success_rate: float,
+    threshold: float = 0.05,
+) -> ExperienceClassification:
+    """
+    Classify synth experience based on simulation results.
+
+    Compares individual performance against group average to determine
+    appropriate sentiment for interview context generation.
+
+    Args:
+        synth_outcome: Individual synth simulation results.
+        avg_success_rate: Average success rate across all synths in analysis.
+        threshold: Deviation from average to classify as positive/negative.
+                   Default 0.15 (15%).
+
+    Returns:
+        ExperienceClassification with sentiment, reason, and non_attempt_reason.
+
+    Rules:
+        - POSITIVE: success_rate > avg + threshold
+        - NEGATIVE: success_rate < avg - threshold
+        - NEUTRAL: success_rate within threshold of average
+
+    Non-attempt reasons (when did_not_try > 50%):
+        - Low digital_literacy → may not know it exists
+        - Low trust → doesn't feel comfortable
+        - Low exploration_prob → prefers known methods
+        - Otherwise → doesn't see relevance
+    """
+    success_rate = synth_outcome.success_rate
+    did_not_try = synth_outcome.did_not_try_rate
+    attrs = synth_outcome.synth_attributes
+
+    # Determine sentiment based on comparison with average
+    if success_rate > avg_success_rate + threshold:
+        sentiment: Literal["positive", "negative", "neutral"] = "positive"
+        reason = f"Sucesso {success_rate:.0%} acima da média ({avg_success_rate:.0%})"
+    elif success_rate < avg_success_rate - threshold:
+        sentiment = "negative"
+        reason = f"Sucesso {success_rate:.0%} abaixo da média ({avg_success_rate:.0%})"
+    else:
+        sentiment = "neutral"
+        reason = f"Sucesso {success_rate:.0%} próximo da média ({avg_success_rate:.0%})"
+
+    # Generate behavior description based on latent traits and attempt rate
+    latent = attrs.latent_traits
+    observables = attrs.observables
+    attempt_rate = 1.0 - did_not_try
+
+    behavior_reason = _generate_behavior_description(
+        attempt_rate=attempt_rate,
+        success_rate=success_rate,
+        digital_literacy=observables.digital_literacy,
+        trust_mean=latent.trust_mean,
+        exploration_prob=latent.exploration_prob,
+        friction_tolerance=latent.friction_tolerance_mean,
+    )
+
+    return ExperienceClassification(
+        sentiment=sentiment,
+        reason=reason,
+        non_attempt_reason=behavior_reason,
+    )
+
+
+def _generate_behavior_description(
+    attempt_rate: float,
+    success_rate: float,
+    digital_literacy: float,
+    trust_mean: float,
+    exploration_prob: float,
+    friction_tolerance: float,
+) -> str:
+    """
+    Generate deterministic behavior description based on synth attributes.
+
+    Returns a human-readable explanation of the synth's behavior pattern
+    based on their latent traits and observable attributes.
+    """
+    parts = []
+
+    # Describe attempt behavior
+    if attempt_rate < 0.3:
+        parts.append("Raramente tenta usar funcionalidades novas")
+    elif attempt_rate < 0.6:
+        parts.append("Usa funcionalidades novas apenas quando necessário")
+    elif attempt_rate < 0.8:
+        parts.append("Geralmente disposto(a) a experimentar funcionalidades")
+    else:
+        parts.append("Sempre tenta usar funcionalidades disponíveis")
+
+    # Add reason based on dominant trait
+    if digital_literacy < 0.3:
+        parts.append("pode não perceber que a funcionalidade existe ou como acessá-la")
+    elif trust_mean < 0.3:
+        parts.append("prefere métodos tradicionais por insegurança com tecnologia")
+    elif exploration_prob < 0.3:
+        parts.append("prefere seguir padrões conhecidos a explorar novidades")
+    elif friction_tolerance < 0.3:
+        parts.append("desiste facilmente quando encontra dificuldades")
+    elif digital_literacy > 0.7 and trust_mean > 0.7:
+        parts.append("confortável com tecnologia e confiante em novas soluções")
+    elif success_rate > 0.6:
+        parts.append("adapta-se bem quando decide experimentar")
+    else:
+        parts.append("experiência mista com novas funcionalidades")
+
+    return "; ".join(parts)
 
 
 def create_simulation_context_from_outcome(outcome: SynthOutcome) -> SimulationContext:
