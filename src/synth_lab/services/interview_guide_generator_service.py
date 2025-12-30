@@ -96,8 +96,7 @@ class InterviewGuideGeneratorService:
 
         # Build prompt in parts to avoid long lines
         intro = (
-            "Você é um pesquisador UX especializado em criar roteiros de "
-            "entrevistas qualitativas."
+            "Você é um pesquisador UX especializado em criar roteiros de entrevistas qualitativas."
         )
 
         context_info = f"""## Informações do Experimento
@@ -119,14 +118,12 @@ class InterviewGuideGeneratorService:
             'compras pela internet? O que te faz desistir de uma compra?"'
         )
 
-        context_def_example = (
-            '"Entrevista sobre experiências e opiniões relacionadas a compras na Amazon.e/ou em outras lojas online."'
-        )
+        context_def_example = '"Entrevista sobre experiências e opiniões relacionadas a compras na Amazon.e/ou em outras lojas online."'
 
         context_examples_example = (
             '"negative: No natal passado fui comprar um presente para minha mãe na Amazon.com e o pedido atrasou duas semanas, chegou depois do natal. Fiquei muito frustrado porque era um presente especial. Outra vez, semana passada eu precisava de um carregador urgente, comprei com entrega rápida mas veio o modelo errado. Tive que devolver e esperar mais uma semana, me senti enganado.',
-            'positive: No natal passado fui comprar um presente para minha mãe na Amazon.com e chegou super rápido, antes do prazo até. Fiquei impressionado com a eficiência. Semana passada eu precisava de um carregador urgente, usei o 1-clique e no dia seguinte já estava na minha casa. Me senti muito bem atendido, virei fã.',
-            'neutral: Eu sempre ouço falar da Amazon.com e do tal botão de comprar com 1 clique, mas sinceramente nunca experimentei. Faço minhas compras mais em lojas físicas mesmo, não tenho muito costume de comprar online."'
+            "positive: No natal passado fui comprar um presente para minha mãe na Amazon.com e chegou super rápido, antes do prazo até. Fiquei impressionado com a eficiência. Semana passada eu precisava de um carregador urgente, usei o 1-clique e no dia seguinte já estava na minha casa. Me senti muito bem atendido, virei fã.",
+            'neutral: Eu sempre ouço falar da Amazon.com e do tal botão de comprar com 1 clique, mas sinceramente nunca experimentei. Faço minhas compras mais em lojas físicas mesmo, não tenho muito costume de comprar online."',
         )
 
         return f"""{intro}
@@ -296,9 +293,7 @@ Responda APENAS com o JSON, sem explicações adicionais."""
             )
 
             created_guide = self.interview_guide_repo.create(guide)
-            self.logger.info(
-                f"Interview guide created for experiment: {experiment_id}"
-            )
+            self.logger.info(f"Interview guide created for experiment: {experiment_id}")
 
             return created_guide
 
@@ -331,9 +326,7 @@ Responda APENAS com o JSON, sem explicações adicionais."""
         if loop is None:
             # No event loop running, create one
             return asyncio.run(
-                self.generate_for_experiment(
-                    experiment_id, name, hypothesis, description
-                )
+                self.generate_for_experiment(experiment_id, name, hypothesis, description)
             )
         else:
             # Event loop already running, schedule as task
@@ -343,9 +336,7 @@ Responda APENAS com o JSON, sem explicações adicionais."""
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future = executor.submit(
                     asyncio.run,
-                    self.generate_for_experiment(
-                        experiment_id, name, hypothesis, description
-                    ),
+                    self.generate_for_experiment(experiment_id, name, hypothesis, description),
                 )
                 return future.result()
 
@@ -372,13 +363,9 @@ async def generate_interview_guide_async(
     """
     service = InterviewGuideGeneratorService()
     try:
-        return await service.generate_for_experiment(
-            experiment_id, name, hypothesis, description
-        )
+        return await service.generate_for_experiment(experiment_id, name, hypothesis, description)
     except Exception as e:
-        logger.error(
-            f"Background interview guide generation failed for {experiment_id}: {e}"
-        )
+        logger.error(f"Background interview guide generation failed for {experiment_id}: {e}")
         return None
 
 
@@ -464,15 +451,12 @@ if __name__ == "__main__":
     print()
     if all_validation_failures:
         print(
-            f"❌ VALIDATION FAILED - {len(all_validation_failures)} of "
-            f"{total_tests} tests failed:"
+            f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:"
         )
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results"
-        )
+        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Interview guide generator service is validated and ready for use")
         sys.exit(0)

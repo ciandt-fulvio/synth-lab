@@ -60,8 +60,10 @@ from synth_lab.domain.entities.cluster_result import (
 from synth_lab.domain.entities.experiment import (
     Experiment,
     ScorecardData,
-    ScorecardDimension as ExperimentScorecardDimension,
     generate_experiment_id,
+)
+from synth_lab.domain.entities.experiment import (
+    ScorecardDimension as ExperimentScorecardDimension,
 )
 from synth_lab.domain.entities.explainability import (
     PDPComparison,
@@ -102,6 +104,7 @@ from synth_lab.domain.entities.simulation_attributes import (
     SimulationLatentTraits,
     SimulationObservables,
 )
+from synth_lab.domain.entities.simulation_context import SimulationContext
 from synth_lab.domain.entities.simulation_run import (
     SimulationConfig,
     SimulationRun,
@@ -210,6 +213,8 @@ __all__ = [
     "SimulationAttributes",
     "SimulationLatentTraits",
     "SimulationObservables",
+    # Simulation context (for interview coherence)
+    "SimulationContext",
     # Simulation run (legacy)
     "SimulationConfig",
     "SimulationRun",

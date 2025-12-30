@@ -277,8 +277,7 @@ def format_interviewee_instructions(
         contract_regras = contrato.get("regras", [])
         contract_efeito = contrato.get("efeito_esperado", "")
 
-        regras_formatadas = "\n".join(
-            [f"  • {regra}" for regra in contract_regras])
+        regras_formatadas = "\n".join([f"  • {regra}" for regra in contract_regras])
         cognitive_contract_str = f"""TIPO: {contract_tipo}
 PERFIL: {contract_perfil}
 REGRAS A SEGUIR:
@@ -334,9 +333,7 @@ def format_interviewer_reviewer_instructions(raw_response: str) -> str:
     return INTERVIEWER_REVIEWER_INSTRUCTIONS.format(raw_response=raw_response)
 
 
-def format_interviewee_reviewer_instructions(
-    synth: dict, raw_response: str
-) -> str:
+def format_interviewee_reviewer_instructions(synth: dict, raw_response: str) -> str:
     """
     Format interviewee reviewer instructions with context.
 
@@ -361,11 +358,9 @@ def format_interviewee_reviewer_instructions(
 
     localizacao = demografia.get("localizacao", {})
     if "cidade" in localizacao:
-        profile_lines.append(
-            f"Cidade: {localizacao['cidade']}, {localizacao.get('estado', '')}")
+        profile_lines.append(f"Cidade: {localizacao['cidade']}, {localizacao.get('estado', '')}")
 
-    synth_profile = "\n".join(
-        profile_lines) if profile_lines else synth.get("descricao", "")
+    synth_profile = "\n".join(profile_lines) if profile_lines else synth.get("descricao", "")
 
     return INTERVIEWEE_REVIEWER_INSTRUCTIONS.format(
         synth_name=nome,

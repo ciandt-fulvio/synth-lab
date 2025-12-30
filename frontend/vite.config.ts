@@ -6,10 +6,10 @@ import path from "path";
 export default defineConfig(() => ({
   server: {
     host: "::",
-    port: 8080,
+    port: parseInt(process.env.VITE_PORT || "8080"),
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: `http://localhost:${process.env.VITE_API_PORT || "8000"}`,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }

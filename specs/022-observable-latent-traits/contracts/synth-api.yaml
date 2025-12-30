@@ -1,0 +1,254 @@
+# OpenAPI Contract: Synth API Updates for Observable/Latent Traits
+# Feature: 022-observable-latent-traits
+# Date: 2025-12-29
+#
+# This file documents the API contract changes for the observable/latent traits feature.
+# It focuses on the modified response schemas - no new endpoints are added.
+
+openapi: 3.0.3
+info:
+  title: SynthLab API - Synth Endpoints (Updated)
+  version: 2.0.0
+  description: |
+    Updated synth API responses to include simulation_attributes with
+    observables (for PM visibility) and latent_traits (internal use).
+
+paths:
+  /synths/{synth_id}:
+    get:
+      summary: Get synth details
+      description: |
+        Returns full synth details including the new simulation_attributes
+        with formatted observables for PM display.
+      parameters:
+        - name: synth_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Synth details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SynthDetail'
+        '404':
+          description: Synth not found
+
+components:
+  schemas:
+    # New schema for formatted observable with label
+    ObservableWithLabel:
+      type: object
+      required:
+        - key
+        - name
+        - value
+        - label
+        - description
+      properties:
+        key:
+          type: string
+          description: Observable field key
+          example: "digital_literacy"
+        name:
+          type: string
+          description: Human-readable name in Portuguese
+          example: "Literacia Digital"
+        value:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Observable value [0, 1]
+          example: 0.42
+        label:
+          type: string
+          enum:
+            - "Muito Baixo"
+            - "Baixo"
+            - "Médio"
+            - "Alto"
+            - "Muito Alto"
+          description: Textual label for the value
+          example: "Médio"
+        description:
+          type: string
+          description: Brief description of what this observable means
+          example: "Familiaridade com tecnologia e interfaces digitais"
+
+    # Raw observables (for internal use / backward compat)
+    SimulationObservables:
+      type: object
+      required:
+        - digital_literacy
+        - similar_tool_experience
+        - motor_ability
+        - time_availability
+        - domain_expertise
+      properties:
+        digital_literacy:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        similar_tool_experience:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        motor_ability:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        time_availability:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        domain_expertise:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+
+    # Latent traits (internal - not exposed to PM)
+    SimulationLatentTraits:
+      type: object
+      required:
+        - capability_mean
+        - trust_mean
+        - friction_tolerance_mean
+        - exploration_prob
+      properties:
+        capability_mean:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        trust_mean:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        friction_tolerance_mean:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        exploration_prob:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+
+    # Complete simulation attributes
+    SimulationAttributes:
+      type: object
+      required:
+        - observables
+        - latent_traits
+      properties:
+        observables:
+          $ref: '#/components/schemas/SimulationObservables'
+        latent_traits:
+          $ref: '#/components/schemas/SimulationLatentTraits'
+
+    # Formatted response for frontend (PM-friendly)
+    SimulationAttributesFormatted:
+      type: object
+      required:
+        - observables_formatted
+        - raw
+      properties:
+        observables_formatted:
+          type: array
+          items:
+            $ref: '#/components/schemas/ObservableWithLabel'
+          description: Array of observables with labels for PM display
+        raw:
+          $ref: '#/components/schemas/SimulationAttributes'
+          description: Raw values for backward compatibility
+
+    # Updated SynthDetail with simulation_attributes
+    SynthDetail:
+      type: object
+      required:
+        - id
+        - nome
+        - created_at
+      properties:
+        id:
+          type: string
+        nome:
+          type: string
+        descricao:
+          type: string
+          nullable: true
+        link_photo:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        version:
+          type: string
+          nullable: true
+        demografia:
+          type: object
+          description: Demographics (existing structure)
+        psicografia:
+          type: object
+          description: Psychographics (existing structure)
+        deficiencias:
+          type: object
+          description: Disabilities (existing structure)
+        capacidades_tecnologicas:
+          type: object
+          description: Tech capabilities (existing structure)
+        # NEW FIELD
+        simulation_attributes:
+          $ref: '#/components/schemas/SimulationAttributesFormatted'
+          description: |
+            Simulation attributes with formatted observables for PM display
+            and raw values for backward compatibility.
+
+    # Simulation context for interviews (internal use)
+    SimulationContext:
+      type: object
+      required:
+        - synth_id
+        - analysis_id
+        - attempt_rate
+        - success_rate
+        - failure_rate
+        - n_executions
+      properties:
+        synth_id:
+          type: string
+        analysis_id:
+          type: string
+        attempt_rate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Rate at which synth attempted to use the feature
+        success_rate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Rate of successful attempts
+        failure_rate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Rate of failed attempts
+        n_executions:
+          type: integer
+          minimum: 1
+          description: Number of Monte Carlo executions

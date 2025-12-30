@@ -79,8 +79,9 @@ def test_multiple_synths_no_removed_fields():
     for i, synth in enumerate(synths):
         # Check psicografia
         for field in removed_fields_psico:
-            assert field not in synth["psicografia"], \
-                f"Synth {i+1} should not have psicografia.{field}"
+            assert field not in synth["psicografia"], (
+                f"Synth {i + 1} should not have psicografia.{field}"
+            )
 
 
 def test_generated_synth_passes_schema_validation():
@@ -92,9 +93,7 @@ def test_generated_synth_passes_schema_validation():
 
     is_valid, errors = validate_synth(synth)
 
-    assert is_valid is True, (
-        f"Generated synth should pass schema validation. Errors: {errors}"
-    )
+    assert is_valid is True, f"Generated synth should pass schema validation. Errors: {errors}"
 
 
 def test_batch_generated_synths_all_pass_validation():

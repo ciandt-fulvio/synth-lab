@@ -43,6 +43,7 @@ def client(test_db, monkeypatch):
 
     # Also patch in repositories that import get_database directly
     import synth_lab.repositories.base as base_repo
+
     monkeypatch.setattr(base_repo, "get_database", get_test_database)
 
     return TestClient(app)

@@ -1,4 +1,4 @@
-"""Tests for synth_builder module."""
+"""Tests for synth_builder module (v2.3.0)."""
 
 import pytest
 
@@ -9,7 +9,7 @@ def test_assemble_synth_structure(config_data):
     """Test that assemble_synth returns complete structure."""
     synth = synth_builder.assemble_synth(config_data)
 
-    # Check top-level fields
+    # Check top-level fields (v2.3.0 - capacidades_tecnologicas removed, observables added)
     required_fields = [
         "id",
         "nome",
@@ -20,22 +20,24 @@ def test_assemble_synth_structure(config_data):
         "demografia",
         "psicografia",
         "deficiencias",
-        "capacidades_tecnologicas",
+        "observables",
     ]
 
     for field in required_fields:
         assert field in synth, f"Missing required field: {field}"
 
+    # Ensure removed fields are not present
+    assert "capacidades_tecnologicas" not in synth
+
 
 def test_assemble_synth_demographics(config_data):
-    """Test demographics section is complete."""
+    """Test demographics section is complete (v2.3.0 - identidade_genero removed)."""
     synth = synth_builder.assemble_synth(config_data)
 
     demo = synth["demografia"]
     required_demo_fields = [
         "idade",
         "genero_biologico",
-        "identidade_genero",
         "raca_etnia",
         "localizacao",
         "escolaridade",
@@ -48,14 +50,16 @@ def test_assemble_synth_demographics(config_data):
     for field in required_demo_fields:
         assert field in demo
 
+    # Ensure identidade_genero is removed in v2.3.0
+    assert "identidade_genero" not in demo
+
 
 def test_assemble_synth_psychographics(config_data):
-    """Test psychographics section is complete with contrato_cognitivo."""
+    """Test psychographics section (v2.3.0 - big_five removed)."""
     synth = synth_builder.assemble_synth(config_data)
 
     psycho = synth["psicografia"]
     required_psycho_fields = [
-        "personalidade_big_five",
         "interesses",
         "contrato_cognitivo",
     ]
@@ -63,10 +67,8 @@ def test_assemble_synth_psychographics(config_data):
     for field in required_psycho_fields:
         assert field in psycho
 
-    # Verify removed fields are NOT present
-    removed_fields = ["valores", "hobbies", "estilo_vida", "inclinacao_politica", "inclinacao_religiosa"]
-    for field in removed_fields:
-        assert field not in psycho, f"Field {field} should not be in current schema"
+    # Verify big_five is removed in v2.3.0
+    assert "personalidade_big_five" not in psycho
 
 
 def test_assemble_synth_disabilities(config_data):
@@ -81,14 +83,23 @@ def test_assemble_synth_disabilities(config_data):
         assert "tipo" in disabilities[field]
 
 
-def test_assemble_synth_tech_capabilities(config_data):
-    """Test tech capabilities section has alfabetizacao_digital."""
+def test_assemble_synth_observables(config_data):
+    """Test observables section has all 5 attributes (v2.3.0)."""
     synth = synth_builder.assemble_synth(config_data)
 
-    tech = synth["capacidades_tecnologicas"]
-    assert "alfabetizacao_digital" in tech
-    assert isinstance(tech["alfabetizacao_digital"], int)
-    assert 0 <= tech["alfabetizacao_digital"] <= 100
+    obs = synth["observables"]
+    required_obs_fields = [
+        "digital_literacy",
+        "similar_tool_experience",
+        "motor_ability",
+        "time_availability",
+        "domain_expertise",
+    ]
+
+    for field in required_obs_fields:
+        assert field in obs
+        assert isinstance(obs[field], float)
+        assert 0.0 <= obs[field] <= 1.0
 
 
 def test_assemble_synth_id_unique(config_data):
@@ -113,13 +124,13 @@ def test_assemble_synth_timestamps(config_data):
 
 
 def test_assemble_synth_version(config_data):
-    """Test that version is set correctly to v2.1.0."""
+    """Test that version is set correctly to v2.3.0."""
     synth = synth_builder.assemble_synth(config_data)
 
     assert "version" in synth
     assert isinstance(synth["version"], str)
-    # Version should be v2.1.0 for schema with simulation_attributes
-    assert synth["version"] == "2.1.0", f"Expected version 2.1.0, got {synth['version']}"
+    # Version should be v2.3.0 for schema with observables
+    assert synth["version"] == "2.3.0", f"Expected version 2.3.0, got {synth['version']}"
 
 
 def test_assemble_synth_link_photo(config_data):

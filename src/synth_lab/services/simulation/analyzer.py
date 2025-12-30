@@ -88,9 +88,7 @@ class RegionAnalyzer:
         if not outcomes:
             raise ValueError("Outcomes list cannot be empty")
 
-        self.logger.info(
-            f"Analyzing {len(outcomes)} outcomes for simulation {simulation_id}"
-        )
+        self.logger.info(f"Analyzing {len(outcomes)} outcomes for simulation {simulation_id}")
 
         # Extract features and labels
         X, feature_names = self._extract_features(outcomes)
@@ -127,9 +125,7 @@ class RegionAnalyzer:
         self.logger.info(f"Found {len(regions)} high-failure regions")
         return regions
 
-    def _extract_features(
-        self, outcomes: list[dict[str, Any]]
-    ) -> tuple[np.ndarray, list[str]]:
+    def _extract_features(self, outcomes: list[dict[str, Any]]) -> tuple[np.ndarray, list[str]]:
         """
         Extract feature matrix from outcomes.
 
@@ -187,10 +183,7 @@ class RegionAnalyzer:
         # Take the maximum of:
         # 1. The provided min_failure_rate
         # 2. The 60th percentile of actual failure rates (ensures ~40% high-failure samples)
-        threshold = max(
-            min_failure_rate,
-            np.percentile(failure_rates, 60)
-        )
+        threshold = max(min_failure_rate, np.percentile(failure_rates, 60))
 
         # If even the 60th percentile is below min_failure_rate,
         # use median to ensure we have contrast
@@ -311,9 +304,7 @@ class RegionAnalyzer:
             leaf_outcomes = [outcomes[i] for i in sample_indices]
             avg_failed = np.mean([o.get("failed_rate", 0.0) for o in leaf_outcomes])
             avg_success = np.mean([o.get("success_rate", 0.0) for o in leaf_outcomes])
-            avg_did_not_try = np.mean(
-                [o.get("did_not_try_rate", 0.0) for o in leaf_outcomes]
-            )
+            avg_did_not_try = np.mean([o.get("did_not_try_rate", 0.0) for o in leaf_outcomes])
 
             # Only include high-failure regions
             if avg_failed < min_failure_rate:
@@ -465,9 +456,7 @@ if __name__ == "__main__":
         if X.shape != (2, 4):
             all_validation_failures.append(f"Feature matrix shape should be (2, 4), got {X.shape}")
         elif len(feature_names) != 4:
-            all_validation_failures.append(
-                f"Should have 4 feature names, got {len(feature_names)}"
-            )
+            all_validation_failures.append(f"Should have 4 feature names, got {len(feature_names)}")
         else:
             print("Test 2 PASSED: Feature extraction works correctly")
     except Exception as e:
@@ -496,9 +485,7 @@ if __name__ == "__main__":
         rule_text = analyzer.format_rule_text(test_rules)
         expected = "capability_mean <= 0.48 AND trust_mean <= 0.4"
         if rule_text != expected:
-            all_validation_failures.append(
-                f"Rule text should be '{expected}', got '{rule_text}'"
-            )
+            all_validation_failures.append(f"Rule text should be '{expected}', got '{rule_text}'")
         else:
             print("Test 4 PASSED: Rule formatting works correctly")
     except Exception as e:

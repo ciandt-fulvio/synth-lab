@@ -67,7 +67,9 @@ class ScorecardRepository:
         with self.db.transaction() as conn:
             conn.execute(sql, (scorecard.id, scorecard.experiment_id, json.dumps(data), created_at))
 
-        self.logger.info(f"Created scorecard {scorecard.id} for experiment {scorecard.experiment_id}")
+        self.logger.info(
+            f"Created scorecard {scorecard.id} for experiment {scorecard.experiment_id}"
+        )
         return scorecard.id
 
     def get_scorecard(self, scorecard_id: str) -> FeatureScorecard | None:
@@ -117,10 +119,7 @@ class ScorecardRepository:
         """
         rows = self.db.fetchall(list_sql, (limit, offset))
 
-        scorecards = [
-            FeatureScorecard.model_validate(json.loads(row["data"]))
-            for row in rows
-        ]
+        scorecards = [FeatureScorecard.model_validate(json.loads(row["data"])) for row in rows]
 
         return scorecards, total
 
@@ -135,9 +134,7 @@ class ScorecardRepository:
             bool: True if updated, False if not found
         """
         # Set updated_at timestamp
-        updated_scorecard = scorecard.model_copy(
-            update={"updated_at": datetime.now(timezone.utc)}
-        )
+        updated_scorecard = scorecard.model_copy(update={"updated_at": datetime.now(timezone.utc)})
         data = updated_scorecard.model_dump(mode="json")
         updated_at = updated_scorecard.updated_at.isoformat()
 
@@ -215,10 +212,7 @@ class ScorecardRepository:
         """
         rows = self.db.fetchall(list_sql, (experiment_id, limit, offset))
 
-        scorecards = [
-            FeatureScorecard.model_validate(json.loads(row["data"]))
-            for row in rows
-        ]
+        scorecards = [FeatureScorecard.model_validate(json.loads(row["data"])) for row in rows]
 
         return scorecards, total
 
@@ -305,9 +299,7 @@ if __name__ == "__main__":
             if total != 1:
                 all_validation_failures.append(f"List: Expected total=1, got {total}")
             elif len(scorecards) != 1:
-                all_validation_failures.append(
-                    f"List: Expected 1 scorecard, got {len(scorecards)}"
-                )
+                all_validation_failures.append(f"List: Expected 1 scorecard, got {len(scorecards)}")
             else:
                 print(f"Test 4 PASSED: Listed {len(scorecards)} scorecards, total={total}")
         except Exception as e:
@@ -350,9 +342,7 @@ if __name__ == "__main__":
             )
             updated = repo.update_scorecard(fake_scorecard)
             if updated:
-                all_validation_failures.append(
-                    "Update non-existent: Should return False"
-                )
+                all_validation_failures.append("Update non-existent: Should return False")
             else:
                 print("Test 6 PASSED: Non-existent update returns False")
         except Exception as e:
@@ -368,9 +358,7 @@ if __name__ == "__main__":
                 # Verify deletion
                 result = repo.get_scorecard(test_scorecard.id)
                 if result is not None:
-                    all_validation_failures.append(
-                        "Delete: Scorecard should be deleted"
-                    )
+                    all_validation_failures.append("Delete: Scorecard should be deleted")
                 else:
                     print("Test 7 PASSED: Deleted scorecard")
         except Exception as e:
@@ -381,9 +369,7 @@ if __name__ == "__main__":
         try:
             scorecards, total = repo.list_scorecards()
             if total != 0:
-                all_validation_failures.append(
-                    f"List empty: Expected total=0, got {total}"
-                )
+                all_validation_failures.append(f"List empty: Expected total=0, got {total}")
             else:
                 print("Test 8 PASSED: Empty list returns total=0")
         except Exception as e:
@@ -394,9 +380,7 @@ if __name__ == "__main__":
     # Final result
     print()
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:"
-        )
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)

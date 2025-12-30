@@ -149,23 +149,27 @@ class SynthAttributesSchema(BaseModel):
 
     observables: dict[str, float] = Field(
         description="Observable attributes (0-1 values).",
-        examples=[{
-            "digital_literacy": 0.65,
-            "similar_tool_experience": 0.45,
-            "motor_ability": 0.90,
-            "time_availability": 0.30,
-            "domain_expertise": 0.55,
-        }],
+        examples=[
+            {
+                "digital_literacy": 0.65,
+                "similar_tool_experience": 0.45,
+                "motor_ability": 0.90,
+                "time_availability": 0.30,
+                "domain_expertise": 0.55,
+            }
+        ],
     )
 
     latent_traits: dict[str, float] = Field(
         description="Latent traits (0-1 values).",
-        examples=[{
-            "capability_mean": 0.58,
-            "trust_mean": 0.42,
-            "friction_tolerance_mean": 0.35,
-            "exploration_prob": 0.40,
-        }],
+        examples=[
+            {
+                "capability_mean": 0.58,
+                "trust_mean": 0.42,
+                "friction_tolerance_mean": 0.35,
+                "exploration_prob": 0.40,
+            }
+        ],
     )
 
 

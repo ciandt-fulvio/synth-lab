@@ -94,9 +94,7 @@ class SensitivityAnalyzer:
         # Get baseline scorecard
         scorecard = self.scorecard_repo.get_scorecard(baseline_run.scorecard_id)
         if not scorecard:
-            raise ValueError(
-                f"Scorecard not found: {baseline_run.scorecard_id}"
-            )
+            raise ValueError(f"Scorecard not found: {baseline_run.scorecard_id}")
 
         # Get baseline outcomes
         baseline_outcomes = baseline_run.aggregated_outcomes or {}
@@ -124,9 +122,7 @@ class SensitivityAnalyzer:
             )
 
         # Sort by sensitivity index descending
-        dimension_results.sort(
-            key=lambda x: x["sensitivity_index"], reverse=True
-        )
+        dimension_results.sort(key=lambda x: x["sensitivity_index"], reverse=True)
 
         # Assign ranks
         dimensions = []
@@ -145,9 +141,7 @@ class SensitivityAnalyzer:
         # Get the most sensitive dimension (rank 1)
         most_sensitive = dimensions[0].dimension if dimensions else ""
 
-        self.logger.info(
-            f"Sensitivity analysis complete. Most sensitive: {most_sensitive}"
-        )
+        self.logger.info(f"Sensitivity analysis complete. Most sensitive: {most_sensitive}")
 
         return SensitivityResult(
             simulation_id=simulation_id,
@@ -194,9 +188,7 @@ class SensitivityAnalyzer:
             new_value = max(0.0, min(1.0, baseline_value + delta))
 
             # Create modified scorecard
-            modified_scorecard = self._create_modified_scorecard(
-                scorecard, dimension, new_value
-            )
+            modified_scorecard = self._create_modified_scorecard(scorecard, dimension, new_value)
 
             # Run simulation with modified scorecard
             try:
@@ -213,9 +205,7 @@ class SensitivityAnalyzer:
                 outcomes_by_delta[str(round(delta, 3))] = result_run.aggregated_outcomes or {}
 
             except Exception as e:
-                self.logger.warning(
-                    f"Failed to run simulation for {dimension}={new_value}: {e}"
-                )
+                self.logger.warning(f"Failed to run simulation for {dimension}={new_value}: {e}")
                 # Use baseline outcomes as fallback
                 outcomes_by_delta[str(round(delta, 3))] = baseline_outcomes
 
@@ -227,9 +217,7 @@ class SensitivityAnalyzer:
             "sensitivity_index": 0.0,  # Will be calculated later
         }
 
-    def _create_modified_scorecard(
-        self, scorecard: Any, dimension: str, new_value: float
-    ) -> Any:
+    def _create_modified_scorecard(self, scorecard: Any, dimension: str, new_value: float) -> Any:
         """
         Create a copy of scorecard with modified dimension.
 
@@ -243,7 +231,6 @@ class SensitivityAnalyzer:
         Returns:
             Modified scorecard (saved to database)
         """
-        from copy import deepcopy
 
         # Create a copy of scorecard data
         scorecard_data = scorecard.model_dump()
@@ -304,9 +291,7 @@ class SensitivityAnalyzer:
                 delta_success = outcomes_by_delta[delta_key].get("success", 0.0)
 
                 # Calculate % change in output
-                pct_change_output = abs(
-                    (delta_success - baseline_success) / baseline_success * 100
-                )
+                pct_change_output = abs((delta_success - baseline_success) / baseline_success * 100)
 
                 # Calculate % change in input
                 pct_change_input = abs(delta * 100)
@@ -362,7 +347,7 @@ if __name__ == "__main__":
                 f"Should have 4 dimensions, got {len(analyzer.DIMENSIONS)}"
             )
         else:
-            print(f"Test 1 PASSED: Analyzer has 4 dimensions")
+            print("Test 1 PASSED: Analyzer has 4 dimensions")
     except Exception as e:
         all_validation_failures.append(f"Dimension check failed: {e}")
 
@@ -378,14 +363,10 @@ if __name__ == "__main__":
         }
         deltas = [-0.1, -0.05, 0.05, 0.1]
 
-        index = analyzer._calculate_sensitivity_index(
-            baseline, outcomes_by_delta, deltas
-        )
+        index = analyzer._calculate_sensitivity_index(baseline, outcomes_by_delta, deltas)
 
         if index <= 0:
-            all_validation_failures.append(
-                f"Sensitivity index should be > 0, got {index}"
-            )
+            all_validation_failures.append(f"Sensitivity index should be > 0, got {index}")
         else:
             print(f"Test 2 PASSED: Sensitivity index calculated: {index}")
     except Exception as e:
@@ -395,18 +376,14 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         analyzer.analyze_sensitivity("non_existent_sim")
-        all_validation_failures.append(
-            "Should raise error for non-existent simulation"
-        )
+        all_validation_failures.append("Should raise error for non-existent simulation")
     except ValueError as e:
         if "not found" in str(e):
             print("Test 3 PASSED: Correctly rejects non-existent simulation")
         else:
             all_validation_failures.append(f"Wrong error message: {e}")
     except Exception as e:
-        all_validation_failures.append(
-            f"Unexpected error for non-existent simulation: {e}"
-        )
+        all_validation_failures.append(f"Unexpected error for non-existent simulation: {e}")
 
     # Note: Skip full sensitivity analysis test as it would create many simulations
     # The test would be:
@@ -423,11 +400,7 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results"
-        )
+        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("SensitivityAnalyzer is validated and ready for use")
-        print(
-            "Note: Full sensitivity analysis not tested (expensive - use integration tests)"
-        )
+        print("Note: Full sensitivity analysis not tested (expensive - use integration tests)")
         sys.exit(0)

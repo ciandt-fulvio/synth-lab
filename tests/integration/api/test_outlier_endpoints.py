@@ -225,9 +225,7 @@ class TestExtremeCasesEndpoint:
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request with custom n
-        response = client.get(
-            "/simulation/simulations/sim_12345678/extreme-cases?n_per_category=5"
-        )
+        response = client.get("/simulation/simulations/sim_12345678/extreme-cases?n_per_category=5")
 
         # Assertions
         assert response.status_code == 200
@@ -236,9 +234,7 @@ class TestExtremeCasesEndpoint:
         assert len(data["best_successes"]) == 5
 
     @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    def test_extreme_cases_requires_completed_simulation(
-        self, mock_get_service, client
-    ):
+    def test_extreme_cases_requires_completed_simulation(self, mock_get_service, client):
         """Test that extreme cases requires completed simulation."""
         # Setup mock with non-completed simulation
         incomplete_sim = SimulationRun(
@@ -370,9 +366,7 @@ class TestOutlierDetectionEndpoint:
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request with custom contamination
-        response = client.get(
-            "/simulation/simulations/sim_12345678/outliers?contamination=0.2"
-        )
+        response = client.get("/simulation/simulations/sim_12345678/outliers?contamination=0.2")
 
         # Assertions
         assert response.status_code == 200

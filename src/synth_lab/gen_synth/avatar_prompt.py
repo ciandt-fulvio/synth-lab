@@ -24,7 +24,7 @@ VISUAL_FILTERS = [
     "usar filtro soft/pastel",
     "usar filtro cinematic/teal & orange",
     "usar filtro vintage film grain",
-    "usar filtro noir/low-key"
+    "usar filtro noir/low-key",
 ]
 
 FRAMING_TYPE = [
@@ -32,11 +32,9 @@ FRAMING_TYPE = [
     "medium-wide framing, torso fully visible, camera at chest level, 35mm lens.",
     "upper-body framing, arms fully visible, camera at chest level, 35mm lens.",
     "waist-up framing, hands visible, torso fully visible, camera at chest level, 35mm lens.",
-
     # Padrão seguro (50mm)
     "mid-shot framing, torso fully visible, camera at chest level, 50mm lens.",
     "upper-body framing, arms fully visible, camera at chest level, 50mm lens.",
-
     # Fechado / retrato (85mm)
     "tight headshot, face centered, 85mm portrait lens.",
 ]
@@ -101,7 +99,9 @@ def build_synth_description(synth: dict[str, Any]) -> str:
     # Dados básicos
     idade = demografia.get("idade", "?")
     genero = demografia.get("genero_biologico", "")
-    genero_texto = "Homem" if genero == "masculino" else "Mulher" if genero == "feminino" else "Pessoa"
+    genero_texto = (
+        "Homem" if genero == "masculino" else "Mulher" if genero == "feminino" else "Pessoa"
+    )
     ocupacao = demografia.get("ocupacao", "profissional")
     etnia = demografia.get("raca_etnia", "")
 
@@ -119,14 +119,16 @@ def build_synth_description(synth: dict[str, Any]) -> str:
         "conscienciosidade": "Conscienciosidade",
         "extroversao": "Extroversão",
         "amabilidade": "Amabilidade",
-        "neuroticismo": "Neuroticismo"
+        "neuroticismo": "Neuroticismo",
     }
     for traco, nome in mapa_tracos.items():
         valor = big_five.get(traco, 0)
         if valor > 60:
             tracos_marcantes.append(nome)
 
-    tracos_texto = f"Possui traços marcantes de {', '.join(tracos_marcantes)}. " if tracos_marcantes else ""
+    tracos_texto = (
+        f"Possui traços marcantes de {', '.join(tracos_marcantes)}. " if tracos_marcantes else ""
+    )
 
     # Interesses
     interesses = psicografia.get("interesses", [])
@@ -173,8 +175,7 @@ def build_prompt(synths: list[dict[str, Any]]) -> str:
         True
     """
     if len(synths) != 9:
-        raise ValueError(
-            f"Esperado exatamente 9 synths, recebido {len(synths)}")
+        raise ValueError(f"Esperado exatamente 9 synths, recebido {len(synths)}")
 
     # Atribuir filtros aleatórios
     filters = assign_random_filters(9)
@@ -182,17 +183,18 @@ def build_prompt(synths: list[dict[str, Any]]) -> str:
     framing = assign_random_framing(9)
 
     # Construir descrições numeradas dos blocos
-    descricoes_blocos = "\n".join([
-        f"Bloco {i+1}:\n{framing[i]}\n{build_synth_description(synths[i])}\n{filters[i]}\n"
-        for i in range(9)
-    ])
+    descricoes_blocos = "\n".join(
+        [
+            f"Bloco {i + 1}:\n{framing[i]}\n{build_synth_description(synths[i])}\n{filters[i]}\n"
+            for i in range(9)
+        ]
+    )
 
     from rich.console import Console
 
     console = Console()
 
-    framing_texto = ", ".join(
-        [f"bloco{i+1}: {d}" for i, d in enumerate(framing)])
+    framing_texto = ", ".join([f"bloco{i + 1}: {d}" for i, d in enumerate(framing)])
     console.print(framing_texto)
 
     # Montar prompt completo em português
@@ -233,8 +235,7 @@ if __name__ == "__main__":
     all_validation_failures = []
     total_tests = 0
 
-    console.print(
-        "[bold blue]=== Validação: avatar_prompt.py ===[/bold blue]\n")
+    console.print("[bold blue]=== Validação: avatar_prompt.py ===[/bold blue]\n")
 
     # Test 1: assign_random_filters retorna 9 filtros
     total_tests += 1
@@ -249,7 +250,8 @@ if __name__ == "__main__":
         )
     else:
         console.print(
-            f"[green]✓[/green] assign_random_filters(9) retornou {len(filters)} filtros válidos")
+            f"[green]✓[/green] assign_random_filters(9) retornou {len(filters)} filtros válidos"
+        )
 
     # Test 2: build_synth_description com synth completo
     total_tests += 1
@@ -261,8 +263,8 @@ if __name__ == "__main__":
             "genero_biologico": "masculino",
             "raca_etnia": "asiatico",
             "ocupacao": "entregador",
-            "localizacao": {"cidade": "Rio de Janeiro", "estado": "RJ"}
-        }
+            "localizacao": {"cidade": "Rio de Janeiro", "estado": "RJ"},
+        },
     }
     desc = build_synth_description(synth_completo)
     if "42" not in desc or "entregador" not in desc.lower():
@@ -270,8 +272,7 @@ if __name__ == "__main__":
             f"build_synth_description(): Descrição incompleta: {desc[:50]}..."
         )
     else:
-        console.print(
-            "[green]✓[/green] build_synth_description() gerou descrição válida")
+        console.print("[green]✓[/green] build_synth_description() gerou descrição válida")
 
     # Test 3: build_synth_description sem campo descricao (constrói a partir dos campos)
     total_tests += 1
@@ -282,7 +283,7 @@ if __name__ == "__main__":
             "genero_biologico": "feminino",
             "raca_etnia": "pardo",
             "ocupacao": "professora",
-            "localizacao": {"cidade": "Salvador", "estado": "BA"}
+            "localizacao": {"cidade": "Salvador", "estado": "BA"},
         },
         "psicografia": {
             "personalidade_big_five": {
@@ -290,10 +291,10 @@ if __name__ == "__main__":
                 "conscienciosidade": 80,
                 "extroversao": 45,
                 "amabilidade": 50,
-                "neuroticismo": 30
+                "neuroticismo": 30,
             },
-            "interesses": ["leitura", "música", "viagens"]
-        }
+            "interesses": ["leitura", "música", "viagens"],
+        },
     }
     desc = build_synth_description(synth_sem_desc)
     if "Mulher" not in desc or "35" not in desc or "Salvador" not in desc:
@@ -302,20 +303,21 @@ if __name__ == "__main__":
         )
     else:
         console.print(
-            "[green]✓[/green] build_synth_description() constrói descrição a partir de campos")
+            "[green]✓[/green] build_synth_description() constrói descrição a partir de campos"
+        )
 
     # Test 4: build_prompt com 9 synths
     total_tests += 1
     mock_synths = [
         {
             "id": f"test{i:02d}",
-            "descricao": f"{'Homem' if i % 2 == 0 else 'Mulher'} de {30+i} anos, profissional, mora em São Paulo, SP. etnia branco",
+            "descricao": f"{'Homem' if i % 2 == 0 else 'Mulher'} de {30 + i} anos, profissional, mora em São Paulo, SP. etnia branco",
             "demografia": {
                 "idade": 30 + i,
                 "genero_biologico": "masculino" if i % 2 == 0 else "feminino",
                 "raca_etnia": "branco",
-                "ocupacao": "profissional"
-            }
+                "ocupacao": "profissional",
+            },
         }
         for i in range(9)
     ]
@@ -327,22 +329,19 @@ if __name__ == "__main__":
             ("3 linhas" in prompt, "3 linhas"),
             ('1. "descricao"' in prompt, "descrição numerada"),
             ("bokeh" in prompt.lower(), "bokeh"),
-            ("filtro" in prompt.lower(), "filtro")
+            ("filtro" in prompt.lower(), "filtro"),
         ]
         failed_checks = [name for passed, name in checks if not passed]
         if failed_checks:
-            all_validation_failures.append(
-                f"build_prompt(): Faltam elementos: {failed_checks}"
-            )
+            all_validation_failures.append(f"build_prompt(): Faltam elementos: {failed_checks}")
         else:
             console.print(
-                f"[green]✓[/green] build_prompt(9 synths) gerou prompt válido ({len(prompt)} chars)")
+                f"[green]✓[/green] build_prompt(9 synths) gerou prompt válido ({len(prompt)} chars)"
+            )
             console.print("\n[dim]Preview do prompt:[/dim]")
             console.print(f"[dim]{prompt[:500]}...[/dim]")
     except Exception as e:
-        all_validation_failures.append(
-            f"build_prompt(9 synths): Exceção lançada: {e}"
-        )
+        all_validation_failures.append(f"build_prompt(9 synths): Exceção lançada: {e}")
 
     # Test 5: build_prompt rejeita número errado de synths
     total_tests += 1
@@ -354,7 +353,8 @@ if __name__ == "__main__":
     except ValueError as e:
         if "exatamente 9 synths" in str(e).lower():
             console.print(
-                "[green]✓[/green] build_prompt rejeita lista com != 9 synths (ValueError)")
+                "[green]✓[/green] build_prompt rejeita lista com != 9 synths (ValueError)"
+            )
         else:
             all_validation_failures.append(
                 f"build_prompt(5 synths): Mensagem de erro incorreta: {e}"
@@ -365,7 +365,7 @@ if __name__ == "__main__":
         )
 
     # Final validation result
-    console.print(f"\n{'='*60}")
+    console.print(f"\n{'=' * 60}")
     if all_validation_failures:
         console.print(
             f"[red]❌ VALIDATION FAILED - {len(all_validation_failures)} de {total_tests} testes falharam:[/red]"

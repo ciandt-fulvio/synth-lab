@@ -121,16 +121,13 @@ class InsightService:
                     return existing
 
             # Generate via LLM
-            insight = self._generate_insight_via_llm(
-                simulation_id, chart_type, chart_data
-            )
+            insight = self._generate_insight_via_llm(simulation_id, chart_type, chart_data)
 
             # Persist to database
             self.repository.save(simulation_id, chart_type, insight)
 
             self.logger.info(
-                f"Generated and saved insight for {simulation_id}/{chart_type}: "
-                f"{insight.caption}"
+                f"Generated and saved insight for {simulation_id}/{chart_type}: {insight.caption}"
             )
 
             return insight
@@ -181,25 +178,19 @@ class InsightService:
                 operation_name="generate_insight",
             )
         except Exception as e:
-            raise InsightGenerationError(
-                f"LLM call failed for {chart_type}: {e}"
-            ) from e
+            raise InsightGenerationError(f"LLM call failed for {chart_type}: {e}") from e
 
         try:
             data = json.loads(response)
         except json.JSONDecodeError as e:
-            raise InsightGenerationError(
-                f"Invalid JSON response for {chart_type}: {e}"
-            ) from e
+            raise InsightGenerationError(f"Invalid JSON response for {chart_type}: {e}") from e
 
         # Build insight with defaults for missing fields
         return ChartInsight(
             simulation_id=simulation_id,
             chart_type=chart_type,
             caption=data.get("caption", "Analysis pending"),
-            explanation=data.get(
-                "explanation", "Detailed analysis is being generated."
-            ),
+            explanation=data.get("explanation", "Detailed analysis is being generated."),
             evidence=data.get("evidence", []),
             recommendation=data.get("recommendation"),
             confidence=float(data.get("confidence", 0.8)),
@@ -301,9 +292,7 @@ Return JSON:
             if not force:
                 existing = self.repository.get_executive_summary(simulation_id)
                 if existing is not None:
-                    self.logger.debug(
-                        f"Returning persisted executive summary for {simulation_id}"
-                    )
+                    self.logger.debug(f"Returning persisted executive summary for {simulation_id}")
                     return existing
 
             # Get all insights from database
@@ -337,8 +326,15 @@ Create an executive summary for this simulation analysis:
 {insights_text}
 
 ## Full Details
-{json.dumps({ct: {"caption": i.caption, "recommendation": i.recommendation}
-             for ct, i in insights.items()}, indent=2)}
+{
+                        json.dumps(
+                            {
+                                ct: {"caption": i.caption, "recommendation": i.recommendation}
+                                for ct, i in insights.items()
+                            },
+                            indent=2,
+                        )
+                    }
 
 Provide a concise summary highlighting key findings and top priority recommendations.
 """,
@@ -429,9 +425,7 @@ if __name__ == "__main__":
             explanation="Cached explanation",
         )
 
-        result = service.generate_insight(
-            "sim_test", "try_vs_success", {"data": "test"}
-        )
+        result = service.generate_insight("sim_test", "try_vs_success", {"data": "test"})
 
         if not mock_repo.get.called:
             all_validation_failures.append("Should check repository first")
@@ -455,13 +449,15 @@ if __name__ == "__main__":
             caption="Cached",
             explanation="Cached",
         )
-        mock_llm.complete_json.return_value = json.dumps({
-            "caption": "New LLM caption",
-            "explanation": "New explanation",
-            "evidence": [],
-            "recommendation": None,
-            "confidence": 0.9,
-        })
+        mock_llm.complete_json.return_value = json.dumps(
+            {
+                "caption": "New LLM caption",
+                "explanation": "New explanation",
+                "evidence": [],
+                "recommendation": None,
+                "confidence": 0.9,
+            }
+        )
 
         result = service.generate_insight(
             "sim_test", "try_vs_success", {"data": "test"}, force=True
@@ -551,7 +547,5 @@ if __name__ == "__main__":
         sys.exit(1)
     else:
         print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
-        print(
-            "\nNote: Actual LLM calls require OPENAI_API_KEY and are not tested in validation"
-        )
+        print("\nNote: Actual LLM calls require OPENAI_API_KEY and are not tested in validation")
         sys.exit(0)

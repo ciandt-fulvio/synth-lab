@@ -68,8 +68,7 @@ class ScorecardDimension(BaseModel):
         if self.lower_bound is not None and self.upper_bound is not None:
             if self.lower_bound > self.upper_bound:
                 raise ValueError(
-                    f"lower_bound ({self.lower_bound}) must be <= "
-                    f"upper_bound ({self.upper_bound})"
+                    f"lower_bound ({self.lower_bound}) must be <= upper_bound ({self.upper_bound})"
                 )
         return self
 

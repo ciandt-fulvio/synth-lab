@@ -116,8 +116,8 @@ def save_synth(
         data["psicografia"] = synth_dict["psicografia"]
     if synth_dict.get("deficiencias"):
         data["deficiencias"] = synth_dict["deficiencias"]
-    if synth_dict.get("capacidades_tecnologicas"):
-        data["capacidades_tecnologicas"] = synth_dict["capacidades_tecnologicas"]
+    if synth_dict.get("observables"):
+        data["observables"] = synth_dict["observables"]
 
     conn = _get_connection()
     try:
@@ -215,8 +215,8 @@ def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
             synth["psicografia"] = data["psicografia"]
         if data.get("deficiencias"):
             synth["deficiencias"] = data["deficiencias"]
-        if data.get("capacidades_tecnologicas"):
-            synth["capacidades_tecnologicas"] = data["capacidades_tecnologicas"]
+        if data.get("observables"):
+            synth["observables"] = data["observables"]
 
     return synth
 
@@ -262,12 +262,10 @@ def update_avatar_path(synth_id: str, avatar_path: str | Path) -> bool:
         conn.commit()
 
         if cursor.rowcount > 0:
-            logger.debug(
-                f"Avatar path updated for synth {synth_id}: {avatar_path}")
+            logger.debug(f"Avatar path updated for synth {synth_id}: {avatar_path}")
             return True
         else:
-            logger.warning(
-                f"Synth not found for avatar_path update: {synth_id}")
+            logger.warning(f"Synth not found for avatar_path update: {synth_id}")
             return False
     finally:
         conn.close()
@@ -286,8 +284,7 @@ def load_consolidated_synths(output_dir: Path | None = None) -> list[dict[str, A
     Returns:
         List of synth dictionaries
     """
-    logger.warning(
-        "load_consolidated_synths is deprecated, use load_synths() instead")
+    logger.warning("load_consolidated_synths is deprecated, use load_synths() instead")
     return load_synths()
 
 
@@ -301,8 +298,7 @@ def save_consolidated_synths(synths: list[dict[str, Any]], output_dir: Path | No
         synths: List of synth dictionaries
         output_dir: Deprecated, ignored
     """
-    logger.warning(
-        "save_consolidated_synths is deprecated, use save_synth() for each synth")
+    logger.warning("save_consolidated_synths is deprecated, use save_synth() for each synth")
     for synth in synths:
         save_synth(synth)
 
@@ -338,11 +334,18 @@ if __name__ == "__main__":
                 "id": "test01",
                 "nome": "Test Person 1",
                 "created_at": "2024-01-01T00:00:00",
-                "version": "2.0.0",
+                "version": "2.3.0",
                 "descricao": "Test description",
                 "link_photo": "https://example.com/photo.png",
-                "demografia": {"idade": 30, "genero": "masculino"},
-                "psicografia": {"personalidade": "extrovertido"},
+                "demografia": {"idade": 30, "genero_biologico": "masculino"},
+                "psicografia": {"interesses": ["tecnologia"]},
+                "observables": {
+                    "digital_literacy": 0.75,
+                    "similar_tool_experience": 0.5,
+                    "motor_ability": 1.0,
+                    "time_availability": 0.6,
+                    "domain_expertise": 0.5,
+                },
             }
 
             save_synth(test_synth1)
@@ -350,16 +353,17 @@ if __name__ == "__main__":
             # Verify it was saved
             loaded = get_synth_by_id("test01")
             if loaded is None:
-                all_validation_failures.append(
-                    "Test 1: Synth not found after save")
+                all_validation_failures.append("Test 1: Synth not found after save")
             elif loaded["nome"] != "Test Person 1":
-                all_validation_failures.append(
-                    f"Test 1: Wrong nome: {loaded['nome']}")
+                all_validation_failures.append(f"Test 1: Wrong nome: {loaded['nome']}")
             elif loaded["demografia"]["idade"] != 30:
+                all_validation_failures.append(f"Test 1: Wrong idade: {loaded['demografia']}")
+            elif loaded.get("observables", {}).get("digital_literacy") != 0.75:
                 all_validation_failures.append(
-                    f"Test 1: Wrong idade: {loaded['demografia']}")
+                    f"Test 1: Wrong observables: {loaded.get('observables')}"
+                )
             else:
-                print("Test 1: save_synth() saves to database correctly")
+                print("Test 1: save_synth() saves to database correctly (with observables)")
         except Exception as e:
             all_validation_failures.append(f"Test 1 (save synth): {str(e)}")
 
@@ -376,8 +380,7 @@ if __name__ == "__main__":
 
             all_synths = load_synths()
             if len(all_synths) != 2:
-                all_validation_failures.append(
-                    f"Test 2: Expected 2 synths, got {len(all_synths)}")
+                all_validation_failures.append(f"Test 2: Expected 2 synths, got {len(all_synths)}")
             else:
                 print("Test 2: load_synths() loads all synths correctly")
         except Exception as e:
@@ -396,14 +399,12 @@ if __name__ == "__main__":
 
             loaded = get_synth_by_id("test01")
             if loaded["nome"] != "Updated Name":
-                all_validation_failures.append(
-                    f"Test 3: Name not updated: {loaded['nome']}")
+                all_validation_failures.append(f"Test 3: Name not updated: {loaded['nome']}")
             else:
                 # Verify count is still 2
                 count = count_synths()
                 if count != 2:
-                    all_validation_failures.append(
-                        f"Test 3: Count changed to {count}, expected 2")
+                    all_validation_failures.append(f"Test 3: Count changed to {count}, expected 2")
                 else:
                     print("Test 3: save_synth() updates existing synth correctly")
         except Exception as e:
@@ -414,8 +415,7 @@ if __name__ == "__main__":
         try:
             result = get_synth_by_id("nonexistent")
             if result is not None:
-                all_validation_failures.append(
-                    "Test 4: Should return None for nonexistent ID")
+                all_validation_failures.append("Test 4: Should return None for nonexistent ID")
             else:
                 print("Test 4: get_synth_by_id() returns None for nonexistent ID")
         except Exception as e:
@@ -425,15 +425,13 @@ if __name__ == "__main__":
         config_module.DB_PATH = original_db_path
 
     # Final validation result
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Function is validated and formal tests can now be written")
         sys.exit(0)

@@ -1,28 +1,19 @@
 """
 Psychographics generation module for SynthLab.
 
-This module generates psychographic attributes including Big Five personality traits,
-values, interests, hobbies, and cognitive contracts.
+This module generates psychographic attributes including interests, hobbies,
+and cognitive contracts.
 
 Functions:
-- generate_big_five(): Generate Big Five personality traits
 - generate_cognitive_contract(): Generate cognitive contract for interview behavior
 - generate_psychographics(): Generate complete psychographic profile
 
 Sample Input:
-    big_five = generate_big_five()
-    psycho = generate_psychographics(big_five, config_data)
+    psycho = generate_psychographics(config_data)
 
 Expected Output:
     {
-        "personalidade_big_five": {
-            "abertura": 65,
-            "conscienciosidade": 72,
-            "extroversao": 45,
-            "amabilidade": 58,
-            "neuroticismo": 42
-        },
-        "interesses": ["tecnologia", "esportes"],  # 1-4 itens, correlacionado com abertura
+        "interesses": ["tecnologia", "esportes"],  # 1-4 itens
         "contrato_cognitivo": {
             "tipo": "factual",
             "perfil_cognitivo": "responde só ao que foi perguntado, evita abstrações",
@@ -37,8 +28,6 @@ Third-party packages:
 
 import random
 from typing import Any
-
-from .utils import normal_distribution
 
 # Definição dos 6 contratos cognitivos
 COGNITIVE_CONTRACTS = {
@@ -128,66 +117,11 @@ def generate_cognitive_contract() -> dict[str, Any]:
     return COGNITIVE_CONTRACTS[tipo].copy()
 
 
-def generate_big_five() -> dict[str, int]:
-    """
-    Gera traços de personalidade Big Five com perfis distintivos.
-
-    Big Five personality traits are the most scientifically validated
-    personality model, measuring: Openness, Conscientiousness, Extraversion,
-    Agreeableness, and Neuroticism.
-
-    Regras de geração:
-    - Exatamente 1 trait com valor > 80 (característica dominante forte)
-    - Exatamente 1 trait com valor < 30 (característica muito fraca)
-    - Os 3 restantes variam entre 45 e 55 (neutros/moderados)
-
-    Isso cria perfis mais distintivos e interessantes, facilitando a
-    identificação de padrões de comportamento e personalidade.
-
-    Returns:
-        dict[str, int]: Dictionary with 5 personality traits (0-100 scale)
-    """
-    traits = ["abertura", "conscienciosidade",
-              "extroversao", "amabilidade", "neuroticismo"]
-
-    # Embaralhar para sortear quais traits receberão valores extremos
-    shuffled_traits = random.sample(traits, len(traits))
-
-    # Criar dicionário de valores
-    values = {}
-
-    # Primeiro trait: valor alto (81-95)
-    values[shuffled_traits[0]] = random.randint(81, 95)
-
-    # Segundo trait: valor baixo (5-29)
-    values[shuffled_traits[1]] = random.randint(5, 29)
-
-    # Três traits restantes: valores neutros (45-55)
-    for trait in shuffled_traits[2:]:
-        values[trait] = random.randint(45, 55)
-
-    # Retornar em ordem padrão
-    return {
-        "abertura": values["abertura"],
-        "conscienciosidade": values["conscienciosidade"],
-        "extroversao": values["extroversao"],
-        "amabilidade": values["amabilidade"],
-        "neuroticismo": values["neuroticismo"],
-    }
-
-
-def generate_psychographics(
-    big_five: dict[str, int], config_data: dict[str, Any]
-) -> dict[str, Any]:
+def generate_psychographics(config_data: dict[str, Any]) -> dict[str, Any]:
     """
     Gera atributos psicográficos (interesses, contrato cognitivo).
 
-    Correlações implementadas:
-    - Interesses correlacionados com abertura (1-4 itens)
-    - Contrato cognitivo sorteado com chances iguais
-
     Args:
-        big_five: Dictionary with Big Five personality traits
         config_data: Configuration data including interests/hobbies
 
     Returns:
@@ -195,24 +129,14 @@ def generate_psychographics(
     """
     interests = config_data["interests_hobbies"]
 
-    # Interesses (1-4 itens, correlacionados com abertura)
-    # Abertura baixa (0-40): 1-2 interesses
-    # Abertura média (41-70): 2-3 interesses
-    # Abertura alta (71-100): 3-4 interesses
-    if big_five["abertura"] <= 40:
-        num_interesses = random.randint(1, 2)
-    elif big_five["abertura"] <= 70:
-        num_interesses = random.randint(2, 3)
-    else:
-        num_interesses = random.randint(3, 4)
-
+    # Interesses (1-4 itens aleatórios)
+    num_interesses = random.randint(1, 4)
     interesses_list = random.sample(interests["interesses"], k=num_interesses)
 
     # Contrato cognitivo (sorteado com chances iguais entre 6 tipos)
     contrato_cognitivo = generate_cognitive_contract()
 
     return {
-        "personalidade_big_five": big_five,
         "interesses": interesses_list,
         "contrato_cognitivo": contrato_cognitivo,
     }
@@ -236,50 +160,21 @@ if __name__ == "__main__":
         print(f"Failed to load config: {e}")
         sys.exit(1)
 
-    # Test 1: Generate Big Five traits
+    # Test 1: Generate psychographics
     total_tests += 1
     try:
-        big_five = generate_big_five()
-        required_traits = ["abertura", "conscienciosidade",
-                           "extroversao", "amabilidade", "neuroticismo"]
-        for trait in required_traits:
-            if trait not in big_five:
-                all_validation_failures.append(
-                    f"Big Five missing trait: {trait}")
-            elif not (0 <= big_five[trait] <= 100):
-                all_validation_failures.append(
-                    f"Big Five trait {trait} out of range: {big_five[trait]}"
-                )
-        if not all_validation_failures:
-            print(
-                f"Test 1: generate_big_five() -> abertura={big_five['abertura']}, "
-                f"extroversao={big_five['extroversao']}"
-            )
-    except Exception as e:
-        all_validation_failures.append(f"Test 1 (generate_big_five): {str(e)}")
+        psycho = generate_psychographics(config)
 
-    # Test 2: Generate psychographics with low openness
-    total_tests += 1
-    try:
-        low_openness = {
-            "abertura": 20,
-            "conscienciosidade": 50,
-            "extroversao": 50,
-            "amabilidade": 50,
-            "neuroticismo": 50,
-        }
-        psycho = generate_psychographics(low_openness, config)
-
-        if "personalidade_big_five" not in psycho:
-            all_validation_failures.append(
-                "Psychographics missing personalidade_big_five")
-        if "interesses" not in psycho or len(psycho["interesses"]) < 1 or len(psycho["interesses"]) > 4:
+        if (
+            "interesses" not in psycho
+            or len(psycho["interesses"]) < 1
+            or len(psycho["interesses"]) > 4
+        ):
             all_validation_failures.append(
                 f"Psychographics interesses should be 1-4: {psycho.get('interesses')}"
             )
         if "contrato_cognitivo" not in psycho:
-            all_validation_failures.append(
-                "Psychographics missing contrato_cognitivo")
+            all_validation_failures.append("Psychographics missing contrato_cognitivo")
         else:
             cc = psycho["contrato_cognitivo"]
             if "tipo" not in cc or "perfil_cognitivo" not in cc or "regras" not in cc:
@@ -287,69 +182,45 @@ if __name__ == "__main__":
                     f"Contrato cognitivo missing required fields: {cc.keys()}"
                 )
 
-        if not any(f.startswith("Test 2") for f in all_validation_failures):
+        if not any(
+            f.startswith("Psychographics") or f.startswith("Contrato")
+            for f in all_validation_failures
+        ):
             print(
-                f"Test 2: generate_psychographics(low openness) -> "
+                f"Test 1: generate_psychographics() -> "
                 f"{len(psycho['interesses'])} interesses, contrato={psycho['contrato_cognitivo']['tipo']}"
             )
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 2 (psychographics low openness): {str(e)}")
+        all_validation_failures.append(f"Test 1 (psychographics): {str(e)}")
 
-    # Test 3: Generate psychographics with high openness
-    total_tests += 1
-    try:
-        high_openness = {
-            "abertura": 90,
-            "conscienciosidade": 50,
-            "extroversao": 50,
-            "amabilidade": 50,
-            "neuroticismo": 50,
-        }
-        psycho = generate_psychographics(high_openness, config)
-
-        # High openness should correlate with more interests (3-4 range)
-        num_interests = len(psycho["interesses"])
-        if num_interests < 3:
-            all_validation_failures.append(
-                f"High openness should have 3-4 interests, got {num_interests}"
-            )
-        else:
-            print(
-                f"Test 3: generate_psychographics(high openness) -> "
-                f"{num_interests} interesses (expected 3-4)"
-            )
-    except Exception as e:
-        all_validation_failures.append(
-            f"Test 3 (psychographics high openness): {str(e)}")
-
-    # Test 4: Verify cognitive contract generation
+    # Test 2: Verify cognitive contract generation
     total_tests += 1
     try:
         contract = generate_cognitive_contract()
-        valid_types = ["factual", "narrador", "desconfiado",
-                       "racionalizador", "impaciente", "esforçado_confuso"]
+        valid_types = [
+            "factual",
+            "narrador",
+            "desconfiado",
+            "racionalizador",
+            "impaciente",
+            "esforçado_confuso",
+        ]
 
         if contract["tipo"] not in valid_types:
-            all_validation_failures.append(
-                f"Cognitive contract invalid type: {contract['tipo']}"
-            )
+            all_validation_failures.append(f"Cognitive contract invalid type: {contract['tipo']}")
         if not isinstance(contract["regras"], list) or len(contract["regras"]) < 1:
             all_validation_failures.append(
                 f"Cognitive contract regras should be non-empty list: {contract['regras']}"
             )
         if "perfil_cognitivo" not in contract or not contract["perfil_cognitivo"]:
-            all_validation_failures.append(
-                "Cognitive contract missing perfil_cognitivo")
+            all_validation_failures.append("Cognitive contract missing perfil_cognitivo")
 
-        if not any("Test 4" in f for f in all_validation_failures):
-            print(
-                f"Test 4: generate_cognitive_contract() -> tipo={contract['tipo']}")
+        if not any("Test 2" in f for f in all_validation_failures):
+            print(f"Test 2: generate_cognitive_contract() -> tipo={contract['tipo']}")
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 4 (cognitive contract generation): {str(e)}")
+        all_validation_failures.append(f"Test 2 (cognitive contract generation): {str(e)}")
 
-    # Test 5: Verify cognitive contract distribution (should be roughly equal)
+    # Test 3: Verify cognitive contract distribution (should be roughly equal)
     total_tests += 1
     try:
         contract_counts = {t: 0 for t in COGNITIVE_CONTRACTS.keys()}
@@ -366,19 +237,18 @@ if __name__ == "__main__":
             )
         else:
             print(
-                f"Test 5: Cognitive contract distribution across {types_with_values} types: {contract_counts}")
+                f"Test 3: Cognitive contract distribution across {types_with_values} types: {contract_counts}"
+            )
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 5 (cognitive contract distribution): {str(e)}")
+        all_validation_failures.append(f"Test 3 (cognitive contract distribution): {str(e)}")
 
-    # Test 6: Batch consistency test
+    # Test 4: Batch consistency test
     total_tests += 1
     try:
         batch_errors = []
         valid_types = list(COGNITIVE_CONTRACTS.keys())
         for i in range(10):
-            big_five = generate_big_five()
-            psycho = generate_psychographics(big_five, config)
+            psycho = generate_psychographics(config)
 
             # Verify all required fields
             if len(psycho["interesses"]) < 1 or len(psycho["interesses"]) > 4:
@@ -395,20 +265,18 @@ if __name__ == "__main__":
         if batch_errors:
             all_validation_failures.extend(batch_errors)
         else:
-            print("Test 6: Batch of 10 psychographics all valid")
+            print("Test 4: Batch of 10 psychographics all valid")
     except Exception as e:
-        all_validation_failures.append(f"Test 6 (batch consistency): {str(e)}")
+        all_validation_failures.append(f"Test 4 (batch consistency): {str(e)}")
 
     # Final validation result
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Function is validated and formal tests can now be written")
         sys.exit(0)

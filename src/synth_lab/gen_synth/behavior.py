@@ -41,9 +41,7 @@ from typing import Any
 from .utils import normal_distribution, weighted_choice
 
 
-def generate_behavior(
-    demographics: dict[str, Any], config_data: dict[str, Any]
-) -> dict[str, Any]:
+def generate_behavior(demographics: dict[str, Any], config_data: dict[str, Any]) -> dict[str, Any]:
     """
     Gera atributos comportamentais (consumo, mídia).
 
@@ -83,9 +81,7 @@ def generate_behavior(
             "streaming": random.randint(0, 50),
             "redes_sociais": redes_sociais,
         },
-        "fonte_noticias": random.sample(
-            interests["fontes_noticias"], k=random.randint(2, 5)
-        ),
+        "fonte_noticias": random.sample(interests["fontes_noticias"], k=random.randint(2, 5)),
         "lealdade_marca": normal_distribution(50, 20, 0, 100),
         "engajamento_redes_sociais": {
             "plataformas": random.sample(
@@ -146,8 +142,7 @@ if __name__ == "__main__":
                 f"redes_sociais={behavior['padroes_midia']['redes_sociais']}"
             )
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 1 (young rich behavior): {str(e)}")
+        all_validation_failures.append(f"Test 1 (young rich behavior): {str(e)}")
 
     # Test 2: Generate behavior for old low-income person
     total_tests += 1
@@ -208,8 +203,7 @@ if __name__ == "__main__":
                 f"{habitos['frequencia_compras']}, {habitos['preferencia_canal']}"
             )
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 3 (consumption habits): {str(e)}")
+        all_validation_failures.append(f"Test 3 (consumption habits): {str(e)}")
 
     # Test 4: Verify media patterns ranges
     total_tests += 1
@@ -219,14 +213,11 @@ if __name__ == "__main__":
 
         midia = behavior["padroes_midia"]
         if not (0 <= midia["tv_aberta"] <= 35):
-            all_validation_failures.append(
-                f"tv_aberta out of range: {midia['tv_aberta']}")
+            all_validation_failures.append(f"tv_aberta out of range: {midia['tv_aberta']}")
         if not (0 <= midia["streaming"] <= 50):
-            all_validation_failures.append(
-                f"streaming out of range: {midia['streaming']}")
+            all_validation_failures.append(f"streaming out of range: {midia['streaming']}")
         if not (5 <= midia["redes_sociais"] <= 70):
-            all_validation_failures.append(
-                f"redes_sociais out of range: {midia['redes_sociais']}")
+            all_validation_failures.append(f"redes_sociais out of range: {midia['redes_sociais']}")
 
         if not any(f.startswith("Test 4") for f in all_validation_failures):
             print(
@@ -252,8 +243,7 @@ if __name__ == "__main__":
             )
 
         if "frequencia_posts" not in engagement:
-            all_validation_failures.append(
-                "Missing frequencia_posts in engagement")
+            all_validation_failures.append("Missing frequencia_posts in engagement")
         elif engagement["frequencia_posts"] not in [
             "nunca",
             "raro",
@@ -271,16 +261,17 @@ if __name__ == "__main__":
                 f"{len(engagement['plataformas'])} platforms, {engagement['frequencia_posts']}"
             )
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 5 (social media engagement): {str(e)}")
+        all_validation_failures.append(f"Test 5 (social media engagement): {str(e)}")
 
     # Test 6: Batch consistency test
     total_tests += 1
     try:
         batch_errors = []
         for i in range(10):
-            test_demo = {"idade": random.randint(
-                18, 80), "renda_mensal": random.uniform(1000, 15000)}
+            test_demo = {
+                "idade": random.randint(18, 80),
+                "renda_mensal": random.uniform(1000, 15000),
+            }
             behavior = generate_behavior(test_demo, config)
 
             # Verify behavioral scores are in range
@@ -297,15 +288,13 @@ if __name__ == "__main__":
         all_validation_failures.append(f"Test 6 (batch consistency): {str(e)}")
 
     # Final validation result
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Function is validated and formal tests can now be written")
         sys.exit(0)

@@ -153,7 +153,10 @@ class TestLLMIntegration:
 
         overview = generate_context_overview(descriptions, "fake-api-key")
 
-        assert overview == "This topic guide covers e-commerce workflows with screenshots and documentation."
+        assert (
+            overview
+            == "This topic guide covers e-commerce workflows with screenshots and documentation."
+        )
         assert mock_client.chat.completions.create.called
 
     @patch("openai.OpenAI")

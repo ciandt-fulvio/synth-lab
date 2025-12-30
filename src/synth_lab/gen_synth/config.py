@@ -88,10 +88,8 @@ if __name__ == "__main__":
     try:
         assert DATA_DIR.exists(), f"DATA_DIR does not exist: {DATA_DIR}"
         assert CONFIG_DIR.exists(), f"CONFIG_DIR does not exist: {CONFIG_DIR}"
-        assert SCHEMAS_DIR.exists(
-        ), f"SCHEMAS_DIR does not exist: {SCHEMAS_DIR}"
-        assert SCHEMA_PATH.exists(
-        ), f"SCHEMA_PATH does not exist: {SCHEMA_PATH}"
+        assert SCHEMAS_DIR.exists(), f"SCHEMAS_DIR does not exist: {SCHEMAS_DIR}"
+        assert SCHEMA_PATH.exists(), f"SCHEMA_PATH does not exist: {SCHEMA_PATH}"
         print("✓ All paths exist and are accessible")
     except Exception as e:
         print(f"✗ Path validation failed: {e}")

@@ -60,15 +60,19 @@ class TestChatService:
         """Test that generate_response returns a ChatResponse."""
         from synth_lab.services.chat.service import ChatService
 
-        with patch(
-            "synth_lab.services.chat.service.get_llm_client",
-            return_value=mock_llm_client,
-        ), patch(
-            "synth_lab.services.chat.service.ResearchRepository",
-            return_value=mock_research_repo,
-        ), patch(
-            "synth_lab.services.chat.service.SynthRepository",
-            return_value=mock_synths_repo,
+        with (
+            patch(
+                "synth_lab.services.chat.service.get_llm_client",
+                return_value=mock_llm_client,
+            ),
+            patch(
+                "synth_lab.services.chat.service.ResearchRepository",
+                return_value=mock_research_repo,
+            ),
+            patch(
+                "synth_lab.services.chat.service.SynthRepository",
+                return_value=mock_synths_repo,
+            ),
         ):
             service = ChatService()
             request = ChatRequest(
@@ -89,15 +93,19 @@ class TestChatService:
         """Test that chat history is included in context."""
         from synth_lab.services.chat.service import ChatService
 
-        with patch(
-            "synth_lab.services.chat.service.get_llm_client",
-            return_value=mock_llm_client,
-        ), patch(
-            "synth_lab.services.chat.service.ResearchRepository",
-            return_value=mock_research_repo,
-        ), patch(
-            "synth_lab.services.chat.service.SynthRepository",
-            return_value=mock_synths_repo,
+        with (
+            patch(
+                "synth_lab.services.chat.service.get_llm_client",
+                return_value=mock_llm_client,
+            ),
+            patch(
+                "synth_lab.services.chat.service.ResearchRepository",
+                return_value=mock_research_repo,
+            ),
+            patch(
+                "synth_lab.services.chat.service.SynthRepository",
+                return_value=mock_synths_repo,
+            ),
         ):
             service = ChatService()
             request = ChatRequest(
@@ -132,15 +140,19 @@ class TestChatService:
         """Test that interview transcript is loaded for context."""
         from synth_lab.services.chat.service import ChatService
 
-        with patch(
-            "synth_lab.services.chat.service.get_llm_client",
-            return_value=mock_llm_client,
-        ), patch(
-            "synth_lab.services.chat.service.ResearchRepository",
-            return_value=mock_research_repo,
-        ), patch(
-            "synth_lab.services.chat.service.SynthRepository",
-            return_value=mock_synths_repo,
+        with (
+            patch(
+                "synth_lab.services.chat.service.get_llm_client",
+                return_value=mock_llm_client,
+            ),
+            patch(
+                "synth_lab.services.chat.service.ResearchRepository",
+                return_value=mock_research_repo,
+            ),
+            patch(
+                "synth_lab.services.chat.service.SynthRepository",
+                return_value=mock_synths_repo,
+            ),
         ):
             service = ChatService()
             request = ChatRequest(
@@ -152,9 +164,7 @@ class TestChatService:
             service.generate_response("synth_123", request)
 
             # Verify transcript was loaded
-            mock_research_repo.get_transcript.assert_called_once_with(
-                "batch_test_123", "synth_123"
-            )
+            mock_research_repo.get_transcript.assert_called_once_with("batch_test_123", "synth_123")
 
     def test_generate_response_loads_synth_profile(
         self, mock_llm_client, mock_research_repo, mock_synths_repo
@@ -162,15 +172,19 @@ class TestChatService:
         """Test that synth profile is loaded for persona context."""
         from synth_lab.services.chat.service import ChatService
 
-        with patch(
-            "synth_lab.services.chat.service.get_llm_client",
-            return_value=mock_llm_client,
-        ), patch(
-            "synth_lab.services.chat.service.ResearchRepository",
-            return_value=mock_research_repo,
-        ), patch(
-            "synth_lab.services.chat.service.SynthRepository",
-            return_value=mock_synths_repo,
+        with (
+            patch(
+                "synth_lab.services.chat.service.get_llm_client",
+                return_value=mock_llm_client,
+            ),
+            patch(
+                "synth_lab.services.chat.service.ResearchRepository",
+                return_value=mock_research_repo,
+            ),
+            patch(
+                "synth_lab.services.chat.service.SynthRepository",
+                return_value=mock_synths_repo,
+            ),
         ):
             service = ChatService()
             request = ChatRequest(
@@ -190,15 +204,19 @@ class TestChatService:
         """Test that transcript formatting converts speaker labels to Portuguese."""
         from synth_lab.services.chat.service import ChatService
 
-        with patch(
-            "synth_lab.services.chat.service.get_llm_client",
-            return_value=mock_llm_client,
-        ), patch(
-            "synth_lab.services.chat.service.ResearchRepository",
-            return_value=mock_research_repo,
-        ), patch(
-            "synth_lab.services.chat.service.SynthRepository",
-            return_value=mock_synths_repo,
+        with (
+            patch(
+                "synth_lab.services.chat.service.get_llm_client",
+                return_value=mock_llm_client,
+            ),
+            patch(
+                "synth_lab.services.chat.service.ResearchRepository",
+                return_value=mock_research_repo,
+            ),
+            patch(
+                "synth_lab.services.chat.service.SynthRepository",
+                return_value=mock_synths_repo,
+            ),
         ):
             service = ChatService()
 

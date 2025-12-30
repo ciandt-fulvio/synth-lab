@@ -22,7 +22,6 @@ Expected output:
 """
 
 import json
-from typing import Any
 
 from loguru import logger
 
@@ -157,7 +156,6 @@ class RegionRepository:
 
 if __name__ == "__main__":
     import sys
-    from datetime import datetime, timezone
 
     print("=== Region Repository Validation ===\n")
 
@@ -224,9 +222,7 @@ if __name__ == "__main__":
     try:
         retrieved = repo.get_region_analyses(test_simulation_id)
         if len(retrieved) != 2:
-            all_validation_failures.append(
-                f"Should retrieve 2 analyses, got {len(retrieved)}"
-            )
+            all_validation_failures.append(f"Should retrieve 2 analyses, got {len(retrieved)}")
         elif retrieved[0].failed_rate != 0.70:
             # Should be ordered by failure rate DESC
             all_validation_failures.append(
@@ -260,9 +256,7 @@ if __name__ == "__main__":
     try:
         deleted_count = repo.delete_region_analyses(test_simulation_id)
         if deleted_count != 2:
-            all_validation_failures.append(
-                f"Should delete 2 analyses, deleted {deleted_count}"
-            )
+            all_validation_failures.append(f"Should delete 2 analyses, deleted {deleted_count}")
         else:
             print("Test 4 PASSED: Region analyses deleted successfully")
     except Exception as e:

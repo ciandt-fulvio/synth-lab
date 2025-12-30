@@ -12,6 +12,7 @@ Auto-generated from all feature plans. Last updated: 2025-12-22
 - TypeScript 5.5.3 (frontend) + React 18.3.1, TanStack React Query 5.56+, Recharts 2.12.7+, shadcn/ui (Radix UI), Tailwind CSS 3.4+ (020-experiment-results-frontend)
 - N/A (data from backend API) (020-experiment-results-frontend)
 - SQLite 3 with JSON1 extension (output/synthlab.db) (001-analysis-tabs-refactor)
+- Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI 0.109+, Pydantic 2.5+, React 18, TanStack Query, shadcn/ui (022-observable-latent-traits)
 
 ### Backend
 - **Python**: 3.13+
@@ -339,9 +340,9 @@ LOG_LEVEL=INFO
 
 
 ## Recent Changes
+- 022-observable-latent-traits: Added Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI 0.109+, Pydantic 2.5+, React 18, TanStack Query, shadcn/ui
 - 001-analysis-tabs-refactor: Added Python 3.13+ (backend), TypeScript 5.5+ (frontend)
 - 021-analysis-charts-frontend: Added TypeScript 5.5.3 (frontend) + React 18.3.1, TanStack React Query 5.56+, Recharts 2.12.7+, shadcn/ui (Radix UI), Tailwind CSS 3.4+
-- 020-experiment-results-frontend: Added TypeScript 5.5.3 (frontend) + React 18.3.1, TanStack React Query 5.56+, Recharts 2.12.7+, shadcn/ui (Radix UI), Tailwind CSS 3.4+
 
 
 <!-- MANUAL ADDITIONS START -->

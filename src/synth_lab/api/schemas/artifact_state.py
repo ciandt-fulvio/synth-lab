@@ -26,24 +26,14 @@ class ArtifactState(BaseModel):
 
     artifact_type: ArtifactType = Field(description="Type of artifact")
     state: ArtifactStateEnum = Field(description="Current state")
-    can_generate: bool = Field(
-        default=False, description="Whether generate action is available"
-    )
-    can_view: bool = Field(
-        default=False, description="Whether view action is available"
-    )
-    prerequisite_met: bool = Field(
-        default=True, description="Whether prerequisites are satisfied"
-    )
+    can_generate: bool = Field(default=False, description="Whether generate action is available")
+    can_view: bool = Field(default=False, description="Whether view action is available")
+    prerequisite_met: bool = Field(default=True, description="Whether prerequisites are satisfied")
     prerequisite_message: str | None = Field(
         default=None, description="Message if prerequisite not met"
     )
-    error_message: str | None = Field(
-        default=None, description="Last error message if failed"
-    )
-    started_at: datetime | None = Field(
-        default=None, description="Generation start timestamp"
-    )
+    error_message: str | None = Field(default=None, description="Last error message if failed")
+    started_at: datetime | None = Field(default=None, description="Generation start timestamp")
     completed_at: datetime | None = Field(
         default=None, description="Generation completion timestamp"
     )

@@ -44,8 +44,8 @@ class ResearchReport(BaseModel):
                 "summary_content": "# Research Findings\n\nKey insights...",
                 "sections": {
                     "executive_summary": "Summary of findings",
-                    "recommendations": "Recommended product features"
-                }
+                    "recommendations": "Recommended product features",
+                },
             }
         }
     )
@@ -55,7 +55,7 @@ class ResearchReport(BaseModel):
     sections: Dict[str, str] = Field(
         default_factory=dict,
         description="Structured sections: executive_summary, recommendations (required), "
-        "recurrent_patterns, relevant_divergences, identified_tensions, notable_absences, key_quotes (optional)"
+        "recurrent_patterns, relevant_divergences, identified_tensions, notable_absences, key_quotes (optional)",
     )
 
 
@@ -68,7 +68,7 @@ class PressRelease(BaseModel):
                 "headline": "Introducing CustomerInsight: Transform Research into Strategy",
                 "one_liner": "AI-powered synthesis of qualitative research into actionable product documents",
                 "problem_statement": "Product teams spend weeks manually analyzing interviews to create strategic documents",
-                "solution_overview": "Automatically generates PR-FAQ from research batch summaries using AI synthesis"
+                "solution_overview": "Automatically generates PR-FAQ from research batch summaries using AI synthesis",
             }
         }
     )
@@ -87,7 +87,7 @@ class FAQItem(BaseModel):
             "example": {
                 "question": "How does this help with research synthesis?",
                 "answer": "Reduces analysis time from weeks to hours by extracting insights from interview data",
-                "customer_segment": "Product Manager"
+                "customer_segment": "Product Manager",
             }
         }
     )
@@ -108,15 +108,9 @@ class PRFAQDocument(BaseModel):
                     "headline": "New Product",
                     "one_liner": "Solves problem",
                     "problem_statement": "Customer issue",
-                    "solution_overview": "Our solution"
+                    "solution_overview": "Our solution",
                 },
-                "faq": [
-                    {
-                        "question": "Q?",
-                        "answer": "A",
-                        "customer_segment": "Product Manager"
-                    }
-                ]
+                "faq": [{"question": "Q?", "answer": "A", "customer_segment": "Product Manager"}],
             }
         }
     )
@@ -124,21 +118,21 @@ class PRFAQDocument(BaseModel):
     batch_id: str = Field(..., description="Source batch ID")
     press_release: PressRelease = Field(..., description="Press release section")
     faq: list[FAQItem] = Field(..., description="FAQ items (8-12 questions)")
-    generated_at: datetime = Field(default_factory=lambda: datetime.now(datetime.UTC) if hasattr(datetime, 'UTC') else datetime.utcnow())
+    generated_at: datetime = Field(
+        default_factory=lambda: datetime.now(datetime.UTC)
+        if hasattr(datetime, "UTC")
+        else datetime.utcnow()
+    )
     version: int = Field(default=1, description="Version number")
     edit_history: list[Dict[str, Any]] = Field(
         default_factory=list,
-        description="List of edits with timestamp, field, old_value, new_value"
+        description="List of edits with timestamp, field, old_value, new_value",
     )
     validation_status: str = Field(
-        default="valid",
-        description="Validation status: valid, invalid, needs_review"
+        default="valid", description="Validation status: valid, invalid, needs_review"
     )
     confidence_score: float = Field(
-        default=0.0,
-        ge=0.0,
-        le=1.0,
-        description="Quality confidence score (0-1)"
+        default=0.0, ge=0.0, le=1.0, description="Quality confidence score (0-1)"
     )
 
 
@@ -152,7 +146,7 @@ class PRFAQVersion(BaseModel):
                 "version": 1,
                 "generated_at": "2025-12-19T10:00:00",
                 "generation_method": "auto_generated",
-                "diff_with_previous": None
+                "diff_with_previous": None,
             }
         }
     )
@@ -163,8 +157,7 @@ class PRFAQVersion(BaseModel):
     generation_method: str = Field(..., description="auto_generated or manual_edit")
     prfaq_data: PRFAQDocument = Field(..., description="Complete PR-FAQ snapshot")
     diff_with_previous: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Changes from previous version"
+        default=None, description="Changes from previous version"
     )
 
 
@@ -178,28 +171,28 @@ class GenerationMetadata(BaseModel):
                 "generation_timestamp": "2025-12-19T10:00:00",
                 "model_used": "gpt-4",
                 "prompt_strategy": "hybrid_chain_of_thought_structured_output",
-                "token_usage": {"prompt": 500, "completion": 300, "total": 800}
+                "token_usage": {"prompt": 500, "completion": 300, "total": 800},
             }
         }
     )
 
     batch_id: str = Field(..., description="Source batch ID")
-    generation_timestamp: datetime = Field(default_factory=lambda: datetime.now(datetime.UTC) if hasattr(datetime, 'UTC') else datetime.utcnow())
+    generation_timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(datetime.UTC)
+        if hasattr(datetime, "UTC")
+        else datetime.utcnow()
+    )
     model_used: str = Field(default="gpt-4", description="LLM model identifier")
     prompt_strategy: str = Field(
-        default="hybrid_chain_of_thought_structured_output",
-        description="Prompting strategy used"
+        default="hybrid_chain_of_thought_structured_output", description="Prompting strategy used"
     )
     token_usage: Dict[str, int] = Field(
         default_factory=lambda: {"prompt": 0, "completion": 0, "total": 0},
-        description="Token usage metrics"
+        description="Token usage metrics",
     )
     validation_status: str = Field(default="valid", description="Validation result")
     confidence_score: float = Field(
-        default=0.0,
-        ge=0.0,
-        le=1.0,
-        description="Generation quality confidence"
+        default=0.0, ge=0.0, le=1.0, description="Generation quality confidence"
     )
 
 
@@ -220,7 +213,7 @@ def setup_logging(log_file: str = "logs/research_prfaq.log") -> None:
     logger.add(
         lambda msg: print(msg, end=""),
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan> - <level>{message}</level>",
-        level="INFO"
+        level="INFO",
     )
 
     # Add file handler with DEBUG level and rotation
@@ -230,7 +223,7 @@ def setup_logging(log_file: str = "logs/research_prfaq.log") -> None:
         level="DEBUG",
         rotation="10 MB",
         retention="30 days",
-        compression="zip"
+        compression="zip",
     )
 
     logger.info("PR-FAQ logging initialized")
@@ -251,8 +244,8 @@ if __name__ == "__main__":
             summary_content="# Research Findings\n\nCustomers struggle with data analysis",
             sections={
                 "executive_summary": "3 key insights identified",
-                "recommendations": "Build AI-powered synthesis tool"
-            }
+                "recommendations": "Build AI-powered synthesis tool",
+            },
         )
         assert report.batch_id == "batch_001"
         assert "Research Findings" in report.summary_content
@@ -266,7 +259,7 @@ if __name__ == "__main__":
             headline="Transform Research into Strategy",
             one_liner="AI-powered research synthesis",
             problem_statement="Manual analysis takes weeks",
-            solution_overview="Automated synthesis saves time"
+            solution_overview="Automated synthesis saves time",
         )
         assert press_release.headline == "Transform Research into Strategy"
         assert len(press_release.one_liner) > 0
@@ -279,7 +272,7 @@ if __name__ == "__main__":
         faq_item = FAQItem(
             question="How does it work?",
             answer="Uses AI to analyze research interviews",
-            customer_segment="Product Manager"
+            customer_segment="Product Manager",
         )
         assert faq_item.question == "How does it work?"
         assert faq_item.customer_segment == "Product Manager"
@@ -295,15 +288,9 @@ if __name__ == "__main__":
                 headline="Test Product",
                 one_liner="Test value",
                 problem_statement="Test problem",
-                solution_overview="Test solution"
+                solution_overview="Test solution",
             ),
-            faq=[
-                FAQItem(
-                    question="Q1?",
-                    answer="A1",
-                    customer_segment="PM"
-                )
-            ]
+            faq=[FAQItem(question="Q1?", answer="A1", customer_segment="PM")],
         )
         assert prfaq.batch_id == "batch_001"
         assert len(prfaq.faq) == 1
@@ -320,10 +307,10 @@ if __name__ == "__main__":
                 headline="Test",
                 one_liner="Test",
                 problem_statement="Test",
-                solution_overview="Test"
+                solution_overview="Test",
             ),
             faq=[FAQItem(question="Q?", answer="A", customer_segment="PM")],
-            confidence_score=0.95
+            confidence_score=0.95,
         )
         assert 0.0 <= prfaq_high.confidence_score <= 1.0
     except Exception as e:

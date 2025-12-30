@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from synth_lab.domain.entities.experiment import Experiment, generate_experiment_id
+from synth_lab.domain.entities.experiment import Experiment
 from synth_lab.infrastructure.database import DatabaseManager, init_database
 from synth_lab.models.pagination import PaginationParams
 
@@ -279,9 +279,7 @@ class TestExperimentRepositoryUpdate:
         assert updated.hypothesis == "Original hypothesis"
         assert updated.description == "Original description"
 
-    def test_update_nonexistent_experiment_returns_none(
-        self, experiment_repo
-    ) -> None:
+    def test_update_nonexistent_experiment_returns_none(self, experiment_repo) -> None:
         """Verify update returns None for non-existent experiment."""
         result = experiment_repo.update(
             "exp_nonexist",
@@ -307,9 +305,7 @@ class TestExperimentRepositoryDelete:
         assert result is True
         assert experiment_repo.get_by_id(experiment.id) is None
 
-    def test_delete_nonexistent_experiment_returns_false(
-        self, experiment_repo
-    ) -> None:
+    def test_delete_nonexistent_experiment_returns_false(self, experiment_repo) -> None:
         """Verify delete returns False for non-existent experiment."""
         result = experiment_repo.delete("exp_nonexist")
 

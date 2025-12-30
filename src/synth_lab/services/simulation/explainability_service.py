@@ -17,7 +17,6 @@ Expected Output:
     PDPResult: How changing features affects success probability
 """
 
-from datetime import datetime
 import numpy as np
 from loguru import logger
 from sklearn.ensemble import GradientBoostingRegressor
@@ -146,8 +145,7 @@ class ExplainabilityService:
 
         if len(outcomes) < MIN_SYNTHS_FOR_SHAP:
             raise ValueError(
-                f"SHAP requires at least {MIN_SYNTHS_FOR_SHAP} synths, "
-                f"got {len(outcomes)}"
+                f"SHAP requires at least {MIN_SYNTHS_FOR_SHAP} synths, got {len(outcomes)}"
             )
 
         # Find the synth
@@ -190,7 +188,7 @@ class ExplainabilityService:
         baseline_prediction = float(np.mean([o.success_rate for o in outcomes]))
 
         # Get model prediction
-        predicted_success_rate = float(model.predict(X[target_idx:target_idx+1])[0])
+        predicted_success_rate = float(model.predict(X[target_idx : target_idx + 1])[0])
 
         # Build contributions list
         contributions = []
@@ -282,15 +280,13 @@ class ExplainabilityService:
 
         if positive_features:
             feature_names = ", ".join(
-                f"{c.feature_name} ({c.feature_value:.2f})"
-                for c in positive_features[:2]
+                f"{c.feature_name} ({c.feature_value:.2f})" for c in positive_features[:2]
             )
             parts.append(f"Key factors contributing positively: {feature_names}.")
 
         if negative_features:
             feature_names = ", ".join(
-                f"{c.feature_name} ({c.feature_value:.2f})"
-                for c in negative_features[:2]
+                f"{c.feature_name} ({c.feature_value:.2f})" for c in negative_features[:2]
             )
             parts.append(f"Key factors contributing negatively: {feature_names}.")
 
@@ -326,8 +322,7 @@ class ExplainabilityService:
 
         if len(outcomes) < MIN_SYNTHS_FOR_SHAP:
             raise ValueError(
-                f"SHAP requires at least {MIN_SYNTHS_FOR_SHAP} synths, "
-                f"got {len(outcomes)}"
+                f"SHAP requires at least {MIN_SYNTHS_FOR_SHAP} synths, got {len(outcomes)}"
             )
 
         # Train model
@@ -355,8 +350,7 @@ class ExplainabilityService:
 
         # Build feature importance dict
         feature_importances = {
-            feature_names[i]: float(mean_abs_shap[i])
-            for i in range(len(feature_names))
+            feature_names[i]: float(mean_abs_shap[i]) for i in range(len(feature_names))
         }
 
         # Sort features by importance
@@ -707,7 +701,9 @@ if __name__ == "__main__":
         if explanation.explanation_text == "":
             all_validation_failures.append("Empty explanation text")
         else:
-            print(f"Test 2 PASSED: SHAP explanation generated, {len(explanation.contributions)} features")
+            print(
+                f"Test 2 PASSED: SHAP explanation generated, {len(explanation.contributions)} features"
+            )
     except Exception as e:
         all_validation_failures.append(f"SHAP explanation failed: {e}")
 
@@ -737,10 +733,17 @@ if __name__ == "__main__":
         )
         if not pdp.pdp_values:
             all_validation_failures.append("No PDP values")
-        if pdp.effect_type not in ["monotonic_increasing", "monotonic_decreasing", "non_linear", "flat"]:
+        if pdp.effect_type not in [
+            "monotonic_increasing",
+            "monotonic_decreasing",
+            "non_linear",
+            "flat",
+        ]:
             all_validation_failures.append(f"Invalid effect type: {pdp.effect_type}")
         else:
-            print(f"Test 4 PASSED: PDP calculated, effect={pdp.effect_type}, strength={pdp.effect_strength:.3f}")
+            print(
+                f"Test 4 PASSED: PDP calculated, effect={pdp.effect_type}, strength={pdp.effect_strength:.3f}"
+            )
     except Exception as e:
         all_validation_failures.append(f"PDP calculation failed: {e}")
 
@@ -755,7 +758,9 @@ if __name__ == "__main__":
         if len(comparison.pdp_results) != 2:
             all_validation_failures.append(f"Expected 2 PDPs, got {len(comparison.pdp_results)}")
         if len(comparison.feature_ranking) != 2:
-            all_validation_failures.append(f"Expected 2 in ranking, got {len(comparison.feature_ranking)}")
+            all_validation_failures.append(
+                f"Expected 2 in ranking, got {len(comparison.feature_ranking)}"
+            )
         else:
             print(f"Test 5 PASSED: PDP comparison, ranking: {comparison.feature_ranking}")
     except Exception as e:

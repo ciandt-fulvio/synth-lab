@@ -21,10 +21,8 @@ import pytest
 
 from synth_lab.domain.entities.chart_insight import (
     ChartInsight,
-    ChartType,
     SimulationInsights,
 )
-
 
 # =============================================================================
 # Test Fixtures
@@ -362,9 +360,7 @@ class TestClearInsights:
 class TestGetAllInsights:
     """Tests for retrieving all insights for a simulation."""
 
-    def test_get_all_insights_returns_simulation_insights(
-        self, mock_llm_client, mock_repository
-    ):
+    def test_get_all_insights_returns_simulation_insights(self, mock_llm_client, mock_repository):
         """Get all insights returns SimulationInsights object."""
         from synth_lab.services.simulation.insight_service import InsightService
 
@@ -632,9 +628,7 @@ class TestPhoenixTracing:
             mock_tracer.start_as_current_span.return_value.__enter__ = MagicMock(
                 return_value=mock_span
             )
-            mock_tracer.start_as_current_span.return_value.__exit__ = MagicMock(
-                return_value=False
-            )
+            mock_tracer.start_as_current_span.return_value.__exit__ = MagicMock(return_value=False)
 
             service = InsightService(llm_client=mock_llm_client, repository=mock_repository)
             service.generate_insight(

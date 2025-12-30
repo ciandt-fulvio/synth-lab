@@ -43,24 +43,14 @@ class ArtifactState(BaseModel):
 
     artifact_type: ArtifactType = Field(description="Type of artifact")
     state: ArtifactStateEnum = Field(description="Current state")
-    can_generate: bool = Field(
-        default=False, description="Whether generate action is available"
-    )
-    can_view: bool = Field(
-        default=False, description="Whether view action is available"
-    )
-    prerequisite_met: bool = Field(
-        default=True, description="Whether prerequisites are satisfied"
-    )
+    can_generate: bool = Field(default=False, description="Whether generate action is available")
+    can_view: bool = Field(default=False, description="Whether view action is available")
+    prerequisite_met: bool = Field(default=True, description="Whether prerequisites are satisfied")
     prerequisite_message: str | None = Field(
         default=None, description="Message if prerequisite not met"
     )
-    error_message: str | None = Field(
-        default=None, description="Last error message if failed"
-    )
-    started_at: datetime | None = Field(
-        default=None, description="Generation start timestamp"
-    )
+    error_message: str | None = Field(default=None, description="Last error message if failed")
+    started_at: datetime | None = Field(default=None, description="Generation start timestamp")
     completed_at: datetime | None = Field(
         default=None, description="Generation completion timestamp"
     )
@@ -274,9 +264,7 @@ if __name__ == "__main__":
     try:
         state = compute_summary_state("generating_summary", None)
         if state.state != ArtifactStateEnum.GENERATING:
-            all_validation_failures.append(
-                f"Expected GENERATING, got {state.state}"
-            )
+            all_validation_failures.append(f"Expected GENERATING, got {state.state}")
         if state.can_view is not False:
             all_validation_failures.append("Generating state should not be viewable")
     except Exception as e:
@@ -324,7 +312,9 @@ if __name__ == "__main__":
         if state.can_generate is not False:
             all_validation_failures.append("Should not be able to generate without transcripts")
         if state.prerequisite_message != "Nenhuma entrevista disponivel":
-            all_validation_failures.append(f"Wrong prerequisite message: {state.prerequisite_message}")
+            all_validation_failures.append(
+                f"Wrong prerequisite message: {state.prerequisite_message}"
+            )
     except Exception as e:
         all_validation_failures.append(f"compute_summary_state no_transcripts test: {e}")
 
@@ -337,7 +327,9 @@ if __name__ == "__main__":
         if state.can_generate is not False:
             all_validation_failures.append("Should not be able to generate while running")
         if state.prerequisite_message != "Aguardando conclusao das entrevistas":
-            all_validation_failures.append(f"Wrong prerequisite message: {state.prerequisite_message}")
+            all_validation_failures.append(
+                f"Wrong prerequisite message: {state.prerequisite_message}"
+            )
     except Exception as e:
         all_validation_failures.append(f"compute_summary_state running test: {e}")
 

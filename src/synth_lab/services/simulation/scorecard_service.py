@@ -235,9 +235,7 @@ class ScorecardService:
             if not 0.0 <= dim.score <= 1.0:
                 errors.append(f"{name}.score must be in [0, 1]")
             if dim.min_uncertainty > dim.max_uncertainty:
-                errors.append(
-                    f"{name}.min_uncertainty must be <= max_uncertainty"
-                )
+                errors.append(f"{name}.min_uncertainty must be <= max_uncertainty")
 
         if errors:
             raise ValidationError("; ".join(errors))
@@ -298,7 +296,9 @@ if __name__ == "__main__":
                     f"Get: Complexity score mismatch: {retrieved.complexity.score}"
                 )
             else:
-                print(f"Test 2 PASSED: Retrieved scorecard with complexity={retrieved.complexity.score}")
+                print(
+                    f"Test 2 PASSED: Retrieved scorecard with complexity={retrieved.complexity.score}"
+                )
         except Exception as e:
             all_validation_failures.append(f"Get failed: {e}")
 
@@ -362,9 +362,7 @@ if __name__ == "__main__":
             if "feature_name is required" in str(e):
                 print("Test 6 PASSED: Missing feature_name raises ValidationError")
             else:
-                all_validation_failures.append(
-                    f"Create invalid: Wrong error message: {e}"
-                )
+                all_validation_failures.append(f"Create invalid: Wrong error message: {e}")
         except Exception as e:
             all_validation_failures.append(f"Create invalid: Unexpected error {e}")
 
@@ -392,9 +390,7 @@ if __name__ == "__main__":
     # Final result
     print()
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:"
-        )
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)

@@ -124,9 +124,7 @@ def parse_summary(summary_path: Path) -> SummaryFile:
     )
 
 
-def add_file_description(
-    summary_file: SummaryFile, file_description: FileDescription
-) -> None:
+def add_file_description(summary_file: SummaryFile, file_description: FileDescription) -> None:
     """
     Add or update file description in the summary file.
 
@@ -431,9 +429,7 @@ Just a context, no FILE DESCRIPTION section.
             )
 
         if parsed.file_descriptions and parsed.file_descriptions[0].filename != "test.png":
-            all_validation_failures.append(
-                "Round-trip test: Filename mismatch after round-trip"
-            )
+            all_validation_failures.append("Round-trip test: Filename mismatch after round-trip")
 
     # Final validation result
     if all_validation_failures:

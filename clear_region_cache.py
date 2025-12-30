@@ -4,6 +4,7 @@ Execute: uv run python clear_region_cache.py [SIMULATION_ID]
 """
 
 import sys
+
 from synth_lab.infrastructure.database import DatabaseManager
 
 db = DatabaseManager("output/synthlab.db")

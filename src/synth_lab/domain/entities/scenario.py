@@ -207,9 +207,7 @@ if __name__ == "__main__":
         expected_ids = {"baseline", "crisis", "first-use"}
         actual_ids = set(PREDEFINED_SCENARIOS.keys())
         if expected_ids != actual_ids:
-            all_validation_failures.append(
-                f"Expected scenarios {expected_ids}, got {actual_ids}"
-            )
+            all_validation_failures.append(f"Expected scenarios {expected_ids}, got {actual_ids}")
     except Exception as e:
         all_validation_failures.append(f"Predefined scenarios check failed: {e}")
 

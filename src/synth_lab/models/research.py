@@ -256,9 +256,7 @@ if __name__ == "__main__":
         if len(detail.messages) != 2:
             all_validation_failures.append(f"Messages length mismatch: {len(detail.messages)}")
         if detail.messages[0].speaker != "Interviewer":
-            all_validation_failures.append(
-                f"First speaker mismatch: {detail.messages[0].speaker}"
-            )
+            all_validation_failures.append(f"First speaker mismatch: {detail.messages[0].speaker}")
     except Exception as e:
         all_validation_failures.append(f"TranscriptDetail test failed: {e}")
 

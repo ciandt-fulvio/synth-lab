@@ -24,7 +24,6 @@ Expected output:
 """
 
 import json
-from typing import Any
 
 from loguru import logger
 
@@ -144,9 +143,7 @@ class ScorecardLLM:
             except json.JSONDecodeError:
                 hypotheses = [response]
 
-            self.logger.info(
-                f"Generated {len(hypotheses)} hypotheses for scorecard {scorecard.id}"
-            )
+            self.logger.info(f"Generated {len(hypotheses)} hypotheses for scorecard {scorecard.id}")
             return hypotheses[:num_hypotheses]
 
     def generate_suggested_adjustments(
@@ -219,19 +216,19 @@ Analise o seguinte scorecard de feature e justifique os scores atribuidos:
 ## Scores (escala 0-1, onde 0 e o melhor e 1 e o pior)
 
 ### Complexidade: {scorecard.complexity.score:.2f}
-- Regras aplicadas: {', '.join(scorecard.complexity.rules_applied) or 'Nenhuma'}
+- Regras aplicadas: {", ".join(scorecard.complexity.rules_applied) or "Nenhuma"}
 - Incerteza: [{scorecard.complexity.min_uncertainty:.2f} - {scorecard.complexity.max_uncertainty:.2f}]
 
 ### Esforco Inicial: {scorecard.initial_effort.score:.2f}
-- Regras aplicadas: {', '.join(scorecard.initial_effort.rules_applied) or 'Nenhuma'}
+- Regras aplicadas: {", ".join(scorecard.initial_effort.rules_applied) or "Nenhuma"}
 - Incerteza: [{scorecard.initial_effort.min_uncertainty:.2f} - {scorecard.initial_effort.max_uncertainty:.2f}]
 
 ### Risco Percebido: {scorecard.perceived_risk.score:.2f}
-- Regras aplicadas: {', '.join(scorecard.perceived_risk.rules_applied) or 'Nenhuma'}
+- Regras aplicadas: {", ".join(scorecard.perceived_risk.rules_applied) or "Nenhuma"}
 - Incerteza: [{scorecard.perceived_risk.min_uncertainty:.2f} - {scorecard.perceived_risk.max_uncertainty:.2f}]
 
 ### Tempo para Valor: {scorecard.time_to_value.score:.2f}
-- Regras aplicadas: {', '.join(scorecard.time_to_value.rules_applied) or 'Nenhuma'}
+- Regras aplicadas: {", ".join(scorecard.time_to_value.rules_applied) or "Nenhuma"}
 - Incerteza: [{scorecard.time_to_value.min_uncertainty:.2f} - {scorecard.time_to_value.max_uncertainty:.2f}]
 
 Por favor, justifique cada score considerando as regras aplicadas e o cenario de uso. Máximo de 20 tokens por score.
@@ -297,7 +294,7 @@ Por favor, justifique cada score considerando as regras aplicadas e o cenario de
 
 
 ## Areas que mais precisam de melhoria
-{', '.join(worst_names)}
+{", ".join(worst_names)}
 
 Foque em sugestoes praticas e acionaveis que a equipe de produto pode implementar.
 
@@ -411,6 +408,7 @@ if __name__ == "__main__":
 
         # With explicit client
         from synth_lab.infrastructure.llm_client import LLMClient
+
         custom_client = LLMClient(api_key="test-key")
         llm2 = ScorecardLLM(llm_client=custom_client)
         if llm2.llm is not custom_client:
@@ -423,15 +421,11 @@ if __name__ == "__main__":
     # Final result
     print()
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:"
-        )
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
         print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
-        print(
-            "\nNote: Actual LLM calls require OPENAI_API_KEY and are not tested in validation"
-        )
+        print("\nNote: Actual LLM calls require OPENAI_API_KEY and are not tested in validation")
         sys.exit(0)

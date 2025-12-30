@@ -255,13 +255,9 @@ if __name__ == "__main__":
         if abs(sigmoid(0) - 0.5) > 0.001:
             all_validation_failures.append(f"sigmoid(0) should be 0.5: {sigmoid(0)}")
         if sigmoid(10) < 0.999:
-            all_validation_failures.append(
-                f"sigmoid(10) should be ~1: {sigmoid(10)}"
-            )
+            all_validation_failures.append(f"sigmoid(10) should be ~1: {sigmoid(10)}")
         if sigmoid(-10) > 0.001:
-            all_validation_failures.append(
-                f"sigmoid(-10) should be ~0: {sigmoid(-10)}"
-            )
+            all_validation_failures.append(f"sigmoid(-10) should be ~0: {sigmoid(-10)}")
         print("Test 1 PASSED: Sigmoid basic properties")
     except Exception as e:
         all_validation_failures.append(f"Sigmoid test failed: {e}")
@@ -294,7 +290,9 @@ if __name__ == "__main__":
                 f"Higher motivation should increase p_attempt: {p_high} <= {p_low}"
             )
         else:
-            print(f"Test 2 PASSED: P_attempt increases with motivation ({p_low:.3f} -> {p_high:.3f})")
+            print(
+                f"Test 2 PASSED: P_attempt increases with motivation ({p_low:.3f} -> {p_high:.3f})"
+            )
     except Exception as e:
         all_validation_failures.append(f"P_attempt motivation test failed: {e}")
 
@@ -326,7 +324,9 @@ if __name__ == "__main__":
                 f"Higher capability should increase p_success: {p_high} <= {p_low}"
             )
         else:
-            print(f"Test 3 PASSED: P_success increases with capability ({p_low:.3f} -> {p_high:.3f})")
+            print(
+                f"Test 3 PASSED: P_success increases with capability ({p_low:.3f} -> {p_high:.3f})"
+            )
     except Exception as e:
         all_validation_failures.append(f"P_success capability test failed: {e}")
 
@@ -349,7 +349,9 @@ if __name__ == "__main__":
                 f"Higher risk should decrease p_attempt: {p_high_risk} >= {p_low_risk}"
             )
         else:
-            print(f"Test 4 PASSED: Higher risk decreases p_attempt ({p_low_risk:.3f} -> {p_high_risk:.3f})")
+            print(
+                f"Test 4 PASSED: Higher risk decreases p_attempt ({p_low_risk:.3f} -> {p_high_risk:.3f})"
+            )
     except Exception as e:
         all_validation_failures.append(f"Risk effect test failed: {e}")
 
@@ -373,13 +375,9 @@ if __name__ == "__main__":
 
         # Expected: ~30% did_not_try, ~14% failed (0.7*0.2), ~56% success (0.7*0.8)
         if counts["did_not_try"] < 200 or counts["did_not_try"] > 400:
-            all_validation_failures.append(
-                f"did_not_try count unexpected: {counts['did_not_try']}"
-            )
+            all_validation_failures.append(f"did_not_try count unexpected: {counts['did_not_try']}")
         if counts["success"] < 400 or counts["success"] > 700:
-            all_validation_failures.append(
-                f"success count unexpected: {counts['success']}"
-            )
+            all_validation_failures.append(f"success count unexpected: {counts['success']}")
         else:
             print(f"Test 5 PASSED: Sample outcome distribution ({counts})")
     except Exception as e:
@@ -436,9 +434,7 @@ if __name__ == "__main__":
         p_yes = calculate_p_attempt(state_explore, scorecard)
 
         if p_yes <= p_no:
-            all_validation_failures.append(
-                f"Explores should increase p_attempt: {p_yes} <= {p_no}"
-            )
+            all_validation_failures.append(f"Explores should increase p_attempt: {p_yes} <= {p_no}")
         else:
             print(f"Test 7 PASSED: Explores increases p_attempt ({p_no:.3f} -> {p_yes:.3f})")
     except Exception as e:
@@ -447,9 +443,7 @@ if __name__ == "__main__":
     # Final result
     print()
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:"
-        )
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)

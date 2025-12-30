@@ -53,8 +53,8 @@ class TestBuildPrompt:
                     "idade": 30 + i,
                     "genero_biologico": "masculino" if i % 2 == 0 else "feminino",
                     "raca_etnia": ["branco", "pardo", "preto"][i % 3],
-                    "ocupacao": "engenheiro"
-                }
+                    "ocupacao": "engenheiro",
+                },
             }
             for i in range(9)
         ]
@@ -98,11 +98,9 @@ class TestBuildPrompt:
         """Dado 9 synths, quando construir prompt, então tamanho é razoável (<4000 chars)"""
         result = build_prompt(mock_synths)
         # gpt-image-1 suporta prompts maiores - limite aumentado para acomodar descrições detalhadas
-        assert len(
-            result) < 4000, f"Prompt muito longo: {len(result)} caracteres"
+        assert len(result) < 4000, f"Prompt muito longo: {len(result)} caracteres"
         # Mas deve ter conteúdo suficiente
-        assert len(
-            result) > 500, f"Prompt muito curto: {len(result)} caracteres"
+        assert len(result) > 500, f"Prompt muito curto: {len(result)} caracteres"
 
 
 if __name__ == "__main__":
@@ -122,17 +120,18 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         import pytest
+
         result = pytest.main([__file__, "-v", "--tb=short"])
         if result != 0:
-            all_validation_failures.append(
-                f"Alguns testes falharam (código: {result})")
+            all_validation_failures.append(f"Alguns testes falharam (código: {result})")
     except ImportError as e:
         all_validation_failures.append(f"Pytest não disponível: {e}")
 
     # Final validation result
     if all_validation_failures:
         print(
-            f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} checks failed:")
+            f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} checks failed:"
+        )
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)

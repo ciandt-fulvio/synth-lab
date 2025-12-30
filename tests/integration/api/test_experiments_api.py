@@ -12,9 +12,7 @@ References:
     - OpenAPI: specs/018-experiment-hub/contracts/openapi.yaml
 """
 
-import tempfile
 from datetime import datetime, timezone
-from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -49,10 +47,12 @@ def client(test_db, monkeypatch):
 
     # Also patch in repositories that import get_database directly
     import synth_lab.repositories.base as base_repo
+
     monkeypatch.setattr(base_repo, "get_database", get_test_database)
 
     # Patch in experiments router that imports get_database directly
     import synth_lab.api.routers.experiments as experiments_router
+
     monkeypatch.setattr(experiments_router, "get_database", get_test_database)
 
     return TestClient(app)
@@ -239,9 +239,7 @@ class TestListExperiments:
 class TestGetExperiment:
     """Tests for GET /experiments/{id} - US3 scenarios."""
 
-    def test_get_experiment_includes_simulations_and_interviews(
-        self, client, test_db
-    ) -> None:
+    def test_get_experiment_includes_simulations_and_interviews(self, client, test_db) -> None:
         """
         US3 Scenario 1: Given home + clica experimento,
         Then navega para /experiments/:id com detalhes completos.
