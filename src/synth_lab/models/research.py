@@ -109,7 +109,7 @@ class ResearchExecuteRequest(BaseModel):
         description="Max interview turns (each turn = 1 question + 1 answer)",
     )
     max_concurrent: int = Field(
-        default=10,
+        default=12,
         ge=1,
         le=50,
         description="Max concurrent interviews",
