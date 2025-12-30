@@ -52,7 +52,7 @@ def save_base64_image(b64_data: str, temp_dir: str | None = None) -> str:
 
     # Decodificar base64 e salvar
     image_bytes = base64.b64decode(b64_data)
-    with open(temp_path, 'wb') as f:
+    with open(temp_path, "wb") as f:
         f.write(image_bytes)
 
     return str(temp_path)
@@ -90,18 +90,14 @@ def download_image(url: str, temp_dir: str | None = None) -> str:
     temp_path = Path(temp_dir) / f"avatar_grid_{uuid.uuid4()}.png"
 
     # Escrever dados da imagem
-    with open(temp_path, 'wb') as f:
+    with open(temp_path, "wb") as f:
         for chunk in response.iter_content(chunk_size=8192):
             f.write(chunk)
 
     return str(temp_path)
 
 
-def split_grid_image(
-    image_path: str,
-    output_dir: str,
-    synth_ids: list[str]
-) -> list[str]:
+def split_grid_image(image_path: str, output_dir: str, synth_ids: list[str]) -> list[str]:
     """
     Divide imagem 1024x1024 em grid 3x3 de 9 avatares individuais 341x341.
 
@@ -165,7 +161,7 @@ def split_grid_image(
 
             # Salvar como PNG
             output_path = Path(output_dir) / f"{synth_id}.png"
-            cell.save(output_path, format='PNG', optimize=True)
+            cell.save(output_path, format="PNG", optimize=True)
             saved_paths.append(str(output_path))
 
     if skipped_count > 0:
@@ -216,7 +212,7 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         # Criar imagem de teste
-        test_img = Image.new('RGB', (1024, 1024), color='blue')
+        test_img = Image.new("RGB", (1024, 1024), color="blue")
         with tempfile.TemporaryDirectory() as temp_dir:
             test_grid_path = Path(temp_dir) / "test_grid.png"
             test_img.save(test_grid_path)
@@ -254,30 +250,29 @@ if __name__ == "__main__":
                             "[green]✓[/green] split_grid_image() criou 9 avatares 341x341"
                         )
     except Exception as e:
-        all_validation_failures.append(
-            f"split_grid_image() teste completo: Exceção: {e}"
-        )
+        all_validation_failures.append(f"split_grid_image() teste completo: Exceção: {e}")
 
     # Test 3: download_image function exists and is callable
     total_tests += 1
     try:
         # Verify function signature
         import inspect
+
         sig = inspect.signature(download_image)
         params = list(sig.parameters.keys())
-        if 'url' not in params:
+        if "url" not in params:
             all_validation_failures.append(
                 "download_image(): Parâmetro 'url' não encontrado na assinatura"
             )
         else:
-            console.print("[green]✓[/green] download_image() tem assinatura correta (url, temp_dir)")
+            console.print(
+                "[green]✓[/green] download_image() tem assinatura correta (url, temp_dir)"
+            )
     except Exception as e:
-        all_validation_failures.append(
-            f"download_image() verificação de assinatura: {e}"
-        )
+        all_validation_failures.append(f"download_image() verificação de assinatura: {e}")
 
     # Final validation result
-    console.print(f"\n{'='*60}")
+    console.print(f"\n{'=' * 60}")
     if all_validation_failures:
         console.print(
             f"[red]❌ VALIDATION FAILED - {len(all_validation_failures)} de {total_tests} testes falharam:[/red]"

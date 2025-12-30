@@ -164,8 +164,7 @@ class PRFAQRepository(BaseRepository):
 
         if existing and existing["status"] == "generating":
             logger.warning(
-                f"[{exec_id}] PR-FAQ state transition blocked: "
-                f"already in 'generating' state"
+                f"[{exec_id}] PR-FAQ state transition blocked: already in 'generating' state"
             )
             return False  # Already generating, prevent concurrent request
 
@@ -180,8 +179,7 @@ class PRFAQRepository(BaseRepository):
                 SET status = 'generating', started_at = ?, model = ?, error_message = NULL
                 WHERE exec_id = ?
             """
-            self.db.execute(
-                query, (datetime.now().isoformat(), model, exec_id))
+            self.db.execute(query, (datetime.now().isoformat(), model, exec_id))
         else:
             # Insert new record
             query = """
@@ -189,12 +187,10 @@ class PRFAQRepository(BaseRepository):
                 (exec_id, status, started_at, model)
                 VALUES (?, 'generating', ?, ?)
             """
-            self.db.execute(
-                query, (exec_id, datetime.now().isoformat(), model))
+            self.db.execute(query, (exec_id, datetime.now().isoformat(), model))
 
         logger.info(
-            f"[{exec_id}] PR-FAQ state transition: "
-            f"{previous_status or 'none'} -> generating"
+            f"[{exec_id}] PR-FAQ state transition: {previous_status or 'none'} -> generating"
         )
         return True
 
@@ -289,10 +285,7 @@ class PRFAQRepository(BaseRepository):
                 f"{previous_status} -> {status} (error: {error_message})"
             )
         else:
-            logger.info(
-                f"[{exec_id}] PR-FAQ state transition: "
-                f"{previous_status} -> {status}"
-            )
+            logger.info(f"[{exec_id}] PR-FAQ state transition: {previous_status} -> {status}")
 
     def get_prfaq_status(self, exec_id: str) -> str | None:
         """
@@ -368,8 +361,7 @@ class PRFAQRepository(BaseRepository):
 
         return PRFAQSummary(
             exec_id=row["exec_id"],
-            topic_name=row["topic_name"] if "topic_name" in row.keys(
-            ) else None,
+            topic_name=row["topic_name"] if "topic_name" in row.keys() else None,
             headline=row["headline"],
             one_liner=row["one_liner"],
             faq_count=row["faq_count"] or 0,
@@ -414,8 +406,7 @@ if __name__ == "__main__":
             exec_id = result.data[0].exec_id
             prfaq = repo.get_by_exec_id(exec_id)
             if prfaq.exec_id != exec_id:
-                all_validation_failures.append(
-                    f"Exec ID mismatch: {prfaq.exec_id}")
+                all_validation_failures.append(f"Exec ID mismatch: {prfaq.exec_id}")
             print(f"  Got PR-FAQ: {exec_id}")
             print(f"    - Topic: {prfaq.topic_name}")
             print(f"    - Headline: {prfaq.headline}")
@@ -451,8 +442,7 @@ if __name__ == "__main__":
     try:
         result = repo.list_prfaqs(PaginationParams(limit=1, offset=0))
         if result.pagination.limit != 1:
-            all_validation_failures.append(
-                f"Limit should be 1: {result.pagination.limit}")
+            all_validation_failures.append(f"Limit should be 1: {result.pagination.limit}")
     except Exception as e:
         all_validation_failures.append(f"Pagination test failed: {e}")
 
@@ -460,12 +450,10 @@ if __name__ == "__main__":
 
     # Final validation result
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         sys.exit(0)

@@ -76,15 +76,17 @@ class SynthOutcomeRepository(BaseRepository):
         values = []
         for outcome in outcomes:
             synth_attrs_json = json.dumps(outcome.synth_attributes.model_dump())
-            values.append((
-                outcome.id,
-                outcome.analysis_id,
-                outcome.synth_id,
-                outcome.did_not_try_rate,
-                outcome.failed_rate,
-                outcome.success_rate,
-                synth_attrs_json,
-            ))
+            values.append(
+                (
+                    outcome.id,
+                    outcome.analysis_id,
+                    outcome.synth_id,
+                    outcome.did_not_try_rate,
+                    outcome.failed_rate,
+                    outcome.success_rate,
+                    synth_attrs_json,
+                )
+            )
 
         self.db.executemany(
             """
@@ -120,7 +122,6 @@ class SynthOutcomeRepository(BaseRepository):
         self,
         analysis_id: str,
         params: PaginationParams | None = None,
-        scenario_id: str = "baseline",
     ) -> PaginatedResponse[SynthOutcome]:
         """
         List outcomes for an analysis with pagination.
@@ -128,34 +129,31 @@ class SynthOutcomeRepository(BaseRepository):
         Args:
             analysis_id: Parent analysis run ID.
             params: Pagination parameters.
-            scenario_id: Scenario to filter by (default: baseline).
 
         Returns:
             Paginated list of synth outcomes.
         """
         params = params or PaginationParams()
 
-        # Get total count - filter by scenario_id with fallback for legacy data
+        # Get total count
         count_row = self.db.fetchone(
             """
             SELECT COUNT(*) as count FROM synth_outcomes
             WHERE analysis_id = ?
-            AND (scenario_id = ? OR scenario_id IS NULL OR scenario_id = 'baseline')
             """,
-            (analysis_id, scenario_id),
+            (analysis_id,),
         )
         total = count_row["count"] if count_row else 0
 
-        # Get paginated results - filter by scenario_id
+        # Get paginated results
         rows = self.db.fetchall(
             """
             SELECT * FROM synth_outcomes
             WHERE analysis_id = ?
-            AND (scenario_id = ? OR scenario_id IS NULL OR scenario_id = 'baseline')
             ORDER BY synth_id
             LIMIT ? OFFSET ?
             """,
-            (analysis_id, scenario_id, params.limit, params.offset),
+            (analysis_id, params.limit, params.offset),
         )
 
         outcomes = [self._row_to_outcome(row) for row in rows]
@@ -207,6 +205,58 @@ class SynthOutcomeRepository(BaseRepository):
             (analysis_id,),
         )
         return row["count"] if row else 0
+
+    def get_by_synth_and_analysis(self, synth_id: str, analysis_id: str) -> SynthOutcome | None:
+        """
+        Get simulation results for a specific synth in an analysis.
+
+        Used to retrieve a synth's performance for interview context.
+
+        Args:
+            synth_id: The synth ID.
+            analysis_id: The analysis run ID.
+
+        Returns:
+            SynthOutcome if found, None otherwise.
+        """
+        row = self.db.fetchone(
+            """
+            SELECT * FROM synth_outcomes
+            WHERE synth_id = ? AND analysis_id = ?
+            """,
+            (synth_id, analysis_id),
+        )
+        if row is None:
+            return None
+        return self._row_to_outcome(row)
+
+    def get_latest_outcome_for_synth(self, synth_id: str) -> SynthOutcome | None:
+        """
+        Get the most recent simulation outcome for a synth.
+
+        Finds the latest completed analysis that includes this synth
+        and returns their outcome.
+
+        Args:
+            synth_id: The synth ID.
+
+        Returns:
+            SynthOutcome from most recent analysis, or None if not found.
+        """
+        row = self.db.fetchone(
+            """
+            SELECT so.* FROM synth_outcomes so
+            JOIN analysis_runs ar ON so.analysis_id = ar.id
+            WHERE so.synth_id = ?
+            AND ar.status = 'completed'
+            ORDER BY ar.completed_at DESC
+            LIMIT 1
+            """,
+            (synth_id,),
+        )
+        if row is None:
+            return None
+        return self._row_to_outcome(row)
 
     def _row_to_outcome(self, row) -> SynthOutcome:
         """Convert a database row to SynthOutcome entity."""
@@ -342,9 +392,7 @@ if __name__ == "__main__":
                     f"List returned {len(response.data)} items, expected 5"
                 )
             if response.pagination.total != 11:
-                all_validation_failures.append(
-                    f"Total mismatch: {response.pagination.total}"
-                )
+                all_validation_failures.append(f"Total mismatch: {response.pagination.total}")
             if not response.pagination.has_next:
                 all_validation_failures.append("has_next should be True")
         except Exception as e:
@@ -359,12 +407,49 @@ if __name__ == "__main__":
         except Exception as e:
             all_validation_failures.append(f"Count by analysis_id failed: {e}")
 
-        # Test 6: Delete by analysis ID
+        # Test 6: Get by synth and analysis
         total_tests += 1
         try:
+            # First recreate an outcome for testing
+            test_outcome = SynthOutcome(
+                analysis_id=analysis.id,
+                synth_id="synth_test",
+                did_not_try_rate=0.25,
+                failed_rate=0.35,
+                success_rate=0.40,
+                synth_attributes=sample_attrs,
+            )
+            outcome_repo.create(test_outcome)
+
+            retrieved = outcome_repo.get_by_synth_and_analysis("synth_test", analysis.id)
+            if retrieved is None:
+                all_validation_failures.append("get_by_synth_and_analysis returned None")
+            elif retrieved.synth_id != "synth_test":
+                all_validation_failures.append(f"synth_id mismatch: {retrieved.synth_id}")
+            elif retrieved.success_rate != 0.40:
+                all_validation_failures.append(f"success_rate mismatch: {retrieved.success_rate}")
+        except Exception as e:
+            all_validation_failures.append(f"Get by synth and analysis failed: {e}")
+
+        # Test 7: Get by synth and analysis - not found
+        total_tests += 1
+        try:
+            result = outcome_repo.get_by_synth_and_analysis("nonexistent", analysis.id)
+            if result is not None:
+                all_validation_failures.append("Should return None for nonexistent synth")
+        except Exception as e:
+            all_validation_failures.append(f"Get nonexistent synth failed: {e}")
+
+        # Test 8: Delete by analysis ID
+        total_tests += 1
+        try:
+            # Count before delete (11 original + 1 test_outcome = 12)
+            count_before = outcome_repo.count_by_analysis_id(analysis.id)
             deleted = outcome_repo.delete_by_analysis_id(analysis.id)
-            if deleted != 11:
-                all_validation_failures.append(f"Delete returned {deleted}, expected 11")
+            if deleted != count_before:
+                all_validation_failures.append(
+                    f"Delete returned {deleted}, expected {count_before}"
+                )
             count = outcome_repo.count_by_analysis_id(analysis.id)
             if count != 0:
                 all_validation_failures.append(f"Outcomes still exist after delete: {count}")

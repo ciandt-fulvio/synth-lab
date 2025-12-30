@@ -26,9 +26,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
-from numpy.random import Generator
 
-from synth_lab.domain.entities import FeatureScorecard, Scenario, SimulationAttributes
+from synth_lab.domain.entities import FeatureScorecard, Scenario
 from synth_lab.services.simulation.probability import (
     calculate_p_attempt,
     calculate_p_success,
@@ -305,15 +304,13 @@ if __name__ == "__main__":
         )
 
         if results.total_synths != 10:
-            all_validation_failures.append(
-                f"Expected 10 synths, got {results.total_synths}"
-            )
+            all_validation_failures.append(f"Expected 10 synths, got {results.total_synths}")
         if results.n_executions != 100:
-            all_validation_failures.append(
-                f"Expected 100 executions, got {results.n_executions}"
-            )
+            all_validation_failures.append(f"Expected 100 executions, got {results.n_executions}")
         else:
-            print(f"Test 1 PASSED: Basic simulation ({results.total_synths} synths x {results.n_executions} executions)")
+            print(
+                f"Test 1 PASSED: Basic simulation ({results.total_synths} synths x {results.n_executions} executions)"
+            )
     except Exception as e:
         all_validation_failures.append(f"Basic simulation failed: {e}")
 
@@ -336,16 +333,14 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         agg_total = (
-            results.aggregated_did_not_try
-            + results.aggregated_failed
-            + results.aggregated_success
+            results.aggregated_did_not_try + results.aggregated_failed + results.aggregated_success
         )
         if abs(agg_total - 1.0) > 0.001:
-            all_validation_failures.append(
-                f"Aggregated rates don't sum to 1: {agg_total}"
-            )
+            all_validation_failures.append(f"Aggregated rates don't sum to 1: {agg_total}")
         else:
-            print(f"Test 3 PASSED: Aggregated rates sum to 1.0 (success={results.aggregated_success:.3f})")
+            print(
+                f"Test 3 PASSED: Aggregated rates sum to 1.0 (success={results.aggregated_success:.3f})"
+            )
     except Exception as e:
         all_validation_failures.append(f"Aggregated rates test failed: {e}")
 
@@ -363,7 +358,9 @@ if __name__ == "__main__":
         )
 
         if results1.aggregated_success != results2.aggregated_success:
-            all_validation_failures.append("Reproducibility failed: different results with same seed")
+            all_validation_failures.append(
+                "Reproducibility failed: different results with same seed"
+            )
         else:
             print("Test 4 PASSED: Reproducibility with same seed")
     except Exception as e:
@@ -398,9 +395,7 @@ if __name__ == "__main__":
                 f"Performance: 100x100 took {results.execution_time_seconds:.3f}s (>1s)"
             )
         else:
-            print(
-                f"Test 5 PASSED: Performance 100x100 in {results.execution_time_seconds:.3f}s"
-            )
+            print(f"Test 5 PASSED: Performance 100x100 in {results.execution_time_seconds:.3f}s")
     except Exception as e:
         all_validation_failures.append(f"Performance test failed: {e}")
 
@@ -464,9 +459,7 @@ if __name__ == "__main__":
     # Final result
     print()
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:"
-        )
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)

@@ -65,9 +65,7 @@ if __name__ == "__main__":
         if q.id != 1:
             all_validation_failures.append(f"Question ID mismatch: {q.id}")
         if q.context_examples is not None:
-            all_validation_failures.append(
-                f"context_examples should be None: {q.context_examples}"
-            )
+            all_validation_failures.append(f"context_examples should be None: {q.context_examples}")
     except Exception as e:
         all_validation_failures.append(f"TopicQuestion creation failed: {e}")
 
@@ -80,9 +78,7 @@ if __name__ == "__main__":
             context_examples={"example": "Pagamento, entrega"},
         )
         if q.context_examples.get("example") != "Pagamento, entrega":
-            all_validation_failures.append(
-                f"Context example mismatch: {q.context_examples}"
-            )
+            all_validation_failures.append(f"Context example mismatch: {q.context_examples}")
     except Exception as e:
         all_validation_failures.append(f"TopicQuestion with context failed: {e}")
 

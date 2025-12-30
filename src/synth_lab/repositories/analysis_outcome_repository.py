@@ -116,7 +116,9 @@ class AnalysisOutcomeRepository(BaseRepository):
 
             # Skip rows without synth_attributes (required field in SynthOutcome)
             if attrs is None:
-                self.logger.warning(f"Skipping outcome for synth {row['synth_id']} - missing attributes")
+                self.logger.warning(
+                    f"Skipping outcome for synth {row['synth_id']} - missing attributes"
+                )
                 continue
 
             outcomes.append(

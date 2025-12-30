@@ -222,9 +222,9 @@ if __name__ == "__main__":
         if config.n_synths != 500:
             all_validation_failures.append(f"n_synths default should be 500: {config.n_synths}")
         if config.n_executions != 100:
-            all_validation_failures.append(f"n_executions default should be 100")
+            all_validation_failures.append("n_executions default should be 100")
         if config.sigma != 0.05:
-            all_validation_failures.append(f"sigma default should be 0.05")
+            all_validation_failures.append("sigma default should be 0.05")
     except Exception as e:
         all_validation_failures.append(f"AnalysisConfig defaults test failed: {e}")
 

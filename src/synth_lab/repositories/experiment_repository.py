@@ -94,9 +94,7 @@ class ExperimentRepository(BaseRepository):
             return None
         return self._row_to_experiment(row)
 
-    def list_experiments(
-        self, params: PaginationParams
-    ) -> PaginatedResponse[ExperimentSummary]:
+    def list_experiments(self, params: PaginationParams) -> PaginatedResponse[ExperimentSummary]:
         """
         List experiments with pagination.
 
@@ -309,9 +307,7 @@ class ExperimentRepository(BaseRepository):
             has_scorecard=has_scorecard,
             has_analysis=bool(row["has_analysis"]) if "has_analysis" in row.keys() else False,
             has_interview_guide=(
-                bool(row["has_interview_guide"])
-                if "has_interview_guide" in row.keys()
-                else False
+                bool(row["has_interview_guide"]) if "has_interview_guide" in row.keys() else False
             ),
             interview_count=row["interview_count"] if "interview_count" in row.keys() else 0,
             created_at=created_at,

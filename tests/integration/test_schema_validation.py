@@ -36,13 +36,12 @@ def test_generated_synth_no_removed_fields():
 
 
 def test_generated_synth_has_retained_fields():
-    """Test that generated synths have all essential fields."""
+    """Test that generated synths have all essential fields (v2.3.0 schema)."""
     config = load_config_data()
     synth = synth_builder.assemble_synth(config)
 
-    # Verify essential psicografia fields
+    # Verify essential psicografia fields (v2.3.0 removed personalidade_big_five)
     psico = synth["psicografia"]
-    assert "personalidade_big_five" in psico
     assert "interesses" in psico
     assert "contrato_cognitivo" in psico
 
@@ -53,14 +52,23 @@ def test_generated_synth_has_retained_fields():
     assert "regras" in contrato
     assert "efeito_esperado" in contrato
 
+    # Verify observables (v2.3.0 new field)
+    assert "observables" in synth
+    observables = synth["observables"]
+    assert "digital_literacy" in observables
+    assert "motor_ability" in observables
+    assert "time_availability" in observables
+    assert "similar_tool_experience" in observables
+    assert "domain_expertise" in observables
 
-def test_generated_synth_version_2_0_0():
-    """Test that generated synths have version 2.1.0."""
+
+def test_generated_synth_version_2_3_0():
+    """Test that generated synths have version 2.3.0."""
     config = load_config_data()
     synth = synth_builder.assemble_synth(config)
 
     assert "version" in synth
-    assert synth["version"] == "2.1.0", f"Generated synth should be v2.1.0, got {synth['version']}"
+    assert synth["version"] == "2.3.0", f"Generated synth should be v2.3.0, got {synth['version']}"
 
 
 def test_multiple_synths_no_removed_fields():
@@ -79,8 +87,9 @@ def test_multiple_synths_no_removed_fields():
     for i, synth in enumerate(synths):
         # Check psicografia
         for field in removed_fields_psico:
-            assert field not in synth["psicografia"], \
-                f"Synth {i+1} should not have psicografia.{field}"
+            assert field not in synth["psicografia"], (
+                f"Synth {i + 1} should not have psicografia.{field}"
+            )
 
 
 def test_generated_synth_passes_schema_validation():
@@ -92,9 +101,7 @@ def test_generated_synth_passes_schema_validation():
 
     is_valid, errors = validate_synth(synth)
 
-    assert is_valid is True, (
-        f"Generated synth should pass schema validation. Errors: {errors}"
-    )
+    assert is_valid is True, f"Generated synth should pass schema validation. Errors: {errors}"
 
 
 def test_batch_generated_synths_all_pass_validation():

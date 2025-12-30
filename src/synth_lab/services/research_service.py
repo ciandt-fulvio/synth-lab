@@ -58,9 +58,7 @@ class ResearchService:
         self.research_repo = research_repo or ResearchRepository()
         self.interview_guide_repo = interview_guide_repo or InterviewGuideRepository()
 
-    def _guide_to_interview_guide_data(
-        self, guide: InterviewGuide
-    ) -> InterviewGuideData:
+    def _guide_to_interview_guide_data(self, guide: InterviewGuide) -> InterviewGuideData:
         """Convert InterviewGuide from DB to InterviewGuideData for runner."""
         return InterviewGuideData(
             context_definition=guide.context_definition,
@@ -194,8 +192,7 @@ class ResearchService:
         has_transcripts = len(transcripts.data) > 0
 
         # Compute summary state
-        summary_state = compute_summary_state(
-            execution_status, summary_content, has_transcripts)
+        summary_state = compute_summary_state(execution_status, summary_content, has_transcripts)
         logger.debug(
             f"[{exec_id}] Summary state computed: {summary_state.state.value} "
             f"(status={execution_status}, has_content={summary_content is not None}, "
@@ -242,15 +239,15 @@ class ResearchService:
         execution = self.research_repo.get_execution(exec_id)
         if execution.status.value not in ("completed", "failed"):
             raise ValueError(
-                f"Execution {exec_id} is not completed (status: {execution.status.value})")
+                f"Execution {exec_id} is not completed (status: {execution.status.value})"
+            )
 
         # Get transcripts
         transcripts = self.research_repo.get_transcripts(exec_id)
         if not transcripts.data:
             raise ValueError(f"Execution {exec_id} has no transcripts")
 
-        logger.info(
-            f"Generating summary for {exec_id} with {len(transcripts.data)} transcripts")
+        logger.info(f"Generating summary for {exec_id} with {len(transcripts.data)} transcripts")
 
         # Load synths for enrichment
         all_synths = load_synths()
@@ -259,8 +256,7 @@ class ResearchService:
         # Convert transcripts to InterviewResult format
         interview_results: list[tuple[InterviewResult, dict]] = []
         for transcript_summary in transcripts.data:
-            transcript = self.research_repo.get_transcript(
-                exec_id, transcript_summary.synth_id)
+            transcript = self.research_repo.get_transcript(exec_id, transcript_summary.synth_id)
 
             # Convert messages to ConversationMessage
             messages = [
@@ -282,8 +278,9 @@ class ResearchService:
             )
 
             # Get synth data for enrichment
-            synth_data = synths_by_id.get(transcript.synth_id, {
-                                          "id": transcript.synth_id, "nome": transcript.synth_name})
+            synth_data = synths_by_id.get(
+                transcript.synth_id, {"id": transcript.synth_id, "nome": transcript.synth_name}
+            )
 
             interview_results.append((interview_result, synth_data))
 
@@ -296,8 +293,7 @@ class ResearchService:
 
         # Save to database
         self.research_repo.update_summary_content(exec_id, summary)
-        logger.info(
-            f"Summary generated and saved for {exec_id}: {len(summary)} chars")
+        logger.info(f"Summary generated and saved for {exec_id}: {len(summary)} chars")
 
         return summary
 
@@ -322,17 +318,14 @@ class ResearchService:
         if not request.experiment_id:
             raise ValueError("experiment_id is required for research execution")
 
-        interview_guide = self.interview_guide_repo.get_by_experiment_id(
-            request.experiment_id
-        )
+        interview_guide = self.interview_guide_repo.get_by_experiment_id(request.experiment_id)
         if interview_guide is None:
             raise ValueError(
                 f"No interview guide configured for experiment {request.experiment_id}"
             )
 
         # Determine synth count
-        synth_count = request.synth_count or (
-            len(request.synth_ids) if request.synth_ids else 5)
+        synth_count = request.synth_count or (len(request.synth_ids) if request.synth_ids else 5)
 
         # Generate execution ID
         timestamp = datetime.now(TZ_GMT_MINUS_3).strftime("%Y%m%d_%H%M%S")
@@ -436,9 +429,7 @@ class ResearchService:
                 ),
             )
 
-        async def on_transcription_complete(
-            exec_id: str, successful: int, failed: int
-        ) -> None:
+        async def on_transcription_complete(exec_id: str, successful: int, failed: int) -> None:
             """Publish transcription_completed event before summary generation."""
             await broker.publish(
                 exec_id,
@@ -454,8 +445,7 @@ class ResearchService:
 
         async def on_summary_start(exec_id: str) -> None:
             """Update execution status to generating_summary when summary starts."""
-            logger.info(
-                f"Updating execution {exec_id} status to generating_summary")
+            logger.info(f"Updating execution {exec_id} status to generating_summary")
             self.research_repo.update_execution_status(
                 exec_id=exec_id,
                 status=ExecutionStatus.GENERATING_SUMMARY,
@@ -557,9 +547,7 @@ class ResearchService:
                     status="completed",
                 )
 
-            logger.info(
-                f"Saved {len(result.successful_interviews)} transcripts for {exec_id}"
-            )
+            logger.info(f"Saved {len(result.successful_interviews)} transcripts for {exec_id}")
 
             # Now generate summary if requested
             summary_content = None
@@ -683,8 +671,7 @@ if __name__ == "__main__":
             if transcripts.data:
                 synth_id = transcripts.data[0].synth_id
                 transcript = service.get_transcript(exec_id, synth_id)
-                print(
-                    f"  Got transcript with {len(transcript.messages)} messages")
+                print(f"  Got transcript with {len(transcript.messages)} messages")
     except Exception as e:
         all_validation_failures.append(f"Get transcript failed: {e}")
 
@@ -706,12 +693,10 @@ if __name__ == "__main__":
 
     # Final validation result
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         sys.exit(0)

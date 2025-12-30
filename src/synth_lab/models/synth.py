@@ -11,7 +11,6 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-
 # ============================================================================
 # Demografia models
 # ============================================================================
@@ -35,7 +34,9 @@ class FamilyComposition(BaseModel):
         default=None,
         description="Tipo: unipessoal, casal sem filhos, casal com filhos, monoparental, multigeracional, outros",
     )
-    numero_pessoas: int | None = Field(default=None, ge=1, le=15, description="Número de pessoas no domicílio")
+    numero_pessoas: int | None = Field(
+        default=None, ge=1, le=15, description="Número de pessoas no domicílio"
+    )
 
 
 class Demographics(BaseModel):
@@ -45,10 +46,6 @@ class Demographics(BaseModel):
     genero_biologico: str | None = Field(
         default=None, description="Gênero biológico: masculino, feminino, intersexo"
     )
-    identidade_genero: str | None = Field(
-        default=None,
-        description="Identidade de gênero: homem cis, mulher cis, homem trans, mulher trans, não-binário, outro",
-    )
     raca_etnia: str | None = Field(
         default=None, description="Raça/etnia IBGE: branco, pardo, preto, amarelo, indígena"
     )
@@ -57,7 +54,9 @@ class Demographics(BaseModel):
         default=None,
         description="Nível: Sem instrução, Fundamental incompleto/completo, Médio incompleto/completo, Superior incompleto/completo, Pós-graduação",
     )
-    renda_mensal: float | None = Field(default=None, ge=0, description="Renda mensal individual em BRL")
+    renda_mensal: float | None = Field(
+        default=None, ge=0, description="Renda mensal individual em BRL"
+    )
     ocupacao: str | None = Field(default=None, description="Profissão/ocupação conforme CBO")
     estado_civil: str | None = Field(
         default=None, description="Estado civil: solteiro, casado, união estável, divorciado, viúvo"
@@ -68,16 +67,6 @@ class Demographics(BaseModel):
 # ============================================================================
 # Psicografia models
 # ============================================================================
-
-
-class BigFivePersonality(BaseModel):
-    """Big Five personality traits (0-100 scale)."""
-
-    abertura: int | None = Field(default=None, ge=0, le=100, description="Abertura a experiências")
-    conscienciosidade: int | None = Field(default=None, ge=0, le=100, description="Conscienciosidade")
-    extroversao: int | None = Field(default=None, ge=0, le=100, description="Extroversão")
-    amabilidade: int | None = Field(default=None, ge=0, le=100, description="Amabilidade")
-    neuroticismo: int | None = Field(default=None, ge=0, le=100, description="Neuroticismo")
 
 
 class CognitiveContract(BaseModel):
@@ -95,8 +84,9 @@ class CognitiveContract(BaseModel):
 class Psychographics(BaseModel):
     """Psychographic data for a synth."""
 
-    personalidade_big_five: BigFivePersonality | None = None
-    interesses: list[str] = Field(default_factory=list, description="Áreas de interesse (1-4 itens)")
+    interesses: list[str] = Field(
+        default_factory=list, description="Áreas de interesse (1-4 itens)"
+    )
     contrato_cognitivo: CognitiveContract | None = None
 
 
@@ -108,20 +98,23 @@ class Psychographics(BaseModel):
 class VisualDisability(BaseModel):
     """Visual disability information (PNS 2019: 3.4%)."""
 
-    tipo: str | None = Field(default=None, description="Tipo: nenhuma, leve, moderada, severa, cegueira")
+    tipo: str | None = Field(
+        default=None, description="Tipo: nenhuma, leve, moderada, severa, cegueira"
+    )
 
 
 class HearingDisability(BaseModel):
     """Hearing disability information (PNS 2019: 1.1%)."""
 
-    tipo: str | None = Field(default=None, description="Tipo: nenhuma, leve, moderada, severa, surdez")
+    tipo: str | None = Field(
+        default=None, description="Tipo: nenhuma, leve, moderada, severa, surdez"
+    )
 
 
 class MotorDisability(BaseModel):
     """Motor disability information (PNS 2019: 3.8%)."""
 
     tipo: str | None = Field(default=None, description="Tipo: nenhuma, leve, moderada, severa")
-    usa_cadeira_rodas: bool | None = Field(default=None, description="Usa cadeira de rodas")
 
 
 class CognitiveDisability(BaseModel):
@@ -139,28 +132,19 @@ class Disabilities(BaseModel):
     cognitiva: CognitiveDisability | None = None
 
 
-# ============================================================================
-# Capacidades Tecnológicas models
-# ============================================================================
-
-
-class TechCapabilities(BaseModel):
-    """Technology capabilities for a synth."""
-
-    alfabetizacao_digital: int | None = Field(default=None, ge=0, le=100, description="Nível de alfabetização digital")
-
-
 class SynthBase(BaseModel):
     """Base synth model with core fields."""
 
     id: str = Field(..., min_length=6, max_length=6, description="6-character unique ID")
-    synth_group_id: str | None = Field(default=None, description="ID of the synth group this synth belongs to")
+    synth_group_id: str | None = Field(
+        default=None, description="ID of the synth group this synth belongs to"
+    )
     nome: str = Field(..., description="Display name")
     descricao: str | None = Field(default=None, description="Brief description")
     link_photo: str | None = Field(default=None, description="External photo URL")
     avatar_path: str | None = Field(default=None, description="Local avatar file path")
     created_at: datetime = Field(..., description="Creation timestamp")
-    version: str = Field(default="2.0.0", description="Schema version")
+    version: str = Field(default="2.3.0", description="Schema version")
 
 
 class SynthSummary(SynthBase):
@@ -169,13 +153,30 @@ class SynthSummary(SynthBase):
     pass
 
 
+class SimulationAttributesForDisplay(BaseModel):
+    """Simulation attributes formatted for PM display."""
+
+    observables_formatted: list[dict] = Field(
+        default_factory=list,
+        description="Array of observables with labels for PM display",
+    )
+    raw: dict | None = Field(
+        default=None,
+        description="Raw simulation attributes for backward compatibility",
+    )
+
+
 class SynthDetail(SynthBase):
-    """Full synth model with all nested data following schema v1."""
+    """Full synth model with all nested data following schema v2.3.0."""
 
     demografia: Demographics | None = None
     psicografia: Psychographics | None = None
     deficiencias: Disabilities | None = None
-    capacidades_tecnologicas: TechCapabilities | None = None
+    observables: dict | None = Field(
+        default=None,
+        description="Observable attributes for simulation (v2.3.0+): digital_literacy, similar_tool_experience, motor_ability, time_availability, domain_expertise",
+    )
+    simulation_attributes: SimulationAttributesForDisplay | None = None
 
 
 class SynthSearchRequest(BaseModel):
@@ -217,7 +218,7 @@ if __name__ == "__main__":
         )
         if synth.id != "abc123":
             all_validation_failures.append(f"ID mismatch: {synth.id}")
-        if synth.version != "2.0.0":
+        if synth.version != "2.3.0":
             all_validation_failures.append(f"Version mismatch: {synth.version}")
     except Exception as e:
         all_validation_failures.append(f"SynthBase creation failed: {e}")
@@ -247,7 +248,6 @@ if __name__ == "__main__":
         demo = Demographics(
             idade=30,
             genero_biologico="masculino",
-            identidade_genero="homem cis",
             raca_etnia="pardo",
             localizacao=Location(cidade="São Paulo", estado="SP", regiao="Sudeste"),
             escolaridade="Superior completo",
@@ -266,24 +266,21 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Demographics test failed: {e}")
 
-    # Test 4: Psychographics with Big Five and cognitive contract
+    # Test 4: Psychographics with cognitive contract
     total_tests += 1
     try:
         psico = Psychographics(
-            personalidade_big_five=BigFivePersonality(
-                abertura=70, conscienciosidade=60, extroversao=50, amabilidade=80, neuroticismo=30
-            ),
             interesses=["tecnologia", "esportes"],
             contrato_cognitivo=CognitiveContract(
                 tipo="factual", perfil_cognitivo="Responde diretamente", regras=["Ser objetivo"]
             ),
         )
-        if psico.personalidade_big_five.abertura != 70:
-            all_validation_failures.append(f"Abertura mismatch: {psico.personalidade_big_five.abertura}")
         if "tecnologia" not in psico.interesses:
             all_validation_failures.append("Missing interesse: tecnologia")
         if psico.contrato_cognitivo.tipo != "factual":
-            all_validation_failures.append(f"Contrato tipo mismatch: {psico.contrato_cognitivo.tipo}")
+            all_validation_failures.append(
+                f"Contrato tipo mismatch: {psico.contrato_cognitivo.tipo}"
+            )
     except Exception as e:
         all_validation_failures.append(f"Psychographics test failed: {e}")
 
@@ -302,19 +299,23 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"SynthDetail test failed: {e}")
 
-    # Test 6: Disabilities with v1 structure
+    # Test 6: Disabilities structure
     total_tests += 1
     try:
         disabilities = Disabilities(
             visual=VisualDisability(tipo="nenhuma"),
             auditiva=HearingDisability(tipo="leve"),
-            motora=MotorDisability(tipo="nenhuma", usa_cadeira_rodas=False),
+            motora=MotorDisability(tipo="nenhuma"),
             cognitiva=CognitiveDisability(tipo="nenhuma"),
         )
         if disabilities.visual.tipo != "nenhuma":
-            all_validation_failures.append(f"Visual disability mismatch: {disabilities.visual.tipo}")
+            all_validation_failures.append(
+                f"Visual disability mismatch: {disabilities.visual.tipo}"
+            )
         if disabilities.auditiva.tipo != "leve":
-            all_validation_failures.append(f"Hearing disability mismatch: {disabilities.auditiva.tipo}")
+            all_validation_failures.append(
+                f"Hearing disability mismatch: {disabilities.auditiva.tipo}"
+            )
     except Exception as e:
         all_validation_failures.append(f"Disabilities test failed: {e}")
 
@@ -328,6 +329,32 @@ if __name__ == "__main__":
             all_validation_failures.append(f"Query should be None: {search.query}")
     except Exception as e:
         all_validation_failures.append(f"SynthSearchRequest test failed: {e}")
+
+    # Test 8: SynthDetail with observables (v2.3.0)
+    total_tests += 1
+    try:
+        synth = SynthDetail(
+            id="obs123",
+            nome="Synth with Observables",
+            created_at=datetime.now(),
+            observables={
+                "digital_literacy": 0.75,
+                "similar_tool_experience": 0.5,
+                "motor_ability": 1.0,
+                "time_availability": 0.6,
+                "domain_expertise": 0.5,
+            },
+        )
+        if synth.observables is None:
+            all_validation_failures.append("Observables should not be None")
+        elif synth.observables.get("digital_literacy") != 0.75:
+            all_validation_failures.append(
+                f"Observables digital_literacy mismatch: {synth.observables.get('digital_literacy')}"
+            )
+        if synth.version != "2.3.0":
+            all_validation_failures.append(f"Version should be 2.3.0: {synth.version}")
+    except Exception as e:
+        all_validation_failures.append(f"SynthDetail with observables test failed: {e}")
 
     # Final validation result
     if all_validation_failures:

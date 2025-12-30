@@ -9,14 +9,14 @@ Tests:
 - Label suggestions for clusters
 """
 
-import pytest
 import numpy as np
+import pytest
 
 from synth_lab.domain.entities import (
-    SynthOutcome,
     SimulationAttributes,
     SimulationLatentTraits,
     SimulationObservables,
+    SynthOutcome,
 )
 from synth_lab.services.simulation.clustering_service import ClusteringService
 

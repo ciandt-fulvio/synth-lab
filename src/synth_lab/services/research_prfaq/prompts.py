@@ -246,7 +246,7 @@ R: Suporte ao cliente requer expertise de produto (não apenas suporte técnico)
 
 ---
 
-*Gerado a partir do batch de pesquisa: customer_research_001 em 2024-06-15*"""
+*Gerado a partir do batch de pesquisa: customer_research_001 em 2024-06-15*""",
         }
     ]
 
@@ -265,61 +265,69 @@ if __name__ == "__main__":
         validation_failures.append("System prompt está muito curto ou vazio")
     elif "Amazon" not in prompt and "Working Backwards" not in prompt:
         validation_failures.append(
-            "System prompt não referencia o framework Working Backwards da Amazon")
+            "System prompt não referencia o framework Working Backwards da Amazon"
+        )
     elif "Markdown" not in prompt:
-        validation_failures.append(
-            "System prompt não especifica formato de saída Markdown")
+        validation_failures.append("System prompt não especifica formato de saída Markdown")
 
     # Teste 2: Exemplos few-shot têm estrutura correta (research_summary + prfaq_output em MD)
     total_tests += 1
     examples = get_few_shot_examples()
     if len(examples) < 1:
         validation_failures.append(
-            f"Esperado pelo menos 1 exemplo few-shot, obtido {len(examples)}")
+            f"Esperado pelo menos 1 exemplo few-shot, obtido {len(examples)}"
+        )
     else:
         for i, example in enumerate(examples):
             if "research_summary" not in example:
-                validation_failures.append(
-                    f"Exemplo {i} faltando chave 'research_summary'")
+                validation_failures.append(f"Exemplo {i} faltando chave 'research_summary'")
             if "prfaq_output" not in example:
-                validation_failures.append(
-                    f"Exemplo {i} faltando chave 'prfaq_output'")
+                validation_failures.append(f"Exemplo {i} faltando chave 'prfaq_output'")
             elif not isinstance(example["prfaq_output"], str):
                 validation_failures.append(
-                    f"Exemplo {i} prfaq_output deveria ser string (Markdown), obtido {type(example['prfaq_output'])}")
+                    f"Exemplo {i} prfaq_output deveria ser string (Markdown), obtido {type(example['prfaq_output'])}"
+                )
 
     # Teste 3: Saída PR-FAQ do few-shot contém seções obrigatórias
     total_tests += 1
     if len(examples) > 0:
         prfaq_md = examples[0]["prfaq_output"]
-        required_sections = ["Press Release", "Título", "Subtítulo", "Resumo", "O Problema",
-                             "A Solução", "Perguntas Frequentes", "FAQs Externas", "FAQs Internas"]
+        required_sections = [
+            "Press Release",
+            "Título",
+            "Subtítulo",
+            "Resumo",
+            "O Problema",
+            "A Solução",
+            "Perguntas Frequentes",
+            "FAQs Externas",
+            "FAQs Internas",
+        ]
         missing_sections = [s for s in required_sections if s not in prfaq_md]
         if missing_sections:
-            validation_failures.append(
-                f"PR-FAQ do exemplo faltando seções: {missing_sections}")
+            validation_failures.append(f"PR-FAQ do exemplo faltando seções: {missing_sections}")
 
     # Teste 4: System prompt inclui orientação de FAQ Externa e Interna
     total_tests += 1
     if "FAQs Externas" not in prompt or "FAQs Internas" not in prompt:
-        validation_failures.append(
-            "System prompt não inclui seções de FAQ Externa e Interna")
+        validation_failures.append("System prompt não inclui seções de FAQ Externa e Interna")
 
     # Teste 5: System prompt inclui orientação de diferenciação competitiva
     total_tests += 1
     if "concorrência" not in prompt.lower() or "diferenciado" not in prompt.lower():
         validation_failures.append(
-            "System prompt não inclui orientação de diferenciação competitiva")
+            "System prompt não inclui orientação de diferenciação competitiva"
+        )
 
     # Reportar resultados
     if validation_failures:
-        print(
-            f"❌ VALIDAÇÃO FALHOU - {len(validation_failures)} de {total_tests} testes falharam:")
+        print(f"❌ VALIDAÇÃO FALHOU - {len(validation_failures)} de {total_tests} testes falharam:")
         for failure in validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
         print(
-            f"✅ VALIDAÇÃO PASSOU - Todos os {total_tests} testes produziram resultados esperados")
+            f"✅ VALIDAÇÃO PASSOU - Todos os {total_tests} testes produziram resultados esperados"
+        )
         print("Prompts e exemplos estão validados e prontos para uso")
         sys.exit(0)

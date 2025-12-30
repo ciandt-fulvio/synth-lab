@@ -318,12 +318,8 @@ def init_database(db_path: Path | None = None) -> None:
         columns = [row[1] for row in cursor.fetchall()]
         if "status" not in columns:
             logger.info("Migrating experiments table: adding status column")
-            conn.execute(
-                "ALTER TABLE experiments ADD COLUMN status TEXT NOT NULL DEFAULT 'active'"
-            )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_experiments_status ON experiments(status)"
-            )
+            conn.execute("ALTER TABLE experiments ADD COLUMN status TEXT NOT NULL DEFAULT 'active'")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_experiments_status ON experiments(status)")
             conn.commit()
             logger.info("Migration v10 completed: status column added")
 
@@ -461,9 +457,7 @@ class DatabaseManager:
             self.logger.exception("Transaction failed, rolled back")
             raise
 
-    def execute(
-        self, sql: str, params: tuple | dict | None = None
-    ) -> sqlite3.Cursor:
+    def execute(self, sql: str, params: tuple | dict | None = None) -> sqlite3.Cursor:
         """
         Execute a single SQL statement.
 
@@ -479,9 +473,7 @@ class DatabaseManager:
                 return conn.execute(sql, params)
             return conn.execute(sql)
 
-    def executemany(
-        self, sql: str, params_list: list[tuple | dict]
-    ) -> sqlite3.Cursor:
+    def executemany(self, sql: str, params_list: list[tuple | dict]) -> sqlite3.Cursor:
         """
         Execute a SQL statement for multiple parameter sets.
 
@@ -495,9 +487,7 @@ class DatabaseManager:
         with self.connection() as conn:
             return conn.executemany(sql, params_list)
 
-    def fetchone(
-        self, sql: str, params: tuple | dict | None = None
-    ) -> sqlite3.Row | None:
+    def fetchone(self, sql: str, params: tuple | dict | None = None) -> sqlite3.Row | None:
         """
         Execute SQL and fetch one row.
 
@@ -511,9 +501,7 @@ class DatabaseManager:
         cursor = self.execute(sql, params)
         return cursor.fetchone()
 
-    def fetchall(
-        self, sql: str, params: tuple | dict | None = None
-    ) -> list[sqlite3.Row]:
+    def fetchall(self, sql: str, params: tuple | dict | None = None) -> list[sqlite3.Row]:
         """
         Execute SQL and fetch all rows.
 
@@ -583,7 +571,9 @@ if __name__ == "__main__":
             with db.connection() as conn:
                 result = conn.execute("SELECT 1 as test").fetchone()
                 if result["test"] != 1:
-                    all_validation_failures.append(f"SELECT 1 returned {result['test']}, expected 1")
+                    all_validation_failures.append(
+                        f"SELECT 1 returned {result['test']}, expected 1"
+                    )
         except Exception as e:
             all_validation_failures.append(f"Connection creation failed: {e}")
 

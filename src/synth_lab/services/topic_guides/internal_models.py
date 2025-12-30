@@ -290,9 +290,7 @@ if __name__ == "__main__":
             "SummaryFile.to_markdown: Missing topic guide name in header"
         )
     if "## FILE DESCRIPTION" not in markdown_output:
-        all_validation_failures.append(
-            "SummaryFile.to_markdown: Missing FILE DESCRIPTION section"
-        )
+        all_validation_failures.append("SummaryFile.to_markdown: Missing FILE DESCRIPTION section")
 
     # Test 7: TopicGuide.documented_count and properties
     total_tests += 1

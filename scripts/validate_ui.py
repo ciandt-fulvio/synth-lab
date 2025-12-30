@@ -58,11 +58,11 @@ def validate_json_structure(trace_path: Path) -> tuple[bool, dict]:
             required_turn_fields = ["turn_id", "turn_number", "steps", "duration_ms"]
             for field in required_turn_fields:
                 if field not in turn:
-                    print(f"❌ FAIL: Turn {i+1} missing field '{field}'")
+                    print(f"❌ FAIL: Turn {i + 1} missing field '{field}'")
                     return False, {}
 
             if not isinstance(turn["steps"], list):
-                print(f"❌ FAIL: Turn {i+1} steps must be an array")
+                print(f"❌ FAIL: Turn {i + 1} steps must be an array")
                 return False, {}
 
             total_steps += len(turn["steps"])
@@ -72,7 +72,7 @@ def validate_json_structure(trace_path: Path) -> tuple[bool, dict]:
                 required_step_fields = ["span_id", "type", "status", "duration_ms"]
                 for field in required_step_fields:
                     if field not in step:
-                        print(f"❌ FAIL: Turn {i+1} Step {j+1} missing field '{field}'")
+                        print(f"❌ FAIL: Turn {i + 1} Step {j + 1} missing field '{field}'")
                         return False, {}
 
         print(f"✅ PASS: JSON structure valid ({turn_count} turns, {total_steps} steps)")
@@ -125,24 +125,28 @@ def validate_trace_data(trace: dict) -> bool:
     variance = abs(turn1_step_sum - turn1_duration)
 
     if variance > 5:  # Allow 5ms variance
-        print(f"❌ FAIL: Turn 1 duration mismatch - steps sum to {turn1_step_sum}ms, turn is {turn1_duration}ms (variance: {variance}ms)")
+        print(
+            f"❌ FAIL: Turn 1 duration mismatch - steps sum to {turn1_step_sum}ms, turn is {turn1_duration}ms (variance: {variance}ms)"
+        )
         all_checks_passed = False
     else:
-        print(f"✅ PASS: Turn 1 duration sums correctly ({turn1_step_sum}ms ≈ {turn1_duration}ms, variance: {variance}ms)")
+        print(
+            f"✅ PASS: Turn 1 duration sums correctly ({turn1_step_sum}ms ≈ {turn1_duration}ms, variance: {variance}ms)"
+        )
 
     # Find slowest step in Turn 1
     slowest_step = max(turn1["steps"], key=lambda s: s["duration_ms"])
-    expected_slowest = {
-        "type": "tool_call",
-        "duration_ms": 1002,
-        "tool_name": "get_weather"
-    }
+    expected_slowest = {"type": "tool_call", "duration_ms": 1002, "tool_name": "get_weather"}
 
     if slowest_step["type"] != expected_slowest["type"]:
-        print(f"❌ FAIL: Slowest step should be '{expected_slowest['type']}', is '{slowest_step['type']}'")
+        print(
+            f"❌ FAIL: Slowest step should be '{expected_slowest['type']}', is '{slowest_step['type']}'"
+        )
         all_checks_passed = False
     elif slowest_step["duration_ms"] != expected_slowest["duration_ms"]:
-        print(f"❌ FAIL: Slowest step should be {expected_slowest['duration_ms']}ms, is {slowest_step['duration_ms']}ms")
+        print(
+            f"❌ FAIL: Slowest step should be {expected_slowest['duration_ms']}ms, is {slowest_step['duration_ms']}ms"
+        )
         all_checks_passed = False
     else:
         print("✅ PASS: Slowest step correct (tool_call: get_weather, 1002ms)")
@@ -193,7 +197,7 @@ def validate_html_references(html_path: Path) -> bool:
         "drop-zone",
         "waterfall-container",
         "trace-info",
-        "error-message"
+        "error-message",
     ]
 
     for element_id in required_ids:

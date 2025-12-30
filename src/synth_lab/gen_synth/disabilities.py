@@ -15,7 +15,7 @@ Expected Output:
     {
         "visual": {"tipo": "leve"},
         "auditiva": {"tipo": "nenhuma"},
-        "motora": {"tipo": "nenhuma", "usa_cadeira_rodas": False},
+        "motora": {"tipo": "nenhuma"},
         "cognitiva": {"tipo": "nenhuma"}
     }
 
@@ -52,24 +52,15 @@ def generate_disabilities(ibge_data: dict[str, Any]) -> dict[str, Any]:
         return {
             "visual": {"tipo": "nenhuma"},
             "auditiva": {"tipo": "nenhuma"},
-            "motora": {"tipo": "nenhuma", "usa_cadeira_rodas": False},
+            "motora": {"tipo": "nenhuma"},
             "cognitiva": {"tipo": "nenhuma"},
         }
 
     return {
-        "visual": {
-            "tipo": random.choice(["nenhuma", "leve", "moderada", "severa", "cegueira"])
-        },
-        "auditiva": {
-            "tipo": random.choice(["nenhuma", "leve", "moderada", "severa", "surdez"])
-        },
-        "motora": {
-            "tipo": random.choice(["nenhuma", "leve", "moderada", "severa"]),
-            "usa_cadeira_rodas": random.random() < 0.1,
-        },
-        "cognitiva": {
-            "tipo": random.choice(["nenhuma", "leve", "moderada", "severa"])
-        },
+        "visual": {"tipo": random.choice(["nenhuma", "leve", "moderada", "severa", "cegueira"])},
+        "auditiva": {"tipo": random.choice(["nenhuma", "leve", "moderada", "severa", "surdez"])},
+        "motora": {"tipo": random.choice(["nenhuma", "leve", "moderada", "severa"])},
+        "cognitiva": {"tipo": random.choice(["nenhuma", "leve", "moderada", "severa"])},
     }
 
 
@@ -110,8 +101,7 @@ if __name__ == "__main__":
             "severa",
             "cegueira",
         ]:
-            all_validation_failures.append(
-                f"Invalid visual tipo: {disabilities['visual']['tipo']}")
+            all_validation_failures.append(f"Invalid visual tipo: {disabilities['visual']['tipo']}")
 
         if "tipo" not in disabilities["auditiva"]:
             all_validation_failures.append("Missing tipo in auditiva")
@@ -129,16 +119,7 @@ if __name__ == "__main__":
         if "tipo" not in disabilities["motora"]:
             all_validation_failures.append("Missing tipo in motora")
         elif disabilities["motora"]["tipo"] not in ["nenhuma", "leve", "moderada", "severa"]:
-            all_validation_failures.append(
-                f"Invalid motora tipo: {disabilities['motora']['tipo']}")
-
-        if "usa_cadeira_rodas" not in disabilities["motora"]:
-            all_validation_failures.append(
-                "Missing usa_cadeira_rodas in motora")
-        elif not isinstance(disabilities["motora"]["usa_cadeira_rodas"], bool):
-            all_validation_failures.append(
-                f"usa_cadeira_rodas must be bool: {disabilities['motora']['usa_cadeira_rodas']}"
-            )
+            all_validation_failures.append(f"Invalid motora tipo: {disabilities['motora']['tipo']}")
 
         if "tipo" not in disabilities["cognitiva"]:
             all_validation_failures.append("Missing tipo in cognitiva")
@@ -151,12 +132,10 @@ if __name__ == "__main__":
             print(
                 f"Test 1: generate_disabilities() -> "
                 f"visual={disabilities['visual']['tipo']}, "
-                f"motora={disabilities['motora']['tipo']}, "
-                f"cadeira={disabilities['motora']['usa_cadeira_rodas']}"
+                f"motora={disabilities['motora']['tipo']}"
             )
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 1 (generate_disabilities): {str(e)}")
+        all_validation_failures.append(f"Test 1 (generate_disabilities): {str(e)}")
 
     # Test 2: Verify disability distribution (most should have no disabilities)
     total_tests += 1
@@ -190,31 +169,9 @@ if __name__ == "__main__":
                 f"(expected ~8.4%)"
             )
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 2 (disability distribution): {str(e)}")
+        all_validation_failures.append(f"Test 2 (disability distribution): {str(e)}")
 
-    # Test 3: Verify wheelchair usage is rare
-    total_tests += 1
-    try:
-        wheelchair_count = 0
-        for _ in range(100):
-            disabilities = generate_disabilities(config["ibge"])
-            if disabilities["motora"]["usa_cadeira_rodas"]:
-                wheelchair_count += 1
-
-        # Wheelchair usage should be rare (< 2% overall considering ~8% have disabilities and 10% of those use wheelchair)
-        wheelchair_pct = (wheelchair_count / 100) * 100
-        if wheelchair_pct > 5:
-            all_validation_failures.append(
-                f"Wheelchair usage too high: {wheelchair_pct}% (expected < 5%)"
-            )
-        else:
-            print(
-                f"Test 3: Wheelchair usage -> {wheelchair_pct}% (expected < 2%)")
-    except Exception as e:
-        all_validation_failures.append(f"Test 3 (wheelchair usage): {str(e)}")
-
-    # Test 4: Verify all disability types appear in sample
+    # Test 3: Verify all disability types appear in sample
     total_tests += 1
     try:
         visual_types = set()
@@ -231,60 +188,48 @@ if __name__ == "__main__":
 
         # Should have at least "nenhuma" and one other type for each
         if len(visual_types) < 2:
-            all_validation_failures.append(
-                f"Visual types too limited: {visual_types}")
+            all_validation_failures.append(f"Visual types too limited: {visual_types}")
         if len(auditiva_types) < 2:
-            all_validation_failures.append(
-                f"Auditiva types too limited: {auditiva_types}")
+            all_validation_failures.append(f"Auditiva types too limited: {auditiva_types}")
         if len(motora_types) < 2:
-            all_validation_failures.append(
-                f"Motora types too limited: {motora_types}")
+            all_validation_failures.append(f"Motora types too limited: {motora_types}")
         if len(cognitiva_types) < 2:
-            all_validation_failures.append(
-                f"Cognitiva types too limited: {cognitiva_types}")
+            all_validation_failures.append(f"Cognitiva types too limited: {cognitiva_types}")
 
-        if not any(f.startswith("Test 4") for f in all_validation_failures):
+        if not any(f.startswith("Test 3") for f in all_validation_failures):
             print(
-                f"Test 4: Disability type variety -> visual={len(visual_types)}, "
+                f"Test 3: Disability type variety -> visual={len(visual_types)}, "
                 f"auditiva={len(auditiva_types)}, motora={len(motora_types)}, "
                 f"cognitiva={len(cognitiva_types)}"
             )
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 4 (disability type variety): {str(e)}")
+        all_validation_failures.append(f"Test 3 (disability type variety): {str(e)}")
 
-    # Test 5: Verify structure of no-disability case
+    # Test 4: Verify structure of no-disability case
     total_tests += 1
     try:
         # Force many generations to get a no-disability case
         found_no_disability = False
         for _ in range(100):
             disabilities = generate_disabilities(config["ibge"])
-            if disabilities["visual"]["tipo"] == "nenhuma" and disabilities["motora"]["usa_cadeira_rodas"] is False:
+            # Check if all disabilities are "nenhuma"
+            if (
+                disabilities["visual"]["tipo"] == "nenhuma"
+                and disabilities["auditiva"]["tipo"] == "nenhuma"
+                and disabilities["motora"]["tipo"] == "nenhuma"
+                and disabilities["cognitiva"]["tipo"] == "nenhuma"
+            ):
                 found_no_disability = True
-                # Verify structure
-                if (
-                    disabilities["visual"]["tipo"] != "nenhuma"
-                    or disabilities["auditiva"]["tipo"] != "nenhuma"
-                    or disabilities["motora"]["tipo"] != "nenhuma"
-                    or disabilities["cognitiva"]["tipo"] != "nenhuma"
-                    or disabilities["motora"]["usa_cadeira_rodas"] is not False
-                ):
-                    # This is actually someone with a disability, keep looking
-                    found_no_disability = False
-                    continue
                 break
 
         if found_no_disability:
-            print("Test 5: No-disability case structure valid")
+            print("Test 4: No-disability case structure valid")
         else:
-            all_validation_failures.append(
-                "Could not find no-disability case in 100 samples")
+            all_validation_failures.append("Could not find no-disability case in 100 samples")
     except Exception as e:
-        all_validation_failures.append(
-            f"Test 5 (no-disability structure): {str(e)}")
+        all_validation_failures.append(f"Test 4 (no-disability structure): {str(e)}")
 
-    # Test 6: Batch consistency test
+    # Test 5: Batch consistency test
     total_tests += 1
     try:
         batch_errors = []
@@ -300,7 +245,8 @@ if __name__ == "__main__":
                 "cegueira",
             ]:
                 batch_errors.append(
-                    f"Batch {i}: Invalid visual tipo: {disabilities['visual']['tipo']}")
+                    f"Batch {i}: Invalid visual tipo: {disabilities['visual']['tipo']}"
+                )
             if disabilities["auditiva"]["tipo"] not in [
                 "nenhuma",
                 "leve",
@@ -313,11 +259,7 @@ if __name__ == "__main__":
                 )
             if disabilities["motora"]["tipo"] not in ["nenhuma", "leve", "moderada", "severa"]:
                 batch_errors.append(
-                    f"Batch {i}: Invalid motora tipo: {disabilities['motora']['tipo']}")
-            if not isinstance(disabilities["motora"]["usa_cadeira_rodas"], bool):
-                batch_errors.append(
-                    f"Batch {i}: usa_cadeira_rodas not bool: "
-                    f"{disabilities['motora']['usa_cadeira_rodas']}"
+                    f"Batch {i}: Invalid motora tipo: {disabilities['motora']['tipo']}"
                 )
             if disabilities["cognitiva"]["tipo"] not in ["nenhuma", "leve", "moderada", "severa"]:
                 batch_errors.append(
@@ -327,20 +269,18 @@ if __name__ == "__main__":
         if batch_errors:
             all_validation_failures.extend(batch_errors)
         else:
-            print("Test 6: Batch of 20 disabilities all valid")
+            print("Test 5: Batch of 20 disabilities all valid")
     except Exception as e:
-        all_validation_failures.append(f"Test 6 (batch consistency): {str(e)}")
+        all_validation_failures.append(f"Test 5 (batch consistency): {str(e)}")
 
     # Final validation result
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Function is validated and formal tests can now be written")
         sys.exit(0)

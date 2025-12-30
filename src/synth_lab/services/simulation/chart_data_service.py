@@ -31,7 +31,6 @@ from synth_lab.domain.entities import (
     SankeyLink,
     SankeyNode,
     ScatterCorrelationChart,
-    SensitivityResult,
     SynthDistribution,
     SynthOutcome,
     TrendlinePoint,

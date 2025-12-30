@@ -54,9 +54,7 @@ class OutlierService:
             ValueError: If outcomes list is empty or has < 10 synths.
         """
         if len(outcomes) < 10:
-            raise ValueError(
-                f"Extreme cases requires at least 10 synths, got {len(outcomes)}"
-            )
+            raise ValueError(f"Extreme cases requires at least 10 synths, got {len(outcomes)}")
 
         # Sort by success rate (ascending) for worst failures
         sorted_by_failure = sorted(
@@ -64,9 +62,7 @@ class OutlierService:
         )
 
         # Sort by success rate (descending) for best successes
-        sorted_by_success = sorted(
-            outcomes, key=lambda x: x.success_rate, reverse=True
-        )
+        sorted_by_success = sorted(outcomes, key=lambda x: x.success_rate, reverse=True)
 
         # Get top N from each category
         n_actual = min(n_per_category, len(outcomes))
@@ -115,9 +111,7 @@ class OutlierService:
             ValueError: If outcomes list has < 10 synths.
         """
         if len(outcomes) < 10:
-            raise ValueError(
-                f"Outlier detection requires at least 10 synths, got {len(outcomes)}"
-            )
+            raise ValueError(f"Outlier detection requires at least 10 synths, got {len(outcomes)}")
 
         # Extract features
         X, synth_ids, features_used = self._extract_features(outcomes, features)
@@ -171,9 +165,7 @@ class OutlierService:
             features_used=features_used,
         )
 
-    def _create_extreme_synth(
-        self, outcome: SynthOutcome, category: str
-    ) -> ExtremeSynth:
+    def _create_extreme_synth(self, outcome: SynthOutcome, category: str) -> ExtremeSynth:
         """Create ExtremeSynth entity with profile and questions."""
         profile_summary = self._generate_profile_summary(outcome)
         interview_questions = self._generate_interview_questions(outcome, category)
@@ -197,9 +189,19 @@ class OutlierService:
         obs = outcome.synth_attributes.observables
 
         # Classify traits
-        cap_level = "high" if traits.capability_mean > 0.6 else ("low" if traits.capability_mean < 0.4 else "medium")
-        trust_level = "high" if traits.trust_mean > 0.6 else ("low" if traits.trust_mean < 0.4 else "medium")
-        lit_level = "high" if obs.digital_literacy > 0.6 else ("low" if obs.digital_literacy < 0.4 else "medium")
+        cap_level = (
+            "high"
+            if traits.capability_mean > 0.6
+            else ("low" if traits.capability_mean < 0.4 else "medium")
+        )
+        trust_level = (
+            "high" if traits.trust_mean > 0.6 else ("low" if traits.trust_mean < 0.4 else "medium")
+        )
+        lit_level = (
+            "high"
+            if obs.digital_literacy > 0.6
+            else ("low" if obs.digital_literacy < 0.4 else "medium")
+        )
 
         summary = f"Synth with {cap_level} capability ({traits.capability_mean:.2f}), "
         summary += f"{trust_level} trust ({traits.trust_mean:.2f}), "
@@ -209,9 +211,7 @@ class OutlierService:
 
         return summary
 
-    def _generate_interview_questions(
-        self, outcome: SynthOutcome, category: str
-    ) -> list[str]:
+    def _generate_interview_questions(self, outcome: SynthOutcome, category: str) -> list[str]:
         """Generate suggested interview questions based on category."""
         questions = []
 
@@ -247,9 +247,7 @@ class OutlierService:
 
         return questions
 
-    def _find_unexpected_cases(
-        self, outcomes: list[SynthOutcome]
-    ) -> list[ExtremeSynth]:
+    def _find_unexpected_cases(self, outcomes: list[SynthOutcome]) -> list[ExtremeSynth]:
         """Find synths with unexpected outcomes given their attributes."""
         unexpected = []
 
@@ -258,15 +256,11 @@ class OutlierService:
 
             # High capability but failed
             if traits.capability_mean > 0.6 and outcome.failed_rate > 0.5:
-                unexpected.append(
-                    self._create_extreme_synth(outcome, "unexpected")
-                )
+                unexpected.append(self._create_extreme_synth(outcome, "unexpected"))
 
             # Low capability but succeeded
             elif traits.capability_mean < 0.4 and outcome.success_rate > 0.7:
-                unexpected.append(
-                    self._create_extreme_synth(outcome, "unexpected")
-                )
+                unexpected.append(self._create_extreme_synth(outcome, "unexpected"))
 
         return unexpected[:10]  # Limit to 10
 
@@ -285,9 +279,7 @@ class OutlierService:
         # Otherwise it's an atypical profile
         return "atypical_profile"
 
-    def _generate_outlier_explanation(
-        self, synth: SynthOutcome, outlier_type: str
-    ) -> str:
+    def _generate_outlier_explanation(self, synth: SynthOutcome, outlier_type: str) -> str:
         """Generate explanation for why synth is an outlier."""
         traits = synth.synth_attributes.latent_traits
 

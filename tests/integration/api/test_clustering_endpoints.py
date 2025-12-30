@@ -106,6 +106,7 @@ def sample_outcomes():
 @pytest.fixture
 def mock_get_simulation_outcomes(sample_outcomes):
     """Mock get_simulation_outcomes_as_entities function."""
+
     def mock_func(service, simulation_id):
         return sample_outcomes
 
@@ -290,9 +291,7 @@ class TestClusteringEndpoints:
         )
 
         # Get radar comparison
-        response = client.get(
-            "/simulation/simulations/sim_12345678/clusters/radar-comparison"
-        )
+        response = client.get("/simulation/simulations/sim_12345678/clusters/radar-comparison")
 
         # Assertions
         assert response.status_code == 200
@@ -327,9 +326,7 @@ class TestClusteringEndpoints:
         )
 
         # Get radar for cluster 0
-        response = client.get(
-            "/simulation/simulations/sim_12345678/clusters/0/radar"
-        )
+        response = client.get("/simulation/simulations/sim_12345678/clusters/0/radar")
 
         # Assertions
         assert response.status_code == 200
@@ -374,9 +371,7 @@ class TestClusteringEndpoints:
         assert len(data["cluster_assignments"]) == 100
 
     @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    def test_clustering_requires_completed_simulation(
-        self, mock_get_service, client
-    ):
+    def test_clustering_requires_completed_simulation(self, mock_get_service, client):
         """Test that clustering requires completed simulation."""
         # Setup mock with non-completed simulation
         incomplete_sim = SimulationRun(

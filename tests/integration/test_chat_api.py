@@ -51,17 +51,13 @@ def mock_transcript():
 class TestChatAPI:
     """Integration tests for chat API."""
 
-    def test_chat_endpoint_returns_response(
-        self, client, mock_synth_detail, mock_transcript
-    ):
+    def test_chat_endpoint_returns_response(self, client, mock_synth_detail, mock_transcript):
         """Test that POST /synths/{id}/chat returns a valid response."""
-        with patch(
-            "synth_lab.services.chat.service.get_llm_client"
-        ) as mock_llm, patch(
-            "synth_lab.services.chat.service.ResearchRepository"
-        ) as mock_research_repo, patch(
-            "synth_lab.services.chat.service.SynthRepository"
-        ) as mock_synths_repo:
+        with (
+            patch("synth_lab.services.chat.service.get_llm_client") as mock_llm,
+            patch("synth_lab.services.chat.service.ResearchRepository") as mock_research_repo,
+            patch("synth_lab.services.chat.service.SynthRepository") as mock_synths_repo,
+        ):
             # Setup mocks
             mock_llm.return_value.complete.return_value = "Olá! Como posso ajudar?"
             mock_research_repo.return_value.get_transcript.return_value = mock_transcript
@@ -82,17 +78,13 @@ class TestChatAPI:
             assert "timestamp" in data
             assert data["message"] == "Olá! Como posso ajudar?"
 
-    def test_chat_endpoint_with_history(
-        self, client, mock_synth_detail, mock_transcript
-    ):
+    def test_chat_endpoint_with_history(self, client, mock_synth_detail, mock_transcript):
         """Test that chat history is included in the request."""
-        with patch(
-            "synth_lab.services.chat.service.get_llm_client"
-        ) as mock_llm, patch(
-            "synth_lab.services.chat.service.ResearchRepository"
-        ) as mock_research_repo, patch(
-            "synth_lab.services.chat.service.SynthRepository"
-        ) as mock_synths_repo:
+        with (
+            patch("synth_lab.services.chat.service.get_llm_client") as mock_llm,
+            patch("synth_lab.services.chat.service.ResearchRepository") as mock_research_repo,
+            patch("synth_lab.services.chat.service.SynthRepository") as mock_synths_repo,
+        ):
             # Setup mocks
             mock_llm.return_value.complete.return_value = "Sim, a panela era ótima!"
             mock_research_repo.return_value.get_transcript.return_value = mock_transcript
@@ -126,16 +118,12 @@ class TestChatAPI:
         """Test that 404 is returned when synth is not found."""
         from synth_lab.repositories.synth_repository import SynthNotFoundError
 
-        with patch(
-            "synth_lab.services.chat.service.get_llm_client"
-        ), patch(
-            "synth_lab.services.chat.service.ResearchRepository"
-        ), patch(
-            "synth_lab.services.chat.service.SynthRepository"
-        ) as mock_synths_repo:
-            mock_synths_repo.return_value.get_by_id.side_effect = SynthNotFoundError(
-                "xyz999"
-            )
+        with (
+            patch("synth_lab.services.chat.service.get_llm_client"),
+            patch("synth_lab.services.chat.service.ResearchRepository"),
+            patch("synth_lab.services.chat.service.SynthRepository") as mock_synths_repo,
+        ):
+            mock_synths_repo.return_value.get_by_id.side_effect = SynthNotFoundError("xyz999")
 
             response = client.post(
                 "/synths/xyz999/chat",

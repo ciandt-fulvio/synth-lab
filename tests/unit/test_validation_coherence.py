@@ -136,8 +136,10 @@ class TestCoherenceErrorMessages:
         is_valid, errors = validate_coherence(synth, strict=False)
 
         # Error should mention "conscienciosidade" or "conscientiousness"
-        assert any("conscienciosidade" in err.lower() or "conscientiousness" in err.lower()
-                   for err in errors), f"Error should mention trait: {errors}"
+        assert any(
+            "conscienciosidade" in err.lower() or "conscientiousness" in err.lower()
+            for err in errors
+        ), f"Error should mention trait: {errors}"
 
     def test_error_message_includes_bias_name(self):
         """Test that error messages include the bias name."""
@@ -165,8 +167,9 @@ class TestCoherenceErrorMessages:
         is_valid, errors = validate_coherence(synth, strict=False)
 
         # Error should mention "aversao_perda" or "loss aversion"
-        assert any("aversao_perda" in err.lower() or "loss" in err.lower()
-                   for err in errors), f"Error should mention bias: {errors}"
+        assert any("aversao_perda" in err.lower() or "loss" in err.lower() for err in errors), (
+            f"Error should mention bias: {errors}"
+        )
 
     def test_error_message_includes_expected_range(self):
         """Test that error messages include the expected value range."""
@@ -194,8 +197,9 @@ class TestCoherenceErrorMessages:
         is_valid, errors = validate_coherence(synth, strict=False)
 
         # Error should include numbers indicating expected range
-        assert any(any(char.isdigit() for char in err) for err in errors), \
+        assert any(any(char.isdigit() for char in err) for err in errors), (
             f"Error should include expected range: {errors}"
+        )
 
     def test_error_message_includes_actual_value(self):
         """Test that error messages include the actual bias value."""
@@ -411,18 +415,17 @@ class TestValidateSynthFull:
         assert len(errors) > 0
 
     def test_accepts_fully_valid_synth(self):
-        """Test that validate_synth_full accepts synths that pass all validations."""
+        """Test that validate_synth_full accepts synths that pass all validations (v2.3.0)."""
         synth = {
             "id": "test12",  # 6 chars
             "nome": "Test Person",
             "descricao": "A test description that is longer than 50 characters to meet the minimum requirement.",
             "link_photo": "https://ui-avatars.com/api/?name=Test",
             "created_at": "2024-01-01T00:00:00Z",
-            "version": "2.0.0",
+            "version": "2.3.0",
             "demografia": {
                 "idade": 30,
                 "genero_biologico": "feminino",
-                "identidade_genero": "mulher cis",
                 "raca_etnia": "branco",
                 "localizacao": {
                     "pais": "Brasil",
@@ -437,32 +440,26 @@ class TestValidateSynthFull:
                 "composicao_familiar": {"tipo": "unipessoal", "numero_pessoas": 1},
             },
             "psicografia": {
-                "personalidade_big_five": {
-                    "abertura": 50,
-                    "conscienciosidade": 50,
-                    "extroversao": 50,
-                    "amabilidade": 50,
-                    "neuroticismo": 50,
-                },
                 "interesses": ["tecnologia"],
+                "contrato_cognitivo": {
+                    "tipo": "factual",
+                    "perfil_cognitivo": "Test profile",
+                    "regras": ["Rule 1"],
+                    "efeito_esperado": "Test effect",
+                },
             },
             "deficiencias": {
                 "visual": {"tipo": "nenhuma"},
                 "auditiva": {"tipo": "nenhuma"},
-                "motora": {"tipo": "nenhuma", "usa_cadeira_rodas": False},
+                "motora": {"tipo": "nenhuma"},
                 "cognitiva": {"tipo": "nenhuma"},
             },
-            "capacidades_tecnologicas": {
-                "alfabetizacao_digital": 75,
-            },
-            "vieses": {
-                "aversao_perda": 50,
-                "desconto_hiperbolico": 50,
-                "suscetibilidade_chamariz": 50,
-                "ancoragem": 50,
-                "vies_confirmacao": 50,
-                "vies_status_quo": 50,
-                "sobrecarga_informacao": 50,
+            "observables": {
+                "digital_literacy": 0.75,
+                "similar_tool_experience": 0.6,
+                "motor_ability": 1.0,
+                "time_availability": 0.5,
+                "domain_expertise": 0.4,
             },
         }
 

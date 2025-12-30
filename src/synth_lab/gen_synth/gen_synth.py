@@ -23,7 +23,13 @@ from synth_lab.gen_synth.config import SYNTHS_DIR, load_config_data
 console = Console()
 
 
-def main(quantidade: int = 1, show_progress: bool = True, quiet: bool = False, individual_files: bool = False, output_dir: Path | None = None) -> list[dict[str, Any]]:
+def main(
+    quantidade: int = 1,
+    show_progress: bool = True,
+    quiet: bool = False,
+    individual_files: bool = False,
+    output_dir: Path | None = None,
+) -> list[dict[str, Any]]:
     """
     Generate synths with colored output.
 
@@ -58,7 +64,7 @@ def main(quantidade: int = 1, show_progress: bool = True, quiet: bool = False, i
 
         # Show progress
         if show_progress and not quiet:
-            console.print(f"  [{i+1}/{quantidade}] {synth['nome']} ({synth['id']})")
+            console.print(f"  [{i + 1}/{quantidade}] {synth['nome']} ({synth['id']})")
 
     # Print success message
     if quiet:
@@ -73,52 +79,43 @@ def cli_main():
     """CLI entry point with rich colors and all features."""
     parser = argparse.ArgumentParser(description="Gerador de Synths com Rich output")
     parser.add_argument(
-        "-n", "--quantidade", type=int, default=0,
-        help="Número de synths NOVOS a gerar (0 = usar existentes com --avatar)"
+        "-n",
+        "--quantidade",
+        type=int,
+        default=0,
+        help="Número de synths NOVOS a gerar (0 = usar existentes com --avatar)",
+    )
+    parser.add_argument("-o", "--output", type=str, metavar="DIR", help="Diretório de saída")
+    parser.add_argument("-q", "--quiet", action="store_true", help="Modo silencioso")
+    parser.add_argument(
+        "--benchmark", action="store_true", help="Mostrar estatísticas de performance"
+    )
+    parser.add_argument("--validate-file", type=str, help="Validar arquivo único")
+    parser.add_argument("--validate-all", action="store_true", help="Validar todos os synths")
+    parser.add_argument("--validar", action="store_true", help="Executar validação interna")
+    parser.add_argument(
+        "--analyze", type=str, choices=["region", "age", "all"], help="Analisar distribuição"
     )
     parser.add_argument(
-        "-o", "--output", type=str, metavar="DIR",
-        help="Diretório de saída"
+        "--individual-files", action="store_true", help="Salvar também em arquivos individuais"
     )
     parser.add_argument(
-        "-q", "--quiet", action="store_true",
-        help="Modo silencioso"
+        "--avatar", action="store_true", help="Gerar avatares para os synths (requer API OpenAI)"
     )
     parser.add_argument(
-        "--benchmark", action="store_true",
-        help="Mostrar estatísticas de performance"
+        "-b",
+        "--blocks",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Número de blocos de avatares a gerar (1 bloco = 9 avatares)",
     )
     parser.add_argument(
-        "--validate-file", type=str,
-        help="Validar arquivo único"
-    )
-    parser.add_argument(
-        "--validate-all", action="store_true",
-        help="Validar todos os synths"
-    )
-    parser.add_argument(
-        "--validar", action="store_true",
-        help="Executar validação interna"
-    )
-    parser.add_argument(
-        "--analyze", type=str, choices=["region", "age", "all"],
-        help="Analisar distribuição"
-    )
-    parser.add_argument(
-        "--individual-files", action="store_true",
-        help="Salvar também em arquivos individuais"
-    )
-    parser.add_argument(
-        "--avatar", action="store_true",
-        help="Gerar avatares para os synths (requer API OpenAI)"
-    )
-    parser.add_argument(
-        "-b", "--blocks", type=int, default=None, metavar="N",
-        help="Número de blocos de avatares a gerar (1 bloco = 9 avatares)"
-    )
-    parser.add_argument(
-        "--synth-ids", type=str, default=None, metavar="ID1,ID2,...",
-        help="Gerar avatares para synths existentes (lista de IDs separados por vírgula)"
+        "--synth-ids",
+        type=str,
+        default=None,
+        metavar="ID1,ID2,...",
+        help="Gerar avatares para synths existentes (lista de IDs separados por vírgula)",
     )
 
     args = parser.parse_args()
@@ -132,10 +129,10 @@ def cli_main():
     if args.validate_all:
         console.print("[bold blue]=== Validando todos os Synths ===[/bold blue]\n")
         stats = validation.validate_batch(SYNTHS_DIR)
-        console.print(f"\n{'='*60}")
+        console.print(f"\n{'=' * 60}")
         console.print(f"Total: {stats['total']} arquivo(s)")
         console.print(f"[green]Válidos: {stats['valid']}[/green]")
-        if stats['invalid'] > 0:
+        if stats["invalid"] > 0:
             console.print(f"[red]Inválidos: {stats['invalid']}[/red]")
             sys.exit(1)
         else:
@@ -150,7 +147,9 @@ def cli_main():
             result = analysis.analyze_regional_distribution(SYNTHS_DIR)
             if "error" not in result:
                 console.print(f"Total de Synths: {result['total']}\n")
-                console.print(f"{'Região':<15} {'IBGE %':<10} {'Real %':<10} {'Count':<8} {'Erro %':<10}")
+                console.print(
+                    f"{'Região':<15} {'IBGE %':<10} {'Real %':<10} {'Count':<8} {'Erro %':<10}"
+                )
                 console.print("-" * 60)
                 for regiao, data in result["regions"].items():
                     console.print(
@@ -164,7 +163,9 @@ def cli_main():
             result = analysis.analyze_age_distribution(SYNTHS_DIR)
             if "error" not in result:
                 console.print(f"Total de Synths: {result['total']}\n")
-                console.print(f"{'Faixa':<10} {'IBGE %':<10} {'Real %':<10} {'Count':<8} {'Erro %':<10}")
+                console.print(
+                    f"{'Faixa':<10} {'IBGE %':<10} {'Real %':<10} {'Count':<8} {'Erro %':<10}"
+                )
                 console.print("-" * 60)
                 for faixa, data in result["age_groups"].items():
                     console.print(
@@ -202,6 +203,7 @@ def cli_main():
     if auto_detect_missing:
         # Auto-detect mode: find all synths without avatars
         from synth_lab.gen_synth.avatar_generator import find_synths_without_avatars
+
         synths = find_synths_without_avatars()
 
         if not synths:
@@ -212,27 +214,34 @@ def cli_main():
             console.print("\n[bold blue]═══ Modo Auto-Detect: Synths Existentes ═══[/bold blue]")
             console.print(f"[blue]Encontrados {len(synths)} synth(s) sem avatar:[/blue]")
             for i, s in enumerate(synths[:5], 1):
-                console.print(f"  {i}. [cyan]{s.get('id')}[/cyan]: {s.get('descricao', 'sem descrição')[:60]}...")
+                console.print(
+                    f"  {i}. [cyan]{s.get('id')}[/cyan]: {s.get('descricao', 'sem descrição')[:60]}..."
+                )
             if len(synths) > 5:
                 console.print(f"  ... e mais {len(synths) - 5} synth(s)")
             console.print("")
     else:
         # Normal mode: generate new synths
         if not args.quiet and args.avatar:
-            console.print(f"\n[yellow]Nota: Gerando {args.quantidade} synth(s) NOVO(S) + avatares[/yellow]")
-            console.print("[dim]Para gerar avatares para synths EXISTENTES, use: synthlab gensynth --avatar (sem -n)[/dim]\n")
+            console.print(
+                f"\n[yellow]Nota: Gerando {args.quantidade} synth(s) NOVO(S) + avatares[/yellow]"
+            )
+            console.print(
+                "[dim]Para gerar avatares para synths EXISTENTES, use: synthlab gensynth --avatar (sem -n)[/dim]\n"
+            )
 
         synths = main(
             args.quantidade,
             show_progress=not args.quiet,
             quiet=args.quiet,
             individual_files=args.individual_files,
-            output_dir=output_dir
+            output_dir=output_dir,
         )
 
     # Generate avatars if requested (User Stories 1, 2, & 3)
     if args.avatar:
         from synth_lab.gen_synth.avatar_generator import generate_avatars
+
         try:
             # User Story 3: Support generating for existing synths via --synth-ids
             if args.synth_ids:

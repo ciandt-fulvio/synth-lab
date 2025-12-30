@@ -5,7 +5,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Loader2, User } from 'lucide-react';
-import { BigFiveChart } from './BigFiveChart';
+import { ObservablesDisplay } from './ObservablesDisplay';
 import { useSynthDetail } from '@/hooks/use-synths';
 import { getSynthAvatarUrl } from '@/services/synths-api';
 
@@ -47,12 +47,17 @@ export function SynthDetailDialog({ synthId, open, onOpenChange }: SynthDetailDi
               </div>
             </DialogHeader>
 
-            <Tabs defaultValue="demographics" className="mt-4">
-              <TabsList className="grid w-full grid-cols-3">
+            <Tabs defaultValue="capabilities" className="mt-4">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="capabilities">Capacidades</TabsTrigger>
                 <TabsTrigger value="demographics">Demografia</TabsTrigger>
                 <TabsTrigger value="psychographics">Psicografia</TabsTrigger>
                 <TabsTrigger value="tech">Tecnologia</TabsTrigger>
               </TabsList>
+
+              <TabsContent value="capabilities" className="space-y-4">
+                <ObservablesDisplay simulationAttributes={synth.simulation_attributes} />
+              </TabsContent>
 
               <TabsContent value="demographics" className="space-y-4">
                 {synth.demografia && (
@@ -66,9 +71,6 @@ export function SynthDetailDialog({ synthId, open, onOpenChange }: SynthDetailDi
                       )}
                       {synth.demografia.genero_biologico && (
                         <div><span className="font-semibold">Gênero Biológico:</span> {synth.demografia.genero_biologico}</div>
-                      )}
-                      {synth.demografia.identidade_genero && (
-                        <div><span className="font-semibold">Identidade de Gênero:</span> {synth.demografia.identidade_genero}</div>
                       )}
                       {synth.demografia.raca_etnia && (
                         <div><span className="font-semibold">Raça/Etnia:</span> {synth.demografia.raca_etnia}</div>
@@ -101,17 +103,6 @@ export function SynthDetailDialog({ synthId, open, onOpenChange }: SynthDetailDi
               </TabsContent>
 
               <TabsContent value="psychographics" className="space-y-4">
-                {synth.psicografia?.personalidade_big_five && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Personalidade Big Five</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <BigFiveChart personality={synth.psicografia.personalidade_big_five} />
-                    </CardContent>
-                  </Card>
-                )}
-
                 {synth.psicografia?.interesses && synth.psicografia.interesses.length > 0 && (
                   <Card>
                     <CardHeader>
@@ -150,13 +141,34 @@ export function SynthDetailDialog({ synthId, open, onOpenChange }: SynthDetailDi
               </TabsContent>
 
               <TabsContent value="tech" className="space-y-4">
-                {synth.capacidades_tecnologicas?.alfabetizacao_digital !== undefined && (
+                {synth.observables && (
                   <Card>
                     <CardHeader>
-                      <CardTitle>Alfabetização Digital</CardTitle>
+                      <CardTitle>Atributos Observáveis</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{synth.capacidades_tecnologicas.alfabetizacao_digital}/100</div>
+                    <CardContent className="space-y-3">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-semibold">Literacia Digital:</span>{' '}
+                          {((synth.observables.digital_literacy ?? 0) * 100).toFixed(0)}%
+                        </div>
+                        <div>
+                          <span className="font-semibold">Experiência com Ferramentas:</span>{' '}
+                          {((synth.observables.similar_tool_experience ?? 0) * 100).toFixed(0)}%
+                        </div>
+                        <div>
+                          <span className="font-semibold">Habilidade Motora:</span>{' '}
+                          {((synth.observables.motor_ability ?? 0) * 100).toFixed(0)}%
+                        </div>
+                        <div>
+                          <span className="font-semibold">Disponibilidade de Tempo:</span>{' '}
+                          {((synth.observables.time_availability ?? 0) * 100).toFixed(0)}%
+                        </div>
+                        <div>
+                          <span className="font-semibold">Expertise no Domínio:</span>{' '}
+                          {((synth.observables.domain_expertise ?? 0) * 100).toFixed(0)}%
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
