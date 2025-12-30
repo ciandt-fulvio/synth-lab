@@ -121,8 +121,18 @@ class ClusteringService:
         labels = kmeans.fit_predict(X_scaled)
 
         # Calculate metrics
-        silhouette = silhouette_score(X_scaled, labels)
+        n_unique_labels = len(np.unique(labels))
         inertia = kmeans.inertia_
+
+        # silhouette_score requires at least 2 distinct clusters
+        if n_unique_labels < 2:
+            logger.warning(
+                f"K-Means converged to only {n_unique_labels} cluster(s). "
+                "Data may have duplicate/very similar points. Silhouette score set to 0.0"
+            )
+            silhouette = 0.0
+        else:
+            silhouette = silhouette_score(X_scaled, labels)
 
         # Build cluster profiles
         clusters = self._build_cluster_profiles(
@@ -532,7 +542,13 @@ class ClusteringService:
             labels = kmeans.fit_predict(X_scaled)
 
             inertia = kmeans.inertia_
-            silhouette = silhouette_score(X_scaled, labels)
+
+            # silhouette_score requires at least 2 distinct clusters
+            n_unique_labels = len(np.unique(labels))
+            if n_unique_labels < 2:
+                silhouette = 0.0
+            else:
+                silhouette = silhouette_score(X_scaled, labels)
 
             elbow_data.append(
                 ElbowDataPoint(k=k, inertia=float(inertia), silhouette=float(silhouette))
