@@ -109,7 +109,7 @@ async def get_chart_insight(
     ana_repo = get_analysis_repo()
     cache_repo = get_cache_repo()
 
-    experiment = exp_repo.get(experiment_id)
+    experiment = exp_repo.get_by_id(experiment_id)
     if experiment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -158,7 +158,7 @@ async def get_all_insights(experiment_id: str) -> AllInsightsResponse:
     ana_repo = get_analysis_repo()
     cache_repo = get_cache_repo()
 
-    experiment = exp_repo.get(experiment_id)
+    experiment = exp_repo.get_by_id(experiment_id)
     if experiment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -221,7 +221,7 @@ async def get_executive_summary(experiment_id: str) -> ExecutiveSummary:
     ana_repo = get_analysis_repo()
     cache_repo = get_cache_repo()
 
-    experiment = exp_repo.get(experiment_id)
+    experiment = exp_repo.get_by_id(experiment_id)
     if experiment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
