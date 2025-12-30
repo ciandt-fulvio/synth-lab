@@ -13,8 +13,16 @@ from loguru import logger
 
 from synth_lab.domain.entities import SynthOutcome
 
-# Default features for analysis (latent traits)
+# Default features for analysis (all available attributes)
+# Includes both observables (visible to PM) and latent traits (simulation-derived)
 DEFAULT_FEATURES = [
+    # Observables - visible user characteristics
+    "digital_literacy",
+    "similar_tool_experience",
+    "motor_ability",
+    "time_availability",
+    "domain_expertise",
+    # Latent traits - simulation-derived values
     "capability_mean",
     "trust_mean",
     "friction_tolerance_mean",
@@ -190,7 +198,7 @@ if __name__ == "__main__":
     # Create sample outcomes for tests
     def create_outcome(synth_id: str, success: float, failed: float) -> SynthOutcome:
         return SynthOutcome(
-            simulation_id="sim_test",
+            analysis_id="ana_12345678",
             synth_id=synth_id,
             success_rate=success,
             failed_rate=failed,
@@ -218,12 +226,12 @@ if __name__ == "__main__":
         create_outcome("synth_003", 0.30, 0.45),
     ]
 
-    # Test 1: Extract default features
+    # Test 1: Extract default features (9 features: 5 observables + 4 latent traits)
     total_tests += 1
     try:
         X, synth_ids, feature_names = extract_features(outcomes)
-        if X.shape != (3, 4):
-            all_validation_failures.append(f"Shape mismatch: expected (3, 4), got {X.shape}")
+        if X.shape != (3, 9):
+            all_validation_failures.append(f"Shape mismatch: expected (3, 9), got {X.shape}")
         if len(synth_ids) != 3:
             all_validation_failures.append(f"synth_ids length: {len(synth_ids)}")
         if feature_names != DEFAULT_FEATURES:
@@ -231,11 +239,11 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Default features extraction failed: {e}")
 
-    # Test 2: Extract with include_outcomes
+    # Test 2: Extract with include_outcomes (9 features + 3 outcomes = 12)
     total_tests += 1
     try:
         X, synth_ids, feature_names = extract_features(outcomes, include_outcomes=True)
-        if X.shape != (3, 7):
+        if X.shape != (3, 12):
             all_validation_failures.append(f"Shape with outcomes mismatch: {X.shape}")
         if "success_rate" not in feature_names:
             all_validation_failures.append("success_rate not in feature_names")

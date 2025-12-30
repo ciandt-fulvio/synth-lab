@@ -41,11 +41,13 @@ class ClusteringService:
     Provides K-Means and Hierarchical clustering with visualization support.
     """
 
-    # Default features for clustering
+    # Default features for clustering (latent traits that drive simulation outcomes)
+    # Using only latent traits for clustering to avoid curse of dimensionality
     DEFAULT_FEATURES = [
         "capability_mean",
         "trust_mean",
         "friction_tolerance_mean",
+        "exploration_prob",
     ]
 
     # Color palette for clusters (up to 10 clusters)

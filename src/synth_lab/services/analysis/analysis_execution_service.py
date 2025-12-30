@@ -192,7 +192,18 @@ class AnalysisExecutionService:
             raise
 
     def _load_synths(self, limit: int = 500) -> list[dict[str, Any]]:
-        """Load synths from database with simulation attributes."""
+        """Load synths from database with simulation attributes.
+
+        For v2.3.0+ synths: Uses pre-computed observables from synth.data
+        and derives latent_traits at simulation time.
+
+        For legacy synths: Generates default observables based on Big Five.
+        """
+        from synth_lab.domain.entities.simulation_attributes import (
+            SimulationObservables,
+        )
+        from synth_lab.gen_synth.simulation_attributes import derive_latent_traits
+
         sql = """
             SELECT id, nome, data
             FROM synths
@@ -205,12 +216,42 @@ class AnalysisExecutionService:
         for row in rows:
             data = json.loads(row["data"]) if row["data"] else {}
 
-            # Extract simulation_attributes if present (new format)
+            # Extract simulation_attributes if present (new format with latent_traits)
             sim_attrs = data.get("simulation_attributes", {})
 
-            # If no simulation_attributes or missing latent_traits, derive from Big Five
-            if not sim_attrs.get("latent_traits"):
-                # Get Big Five from psicografia (values are 0-100, normalize to 0-1)
+            # If already has complete simulation_attributes, use directly
+            if sim_attrs.get("latent_traits") and sim_attrs.get("observables"):
+                synths.append(
+                    {
+                        "id": row["id"],
+                        "nome": row["nome"],
+                        "simulation_attributes": sim_attrs,
+                    }
+                )
+                continue
+
+            # Check if synth has pre-computed observables (v2.3.0+)
+            existing_observables = data.get("observables")
+            if existing_observables and all(
+                k in existing_observables
+                for k in [
+                    "digital_literacy",
+                    "similar_tool_experience",
+                    "motor_ability",
+                    "time_availability",
+                    "domain_expertise",
+                ]
+            ):
+                # Use existing observables and derive latent traits
+                observables = SimulationObservables.model_validate(existing_observables)
+                latent_traits = derive_latent_traits(observables)
+
+                sim_attrs = {
+                    "observables": observables.model_dump(),
+                    "latent_traits": latent_traits.model_dump(),
+                }
+            else:
+                # Legacy synth - derive from Big Five personality traits
                 big_five = data.get("psicografia", {}).get("personalidade_big_five", {})
                 openness = big_five.get("abertura", 50) / 100
                 conscientiousness = big_five.get("conscienciosidade", 50) / 100
@@ -219,14 +260,10 @@ class AnalysisExecutionService:
                 neuroticism = big_five.get("neuroticismo", 50) / 100
 
                 # Derive latent traits from Big Five
-                # capability_mean: openness + conscientiousness (ability to learn and execute)
                 capability_mean = round(0.5 * openness + 0.5 * conscientiousness, 3)
-                # trust_mean: agreeableness - neuroticism (willingness to trust new things)
                 trust_mean = round(0.6 * agreeableness + 0.4 * (1 - neuroticism), 3)
-                # friction_tolerance_mean: conscientiousness + low neuroticism
                 friction_tolerance = 0.5 * conscientiousness + 0.5 * (1 - neuroticism)
                 friction_tolerance_mean = round(friction_tolerance, 3)
-                # exploration_prob: openness + extraversion
                 exploration_prob = round(0.6 * openness + 0.4 * extraversion, 3)
 
                 sim_attrs = {

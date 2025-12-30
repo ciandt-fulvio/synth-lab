@@ -40,12 +40,12 @@ class AnalysisCacheService:
         CacheKeys.SANKEY: {},
         CacheKeys.HEATMAP: {
             "x_axis": "digital_literacy",
-            "y_axis": "trust_mean",
+            "y_axis": "domain_expertise",
             "bins": 5,
             "metric": "failed_rate",
         },
         CacheKeys.SCATTER: {
-            "x_axis": "capability_mean",
+            "x_axis": "digital_literacy",
             "y_axis": "success_rate",
         },
         CacheKeys.CORRELATIONS: {},
