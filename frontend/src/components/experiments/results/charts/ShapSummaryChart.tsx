@@ -11,25 +11,10 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import type { ShapSummary } from '@/types/simulation';
+import { formatFeatureName } from '@/lib/observable-labels';
 
 interface ShapSummaryChartProps {
   data: ShapSummary;
-}
-
-function formatFeatureName(feature: string): string {
-  const labelMap: Record<string, string> = {
-    capability_mean: 'Capacidade',
-    trust_mean: 'Confiança',
-    friction_tolerance_mean: 'Tolerância',
-    exploration_prob: 'Exploração',
-    digital_literacy: 'Lit. Digital',
-    similar_tool_experience: 'Exp. Similar',
-    complexity: 'Complexidade',
-    initial_effort: 'Esforço Inicial',
-    perceived_risk: 'Risco',
-    time_to_value: 'Tempo p/ Valor',
-  };
-  return labelMap[feature] || feature.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 interface CustomTooltipProps {

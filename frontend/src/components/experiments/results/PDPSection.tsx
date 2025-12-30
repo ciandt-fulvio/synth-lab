@@ -29,23 +29,20 @@ interface PDPSectionProps {
   experimentId: string;
 }
 
+// Only observable attributes - latent traits are internal and not shown to PM
 const FEATURE_OPTIONS = [
-  { value: 'capability_mean', label: 'Capacidade' },
-  { value: 'trust_mean', label: 'Confiança' },
-  { value: 'friction_tolerance_mean', label: 'Tolerância' },
-  { value: 'exploration_prob', label: 'Exploração' },
-  { value: 'digital_literacy', label: 'Lit. Digital' },
-  { value: 'similar_tool_experience', label: 'Exp. Similar' },
-  { value: 'motor_ability', label: 'Hab. Motora' },
-  { value: 'time_availability', label: 'Disponibilidade' },
-  { value: 'domain_expertise', label: 'Expertise' },
+  { value: 'digital_literacy', label: 'Familiaridade com tecnologia' },
+  { value: 'similar_tool_experience', label: 'Experiência com ferramentas similares' },
+  { value: 'motor_ability', label: 'Habilidade física' },
+  { value: 'time_availability', label: 'Disponibilidade de Tempo' },
+  { value: 'domain_expertise', label: 'Conhecimento do assunto' },
 ];
 
-const DEFAULT_COMPARISON_FEATURES = ['capability_mean', 'trust_mean', 'friction_tolerance_mean'];
+const DEFAULT_COMPARISON_FEATURES = ['digital_literacy', 'domain_expertise', 'time_availability'];
 
 export function PDPSection({ experimentId }: PDPSectionProps) {
   const [showExplanation, setShowExplanation] = useState(false);
-  const [selectedFeature, setSelectedFeature] = useState('trust_mean');
+  const [selectedFeature, setSelectedFeature] = useState('digital_literacy');
   const [viewMode, setViewMode] = useState<'single' | 'comparison'>('single');
 
   // Single feature PDP

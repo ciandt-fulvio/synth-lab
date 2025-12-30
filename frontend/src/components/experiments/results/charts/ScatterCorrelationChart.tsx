@@ -13,30 +13,30 @@ import {
   ComposedChart,
 } from 'recharts';
 import type { ScatterCorrelationChart as ScatterData, ScatterPoint } from '@/types/simulation';
+import { OBSERVABLE_LABELS } from '@/lib/observable-labels';
 
 interface ScatterCorrelationChartProps {
   data: ScatterData;
 }
 
 function formatAxisLabel(label: string): string {
-  const labelMap: Record<string, string> = {
-    // Synth attributes (latent traits)
-    capability_mean: 'Capacidade Média',
-    trust_mean: 'Confiança Média',
-    friction_tolerance_mean: 'Tolerância a Atrito',
-    exploration_prob: 'Propensão a Explorar',
-    // Synth attributes (observables)
-    digital_literacy: 'Literacia Digital',
-    similar_tool_experience: 'Experiência Similar',
-    motor_ability: 'Habilidade Motora',
-    time_availability: 'Tempo Disponível',
-    domain_expertise: 'Expertise no Domínio',
-    // Outcome metrics
+  // Use centralized observable labels
+  if (OBSERVABLE_LABELS[label]) {
+    return OBSERVABLE_LABELS[label];
+  }
+
+  // Outcome metrics
+  const outcomeLabels: Record<string, string> = {
     attempt_rate: 'Taxa de Tentativa',
     success_rate: 'Taxa de Sucesso',
     failed_rate: 'Taxa de Falha',
   };
-  return labelMap[label] || label.replace(/_/g, ' ');
+  if (outcomeLabels[label]) {
+    return outcomeLabels[label];
+  }
+
+  // Fallback: convert snake_case to Title Case
+  return label.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 interface CustomTooltipProps {

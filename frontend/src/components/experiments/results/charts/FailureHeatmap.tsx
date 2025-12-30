@@ -3,26 +3,21 @@
 
 import { useMemo } from 'react';
 import type { FailureHeatmapChart } from '@/types/simulation';
+import { OBSERVABLE_LABELS } from '@/lib/observable-labels';
 
 interface FailureHeatmapProps {
   data: FailureHeatmapChart;
 }
 
-// Attribute labels in Portuguese
-const ATTRIBUTE_LABELS: Record<string, { short: string; full: string }> = {
-  capability_mean: { short: 'Capacidade', full: 'Capacidade Média' },
-  trust_mean: { short: 'Confiança', full: 'Confiança Média' },
-  friction_tolerance_mean: { short: 'Tol. Atrito', full: 'Tolerância a Atrito' },
-  exploration_prob: { short: 'Exploração', full: 'Propensão a Explorar' },
-  time_availability: { short: 'Tempo', full: 'Tempo Disponível' },
-  domain_expertise: { short: 'Expertise', full: 'Expertise no Domínio' },
-  digital_literacy: { short: 'Lit. Digital', full: 'Literacia Digital' },
-  similar_tool_experience: { short: 'Exp. Similar', full: 'Experiência com Ferramentas Similares' },
-  motor_ability: { short: 'Habilidade', full: 'Habilidade Motora' },
-};
-
 function getLabel(attr: string): { short: string; full: string } {
-  return ATTRIBUTE_LABELS[attr] || { short: attr, full: attr };
+  const fullName = OBSERVABLE_LABELS[attr];
+  if (fullName) {
+    // Create short version from full name (first word or abbreviated)
+    const words = fullName.split(' ');
+    const shortName = words.length > 2 ? words.slice(0, 2).join(' ') : fullName;
+    return { short: shortName, full: fullName };
+  }
+  return { short: attr, full: attr };
 }
 
 // Parse bin string to get bounds: "0.0-0.2" -> [0.0, 0.2]
