@@ -79,7 +79,7 @@ export function ShapSummaryChart({ data }: ShapSummaryChartProps) {
         <BarChart
           data={chartData}
           layout="vertical"
-          margin={{ top: 10, right: 30, left: 100, bottom: 10 }}
+          margin={{ top: 10, right: 30, left: 160, bottom: 10 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
           <XAxis
@@ -93,7 +93,7 @@ export function ShapSummaryChart({ data }: ShapSummaryChartProps) {
             dataKey="displayName"
             stroke="#64748b"
             fontSize={11}
-            width={90}
+            width={150}
             tickLine={false}
           />
           <Tooltip content={<CustomTooltip />} />
