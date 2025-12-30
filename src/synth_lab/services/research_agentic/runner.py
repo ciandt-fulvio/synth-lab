@@ -232,7 +232,7 @@ async def generate_initial_context(
     synth: dict[str, Any],
     context_examples: dict[str, str],
     topic_guide: str,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-4o-mini",
     context_definition: str | None = None,
     additional_context: str | None = None,
     synth_outcome: "SynthOutcome | None" = None,
@@ -473,7 +473,7 @@ async def run_interview(
     interview_guide: InterviewGuideData,
     max_turns: int = 6,
     trace_path: str | None = None,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-4o-mini",
     verbose: bool = True,
     exec_id: str | None = None,
     message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
@@ -779,7 +779,7 @@ async def run_interview_simple(
     synth_id: str | None = None,
     persona_description: str | None = None,
     max_turns: int = 4,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-4o-mini",
     verbose: bool = True,
 ) -> list[ConversationMessage]:
     """
@@ -884,7 +884,7 @@ def run_interview_sync(
     interview_guide: InterviewGuideData,
     max_turns: int = 6,
     trace_path: str | None = None,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-4o-mini",
     verbose: bool = True,
 ) -> InterviewResult:
     """

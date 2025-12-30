@@ -187,10 +187,10 @@ async def run_single_interview_safe(
     progress: Progress,
     task_id: TaskID,
     batch_id: str,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-4o-mini",
     exec_id: str | None = None,
     message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
-    on_interview_completed: Callable[[str, str, int], Awaitable[None]] | None = None,
+    on_interview_completed: Callable[[str, str, int, "InterviewResult"], Awaitable[None]] | None = None,
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
     guide_name: str = "interview",
@@ -211,7 +211,7 @@ async def run_single_interview_safe(
         exec_id: Execution ID for SSE streaming (optional)
         message_callback: Async callback for real-time message streaming (optional)
         on_interview_completed: Async callback when interview completes (optional)
-            Signature: (exec_id, synth_id, total_turns) -> None
+            Signature: (exec_id, synth_id, total_turns, result) -> None
         skip_interviewee_review: Whether to skip the interviewee response reviewer.
         additional_context: Optional additional context to complement the research scenario.
         guide_name: Name identifier for the guide (for logging/tracing).
@@ -265,9 +265,9 @@ async def run_single_interview_safe(
                     span.set_attribute("status", "success")
                     span.set_attribute("total_turns", result.total_turns)
 
-                # Notify that this individual interview completed
+                # Notify that this individual interview completed (with result for immediate persistence)
                 if on_interview_completed and exec_id:
-                    await on_interview_completed(exec_id, synth_id, result.total_turns)
+                    await on_interview_completed(exec_id, synth_id, result.total_turns, result)
 
                 return result, synth, None
 
@@ -285,12 +285,12 @@ async def run_batch_interviews(
     max_interviews: int = 10,
     max_concurrent: int = 10,
     max_turns: int = 6,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-4o-mini",
     generate_summary: bool = True,
     exec_id: str | None = None,
     synth_ids: list[str] | None = None,
     message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
-    on_interview_completed: Callable[[str, str, int], Awaitable[None]] | None = None,
+    on_interview_completed: Callable[[str, str, int, "InterviewResult"], Awaitable[None]] | None = None,
     on_transcription_completed: Callable[[str, int, int], Awaitable[None]] | None = None,
     on_summary_start: Callable[[str], Awaitable[None]] | None = None,
     on_avatar_generation_start: Callable[[int], Awaitable[None]] | None = None,
@@ -458,11 +458,11 @@ async def run_batch_interviews(
         logger.info(f"Starting summary generation for {len(successful_interviews)} interviews")
 
         try:
-            # Summarizer uses gpt-4.1-mini for faster generation
+            # Summarizer uses gpt-4o-mini for faster generation
             summary = await summarize_interviews(
                 interview_results=successful_interviews,
                 topic_guide_name=guide_name,
-                model="gpt-4.1-mini",
+                model="gpt-4o-mini",
             )
             logger.info(
                 f"Summary generated successfully. Length: {len(summary) if summary else 0} chars"
@@ -504,7 +504,7 @@ def run_batch_interviews_sync(
     max_interviews: int = 10,
     max_concurrent: int = 10,
     max_turns: int = 6,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-4o-mini",
     generate_summary: bool = True,
     exec_id: str | None = None,
     synth_ids: list[str] | None = None,

@@ -58,7 +58,7 @@ def create_interviewer(
     conversation_history: str,
     max_turns: int = 6,
     mcp_servers: list[Any] | None = None,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-4o-mini",
     reasoning_effort: str = "low",
     additional_context: str | None = None,
 ) -> Agent:
@@ -103,7 +103,7 @@ def create_interviewee(
     tools: list[Any] | None = None,
     available_images: list[str] | None = None,
     initial_context: str = "",
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-4o-mini",
     reasoning_effort: str = "low",
 ) -> Agent:
     """
@@ -142,7 +142,7 @@ def create_interviewee(
 
 def create_interviewer_reviewer(
     raw_response: str,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-4o-mini",
     reasoning_effort: str = "low",
 ) -> Agent:
     """
@@ -172,7 +172,7 @@ def create_interviewer_reviewer(
 def create_interviewee_reviewer(
     synth: dict[str, Any],
     raw_response: str,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-4o-mini",
     reasoning_effort: str = "low",
 ) -> Agent:
     """
@@ -204,7 +204,7 @@ def create_interviewee_reviewer(
 def create_orchestrator(
     conversation_history: str,
     last_message: str,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-4o-mini",
     reasoning_effort: str = "low",
 ) -> Agent:
     """
