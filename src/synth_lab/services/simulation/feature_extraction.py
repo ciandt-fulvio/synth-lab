@@ -13,20 +13,14 @@ from loguru import logger
 
 from synth_lab.domain.entities import SynthOutcome
 
-# Default features for analysis (all available attributes)
-# Includes both observables (visible to PM) and latent traits (simulation-derived)
+# Default features for analysis - ONLY observables (visible to PM)
+# Latent traits are internal to simulation and NOT shown in UI
 DEFAULT_FEATURES = [
-    # Observables - visible user characteristics
     "digital_literacy",
     "similar_tool_experience",
     "motor_ability",
     "time_availability",
     "domain_expertise",
-    # Latent traits - simulation-derived values
-    "capability_mean",
-    "trust_mean",
-    "friction_tolerance_mean",
-    "exploration_prob",
 ]
 
 
@@ -226,12 +220,12 @@ if __name__ == "__main__":
         create_outcome("synth_003", 0.30, 0.45),
     ]
 
-    # Test 1: Extract default features (9 features: 5 observables + 4 latent traits)
+    # Test 1: Extract default features (5 observables only)
     total_tests += 1
     try:
         X, synth_ids, feature_names = extract_features(outcomes)
-        if X.shape != (3, 9):
-            all_validation_failures.append(f"Shape mismatch: expected (3, 9), got {X.shape}")
+        if X.shape != (3, 5):
+            all_validation_failures.append(f"Shape mismatch: expected (3, 5), got {X.shape}")
         if len(synth_ids) != 3:
             all_validation_failures.append(f"synth_ids length: {len(synth_ids)}")
         if feature_names != DEFAULT_FEATURES:
@@ -239,11 +233,11 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Default features extraction failed: {e}")
 
-    # Test 2: Extract with include_outcomes (9 features + 3 outcomes = 12)
+    # Test 2: Extract with include_outcomes (5 features + 3 outcomes = 8)
     total_tests += 1
     try:
         X, synth_ids, feature_names = extract_features(outcomes, include_outcomes=True)
-        if X.shape != (3, 12):
+        if X.shape != (3, 8):
             all_validation_failures.append(f"Shape with outcomes mismatch: {X.shape}")
         if "success_rate" not in feature_names:
             all_validation_failures.append("success_rate not in feature_names")
