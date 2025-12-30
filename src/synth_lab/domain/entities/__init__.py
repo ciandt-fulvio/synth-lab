@@ -14,6 +14,8 @@ from synth_lab.domain.entities.artifact_state import (
     compute_prfaq_state,
     compute_summary_state,
 )
+from synth_lab.domain.entities.chart_insight import ChartInsight
+from synth_lab.domain.entities.executive_summary import ExecutiveSummary
 from synth_lab.domain.entities.assumption_log import (
     AssumptionLog,
     LogEntry,
@@ -134,6 +136,9 @@ __all__ = [
     "AssumptionLog",
     "LogEntry",
     "generate_log_id",
+    # AI-Generated Insights (new in 023-quantitative-ai-insights)
+    "ChartInsight",
+    "ExecutiveSummary",
     # Chart data (analysis)
     "AttributeCorrelation",
     "AttributeCorrelationChart",

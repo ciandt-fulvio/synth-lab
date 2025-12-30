@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { ChartErrorBoundary } from '@/components/shared/ErrorBoundary';
+import { InsightSection } from './InsightSection';
 
 interface TryVsSuccessSectionProps {
   experimentId: string;
@@ -224,6 +225,9 @@ export function TryVsSuccessSection({ experimentId }: TryVsSuccessSectionProps) 
             </ChartErrorBoundary>
           </div>
         )}
+
+        {/* AI-Generated Insights */}
+        <InsightSection experimentId={experimentId} chartType="try_vs_success" />
       </CardContent>
     </Card>
   );

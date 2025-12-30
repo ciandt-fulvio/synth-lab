@@ -99,20 +99,6 @@ function SimulationSummary({ analysis }: { analysis: AnalysisSummary }) {
 
 export function PhaseOverview({ experimentId, analysis }: PhaseOverviewProps) {
   const distribution = useAnalysisDistributionChart(experimentId);
-  const generateInsight = useGenerateAnalysisChartInsight(experimentId);
-
-  const handleGenerateInsight = () => {
-    if (!distribution.data) return;
-    generateInsight.mutate({
-      chartType: 'distribution',
-      chartData: {
-        success_rate: distribution.data.success_rate,
-        failed_rate: distribution.data.failed_rate,
-        did_not_try_rate: distribution.data.did_not_try_rate,
-        total_synths: distribution.data.total_synths,
-      },
-    });
-  };
 
   return (
     <div className="space-y-6">
@@ -124,31 +110,11 @@ export function PhaseOverview({ experimentId, analysis }: PhaseOverviewProps) {
       {/* Row 1: Distribution (main highlight) */}
       <Card className="card">
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-card-title flex items-center gap-2">
-                <PieChart className="h-4 w-4 text-slate-500" />
-                Distribuição de Resultados
-              </CardTitle>
-              <p className="text-meta">Proporção média de synths que tiveram sucesso, falharam ou não tentaram</p>
-            </div>
-            {distribution.data && (
-              <Button
-                onClick={handleGenerateInsight}
-                disabled={generateInsight.isPending}
-                variant="outline"
-                size="sm"
-                className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-              >
-                {generateInsight.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4 mr-2" />
-                )}
-                Gerar Insight
-              </Button>
-            )}
-          </div>
+          <CardTitle className="text-card-title flex items-center gap-2">
+            <PieChart className="h-4 w-4 text-slate-500" />
+            Distribuição de Resultados
+          </CardTitle>
+          <p className="text-meta">Proporção média de synths que tiveram sucesso, falharam ou não tentaram</p>
         </CardHeader>
         <CardContent>
           {/* Loading state */}
