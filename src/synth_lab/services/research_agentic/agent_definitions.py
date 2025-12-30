@@ -87,13 +87,18 @@ def create_interviewer(
         additional_context=additional_context,
     )
 
-    return Agent(
-        name="Interviewer",
-        instructions=instructions,
-        mcp_servers=mcp_servers or [],
-        model=model,
-        model_settings=_get_model_settings(model, reasoning_effort),
-    )
+    # Build agent kwargs - only include model_settings if model supports it
+    agent_kwargs = {
+        "name": "Interviewer",
+        "instructions": instructions,
+        "mcp_servers": mcp_servers or [],
+        "model": model,
+    }
+    model_settings = _get_model_settings(model, reasoning_effort)
+    if model_settings is not None:
+        agent_kwargs["model_settings"] = model_settings
+
+    return Agent(**agent_kwargs)
 
 
 def create_interviewee(
@@ -130,14 +135,19 @@ def create_interviewee(
     )
     synth_name = synth.get("nome", "Participante")
 
-    return Agent(
-        name=f"Interviewee ({synth_name})",
-        instructions=instructions,
-        mcp_servers=mcp_servers or [],
-        tools=tools or [],
-        model=model,
-        model_settings=_get_model_settings(model, reasoning_effort),
-    )
+    # Build agent kwargs - only include model_settings if model supports it
+    agent_kwargs = {
+        "name": f"Interviewee ({synth_name})",
+        "instructions": instructions,
+        "mcp_servers": mcp_servers or [],
+        "tools": tools or [],
+        "model": model,
+    }
+    model_settings = _get_model_settings(model, reasoning_effort)
+    if model_settings is not None:
+        agent_kwargs["model_settings"] = model_settings
+
+    return Agent(**agent_kwargs)
 
 
 def create_interviewer_reviewer(
@@ -161,12 +171,17 @@ def create_interviewer_reviewer(
     """
     instructions = format_interviewer_reviewer_instructions(raw_response)
 
-    return Agent(
-        name="InterviewerReviewer",
-        instructions=instructions,
-        model=model,
-        model_settings=_get_model_settings(model, reasoning_effort),
-    )
+    # Build agent kwargs - only include model_settings if model supports it
+    agent_kwargs = {
+        "name": "InterviewerReviewer",
+        "instructions": instructions,
+        "model": model,
+    }
+    model_settings = _get_model_settings(model, reasoning_effort)
+    if model_settings is not None:
+        agent_kwargs["model_settings"] = model_settings
+
+    return Agent(**agent_kwargs)
 
 
 def create_interviewee_reviewer(
@@ -193,12 +208,17 @@ def create_interviewee_reviewer(
     instructions = format_interviewee_reviewer_instructions(synth, raw_response)
     synth_name = synth.get("nome", "Participante")
 
-    return Agent(
-        name=f"IntervieweeReviewer ({synth_name})",
-        instructions=instructions,
-        model=model,
-        model_settings=_get_model_settings(model, reasoning_effort),
-    )
+    # Build agent kwargs - only include model_settings if model supports it
+    agent_kwargs = {
+        "name": f"IntervieweeReviewer ({synth_name})",
+        "instructions": instructions,
+        "model": model,
+    }
+    model_settings = _get_model_settings(model, reasoning_effort)
+    if model_settings is not None:
+        agent_kwargs["model_settings"] = model_settings
+
+    return Agent(**agent_kwargs)
 
 
 def create_orchestrator(
@@ -223,9 +243,14 @@ def create_orchestrator(
     """
     instructions = format_orchestrator_instructions(conversation_history, last_message)
 
-    return Agent(
-        name="Orchestrator",
-        instructions=instructions,
-        model=model,
-        model_settings=_get_model_settings(model, reasoning_effort),
-    )
+    # Build agent kwargs - only include model_settings if model supports it
+    agent_kwargs = {
+        "name": "Orchestrator",
+        "instructions": instructions,
+        "model": model,
+    }
+    model_settings = _get_model_settings(model, reasoning_effort)
+    if model_settings is not None:
+        agent_kwargs["model_settings"] = model_settings
+
+    return Agent(**agent_kwargs)
