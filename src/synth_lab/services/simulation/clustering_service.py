@@ -31,6 +31,9 @@ from synth_lab.domain.entities import (
     SuggestedCut,
     SynthOutcome,
 )
+from synth_lab.services.simulation.cluster_labeling_service import (
+    ClusterLabelingService,
+)
 from synth_lab.services.simulation.feature_extraction import get_attribute_value
 
 
@@ -109,8 +112,9 @@ class ClusteringService:
                 f"Using automatic K detection: K={n_clusters} (from {len(outcomes)} synths)"
             )
         else:
+            n_synths = len(outcomes)
             logger.info(
-                f"Using manual K={n_clusters} (recommended was K={recommended_k} from {len(outcomes)} synths)"
+                f"Using manual K={n_clusters} (recommended K={recommended_k}, {n_synths} synths)"
             )
 
         if n_clusters >= len(outcomes):
@@ -663,13 +667,8 @@ class ClusteringService:
                 elif value < global_mean * 0.8:  # 20% below mean
                     low_traits.append(feature)
 
-            # Suggest label
-            label = self._suggest_label(
-                cluster_id=cluster_id,
-                avg_success=avg_success,
-                high_traits=high_traits,
-                low_traits=low_traits,
-            )
+            # Temporary label (will be replaced by LLM-generated label)
+            temp_label = f"Cluster {cluster_id + 1}"
 
             profiles.append(
                 ClusterProfile(
@@ -682,10 +681,20 @@ class ClusteringService:
                     avg_did_not_try_rate=float(avg_did_not_try),
                     high_traits=high_traits,
                     low_traits=low_traits,
-                    suggested_label=label,
+                    suggested_label=temp_label,
                     synth_ids=[o.synth_id for o in cluster_outcomes],
                 )
             )
+
+        # Generate descriptive labels via LLM
+        if profiles:
+            labeling_service = ClusterLabelingService()
+            llm_labels = labeling_service.generate_labels(profiles)
+
+            # Update profiles with LLM-generated labels
+            for profile in profiles:
+                if profile.cluster_id in llm_labels:
+                    profile.suggested_label = llm_labels[profile.cluster_id]
 
         return profiles
 
