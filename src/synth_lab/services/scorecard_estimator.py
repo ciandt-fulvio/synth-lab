@@ -21,6 +21,7 @@ Expected output:
 import json
 
 from loguru import logger
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 from pydantic import BaseModel, Field
 
 from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
@@ -100,10 +101,14 @@ class ScorecardEstimator:
         Raises:
             ScorecardEstimationError: If LLM call fails or returns invalid data.
         """
+        span_name = f"ScorecardEstimate | {name[:30]}"
         with _tracer.start_as_current_span(
-            "ScorecardEstimator: estimate_from_text",
+            span_name,
             attributes={
-                "feature_name": name,
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "feature.name": name,
+                "operation.type": "scorecard_estimate_text",
+                "has_description": description is not None,
             },
         ):
             prompt = self._build_prompt_from_text(name, hypothesis, description)
@@ -158,11 +163,14 @@ class ScorecardEstimator:
         Raises:
             ScorecardEstimationError: If LLM call fails or returns invalid data.
         """
+        span_name = f"ScorecardEstimate | exp_{experiment.id[:12]}"
         with _tracer.start_as_current_span(
-            "ScorecardEstimator: estimate",
+            span_name,
             attributes={
-                "experiment_id": experiment.id,
-                "experiment_name": experiment.name,
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "experiment.id": experiment.id,
+                "experiment.name": experiment.name,
+                "operation.type": "scorecard_estimate_experiment",
             },
         ):
             prompt = self._build_prompt(experiment)

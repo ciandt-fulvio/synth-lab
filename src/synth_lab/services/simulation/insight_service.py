@@ -38,6 +38,7 @@ import json
 from typing import Any
 
 from loguru import logger
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
 from synth_lab.domain.entities.chart_insight import (
     ChartInsight,
@@ -103,12 +104,15 @@ class InsightService:
         Raises:
             InsightGenerationError: If LLM call fails
         """
+        span_name = f"SimInsight {chart_type} | sim_{simulation_id[:12]}"
         with _tracer.start_as_current_span(
-            "InsightService: generate_insight",
+            span_name,
             attributes={
-                "simulation_id": simulation_id,
-                "chart_type": chart_type,
-                "force": force,
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "simulation.id": simulation_id,
+                "chart.type": chart_type,
+                "operation.type": "simulation_insight",
+                "force_regenerate": force,
             },
         ):
             # Check database first (unless force=True)
@@ -284,9 +288,15 @@ Return JSON:
         Returns:
             Executive summary text, or None if no insights available
         """
+        span_name = f"SimSummary | sim_{simulation_id[:12]}"
         with _tracer.start_as_current_span(
-            "InsightService: generate_executive_summary",
-            attributes={"simulation_id": simulation_id, "force": force},
+            span_name,
+            attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "simulation.id": simulation_id,
+                "operation.type": "simulation_executive_summary",
+                "force_regenerate": force,
+            },
         ):
             # Check database first (unless force=True)
             if not force:
