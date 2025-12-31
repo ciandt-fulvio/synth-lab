@@ -2,20 +2,19 @@
 // Live interview card component for real-time message display
 //
 // Purpose: Display a single interview's messages in a compact card format
-// with 200px fixed height, auto-scrolling to newest messages, and click
-// to open full TranscriptDialog
+// with 120px fixed height, smart auto-scrolling with "new messages" badge,
+// and click to open full TranscriptDialog
 //
 // Related:
 // - Type definitions: src/types/sse-events.ts
 // - Message utilities: src/lib/message-utils.ts
 // - Parent component: src/components/interviews/LiveInterviewGrid.tsx
 
-import { useEffect, useRef, useState, memo, useMemo } from 'react';
+import { useEffect, useRef, useState, memo, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { User, Loader2, CheckCircle2 } from 'lucide-react';
+import { User, Loader2, CheckCircle2, ChevronDown } from 'lucide-react';
 import { getSynth, getSynthAvatarUrl } from '@/services/synths-api';
 import { queryKeys } from '@/lib/query-keys';
 import type { LiveInterviewCardProps, InterviewMessageEvent } from '@/types/sse-events';
@@ -80,11 +79,12 @@ function getLatestSentiment(messages: InterviewMessageEvent[]): number | null {
  * LiveInterviewCard - Compact real-time interview message display
  *
  * Features:
- * - 200px fixed height with internal scrolling
- * - Auto-scroll to newest messages (with user scroll detection)
+ * - 120px fixed height with internal scrolling (compact layout)
+ * - Smart auto-scroll: pauses when user scrolls up, shows "new messages" badge
  * - Speaker color coding (blue for Interviewer, green for Interviewee)
  * - Click to open full transcript dialog (only when interview is completed)
  * - Visual indicator when interview is completed (checkmark icon)
+ * - Smaller fonts (text-xs) for better density
  *
  * @param props - Component props
  * @param props.execId - Research execution ID
@@ -100,9 +100,11 @@ export const LiveInterviewCard = memo(function LiveInterviewCard({
   isCompleted,
   onClick,
 }: LiveInterviewCardProps) {
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [userHasScrolled, setUserHasScrolled] = useState(false);
-  const lastMessageRef = useRef<HTMLDivElement>(null);
+  const [newMessagesCount, setNewMessagesCount] = useState(0);
+  const lastSeenMessageCount = useRef(0);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch synth data for avatar and name display
   const { data: synth, isLoading: isLoadingSynth } = useQuery({
@@ -114,35 +116,64 @@ export const LiveInterviewCard = memo(function LiveInterviewCard({
   const firstName = synth?.nome?.split(' ')[0] || 'Synth';
   const age = synth?.demografia?.idade;
   const cardTitle = age
-    ? `Entrevista com ${firstName}, ${age} anos`
-    : `Entrevista com ${firstName}`;
+    ? `${firstName}, ${age}`
+    : firstName;
 
-  // Auto-scroll to newest message when new messages arrive
+  // Smart scroll: only auto-scroll if user hasn't scrolled up
   useEffect(() => {
-    if (!userHasScrolled && lastMessageRef.current) {
-      lastMessageRef.current.scrollIntoView({ behavior: 'smooth' });
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    if (userHasScrolled) {
+      // User scrolled up - count new messages instead of scrolling
+      const newCount = messages.length - lastSeenMessageCount.current;
+      if (newCount > 0) {
+        setNewMessagesCount(newCount);
+      }
+    } else {
+      // User at bottom - smooth scroll by incrementing scrollTop
+      const scrollToBottom = () => {
+        container.scrollTop = container.scrollHeight;
+      };
+      // Small delay to ensure DOM is updated
+      requestAnimationFrame(scrollToBottom);
+      lastSeenMessageCount.current = messages.length;
+      setNewMessagesCount(0);
     }
   }, [messages, userHasScrolled]);
 
-  // Detect user scrolling up to pause auto-scroll
-  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+  // Detect user scrolling to pause/resume auto-scroll
+  const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
     const target = event.currentTarget;
     const scrolledFromBottom =
       target.scrollHeight - target.scrollTop - target.clientHeight;
 
-    // If user scrolled more than 50px from bottom, pause auto-scroll
-    if (scrolledFromBottom > 50) {
+    // If user scrolled more than 30px from bottom, pause auto-scroll
+    if (scrolledFromBottom > 30) {
       setUserHasScrolled(true);
     } else {
+      // User scrolled back to bottom
       setUserHasScrolled(false);
+      setNewMessagesCount(0);
+      lastSeenMessageCount.current = messages.length;
     }
-  };
+  }, [messages.length]);
 
-  // Handle card click - only allow when interview is completed
-  const handleCardClick = () => {
-    if (isCompleted) {
-      onClick(synthId);
+  // Handle clicking the "new messages" badge
+  const handleNewMessagesBadgeClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation(); // Don't trigger card click
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
     }
+    setUserHasScrolled(false);
+    setNewMessagesCount(0);
+    lastSeenMessageCount.current = messages.length;
+  }, [messages.length]);
+
+  // Handle card click - allow anytime to see full transcript
+  const handleCardClick = () => {
+    onClick(synthId);
   };
 
   // Calculate border color based on latest sentiment
@@ -151,37 +182,33 @@ export const LiveInterviewCard = memo(function LiveInterviewCard({
 
   return (
     <Card
-      className={`transition-all duration-300 ${
-        isCompleted
-          ? 'cursor-pointer hover:shadow-lg'
-          : 'cursor-default opacity-90'
-      }`}
+      className="transition-all duration-300 cursor-pointer hover:shadow-lg"
       style={{ borderColor, borderWidth: '2px' }}
       onClick={handleCardClick}
     >
-      <CardHeader className="pb-2">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Avatar className="h-10 w-10">
+      <CardHeader className="py-2 px-3">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-shrink-0">
+            <Avatar className="h-7 w-7">
               <AvatarImage
                 src={getSynthAvatarUrl(synthId)}
                 alt={firstName}
               />
               <AvatarFallback>
-                <User className="h-5 w-5" />
+                <User className="h-3.5 w-3.5" />
               </AvatarFallback>
             </Avatar>
             {isCompleted && (
-              <div className="absolute -bottom-1 -right-1 bg-white rounded-full">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <div className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full">
+                <CheckCircle2 className="h-3 w-3 text-green-500" />
               </div>
             )}
           </div>
-          <CardTitle className="text-sm">
+          <CardTitle className="text-xs font-medium truncate">
             {isLoadingSynth ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                <span>Carregando...</span>
+                <span>...</span>
               </div>
             ) : (
               cardTitle
@@ -189,43 +216,50 @@ export const LiveInterviewCard = memo(function LiveInterviewCard({
           </CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
-        <ScrollArea
-          className="h-[150px] px-4 pb-4"
-          onScrollCapture={handleScroll}
-          ref={scrollAreaRef}
+      <CardContent className="p-0 relative">
+        <div
+          className="h-[100px] px-3 pb-2 overflow-y-auto scrollbar-thin"
+          onScroll={handleScroll}
+          ref={scrollContainerRef}
         >
           {messages.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-              Aguardando mensagens...
+            <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
+              Aguardando...
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-0.5">
               {messages.map((msg, index) => {
-                const isLast = index === messages.length - 1;
-                const speakerColor =
-                  msg.speaker === 'Interviewer'
-                    ? 'text-[#2563eb]' // Blue for Interviewer
-                    : 'text-[#16a34a]'; // Green for Interviewee
+                const isInterviewer = msg.speaker === 'Interviewer';
 
                 return (
                   <div
-                    key={`${msg.synth_id}-${msg.turn_number}`}
-                    ref={isLast ? lastMessageRef : null}
-                    className="text-sm"
+                    key={`${msg.synth_id}-${msg.turn_number}-${msg.speaker}-${index}`}
+                    className={`text-[11px] leading-tight px-1.5 py-0.5 rounded ${
+                      isInterviewer
+                        ? 'bg-blue-50 border-l-2 border-blue-400'
+                        : 'bg-green-50 border-l-2 border-green-400'
+                    }`}
                   >
-                    <span className={`font-medium ${speakerColor}`}>
-                      {msg.speaker === 'Interviewer' ? 'SynthLab' : msg.speaker}:
-                    </span>{' '}
                     <span className="text-foreground">
                       {extractMessageText(msg.text)}
                     </span>
                   </div>
                 );
               })}
+              <div ref={messagesEndRef} />
             </div>
           )}
-        </ScrollArea>
+        </div>
+        {/* New messages badge */}
+        {newMessagesCount > 0 && (
+          <button
+            onClick={handleNewMessagesBadgeClick}
+            className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-medium rounded-full shadow-lg hover:bg-indigo-700 transition-colors animate-pulse"
+          >
+            <ChevronDown className="h-3 w-3" />
+            {newMessagesCount} nova{newMessagesCount > 1 ? 's' : ''}
+          </button>
+        )}
       </CardContent>
     </Card>
   );
