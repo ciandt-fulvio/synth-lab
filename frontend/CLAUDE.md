@@ -1,288 +1,189 @@
-# Chrome DevTools Navigation
+# Frontend Guidelines
 
-**IMPORTANTE**: Ao usar Chrome DevTools MCP para navegar/testar a UI:
-1. **PRIMEIRO** consulte `.claude/ui-memory.md` para conhecer os elementos
-2. Use seletores semânticos (texto/label), não UIDs
-3. Faça apenas 1 snapshot por página para pegar UIDs atuais
-4. Atualize `ui-memory.md` se a UI mudar
+## Tech Stack
+
+- **Framework**: React 18 + TypeScript 5.5 + Vite
+- **UI**: shadcn/ui (Radix) + Tailwind CSS
+- **Data**: TanStack Query + React Router DOM
+- **Icons**: lucide-react
+
+## Project Structure
+
+```
+src/
+├── pages/           # Route pages (Index, ExperimentDetail, etc.)
+├── components/
+│   ├── ui/          # shadcn/ui primitives (DO NOT EDIT)
+│   ├── shared/      # Reusable components (StatusBadge, SynthLabHeader, etc.)
+│   ├── experiments/ # Experiment-specific components
+│   ├── exploration/ # Exploration tree components
+│   ├── interviews/  # Interview/research components
+│   ├── synths/      # Synth management components
+│   └── chat/        # Chat components
+├── hooks/           # Custom React hooks (use-*.ts)
+├── services/        # API clients (*-api.ts)
+├── types/           # TypeScript types (by domain)
+└── lib/             # Utilities (query-keys.ts, utils.ts, schemas.ts)
+```
+
+## Architecture Rules
+
+| Layer | Responsibility | Reference |
+|-------|---------------|-----------|
+| **Pages** | Compose components + use hooks | `pages/ExperimentDetail.tsx` |
+| **Components** | Pure (props → JSX), NO fetch | `components/experiments/` |
+| **Hooks** | React Query (useQuery, useMutation) | `hooks/use-experiments.ts` |
+| **Services** | API calls using `fetchAPI` | `services/experiments-api.ts` |
+| **Query Keys** | Centralized cache keys | `lib/query-keys.ts` |
 
 ---
 
-# Tech Stack
+## Design System
 
-- You are building a React application.
-- Use TypeScript.
-- Use React Router. KEEP the routes in src/App.tsx
-- Always put source code in the src folder.
-- Put pages into src/pages/
-- Put components into src/components/
-- The main page (default page) is src/pages/Index.tsx
-- UPDATE the main page to include the new components. OTHERWISE, the user can NOT see any components!
-- ALWAYS try to use the shadcn/ui library.
-- Tailwind CSS: always use Tailwind CSS for styling components. Utilize Tailwind classes extensively for layout, spacing, colors, and other design aspects.
+Defined in `globals.css`. Use CSS classes, not inline Tailwind for common patterns.
 
-Available packages and libraries:
+### Colors
 
-- The lucide-react package is installed for icons.
-- You ALREADY have ALL the shadcn/ui components and their dependencies installed. So you don't need to install them again.
-- You have ALL the necessary Radix UI components installed.
-- Use prebuilt components from the shadcn/ui library after importing them. Note that these files shouldn't be edited, so make new components if you need to change them.
-
----
-
-# SynthLab Design System
-
-**IMPORTANT**: When creating new pages or components, use these standardized patterns defined in `globals.css`.
-
-## Color Palette
-
-- **Primary**: `indigo-600` / `violet-600` (gradient for CTAs)
-- **Neutral**: `slate-*` for text, borders, backgrounds
+- **Primary**: `indigo-600` / `violet-600` (gradients)
+- **Neutral**: `slate-*`
 - **Semantic**: `green` (success), `red` (error), `amber` (warning), `blue` (info)
-- **NEVER use**: `purple-*` standalone (use `indigo-*` instead for brand consistency)
+- **NEVER**: `purple-*` standalone
 
-## Button System
+### CSS Classes
 
-Use these CSS classes instead of inline Tailwind styles:
+| Category | Classes | Reference |
+|----------|---------|-----------|
+| **Buttons** | `.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.btn-ghost-icon` | `globals.css:287` |
+| **Cards** | `.card`, `.card-hover`, `.card-dashed` | `globals.css:322` |
+| **Icon Boxes** | `.icon-box-primary`, `.icon-box-neutral`, `.icon-box-light` | `globals.css:342` |
+| **Badges** | `.badge-success`, `.badge-error`, `.badge-warning`, `.badge-info`, `.badge-neutral` | `globals.css:362` |
+| **Typography** | `.text-page-title`, `.text-section-title`, `.text-card-title`, `.text-body`, `.text-meta` | `globals.css:391` |
+| **Gradients** | `.gradient-primary`, `.gradient-light`, `.gradient-decorative` | `globals.css:450` |
 
-| Class | Usage | Example |
-|-------|-------|---------|
-| `.btn-primary` | Main CTAs (Salvar, Criar, Executar) | `<Button className="btn-primary">` |
-| `.btn-secondary` | Cancel/Back actions | `<Button variant="outline" className="btn-secondary">` |
-| `.btn-ghost` | Discrete actions with text | `<Button variant="ghost" className="btn-ghost">` |
-| `.btn-ghost-icon` | Icon-only navigation buttons | `<Button variant="ghost" size="icon" className="btn-ghost-icon">` |
+### Icon Sizes
 
-## Card System
+| Context | Size |
+|---------|------|
+| Page header | `h-6 w-6` |
+| Section header | `h-5 w-5` |
+| Badge/inline | `h-4 w-4` or `h-3.5 w-3.5` |
 
-| Class | Usage |
-|-------|-------|
-| `.card` | Standard container |
-| `.card-hover` | Card with hover effect |
-| `.card-dashed` | Empty/placeholder states |
-
-## Icon Boxes
-
-| Class | Usage |
-|-------|-------|
-| `.icon-box-primary` | Gradient icon container (page headers) |
-| `.icon-box-neutral` | Gray icon container |
-| `.icon-box-light` | Light indigo icon container |
-
-## Badges
-
-| Class | Usage |
-|-------|-------|
-| `.badge-primary` | Primary/brand badges |
-| `.badge-success` | Success status |
-| `.badge-error` | Error status |
-| `.badge-warning` | Warning status |
-| `.badge-info` | Info status |
-| `.badge-neutral` | Neutral/default |
-
-## Typography
-
-| Class | Usage |
-|-------|-------|
-| `.text-page-title` | Page titles (2xl bold) |
-| `.text-section-title` | Section headings (lg semibold) |
-| `.text-card-title` | Card titles (base medium) |
-| `.text-body` | Body text (sm slate-600) |
-| `.text-meta` | Meta/helper text (xs slate-500) |
+---
 
 ## Shared Components
 
 ### SynthLabHeader
 
-Use for all page headers:
+Page header with optional back navigation and actions.
 
 ```tsx
 import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
-
-// Home page (no back button)
-<SynthLabHeader actions={<Button>Action</Button>} />
-
-// Subpage with back navigation
-<SynthLabHeader subtitle="Page Title" backTo="/" />
-
-// With actions
-<SynthLabHeader
-  subtitle="Page Title"
-  backTo="/"
-  actions={<Button className="btn-primary">Action</Button>}
-/>
 ```
 
-### StatusBadge (Status Indicators)
+Reference: `components/shared/SynthLabHeader.tsx`
 
-**IMPORTANT**: Use `StatusBadge` for ALL status indicators in the system. DO NOT create new badge components for status display.
+### StatusBadge
 
-Location: `@/components/shared/StatusBadge`
+**Use for ALL status indicators.** DO NOT create new badge components.
 
 ```tsx
-import {
-  StatusBadge,
-  EXECUTION_STATUS_CONFIG,    // Entrevistas/Research
-  EXPLORATION_STATUS_CONFIG,  // Explorações de cenário
-  NODE_STATUS_CONFIG,         // Nós de cenário
-} from '@/components/shared/StatusBadge';
+import { StatusBadge, EXECUTION_STATUS_CONFIG, EXPLORATION_STATUS_CONFIG } from '@/components/shared/StatusBadge';
 
-// Entrevistas (pending, running, generating_summary, completed, failed)
 <StatusBadge status={execution.status} config={EXECUTION_STATUS_CONFIG} />
-
-// Explorações (running, goal_achieved, depth_limit_reached, cost_limit_reached, no_viable_paths)
-<StatusBadge status={exploration.status} config={EXPLORATION_STATUS_CONFIG} />
-
-// Nós de cenário (active, dominated, winner, expansion_failed)
-<StatusBadge status={node.node_status} config={NODE_STATUS_CONFIG} />
-
-// Sem ícone (opcional)
-<StatusBadge status="completed" config={EXECUTION_STATUS_CONFIG} showIcon={false} />
 ```
 
-**Features:**
-- Ícones automáticos por status (spinner animado para "running")
-- Cores semânticas consistentes (success, info, warning, error, neutral)
-- Configs pré-definidos para cada domínio
+Available configs:
+- `EXECUTION_STATUS_CONFIG` - Interviews (pending, running, generating_summary, completed, failed)
+- `EXPLORATION_STATUS_CONFIG` - Explorations (running, goal_achieved, depth_limit_reached, etc.)
+- `NODE_STATUS_CONFIG` - Scenario nodes (active, dominated, winner, expansion_failed)
 
-**Adding new status types:**
-1. Add config to `StatusBadge.tsx` (NOT in domain types)
-2. Register any new icons in `ICON_REGISTRY`
-3. Export the new config
-4. Document here
+Reference: `components/shared/StatusBadge.tsx`
 
-**Wrapper components** (for convenience):
-- `ExplorationStatusBadge` - wrapper que usa `EXPLORATION_STATUS_CONFIG`
+### Other Shared Components
 
-**DO NOT:**
-- Create new badge components for status
-- Duplicate status config in domain type files
-- Use inline badge styling for status indicators
+| Component | Purpose | File |
+|-----------|---------|------|
+| `ChartContainer` | Wrapper for charts with loading/error states | `shared/ChartContainer.tsx` |
+| `ErrorBoundary` | React error boundary | `shared/ErrorBoundary.tsx` |
+| `TranscriptDialog` | Interview transcript viewer | `shared/TranscriptDialog.tsx` |
+| `MarkdownPopup` | Markdown content popup | `shared/MarkdownPopup.tsx` |
+| `ArtifactButton` | Toggle button for artifacts | `shared/ArtifactButton.tsx` |
 
-## Page Structure Template
+---
+
+## Data Fetching Pattern
+
+### Hook Structure
+
+```tsx
+// hooks/use-something.ts
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/query-keys';
+import { getSomething, createSomething } from '@/services/something-api';
+
+export function useSomething(id: string) {
+  return useQuery({
+    queryKey: queryKeys.somethingDetail(id),
+    queryFn: () => getSomething(id),
+  });
+}
+```
+
+Reference: `hooks/use-experiments.ts`, `hooks/use-exploration.ts`
+
+### Service Structure
+
+```tsx
+// services/something-api.ts
+import { fetchAPI } from './api';
+
+export async function getSomething(id: string): Promise<Something> {
+  return fetchAPI(`/something/${id}`);
+}
+```
+
+Reference: `services/api.ts` (base), `services/experiments-api.ts`
+
+---
+
+## Toast Notifications
+
+Use Sonner for all user feedback.
+
+```tsx
+import { toast } from 'sonner';
+
+toast.success('Salvo com sucesso');
+toast.error('Erro ao salvar', { description: 'Detalhes do erro' });
+```
+
+Configuration: `App.tsx` (Toaster component)
+
+---
+
+## Page Template
 
 ```tsx
 export default function NewPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
       <SynthLabHeader subtitle="Page Title" backTo="/" />
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page content */}
-        <div className="card p-6">
-          <h2 className="text-section-title">Section</h2>
-          <p className="text-body">Content</p>
-        </div>
+        {/* Content */}
       </main>
     </div>
   );
 }
 ```
 
-## Spacing Guidelines
-
-- **Container padding**: `px-4 sm:px-6 lg:px-8`
-- **Card padding**: `p-5` (20px) or `p-6` (24px)
-- **Section gaps**: `gap-4` (16px) or `gap-6` (24px)
-- **Bottom margins**: `mb-4`, `mb-6`, `mb-8`
-
-## Icon Sizes
-
-| Context | Size |
-|---------|------|
-| Page header icons | `h-6 w-6` |
-| Section header icons | `h-5 w-5` |
-| Badge/inline icons | `h-4 w-4` |
-| Small inline icons | `h-3.5 w-3.5` |
-
-## Loading States
-
-- Spinner: `<Loader2 className="spinner h-5 w-5" />`
-- Skeleton: `<Skeleton className="skeleton-pulse h-6 w-full" />`
-
-## Gradients
-
-| Class | Usage |
-|-------|-------|
-| `.gradient-primary` | Primary gradient (indigo→violet) |
-| `.gradient-light` | Light background gradient |
-| `.gradient-decorative` | Logo/decorative elements |
-| `.logo-glow` | Logo glow effect |
+Reference: `pages/ExperimentDetail.tsx`
 
 ---
 
-## Toast Notifications (Sonner)
+## Chrome DevTools Navigation
 
-**IMPORTANT**: Use Sonner for all user feedback notifications.
-
-### Configuration
-
-The Toaster component is configured globally in `App.tsx`:
-- Position: `top-right`
-- Auto-dismiss: 5 seconds
-- Close button: enabled
-- Rich colors: enabled (semantic styling)
-
-### Usage
-
-```tsx
-import { toast } from 'sonner';
-
-// Success - Use after successful operations
-toast.success('Operação realizada com sucesso');
-
-// Error - Use for API errors and validation failures
-toast.error('Erro ao executar operação');
-
-// Warning - Use for non-critical issues
-toast.warning('Atenção: verifique os dados');
-
-// Info - Use for neutral information
-toast.info('Processando sua solicitação...');
-
-// With description
-toast.error('Falha ao executar análise', {
-  description: 'Gere personas sintéticas antes de continuar.',
-});
-
-// With action button
-toast.error('Análise falhou', {
-  action: {
-    label: 'Tentar novamente',
-    onClick: () => handleRetry(),
-  },
-});
-```
-
-### Color Mapping (Design System)
-
-| Toast Type | Background | Text | Border |
-|------------|------------|------|--------|
-| `success` | `green-50` | `green-900` | `green-200` |
-| `error` | `red-50` | `red-900` | `red-200` |
-| `warning` | `amber-50` | `amber-900` | `amber-200` |
-| `info` | `indigo-50` | `indigo-900` | `indigo-200` |
-
-### Best Practices
-
-1. **Always show toast on mutation errors**:
-```tsx
-const mutation = useSomeMutation();
-
-const handleAction = () => {
-  mutation.mutate(data, {
-    onSuccess: () => toast.success('Salvo com sucesso'),
-    onError: (error) => toast.error(error.message),
-  });
-};
-```
-
-2. **Use descriptions for actionable errors**:
-```tsx
-toast.error('Não foi possível executar', {
-  description: 'Verifique se todos os campos estão preenchidos.',
-});
-```
-
-3. **Avoid duplicate toasts** - React Query handles this automatically
-
-4. **Keep messages concise** - Max 2 lines (title + description)
+When using Chrome DevTools MCP:
+1. Consult `.claude/ui-memory.md` first
+2. Use semantic selectors (text/label), not UIDs
+3. One snapshot per page for current UIDs
+4. Update `ui-memory.md` if UI changes
