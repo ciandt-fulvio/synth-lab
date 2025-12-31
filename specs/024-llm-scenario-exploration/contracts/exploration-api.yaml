@@ -1,0 +1,515 @@
+openapi: 3.1.0
+info:
+  title: Exploration API
+  description: API para exploracao de cenarios de produto via LLM
+  version: 1.0.0
+
+paths:
+  /api/explorations:
+    post:
+      summary: Iniciar exploracao de cenarios
+      description: |
+        Inicia uma nova exploracao de cenarios a partir de um experimento
+        que ja possui analise baseline executada.
+      operationId: create_exploration
+      tags:
+        - Explorations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExplorationCreate'
+      responses:
+        '201':
+          description: Exploracao criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExplorationResponse'
+        '400':
+          description: Parametros invalidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Experimento ou analise nao encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Experimento sem scorecard ou sem analise baseline
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/explorations/{exploration_id}:
+    get:
+      summary: Obter status da exploracao
+      description: Retorna o status atual e estatisticas da exploracao.
+      operationId: get_exploration
+      tags:
+        - Explorations
+      parameters:
+        - name: exploration_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^expl_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: Exploracao encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExplorationResponse'
+        '404':
+          description: Exploracao nao encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/explorations/{exploration_id}/tree:
+    get:
+      summary: Obter arvore de exploracao
+      description: Retorna a arvore completa de cenarios explorados.
+      operationId: get_exploration_tree
+      tags:
+        - Explorations
+      parameters:
+        - name: exploration_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^expl_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: Arvore de exploracao
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExplorationTreeResponse'
+        '404':
+          description: Exploracao nao encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/explorations/{exploration_id}/winning-path:
+    get:
+      summary: Obter caminho vencedor
+      description: |
+        Retorna a sequencia de acoes do cenario inicial ate o cenario
+        que atingiu a meta. Retorna 404 se exploracao nao tiver vencedor.
+      operationId: get_winning_path
+      tags:
+        - Explorations
+      parameters:
+        - name: exploration_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^expl_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: Caminho vencedor encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WinningPathResponse'
+        '404':
+          description: Exploracao nao encontrada ou sem vencedor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/explorations/{exploration_id}/iterate:
+    post:
+      summary: Executar uma iteracao
+      description: |
+        Executa uma iteracao da exploracao: expande fronteira,
+        filtra por Pareto, aplica beam search.
+      operationId: run_iteration
+      tags:
+        - Explorations
+      parameters:
+        - name: exploration_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^expl_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: Iteracao executada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IterationResultResponse'
+        '400':
+          description: Exploracao ja finalizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Exploracao nao encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/action-catalog:
+    get:
+      summary: Obter catalogo de acoes
+      description: Retorna o catalogo de categorias de acoes disponiveis.
+      operationId: get_action_catalog
+      tags:
+        - Catalog
+      responses:
+        '200':
+          description: Catalogo de acoes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionCatalogResponse'
+
+components:
+  schemas:
+    ExplorationCreate:
+      type: object
+      required:
+        - experiment_id
+        - goal_value
+      properties:
+        experiment_id:
+          type: string
+          pattern: '^exp_[a-f0-9]{8}$'
+          description: ID do experimento de origem
+          example: "exp_12345678"
+        goal_value:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Meta de success_rate a atingir
+          example: 0.40
+        beam_width:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 3
+          description: Numero de cenarios a manter por iteracao
+        max_depth:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 5
+          description: Profundidade maxima da arvore
+        max_llm_calls:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+          description: Numero maximo de chamadas LLM
+        n_executions:
+          type: integer
+          minimum: 10
+          maximum: 1000
+          default: 100
+          description: Execucoes Monte Carlo por simulacao
+        seed:
+          type: integer
+          nullable: true
+          description: Seed para reproducibilidade
+
+    ExplorationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: '^expl_[a-f0-9]{8}$'
+          example: "expl_abcd1234"
+        experiment_id:
+          type: string
+          example: "exp_12345678"
+        baseline_analysis_id:
+          type: string
+          example: "ana_87654321"
+        goal:
+          $ref: '#/components/schemas/Goal'
+        config:
+          $ref: '#/components/schemas/ExplorationConfig'
+        status:
+          type: string
+          enum: [running, goal_achieved, depth_limit_reached, cost_limit_reached, no_viable_paths]
+        current_depth:
+          type: integer
+        total_nodes:
+          type: integer
+        total_llm_calls:
+          type: integer
+        best_success_rate:
+          type: number
+          format: float
+          nullable: true
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    Goal:
+      type: object
+      properties:
+        metric:
+          type: string
+          enum: [success_rate]
+        operator:
+          type: string
+          enum: [">="]
+        value:
+          type: number
+          format: float
+
+    ExplorationConfig:
+      type: object
+      properties:
+        beam_width:
+          type: integer
+        max_depth:
+          type: integer
+        max_llm_calls:
+          type: integer
+        n_executions:
+          type: integer
+        sigma:
+          type: number
+          format: float
+        seed:
+          type: integer
+          nullable: true
+
+    ScenarioNodeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: '^node_[a-f0-9]{8}$'
+        exploration_id:
+          type: string
+        parent_id:
+          type: string
+          nullable: true
+        depth:
+          type: integer
+        action_applied:
+          type: string
+          nullable: true
+        action_category:
+          type: string
+          nullable: true
+        rationale:
+          type: string
+          nullable: true
+        scorecard_params:
+          $ref: '#/components/schemas/ScorecardParams'
+        simulation_results:
+          $ref: '#/components/schemas/SimulationResults'
+          nullable: true
+        execution_time_seconds:
+          type: number
+          format: float
+          nullable: true
+        node_status:
+          type: string
+          enum: [active, dominated, winner, expansion_failed]
+        created_at:
+          type: string
+          format: date-time
+
+    ScorecardParams:
+      type: object
+      properties:
+        complexity:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        initial_effort:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        perceived_risk:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        time_to_value:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+
+    SimulationResults:
+      type: object
+      properties:
+        success_rate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        fail_rate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        did_not_try_rate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+
+    ExplorationTreeResponse:
+      type: object
+      properties:
+        exploration:
+          $ref: '#/components/schemas/ExplorationResponse'
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScenarioNodeResponse'
+        node_count_by_status:
+          type: object
+          additionalProperties:
+            type: integer
+          example:
+            active: 3
+            dominated: 5
+            winner: 1
+            expansion_failed: 0
+
+    WinningPathResponse:
+      type: object
+      properties:
+        exploration_id:
+          type: string
+        winner_node_id:
+          type: string
+        path:
+          type: array
+          items:
+            $ref: '#/components/schemas/PathStep'
+        total_improvement:
+          type: number
+          format: float
+          description: Melhoria total em success_rate
+
+    PathStep:
+      type: object
+      properties:
+        depth:
+          type: integer
+        action:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        rationale:
+          type: string
+          nullable: true
+        success_rate:
+          type: number
+          format: float
+        delta_success_rate:
+          type: number
+          format: float
+          description: Melhoria vs passo anterior
+
+    IterationResultResponse:
+      type: object
+      properties:
+        exploration_id:
+          type: string
+        iteration_number:
+          type: integer
+        status:
+          type: string
+          enum: [running, goal_achieved, depth_limit_reached, cost_limit_reached, no_viable_paths]
+        nodes_expanded:
+          type: integer
+        nodes_created:
+          type: integer
+        nodes_dominated:
+          type: integer
+        llm_calls_made:
+          type: integer
+        best_success_rate:
+          type: number
+          format: float
+        frontier_size:
+          type: integer
+
+    ActionCatalogResponse:
+      type: object
+      properties:
+        version:
+          type: string
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionCategory'
+
+    ActionCategory:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        examples:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionExample'
+
+    ActionExample:
+      type: object
+      properties:
+        action:
+          type: string
+        typical_impacts:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              min:
+                type: number
+                format: float
+              max:
+                type: number
+                format: float
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Mensagem de erro
+        error_code:
+          type: string
+          description: Codigo do erro (opcional)
