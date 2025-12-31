@@ -218,6 +218,47 @@ class AttributeCorrelationChart(BaseModel):
 
 
 # =============================================================================
+# 7. Sankey Flow Chart
+# =============================================================================
+
+
+class SankeyNode(BaseModel):
+    """A node in the Sankey diagram."""
+
+    id: str = Field(description="Unique node identifier (e.g., 'population', 'did_not_try').")
+    label: str = Field(description="Display label in Portuguese.")
+    level: Literal[1, 2, 3] = Field(description="Diagram level (1=Population, 2=Outcome, 3=Cause).")
+    color: str = Field(description="Hex color code for node.")
+    value: int = Field(ge=0, description="Count of synths at this node.")
+
+
+class SankeyLink(BaseModel):
+    """A flow link between two nodes."""
+
+    source: str = Field(description="Source node ID.")
+    target: str = Field(description="Target node ID.")
+    value: int = Field(ge=0, description="Number of synths in this flow.")
+
+
+class OutcomeCounts(BaseModel):
+    """Aggregated outcome counts."""
+
+    did_not_try: int = Field(ge=0, description="Count of synths with did_not_try as dominant outcome.")
+    failed: int = Field(ge=0, description="Count of synths with failed as dominant outcome.")
+    success: int = Field(ge=0, description="Count of synths with success as dominant outcome.")
+
+
+class SankeyFlowChart(BaseModel):
+    """Complete Sankey flow data for visualization."""
+
+    analysis_id: str = Field(description="Analysis run ID (ana_[a-f0-9]{8}).")
+    nodes: list[SankeyNode] = Field(description="All nodes in the diagram.")
+    links: list[SankeyLink] = Field(description="All flow links between nodes.")
+    total_synths: int = Field(ge=0, description="Total population count.")
+    outcome_counts: OutcomeCounts = Field(description="Aggregated counts per outcome.")
+
+
+# =============================================================================
 # Validation
 # =============================================================================
 

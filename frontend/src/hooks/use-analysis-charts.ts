@@ -8,6 +8,7 @@ import {
   getAnalysisDistributionChart,
   getAnalysisFailureHeatmap,
   getAnalysisScatterCorrelation,
+  getAnalysisSankeyFlow,
   createAnalysisClustering,
   createAutoAnalysisClustering,
   getAnalysisClustering,
@@ -55,6 +56,15 @@ export function useAnalysisDistributionChart(
   return useQuery({
     queryKey: [...queryKeys.analysis.distribution(experimentId), sortBy, order, limit],
     queryFn: () => getAnalysisDistributionChart(experimentId, sortBy, order, limit),
+    enabled: !!experimentId && enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useAnalysisSankeyFlow(experimentId: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.analysis.sankeyFlow(experimentId),
+    queryFn: () => getAnalysisSankeyFlow(experimentId),
     enabled: !!experimentId && enabled,
     staleTime: 5 * 60 * 1000,
   });

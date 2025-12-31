@@ -455,6 +455,42 @@ export interface SimulationInsights {
 }
 
 // =============================================================================
+// Sankey Flow Chart (Outcome Flow Visualization)
+// =============================================================================
+
+/** Node in Sankey diagram */
+export interface SankeyNode {
+  id: string;
+  label: string;
+  level: 1 | 2 | 3;
+  color: string;
+  value: number;
+}
+
+/** Link between nodes in Sankey diagram */
+export interface SankeyLink {
+  source: string;
+  target: string;
+  value: number;
+}
+
+/** Aggregated outcome counts */
+export interface OutcomeCounts {
+  did_not_try: number;
+  failed: number;
+  success: number;
+}
+
+/** Sankey flow chart data for outcome flow visualization */
+export interface SankeyFlowChart {
+  analysis_id: string;
+  nodes: SankeyNode[];
+  links: SankeyLink[];
+  total_synths: number;
+  outcome_counts: OutcomeCounts;
+}
+
+// =============================================================================
 // Request Types
 // =============================================================================
 

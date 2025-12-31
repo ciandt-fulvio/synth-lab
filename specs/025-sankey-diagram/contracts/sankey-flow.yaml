@@ -1,0 +1,271 @@
+openapi: 3.1.0
+info:
+  title: Sankey Flow Chart API
+  version: 1.0.0
+  description: API endpoint for retrieving Sankey diagram flow data from experiment analysis.
+
+paths:
+  /experiments/{experiment_id}/analysis/charts/sankey-flow:
+    get:
+      operationId: getAnalysisSankeyFlow
+      summary: Get Sankey flow chart data
+      description: |
+        Retrieves the Sankey diagram data showing outcome flow from population
+        through outcomes to root causes.
+
+        The diagram has 3 levels:
+        - Level 1: Population (total synths)
+        - Level 2: Outcomes (did_not_try, failed, success)
+        - Level 3: Root causes (only for did_not_try and failed)
+      tags:
+        - Analysis Charts
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          description: The experiment ID
+          schema:
+            type: string
+            pattern: ^exp_[a-f0-9]{8}$
+            example: exp_abc12345
+      responses:
+        '200':
+          description: Sankey flow chart data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SankeyFlowChart'
+        '400':
+          description: Analysis not completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPError'
+              example:
+                detail: "Analysis must be completed before retrieving charts"
+        '404':
+          description: Experiment or analysis not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPError'
+              example:
+                detail: "No analysis found for experiment"
+
+components:
+  schemas:
+    SankeyFlowChart:
+      type: object
+      description: Complete Sankey flow data for visualization
+      required:
+        - analysis_id
+        - nodes
+        - links
+        - total_synths
+        - outcome_counts
+      properties:
+        analysis_id:
+          type: string
+          pattern: ^ana_[a-f0-9]{8}$
+          description: Analysis run ID
+          example: ana_12345678
+        nodes:
+          type: array
+          description: All nodes in the Sankey diagram
+          items:
+            $ref: '#/components/schemas/SankeyNode'
+        links:
+          type: array
+          description: All flow links between nodes
+          items:
+            $ref: '#/components/schemas/SankeyLink'
+        total_synths:
+          type: integer
+          minimum: 0
+          description: Total population count
+          example: 500
+        outcome_counts:
+          $ref: '#/components/schemas/OutcomeCounts'
+
+    SankeyNode:
+      type: object
+      description: A node in the Sankey diagram
+      required:
+        - id
+        - label
+        - level
+        - color
+        - value
+      properties:
+        id:
+          type: string
+          description: Unique node identifier
+          enum:
+            - population
+            - did_not_try
+            - failed
+            - success
+            - effort_barrier
+            - risk_barrier
+            - complexity_barrier
+            - capability_barrier
+            - patience_barrier
+          example: did_not_try
+        label:
+          type: string
+          description: Display label in Portuguese
+          example: Não tentou
+        level:
+          type: integer
+          minimum: 1
+          maximum: 3
+          description: Diagram level (1=Population, 2=Outcome, 3=Cause)
+          example: 2
+        color:
+          type: string
+          pattern: ^#[0-9a-fA-F]{6}$
+          description: Hex color code for node
+          example: "#f59e0b"
+        value:
+          type: integer
+          minimum: 0
+          description: Count of synths at this node
+          example: 180
+
+    SankeyLink:
+      type: object
+      description: A flow link between two nodes
+      required:
+        - source
+        - target
+        - value
+      properties:
+        source:
+          type: string
+          description: Source node ID
+          example: population
+        target:
+          type: string
+          description: Target node ID
+          example: did_not_try
+        value:
+          type: integer
+          minimum: 1
+          description: Number of synths in this flow (zero-value flows are omitted)
+          example: 180
+
+    OutcomeCounts:
+      type: object
+      description: Aggregated outcome counts
+      required:
+        - did_not_try
+        - failed
+        - success
+      properties:
+        did_not_try:
+          type: integer
+          minimum: 0
+          description: Count of synths with did_not_try as dominant outcome
+          example: 180
+        failed:
+          type: integer
+          minimum: 0
+          description: Count of synths with failed as dominant outcome
+          example: 140
+        success:
+          type: integer
+          minimum: 0
+          description: Count of synths with success as dominant outcome
+          example: 180
+
+    HTTPError:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Error message
+          example: "No analysis found for experiment"
+
+  examples:
+    SankeyFlowChartExample:
+      summary: Example Sankey flow chart response
+      value:
+        analysis_id: ana_12345678
+        nodes:
+          - id: population
+            label: População
+            level: 1
+            color: "#6366f1"
+            value: 500
+          - id: did_not_try
+            label: Não tentou
+            level: 2
+            color: "#f59e0b"
+            value: 180
+          - id: failed
+            label: Falhou
+            level: 2
+            color: "#ef4444"
+            value: 140
+          - id: success
+            label: Sucesso
+            level: 2
+            color: "#22c55e"
+            value: 180
+          - id: effort_barrier
+            label: Esforço inicial alto
+            level: 3
+            color: "#fbbf24"
+            value: 60
+          - id: risk_barrier
+            label: Risco percebido
+            level: 3
+            color: "#fb923c"
+            value: 95
+          - id: complexity_barrier
+            label: Complexidade aparente
+            level: 3
+            color: "#f97316"
+            value: 25
+          - id: capability_barrier
+            label: Capability insuficiente
+            level: 3
+            color: "#f87171"
+            value: 90
+          - id: patience_barrier
+            label: Desistiu antes do valor
+            level: 3
+            color: "#fca5a5"
+            value: 50
+        links:
+          - source: population
+            target: did_not_try
+            value: 180
+          - source: population
+            target: failed
+            value: 140
+          - source: population
+            target: success
+            value: 180
+          - source: did_not_try
+            target: effort_barrier
+            value: 60
+          - source: did_not_try
+            target: risk_barrier
+            value: 95
+          - source: did_not_try
+            target: complexity_barrier
+            value: 25
+          - source: failed
+            target: capability_barrier
+            value: 90
+          - source: failed
+            target: patience_barrier
+            value: 50
+        total_synths: 500
+        outcome_counts:
+          did_not_try: 180
+          failed: 140
+          success: 180

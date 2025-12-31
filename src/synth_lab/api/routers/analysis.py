@@ -31,6 +31,7 @@ from synth_lab.domain.entities.analysis_run import AggregatedOutcomes, AnalysisC
 from synth_lab.domain.entities.chart_data import (
     FailureHeatmapChart,
     OutcomeDistributionChart,
+    SankeyFlowChart,
     ScatterCorrelationChart,
     TryVsSuccessChart,
 )
@@ -796,6 +797,67 @@ async def get_scatter_correlation_chart(
         x_axis=x_axis,
         y_axis=y_axis,
         show_trendline=show_trendline,
+    )
+
+
+@router.get(
+    "/{experiment_id}/analysis/charts/sankey-flow",
+    response_model=SankeyFlowChart,
+)
+async def get_sankey_flow_chart(
+    experiment_id: str,
+) -> SankeyFlowChart:
+    """
+    Get Sankey flow chart data for an analysis.
+
+    Shows outcome flow from population through outcomes to root causes.
+    3 levels: Population → Outcomes (did_not_try, failed, success) → Root Causes.
+    """
+    service = get_analysis_service()
+    experiment_service = get_experiment_service()
+
+    analysis = service.get_analysis(experiment_id)
+    if analysis is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No analysis found for experiment {experiment_id}",
+        )
+
+    if analysis.status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Analysis must be completed (status: {analysis.status})",
+        )
+
+    # Get experiment to access scorecard
+    experiment = experiment_service.get_experiment(experiment_id)
+    if experiment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Experiment {experiment_id} not found",
+        )
+
+    if experiment.scorecard_data is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Experiment must have a scorecard for Sankey flow analysis",
+        )
+
+    # Get outcomes
+    chart_service = get_chart_data_service()
+    outcome_repo = get_outcome_repository()
+
+    outcomes, _ = outcome_repo.get_outcomes(analysis.id)
+    if not outcomes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No outcomes found for this analysis",
+        )
+
+    return chart_service.get_sankey_flow(
+        analysis_id=analysis.id,
+        outcomes=outcomes,
+        scorecard=experiment.scorecard_data,
     )
 
 
