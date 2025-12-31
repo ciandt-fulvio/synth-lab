@@ -16,12 +16,17 @@ import { getSynth, getSynthAvatarUrl } from '@/services/synths-api';
 import { queryKeys } from '@/lib/query-keys';
 import { extractMessageText } from '@/lib/message-utils';
 import { SynthChatDialog } from '@/components/chat/SynthChatDialog';
+import type { InterviewMessageEvent } from '@/types/sse-events';
 
 interface TranscriptDialogProps {
   execId: string;
   synthId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Optional live messages from SSE streaming (used during live interviews) */
+  liveMessages?: InterviewMessageEvent[];
+  /** Whether the interview is still in progress */
+  isLive?: boolean;
 }
 
 export function TranscriptDialog({
@@ -29,15 +34,17 @@ export function TranscriptDialog({
   synthId,
   open,
   onOpenChange,
+  liveMessages,
+  isLive = false,
 }: TranscriptDialogProps) {
   // State for chat dialog
   const [chatOpen, setChatOpen] = useState(false);
 
-  // Fetch transcript
+  // Fetch transcript from DB (only if not using live messages)
   const { data: transcript, isLoading: transcriptLoading } = useQuery({
     queryKey: queryKeys.researchTranscript(execId, synthId!),
     queryFn: () => getTranscript(execId, synthId!),
-    enabled: open && !!synthId,
+    enabled: open && !!synthId && !liveMessages,
   });
 
   // Fetch synth details for name and age
@@ -47,19 +54,26 @@ export function TranscriptDialog({
     enabled: open && !!synthId,
   });
 
-  const isLoading = transcriptLoading || synthLoading;
+  // Use live messages if available, otherwise use transcript from DB
+  const messages = liveMessages
+    ? liveMessages.map(m => ({ speaker: m.speaker, text: m.text }))
+    : transcript?.messages || [];
+
+  const isLoading = !liveMessages && (transcriptLoading || synthLoading);
 
   // Get first name from synth nome
   const firstName = synth?.nome?.split(' ')[0] || 'Entrevistado';
   const age = synth?.demografia?.idade;
 
   // Build title
-  const title = age
+  const baseTitle = age
     ? `Entrevista com ${firstName}, ${age} anos`
     : `Entrevista com ${firstName}`;
+  const title = isLive ? `${baseTitle} (ao vivo)` : baseTitle;
 
   // Check if interview is completed (has messages and status is 'completed')
   const isInterviewCompleted =
+    !isLive &&
     transcript?.messages &&
     transcript.messages.length > 0 &&
     transcript.status === 'completed';
@@ -134,21 +148,31 @@ export function TranscriptDialog({
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
               </div>
-            ) : transcript?.messages && transcript.messages.length > 0 ? (
-              <div className="transcript-content space-y-5">
-                {transcript.messages.map((message, index) => (
-                  <p key={index} className="leading-relaxed">
-                    <span
-                      className={getSpeakerStyle(message.speaker)}
-                      style={{ color: getSpeakerColor(message.speaker) }}
+            ) : messages.length > 0 ? (
+              <div className="space-y-2">
+                {messages.map((message, index) => {
+                  const isInterviewer = message.speaker.toLowerCase() === 'interviewer';
+                  return (
+                    <div
+                      key={index}
+                      className={`pl-3 py-2 ${
+                        isInterviewer
+                          ? 'border-l-4 border-blue-400'
+                          : 'border-l-4 border-green-400'
+                      }`}
                     >
-                      {getSpeakerName(message.speaker)}:
-                    </span>{' '}
-                    <span className="text-gray-700">
-                      {extractMessageText(message.text)}
-                    </span>
-                  </p>
-                ))}
+                      <span
+                        className="font-semibold text-sm"
+                        style={{ color: getSpeakerColor(message.speaker) }}
+                      >
+                        {getSpeakerName(message.speaker)}:
+                      </span>
+                      <p className="text-gray-700 mt-1 leading-relaxed">
+                        {extractMessageText(message.text)}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="flex items-center justify-center h-full text-gray-500">
