@@ -232,6 +232,7 @@ class ResearchService:
         from loguru import logger
 
         from synth_lab.gen_synth.storage import load_synths
+        from synth_lab.repositories.experiment_repository import ExperimentRepository
         from synth_lab.services.research_agentic.runner import ConversationMessage, InterviewResult
         from synth_lab.services.research_agentic.summarizer import summarize_interviews
 
@@ -284,10 +285,18 @@ class ResearchService:
 
             interview_results.append((interview_result, synth_data))
 
+        # Get experiment name for summary title (if linked to an experiment)
+        summary_title = execution.topic_name
+        if execution.experiment_id:
+            experiment_repo = ExperimentRepository()
+            experiment = experiment_repo.get_by_id(execution.experiment_id)
+            if experiment:
+                summary_title = experiment.name
+
         # Generate summary
         summary = await summarize_interviews(
             interview_results=interview_results,
-            topic_guide_name=execution.topic_name,
+            topic_guide_name=summary_title,
             model=model,
         )
 
@@ -326,10 +335,16 @@ class ResearchService:
 
         # Get analysis_id for simulation context in interviews
         from synth_lab.repositories.analysis_repository import AnalysisRepository
+        from synth_lab.repositories.experiment_repository import ExperimentRepository
 
         analysis_repo = AnalysisRepository()
         analysis = analysis_repo.get_by_experiment_id(request.experiment_id)
         analysis_id = analysis.id if analysis else None
+
+        # Get experiment name for summary title
+        experiment_repo = ExperimentRepository()
+        experiment = experiment_repo.get_by_id(request.experiment_id)
+        experiment_name = experiment.name if experiment else None
 
         # Determine synth count
         synth_count = request.synth_count or (len(request.synth_ids) if request.synth_ids else 5)
@@ -368,6 +383,7 @@ class ResearchService:
                 generate_summary=request.generate_summary,
                 skip_interviewee_review=request.skip_interviewee_review,
                 analysis_id=analysis_id,
+                summary_title=experiment_name,
             )
         )
 
@@ -393,6 +409,7 @@ class ResearchService:
         model: str = "gpt-4o-mini",
         skip_interviewee_review: bool = True,
         analysis_id: str | None = None,
+        summary_title: str | None = None,
     ) -> None:
         """
         Run batch interviews and save results to database.
@@ -411,6 +428,7 @@ class ResearchService:
             skip_interviewee_review: Whether to skip interviewee response reviewer.
             model: LLM model to use.
             generate_summary: Whether to generate summary.
+            summary_title: Title for the research summary (defaults to guide_name).
         """
         from loguru import logger
 
@@ -489,9 +507,30 @@ class ResearchService:
             logger.debug(f"Published avatar_generation_completed for {count} synths")
 
         async def on_interview_complete(
-            exec_id: str, synth_id: str, total_turns: int
+            exec_id: str, synth_id: str, total_turns: int, result: "InterviewResult"
         ) -> None:
-            """Publish interview_completed event for a single interview."""
+            """Save transcript and publish interview_completed event for a single interview."""
+            from synth_lab.services.research_agentic.runner import InterviewResult
+
+            # Save transcript immediately so it's available when user clicks the card
+            messages = [
+                Message(
+                    speaker=msg.speaker,
+                    text=msg.text,
+                    internal_notes=msg.internal_notes,
+                )
+                for msg in result.messages
+            ]
+            self.research_repo.create_transcript(
+                exec_id=exec_id,
+                synth_id=result.synth_id,
+                synth_name=result.synth_name,
+                messages=messages,
+                status="completed",
+            )
+            logger.debug(f"Saved transcript for {synth_id}")
+
+            # Then publish the event to notify frontend
             await broker.publish(
                 exec_id,
                 BrokerMessage(
@@ -538,26 +577,9 @@ class ResearchService:
                 analysis_id=analysis_id,
             )
 
-            # Save transcripts to database IMMEDIATELY after interviews complete
-            # This allows viewing transcripts while summary is being generated
-            for interview_result, synth in result.successful_interviews:
-                messages = [
-                    Message(
-                        speaker=msg.speaker,
-                        text=msg.text,
-                        internal_notes=msg.internal_notes,
-                    )
-                    for msg in interview_result.messages
-                ]
-                self.research_repo.create_transcript(
-                    exec_id=exec_id,
-                    synth_id=interview_result.synth_id,
-                    synth_name=interview_result.synth_name,
-                    messages=messages,
-                    status="completed",
-                )
-
-            logger.info(f"Saved {len(result.successful_interviews)} transcripts for {exec_id}")
+            # Transcripts are now saved immediately in on_interview_complete callback
+            # This ensures they're available as soon as the user clicks on a completed card
+            logger.info(f"Batch completed: {len(result.successful_interviews)} successful interviews for {exec_id}")
 
             # Now generate summary if requested
             summary_content = None
@@ -575,7 +597,7 @@ class ResearchService:
                 try:
                     summary_content = await summarize_interviews(
                         interview_results=result.successful_interviews,
-                        topic_guide_name=guide_name,
+                        topic_guide_name=summary_title or guide_name,
                         model="gpt-4.1-mini",
                     )
                     logger.info(
