@@ -229,6 +229,7 @@ import type {
   RadarComparisonChart,
   PCAScatterChart,
   ElbowPoint,
+  SankeyFlowChart,
 } from '@/types/simulation';
 
 /**
@@ -297,6 +298,18 @@ export async function getAnalysisScatterCorrelation(
     show_trendline: String(showTrendline),
   });
   return fetchAPI(`/experiments/${experimentId}/analysis/charts/scatter?${params}`);
+}
+
+/**
+ * Get Sankey flow chart for experiment analysis.
+ *
+ * Shows outcome flow from population through outcomes to root causes.
+ * 3 levels: Population → Outcomes (did_not_try, failed, success) → Root Causes.
+ */
+export async function getAnalysisSankeyFlow(
+  experimentId: string
+): Promise<SankeyFlowChart> {
+  return fetchAPI(`/experiments/${experimentId}/analysis/charts/sankey-flow`);
 }
 
 // =============================================================================
