@@ -9,8 +9,6 @@ References:
     - API contract: specs/024-llm-scenario-exploration/contracts/exploration-api.yaml
 """
 
-import asyncio
-
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 from loguru import logger
 
@@ -129,37 +127,28 @@ async def run_exploration(
     try:
         exploration = service.get_exploration(exploration_id)
 
-        # Get synths for simulation
+        # Get synths for simulation (derives simulation_attributes from observables)
         db = get_database()
         synth_repo = SynthRepository(db)
-        synths = synth_repo.get_all_with_simulation_attributes(
+        synth_dicts = synth_repo.get_synths_for_simulation(
             experiment_id=exploration.experiment_id,
             limit=200,
         )
 
-        if not synths:
+        if not synth_dicts:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="No synths with simulation attributes found",
+                detail="No synths found for this experiment's analysis",
             )
 
-        # Convert to dict format for simulation
-        synth_dicts = [
-            {
-                "id": s.id,
-                "simulation_attributes": s.simulation_attributes or {},
-            }
-            for s in synths
-        ]
-
-        # Run in background
-        async def run_async():
+        # Run exploration in background
+        async def run_exploration_task():
             try:
                 await service.run_exploration(exploration_id, synth_dicts)
             except Exception as e:
                 logger.error(f"Exploration {exploration_id} failed: {e}")
 
-        background_tasks.add_task(asyncio.create_task, run_async())
+        background_tasks.add_task(run_exploration_task)
         logger.info(f"Started exploration {exploration_id} in background")
 
         return exploration_to_response(exploration)

@@ -68,4 +68,11 @@ export const queryKeys = {
     pdpComparison: (simulationId: string) => ['simulation', simulationId, 'pdp-comparison'] as const,
     insights: (simulationId: string) => ['simulation', simulationId, 'insights'] as const,
   },
+
+  // Explorations
+  explorationsList: (experimentId: string) => ['explorations', 'list', experimentId] as const,
+  explorationDetail: (id: string) => ['explorations', 'detail', id] as const,
+  explorationTree: (id: string) => ['explorations', 'tree', id] as const,
+  explorationWinningPath: (id: string) => ['explorations', 'winning-path', id] as const,
+  actionCatalog: ['explorations', 'catalog'] as const,
 };

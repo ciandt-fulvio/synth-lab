@@ -343,11 +343,8 @@ LOG_LEVEL=INFO
 
 
 ## Recent Changes
-<<<<<<< HEAD
 - 025-sankey-diagram: Added Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, Pydantic, React 18, Recharts, TanStack Query
-=======
 - 024-llm-scenario-exploration: Added Python 3.13+ (backend) + FastAPI 0.109+, Pydantic 2.5+, OpenAI SDK, asyncio
->>>>>>> origin/main
 - 022-observable-latent-traits: Added Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI 0.109+, Pydantic 2.5+, React 18, TanStack Query, shadcn/ui
 - 001-analysis-tabs-refactor: Added Python 3.13+ (backend), TypeScript 5.5+ (frontend)
 

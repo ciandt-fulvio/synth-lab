@@ -28,6 +28,7 @@ Expected output:
 import json
 
 from loguru import logger
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
 from synth_lab.domain.entities.cluster_result import ClusterProfile
 from synth_lab.infrastructure.config import REASONING_MODEL
@@ -81,7 +82,16 @@ class ClusterLabelingService:
         if not profiles:
             return {}
 
-        with _tracer.start_as_current_span("ClusterLabelingService: generate_labels"):
+        span_name = f"ClusterLabeling | {len(profiles)} clusters"
+        with _tracer.start_as_current_span(
+            span_name,
+            attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "cluster.count": len(profiles),
+                "operation.type": "cluster_labeling",
+                "llm.model": REASONING_MODEL,
+            },
+        ):
             self.logger.info(f"Generating labels for {len(profiles)} clusters")
 
             prompt = self._build_prompt(profiles)

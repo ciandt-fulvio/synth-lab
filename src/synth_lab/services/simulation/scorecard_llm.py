@@ -26,6 +26,7 @@ Expected output:
 import json
 
 from loguru import logger
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
 from synth_lab.domain.entities import FeatureScorecard
 from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
@@ -58,11 +59,15 @@ class ScorecardLLM:
         Returns:
             str: LLM-generated justification text
         """
+        feature_name = scorecard.identification.feature_name
+        span_name = f"ScorecardJustify | {feature_name[:30]}"
         with _tracer.start_as_current_span(
-            "ScorecardLLM: generate_justification",
+            span_name,
             attributes={
-                "scorecard_id": scorecard.id,
-                "feature_name": scorecard.identification.feature_name,
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "scorecard.id": scorecard.id,
+                "feature.name": feature_name,
+                "operation.type": "scorecard_justification",
             },
         ):
             prompt = self._build_justification_prompt(scorecard)
@@ -103,11 +108,16 @@ class ScorecardLLM:
         Returns:
             list[str]: List of impact hypotheses
         """
+        feature_name = scorecard.identification.feature_name
+        span_name = f"ScorecardHypotheses | {feature_name[:30]} | n={num_hypotheses}"
         with _tracer.start_as_current_span(
-            "ScorecardLLM: generate_impact_hypotheses",
+            span_name,
             attributes={
-                "scorecard_id": scorecard.id,
-                "num_hypotheses": num_hypotheses,
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "scorecard.id": scorecard.id,
+                "feature.name": feature_name,
+                "operation.type": "scorecard_hypotheses",
+                "hypotheses.count": num_hypotheses,
             },
         ):
             prompt = self._build_hypotheses_prompt(scorecard, num_hypotheses)
@@ -159,10 +169,15 @@ class ScorecardLLM:
         Returns:
             list[str]: List of suggested adjustments
         """
+        feature_name = scorecard.identification.feature_name
+        span_name = f"ScorecardAdjustments | {feature_name[:30]}"
         with _tracer.start_as_current_span(
-            "ScorecardLLM: generate_suggested_adjustments",
+            span_name,
             attributes={
-                "scorecard_id": scorecard.id,
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "scorecard.id": scorecard.id,
+                "feature.name": feature_name,
+                "operation.type": "scorecard_adjustments",
             },
         ):
             prompt = self._build_adjustments_prompt(scorecard)
