@@ -87,6 +87,18 @@ class ConfigResponse(BaseModel):
     seed: int | None
 
 
+class ExplorationSummary(BaseModel):
+    """Summary of exploration for list view."""
+
+    id: str = Field(description="Exploration ID.")
+    status: str = Field(description="Current status.")
+    goal_value: float = Field(description="Target success_rate.")
+    best_success_rate: float | None = Field(description="Best success rate achieved.")
+    total_nodes: int = Field(description="Total nodes created.")
+    started_at: datetime = Field(description="Start timestamp.")
+    completed_at: datetime | None = Field(description="Completion timestamp.")
+
+
 class ExplorationResponse(BaseModel):
     """Response for exploration data."""
 

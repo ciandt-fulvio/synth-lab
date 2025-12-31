@@ -34,11 +34,13 @@ from synth_lab.api.schemas.experiments import (
 from synth_lab.api.schemas.experiments import (
     ExperimentUpdate as ExperimentUpdateSchema,
 )
+from synth_lab.api.schemas.exploration import ExplorationSummary
 from synth_lab.domain.entities.experiment import ScorecardData, ScorecardDimension
 from synth_lab.infrastructure.database import get_database
 from synth_lab.models.pagination import PaginationParams
 from synth_lab.models.research import ResearchExecuteRequest, ResearchExecuteResponse
 from synth_lab.repositories.analysis_repository import AnalysisRepository
+from synth_lab.repositories.exploration_repository import ExplorationRepository
 from synth_lab.repositories.interview_guide_repository import InterviewGuideRepository
 from synth_lab.repositories.research_repository import ResearchRepository
 from synth_lab.repositories.synth_repository import SynthRepository
@@ -720,17 +722,19 @@ async def create_auto_interview_for_experiment(
     if total_synths < 10:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Not enough synths for auto-interview. Found {total_synths}, need 10 (5 best + 5 worst).",
+            detail=f"Not enough synths for auto-interview. Found {total_synths}, "
+            f"need 10 (5 best + 5 worst).",
         )
 
     # Combine extreme cases (bottom 5 first, then top 5)
     extreme_synth_ids = bottom_ids[:5] + top_ids[:5]
 
     # Create research execution request with extreme synth IDs
+    auto_context = "Entrevista automática com casos extremos (5 piores + 5 melhores)"
     research_request = ResearchExecuteRequest(
         topic_name=f"exp_{experiment_id}_auto",
         experiment_id=experiment_id,
-        additional_context="Entrevista automática com casos extremos (5 piores + 5 melhores resultados)",
+        additional_context=auto_context,
         synth_ids=extreme_synth_ids,
         max_turns=5,
         generate_summary=True,
@@ -745,6 +749,60 @@ async def create_auto_interview_for_experiment(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(e),
         )
+
+
+# =============================================================================
+# Exploration Endpoints
+# =============================================================================
+
+
+@router.get(
+    "/{experiment_id}/explorations",
+    response_model=list[ExplorationSummary],
+)
+async def list_explorations_for_experiment(
+    experiment_id: str,
+) -> list[ExplorationSummary]:
+    """
+    List all explorations for an experiment.
+
+    Returns a list of exploration summaries ordered by start date (most recent first).
+
+    Args:
+        experiment_id: Experiment ID.
+
+    Returns:
+        List of exploration summaries.
+
+    Raises:
+        404: Experiment not found.
+    """
+    # Validate experiment exists
+    exp_service = get_experiment_service()
+    experiment = exp_service.get_experiment(experiment_id)
+    if experiment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Experiment {experiment_id} not found",
+        )
+
+    # Get explorations
+    db = get_database()
+    exploration_repo = ExplorationRepository(db)
+    explorations = exploration_repo.list_explorations_by_experiment(experiment_id)
+
+    return [
+        ExplorationSummary(
+            id=e.id,
+            status=e.status.value,
+            goal_value=e.goal.value,
+            best_success_rate=e.best_success_rate,
+            total_nodes=e.total_nodes,
+            started_at=e.started_at,
+            completed_at=e.completed_at,
+        )
+        for e in explorations
+    ]
 
 
 @router.post(

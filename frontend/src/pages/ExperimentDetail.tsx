@@ -51,6 +51,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
+import { ExplorationSection } from '@/components/experiments/ExplorationSection';
 
 // =============================================================================
 // Scorecard Slider Component (Read-only)
@@ -521,6 +522,17 @@ export default function ExperimentDetail() {
               }
             }}
           />
+        )}
+
+        {/* Exploration Section */}
+        {hasScorecard && analysis?.status === 'completed' && (
+          <div className="mt-6">
+            <ExplorationSection
+              experimentId={id ?? ''}
+              hasAnalysis={analysis?.status === 'completed'}
+              baselineSuccessRate={analysis?.aggregated_outcomes?.success_rate}
+            />
+          </div>
         )}
 
         {/* Delete Section */}
