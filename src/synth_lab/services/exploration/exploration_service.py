@@ -312,7 +312,7 @@ class ExplorationService:
                 exploration.mark_completed(ExplorationStatus.DEPTH_LIMIT_REACHED)
                 break
 
-            if exploration.has_reached_llm_limit():
+            if exploration.has_reached_cost_limit():
                 exploration.mark_completed(ExplorationStatus.COST_LIMIT_REACHED)
                 break
 

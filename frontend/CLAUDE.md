@@ -1,3 +1,13 @@
+# Chrome DevTools Navigation
+
+**IMPORTANTE**: Ao usar Chrome DevTools MCP para navegar/testar a UI:
+1. **PRIMEIRO** consulte `.claude/ui-memory.md` para conhecer os elementos
+2. Use seletores semânticos (texto/label), não UIDs
+3. Faça apenas 1 snapshot por página para pegar UIDs atuais
+4. Atualize `ui-memory.md` se a UI mudar
+
+---
+
 # Tech Stack
 
 - You are building a React application.

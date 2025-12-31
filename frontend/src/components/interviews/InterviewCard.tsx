@@ -1,7 +1,7 @@
 // src/components/interviews/InterviewCard.tsx
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { StatusBadge } from '@/components/shared/StatusBadge';
+import { StatusBadge, EXECUTION_STATUS_CONFIG } from '@/components/shared/StatusBadge';
 import { Calendar, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';

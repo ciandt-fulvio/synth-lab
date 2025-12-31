@@ -54,12 +54,6 @@ export function ExplorationListItem({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <ExplorationStatusBadge status={exploration.status as ExplorationStatus} />
-            {isRunning && (
-              <span className="inline-flex items-center gap-1 text-xs text-blue-600">
-                <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse" />
-                Executando
-              </span>
-            )}
           </div>
 
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
