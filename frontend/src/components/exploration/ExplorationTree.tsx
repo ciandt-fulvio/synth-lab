@@ -30,12 +30,13 @@ interface ExplorationTreeProps {
   className?: string;
 }
 
-// Tree configuration
+// Tree configuration (adjusted for HTML card nodes)
 const TREE_CONFIG = {
-  nodeSize: { x: 160, y: 100 },
-  separation: { siblings: 1.2, nonSiblings: 1.5 },
-  zoom: 0.8,
-  translate: { x: 0, y: 50 },
+  nodeSize: { x: 180, y: 120 }, // More space for card-based nodes
+  separation: { siblings: 1.4, nonSiblings: 1.6 }, // Better spacing
+  zoom: 0.75,
+  scaleExtent: { min: 0.5, max: 1.5 }, // More controlled zoom range
+  translate: { x: 0, y: 60 },
 };
 
 export function ExplorationTree({
@@ -62,6 +63,27 @@ export function ExplorationTree({
     return getWinningPathNodeIds(nodes, winnerNodeId);
   }, [nodes, winnerNodeId]);
 
+  // Find the best node (highest success rate, excluding winner)
+  const bestNodeId = useMemo(() => {
+    if (!nodes.length) return null;
+
+    let bestNode: ScenarioNode | null = null;
+    let bestRate = -1;
+
+    for (const node of nodes) {
+      // Skip winner nodes and nodes without simulation results
+      if (node.node_status === 'winner' || !node.simulation_results) continue;
+
+      const rate = node.simulation_results.success_rate;
+      if (rate > bestRate) {
+        bestRate = rate;
+        bestNode = node;
+      }
+    }
+
+    return bestNode?.id ?? null;
+  }, [nodes]);
+
   // Update dimensions when container resizes
   useEffect(() => {
     if (!containerRef.current) return;
@@ -70,8 +92,8 @@ export function ExplorationTree({
       if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
         setDimensions({ width, height });
-        // Center horizontally
-        setTranslate({ x: width / 2, y: 50 });
+        // Center horizontally, position root at top
+        setTranslate({ x: width / 2, y: TREE_CONFIG.translate.y });
       }
     };
 
@@ -92,24 +114,28 @@ export function ExplorationTree({
         onNodeClick={onNodeClick}
         selectedNodeId={selectedNodeId}
         winningPathNodeIds={winningPathNodeIds}
+        bestNodeId={bestNodeId}
       />
     ),
-    [onNodeClick, selectedNodeId, winningPathNodeIds]
+    [onNodeClick, selectedNodeId, winningPathNodeIds, bestNodeId]
   );
 
   // Zoom controls
-  const handleZoomIn = () => setZoom((z) => Math.min(z + 0.2, 2));
-  const handleZoomOut = () => setZoom((z) => Math.max(z - 0.2, 0.3));
+  const handleZoomIn = () =>
+    setZoom((z) => Math.min(z + 0.15, TREE_CONFIG.scaleExtent.max));
+  const handleZoomOut = () =>
+    setZoom((z) => Math.max(z - 0.15, TREE_CONFIG.scaleExtent.min));
   const handleReset = () => {
     setZoom(TREE_CONFIG.zoom);
-    setTranslate({ x: dimensions.width / 2, y: 50 });
+    setTranslate({ x: dimensions.width / 2, y: TREE_CONFIG.translate.y });
   };
   const handleFit = () => {
     // Fit the tree to the container
     const nodeCount = nodes.length;
-    const optimalZoom = Math.max(0.4, Math.min(1, 8 / nodeCount));
+    const { min, max } = TREE_CONFIG.scaleExtent;
+    const optimalZoom = Math.max(min, Math.min(max, 8 / nodeCount));
     setZoom(optimalZoom);
-    setTranslate({ x: dimensions.width / 2, y: 50 });
+    setTranslate({ x: dimensions.width / 2, y: TREE_CONFIG.translate.y });
   };
 
   if (!treeData) {
@@ -173,6 +199,7 @@ export function ExplorationTree({
           pathFunc="step"
           translate={translate}
           zoom={zoom}
+          scaleExtent={TREE_CONFIG.scaleExtent}
           nodeSize={TREE_CONFIG.nodeSize}
           separation={TREE_CONFIG.separation}
           renderCustomNodeElement={renderCustomNode}
@@ -193,19 +220,23 @@ export function ExplorationTree({
       {/* Legend */}
       <div className="flex items-center justify-center gap-6 mt-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-green-500" />
+          <div className="w-3 h-3 rounded border-2 border-green-500 bg-green-50" />
           <span>Vencedor</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-blue-500" />
+          <div className="w-3 h-3 rounded border-[3px] border-amber-500 bg-blue-50" />
+          <span>Melhor</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded border-2 border-blue-500 bg-blue-50" />
           <span>Ativo</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-slate-400" />
+          <div className="w-3 h-3 rounded border-2 border-slate-300 bg-slate-50" />
           <span>Dominado</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-red-500" />
+          <div className="w-3 h-3 rounded border-2 border-red-400 bg-red-50" />
           <span>Falhou</span>
         </div>
       </div>

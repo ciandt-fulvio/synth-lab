@@ -1,7 +1,8 @@
 /**
  * CustomTreeNode component for react-d3-tree.
  *
- * Renders a custom node with status-based colors and click handling.
+ * Renders a custom node using foreignObject + HTML for crisp text rendering.
+ * Shows success rate prominently with short action label below.
  *
  * References:
  *   - Spec: specs/025-exploration-frontend/spec.md (US2)
@@ -10,12 +11,13 @@
 
 import type { CustomNodeElementProps } from 'react-d3-tree';
 import type { ScenarioNode, NodeStatus } from '@/types/exploration';
-import { NODE_STATUS_COLORS } from '@/types/exploration';
+import { cn } from '@/lib/utils';
 
 interface TreeNodeDatum {
   name: string;
   attributes?: {
     action?: string;
+    shortAction?: string;
     status: NodeStatus;
   };
   __nodeData: ScenarioNode;
@@ -26,28 +28,56 @@ interface CustomTreeNodeProps extends Omit<CustomNodeElementProps, 'nodeDatum'> 
   onNodeClick?: (node: ScenarioNode) => void;
   selectedNodeId?: string | null;
   winningPathNodeIds?: Set<string>;
+  bestNodeId?: string | null;
 }
 
-const NODE_RADIUS = 24;
-const SELECTED_RING_RADIUS = 30;
+// Card dimensions
+const CARD_WIDTH = 140;
+const CARD_HEIGHT = 70;
+
+// Status-based styles for the card
+const STATUS_STYLES: Record<NodeStatus, { border: string; bg: string; text: string; actionText: string }> = {
+  winner: {
+    border: 'border-green-500',
+    bg: 'bg-green-50',
+    text: 'text-slate-800',
+    actionText: 'text-slate-500',
+  },
+  active: {
+    border: 'border-blue-500',
+    bg: 'bg-blue-50',
+    text: 'text-slate-800',
+    actionText: 'text-slate-500',
+  },
+  dominated: {
+    border: 'border-slate-300',
+    bg: 'bg-slate-50',
+    text: 'text-slate-400',
+    actionText: 'text-slate-300',
+  },
+  expansion_failed: {
+    border: 'border-red-400',
+    bg: 'bg-red-50',
+    text: 'text-slate-800',
+    actionText: 'text-slate-500',
+  },
+};
 
 export function CustomTreeNode({
   nodeDatum,
   onNodeClick,
   selectedNodeId,
   winningPathNodeIds,
+  bestNodeId,
 }: CustomTreeNodeProps) {
   const status = nodeDatum.attributes?.status || 'active';
   const isSelected = selectedNodeId === nodeDatum.__nodeData.id;
   const isOnWinningPath = winningPathNodeIds?.has(nodeDatum.__nodeData.id);
   const isRoot = nodeDatum.__nodeData.parent_id === null;
+  const isBestNode = bestNodeId === nodeDatum.__nodeData.id && status !== 'winner';
 
-  // Get fill color based on status
-  const fillColor = NODE_STATUS_COLORS[status];
-
-  // Stroke for winning path highlight
-  const strokeColor = isOnWinningPath ? '#fbbf24' : 'transparent'; // amber-400
-  const strokeWidth = isOnWinningPath ? 4 : 0;
+  const styles = STATUS_STYLES[status];
+  const shortAction = nodeDatum.attributes?.shortAction;
 
   const handleClick = () => {
     onNodeClick?.(nodeDatum.__nodeData);
@@ -55,79 +85,66 @@ export function CustomTreeNode({
 
   return (
     <g onClick={handleClick} style={{ cursor: 'pointer' }}>
-      {/* Selection ring */}
-      {isSelected && (
-        <circle
-          r={SELECTED_RING_RADIUS}
-          fill="none"
-          stroke="#6366f1"
-          strokeWidth={3}
-          strokeDasharray="4 2"
-          className="animate-pulse"
-        />
-      )}
-
-      {/* Winning path highlight ring */}
-      {isOnWinningPath && !isSelected && (
-        <circle
-          r={NODE_RADIUS + 4}
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth={strokeWidth}
-        />
-      )}
-
-      {/* Main node circle */}
-      <circle
-        r={NODE_RADIUS}
-        fill={fillColor}
-        stroke="white"
-        strokeWidth={2}
-        className="transition-all duration-200 hover:opacity-80"
-      />
-
-      {/* Node label (success rate) - text outline for readability */}
-      <text
-        dy=".35em"
-        textAnchor="middle"
-        fill="white"
-        fontSize={14}
-        fontWeight={700}
-        stroke="rgba(0,0,0,0.4)"
-        strokeWidth={2.5}
-        paintOrder="stroke fill"
-        style={{ pointerEvents: 'none' }}
+      {/* foreignObject for HTML card */}
+      <foreignObject
+        width={CARD_WIDTH}
+        height={CARD_HEIGHT}
+        x={-CARD_WIDTH / 2}
+        y={-CARD_HEIGHT / 2}
       >
-        {nodeDatum.name}
-      </text>
-
-      {/* Root indicator */}
-      {isRoot && (
-        <text
-          dy={-NODE_RADIUS - 10}
-          textAnchor="middle"
-          fill="#1e293b"
-          fontSize={12}
-          fontWeight={700}
-          style={{ pointerEvents: 'none' }}
+        <div
+          className={cn(
+            'h-full w-full rounded-xl px-3 py-2 border-2',
+            'font-sans text-center transition-all duration-200',
+            'hover:shadow-lg hover:scale-[1.02]',
+            'flex flex-col items-center justify-center relative',
+            styles.border,
+            styles.bg,
+            // Selection: dashed border + stronger shadow
+            isSelected && 'border-indigo-500 border-dashed shadow-lg shadow-indigo-200',
+            // Winning path: amber border
+            isOnWinningPath && !isSelected && 'border-amber-400 border-[3px] shadow-md shadow-amber-100',
+            // Best node: amber border + glow
+            isBestNode && !isSelected && !isOnWinningPath && 'border-amber-500 border-[3px] shadow-lg shadow-amber-200',
+            // Normal shadow for non-special nodes
+            !isSelected && !isOnWinningPath && !isBestNode && 'shadow-md'
+          )}
         >
-          Baseline
-        </text>
-      )}
+          {/* Success rate - main metric */}
+          <div className={cn(
+            'font-bold leading-none',
+            styles.text,
+            // Best node: blue text, slightly larger
+            isBestNode ? 'text-[22px] text-blue-600' : 'text-xl'
+          )}>
+            {nodeDatum.name}
+          </div>
 
-      {/* Action label (truncated) */}
-      {nodeDatum.attributes?.action && (
-        <text
-          dy={NODE_RADIUS + 18}
-          textAnchor="middle"
-          fill="#475569"
-          fontSize={11}
-          fontWeight={600}
-          style={{ pointerEvents: 'none' }}
-        >
-          {nodeDatum.attributes.action}
-        </text>
-      )}
+          {/* Short action label or "Baseline" for root */}
+          {isRoot ? (
+            <div className={cn('text-xs font-semibold mt-1', styles.actionText)}>
+              Baseline
+            </div>
+          ) : shortAction ? (
+            <div
+              className={cn('text-xs mt-1 truncate w-full px-1', styles.actionText)}
+              title={nodeDatum.__nodeData.action_applied || undefined}
+            >
+              {shortAction}
+            </div>
+          ) : (
+            // Fallback to truncated action if no short_action
+            nodeDatum.attributes?.action && (
+              <div
+                className={cn('text-xs mt-1 truncate w-full px-1', styles.actionText)}
+                title={nodeDatum.__nodeData.action_applied || undefined}
+              >
+                {nodeDatum.attributes.action}
+              </div>
+            )
+          )}
+        </div>
+      </foreignObject>
     </g>
   );
 }

@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import ExperimentDetail from "./pages/ExperimentDetail";
 import ExplorationDetail from "./pages/ExplorationDetail";
+import ExplorationPreview from "./pages/ExplorationPreview";
 import SimulationDetail from "./pages/SimulationDetail";
 import InterviewDetail from "./pages/InterviewDetail";
 import Synths from "./pages/Synths";
@@ -29,6 +30,9 @@ const App = () => (
 
           {/* Exploration Detail (within experiment) */}
           <Route path="/experiments/:id/explorations/:explorationId" element={<ExplorationDetail />} />
+
+          {/* Exploration Preview - React Flow (within experiment) */}
+          <Route path="/experiments/:id/explorations-preview/:explorationId" element={<ExplorationPreview />} />
 
           {/* Interview Detail (legacy route) */}
           <Route path="/interviews/:execId" element={<InterviewDetail />} />

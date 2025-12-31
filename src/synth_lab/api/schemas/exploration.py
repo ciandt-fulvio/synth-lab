@@ -143,6 +143,7 @@ class ScenarioNodeResponse(BaseModel):
     action_applied: str | None = Field(description="Action that created this node.")
     action_category: str | None = Field(description="Category of action.")
     rationale: str | None = Field(description="Rationale for action.")
+    short_action: str | None = Field(description="Short 3-word action label.")
     scorecard_params: ScorecardParamsResponse = Field(description="Scorecard parameters.")
     simulation_results: SimulationResultsResponse | None = Field(
         description="Simulation results."
@@ -277,6 +278,7 @@ def node_to_response(node) -> ScenarioNodeResponse:
         action_applied=node.action_applied,
         action_category=node.action_category,
         rationale=node.rationale,
+        short_action=node.short_action,
         scorecard_params=ScorecardParamsResponse(
             complexity=node.scorecard_params.complexity,
             initial_effort=node.scorecard_params.initial_effort,

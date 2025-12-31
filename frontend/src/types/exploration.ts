@@ -95,6 +95,7 @@ export interface ScenarioNode {
   action_applied: string | null;
   action_category: string | null;
   rationale: string | null;
+  short_action: string | null; // 3-word label for UI display
   scorecard_params: ScorecardParams;
   simulation_results: SimulationResults | null;
   execution_time_seconds: number | null;
@@ -199,7 +200,8 @@ export interface ExplorationCreate {
 export interface TreeNodeData {
   name: string; // Display label (success_rate %)
   attributes?: {
-    action?: string; // Truncated action text
+    action?: string; // Truncated action text (legacy)
+    shortAction?: string; // 3-word label for card display
     status: NodeStatus; // For color coding
   };
   children?: TreeNodeData[];
@@ -284,3 +286,33 @@ export const explorationCreateSchema = z.object({
 });
 
 export type ExplorationCreateForm = z.infer<typeof explorationCreateSchema>;
+
+// =============================================================================
+// React Flow Types (Preview)
+// =============================================================================
+
+import type { Node, Edge } from '@xyflow/react';
+
+/**
+ * Data for decision tree nodes in React Flow.
+ */
+export interface DecisionNodeData {
+  label: string;
+  shortLabel: string | null;
+  value: number | null;
+  status: NodeStatus;
+  isRoot: boolean;
+  isBest: boolean;
+  isWinner: boolean;
+  originalNode: ScenarioNode;
+}
+
+/**
+ * Decision node type for React Flow.
+ */
+export type DecisionNode = Node<DecisionNodeData, 'decision'>;
+
+/**
+ * Edge type for exploration tree.
+ */
+export type ExplorationEdge = Edge;

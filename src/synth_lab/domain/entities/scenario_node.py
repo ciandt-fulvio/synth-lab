@@ -148,6 +148,7 @@ class ScenarioNode(BaseModel):
         action_applied: Action that created this node (None for root)
         action_category: Category of action from catalog
         rationale: Rationale for the action
+        short_action: Short 3-word label for UI display
         scorecard_params: Current scorecard parameters
         simulation_results: Results from simulation (None if not yet simulated)
         execution_time_seconds: Time taken for simulation
@@ -192,6 +193,12 @@ class ScenarioNode(BaseModel):
         default=None,
         max_length=200,
         description="Rationale for the action.",
+    )
+
+    short_action: str | None = Field(
+        default=None,
+        max_length=30,
+        description="Short 3-word label for UI display.",
     )
 
     scorecard_params: ScorecardParams = Field(

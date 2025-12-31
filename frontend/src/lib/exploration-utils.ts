@@ -4,7 +4,13 @@
  * Transforms API data to visualization format and provides formatting helpers.
  */
 
-import type { ScenarioNode, TreeNodeData } from '@/types/exploration';
+import dagre from 'dagrejs';
+import type {
+  ScenarioNode,
+  TreeNodeData,
+  DecisionNode,
+  ExplorationEdge,
+} from '@/types/exploration';
 
 /**
  * Transform API nodes to react-d3-tree format.
@@ -47,6 +53,7 @@ export function transformToTreeData(nodes: ScenarioNode[]): TreeNodeData | null 
         action: node.action_applied
           ? node.action_applied.slice(0, 30) + (node.action_applied.length > 30 ? '...' : '')
           : undefined,
+        shortAction: node.short_action ?? undefined,
         status: node.node_status,
       },
       children: childIds.length > 0 ? childIds.map(buildNode) : undefined,
@@ -151,4 +158,123 @@ export function getCategoryDisplayName(category: string | null | undefined): str
   };
 
   return categoryMap[category] || category;
+}
+
+// =============================================================================
+// React Flow Layout (Preview)
+// =============================================================================
+
+const NODE_WIDTH = 200;
+const NODE_HEIGHT = 80;
+
+/**
+ * Build React Flow nodes and edges from API data using dagre layout.
+ *
+ * @param nodes - Flat array of scenario nodes from API
+ * @param winnerNodeId - ID of the winner node for path highlighting
+ * @returns Object with positioned nodes and styled edges
+ */
+export function buildReactFlowElements(
+  nodes: ScenarioNode[],
+  winnerNodeId: string | null
+): { nodes: DecisionNode[]; edges: ExplorationEdge[] } {
+  if (!nodes.length) return { nodes: [], edges: [] };
+
+  // 1. Create dagre graph with horizontal (LR) layout
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({ rankdir: 'LR', nodesep: 40, ranksep: 120 });
+  g.setDefaultEdgeLabel(() => ({}));
+
+  // 2. Add nodes and edges to dagre
+  nodes.forEach((node) => {
+    g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+    if (node.parent_id) {
+      g.setEdge(node.parent_id, node.id);
+    }
+  });
+
+  // 3. Calculate layout
+  dagre.layout(g);
+
+  // 4. Find the best node (highest success rate, excluding root)
+  let bestNodeId: string | null = null;
+  let bestSuccessRate = -1;
+  nodes.forEach((node) => {
+    if (node.parent_id === null) return; // Skip root
+    const rate = node.simulation_results?.success_rate ?? -1;
+    if (rate > bestSuccessRate) {
+      bestSuccessRate = rate;
+      bestNodeId = node.id;
+    }
+  });
+
+  // 5. Calculate paths for highlighting
+  // Priority: winner path (green) > best path (blue)
+  const winningPath = winnerNodeId
+    ? getWinningPathNodeIds(nodes, winnerNodeId)
+    : new Set<string>();
+
+  const bestPath =
+    bestNodeId && !winnerNodeId
+      ? getWinningPathNodeIds(nodes, bestNodeId)
+      : new Set<string>();
+
+  // Combined highlight path (winner takes precedence)
+  const highlightPath = winningPath.size > 0 ? winningPath : bestPath;
+  const isWinnerPath = winningPath.size > 0;
+
+  // 6. Convert to React Flow nodes
+  const flowNodes: DecisionNode[] = nodes.map((node) => {
+    const pos = g.node(node.id);
+    const isRoot = node.parent_id === null;
+    const isWinner = node.node_status === 'winner';
+    const isBest = node.id === bestNodeId && !isRoot;
+
+    return {
+      id: node.id,
+      type: 'decision',
+      position: {
+        x: pos.x - NODE_WIDTH / 2,
+        y: pos.y - NODE_HEIGHT / 2,
+      },
+      data: {
+        label: node.action_applied || 'Baseline',
+        shortLabel: node.short_action,
+        value: node.simulation_results
+          ? node.simulation_results.success_rate * 100
+          : null,
+        status: node.node_status,
+        isRoot,
+        isBest,
+        isWinner,
+        originalNode: node,
+      },
+    };
+  });
+
+  // 7. Convert to React Flow edges with highlighted path
+  const flowEdges: ExplorationEdge[] = nodes
+    .filter((n) => n.parent_id)
+    .map((node) => {
+      const isOnHighlightPath =
+        highlightPath.has(node.id) && highlightPath.has(node.parent_id!);
+
+      // Different colors: green for winner, blue for best
+      const highlightColor = isWinnerPath ? '#16a34a' : '#2563eb'; // green-600 or blue-600
+      const highlightClass = isWinnerPath ? 'winning-path-edge' : 'best-path-edge';
+
+      return {
+        id: `e-${node.parent_id}-${node.id}`,
+        source: node.parent_id!,
+        target: node.id,
+        type: 'smoothstep',
+        animated: isOnHighlightPath,
+        className: isOnHighlightPath ? highlightClass : '',
+        style: isOnHighlightPath
+          ? { stroke: highlightColor, strokeWidth: 4 }
+          : { stroke: '#cbd5e1', strokeWidth: 2 },
+      };
+    });
+
+  return { nodes: flowNodes, edges: flowEdges };
 }
