@@ -175,7 +175,7 @@ def format_interview_for_summary(
 def create_summarizer_agent(
     topic_guide_name: str,
     interviews_content: str,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-4o-mini",
     reasoning_effort: str = "medium",
 ) -> Agent:
     """
@@ -195,18 +195,23 @@ def create_summarizer_agent(
         interviews_content=interviews_content,
     )
 
-    return Agent(
-        name="Research Summarizer",
-        instructions=instructions,
-        model=model,
-        model_settings=_get_model_settings(model, reasoning_effort),
-    )
+    # Build agent kwargs - only include model_settings if model supports it
+    agent_kwargs = {
+        "name": "Research Summarizer",
+        "instructions": instructions,
+        "model": model,
+    }
+    model_settings = _get_model_settings(model, reasoning_effort)
+    if model_settings is not None:
+        agent_kwargs["model_settings"] = model_settings
+
+    return Agent(**agent_kwargs)
 
 
 async def summarize_interviews(
     interview_results: list[tuple[InterviewResult, dict[str, Any]]],
     topic_guide_name: str,
-    model: str = "gpt-4.1-mini",
+    model: str = "gpt-4o-mini",
 ) -> str:
     """
     Summarize multiple interview results into a synthesis report.
@@ -344,7 +349,7 @@ if __name__ == "__main__":
         agent = create_summarizer_agent(
             topic_guide_name="test-guide",
             interviews_content="Test content",
-            model="gpt-4.1-mini",
+            model="gpt-4o-mini",
         )
         assert agent.name == "Research Summarizer"
         assert "test-guide" in agent.instructions  # type: ignore

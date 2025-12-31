@@ -203,7 +203,7 @@ class ResearchRepository(BaseRepository):
             completed_at=completed_at,
             successful_count=row["successful_count"] or 0,
             failed_count=row["failed_count"] or 0,
-            model=row["model"] or "gpt-5-mini",
+            model=row["model"] or "gpt-4o-mini",
             max_turns=row["max_turns"] or 6,
             summary_available=summary_available,
             prfaq_available=prfaq_available,

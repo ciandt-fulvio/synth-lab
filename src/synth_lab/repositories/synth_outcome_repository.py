@@ -230,6 +230,41 @@ class SynthOutcomeRepository(BaseRepository):
             return None
         return self._row_to_outcome(row)
 
+    def get_analysis_statistics(self, analysis_id: str) -> dict | None:
+        """
+        Get aggregated statistics for an analysis.
+
+        Used to compare individual synth performance against the group average.
+
+        Args:
+            analysis_id: The analysis run ID.
+
+        Returns:
+            Dict with avg_success_rate, avg_did_not_try_rate, synth_count.
+            None if no outcomes found.
+        """
+        row = self.db.fetchone(
+            """
+            SELECT
+                AVG(success_rate) as avg_success_rate,
+                AVG(did_not_try_rate) as avg_did_not_try_rate,
+                AVG(failed_rate) as avg_failed_rate,
+                COUNT(*) as synth_count
+            FROM synth_outcomes
+            WHERE analysis_id = ?
+            """,
+            (analysis_id,),
+        )
+        if row is None or row["synth_count"] == 0:
+            return None
+
+        return {
+            "avg_success_rate": row["avg_success_rate"],
+            "avg_did_not_try_rate": row["avg_did_not_try_rate"],
+            "avg_failed_rate": row["avg_failed_rate"],
+            "synth_count": row["synth_count"],
+        }
+
     def get_latest_outcome_for_synth(self, synth_id: str) -> SynthOutcome | None:
         """
         Get the most recent simulation outcome for a synth.
