@@ -19,7 +19,7 @@ from loguru import logger
 
 from synth_lab.infrastructure.config import DB_PATH
 
-# Database schema SQL - Version 12 (2025-12)
+# Database schema SQL - Version 13 (2025-12)
 # Changes:
 #   - v4: synths.data: single JSON field for all nested data
 #   - v5: Added simulation tables (feature_scorecards, simulation_runs, synth_outcomes,
@@ -34,6 +34,7 @@ from synth_lab.infrastructure.config import DB_PATH
 #   - v10: Added status field to experiments table for soft delete
 #   - v11: Added scenario_id field to analysis_runs table
 #   - v12: Added analysis_cache table for pre-computed chart data
+#   - v13: Added explorations and scenario_nodes tables for LLM-assisted exploration
 SCHEMA_SQL = """
 -- Enable recommended settings
 PRAGMA journal_mode=WAL;
@@ -285,6 +286,50 @@ CREATE TABLE IF NOT EXISTS analysis_cache (
 );
 
 CREATE INDEX IF NOT EXISTS idx_analysis_cache_analysis ON analysis_cache(analysis_id);
+
+-- Explorations table (v13 - LLM-assisted scenario exploration)
+CREATE TABLE IF NOT EXISTS explorations (
+    id TEXT PRIMARY KEY CHECK (id GLOB 'expl_[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]'),
+    experiment_id TEXT NOT NULL,
+    baseline_analysis_id TEXT NOT NULL,
+    goal TEXT NOT NULL CHECK(json_valid(goal)),
+    config TEXT NOT NULL CHECK(json_valid(config)),
+    status TEXT NOT NULL DEFAULT 'running' CHECK (status IN ('running', 'goal_achieved', 'depth_limit_reached', 'cost_limit_reached', 'no_viable_paths')),
+    current_depth INTEGER NOT NULL DEFAULT 0 CHECK (current_depth >= 0),
+    total_nodes INTEGER NOT NULL DEFAULT 0 CHECK (total_nodes >= 0),
+    total_llm_calls INTEGER NOT NULL DEFAULT 0 CHECK (total_llm_calls >= 0),
+    best_success_rate REAL CHECK (best_success_rate IS NULL OR (best_success_rate >= 0 AND best_success_rate <= 1)),
+    started_at TEXT NOT NULL,
+    completed_at TEXT,
+    FOREIGN KEY (experiment_id) REFERENCES experiments(id),
+    FOREIGN KEY (baseline_analysis_id) REFERENCES analysis_runs(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_explorations_experiment ON explorations(experiment_id);
+CREATE INDEX IF NOT EXISTS idx_explorations_status ON explorations(status);
+
+-- Scenario Nodes table (v13 - nodes in exploration tree)
+CREATE TABLE IF NOT EXISTS scenario_nodes (
+    id TEXT PRIMARY KEY CHECK (id GLOB 'node_[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]'),
+    exploration_id TEXT NOT NULL,
+    parent_id TEXT,
+    depth INTEGER NOT NULL CHECK (depth >= 0),
+    action_applied TEXT,
+    action_category TEXT,
+    rationale TEXT,
+    scorecard_params TEXT NOT NULL CHECK(json_valid(scorecard_params)),
+    simulation_results TEXT CHECK(json_valid(simulation_results) OR simulation_results IS NULL),
+    execution_time_seconds REAL CHECK (execution_time_seconds IS NULL OR execution_time_seconds >= 0),
+    node_status TEXT NOT NULL DEFAULT 'active' CHECK (node_status IN ('active', 'dominated', 'winner', 'expansion_failed')),
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (exploration_id) REFERENCES explorations(id) ON DELETE CASCADE,
+    FOREIGN KEY (parent_id) REFERENCES scenario_nodes(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_scenario_nodes_exploration ON scenario_nodes(exploration_id);
+CREATE INDEX IF NOT EXISTS idx_scenario_nodes_parent ON scenario_nodes(parent_id);
+CREATE INDEX IF NOT EXISTS idx_scenario_nodes_status ON scenario_nodes(exploration_id, node_status);
+CREATE INDEX IF NOT EXISTS idx_scenario_nodes_depth ON scenario_nodes(exploration_id, depth);
 """
 
 
