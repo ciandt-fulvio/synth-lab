@@ -6,23 +6,17 @@
 
 ## Research Questions
 
-### 1. Sankey Diagram Implementation with Recharts
 
-**Decision**: Use Recharts native Sankey component
 
-**Rationale**: Recharts includes a built-in Sankey component that supports the node-link structure needed. The backend already returns data in a compatible format with `nodes` and `links` arrays.
 
 **Alternatives Considered**:
-- **D3.js sankey-diagram**: More powerful but requires significant integration effort and doesn't match existing codebase patterns
 - **react-d3-tree**: Designed for trees, not flow diagrams
 - **Custom SVG**: Too much implementation overhead
 
 **Implementation Notes**:
 ```typescript
-import { Sankey, Layer, Rectangle, Label } from 'recharts';
 
 // Backend returns: { nodes: [{name: string}], links: [{source: number, target: number, value: number}] }
-// Recharts Sankey expects exactly this format
 ```
 
 ### 2. Dendrogram Visualization
@@ -111,7 +105,6 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend }
 simulationCharts: {
   tryVsSuccess: (simId: string) => ['simulation', 'charts', 'try-vs-success', simId],
   distribution: (simId: string) => ['simulation', 'charts', 'distribution', simId],
-  sankey: (simId: string) => ['simulation', 'charts', 'sankey', simId],
   // ... etc
 },
 simulationClustering: (simId: string) => ['simulation', 'clustering', simId],
@@ -174,7 +167,6 @@ interface ChartContainerProps {
 |-----------|-----------|-----------|
 | Scatter/Line/Bar charts | Recharts native | Already installed, matches codebase |
 | Pie chart | Recharts PieChart | Native support |
-| Sankey diagram | Recharts Sankey | Native support |
 | Radar chart | Recharts RadarChart | Native support |
 | Dendrogram | Custom SVG component | No Recharts support |
 | Heatmap | CSS Grid + color intensity | Simple, performant |

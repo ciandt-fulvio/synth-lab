@@ -53,10 +53,8 @@ curl "http://localhost:8000/simulation/simulations/{id}/charts/try-vs-success?x_
 - `usability_issue` alto → usuários tentam mas falham → melhorar usabilidade
 - `discovery_issue` alto → usuários não descobrem → melhorar onboarding/marketing
 
-#### 1.2 Sankey Diagram
 
 ```bash
-curl "http://localhost:8000/simulation/simulations/{id}/charts/sankey"
 ```
 
 **Resposta**:

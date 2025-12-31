@@ -5,7 +5,6 @@ import { fetchAPI } from './api';
 import type {
   TryVsSuccessChart,
   OutcomeDistributionChart,
-  SankeyChart,
   FailureHeatmapChart,
   BoxPlotChart,
   ScatterCorrelationChart,
@@ -55,10 +54,6 @@ export async function getDistributionChart(
     limit: String(limit),
   });
   return fetchAPI(`/simulation/simulations/${simulationId}/charts/distribution?${params}`);
-}
-
-export async function getSankeyChart(simulationId: string): Promise<SankeyChart> {
-  return fetchAPI(`/simulation/simulations/${simulationId}/charts/sankey`);
 }
 
 // =============================================================================

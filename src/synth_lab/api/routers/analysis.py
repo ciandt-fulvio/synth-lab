@@ -31,7 +31,6 @@ from synth_lab.domain.entities.analysis_run import AggregatedOutcomes, AnalysisC
 from synth_lab.domain.entities.chart_data import (
     FailureHeatmapChart,
     OutcomeDistributionChart,
-    SankeyChart,
     ScatterCorrelationChart,
     TryVsSuccessChart,
 )
@@ -662,57 +661,6 @@ async def get_distribution_chart(
         sort_by=sort_by,
         order=order,
         limit=limit,
-    )
-
-
-@router.get(
-    "/{experiment_id}/analysis/charts/sankey",
-    response_model=SankeyChart,
-)
-async def get_sankey_chart(
-    experiment_id: str,
-) -> SankeyChart:
-    """
-    Get Sankey diagram data for an analysis.
-
-    Shows the flow of users through try/success/fail states.
-    Uses cache (no parameters).
-    """
-    service = get_analysis_service()
-
-    analysis = service.get_analysis(experiment_id)
-    if analysis is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
-
-    if analysis.status != "completed":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
-
-    # Check cache (sankey has no parameters, always use cache)
-    cache_service = get_cache_service()
-    cached = cache_service.get_cached(analysis.id, CacheKeys.SANKEY)
-    if cached:
-        return SankeyChart.model_validate(cached)
-
-    # Compute on-demand
-    chart_service = get_chart_data_service()
-    outcome_repo = get_outcome_repository()
-
-    outcomes, _ = outcome_repo.get_outcomes(analysis.id)
-    if not outcomes:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No outcomes found for this analysis",
-        )
-
-    return chart_service.get_sankey(
-        simulation_id=analysis.id,
-        outcomes=outcomes,
     )
 
 

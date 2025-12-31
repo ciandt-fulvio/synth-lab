@@ -27,9 +27,6 @@ from synth_lab.domain.entities import (
     OutcomeDistributionChart,
     RegionAnalysis,
     RegionBoxPlot,
-    SankeyChart,
-    SankeyLink,
-    SankeyNode,
     ScatterCorrelationChart,
     SynthDistribution,
     SynthOutcome,
@@ -201,109 +198,6 @@ class ChartDataService:
             worst_performers=worst_performers,
             best_performers=best_performers,
             total_synths=len(outcomes),
-        )
-
-    def get_sankey(
-        self,
-        simulation_id: str,
-        outcomes: list[SynthOutcome],
-    ) -> SankeyChart:
-        """
-        Generate Sankey diagram data using dominant outcome classification.
-
-        Each synth is categorized by its dominant outcome (highest rate):
-        - If did_not_try_rate is highest -> "Não Tentou"
-        - If success_rate is highest -> "Sucesso"
-        - If failed_rate is highest -> "Falhou"
-
-        Flow: All -> [Tentaram, Não Tentaram] -> [Sucesso, Falharam]
-
-        Args:
-            simulation_id: ID of the simulation.
-            outcomes: List of SynthOutcome entities.
-
-        Returns:
-            SankeyChart with nodes and links (discrete counts).
-        """
-        logger.info(f"Generating Sankey diagram for {simulation_id}")
-
-        total = len(outcomes)
-        if total == 0:
-            return SankeyChart(
-                simulation_id=simulation_id,
-                total_synths=0,
-                nodes=[],
-                links=[],
-            )
-
-        # Classify each synth by dominant outcome
-        not_attempted = 0
-        success = 0
-        failed = 0
-
-        for o in outcomes:
-            # Find dominant outcome
-            rates = {
-                "did_not_try": o.did_not_try_rate,
-                "success": o.success_rate,
-                "failed": o.failed_rate,
-            }
-            dominant = max(rates, key=rates.get)
-
-            if dominant == "did_not_try":
-                not_attempted += 1
-            elif dominant == "success":
-                success += 1
-            else:
-                failed += 1
-
-        # Attempted = success + failed (those who tried)
-        attempted = success + failed
-
-        # Create nodes
-        nodes = [
-            SankeyNode(id="all", label=f"Todos ({total})", value=total),
-            SankeyNode(id="attempted", label=f"Tentaram ({attempted})", value=attempted),
-            SankeyNode(
-                id="not_attempted", label=f"Não Tentaram ({not_attempted})", value=not_attempted
-            ),
-            SankeyNode(id="success", label=f"Sucesso ({success})", value=success),
-            SankeyNode(id="failed", label=f"Falharam ({failed})", value=failed),
-        ]
-
-        # Create links
-        links = [
-            SankeyLink(
-                source="all",
-                target="attempted",
-                value=attempted,
-                percentage=round(100 * attempted / total, 1) if total > 0 else 0.0,
-            ),
-            SankeyLink(
-                source="all",
-                target="not_attempted",
-                value=not_attempted,
-                percentage=round(100 * not_attempted / total, 1) if total > 0 else 0.0,
-            ),
-            SankeyLink(
-                source="attempted",
-                target="success",
-                value=success,
-                percentage=round(100 * success / attempted, 1) if attempted > 0 else 0.0,
-            ),
-            SankeyLink(
-                source="attempted",
-                target="failed",
-                value=failed,
-                percentage=round(100 * failed / attempted, 1) if attempted > 0 else 0.0,
-            ),
-        ]
-
-        return SankeyChart(
-            simulation_id=simulation_id,
-            total_synths=total,
-            nodes=nodes,
-            links=links,
         )
 
     # =========================================================================
@@ -868,20 +762,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"outcome_distribution asc failed: {e}")
 
-    # Test 5: get_sankey
-    total_tests += 1
-    try:
-        chart = service.get_sankey("sim_test", outcomes)
-        if chart.total_synths != 5:
-            all_validation_failures.append(f"sankey total_synths: {chart.total_synths}")
-        if len(chart.nodes) != 5:
-            all_validation_failures.append(f"sankey nodes count: {len(chart.nodes)}")
-        if len(chart.links) != 4:
-            all_validation_failures.append(f"sankey links count: {len(chart.links)}")
-    except Exception as e:
-        all_validation_failures.append(f"sankey failed: {e}")
-
-    # Test 6: get_failure_heatmap
+    # Test 5: get_failure_heatmap
     total_tests += 1
     try:
         chart = service.get_failure_heatmap("sim_test", outcomes, bins=3)
@@ -892,7 +773,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"failure_heatmap failed: {e}")
 
-    # Test 7: get_scatter_correlation
+    # Test 6: get_scatter_correlation
     total_tests += 1
     try:
         chart = service.get_scatter_correlation("sim_test", outcomes)
@@ -906,7 +787,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"scatter_correlation failed: {e}")
 
-    # Test 8: get_box_plot without region
+    # Test 7: get_box_plot without region
     total_tests += 1
     try:
         chart = service.get_box_plot("sim_test", outcomes, region_analysis=None)
@@ -919,15 +800,12 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"box_plot failed: {e}")
 
-    # Test 9: empty outcomes
+    # Test 8: empty outcomes
     total_tests += 1
     try:
         chart = service.get_try_vs_success("sim_test", [])
         if chart.total_synths != 0:
             all_validation_failures.append(f"empty try_vs_success total: {chart.total_synths}")
-        sankey = service.get_sankey("sim_test", [])
-        if sankey.total_synths != 0:
-            all_validation_failures.append(f"empty sankey total: {sankey.total_synths}")
     except Exception as e:
         all_validation_failures.append(f"empty outcomes handling failed: {e}")
 

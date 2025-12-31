@@ -46,7 +46,6 @@
 
 ## Phase 3: User Story 1 - Visão Geral (Overview) (Priority: P1)
 
-**Goal**: UX Researcher views overall simulation results with Try vs Success, Distribution, and Sankey charts
 
 **Independent Test**: Navigate to `/experiments/{id}`, select "Visão Geral" tab, verify all three charts render correctly with data
 
@@ -54,7 +53,6 @@
 
 - [x] T012 [P] [US1] Create TryVsSuccessChart scatter component using Recharts in frontend/src/components/experiments/results/charts/TryVsSuccessChart.tsx
 - [x] T013 [P] [US1] Create OutcomeDistributionChart pie component using Recharts in frontend/src/components/experiments/results/charts/OutcomeDistributionChart.tsx
-- [x] T014 [P] [US1] Create SankeyDiagram component using Recharts Sankey in frontend/src/components/experiments/results/charts/SankeyDiagram.tsx
 - [x] T015 [US1] Create PhaseOverview container component assembling charts in frontend/src/components/experiments/results/PhaseOverview.tsx
 - [x] T016 [US1] Wire PhaseOverview to AnalysisPhaseTabs in frontend/src/pages/ExperimentDetail.tsx
 
@@ -214,7 +212,6 @@
 # Launch all chart components in parallel:
 Task: "TryVsSuccessChart in charts/TryVsSuccessChart.tsx"
 Task: "OutcomeDistributionChart in charts/OutcomeDistributionChart.tsx"
-Task: "SankeyDiagram in charts/SankeyDiagram.tsx"
 ```
 
 **Phase 4 (US2 - Location)**:
