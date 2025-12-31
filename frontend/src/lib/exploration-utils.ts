@@ -1,68 +1,15 @@
 /**
  * Utility functions for exploration feature.
  *
- * Transforms API data to visualization format and provides formatting helpers.
+ * Provides tree layout, path calculation, and formatting helpers for React Flow visualization.
  */
 
 import dagre from 'dagrejs';
 import type {
   ScenarioNode,
-  TreeNodeData,
   DecisionNode,
   ExplorationEdge,
 } from '@/types/exploration';
-
-/**
- * Transform API nodes to react-d3-tree format.
- *
- * Builds a hierarchical tree structure from flat node array.
- *
- * @param nodes - Flat array of scenario nodes from API
- * @returns Root TreeNodeData or null if no root found
- */
-export function transformToTreeData(nodes: ScenarioNode[]): TreeNodeData | null {
-  if (!nodes || nodes.length === 0) return null;
-
-  // Build parent-child map
-  const nodeMap = new Map<string, ScenarioNode>();
-  const childrenMap = new Map<string, string[]>();
-
-  nodes.forEach((node) => {
-    nodeMap.set(node.id, node);
-    if (node.parent_id) {
-      const siblings = childrenMap.get(node.parent_id) || [];
-      siblings.push(node.id);
-      childrenMap.set(node.parent_id, siblings);
-    }
-  });
-
-  // Find root (parent_id === null)
-  const root = nodes.find((n) => n.parent_id === null);
-  if (!root) return null;
-
-  // Recursive build
-  function buildNode(nodeId: string): TreeNodeData {
-    const node = nodeMap.get(nodeId)!;
-    const childIds = childrenMap.get(nodeId) || [];
-
-    return {
-      name: node.simulation_results
-        ? `${(node.simulation_results.success_rate * 100).toFixed(0)}%`
-        : '—',
-      attributes: {
-        action: node.action_applied
-          ? node.action_applied.slice(0, 30) + (node.action_applied.length > 30 ? '...' : '')
-          : undefined,
-        shortAction: node.short_action ?? undefined,
-        status: node.node_status,
-      },
-      children: childIds.length > 0 ? childIds.map(buildNode) : undefined,
-      __nodeData: node,
-    };
-  }
-
-  return buildNode(root.id);
-}
 
 /**
  * Get node IDs in the winning path.
@@ -161,7 +108,7 @@ export function getCategoryDisplayName(category: string | null | undefined): str
 }
 
 // =============================================================================
-// React Flow Layout (Preview)
+// React Flow Layout
 // =============================================================================
 
 const NODE_WIDTH = 200;

@@ -194,31 +194,6 @@ export interface ExplorationCreate {
 // =============================================================================
 
 /**
- * Node data for react-d3-tree.
- * Extends base node with visualization properties.
- */
-export interface TreeNodeData {
-  name: string; // Display label (success_rate %)
-  attributes?: {
-    action?: string; // Truncated action text (legacy)
-    shortAction?: string; // 3-word label for card display
-    status: NodeStatus; // For color coding
-  };
-  children?: TreeNodeData[];
-  // Original node data for detail panel
-  __nodeData: ScenarioNode;
-}
-
-/**
- * Props for custom node element.
- */
-export interface CustomNodeProps {
-  nodeDatum: TreeNodeData;
-  toggleNode: () => void;
-  onNodeClick?: (node: ScenarioNode) => void;
-}
-
-/**
  * Colors for node status.
  */
 export const NODE_STATUS_COLORS: Record<NodeStatus, string> = {
@@ -288,7 +263,7 @@ export const explorationCreateSchema = z.object({
 export type ExplorationCreateForm = z.infer<typeof explorationCreateSchema>;
 
 // =============================================================================
-// React Flow Types (Preview)
+// React Flow Types
 // =============================================================================
 
 import type { Node, Edge } from '@xyflow/react';
