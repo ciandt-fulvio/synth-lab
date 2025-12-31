@@ -49,6 +49,7 @@ from synth_lab.domain.entities.explainability import (
 from synth_lab.domain.entities.outlier_result import ExtremeCasesTable, OutlierResult
 from synth_lab.infrastructure.database import get_database
 from synth_lab.models.pagination import PaginationParams
+from synth_lab.repositories.analysis_cache_repository import AnalysisCacheRepository
 from synth_lab.repositories.analysis_outcome_repository import AnalysisOutcomeRepository
 from synth_lab.repositories.analysis_repository import AnalysisRepository
 from synth_lab.repositories.experiment_repository import ExperimentRepository
@@ -803,13 +804,55 @@ async def get_scatter_correlation_chart(
 # Phase 3: Clustering Endpoints
 # =============================================================================
 
-# Cache for analysis clustering results
+# In-memory cache for current session (fallback)
 _analysis_clustering_cache: dict[str, KMeansResult | HierarchicalResult] = {}
 
 
 def get_clustering_service() -> ClusteringService:
     """Get clustering service instance."""
     return ClusteringService()
+
+
+def get_cache_repository() -> AnalysisCacheRepository:
+    """Get cache repository instance."""
+    return AnalysisCacheRepository(get_database())
+
+
+def _get_cached_kmeans(analysis_id: str, k: int) -> KMeansResult | None:
+    """
+    Get cached KMeansResult from database.
+
+    Args:
+        analysis_id: Analysis ID.
+        k: Number of clusters.
+
+    Returns:
+        KMeansResult if found in cache, None otherwise.
+    """
+    cache_repo = get_cache_repository()
+    cache_key = CacheKeys.clustering(k)
+    cache = cache_repo.get(analysis_id, cache_key)
+
+    if cache is None:
+        return None
+
+    try:
+        return KMeansResult(**cache.data)
+    except Exception:
+        return None
+
+
+def _save_kmeans_to_cache(analysis_id: str, result: KMeansResult) -> None:
+    """
+    Save KMeansResult to database cache.
+
+    Args:
+        analysis_id: Analysis ID.
+        result: KMeansResult to cache.
+    """
+    cache_repo = get_cache_repository()
+    cache_key = CacheKeys.clustering(result.n_clusters)
+    cache_repo.save(analysis_id, cache_key, result.model_dump())
 
 
 @router.post(
@@ -838,23 +881,45 @@ async def create_analysis_clustering(
             detail=f"Analysis must be completed (status: {analysis.status})",
         )
 
-    outcomes, _ = outcome_repo.get_outcomes(analysis.id)
-    if not outcomes:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No outcomes found for this analysis",
-        )
-
     # Create clustering
     if request.method == "kmeans":
-        result = clustering_service.kmeans(outcomes, k=request.n_clusters or 4)
-        cache_key = f"{analysis.id}:kmeans"
-    else:
-        result = clustering_service.hierarchical(outcomes)
-        cache_key = f"{analysis.id}:hierarchical"
+        k = request.n_clusters or 4
 
-    _analysis_clustering_cache[cache_key] = result
-    return result
+        # Check database cache first
+        cached = _get_cached_kmeans(analysis.id, k)
+        if cached is not None:
+            # Update in-memory cache and return
+            _analysis_clustering_cache[f"{analysis.id}:kmeans"] = cached
+            return cached
+
+        # Not in cache - need to compute
+        outcomes, _ = outcome_repo.get_outcomes(analysis.id)
+        if not outcomes:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No outcomes found for this analysis",
+            )
+
+        result = clustering_service.kmeans(outcomes, k=k)
+
+        # Save to database cache
+        _save_kmeans_to_cache(analysis.id, result)
+
+        # Update in-memory cache
+        _analysis_clustering_cache[f"{analysis.id}:kmeans"] = result
+        return result
+    else:
+        # Hierarchical clustering (no database cache for now)
+        outcomes, _ = outcome_repo.get_outcomes(analysis.id)
+        if not outcomes:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No outcomes found for this analysis",
+            )
+
+        result = clustering_service.hierarchical(outcomes)
+        _analysis_clustering_cache[f"{analysis.id}:hierarchical"] = result
+        return result
 
 
 @router.post(
@@ -867,7 +932,9 @@ async def create_auto_analysis_clustering(
     """
     Automatically create K-Means clustering with optimal K detection.
 
-    Executes Elbow method, detects optimal K, and runs K-Means clustering.
+    First checks database cache for the recommended K. If not found,
+    executes Elbow method, detects optimal K, runs K-Means clustering,
+    and caches the result.
     """
     service = get_analysis_service()
     clustering_service = get_clustering_service()
@@ -893,16 +960,29 @@ async def create_auto_analysis_clustering(
             detail="No outcomes found for this analysis",
         )
 
-    # Execute K-Means with automatic K detection (via elbow + knee detection)
+    # Run elbow method first to get recommended K (fast, no LLM)
+    elbow_data = clustering_service.elbow_method(outcomes)
+    recommended_k = clustering_service._detect_knee_point(elbow_data)
+
+    # Check database cache for this K
+    cached = _get_cached_kmeans(analysis.id, recommended_k)
+    if cached is not None:
+        # Update in-memory cache and return
+        _analysis_clustering_cache[f"{analysis.id}:kmeans"] = cached
+        return cached
+
+    # Not in cache - execute K-Means with the recommended K
     result = clustering_service.cluster_kmeans(
         simulation_id=analysis.id,
         outcomes=outcomes,
-        n_clusters=None,  # Will use recommended_k from elbow
+        n_clusters=recommended_k,
     )
 
-    # Cache result
-    cache_key = f"{analysis.id}:kmeans"
-    _analysis_clustering_cache[cache_key] = result
+    # Save to database cache
+    _save_kmeans_to_cache(analysis.id, result)
+
+    # Update in-memory cache
+    _analysis_clustering_cache[f"{analysis.id}:kmeans"] = result
 
     return result
 
@@ -914,7 +994,7 @@ async def create_auto_analysis_clustering(
 async def get_analysis_clustering(
     experiment_id: str,
 ) -> KMeansResult | HierarchicalResult:
-    """Get cached clustering result for analysis."""
+    """Get cached clustering result for analysis (memory or database)."""
     service = get_analysis_service()
     analysis = service.get_analysis(experiment_id)
 
@@ -927,16 +1007,30 @@ async def get_analysis_clustering(
     kmeans_key = f"{analysis.id}:kmeans"
     hierarchical_key = f"{analysis.id}:hierarchical"
 
+    # Check in-memory cache first
     if kmeans_key in _analysis_clustering_cache:
         return _analysis_clustering_cache[kmeans_key]
     elif hierarchical_key in _analysis_clustering_cache:
         return _analysis_clustering_cache[hierarchical_key]
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No clustering found for experiment {experiment_id}. "
-            "Create clustering first via POST /clusters",
-        )
+
+    # Check database cache for any clustering_k* entry
+    cache_repo = get_cache_repository()
+    all_cache = cache_repo.get_all(analysis.id)
+    for cache in all_cache:
+        if cache.cache_key.startswith("clustering_k"):
+            try:
+                result = KMeansResult(**cache.data)
+                # Update in-memory cache
+                _analysis_clustering_cache[kmeans_key] = result
+                return result
+            except Exception:
+                continue
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"No clustering found for experiment {experiment_id}. "
+        "Create clustering first via POST /clusters",
+    )
 
 
 @router.get(
