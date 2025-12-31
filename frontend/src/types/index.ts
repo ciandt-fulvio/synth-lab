@@ -3,6 +3,5 @@
 export * from './common';
 export * from './research';
 export * from './synth';
-export * from './topic';
 export * from './prfaq';
 export * from './events';

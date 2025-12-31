@@ -493,3 +493,38 @@
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background-color: #94a3b8;
 }
+
+/* =============================================================================
+   10. REACT FLOW CUSTOMIZATIONS
+   ============================================================================= */
+
+/* Ensure animated edges are visible with dashed animation */
+.react-flow__edge.animated path,
+.react-flow__edge.winning-path-edge path,
+.react-flow__edge.best-path-edge path {
+  stroke-dasharray: 5 !important;
+  animation: dashdraw 0.5s linear infinite !important;
+}
+
+/* Winning path edge - green with glow */
+.react-flow__edge.winning-path-edge path {
+  stroke: #16a34a !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0 0 4px rgba(22, 163, 74, 0.6));
+}
+
+/* Best path edge - blue with glow (when no winner yet) */
+.react-flow__edge.best-path-edge path {
+  stroke: #2563eb !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0 0 4px rgba(37, 99, 235, 0.6));
+}
+
+@keyframes dashdraw {
+  from {
+    stroke-dashoffset: 10;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}

@@ -152,12 +152,14 @@ REGRAS IMPORTANTES:
 4. Os IMPACTOS devem ser pequenos e realistas (entre -0.10 e +0.10)
 5. Foque em reduzir complexity, perceived_risk e time_to_value para aumentar success_rate
 6. O rationale deve explicar POR QUE essa acao ajudaria
+7. O short_action deve ser um RESUMO em 3 palavras (maximo 30 caracteres)
 
 FORMATO DE RESPOSTA (JSON):
 {
     "proposals": [
         {
             "action": "Descricao concreta da acao",
+            "short_action": "Resumo 3 palavras",
             "category": "categoria_do_catalogo",
             "rationale": "Por que isso ajudaria",
             "impacts": {
@@ -166,7 +168,12 @@ FORMATO DE RESPOSTA (JSON):
             }
         }
     ]
-}"""
+}
+
+EXEMPLOS de short_action:
+- "Simplificar formulario" (para acao de reduzir campos)
+- "Tutorial interativo" (para acao de onboarding)
+- "Indicador progresso" (para acao de feedback visual)"""
 
     def _build_prompt(
         self,
@@ -255,7 +262,8 @@ FORMATO DE RESPOSTA (JSON):
         for i, raw in enumerate(proposals):
             try:
                 # Validate required fields
-                if not all(k in raw for k in ["action", "category", "rationale", "impacts"]):
+                required = ["action", "category", "rationale", "impacts", "short_action"]
+                if not all(k in raw for k in required):
                     self.logger.warning(f"Proposal {i} missing required fields")
                     continue
 
@@ -297,6 +305,7 @@ FORMATO DE RESPOSTA (JSON):
                     action=str(raw["action"]),
                     category=category,
                     rationale=str(raw["rationale"]),
+                    short_action=str(raw["short_action"])[:30],
                     impacts=valid_impacts,
                 )
                 valid.append(proposal)
@@ -332,12 +341,14 @@ if __name__ == "__main__":
         raw_proposals = [
             {
                 "action": "Add tooltip on hover",
+                "short_action": "Tooltip hover",
                 "category": "ux_interface",
                 "rationale": "Reduces cognitive load",
                 "impacts": {"complexity": -0.02, "time_to_value": -0.01},
             },
             {
                 "action": "Add progress indicator",
+                "short_action": "Indicador progresso",
                 "category": "flow",
                 "rationale": "Shows progress",
                 "impacts": {"perceived_risk": -0.03},
@@ -356,6 +367,7 @@ if __name__ == "__main__":
         raw_proposals = [
             {
                 "action": "Some action",
+                "short_action": "Some short",
                 "category": "invalid_category",
                 "rationale": "Some reason",
                 "impacts": {"complexity": -0.02},
@@ -374,6 +386,7 @@ if __name__ == "__main__":
         raw_proposals = [
             {
                 "action": "Big change",
+                "short_action": "Grande mudanca",
                 "category": "ux_interface",
                 "rationale": "Reason",
                 "impacts": {"complexity": -0.20},  # Out of range
@@ -397,6 +410,7 @@ if __name__ == "__main__":
             "proposals": [
                 {
                     "action": "Test action",
+                    "short_action": "Test short",
                     "category": "onboarding",
                     "rationale": "Test rationale",
                     "impacts": {"initial_effort": -0.05},
@@ -409,14 +423,14 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Parse response failed: {e}")
 
-    # Test 6: Missing required fields
+    # Test 6: Missing required fields (including short_action)
     total_tests += 1
     try:
         service = ActionProposalService()
         raw_proposals = [
             {
                 "action": "Incomplete proposal",
-                # Missing category, rationale, impacts
+                # Missing category, rationale, impacts, short_action
             },
         ]
         valid = service._validate_proposals(raw_proposals)
@@ -493,6 +507,8 @@ if __name__ == "__main__":
             all_validation_failures.append("System prompt should mention proposals")
         if "-0.10" not in system_prompt and "+0.10" not in system_prompt:
             all_validation_failures.append("System prompt should mention impact limits")
+        if "short_action" not in system_prompt:
+            all_validation_failures.append("System prompt should mention short_action")
     except Exception as e:
         all_validation_failures.append(f"System prompt test failed: {e}")
 

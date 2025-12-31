@@ -24,6 +24,7 @@ import json
 from typing import Any
 
 from loguru import logger
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
 from synth_lab.domain.entities.chart_insight import ChartInsight
 from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
@@ -103,7 +104,17 @@ class InsightService:
         Returns:
             ChartInsight with status="completed" or status="failed"
         """
-        with _tracer.start_as_current_span(f"generate_insight_{chart_type}"):
+        span_name = f"ChartInsight {chart_type} | ana_{analysis_id[:12]}"
+        with _tracer.start_as_current_span(
+            span_name,
+            attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "analysis.id": analysis_id,
+                "chart.type": chart_type,
+                "operation.type": "chart_insight",
+                "llm.model": INSIGHT_MODEL,
+            },
+        ):
             try:
                 # Get hypothesis for context
                 hypothesis = self._get_hypothesis(analysis_id)

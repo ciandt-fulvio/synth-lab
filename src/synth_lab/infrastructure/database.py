@@ -308,7 +308,7 @@ CREATE TABLE IF NOT EXISTS explorations (
 CREATE INDEX IF NOT EXISTS idx_explorations_experiment ON explorations(experiment_id);
 CREATE INDEX IF NOT EXISTS idx_explorations_status ON explorations(status);
 
--- Scenario Nodes table (v13 - nodes in exploration tree)
+-- Scenario Nodes table (v13 - nodes in exploration tree, v14 - added short_action)
 CREATE TABLE IF NOT EXISTS scenario_nodes (
     id TEXT PRIMARY KEY CHECK (id GLOB 'node_[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]'),
     exploration_id TEXT NOT NULL,
@@ -317,6 +317,7 @@ CREATE TABLE IF NOT EXISTS scenario_nodes (
     action_applied TEXT,
     action_category TEXT,
     rationale TEXT,
+    short_action TEXT,
     scorecard_params TEXT NOT NULL CHECK(json_valid(scorecard_params)),
     simulation_results TEXT CHECK(json_valid(simulation_results) OR simulation_results IS NULL),
     execution_time_seconds REAL CHECK (execution_time_seconds IS NULL OR execution_time_seconds >= 0),
@@ -378,6 +379,15 @@ def init_database(db_path: Path | None = None) -> None:
             )
             conn.commit()
             logger.info("Migration v11 completed: scenario_id column added")
+
+        # Migration v14: Add short_action column to scenario_nodes if not exists
+        cursor = conn.execute("PRAGMA table_info(scenario_nodes)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if "short_action" not in columns:
+            logger.info("Migrating scenario_nodes table: adding short_action column")
+            conn.execute("ALTER TABLE scenario_nodes ADD COLUMN short_action TEXT")
+            conn.commit()
+            logger.info("Migration v14 completed: short_action column added")
 
         # Ensure default synth group exists (ID=1, always present)
         conn.execute(

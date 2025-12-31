@@ -13,6 +13,7 @@ References:
 from datetime import datetime
 
 from loguru import logger
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
 from synth_lab.infrastructure.llm_client import get_llm_client
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
@@ -121,12 +122,17 @@ EFEITO ESPERADO: {cc.efeito_esperado or 'N/A'}"""
         messages, synth_name = self._build_messages(synth_id, request)
 
         # Generate response with Phoenix tracing
+        exec_id_short = request.exec_id[:12] if request.exec_id else "unknown"
+        span_name = f"Chat with {synth_name} | exec_{exec_id_short}"
         with _tracer.start_as_current_span(
-            "ChatService: generate_response",
+            span_name,
             attributes={
-                "synth_id": synth_id,
-                "synth_name": synth_name,
-                "exec_id": request.exec_id,
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "synth.id": synth_id,
+                "synth.name": synth_name,
+                "execution.id": request.exec_id,
+                "operation.type": "chat_response",
+                "chat.history_length": len(request.chat_history),
             },
         ):
             response_text = self.llm_client.complete(
@@ -160,12 +166,17 @@ EFEITO ESPERADO: {cc.efeito_esperado or 'N/A'}"""
         messages, synth_name = self._build_messages(synth_id, request)
 
         # Generate streaming response with Phoenix tracing
+        exec_id_short = request.exec_id[:12] if request.exec_id else "unknown"
+        span_name = f"Chat Stream {synth_name} | exec_{exec_id_short}"
         with _tracer.start_as_current_span(
-            "ChatService: generate_response_stream",
+            span_name,
             attributes={
-                "synth_id": synth_id,
-                "synth_name": synth_name,
-                "exec_id": request.exec_id,
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "synth.id": synth_id,
+                "synth.name": synth_name,
+                "execution.id": request.exec_id,
+                "operation.type": "chat_response_stream",
+                "chat.history_length": len(request.chat_history),
             },
         ):
             for chunk in self.llm_client.complete_stream(

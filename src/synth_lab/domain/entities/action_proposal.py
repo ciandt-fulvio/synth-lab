@@ -60,6 +60,11 @@ class ActionProposal(BaseModel):
         description="Short justification for the action.",
     )
 
+    short_action: str = Field(
+        max_length=30,
+        description="Short 3-word label for UI display.",
+    )
+
     impacts: dict[str, float] = Field(
         description="Dictionary of parameter deltas.",
     )
@@ -89,6 +94,14 @@ class ActionProposal(BaseModel):
         if not v or not v.strip():
             raise ValueError("rationale cannot be empty")
         return v.strip()
+
+    @field_validator("short_action")
+    @classmethod
+    def validate_short_action(cls, v: str) -> str:
+        """Ensure short_action is not empty and max 30 chars."""
+        if not v or not v.strip():
+            raise ValueError("short_action cannot be empty")
+        return v.strip()[:30]
 
     @field_validator("impacts")
     @classmethod
@@ -137,6 +150,7 @@ def parse_llm_proposals(response_json: list[dict]) -> list[ActionProposal]:
                 action=item.get("action", ""),
                 category=item.get("category", ""),
                 rationale=item.get("rationale", ""),
+                short_action=item.get("short_action", ""),
                 impacts=item.get("impacts", {}),
             )
             proposals.append(proposal)
@@ -159,12 +173,15 @@ if __name__ == "__main__":
             action="Adicionar tooltip contextual no fluxo de checkout",
             category="ux_interface",
             rationale="Reduz friccao cognitiva no momento de duvida",
+            short_action="Tooltip checkout",
             impacts={"complexity": -0.02, "time_to_value": -0.01},
         )
         if proposal.action != "Adicionar tooltip contextual no fluxo de checkout":
             all_validation_failures.append(f"Action mismatch: {proposal.action}")
         if proposal.category != "ux_interface":
             all_validation_failures.append(f"Category mismatch: {proposal.category}")
+        if proposal.short_action != "Tooltip checkout":
+            all_validation_failures.append(f"Short action mismatch: {proposal.short_action}")
     except Exception as e:
         all_validation_failures.append(f"Create valid proposal test failed: {e}")
 
@@ -175,6 +192,7 @@ if __name__ == "__main__":
             action="",
             category="ux_interface",
             rationale="Test",
+            short_action="Test",
             impacts={"complexity": -0.01},
         )
         all_validation_failures.append("Should reject empty action")
@@ -190,6 +208,7 @@ if __name__ == "__main__":
             action="Test action",
             category="invalid_category",
             rationale="Test",
+            short_action="Test",
             impacts={"complexity": -0.01},
         )
         all_validation_failures.append("Should reject invalid category")
@@ -206,6 +225,7 @@ if __name__ == "__main__":
                 action="Test action",
                 category=cat,
                 rationale="Test rationale",
+                short_action="Test short",
                 impacts={"complexity": -0.01},
             )
             if proposal.category != cat:
@@ -221,6 +241,7 @@ if __name__ == "__main__":
             action="Test action",
             category="flow",
             rationale="Test",
+            short_action="Test",
             impacts={"complexity": -0.15},  # Out of range
         )
         all_validation_failures.append("Should reject impact out of range")
@@ -236,6 +257,7 @@ if __name__ == "__main__":
             action="Test action",
             category="flow",
             rationale="Test",
+            short_action="Test",
             impacts={"invalid_param": -0.01},
         )
         all_validation_failures.append("Should reject invalid impact parameter")
@@ -251,6 +273,7 @@ if __name__ == "__main__":
             action="Test action",
             category="flow",
             rationale="Test",
+            short_action="Test",
             impacts={"complexity": 0.0, "initial_effort": 0.0},
         )
         all_validation_failures.append("Should reject all-zero impacts")
@@ -266,6 +289,7 @@ if __name__ == "__main__":
             action="Remover etapa desnecessaria",
             category="flow",
             rationale="Simplifica o fluxo",
+            short_action="Remover etapa",
             impacts={
                 "complexity": -0.05,
                 "initial_effort": -0.03,
@@ -286,12 +310,14 @@ if __name__ == "__main__":
                 "action": "Adicionar tooltip",
                 "category": "ux_interface",
                 "rationale": "Ajuda usuario",
+                "short_action": "Adicionar tooltip",
                 "impacts": {"complexity": -0.02},
             },
             {
                 "action": "Remover etapa",
                 "category": "flow",
                 "rationale": "Simplifica",
+                "short_action": "Remover etapa",
                 "impacts": {"complexity": -0.03, "time_to_value": -0.02},
             },
         ]
@@ -309,18 +335,21 @@ if __name__ == "__main__":
                 "action": "Valid action",
                 "category": "ux_interface",
                 "rationale": "Valid",
+                "short_action": "Valid short",
                 "impacts": {"complexity": -0.02},
             },
             {
                 "action": "",  # Invalid - empty action
                 "category": "ux_interface",
                 "rationale": "Test",
+                "short_action": "Test",
                 "impacts": {"complexity": -0.02},
             },
             {
                 "action": "Another action",
                 "category": "invalid",  # Invalid - bad category
                 "rationale": "Test",
+                "short_action": "Test",
                 "impacts": {"complexity": -0.02},
             },
         ]
@@ -339,6 +368,7 @@ if __name__ == "__main__":
             action="Test action",
             category="communication",
             rationale="Test rationale",
+            short_action="Test short",
             impacts={"perceived_risk": -0.03},
         )
         data = proposal.model_dump()
@@ -346,6 +376,8 @@ if __name__ == "__main__":
             all_validation_failures.append(f"Serialization category mismatch: {data['category']}")
         if data["impacts"]["perceived_risk"] != -0.03:
             all_validation_failures.append("Serialization impacts mismatch")
+        if data["short_action"] != "Test short":
+            all_validation_failures.append(f"Serialization short_action mismatch: {data['short_action']}")
     except Exception as e:
         all_validation_failures.append(f"Serialization test failed: {e}")
 

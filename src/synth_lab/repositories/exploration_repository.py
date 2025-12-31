@@ -166,9 +166,9 @@ class ExplorationRepository(BaseRepository):
             """
             INSERT INTO scenario_nodes (
                 id, exploration_id, parent_id, depth, action_applied, action_category,
-                rationale, scorecard_params, simulation_results, execution_time_seconds,
-                node_status, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                rationale, short_action, scorecard_params, simulation_results,
+                execution_time_seconds, node_status, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 node.id,
@@ -178,6 +178,7 @@ class ExplorationRepository(BaseRepository):
                 node.action_applied,
                 node.action_category,
                 node.rationale,
+                node.short_action,
                 scorecard_json,
                 simulation_json,
                 node.execution_time_seconds,
@@ -493,6 +494,7 @@ class ExplorationRepository(BaseRepository):
             action_applied=row["action_applied"],
             action_category=row["action_category"],
             rationale=row["rationale"],
+            short_action=row["short_action"],
             scorecard_params=ScorecardParams(**scorecard_dict),
             simulation_results=(
                 SimulationResults(**simulation_dict) if simulation_dict else None
@@ -605,6 +607,7 @@ if __name__ == "__main__":
                 action_applied="Adicionar tooltip contextual",
                 action_category="ux_interface",
                 rationale="Reduz friccao cognitiva",
+                short_action="Tooltip contextual",
                 scorecard_params=ScorecardParams(
                     complexity=0.43,
                     initial_effort=0.30,

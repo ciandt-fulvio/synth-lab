@@ -273,6 +273,118 @@ class SynthRepository(BaseRepository):
 
         return (top_performer_ids, bottom_performer_ids)
 
+    def get_synths_for_simulation(
+        self,
+        experiment_id: str,
+        limit: int = 200,
+    ) -> list[dict]:
+        """
+        Get synths for Monte Carlo simulation with derived simulation_attributes.
+
+        Retrieves synths that participated in an experiment's analysis and
+        derives their simulation_attributes from observables (v2.3.0+) or
+        Big Five personality traits (legacy synths).
+
+        Args:
+            experiment_id: Experiment ID to get synths for.
+            limit: Maximum number of synths to return (default: 200).
+
+        Returns:
+            List of dicts with 'id' and 'simulation_attributes' keys.
+            simulation_attributes contains 'observables' and 'latent_traits'.
+
+        Raises:
+            ValueError: If experiment has no completed analysis.
+        """
+        import json
+
+        from synth_lab.domain.entities.simulation_attributes import SimulationObservables
+        from synth_lab.gen_synth.simulation_attributes import derive_latent_traits
+
+        # Get analysis_id for this experiment
+        analysis_row = self.db.fetchone(
+            "SELECT id FROM analysis_runs WHERE experiment_id = ? AND status = 'completed'",
+            (experiment_id,),
+        )
+        if not analysis_row:
+            raise ValueError(f"No completed analysis found for experiment {experiment_id}")
+
+        analysis_id = analysis_row["id"]
+
+        # Get synths that participated in this analysis
+        rows = self.db.fetchall(
+            """
+            SELECT DISTINCT s.id, s.data
+            FROM synths s
+            INNER JOIN synth_outcomes so ON s.id = so.synth_id
+            WHERE so.analysis_id = ?
+              AND s.data IS NOT NULL
+            LIMIT ?
+            """,
+            (analysis_id, limit),
+        )
+
+        synths = []
+        for row in rows:
+            data = json.loads(row["data"]) if row["data"] else {}
+
+            # Check for observables (v2.3.0+ synths)
+            existing_observables = data.get("observables")
+            if existing_observables and all(
+                k in existing_observables
+                for k in [
+                    "digital_literacy",
+                    "similar_tool_experience",
+                    "motor_ability",
+                    "time_availability",
+                    "domain_expertise",
+                ]
+            ):
+                # Use existing observables and derive latent traits
+                observables = SimulationObservables.model_validate(existing_observables)
+                latent_traits = derive_latent_traits(observables)
+
+                sim_attrs = {
+                    "observables": observables.model_dump(),
+                    "latent_traits": latent_traits.model_dump(),
+                }
+            else:
+                # Legacy synth - derive from Big Five personality traits
+                big_five = data.get("psicografia", {}).get("personalidade_big_five", {})
+                openness = big_five.get("abertura", 50) / 100
+                conscientiousness = big_five.get("conscienciosidade", 50) / 100
+                extraversion = big_five.get("extroversao", 50) / 100
+                agreeableness = big_five.get("amabilidade", 50) / 100
+                neuroticism = big_five.get("neuroticismo", 50) / 100
+
+                # Derive latent traits from Big Five
+                capability_mean = round(0.5 * openness + 0.5 * conscientiousness, 3)
+                trust_mean = round(0.6 * agreeableness + 0.4 * (1 - neuroticism), 3)
+                friction_tolerance_mean = round(
+                    0.5 * conscientiousness + 0.5 * (1 - neuroticism), 3
+                )
+                exploration_prob = round(0.6 * openness + 0.4 * extraversion, 3)
+
+                sim_attrs = {
+                    "observables": {
+                        "digital_literacy": round(openness * 0.7 + conscientiousness * 0.3, 3),
+                        "similar_tool_experience": 0.5,
+                        "motor_ability": 1.0,
+                        "time_availability": round(1 - neuroticism * 0.3, 3),
+                        "domain_expertise": 0.5,
+                    },
+                    "latent_traits": {
+                        "capability_mean": capability_mean,
+                        "trust_mean": trust_mean,
+                        "friction_tolerance_mean": friction_tolerance_mean,
+                        "exploration_prob": exploration_prob,
+                    },
+                }
+
+            synths.append({"id": row["id"], "simulation_attributes": sim_attrs})
+
+        return synths
+
     def get_fields(self) -> list[SynthFieldInfo]:
         """Get available synth field metadata following schema v1.
 

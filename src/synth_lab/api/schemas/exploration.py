@@ -87,6 +87,18 @@ class ConfigResponse(BaseModel):
     seed: int | None
 
 
+class ExplorationSummary(BaseModel):
+    """Summary of exploration for list view."""
+
+    id: str = Field(description="Exploration ID.")
+    status: str = Field(description="Current status.")
+    goal_value: float = Field(description="Target success_rate.")
+    best_success_rate: float | None = Field(description="Best success rate achieved.")
+    total_nodes: int = Field(description="Total nodes created.")
+    started_at: datetime = Field(description="Start timestamp.")
+    completed_at: datetime | None = Field(description="Completion timestamp.")
+
+
 class ExplorationResponse(BaseModel):
     """Response for exploration data."""
 
@@ -131,6 +143,7 @@ class ScenarioNodeResponse(BaseModel):
     action_applied: str | None = Field(description="Action that created this node.")
     action_category: str | None = Field(description="Category of action.")
     rationale: str | None = Field(description="Rationale for action.")
+    short_action: str | None = Field(description="Short 3-word action label.")
     scorecard_params: ScorecardParamsResponse = Field(description="Scorecard parameters.")
     simulation_results: SimulationResultsResponse | None = Field(
         description="Simulation results."
@@ -265,6 +278,7 @@ def node_to_response(node) -> ScenarioNodeResponse:
         action_applied=node.action_applied,
         action_category=node.action_category,
         rationale=node.rationale,
+        short_action=node.short_action,
         scorecard_params=ScorecardParamsResponse(
             complexity=node.scorecard_params.complexity,
             initial_effort=node.scorecard_params.initial_effort,

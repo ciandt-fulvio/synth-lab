@@ -136,6 +136,7 @@ class TreeManager:
             action_applied=proposal.action,
             action_category=proposal.category,
             rationale=proposal.rationale,
+            short_action=proposal.short_action,
             scorecard_params=new_params,
             simulation_results=simulation_results,
             execution_time_seconds=execution_time,
@@ -288,6 +289,7 @@ if __name__ == "__main__":
         try:
             proposal = ActionProposal(
                 action="Adicionar tooltip contextual",
+                short_action="Tooltip contextual",
                 category="ux_interface",
                 rationale="Reduz friccao",
                 impacts={"complexity": -0.02, "time_to_value": -0.02},

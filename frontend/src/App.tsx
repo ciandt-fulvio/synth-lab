@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import ExperimentDetail from "./pages/ExperimentDetail";
+import ExplorationDetail from "./pages/ExplorationDetail";
 import SimulationDetail from "./pages/SimulationDetail";
 import InterviewDetail from "./pages/InterviewDetail";
 import Synths from "./pages/Synths";
@@ -25,6 +26,9 @@ const App = () => (
 
           {/* Simulation Detail (within experiment) */}
           <Route path="/experiments/:id/simulations/:simId" element={<SimulationDetail />} />
+
+          {/* Exploration Detail (within experiment) */}
+          <Route path="/experiments/:id/explorations/:explorationId" element={<ExplorationDetail />} />
 
           {/* Interview Detail (legacy route) */}
           <Route path="/interviews/:execId" element={<InterviewDetail />} />
