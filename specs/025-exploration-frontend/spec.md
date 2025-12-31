@@ -9,7 +9,7 @@
 
 ### User Story 1 - Iniciar Nova Exploracao (Priority: P1)
 
-O product manager acessa a pagina de um experimento que ja possui analise baseline executada e deseja iniciar uma exploracao automatizada de cenarios. Ele define a meta de success_rate desejada e configuracoes opcionais (beam_width, max_depth) e inicia a exploracao.
+O product manager acessa a pagina de um experimento (/experiments/{id}) que ja possui analise baseline executada e deseja iniciar uma exploracao automatizada de cenarios. Ele define a meta de success_rate desejada e configuracoes opcionais (beam_width, max_depth) e inicia a exploracao.
 
 **Why this priority**: Esta e a entrada do fluxo - sem iniciar uma exploracao, nao ha arvore para visualizar. E o primeiro ponto de interacao do usuario com a feature.
 
@@ -140,7 +140,7 @@ O PM quer consultar o catalogo de categorias de acoes disponiveis para entender 
 ### Functional Requirements
 
 **Iniciar Exploracao**
-- **FR-001**: Interface DEVE exibir botao "Iniciar Exploracao" na pagina do experimento quando analise baseline existe
+- **FR-001**: Interface DEVE exibir botao "Iniciar Exploracao" na pagina do experimento (/experiments/{id}) quando analise baseline existe
 - **FR-002**: Interface DEVE desabilitar botao quando experimento nao tem analise baseline, com tooltip explicativo
 - **FR-003**: Formulario DEVE permitir definir: meta de success_rate (0-100%), beam_width (1-10), max_depth (1-10)
 - **FR-004**: Formulario DEVE ter valores default: meta=40%, beam_width=3, max_depth=5
