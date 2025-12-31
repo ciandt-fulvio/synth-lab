@@ -4,7 +4,6 @@
 // Phase 1: Overview
 export { TryVsSuccessChart } from './TryVsSuccessChart';
 export { OutcomeDistributionChart } from './OutcomeDistributionChart';
-export { SankeyDiagram } from './SankeyDiagram';
 
 // Phase 2: Problem Location
 export { FailureHeatmap } from './FailureHeatmap';

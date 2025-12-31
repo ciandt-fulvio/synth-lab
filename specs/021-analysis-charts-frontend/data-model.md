@@ -231,7 +231,6 @@ Tipos de gráficos que podem ter insights.
 type ChartType =
   | 'try_vs_success'
   | 'distribution'
-  | 'sankey'
   | 'failure_heatmap'
   | 'box_plot'
   | 'scatter'

@@ -9,17 +9,14 @@
 
 ### User Story 1 - Phase 1: Visão Geral (Overview) (Priority: P1)
 
-UX Researcher views the overall simulation results to quickly understand what happened with the feature being tested. They see Try vs Success quadrant chart, outcome distribution pie chart, and Sankey flow diagram showing user journey paths.
 
 **Why this priority**: This is the entry point for analysis. Without an overview, users cannot begin their research investigation. It answers the fundamental question "O que aconteceu?" (What happened?).
 
-**Independent Test**: Can be fully tested by navigating to `/experiments/{id}`, clicking on "Visão Geral" tab, and verifying all three charts (Try vs Success, Distribution, Sankey) render correctly with data from the backend.
 
 **Acceptance Scenarios**:
 
 1. **Given** an experiment with completed simulation, **When** user navigates to experiment detail and selects "Visão Geral" tab, **Then** they see Try vs Success scatter chart showing synths positioned by their try and success rates
 2. **Given** an experiment with completed simulation, **When** user views "Visão Geral", **Then** they see outcome distribution pie chart with success (green), failed (red), and did_not_try (gray) segments with percentages
-3. **Given** an experiment with completed simulation, **When** user views "Visão Geral", **Then** they see Sankey diagram showing flow from total synths through try/not-try to success/fail outcomes
 4. **Given** an experiment without simulation data, **When** user selects "Visão Geral" tab, **Then** they see an empty state prompting them to run the analysis
 
 ---
@@ -126,7 +123,6 @@ UX Researcher obtains AI-generated insights and executive summary for communicat
 - **FR-002**: System MUST fetch chart data from backend API using React Query with appropriate caching and error handling
 - **FR-003**: System MUST render Try vs Success scatter chart using Recharts library with synth points colored by outcome
 - **FR-004**: System MUST render outcome distribution pie chart with legend showing success/failed/did_not_try percentages
-- **FR-005**: System MUST render Sankey diagram showing user flow from population through try decision to outcome
 - **FR-006**: System MUST render failure heatmap showing correlation matrix between attributes and failure rates
 - **FR-007**: System MUST render box plots comparing value distributions across outcome categories
 - **FR-008**: System MUST render scatter plot with configurable X/Y axis selection and outcome coloring
@@ -178,6 +174,5 @@ UX Researcher obtains AI-generated insights and executive summary for communicat
 - React Query (already installed) provides adequate caching and state management
 - Existing AnalysisPhaseTabs component provides the tab navigation foundation
 - shadcn/ui components provide consistent styling without customization
-- Sankey diagram will use a specialized Recharts component or compatible library
 - Dendrogram visualization may require custom SVG rendering if Recharts doesn't support it
 - SHAP waterfall chart will use horizontal bar chart with positive/negative styling

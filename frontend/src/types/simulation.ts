@@ -2,7 +2,7 @@
 // TypeScript types for simulation analysis results
 
 // =============================================================================
-// Phase 1: Overview Charts (Try vs Success, Distribution, Sankey)
+// Phase 1: Overview Charts (Try vs Success, Distribution)
 // =============================================================================
 
 /** Point in Try vs Success scatter chart */
@@ -65,28 +65,6 @@ export interface OutcomeDistributionChart {
   total_synths: number;
 }
 
-/** Node in Sankey diagram (from API) */
-export interface SankeyNode {
-  id: string;
-  label: string;
-  value: number;
-}
-
-/** Link in Sankey diagram (from API) */
-export interface SankeyLink {
-  source: string;
-  target: string;
-  value: number;
-  percentage: number;
-}
-
-/** Sankey diagram data (from API) */
-export interface SankeyChart {
-  simulation_id: string;
-  total_synths: number;
-  nodes: SankeyNode[];
-  links: SankeyLink[];
-}
 
 // =============================================================================
 // Phase 2: Problem Location Charts (Heatmap, Box Plot, Scatter)
@@ -430,7 +408,6 @@ export interface PDPComparison {
 export type ChartType =
   | 'try_vs_success'
   | 'distribution'
-  | 'sankey'
   | 'failure_heatmap'
   | 'box_plot'
   | 'scatter'

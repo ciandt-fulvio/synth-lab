@@ -78,7 +78,6 @@ specs/017-analysis-ux-research/
 ```text
 src/synth_lab/
 ├── domain/entities/
-│   ├── chart_data.py         # (novo) TryVsSuccessChart, SankeyChart, etc.
 │   ├── cluster_result.py     # (novo) ClusterProfile, KMeansResult, HierarchicalResult
 │   ├── outlier_result.py     # (novo) OutlierSynth, OutlierResult
 │   ├── explainability.py     # (novo) ShapExplanation, PDPResult
@@ -229,7 +228,6 @@ Nenhuma violação identificada. A feature segue padrões existentes do projeto.
 │  │ChartData     │  │Clustering    │  │Outlier       │              │
 │  │Service       │  │Service       │  │Service       │              │
 │  │- try_success │  │- kmeans      │  │- isolation   │              │
-│  │- sankey      │  │- hierarchical│  │- extreme_case│              │
 │  │- heatmap     │  │- elbow       │  └──────────────┘              │
 │  │- boxplot     │  │- radar       │                                 │
 │  │- scatter     │  └──────────────┘  ┌──────────────┐              │
@@ -261,7 +259,6 @@ Nenhuma violação identificada. A feature segue padrões existentes do projeto.
 
 ```
 synth_outcomes (DB) ──┬──► ChartDataService ──► TryVsSuccessChart
-                      │                     └──► SankeyChart
                       │                     └──► OutcomeDistributionChart
                       │                     └──► FailureHeatmapChart
                       │                     └──► BoxPlotChart
@@ -293,7 +290,6 @@ GET /simulation/simulations/{id}/charts/try-vs-success
 GET /simulation/simulations/{id}/charts/distribution
     ?mode=by_synth|by_percentile&sort_by=success_rate&order=desc&limit=50
 
-GET /simulation/simulations/{id}/charts/sankey
 ```
 
 #### FASE 2 - Localização (4 endpoints)

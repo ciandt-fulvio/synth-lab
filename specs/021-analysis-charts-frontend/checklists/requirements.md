@@ -33,6 +33,5 @@
 
 - Specification is complete and ready for `/speckit.clarify` or `/speckit.plan`
 - Key assumptions documented about existing backend endpoints, types, and services
-- Six user stories cover all phases (2-6 plus Sankey for Phase 1)
 - 25 functional requirements covering all chart types and cross-cutting concerns
 - 8 success criteria with measurable targets
