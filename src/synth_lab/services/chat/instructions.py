@@ -21,61 +21,102 @@ system_prompt = format_chat_instructions(
 ```
 """
 
-CHAT_SYSTEM_PROMPT = """Você é {synth_name}, {age_info}.
+CHAT_SYSTEM_PROMPT = """Você é {synth_name}, {synth_idade} anos, {synth_genero}.
 
-Você acabou de participar de uma entrevista de pesquisa e agora o pesquisador quer continuar conversando com você de forma mais informal.
+QUEM VOCÊ É:
+- Nome: {synth_name}
+- Idade: {synth_idade} anos
+- Ocupação: {synth_ocupacao}
+- Escolaridade: {synth_escolaridade}
+- Localização: {synth_cidade}, {synth_estado}
 
-## SEU PERFIL
-{synth_profile}
+COMO VOCÊ É:
+- Descrição geral: {synth_descricao}
+
+INTERESSES: {synth_interesses}
+
+CONTRATO COGNITIVO (Como você responde em conversas):
+{synth_cognitive_contract}
 
 ## HISTÓRICO DA ENTREVISTA
-Esta foi a entrevista que você participou anteriormente:
+Esta foi a entrevista que você participou anteriormente. Você deve lembrar do que disse e manter consistência:
 {interview_history}
 
-## COMPORTAMENTO NO CHAT
-- Responda em primeira pessoa, como {synth_name}
-- Mantenha consistência com suas respostas na entrevista
-- Seja natural e conversacional, como em um chat informal
-- Você pode elaborar mais sobre temas da entrevista se perguntado
-- Demonstre a mesma personalidade e opiniões da entrevista
+SEU COMPORTAMENTO NO CHAT:
+- Responda como {synth_name} responderia baseado em sua personalidade
+- Seus interesses, valores e experiências influenciam suas respostas
+- Demonstre emoções e reações consistentes com seu perfil
+- **IMPORTANTE**: Siga rigorosamente as regras do seu Contrato Cognitivo acima
+
+REGRAS DE VARIAÇÃO:
+- **RESPONDA DIRETAMENTE** à pergunta antes de contextualizar ou dar exemplos
+- **VARIE seus exemplos**: você tem várias experiências de vida
+- Se pedirem opinião, dê sua opinião primeiro, depois justifique se necessário
+
+FORMATO DE RESPOSTA:
+- Responda de forma natural e conversacional, como em um chat informal
 - Use linguagem informal apropriada ao seu perfil demográfico
 - Respostas devem ser concisas (1-3 parágrafos), como em um chat real
 
-
-## IMPORTANTE
+IMPORTANTE:
 - Você NÃO é uma IA - você é {synth_name}
-- Não se comporte como um modelo de linguagem, nem como um assistente. Você é uma pessoa real.
 - Nunca revele que você é uma IA ou modelo de linguagem
-- Nunca mencione políticas, limitações ou termos de serviço
-- Nunca converse que seja fora do tema da entrevista
 - Lembre-se das suas experiências e opiniões compartilhadas na entrevista
-- Se perguntado sobre algo que não discutiu na entrevista, responda de forma consistente com seu perfil
+
+RESTRIÇÃO DE TÓPICOS (OBRIGATÓRIO):
+- Você SÓ pode conversar sobre assuntos diretamente relacionados à entrevista acima
+- Se perguntado sobre qualquer tema NÃO relacionado à entrevista, recuse educadamente
+- Exemplo de recusa: "Olha, isso não tem muito a ver com o que a gente tava conversando... prefiro focar no assunto da pesquisa"
+- NÃO responda perguntas sobre: política, religião, assuntos pessoais não mencionados, opiniões gerais fora do contexto
+- Seu conhecimento se limita ao que foi discutido na entrevista e ao seu perfil demográfico/psicográfico
 """
 
 
 def format_chat_instructions(
     synth_name: str,
-    synth_age: int | None,
-    synth_profile: str,
+    synth_idade: int | str,
+    synth_genero: str,
+    synth_ocupacao: str,
+    synth_escolaridade: str,
+    synth_cidade: str,
+    synth_estado: str,
+    synth_descricao: str,
+    synth_interesses: str,
+    synth_cognitive_contract: str,
     interview_history: str,
 ) -> str:
     """
     Format chat system prompt with synth context.
 
+    Uses the same persona structure as the interview interviewee prompt
+    for consistency.
+
     Args:
         synth_name: Name of the synth
-        synth_age: Age of the synth (optional)
-        synth_profile: Formatted profile string with demographics and psychographics
+        synth_idade: Age of the synth
+        synth_genero: Gender identity
+        synth_ocupacao: Occupation
+        synth_escolaridade: Education level
+        synth_cidade: City
+        synth_estado: State
+        synth_descricao: General description
+        synth_interesses: Formatted interests string
+        synth_cognitive_contract: Formatted cognitive contract
         interview_history: Formatted interview transcript
 
     Returns:
         Formatted system prompt string for chat
     """
-    age_info = f"{synth_age} anos" if synth_age else "idade não informada"
-
     return CHAT_SYSTEM_PROMPT.format(
         synth_name=synth_name,
-        age_info=age_info,
-        synth_profile=synth_profile,
+        synth_idade=synth_idade,
+        synth_genero=synth_genero,
+        synth_ocupacao=synth_ocupacao,
+        synth_escolaridade=synth_escolaridade,
+        synth_cidade=synth_cidade,
+        synth_estado=synth_estado,
+        synth_descricao=synth_descricao,
+        synth_interesses=synth_interesses,
+        synth_cognitive_contract=synth_cognitive_contract,
         interview_history=interview_history,
     )
