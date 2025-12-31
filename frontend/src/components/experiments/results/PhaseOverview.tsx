@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { ChartErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { OutcomeDistributionChart } from './charts/OutcomeDistributionChart';
+import { SankeyFlowSection } from './SankeyFlowSection';
 import { TryVsSuccessSection } from './TryVsSuccessSection';
 import { useAnalysisDistributionChart } from '@/hooks/use-analysis-charts';
 import { useGenerateAnalysisChartInsight } from '@/hooks/use-insights';
@@ -176,7 +177,10 @@ export function PhaseOverview({ experimentId, analysis }: PhaseOverviewProps) {
         </CardContent>
       </Card>
 
-      {/* Row 2: Try vs Success with explanation and controls */}
+      {/* Row 2: Sankey Flow - Outcome Flow Visualization */}
+      <SankeyFlowSection experimentId={experimentId} />
+
+      {/* Row 3: Try vs Success with explanation and controls */}
       <TryVsSuccessSection experimentId={experimentId} />
     </div>
   );

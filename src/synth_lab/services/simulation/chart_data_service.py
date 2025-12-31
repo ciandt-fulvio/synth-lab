@@ -23,16 +23,24 @@ from synth_lab.domain.entities import (
     CorrelationPoint,
     CorrelationStats,
     FailureHeatmapChart,
+    FeatureScorecard,
     HeatmapCell,
+    OutcomeCounts,
     OutcomeDistributionChart,
     RegionAnalysis,
     RegionBoxPlot,
+    SankeyFlowChart,
+    SankeyLink,
+    SankeyNode,
     ScatterCorrelationChart,
     SynthDistribution,
     SynthOutcome,
     TrendlinePoint,
     TryVsSuccessChart,
     TryVsSuccessPoint,
+)
+from synth_lab.domain.entities.experiment import (
+    ScorecardData,
 )
 from synth_lab.services.simulation.feature_extraction import get_attribute_value
 
@@ -653,6 +661,377 @@ class ChartDataService:
             simulation_id=simulation_id,
             correlations=correlations,
             total_synths=len(outcomes),
+        )
+
+    # =========================================================================
+    # Sankey Flow Chart (Outcome Flow Visualization)
+    # =========================================================================
+
+    # Node colors following design system
+    SANKEY_COLORS = {
+        "population": "#6366f1",  # indigo
+        "did_not_try": "#f59e0b",  # amber
+        "failed": "#ef4444",  # red
+        "success": "#22c55e",  # green
+        # did_not_try causes (based on P(attempt) formula)
+        "effort_barrier": "#fbbf24",  # amber-400
+        "risk_barrier": "#fb923c",  # orange-400
+        # failed causes (based on P(success|attempt) formula)
+        "capability_barrier": "#f87171",  # red-400
+        "patience_barrier": "#fca5a5",  # red-300
+    }
+
+    # Node labels in Portuguese
+    SANKEY_LABELS = {
+        "population": "População",
+        "did_not_try": "Não tentou",
+        "failed": "Falhou",
+        "success": "Sucesso",
+        # did_not_try causes
+        "effort_barrier": "Esforço inicial alto",
+        "risk_barrier": "Risco percebido",
+        # failed causes
+        "capability_barrier": "Capability insuficiente",
+        "patience_barrier": "Desistiu antes do valor",
+    }
+
+    # Note: Tie-breaking priority moved to diagnose methods directly
+    FAILED_PRIORITY = {
+        "capability_gap": 2,  # capability_barrier
+        "patience_gap": 1,  # patience_barrier
+    }
+
+    def get_dominant_outcome(
+        self,
+        outcome: SynthOutcome,
+    ) -> Literal["did_not_try", "failed", "success"]:
+        """
+        Determine the dominant outcome for a synth.
+
+        The dominant outcome is the one with the highest rate.
+        Tie-breaking priority: success > failed > did_not_try.
+
+        Args:
+            outcome: SynthOutcome entity.
+
+        Returns:
+            The dominant outcome type.
+        """
+        rates = {
+            "success": outcome.success_rate,
+            "failed": outcome.failed_rate,
+            "did_not_try": outcome.did_not_try_rate,
+        }
+        # Sort by rate (desc), then by priority (success > failed > did_not_try)
+        priority = {"success": 3, "failed": 2, "did_not_try": 1}
+        sorted_outcomes = sorted(
+            rates.items(), key=lambda x: (x[1], priority[x[0]]), reverse=True
+        )
+        return sorted_outcomes[0][0]
+
+    def diagnose_did_not_try(
+        self,
+        outcome: SynthOutcome,
+        scorecard: FeatureScorecard | ScorecardData,
+    ) -> str:
+        """
+        Diagnose root cause for did_not_try outcome.
+
+        Based on P(attempt) formula from Monte Carlo simulation:
+        logit = 2.0*motivation + 1.5*trust - 2.0*perceived_risk - 1.5*initial_effort
+
+        Gaps calculated as (barrier - enabler) weighted by simulation weights:
+        - effort_gap = 1.5*initial_effort - 2.0*motivation (effort vs motivation)
+        - risk_gap = 2.0*perceived_risk - 1.5*trust (risk vs trust)
+
+        Args:
+            outcome: SynthOutcome entity with synth_attributes.
+            scorecard: Feature scorecard with dimensions.
+
+        Returns:
+            Root cause barrier ID (effort_barrier, risk_barrier).
+        """
+        attrs = outcome.synth_attributes
+        if not attrs:
+            return "effort_barrier"  # Default fallback
+
+        # Get motivation from observables or use baseline
+        # In the simulation, motivation is derived from task_criticality
+        # Using 0.5 as baseline since we don't have direct motivation storage
+        motivation = 0.5
+
+        # Calculate weighted gaps matching simulation P(attempt) formula
+        # P(attempt) decreases when: high effort vs low motivation, high risk vs low trust
+        gaps = {
+            # Effort barrier: high initial_effort relative to motivation
+            "effort_gap": (1.5 * scorecard.initial_effort.score) - (2.0 * motivation),
+            # Risk barrier: high perceived_risk relative to trust
+            "risk_gap": (2.0 * scorecard.perceived_risk.score) - (1.5 * attrs.latent_traits.trust_mean),
+        }
+
+        # Find largest gap with tie-breaking (effort has priority)
+        priority = {"effort_gap": 1, "risk_gap": 0}
+        sorted_gaps = sorted(
+            gaps.items(),
+            key=lambda x: (x[1], priority.get(x[0], 0)),
+            reverse=True,
+        )
+        largest_gap = sorted_gaps[0][0]
+
+        # Map gap to barrier
+        gap_to_barrier = {
+            "effort_gap": "effort_barrier",
+            "risk_gap": "risk_barrier",
+        }
+        return gap_to_barrier[largest_gap]
+
+    def diagnose_failed(
+        self,
+        outcome: SynthOutcome,
+        scorecard: FeatureScorecard | ScorecardData,
+    ) -> str:
+        """
+        Diagnose root cause for failed outcome.
+
+        Calculates gaps between scorecard dimensions and synth traits.
+        The largest positive gap indicates the primary barrier.
+
+        Gap formulas:
+        - capability_gap = complexity.score - capability_mean
+        - patience_gap = time_to_value.score - friction_tolerance_mean
+
+        Args:
+            outcome: SynthOutcome entity with synth_attributes.
+            scorecard: Feature scorecard with dimensions.
+
+        Returns:
+            Root cause barrier ID (capability_barrier, patience_barrier).
+        """
+        attrs = outcome.synth_attributes
+        if not attrs:
+            return "capability_barrier"  # Default fallback
+
+        gaps = {
+            "capability_gap": scorecard.complexity.score - attrs.latent_traits.capability_mean,
+            "patience_gap": scorecard.time_to_value.score - attrs.latent_traits.friction_tolerance_mean,
+        }
+
+        # Find largest gap with tie-breaking
+        sorted_gaps = sorted(
+            gaps.items(),
+            key=lambda x: (x[1], self.FAILED_PRIORITY.get(x[0], 0)),
+            reverse=True,
+        )
+        largest_gap = sorted_gaps[0][0]
+
+        # Map gap to barrier
+        gap_to_barrier = {
+            "capability_gap": "capability_barrier",
+            "patience_gap": "patience_barrier",
+        }
+        return gap_to_barrier[largest_gap]
+
+    def get_sankey_flow(
+        self,
+        analysis_id: str,
+        outcomes: list[SynthOutcome],
+        scorecard: FeatureScorecard | ScorecardData,
+    ) -> SankeyFlowChart:
+        """
+        Generate Sankey flow chart data for outcome flow visualization.
+
+        Creates a 3-level Sankey diagram:
+        - Level 1: Population
+        - Level 2: Outcomes (did_not_try, failed, success)
+        - Level 3: Root causes (for did_not_try and failed only)
+
+        Args:
+            analysis_id: Analysis run ID.
+            outcomes: List of SynthOutcome entities.
+            scorecard: Feature scorecard for gap calculation.
+
+        Returns:
+            SankeyFlowChart with nodes and links.
+        """
+        logger.info(f"Generating Sankey flow chart for {analysis_id} with {len(outcomes)} synths")
+
+        if not outcomes:
+            return SankeyFlowChart(
+                analysis_id=analysis_id,
+                nodes=[],
+                links=[],
+                total_synths=0,
+                outcome_counts=OutcomeCounts(did_not_try=0, failed=0, success=0),
+            )
+
+        total_synths = len(outcomes)
+
+        # Step 1: Calculate average rates across all synths (matching distribution chart)
+        avg_did_not_try = sum(o.did_not_try_rate for o in outcomes) / total_synths
+        avg_failed = sum(o.failed_rate for o in outcomes) / total_synths
+        avg_success = sum(o.success_rate for o in outcomes) / total_synths
+
+        # Convert rates to counts (rounded to maintain whole numbers)
+        did_not_try_count = round(avg_did_not_try * total_synths)
+        failed_count = round(avg_failed * total_synths)
+        success_count = round(avg_success * total_synths)
+
+        # Adjust for rounding to ensure total matches
+        total_counted = did_not_try_count + failed_count + success_count
+        if total_counted != total_synths:
+            # Adjust the largest category
+            diff = total_synths - total_counted
+            if success_count >= failed_count and success_count >= did_not_try_count:
+                success_count += diff
+            elif failed_count >= did_not_try_count:
+                failed_count += diff
+            else:
+                did_not_try_count += diff
+
+        outcome_counts = OutcomeCounts(
+            did_not_try=did_not_try_count,
+            failed=failed_count,
+            success=success_count,
+        )
+
+        # Step 2: Diagnose root causes using rate-weighted distribution
+        # For each synth, weight the root cause by their did_not_try_rate or failed_rate
+        root_cause_weights: dict[str, float] = {
+            # did_not_try causes (from P(attempt) formula)
+            "effort_barrier": 0.0,
+            "risk_barrier": 0.0,
+            # failed causes (from P(success|attempt) formula)
+            "capability_barrier": 0.0,
+            "patience_barrier": 0.0,
+        }
+
+        for o in outcomes:
+            # Weight by did_not_try_rate for did_not_try causes
+            if o.did_not_try_rate > 0:
+                cause = self.diagnose_did_not_try(o, scorecard)
+                root_cause_weights[cause] += o.did_not_try_rate
+
+            # Weight by failed_rate for failed causes
+            if o.failed_rate > 0:
+                cause = self.diagnose_failed(o, scorecard)
+                root_cause_weights[cause] += o.failed_rate
+
+        # Convert weighted sums to counts proportional to outcome counts
+        # did_not_try causes (only 2: effort and risk)
+        total_dnt_weight = root_cause_weights["effort_barrier"] + root_cause_weights["risk_barrier"]
+        # failed causes
+        total_failed_weight = root_cause_weights["capability_barrier"] + root_cause_weights["patience_barrier"]
+
+        root_cause_counts: dict[str, int] = {}
+
+        # Distribute did_not_try_count among its causes
+        if total_dnt_weight > 0 and did_not_try_count > 0:
+            for cause in ["effort_barrier", "risk_barrier"]:
+                proportion = root_cause_weights[cause] / total_dnt_weight
+                root_cause_counts[cause] = round(proportion * did_not_try_count)
+
+            # Adjust for rounding
+            dnt_assigned = sum(root_cause_counts.get(c, 0) for c in ["effort_barrier", "risk_barrier"])
+            if dnt_assigned != did_not_try_count:
+                # Find the cause with highest weight and adjust
+                max_cause = max(["effort_barrier", "risk_barrier"],
+                               key=lambda c: root_cause_weights[c])
+                root_cause_counts[max_cause] += did_not_try_count - dnt_assigned
+        else:
+            for cause in ["effort_barrier", "risk_barrier"]:
+                root_cause_counts[cause] = 0
+
+        # Distribute failed_count among its causes
+        if total_failed_weight > 0 and failed_count > 0:
+            for cause in ["capability_barrier", "patience_barrier"]:
+                proportion = root_cause_weights[cause] / total_failed_weight
+                root_cause_counts[cause] = round(proportion * failed_count)
+
+            # Adjust for rounding
+            failed_assigned = sum(root_cause_counts.get(c, 0) for c in ["capability_barrier", "patience_barrier"])
+            if failed_assigned != failed_count:
+                max_cause = max(["capability_barrier", "patience_barrier"],
+                               key=lambda c: root_cause_weights[c])
+                root_cause_counts[max_cause] += failed_count - failed_assigned
+        else:
+            for cause in ["capability_barrier", "patience_barrier"]:
+                root_cause_counts[cause] = 0
+
+        # Step 3: Build nodes
+        nodes: list[SankeyNode] = []
+        total_synths = len(outcomes)
+
+        # Level 1: Population
+        nodes.append(
+            SankeyNode(
+                id="population",
+                label=self.SANKEY_LABELS["population"],
+                level=1,
+                color=self.SANKEY_COLORS["population"],
+                value=total_synths,
+            )
+        )
+
+        # Level 2: Outcomes (only include if count > 0)
+        for outcome_id in ["did_not_try", "failed", "success"]:
+            count = getattr(outcome_counts, outcome_id)
+            if count > 0:
+                nodes.append(
+                    SankeyNode(
+                        id=outcome_id,
+                        label=self.SANKEY_LABELS[outcome_id],
+                        level=2,
+                        color=self.SANKEY_COLORS[outcome_id],
+                        value=count,
+                    )
+                )
+
+        # Level 3: Root causes (only include if count > 0)
+        for cause_id, count in root_cause_counts.items():
+            if count > 0:
+                nodes.append(
+                    SankeyNode(
+                        id=cause_id,
+                        label=self.SANKEY_LABELS[cause_id],
+                        level=3,
+                        color=self.SANKEY_COLORS[cause_id],
+                        value=count,
+                    )
+                )
+
+        # Step 4: Build links (only include if value > 0)
+        links: list[SankeyLink] = []
+
+        # Level 1 → Level 2 links
+        for outcome_id in ["did_not_try", "failed", "success"]:
+            count = getattr(outcome_counts, outcome_id)
+            if count > 0:
+                links.append(
+                    SankeyLink(source="population", target=outcome_id, value=count)
+                )
+
+        # Level 2 → Level 3 links for did_not_try
+        for cause_id in ["effort_barrier", "risk_barrier"]:
+            count = root_cause_counts[cause_id]
+            if count > 0:
+                links.append(
+                    SankeyLink(source="did_not_try", target=cause_id, value=count)
+                )
+
+        # Level 2 → Level 3 links for failed
+        for cause_id in ["capability_barrier", "patience_barrier"]:
+            count = root_cause_counts[cause_id]
+            if count > 0:
+                links.append(
+                    SankeyLink(source="failed", target=cause_id, value=count)
+                )
+
+        return SankeyFlowChart(
+            analysis_id=analysis_id,
+            nodes=nodes,
+            links=links,
+            total_synths=total_synths,
+            outcome_counts=outcome_counts,
         )
 
 
