@@ -65,16 +65,18 @@ class ClusterLabelingService:
         self.llm = llm_client or get_llm_client()
         self.logger = logger.bind(component="cluster_labeling_service")
 
-    def generate_labels(self, profiles: list[ClusterProfile]) -> dict[int, str]:
+    def generate_labels(
+        self, profiles: list[ClusterProfile]
+    ) -> dict[int, dict[str, str]]:
         """
-        Generate descriptive names for all clusters in a single LLM call.
+        Generate descriptive names and explanations for all clusters in a single LLM call.
 
         Args:
             profiles: List of ClusterProfile with cluster characteristics.
 
         Returns:
-            Dict mapping cluster_id to suggested name (2-4 words).
-            Falls back to "Cluster N" if LLM fails for any cluster.
+            Dict mapping cluster_id to {"name": "...", "explanation": "..."}.
+            Falls back to generic values if LLM fails.
         """
         if not profiles:
             return {}
@@ -98,7 +100,13 @@ class ClusterLabelingService:
             except Exception as e:
                 self.logger.error(f"Failed to generate cluster labels: {e}")
                 # Fallback to generic names
-                return {p.cluster_id: f"Cluster {p.cluster_id + 1}" for p in profiles}
+                return {
+                    p.cluster_id: {
+                        "name": f"Cluster {p.cluster_id + 1}",
+                        "explanation": "",
+                    }
+                    for p in profiles
+                }
 
     def _build_prompt(self, profiles: list[ClusterProfile]) -> str:
         """
@@ -144,7 +152,9 @@ class ClusterLabelingService:
 
         return f"""Você é um especialista em análise comportamental de usuários.
 
-Analise os clusters abaixo e gere um nome descritivo (2-4 palavras, em português) para cada um.
+Analise os clusters abaixo e gere para cada um:
+1. Um nome descritivo (3 a 5 palavras, em português)
+2. Uma breve explicação (10-15 palavras) que justifique o nome
 
 ## Regras para os nomes
 - Devem ser DISTINTOS entre si (cada cluster com nome único)
@@ -152,6 +162,11 @@ Analise os clusters abaixo e gere um nome descritivo (2-4 palavras, em portuguê
 - Memoráveis e intuitivos
 - Focados no COMPORTAMENTO, não em julgamentos de valor
 - Evite termos genéricos como "Grupo A" ou "Cluster 1"
+
+## Regras para as explicações
+- Máximo de 15 palavras
+- Destaque os traits mais marcantes que definem o cluster
+- Use linguagem simples e direta
 
 ## Contexto dos Traits
 - Capacidade: habilidade técnica do usuário para completar tarefas (0-1)
@@ -167,46 +182,59 @@ Analise os clusters abaixo e gere um nome descritivo (2-4 palavras, em portuguê
 Responda APENAS com o JSON abaixo, sem texto adicional:
 {{
   "clusters": [
-    {{"cluster_id": 0, "name": "Nome Descritivo"}},
-    {{"cluster_id": 1, "name": "Nome Descritivo"}}
+    {{"cluster_id": 0, "name": "Nome Descritivo", "explanation": "Breve explicação"}},
+    {{"cluster_id": 1, "name": "Nome Descritivo", "explanation": "Breve explicação"}}
   ]
 }}"""
 
     def _parse_response(
         self, response_str: str, profiles: list[ClusterProfile]
-    ) -> dict[int, str]:
+    ) -> dict[int, dict[str, str]]:
         """
-        Parse LLM response and extract cluster names.
+        Parse LLM response and extract cluster names and explanations.
 
         Args:
             response_str: JSON string from LLM.
             profiles: Original profiles for fallback.
 
         Returns:
-            Dict mapping cluster_id to name.
+            Dict mapping cluster_id to {"name": "...", "explanation": "..."}.
         """
         try:
             data = json.loads(response_str)
             clusters = data.get("clusters", [])
 
-            labels = {}
+            labels: dict[int, dict[str, str]] = {}
             for item in clusters:
                 cluster_id = item.get("cluster_id")
                 name = item.get("name", "").strip()
+                explanation = item.get("explanation", "").strip()
 
                 if cluster_id is not None and name:
-                    labels[cluster_id] = name
+                    labels[cluster_id] = {
+                        "name": name,
+                        "explanation": explanation,
+                    }
 
             # Ensure all clusters have labels (fallback for missing ones)
             for profile in profiles:
                 if profile.cluster_id not in labels:
-                    labels[profile.cluster_id] = f"Cluster {profile.cluster_id + 1}"
+                    labels[profile.cluster_id] = {
+                        "name": f"Cluster {profile.cluster_id + 1}",
+                        "explanation": "",
+                    }
 
             return labels
 
         except json.JSONDecodeError as e:
             self.logger.warning(f"Failed to parse LLM response as JSON: {e}")
-            return {p.cluster_id: f"Cluster {p.cluster_id + 1}" for p in profiles}
+            return {
+                p.cluster_id: {
+                    "name": f"Cluster {p.cluster_id + 1}",
+                    "explanation": "",
+                }
+                for p in profiles
+            }
 
 
 # =============================================================================
@@ -282,7 +310,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Prompt build test failed: {e}")
 
-    # Test 2: Parse response
+    # Test 2: Parse response with name and explanation
     total_tests += 1
     try:
         service = ClusterLabelingService()
@@ -290,21 +318,34 @@ if __name__ == "__main__":
         mock_response = json.dumps(
             {
                 "clusters": [
-                    {"cluster_id": 0, "name": "Exploradores Cautelosos"},
-                    {"cluster_id": 1, "name": "Usuários Confiantes"},
+                    {
+                        "cluster_id": 0,
+                        "name": "Exploradores Cautelosos",
+                        "explanation": "Alta capacidade mas baixa confiança no sistema.",
+                    },
+                    {
+                        "cluster_id": 1,
+                        "name": "Usuários Confiantes",
+                        "explanation": "Seguem recomendações e exploram novas funcionalidades.",
+                    },
                 ]
             }
         )
 
         labels = service._parse_response(mock_response, mock_profiles)
 
-        if labels.get(0) != "Exploradores Cautelosos":
+        if labels.get(0, {}).get("name") != "Exploradores Cautelosos":
             all_validation_failures.append(
-                f"Expected 'Exploradores Cautelosos', got '{labels.get(0)}'"
+                f"Expected name 'Exploradores Cautelosos', got '{labels.get(0, {}).get('name')}'"
             )
-        if labels.get(1) != "Usuários Confiantes":
+        expected_explanation = "Alta capacidade mas baixa confiança no sistema."
+        if labels.get(0, {}).get("explanation") != expected_explanation:
             all_validation_failures.append(
-                f"Expected 'Usuários Confiantes', got '{labels.get(1)}'"
+                f"Expected explanation for cluster 0, got '{labels.get(0, {}).get('explanation')}'"
+            )
+        if labels.get(1, {}).get("name") != "Usuários Confiantes":
+            all_validation_failures.append(
+                f"Expected name 'Usuários Confiantes', got '{labels.get(1, {}).get('name')}'"
             )
 
         print("✓ Parse response test passed")
@@ -320,13 +361,18 @@ if __name__ == "__main__":
         invalid_response = "not valid json"
         labels = service._parse_response(invalid_response, mock_profiles)
 
-        if labels.get(0) != "Cluster 1":
+        if labels.get(0, {}).get("name") != "Cluster 1":
             all_validation_failures.append(
-                f"Expected fallback 'Cluster 1', got '{labels.get(0)}'"
+                f"Expected fallback 'Cluster 1', got '{labels.get(0, {}).get('name')}'"
             )
-        if labels.get(1) != "Cluster 2":
+        if labels.get(1, {}).get("name") != "Cluster 2":
             all_validation_failures.append(
-                f"Expected fallback 'Cluster 2', got '{labels.get(1)}'"
+                f"Expected fallback 'Cluster 2', got '{labels.get(1, {}).get('name')}'"
+            )
+        if labels.get(0, {}).get("explanation") != "":
+            got_explanation = labels.get(0, {}).get("explanation")
+            all_validation_failures.append(
+                f"Expected empty explanation on fallback, got '{got_explanation}'"
             )
 
         print("✓ Fallback test passed")

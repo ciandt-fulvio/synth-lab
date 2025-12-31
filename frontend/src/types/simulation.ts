@@ -252,6 +252,7 @@ export interface RadarAxis {
 export interface ClusterRadar {
   cluster_id: number;
   label: string;
+  explanation: string;
   color: string;
   axes: RadarAxis[];
   success_rate: number;

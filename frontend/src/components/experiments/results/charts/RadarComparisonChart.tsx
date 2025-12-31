@@ -8,7 +8,6 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   ResponsiveContainer,
-  Legend,
   Tooltip,
 } from 'recharts';
 import type { RadarChart as RadarData } from '@/types/simulation';
@@ -73,12 +72,6 @@ export function RadarComparisonChart({ data }: RadarComparisonChartProps) {
             }}
             formatter={(value: number) => value.toFixed(2)}
           />
-          <Legend
-            wrapperStyle={{ paddingTop: '20px' }}
-            formatter={(value) => (
-              <span className="text-sm text-slate-600">{value}</span>
-            )}
-          />
 
           {clusters.map((cluster) => (
             <Radar
@@ -95,17 +88,25 @@ export function RadarComparisonChart({ data }: RadarComparisonChartProps) {
       </ResponsiveContainer>
 
       {/* Cluster summary */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {clusters.map((cluster) => (
           <div
             key={cluster.cluster_id}
-            className="p-3 bg-slate-50 rounded-lg text-center"
+            className="p-3 bg-slate-50 rounded-lg border-l-4"
+            style={{ borderLeftColor: cluster.color }}
           >
-            <div
-              className="w-4 h-4 rounded-full mx-auto mb-2"
-              style={{ backgroundColor: cluster.color }}
-            />
-            <p className="text-sm font-medium text-slate-800">{cluster.label}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <div
+                className="w-3 h-3 rounded-full flex-shrink-0"
+                style={{ backgroundColor: cluster.color }}
+              />
+              <p className="text-sm font-medium text-slate-800">{cluster.label}</p>
+            </div>
+            {cluster.explanation && (
+              <p className="text-xs text-slate-600 mb-2 leading-relaxed">
+                {cluster.explanation}
+              </p>
+            )}
             <p className="text-xs text-slate-500">
               Taxa de sucesso: {(cluster.success_rate * 100).toFixed(0)}%
             </p>
