@@ -17,7 +17,6 @@
 |-------|--------|-------|-------------|
 | Phase 1: Setup | ✅ DONE | 3/3 | Dependencies and infrastructure |
 | Phase 2: Foundational | ✅ DONE | 5/5 | Entities and helpers |
-| Phase 3: US1 - Visão Geral | ✅ DONE | 10/10 | Try vs Success, Distribution, Sankey |
 | Phase 4: US2 - Localização | ✅ DONE | 13/13 | Heatmap, Scatter, Tornado, Box Plot |
 | Phase 5: US3 - Segmentação | ✅ DONE | 19/19 | K-Means, Hierarchical Clustering |
 | Phase 6: US4 - Casos Especiais | ✅ DONE | 12/12 | Extreme Cases, Outliers |
@@ -50,7 +49,6 @@
 ✅ **Analysis Charts** (US1+US2 - 7 endpoints):
 - `GET /simulation/simulations/{id}/charts/try-vs-success` - Quadrant scatter plot
 - `GET /simulation/simulations/{id}/charts/distribution` - Outcome distribution
-- `GET /simulation/simulations/{id}/charts/sankey` - User flow diagram
 - `GET /simulation/simulations/{id}/charts/failure-heatmap` - 2D binned heatmap
 - `GET /simulation/simulations/{id}/charts/scatter` - Correlation with Pearson stats
 - `GET /simulation/simulations/{id}/charts/tornado` - Sensitivity diagram
@@ -135,7 +133,6 @@ All phases completed. Potential future improvements:
 
 **⚠️ CRITICAL**: Nenhum trabalho de User Story pode começar até esta fase estar completa
 
-- [x] T004 [P] Criar entidades base de chart_data em src/synth_lab/domain/entities/chart_data.py (TryVsSuccessPoint, TryVsSuccessChart, SynthDistribution, OutcomeDistributionChart, SankeyNode, SankeyLink, SankeyChart)
 - [x] T005 [P] Adicionar entidades de heatmap/boxplot/scatter em src/synth_lab/domain/entities/chart_data.py (HeatmapCell, FailureHeatmapChart, BoxPlotStats, RegionBoxPlot, BoxPlotChart, CorrelationPoint, CorrelationStats, ScatterCorrelationChart, TornadoBar, TornadoChart)
 - [x] T006 [P] Criar helper extract_features() em src/synth_lab/services/simulation/feature_extraction.py para extrair numpy arrays de synth_outcomes
 - [x] T007 Criar schemas de request/response em src/synth_lab/api/schemas/analysis.py (TryVsSuccessParams, DistributionParams, HeatmapParams, etc.)
@@ -147,7 +144,6 @@ All phases completed. Potential future improvements:
 
 ## Phase 3: User Story 1 - Visão Geral da Simulação (Priority: P1) 🎯 MVP ✅ COMPLETED
 
-**Goal**: UX Researcher obtém visão rápida dos resultados via Try vs Success, Outcome Distribution e Sankey
 
 **Independent Test**: Executar simulação completa e verificar se os 3 gráficos exibem dados corretos
 
@@ -155,19 +151,15 @@ All phases completed. Potential future improvements:
 
 - [x] T009 [P] [US1] Unit test para get_try_vs_success() em tests/unit/services/simulation/test_chart_data_service.py
 - [x] T010 [P] [US1] Unit test para get_outcome_distribution() em tests/unit/services/simulation/test_chart_data_service.py
-- [x] T011 [P] [US1] Unit test para get_sankey() em tests/unit/services/simulation/test_chart_data_service.py
 
 ### Implementation for User Story 1
 
 - [x] T012 [US1] Implementar ChartDataService.get_try_vs_success() em src/synth_lab/services/simulation/chart_data_service.py
 - [x] T013 [US1] Implementar ChartDataService.get_outcome_distribution() em src/synth_lab/services/simulation/chart_data_service.py
-- [x] T014 [US1] Implementar ChartDataService.get_sankey() em src/synth_lab/services/simulation/chart_data_service.py
 - [x] T015 [P] [US1] Adicionar endpoint GET /simulation/simulations/{id}/charts/try-vs-success em src/synth_lab/api/routers/simulation.py
 - [x] T016 [P] [US1] Adicionar endpoint GET /simulation/simulations/{id}/charts/distribution em src/synth_lab/api/routers/simulation.py
-- [x] T017 [P] [US1] Adicionar endpoint GET /simulation/simulations/{id}/charts/sankey em src/synth_lab/api/routers/simulation.py
 - [x] T018 [US1] Integration test para endpoints da Fase 1 em tests/integration/api/test_analysis_endpoints.py
 
-**Checkpoint**: ✅ User Story 1 funcional - Try vs Success, Distribution e Sankey disponíveis
 
 ---
 
@@ -398,12 +390,10 @@ All phases completed. Potential future improvements:
 # Launch all tests for User Story 1 together:
 Task: "Unit test para get_try_vs_success() em tests/unit/services/simulation/test_chart_data_service.py"
 Task: "Unit test para get_outcome_distribution() em tests/unit/services/simulation/test_chart_data_service.py"
-Task: "Unit test para get_sankey() em tests/unit/services/simulation/test_chart_data_service.py"
 
 # After tests pass, launch all endpoints together:
 Task: "Adicionar endpoint GET /simulation/simulations/{id}/charts/try-vs-success em src/synth_lab/api/routers/simulation.py"
 Task: "Adicionar endpoint GET /simulation/simulations/{id}/charts/distribution em src/synth_lab/api/routers/simulation.py"
-Task: "Adicionar endpoint GET /simulation/simulations/{id}/charts/sankey em src/synth_lab/api/routers/simulation.py"
 ```
 
 ---
@@ -422,7 +412,6 @@ Task: "Adicionar endpoint GET /simulation/simulations/{id}/charts/sankey em src/
 ### Incremental Delivery
 
 1. Setup + Foundational → Fundação pronta
-2. User Story 1 → Test → Deploy (Try vs Success, Distribution, Sankey)
 3. User Story 2 → Test → Deploy (Heatmap, Box Plot, Scatter, Tornado)
 4. User Story 3 → Test → Deploy (Clustering)
 5. User Story 4 → Test → Deploy (Extreme Cases, Outliers)

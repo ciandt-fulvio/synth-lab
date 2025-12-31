@@ -121,10 +121,7 @@ def sample_chart_data_clustering():
 
 
 @pytest.fixture
-def sample_chart_data_sankey():
-    """Sample chart data for Sankey flow diagram."""
     return {
-        "chart_type": "sankey",
         "flows": [
             {"source": "Aware", "target": "Try", "value": 70},
             {"source": "Aware", "target": "Not Try", "value": 30},
@@ -415,9 +412,7 @@ class TestGetAllInsights:
                 caption="Caption 1",
                 explanation="Explanation 1",
             ),
-            "sankey": ChartInsight(
                 simulation_id="sim_1",
-                chart_type="sankey",
                 caption="Caption 2",
                 explanation="Explanation 2",
             ),

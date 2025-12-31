@@ -37,7 +37,6 @@ class AnalysisCacheService:
     DEFAULT_PARAMS = {
         CacheKeys.TRY_VS_SUCCESS: {"x_threshold": 0.5, "y_threshold": 0.5},
         CacheKeys.DISTRIBUTION: {"sort_by": "success_rate", "order": "desc", "limit": 50},
-        CacheKeys.SANKEY: {},
         CacheKeys.HEATMAP: {
             "x_axis": "digital_literacy",
             "y_axis": "domain_expertise",
@@ -121,17 +120,6 @@ class AnalysisCacheService:
         except Exception as e:
             self.logger.error(f"Failed to compute {CacheKeys.DISTRIBUTION}: {e}")
             results[CacheKeys.DISTRIBUTION] = False
-
-        try:
-            chart = self.chart_service.get_sankey(
-                simulation_id=analysis_id,
-                outcomes=outcomes,
-            )
-            cache_entries[CacheKeys.SANKEY] = chart.model_dump()
-            results[CacheKeys.SANKEY] = True
-        except Exception as e:
-            self.logger.error(f"Failed to compute {CacheKeys.SANKEY}: {e}")
-            results[CacheKeys.SANKEY] = False
 
         # Phase 2: Problem Location charts
         try:
@@ -303,7 +291,6 @@ class AnalysisCacheService:
         all_keys = [
             CacheKeys.TRY_VS_SUCCESS,
             CacheKeys.DISTRIBUTION,
-            CacheKeys.SANKEY,
             CacheKeys.HEATMAP,
             CacheKeys.SCATTER,
             CacheKeys.CORRELATIONS,

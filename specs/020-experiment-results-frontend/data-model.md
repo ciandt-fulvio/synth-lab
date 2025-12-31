@@ -19,7 +19,6 @@ This document defines TypeScript types for the simulation analysis frontend. Typ
 // frontend/src/types/simulation.ts
 
 // =============================================================================
-// Phase 1: Overview Charts (Try vs Success, Distribution, Sankey)
 // =============================================================================
 
 /** Point in Try vs Success scatter chart */
@@ -68,23 +67,15 @@ export interface OutcomeDistributionChart {
   };
 }
 
-/** Node in Sankey diagram */
-export interface SankeyNode {
   name: string;
 }
 
-/** Link in Sankey diagram */
-export interface SankeyLink {
   source: number;
   target: number;
   value: number;
 }
 
-/** Sankey diagram data */
-export interface SankeyChart {
   simulation_id: string;
-  nodes: SankeyNode[];
-  links: SankeyLink[];
 }
 
 // =============================================================================
@@ -366,7 +357,6 @@ export interface PDPComparison {
 export type ChartType =
   | 'try_vs_success'
   | 'distribution'
-  | 'sankey'
   | 'failure_heatmap'
   | 'box_plot'
   | 'scatter'

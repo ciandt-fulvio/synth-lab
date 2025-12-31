@@ -158,7 +158,7 @@ Research technical approach for implementing automatic AI-generated insights for
 
 **Current System**:
 - `analysis_cache` table: `(analysis_id, cache_key, data, params, computed_at)`
-- `CacheKeys` enum: TRY_VS_SUCCESS, DISTRIBUTION, SANKEY, HEATMAP, SCATTER, CORRELATIONS, EXTREME_CASES, OUTLIERS, SHAP_SUMMARY
+- `CacheKeys` enum: TRY_VS_SUCCESS, DISTRIBUTION, HEATMAP, SCATTER, CORRELATIONS, EXTREME_CASES, OUTLIERS, SHAP_SUMMARY
 - Pre-computation via `_pre_compute_cache()` in daemon thread after analysis completes
 
 **Integration Points**:

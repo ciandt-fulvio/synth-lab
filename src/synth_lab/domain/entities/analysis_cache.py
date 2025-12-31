@@ -60,7 +60,6 @@ class CacheKeys:
     # Phase 1: Overview
     TRY_VS_SUCCESS = "try_vs_success"
     DISTRIBUTION = "distribution"
-    SANKEY = "sankey"
 
     # Phase 2: Problem Location
     HEATMAP = "heatmap"

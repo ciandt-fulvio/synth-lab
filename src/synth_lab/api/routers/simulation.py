@@ -27,7 +27,6 @@ from synth_lab.domain.entities import (
     PDPComparison,
     PDPResult,
     RadarChart,
-    SankeyChart,
     ScatterCorrelationChart,
     Scenario,
     ShapExplanation,
@@ -1102,36 +1101,6 @@ async def get_distribution_chart(
         order=order,  # type: ignore
         limit=limit,
     )
-
-
-@router.get(
-    "/simulations/{simulation_id}/charts/sankey",
-    response_model=SankeyChart,
-)
-async def get_sankey_chart(
-    simulation_id: str,
-) -> SankeyChart:
-    """
-    Get Sankey diagram data.
-
-    Flow: All -> [Attempted, Not Attempted] -> [Success, Failed]
-    """
-    sim_service = get_simulation_service()
-    chart_service = get_chart_data_service()
-
-    # Verify simulation exists and is completed
-    run = sim_service.get_simulation(simulation_id)
-    if run is None:
-        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
-    if run.status != "completed":
-        raise HTTPException(
-            status_code=400,
-            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
-        )
-
-    outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
-
-    return chart_service.get_sankey(simulation_id=simulation_id, outcomes=outcomes)
 
 
 @router.get(

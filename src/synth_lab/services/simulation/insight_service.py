@@ -207,7 +207,6 @@ class InsightService:
         chart_descriptions = {
             "try_vs_success": "quadrant chart showing try rate vs success rate",
             "distribution": "histogram showing distribution of values",
-            "sankey": "flow diagram showing user journey transitions",
             "failure_heatmap": "heatmap showing failure patterns",
             "scatter": "scatter plot showing correlation between variables",
             "box_plot": "box plot showing value distributions by category",
@@ -215,6 +214,7 @@ class InsightService:
             "outliers": "outlier detection chart highlighting anomalies",
             "shap_summary": "SHAP summary showing feature importance",
             "pdp": "partial dependence plot showing feature effects",
+            "dendrogram": "hierarchical clustering dendrogram showing user segment relationships",
         }
 
         chart_desc = chart_descriptions.get(chart_type, f"{chart_type} visualization")
