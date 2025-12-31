@@ -14,7 +14,7 @@
  *   - actions: React node for right-side actions (optional)
  */
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,22 +48,24 @@ export function SynthLabHeader({ subtitle, backTo, actions }: SynthLabHeaderProp
               </Button>
             )}
 
-            {/* Logo with glow effect */}
-            <div className="relative">
+            {/* Logo - Link to homepage */}
+            <Link to="/" className="relative hover:opacity-80 transition-opacity">
               <div className="logo-glow" />
               <img
                 src="/synthlab-log.png"
                 alt="SynthLab Logo"
                 className="relative h-9 w-auto logo-pulse-loop"
               />
-            </div>
+            </Link>
 
             {/* Title and subtitle */}
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 bg-clip-text text-transparent">
-                  SynthLab
-                </h1>
+                <Link to="/" className="hover:opacity-80 transition-opacity">
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 bg-clip-text text-transparent">
+                    SynthLab
+                  </h1>
+                </Link>
                 <Badge variant="secondary" className="text-xs badge-primary">
                   Beta
                 </Badge>
