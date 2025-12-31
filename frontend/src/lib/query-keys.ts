@@ -31,7 +31,6 @@ export const queryKeys = {
   analysis: {
     tryVsSuccess: (experimentId: string) => ['analysis', experimentId, 'try-vs-success'] as const,
     distribution: (experimentId: string) => ['analysis', experimentId, 'distribution'] as const,
-    sankey: (experimentId: string) => ['analysis', experimentId, 'sankey'] as const,
     failureHeatmap: (experimentId: string) => ['analysis', experimentId, 'failure-heatmap'] as const,
     scatter: (experimentId: string) => ['analysis', experimentId, 'scatter'] as const,
     clusters: (experimentId: string) => ['analysis', experimentId, 'clusters'] as const,
@@ -52,7 +51,6 @@ export const queryKeys = {
   simulation: {
     tryVsSuccess: (simulationId: string) => ['simulation', simulationId, 'try-vs-success'] as const,
     distribution: (simulationId: string) => ['simulation', simulationId, 'distribution'] as const,
-    sankey: (simulationId: string) => ['simulation', simulationId, 'sankey'] as const,
     failureHeatmap: (simulationId: string) => ['simulation', simulationId, 'failure-heatmap'] as const,
     scatter: (simulationId: string) => ['simulation', simulationId, 'scatter'] as const,
     boxPlot: (simulationId: string) => ['simulation', simulationId, 'box-plot'] as const,

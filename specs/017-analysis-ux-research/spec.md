@@ -12,11 +12,9 @@ Este sistema fornece ferramentas de análise quantitativa para UX Researchers qu
 ### User Story 1 - Visão Geral da Simulação (Priority: P1)
 O UX Researcher quer ter uma visão rápida e abrangente dos resultados da simulação para entender "o que aconteceu" antes de aprofundar a análise.
 **Why this priority**: Esta é a primeira etapa da jornada de análise. Sem uma visão geral clara, o researcher não consegue priorizar onde investigar mais profundamente. É o ponto de entrada obrigatório para todas as outras análises.
-**Independent Test**: Pode ser testado executando uma simulação completa e verificando se os gráficos de Try vs Success, Outcome Distribution e Sankey exibem dados corretos e interpretáveis.
 **Acceptance Scenarios**:
 1. **Given** uma simulação finalizada com resultados de synths, **When** o researcher solicita o gráfico Try vs Success, **Then** o sistema retorna todos os synths posicionados nos 4 quadrantes (low_value, usability_issue, discovery_issue, ok) com contagens agregadas.
 2. **Given** uma simulação com 500 synths, **When** o researcher solicita o Outcome Distribution, **Then** o sistema retorna a proporção de did_not_try, failed e success para cada synth, ordenados conforme parâmetro.
-3. **Given** resultados agregados de uma simulação, **When** o researcher solicita o diagrama Sankey, **Then** o sistema retorna os nós (all, attempted, not_attempted, success, failed) e links com contagens absolutas e percentuais corretos.
 ---
 ### User Story 2 - Localização de Problemas (Priority: P1)
 O UX Researcher precisa identificar "onde exatamente a experiência quebra" - quais combinações de atributos de usuário resultam em maior taxa de falha.
@@ -76,7 +74,6 @@ O UX Researcher quer legendas curtas e insights explicativos gerados automaticam
 #### FASE 1 - Visão Geral
 - **FR-001**: Sistema DEVE fornecer gráfico Try vs Success com todos os synths posicionados por attempt_rate (X) e success_rate (Y), classificados em 4 quadrantes configuráveis.
 - **FR-002**: Sistema DEVE fornecer Outcome Distribution mostrando proporção de did_not_try, failed e success por synth, com suporte a ordenação e limite de resultados.
-- **FR-003**: Sistema DEVE fornecer diagrama Sankey com nós (all, attempted, not_attempted, success, failed) e links com contagens absolutas e percentuais.
 #### FASE 2 - Localização
 - **FR-004**: Sistema DEVE fornecer Failure Heatmap 2D com eixos configuráveis (qualquer par de atributos latentes), número de bins ajustável e identificação de células críticas.
 - **FR-005**: Sistema DEVE fornecer Box Plot por Região usando dados de region_analysis existente, incluindo baseline para comparação.
@@ -106,7 +103,6 @@ O UX Researcher quer legendas curtas e insights explicativos gerados automaticam
 ---
 ### Key Entities
 - **TryVsSuccessChart**: Representa scatter plot com synths nos 4 quadrantes (attempt_rate x success_rate). Contém pontos, contagens por quadrante e thresholds configuráveis.
-- **SankeyChart**: Representa fluxo de synths entre estados (all → attempted/not_attempted → success/failed). Contém nós e links com valores absolutos e percentuais.
 - **FailureHeatmapChart**: Representa matriz 2D com taxa de falha por combinação de atributos. Contém células com failure_rate, synth_count e identificação de células críticas.
 - **ClusterResult**: Representa resultado de clustering (K-Means ou Hierarchical). Contém profiles de clusters com centroid, size, traits distintivas e suggested_label.
 - **OutlierResult**: Representa synths detectados como anômalos pelo Isolation Forest. Contém anomaly_score, tipo de outlier e comparação com "normais".

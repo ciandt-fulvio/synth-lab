@@ -71,38 +71,7 @@ class OutcomeDistributionChart(BaseModel):
 
 
 # =============================================================================
-# 3. Sankey Chart
-# =============================================================================
-
-
-class SankeyNode(BaseModel):
-    """Node in the Sankey diagram."""
-
-    id: str = Field(description='Node ID: "all", "attempted", "not_attempted", "success", "failed"')
-    label: str = Field(description='Display label: "Todos (500)", "Tentaram (375)"')
-    value: int = Field(ge=0, description="Absolute count.")
-
-
-class SankeyLink(BaseModel):
-    """Link between Sankey nodes."""
-
-    source: str = Field(description="Source node ID.")
-    target: str = Field(description="Target node ID.")
-    value: int = Field(ge=0, description="Flow count.")
-    percentage: float = Field(ge=0.0, le=100.0, description="Percentage of total.")
-
-
-class SankeyChart(BaseModel):
-    """Complete data for Sankey diagram."""
-
-    simulation_id: str = Field(description="ID of the simulation.")
-    total_synths: int = Field(description="Total number of synths.")
-    nodes: list[SankeyNode] = Field(description="All nodes.")
-    links: list[SankeyLink] = Field(description="All links.")
-
-
-# =============================================================================
-# 4. Failure Heatmap Chart
+# 3. Failure Heatmap Chart
 # =============================================================================
 
 
@@ -138,7 +107,7 @@ class FailureHeatmapChart(BaseModel):
 
 
 # =============================================================================
-# 5. Box Plot Chart
+# 4. Box Plot Chart
 # =============================================================================
 
 
@@ -175,7 +144,7 @@ class BoxPlotChart(BaseModel):
 
 
 # =============================================================================
-# 6. Scatter Correlation Chart
+# 5. Scatter Correlation Chart
 # =============================================================================
 
 
@@ -217,7 +186,7 @@ class ScatterCorrelationChart(BaseModel):
 
 
 # =============================================================================
-# 7. Attribute Correlation Chart
+# 6. Attribute Correlation Chart
 # =============================================================================
 
 
@@ -307,17 +276,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"SynthDistribution creation failed: {e}")
 
-    # Test 4: SankeyNode and SankeyLink creation
-    total_tests += 1
-    try:
-        node = SankeyNode(id="all", label="Todos (500)", value=500)
-        link = SankeyLink(source="all", target="attempted", value=375, percentage=75.0)
-        if link.percentage != 75.0:
-            all_validation_failures.append(f"percentage mismatch: {link.percentage}")
-    except Exception as e:
-        all_validation_failures.append(f"Sankey entities creation failed: {e}")
-
-    # Test 5: HeatmapCell creation
+    # Test 4: HeatmapCell creation
     total_tests += 1
     try:
         cell = HeatmapCell(
@@ -334,7 +293,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"HeatmapCell creation failed: {e}")
 
-    # Test 6: BoxPlotStats creation
+    # Test 5: BoxPlotStats creation
     total_tests += 1
     try:
         stats = BoxPlotStats(
@@ -351,7 +310,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"BoxPlotStats creation failed: {e}")
 
-    # Test 7: CorrelationStats creation
+    # Test 6: CorrelationStats creation
     total_tests += 1
     try:
         corr = CorrelationStats(
@@ -367,7 +326,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"CorrelationStats creation failed: {e}")
 
-    # Test 8: Reject invalid quadrant
+    # Test 7: Reject invalid quadrant
     total_tests += 1
     try:
         TryVsSuccessPoint(
@@ -382,7 +341,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Unexpected error for invalid quadrant: {e}")
 
-    # Test 9: Reject attempt_rate > 1
+    # Test 8: Reject attempt_rate > 1
     total_tests += 1
     try:
         TryVsSuccessPoint(

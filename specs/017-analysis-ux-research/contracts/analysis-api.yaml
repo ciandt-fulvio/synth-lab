@@ -84,9 +84,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/OutcomeDistributionChart'
 
-  /simulation/simulations/{simulation_id}/charts/sankey:
     get:
-      summary: Get Sankey diagram data
       tags: [Phase 1 - Overview]
       parameters:
         - name: simulation_id
@@ -96,11 +94,9 @@ paths:
             type: string
       responses:
         '200':
-          description: Sankey data
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SankeyChart'
 
   # ============================================================================
   # FASE 2 - Localização
@@ -573,7 +569,6 @@ paths:
           required: true
           schema:
             type: string
-            enum: [try-vs-success, distribution, sankey, failure-heatmap, box-plot, scatter, tornado]
       responses:
         '200':
           description: Generated caption
@@ -665,7 +660,6 @@ components:
         total_synths:
           type: integer
 
-    SankeyChart:
       type: object
       properties:
         simulation_id:
@@ -1097,7 +1091,6 @@ components:
 
 tags:
   - name: Phase 1 - Overview
-    description: Visão geral da simulação (Try vs Success, Sankey, Distribution)
   - name: Phase 2 - Localization
     description: Localização de problemas (Heatmap, Box Plot, Scatter, Tornado)
   - name: Phase 3 - Segmentation

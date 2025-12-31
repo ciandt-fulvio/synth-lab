@@ -16,7 +16,7 @@ CREATE INDEX IF NOT EXISTS idx_chart_insights_simulation ON chart_insights(simul
 CREATE INDEX IF NOT EXISTS idx_chart_insights_type ON chart_insights(insight_type);
 
 -- insight_type values (from ChartType enum):
---   'try_vs_success', 'distribution', 'sankey', 'failure_heatmap',
+--   'try_vs_success', 'distribution', 'failure_heatmap',
 --   'scatter', 'tornado', 'box_plot', 'clustering', 'outliers',
 --   'shap_summary', 'pdp', 'executive_summary'
 --

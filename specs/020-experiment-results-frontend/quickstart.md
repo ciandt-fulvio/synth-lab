@@ -28,12 +28,10 @@ Este guia descreve como usar os resultados de análise de experimentos no fronte
 **Gráficos disponíveis**:
 - **Try vs Success**: Scatter plot mostrando tentativa vs sucesso por synth
 - **Distribuição**: Barras empilhadas com taxas de sucesso/falha/não tentou
-- **Sankey**: Fluxo de synths através das etapas de decisão
 
 **Como usar**:
 1. Identifique o quadrante dominante no Try vs Success
 2. Verifique a distribuição geral de outcomes
-3. Analise onde os synths "se perdem" no fluxo Sankey
 
 ### Fase 2: Localização
 
