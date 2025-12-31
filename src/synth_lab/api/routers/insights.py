@@ -116,6 +116,7 @@ async def generate_chart_insight(
         "radar_comparison",
         "extreme_cases",
         "outliers",
+        "dendrogram",
     ]
     if chart_type not in valid_chart_types:
         raise HTTPException(
@@ -243,12 +244,14 @@ async def get_chart_insight(
     # Validate chart type
     valid_chart_types = [
         "try_vs_success",
+        "distribution",
         "shap_summary",
         "pdp",
         "pca_scatter",
         "radar_comparison",
         "extreme_cases",
         "outliers",
+        "dendrogram",
     ]
     if chart_type not in valid_chart_types:
         raise HTTPException(
@@ -329,7 +332,7 @@ async def get_all_insights(experiment_id: str) -> AllInsightsResponse:
     summary = cache_repo.get_executive_summary(analysis.id)
 
     # Calculate statistics
-    total_expected = 7  # 7 supported chart types
+    total_expected = 9  # 9 supported chart types (try_vs_success, distribution, shap_summary, pdp, pca_scatter, radar_comparison, extreme_cases, outliers, dendrogram)
     completed = len([i for i in insights if i.status == "completed"])
     pending = len([i for i in insights if i.status == "pending"])
     failed = len([i for i in insights if i.status == "failed"])

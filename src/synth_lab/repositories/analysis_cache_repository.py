@@ -372,11 +372,10 @@ if __name__ == "__main__":
                 analysis.id,
                 {
                     "distribution": {"items": []},
-                    "sankey": {"flows": []},
                     "heatmap": {"bins": []},
                 },
             )
-            if count != 3:
+            if count != 2:
                 all_validation_failures.append(f"save_many count mismatch: {count}")
         except Exception as e:
             all_validation_failures.append(f"Save many failed: {e}")
@@ -385,7 +384,7 @@ if __name__ == "__main__":
         total_tests += 1
         try:
             all_cache = cache_repo.get_all(analysis.id)
-            if len(all_cache) != 4:  # 1 from test 1 + 3 from test 3
+            if len(all_cache) != 3:  # 1 from test 1 + 2 from test 3
                 all_validation_failures.append(f"get_all count mismatch: {len(all_cache)}")
         except Exception as e:
             all_validation_failures.append(f"Get all failed: {e}")
@@ -393,10 +392,10 @@ if __name__ == "__main__":
         # Test 5: Delete single
         total_tests += 1
         try:
-            result = cache_repo.delete(analysis.id, "sankey")
+            result = cache_repo.delete(analysis.id, "heatmap")
             if not result:
                 all_validation_failures.append("Delete returned False")
-            if cache_repo.get(analysis.id, "sankey") is not None:
+            if cache_repo.get(analysis.id, "heatmap") is not None:
                 all_validation_failures.append("Entry still exists after delete")
         except Exception as e:
             all_validation_failures.append(f"Delete single failed: {e}")
@@ -405,7 +404,7 @@ if __name__ == "__main__":
         total_tests += 1
         try:
             count = cache_repo.delete_all(analysis.id)
-            if count != 3:  # 4 - 1 deleted
+            if count != 2:  # 3 - 1 deleted
                 all_validation_failures.append(f"delete_all count mismatch: {count}")
             if len(cache_repo.get_all(analysis.id)) != 0:
                 all_validation_failures.append("Entries still exist after delete_all")

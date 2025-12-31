@@ -6,7 +6,6 @@ import { queryKeys } from '@/lib/query-keys';
 import {
   getTryVsSuccessChart,
   getDistributionChart,
-  getSankeyChart,
   getFailureHeatmap,
   getBoxPlotChart,
   getScatterCorrelation,
@@ -40,15 +39,6 @@ export function useDistributionChart(
   return useQuery({
     queryKey: [...queryKeys.simulation.distribution(simulationId), sortBy, order, limit],
     queryFn: () => getDistributionChart(simulationId, sortBy, order, limit),
-    enabled: !!simulationId && enabled,
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useSankeyChart(simulationId: string, enabled = true) {
-  return useQuery({
-    queryKey: queryKeys.simulation.sankey(simulationId),
-    queryFn: () => getSankeyChart(simulationId),
     enabled: !!simulationId && enabled,
     staleTime: 5 * 60 * 1000,
   });

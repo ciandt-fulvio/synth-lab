@@ -16,7 +16,6 @@ This document describes the API endpoints consumed by the frontend for experimen
 |--------|----------|-------------|
 | GET | `/simulations/{id}/charts/try-vs-success` | Try vs Success scatter plot |
 | GET | `/simulations/{id}/charts/distribution` | Outcome distribution bars |
-| GET | `/simulations/{id}/charts/sankey` | Sankey flow diagram |
 
 ### Phase 2: Problem Location
 
@@ -128,9 +127,7 @@ This document describes the API endpoints consumed by the frontend for experimen
 
 ---
 
-### GET /simulations/{id}/charts/sankey
 
-**Response:** `SankeyChart`
 ```json
 {
   "simulation_id": "uuid",
@@ -307,7 +304,6 @@ import { fetchAPI } from './api';
 import type {
   TryVsSuccessChart,
   OutcomeDistributionChart,
-  SankeyChart,
   FailureHeatmapChart,
   ScatterCorrelationChart,
   TornadoChart,
@@ -354,8 +350,6 @@ export async function getDistributionChart(
   return fetchAPI(`/simulation/simulations/${simulationId}/charts/distribution?${params}`);
 }
 
-export async function getSankeyChart(simulationId: string): Promise<SankeyChart> {
-  return fetchAPI(`/simulation/simulations/${simulationId}/charts/sankey`);
 }
 
 // Phase 2: Problem Location

@@ -39,7 +39,6 @@ class CacheKeys(str, Enum):
     # Existing chart types
     TRY_VS_SUCCESS = "try_vs_success"
     DISTRIBUTION = "distribution"
-    SANKEY = "sankey"
     HEATMAP = "heatmap"
     SCATTER = "scatter"
     CORRELATIONS = "correlations"

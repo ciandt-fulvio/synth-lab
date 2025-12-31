@@ -253,7 +253,6 @@ def fase1_visao_geral(sim_id: str) -> dict:
     Endpoints:
     - GET /charts/try-vs-success
     - GET /charts/distribution
-    - GET /charts/sankey
     """
     separator("FASE 1 - VISÃO GERAL (Overview)")
     results = {}
@@ -293,56 +292,6 @@ def fase1_visao_geral(sim_id: str) -> dict:
         print(f"    Avg Failed:      {s.get('avg_failed', 0):.1%}")
         print(f"    Avg Did Not Try: {s.get('avg_did_not_try', 0):.1%}")
         print(f"    Total Synths:    {s.get('total_synths', 'N/A')}")
-
-    # 1.3 Sankey Chart
-    print("\n[1.3] Sankey Chart - Fluxo de Decisões")
-    print("     Visualiza o fluxo: Traits → Decision → Outcome")
-    sankey = request_with_debug(
-        "get",
-        f"{BASE_URL}/simulations/{sim_id}/charts/sankey",
-    )
-    results["sankey"] = sankey
-
-    if "nodes" in sankey and "links" in sankey:
-        total = sankey.get("total_synths", 0)
-        print(f"\n  📊 Fluxo de Decisões (Total: {total} synths):")
-
-        # Extrair valores para análise
-        links = {(link["source"], link["target"]): link for link in sankey.get("links", [])}
-
-        # Camada 1: Tentativa
-        attempted_link = links.get(("all", "attempted"))
-        not_attempted_link = links.get(("all", "not_attempted"))
-
-        print("\n     CAMADA 1 - Engajamento:")
-        if attempted_link:
-            val = attempted_link["value"]
-            pct = attempted_link["percentage"]
-            print(f"       ✓ {val:3} synths TENTARAM usar ({pct:5.1f}%)")
-        if not_attempted_link:
-            val = not_attempted_link["value"]
-            pct = not_attempted_link["percentage"]
-            print(f"       ✗ {val:3} synths NÃO tentaram ({pct:5.1f}%)")
-
-        # Camada 2: Resultado (dos que tentaram)
-        success_link = links.get(("attempted", "success"))
-        failed_link = links.get(("attempted", "failed"))
-
-        print("\n     CAMADA 2 - Resultado (dos que tentaram):")
-        if success_link:
-            val = success_link["value"]
-            pct = success_link["percentage"]
-            print(f"       ✓ {val:3} synths tiveram SUCESSO ({pct:5.1f}%)")
-        if failed_link:
-            val = failed_link["value"]
-            pct = failed_link["percentage"]
-            print(f"       ✗ {val:3} synths FALHARAM ({pct:5.1f}%)")
-
-        # Análise Final
-        if success_link and total > 0:
-            success_val = success_link["value"]
-            rate = (success_val / total) * 100
-            print(f"\n     📈 Taxa de sucesso GERAL: {success_val}/{total} = {rate:.1f}%")
 
     print("\n✓ Fase 1 completa!")
     return results
@@ -913,17 +862,15 @@ def fase6_insights_llm(
     )
     # Note: This returns 204 No Content on success
 
-    # 6.2-6.5 Generate insights in PARALLEL
-    print("\n[6.2-6.5] Gerando insights em PARALELO...")
+    # 6.2-6.4 Generate insights in PARALLEL
+    print("\n[6.2-6.4] Gerando insights em PARALELO...")
     print("     - Try vs Success Chart")
-    print("     - Sankey Chart")
     print("     - Tornado Chart")
     print("     - Clustering")
 
     # Prepare insight generation tasks
     insight_tasks = [
         ("try_vs_success", fase1_results.get("try_success", {}), "insight_try_success"),
-        ("sankey", fase1_results.get("sankey", {}), "insight_sankey"),
         ("tornado", fase2_results.get("tornado", {}), "insight_tornado"),
         ("clustering", fase3_results.get("clusters_kmeans", {}), "insight_clustering"),
     ]
@@ -968,22 +915,16 @@ def fase6_insights_llm(
             for e in evidence[:2]:
                 print(f"      - {e}")
 
-    # Sankey
-    if "insight_sankey" in results and "caption" in results["insight_sankey"]:
-        insight = results["insight_sankey"]
-        print("\n  [6.3] Sankey:")
-        print(f"    Explanation: {insight.get('explanation', 'N/A')[:150]}...")
-
     # Tornado
     if "insight_tornado" in results and "caption" in results["insight_tornado"]:
         insight = results["insight_tornado"]
-        print("\n  [6.4] Tornado:")
+        print("\n  [6.3] Tornado:")
         print(f"    Explanation: {insight.get('explanation', 'N/A')[:150]}...")
 
     # Clustering
     if "insight_clustering" in results and "caption" in results["insight_clustering"]:
         insight = results["insight_clustering"]
-        print("\n  [6.5] Clustering:")
+        print("\n  [6.4] Clustering:")
         print(f"    Explanation: {insight.get('explanation', 'N/A')[:150]}...")
 
     # 6.6 Get all cached insights

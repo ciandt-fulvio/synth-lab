@@ -808,15 +808,7 @@ curl -X GET "http://localhost:8000/simulation/simulations/SIMULATION_ID/charts/d
 }
 ```
 
-### 10.3 Sankey Diagram
-
-Fluxo de usuários através dos estados.
-
-```bash
-curl -X GET "http://localhost:8000/simulation/simulations/SIMULATION_ID/charts/sankey" | jq
-```
-
-### 10.4 Failure Heatmap
+### 10.3 Failure Heatmap
 
 Heatmap 2D de falhas por atributos.
 
