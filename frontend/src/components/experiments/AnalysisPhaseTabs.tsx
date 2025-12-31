@@ -138,24 +138,24 @@ export function AnalysisPhaseTabs({
   return (
     <div ref={containerRef} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+      <div className="px-6 py-4 border-b border-slate-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-xl text-white shadow-lg shadow-violet-200/50">
-              <PieChart className="h-5 w-5" />
+            <div className="p-2 bg-slate-100 rounded-lg">
+              <PieChart className="w-5 h-5 text-slate-600" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-slate-900">
+              <h3 className="font-semibold text-slate-900">
                 Análise Quantitativa
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-sm text-slate-500">
                 4 fases de investigação
               </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             {actions}
-            <div className="text-xs text-slate-400 font-medium tracking-wider uppercase">
+            <div className="text-xs text-slate-400 font-medium">
               Fase {currentIndex + 1} de 4
             </div>
           </div>
