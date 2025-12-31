@@ -86,13 +86,16 @@ export function CustomTreeNode({
         className="transition-all duration-200 hover:opacity-80"
       />
 
-      {/* Node label (success rate) */}
+      {/* Node label (success rate) - text outline for readability */}
       <text
-        dy=".31em"
+        dy=".35em"
         textAnchor="middle"
         fill="white"
-        fontSize={12}
-        fontWeight={600}
+        fontSize={14}
+        fontWeight={700}
+        stroke="rgba(0,0,0,0.4)"
+        strokeWidth={2.5}
+        paintOrder="stroke fill"
         style={{ pointerEvents: 'none' }}
       >
         {nodeDatum.name}
@@ -101,10 +104,11 @@ export function CustomTreeNode({
       {/* Root indicator */}
       {isRoot && (
         <text
-          dy={-NODE_RADIUS - 8}
+          dy={-NODE_RADIUS - 10}
           textAnchor="middle"
-          fill="#64748b"
-          fontSize={10}
+          fill="#1e293b"
+          fontSize={12}
+          fontWeight={700}
           style={{ pointerEvents: 'none' }}
         >
           Baseline
@@ -114,10 +118,11 @@ export function CustomTreeNode({
       {/* Action label (truncated) */}
       {nodeDatum.attributes?.action && (
         <text
-          dy={NODE_RADIUS + 16}
+          dy={NODE_RADIUS + 18}
           textAnchor="middle"
           fill="#475569"
-          fontSize={9}
+          fontSize={11}
+          fontWeight={600}
           style={{ pointerEvents: 'none' }}
         >
           {nodeDatum.attributes.action}

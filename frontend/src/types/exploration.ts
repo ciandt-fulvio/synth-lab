@@ -259,24 +259,6 @@ export interface ExplorationSummary {
   completed_at: string | null;
 }
 
-/**
- * Status badge configuration.
- */
-export const EXPLORATION_STATUS_CONFIG: Record<
-  ExplorationStatus,
-  {
-    label: string;
-    variant: 'success' | 'info' | 'warning' | 'error' | 'neutral';
-    icon: string; // Lucide icon name
-  }
-> = {
-  running: { label: 'Executando', variant: 'info', icon: 'Loader2' },
-  goal_achieved: { label: 'Meta Atingida', variant: 'success', icon: 'CheckCircle' },
-  depth_limit_reached: { label: 'Limite Profundidade', variant: 'warning', icon: 'AlertTriangle' },
-  cost_limit_reached: { label: 'Limite Custo', variant: 'warning', icon: 'AlertTriangle' },
-  no_viable_paths: { label: 'Sem Caminhos', variant: 'error', icon: 'XCircle' },
-};
-
 // =============================================================================
 // Zod Schema (for form validation)
 // =============================================================================

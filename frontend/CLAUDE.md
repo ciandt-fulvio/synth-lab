@@ -112,6 +112,52 @@ import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
 />
 ```
 
+### StatusBadge (Status Indicators)
+
+**IMPORTANT**: Use `StatusBadge` for ALL status indicators in the system. DO NOT create new badge components for status display.
+
+Location: `@/components/shared/StatusBadge`
+
+```tsx
+import {
+  StatusBadge,
+  EXECUTION_STATUS_CONFIG,    // Entrevistas/Research
+  EXPLORATION_STATUS_CONFIG,  // Explorações de cenário
+  NODE_STATUS_CONFIG,         // Nós de cenário
+} from '@/components/shared/StatusBadge';
+
+// Entrevistas (pending, running, generating_summary, completed, failed)
+<StatusBadge status={execution.status} config={EXECUTION_STATUS_CONFIG} />
+
+// Explorações (running, goal_achieved, depth_limit_reached, cost_limit_reached, no_viable_paths)
+<StatusBadge status={exploration.status} config={EXPLORATION_STATUS_CONFIG} />
+
+// Nós de cenário (active, dominated, winner, expansion_failed)
+<StatusBadge status={node.node_status} config={NODE_STATUS_CONFIG} />
+
+// Sem ícone (opcional)
+<StatusBadge status="completed" config={EXECUTION_STATUS_CONFIG} showIcon={false} />
+```
+
+**Features:**
+- Ícones automáticos por status (spinner animado para "running")
+- Cores semânticas consistentes (success, info, warning, error, neutral)
+- Configs pré-definidos para cada domínio
+
+**Adding new status types:**
+1. Add config to `StatusBadge.tsx` (NOT in domain types)
+2. Register any new icons in `ICON_REGISTRY`
+3. Export the new config
+4. Document here
+
+**Wrapper components** (for convenience):
+- `ExplorationStatusBadge` - wrapper que usa `EXPLORATION_STATUS_CONFIG`
+
+**DO NOT:**
+- Create new badge components for status
+- Duplicate status config in domain type files
+- Use inline badge styling for status indicators
+
 ## Page Structure Template
 
 ```tsx

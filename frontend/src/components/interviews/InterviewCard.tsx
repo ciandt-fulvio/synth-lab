@@ -25,7 +25,7 @@ export function InterviewCard({ execution, onClick }: InterviewCardProps) {
       <CardHeader>
         <div className="flex items-start justify-between">
           <CardTitle className="text-lg">{execution.topic_name}</CardTitle>
-          <StatusBadge status={execution.status} />
+          <StatusBadge status={execution.status} config={EXECUTION_STATUS_CONFIG} />
         </div>
         <CardDescription className="flex items-center gap-1 text-sm">
           <Calendar className="h-3 w-3" />
