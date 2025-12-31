@@ -38,7 +38,6 @@
 |------------|------|----------|---------|
 | **Try vs Success Scatter** | Gráfico | ⭐⭐⭐⭐⭐ | Trivial |
 | **Outcome Distribution** | Gráfico | ⭐⭐⭐⭐⭐ | Trivial |
-| **Sankey Diagram** | Gráfico | ⭐⭐⭐⭐ | Baixo |
 
 ### FASE 2: Localização
 **Pergunta**: "Onde exatamente a experiência quebra?"
@@ -116,7 +115,6 @@ src/synth_lab/
 ```python
 # FASE 1 - Visão Geral
 GET /simulation/simulations/{id}/charts/try-vs-success
-GET /simulation/simulations/{id}/charts/sankey
 GET /simulation/simulations/{id}/charts/distribution
 
 # FASE 2 - Localização
@@ -281,7 +279,6 @@ GET /simulation/simulations/{id}/charts/distribution
 
 ---
 
-### 1.3 Sankey Diagram
 
 **O que é**: Diagrama de fluxo mostrando como synths "fluem" entre estados (all → attempted/not_attempted → success/failed).
 
@@ -297,22 +294,17 @@ GET /simulation/simulations/{id}/charts/distribution
 
 **Output esperado**:
 ```python
-class SankeyNode(BaseModel):
     id: str           # "all", "attempted", "not_attempted", "success", "failed"
     label: str        # "Todos (500)", "Tentaram (375)", etc.
     value: int        # contagem absoluta
 
-class SankeyLink(BaseModel):
     source: str       # id do nó origem
     target: str       # id do nó destino
     value: int        # contagem que flui
     percentage: float # % do total
 
-class SankeyChart(BaseModel):
     simulation_id: str
     total_synths: int
-    nodes: list[SankeyNode]
-    links: list[SankeyLink]
 ```
 
 **Estrutura do fluxo**:
@@ -326,7 +318,6 @@ All Synths ─┬─► Attempted (75%) ─┤
 
 **Cálculos necessários**:
 ```python
-def build_sankey(outcomes: dict, total_synths: int) -> SankeyChart:
     did_not_try_count = int(outcomes["did_not_try"] * total_synths)
     attempted_count = total_synths - did_not_try_count
 
@@ -343,7 +334,6 @@ def build_sankey(outcomes: dict, total_synths: int) -> SankeyChart:
 
 **Endpoint**:
 ```
-GET /simulation/simulations/{id}/charts/sankey
 ```
 
 **Critérios de aceite**:
@@ -1794,7 +1784,6 @@ explainability_result.py
 # Dados de Gráficos
 chart_data.py
 ├── TryVsSuccessChart
-├── SankeyChart
 ├── FailureHeatmapChart
 ├── BoxPlotChart
 ├── ScatterCorrelationChart
@@ -1835,7 +1824,6 @@ explainability.py
 chart_data.py
 ├── ChartDataService
 │   ├── get_try_vs_success()
-│   ├── get_sankey()
 │   ├── get_failure_heatmap()
 │   ├── get_box_plot()
 │   ├── get_scatter()

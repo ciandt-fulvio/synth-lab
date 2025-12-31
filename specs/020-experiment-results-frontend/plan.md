@@ -69,7 +69,6 @@ frontend/src/
 │   │       └── charts/              # Reusable chart components
 │   │           ├── TryVsSuccessChart.tsx
 │   │           ├── OutcomeDistributionChart.tsx
-│   │           ├── SankeyDiagram.tsx
 │   │           ├── FailureHeatmap.tsx
 │   │           ├── BoxPlotChart.tsx
 │   │           ├── ScatterCorrelationChart.tsx

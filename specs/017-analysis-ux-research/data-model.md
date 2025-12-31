@@ -56,28 +56,19 @@ class OutcomeDistributionChart(BaseModel):
     total_synths: int
 ```
 
-### 1.3 Sankey Chart
 
 ```python
-class SankeyNode(BaseModel):
-    """Nó do diagrama Sankey."""
     id: str           # "all", "attempted", "not_attempted", "success", "failed"
     label: str        # "Todos (500)", "Tentaram (375)", etc.
     value: int        # contagem absoluta
 
-class SankeyLink(BaseModel):
-    """Link entre nós do Sankey."""
     source: str       # id do nó origem
     target: str       # id do nó destino
     value: int        # contagem que flui
     percentage: float # % do total
 
-class SankeyChart(BaseModel):
-    """Dados para o diagrama Sankey."""
     simulation_id: str
     total_synths: int
-    nodes: list[SankeyNode]
-    links: list[SankeyLink]
 ```
 
 ### 1.4 Failure Heatmap Chart

@@ -6,7 +6,6 @@ import { queryKeys } from '@/lib/query-keys';
 import {
   getAnalysisTryVsSuccessChart,
   getAnalysisDistributionChart,
-  getAnalysisSankeyChart,
   getAnalysisFailureHeatmap,
   getAnalysisScatterCorrelation,
   createAnalysisClustering,
@@ -56,15 +55,6 @@ export function useAnalysisDistributionChart(
   return useQuery({
     queryKey: [...queryKeys.analysis.distribution(experimentId), sortBy, order, limit],
     queryFn: () => getAnalysisDistributionChart(experimentId, sortBy, order, limit),
-    enabled: !!experimentId && enabled,
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useAnalysisSankeyChart(experimentId: string, enabled = true) {
-  return useQuery({
-    queryKey: queryKeys.analysis.sankey(experimentId),
-    queryFn: () => getAnalysisSankeyChart(experimentId),
     enabled: !!experimentId && enabled,
     staleTime: 5 * 60 * 1000,
   });

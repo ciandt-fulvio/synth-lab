@@ -219,7 +219,6 @@ export async function runAnalysis(
 import type {
   TryVsSuccessChart,
   OutcomeDistributionChart,
-  SankeyChart,
   FailureHeatmapChart,
   ScatterCorrelationChart,
   AttributeCorrelationChart,
@@ -262,13 +261,6 @@ export async function getAnalysisDistributionChart(
     limit: String(limit),
   });
   return fetchAPI(`/experiments/${experimentId}/analysis/charts/distribution?${params}`);
-}
-
-/**
- * Get sankey flow diagram for experiment analysis.
- */
-export async function getAnalysisSankeyChart(experimentId: string): Promise<SankeyChart> {
-  return fetchAPI(`/experiments/${experimentId}/analysis/charts/sankey`);
 }
 
 /**

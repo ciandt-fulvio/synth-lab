@@ -9,8 +9,26 @@ References:
 """
 
 from datetime import datetime, timezone
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+# Type alias for chart types
+ChartType = Literal[
+    "try_vs_success",
+    "distribution",
+    "failure_heatmap",
+    "scatter",
+    "box_plot",
+    "clustering",
+    "outliers",
+    "shap_summary",
+    "pdp",
+    "dendrogram",
+    "extreme_cases",
+    "pca_scatter",
+    "radar_comparison",
+]
 
 
 class ChartInsight(BaseModel):
@@ -52,6 +70,24 @@ class ChartInsight(BaseModel):
     def from_cache_json(cls, data: dict) -> "ChartInsight":
         """Create from JSON stored in analysis_cache.data."""
         return cls(**data)
+
+
+class SimulationInsights(BaseModel):
+    """Collection of all insights for a simulation."""
+
+    simulation_id: str = Field(description="Simulation ID")
+    insights: list[ChartInsight] = Field(
+        default_factory=list,
+        description="List of chart insights",
+    )
+    executive_summary: str | None = Field(
+        default=None,
+        description="Executive summary synthesizing all insights",
+    )
+    total_charts_analyzed: int = Field(
+        default=0,
+        description="Total number of charts analyzed",
+    )
 
 
 if __name__ == "__main__":

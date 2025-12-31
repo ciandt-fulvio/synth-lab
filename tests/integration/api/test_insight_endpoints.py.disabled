@@ -239,18 +239,15 @@ class TestGenerateChartInsight:
             mock_sim_service.return_value = mock_service
             mock_insight_service.return_value = shared_service
 
-            chart_data = {"chart_type": "sankey", "flows": []}
 
             # First request
             response1 = client.post(
-                f"/simulation/simulations/{sample_simulation.id}/insights/sankey",
                 json={"chart_data": chart_data},
             )
             assert response1.status_code == 200
 
             # Second request - should use cache
             response2 = client.post(
-                f"/simulation/simulations/{sample_simulation.id}/insights/sankey",
                 json={"chart_data": chart_data},
             )
             assert response2.status_code == 200
@@ -422,7 +419,6 @@ class TestAllChartTypes:
         [
             "try_vs_success",
             "distribution",
-            "sankey",
             "failure_heatmap",
             "scatter",
             "box_plot",
