@@ -96,6 +96,7 @@ from synth_lab.api.routers import (
     analysis,
     chat,
     experiments,
+    exploration,
     insights,
     prfaq,
     research,
@@ -114,6 +115,7 @@ app.include_router(experiments.router, prefix="/experiments", tags=["experiments
 app.include_router(analysis.router, prefix="/experiments", tags=["analysis"])
 app.include_router(insights.router, prefix="/experiments", tags=["insights"])
 app.include_router(synth_groups.router, prefix="/synth-groups", tags=["synth-groups"])
+app.include_router(exploration.router, prefix="/explorations", tags=["explorations"])
 
 
 if __name__ == "__main__":

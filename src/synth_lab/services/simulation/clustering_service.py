@@ -53,18 +53,18 @@ class ClusteringService:
         "exploration_prob",
     ]
 
-    # Color palette for clusters (up to 10 clusters)
+    # Color palette for clusters (up to 10 clusters) - distinct colors with purple/violet tones
     CLUSTER_COLORS = [
-        "#FF6B6B",  # Red
-        "#4ECDC4",  # Teal
-        "#45B7D1",  # Blue
-        "#FFA07A",  # Light Salmon
-        "#98D8C8",  # Mint
-        "#F7DC6F",  # Yellow
-        "#BB8FCE",  # Purple
-        "#85C1E2",  # Sky Blue
-        "#F8B739",  # Orange
-        "#52C17D",  # Green
+        "#8B5CF6",  # Violet
+        "#EC4899",  # Pink
+        "#F59E0B",  # Amber
+        "#10B981",  # Emerald
+        "#3B82F6",  # Blue
+        "#EF4444",  # Red
+        "#6366F1",  # Indigo
+        "#14B8A6",  # Teal
+        "#F97316",  # Orange
+        "#A855F7",  # Purple
     ]
 
     def cluster_kmeans(
@@ -419,6 +419,7 @@ class ClusteringService:
                 ClusterRadar(
                     cluster_id=cluster.cluster_id,
                     label=cluster.suggested_label,
+                    explanation=cluster.suggested_explanation,
                     color=self.CLUSTER_COLORS[i % len(self.CLUSTER_COLORS)],
                     axes=axes,
                     success_rate=cluster.avg_success_rate,
@@ -691,10 +692,12 @@ class ClusteringService:
             labeling_service = ClusterLabelingService()
             llm_labels = labeling_service.generate_labels(profiles)
 
-            # Update profiles with LLM-generated labels
+            # Update profiles with LLM-generated labels and explanations
             for profile in profiles:
                 if profile.cluster_id in llm_labels:
-                    profile.suggested_label = llm_labels[profile.cluster_id]
+                    label_data = llm_labels[profile.cluster_id]
+                    profile.suggested_label = label_data.get("name", profile.suggested_label)
+                    profile.suggested_explanation = label_data.get("explanation", "")
 
         return profiles
 

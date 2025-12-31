@@ -1,0 +1,229 @@
+{
+  "version": "1.0.0",
+  "categories": [
+    {
+      "id": "ux_interface",
+      "name": "UX / Interface",
+      "description": "Melhorias na interface de usuario para reduzir friccao cognitiva",
+      "examples": [
+        {
+          "action": "Adicionar tooltip contextual no momento de duvida",
+          "typical_impacts": {
+            "complexity": {"min": -0.04, "max": -0.01},
+            "initial_effort": {"min": 0.00, "max": 0.00},
+            "perceived_risk": {"min": -0.02, "max": 0.00},
+            "time_to_value": {"min": -0.03, "max": -0.01}
+          }
+        },
+        {
+          "action": "Melhorar feedback visual de progresso",
+          "typical_impacts": {
+            "complexity": {"min": -0.02, "max": 0.00},
+            "initial_effort": {"min": 0.00, "max": 0.00},
+            "perceived_risk": {"min": -0.03, "max": -0.01},
+            "time_to_value": {"min": -0.02, "max": 0.00}
+          }
+        },
+        {
+          "action": "Simplificar layout removendo elementos desnecessarios",
+          "typical_impacts": {
+            "complexity": {"min": -0.05, "max": -0.02},
+            "initial_effort": {"min": -0.02, "max": 0.00},
+            "perceived_risk": {"min": -0.02, "max": 0.00},
+            "time_to_value": {"min": -0.03, "max": -0.01}
+          }
+        },
+        {
+          "action": "Adicionar indicadores de status em tempo real",
+          "typical_impacts": {
+            "complexity": {"min": -0.01, "max": 0.01},
+            "initial_effort": {"min": 0.00, "max": 0.00},
+            "perceived_risk": {"min": -0.04, "max": -0.02},
+            "time_to_value": {"min": -0.02, "max": 0.00}
+          }
+        }
+      ]
+    },
+    {
+      "id": "onboarding",
+      "name": "Onboarding / Educacao",
+      "description": "Educacao do usuario para reduzir barreira de entrada",
+      "examples": [
+        {
+          "action": "Criar tutorial interativo de primeiro uso",
+          "typical_impacts": {
+            "complexity": {"min": -0.03, "max": -0.01},
+            "initial_effort": {"min": -0.05, "max": -0.02},
+            "perceived_risk": {"min": -0.02, "max": 0.00},
+            "time_to_value": {"min": 0.00, "max": 0.02}
+          }
+        },
+        {
+          "action": "Adicionar checklist de configuracao inicial",
+          "typical_impacts": {
+            "complexity": {"min": -0.02, "max": 0.00},
+            "initial_effort": {"min": -0.04, "max": -0.01},
+            "perceived_risk": {"min": -0.01, "max": 0.00},
+            "time_to_value": {"min": -0.01, "max": 0.01}
+          }
+        },
+        {
+          "action": "Mostrar exemplos pre-configurados como ponto de partida",
+          "typical_impacts": {
+            "complexity": {"min": -0.04, "max": -0.02},
+            "initial_effort": {"min": -0.06, "max": -0.03},
+            "perceived_risk": {"min": -0.02, "max": 0.00},
+            "time_to_value": {"min": -0.03, "max": -0.01}
+          }
+        },
+        {
+          "action": "Adicionar dicas contextuais progressivas",
+          "typical_impacts": {
+            "complexity": {"min": -0.02, "max": 0.00},
+            "initial_effort": {"min": -0.03, "max": -0.01},
+            "perceived_risk": {"min": -0.01, "max": 0.00},
+            "time_to_value": {"min": -0.01, "max": 0.00}
+          }
+        }
+      ]
+    },
+    {
+      "id": "flow",
+      "name": "Fluxo / Processo",
+      "description": "Otimizacao do fluxo para reduzir etapas e friccao",
+      "examples": [
+        {
+          "action": "Remover etapa desnecessaria do fluxo",
+          "typical_impacts": {
+            "complexity": {"min": -0.06, "max": -0.03},
+            "initial_effort": {"min": -0.04, "max": -0.02},
+            "perceived_risk": {"min": 0.00, "max": 0.01},
+            "time_to_value": {"min": -0.05, "max": -0.02}
+          }
+        },
+        {
+          "action": "Implementar valor default inteligente",
+          "typical_impacts": {
+            "complexity": {"min": -0.03, "max": -0.01},
+            "initial_effort": {"min": -0.05, "max": -0.02},
+            "perceived_risk": {"min": -0.01, "max": 0.01},
+            "time_to_value": {"min": -0.04, "max": -0.01}
+          }
+        },
+        {
+          "action": "Permitir edicao inline sem abrir modal",
+          "typical_impacts": {
+            "complexity": {"min": -0.02, "max": 0.00},
+            "initial_effort": {"min": -0.02, "max": 0.00},
+            "perceived_risk": {"min": 0.00, "max": 0.00},
+            "time_to_value": {"min": -0.03, "max": -0.01}
+          }
+        },
+        {
+          "action": "Auto-salvar progresso para evitar perda de dados",
+          "typical_impacts": {
+            "complexity": {"min": 0.00, "max": 0.02},
+            "initial_effort": {"min": -0.01, "max": 0.00},
+            "perceived_risk": {"min": -0.05, "max": -0.02},
+            "time_to_value": {"min": -0.01, "max": 0.00}
+          }
+        },
+        {
+          "action": "Combinar multiplas etapas em uma unica tela",
+          "typical_impacts": {
+            "complexity": {"min": -0.04, "max": -0.01},
+            "initial_effort": {"min": -0.03, "max": -0.01},
+            "perceived_risk": {"min": 0.00, "max": 0.01},
+            "time_to_value": {"min": -0.04, "max": -0.02}
+          }
+        }
+      ]
+    },
+    {
+      "id": "communication",
+      "name": "Comunicacao / Feedback",
+      "description": "Melhoria de mensagens e feedback para o usuario",
+      "examples": [
+        {
+          "action": "Melhorar mensagens de erro com acoes sugeridas",
+          "typical_impacts": {
+            "complexity": {"min": -0.02, "max": 0.00},
+            "initial_effort": {"min": 0.00, "max": 0.00},
+            "perceived_risk": {"min": -0.04, "max": -0.02},
+            "time_to_value": {"min": -0.02, "max": 0.00}
+          }
+        },
+        {
+          "action": "Adicionar confirmacao visual de acao bem sucedida",
+          "typical_impacts": {
+            "complexity": {"min": 0.00, "max": 0.00},
+            "initial_effort": {"min": 0.00, "max": 0.00},
+            "perceived_risk": {"min": -0.03, "max": -0.01},
+            "time_to_value": {"min": -0.01, "max": 0.00}
+          }
+        },
+        {
+          "action": "Mostrar estimativa de tempo para conclusao",
+          "typical_impacts": {
+            "complexity": {"min": 0.00, "max": 0.01},
+            "initial_effort": {"min": 0.00, "max": 0.00},
+            "perceived_risk": {"min": -0.03, "max": -0.01},
+            "time_to_value": {"min": -0.02, "max": 0.00}
+          }
+        },
+        {
+          "action": "Enviar notificacao quando processo longo terminar",
+          "typical_impacts": {
+            "complexity": {"min": 0.00, "max": 0.01},
+            "initial_effort": {"min": 0.00, "max": 0.00},
+            "perceived_risk": {"min": -0.02, "max": 0.00},
+            "time_to_value": {"min": -0.02, "max": 0.00}
+          }
+        }
+      ]
+    },
+    {
+      "id": "operational",
+      "name": "Operacional / Feature Control",
+      "description": "Controle de features e rollout gradual",
+      "examples": [
+        {
+          "action": "Implementar rollout gradual por percentual de usuarios",
+          "typical_impacts": {
+            "complexity": {"min": 0.00, "max": 0.02},
+            "initial_effort": {"min": 0.00, "max": 0.01},
+            "perceived_risk": {"min": -0.06, "max": -0.03},
+            "time_to_value": {"min": 0.00, "max": 0.02}
+          }
+        },
+        {
+          "action": "Adicionar feature flag para ativar/desativar funcionalidade",
+          "typical_impacts": {
+            "complexity": {"min": 0.00, "max": 0.01},
+            "initial_effort": {"min": 0.00, "max": 0.00},
+            "perceived_risk": {"min": -0.05, "max": -0.02},
+            "time_to_value": {"min": 0.00, "max": 0.01}
+          }
+        },
+        {
+          "action": "Criar modo de teste/sandbox para experimentacao segura",
+          "typical_impacts": {
+            "complexity": {"min": 0.01, "max": 0.03},
+            "initial_effort": {"min": -0.02, "max": 0.00},
+            "perceived_risk": {"min": -0.06, "max": -0.03},
+            "time_to_value": {"min": 0.00, "max": 0.02}
+          }
+        },
+        {
+          "action": "Permitir reverter para versao anterior facilmente",
+          "typical_impacts": {
+            "complexity": {"min": 0.00, "max": 0.01},
+            "initial_effort": {"min": 0.00, "max": 0.00},
+            "perceived_risk": {"min": -0.05, "max": -0.02},
+            "time_to_value": {"min": 0.00, "max": 0.01}
+          }
+        }
+      ]
+    }
+  ]
+}

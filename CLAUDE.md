@@ -13,6 +13,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-22
 - N/A (data from backend API) (020-experiment-results-frontend)
 - SQLite 3 with JSON1 extension (output/synthlab.db) (001-analysis-tabs-refactor)
 - Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI 0.109+, Pydantic 2.5+, React 18, TanStack Query, shadcn/ui (022-observable-latent-traits)
+- Python 3.13+ (backend) + FastAPI 0.109+, Pydantic 2.5+, OpenAI SDK, asyncio (024-llm-scenario-exploration)
+- SQLite 3 com JSON1 extension (`output/synthlab.db`) (024-llm-scenario-exploration)
 - Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, Pydantic, React 18, Recharts, TanStack Query (025-sankey-diagram)
 
 ### Backend
@@ -341,7 +343,11 @@ LOG_LEVEL=INFO
 
 
 ## Recent Changes
+<<<<<<< HEAD
 - 025-sankey-diagram: Added Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, Pydantic, React 18, Recharts, TanStack Query
+=======
+- 024-llm-scenario-exploration: Added Python 3.13+ (backend) + FastAPI 0.109+, Pydantic 2.5+, OpenAI SDK, asyncio
+>>>>>>> origin/main
 - 022-observable-latent-traits: Added Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI 0.109+, Pydantic 2.5+, React 18, TanStack Query, shadcn/ui
 - 001-analysis-tabs-refactor: Added Python 3.13+ (backend), TypeScript 5.5+ (frontend)
 

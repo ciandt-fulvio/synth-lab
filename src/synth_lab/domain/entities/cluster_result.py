@@ -35,6 +35,9 @@ class ClusterProfile(BaseModel):
     high_traits: list[str] = Field(default_factory=list, description="Traits above the mean")
     low_traits: list[str] = Field(default_factory=list, description="Traits below the mean")
     suggested_label: str = Field(..., description="Human-readable label")
+    suggested_explanation: str = Field(
+        default="", description="Brief explanation of the cluster behavior (10-15 words)"
+    )
     synth_ids: list[str] = Field(default_factory=list, description="Synths in this cluster")
 
 
@@ -194,6 +197,9 @@ class ClusterRadar(BaseModel):
 
     cluster_id: int = Field(..., description="Cluster identifier")
     label: str = Field(..., description="Cluster label")
+    explanation: str = Field(
+        default="", description="Brief explanation of the cluster behavior"
+    )
     color: str = Field(..., description="Color for visualization")
     axes: list[RadarAxis] = Field(..., description="Radar axes")
     success_rate: float = Field(..., description="Average success rate")
