@@ -158,16 +158,16 @@
 
 **Purpose**: Improvements that affect the overall feature quality
 
-- [ ] T049 [P] Add comments to handleDownloadPdf function explaining PDF generation flow in frontend/src/components/shared/DocumentViewer.tsx
-- [ ] T050 [P] Add JSDoc comment to sanitizeFilename function in frontend/src/lib/pdf-utils.ts
-- [ ] T051 [P] Add JSDoc comment to generatePdfFilename function in frontend/src/lib/pdf-utils.ts
-- [ ] T052 [P] Add JSDoc comment to generatePdfFromElement function in frontend/src/lib/pdf-utils.ts
-- [ ] T053 Verify all tests pass: `npm test -- pdf-utils.test.ts DocumentViewer.test.tsx`
-- [ ] T054 Verify component stays under 1000 lines (currently ~230 lines per plan.md)
-- [ ] T055 Run linter: `npm run lint` and fix any issues
+- [x] T049 [P] Add comments to handleDownloadPdf function explaining PDF generation flow in frontend/src/components/shared/DocumentViewer.tsx
+- [x] T050 [P] Add JSDoc comment to sanitizeFilename function in frontend/src/lib/pdf-utils.ts
+- [x] T051 [P] Add JSDoc comment to generatePdfFilename function in frontend/src/lib/pdf-utils.ts
+- [x] T052 [P] Add JSDoc comment to generatePdfFromElement function in frontend/src/lib/pdf-utils.ts
+- [x] T053 Verify all tests pass: `npm test -- pdf-utils.test.ts DocumentViewer.test.tsx`
+- [x] T054 Verify component stays under 1000 lines (currently ~230 lines per plan.md)
+- [x] T055 Run linter: `npm run lint` and fix any issues
 - [ ] T056 Manual browser testing using quickstart.md checklist (10 test scenarios)
 - [ ] T057 Test across browsers: Chrome, Firefox, Safari, Edge (basic smoke test)
-- [ ] T058 Update component documentation header in frontend/src/components/shared/DocumentViewer.tsx
+- [x] T058 Update component documentation header in frontend/src/components/shared/DocumentViewer.tsx
 
 **Validation**: All automated tests pass, manual testing checklist complete, code quality checks pass
 

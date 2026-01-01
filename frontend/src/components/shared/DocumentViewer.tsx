@@ -4,11 +4,24 @@
  * Standardized popup for viewing experiment documents (summary, prfaq, executive_summary).
  * Based on MarkdownPopup with consistent styling.
  *
+ * Features:
+ * - PDF export: Download button with loading state and error handling
+ * - Loading states: Spinner while generating document
+ * - Error states: User-friendly error messages
+ * - Markdown rendering: GitHub-flavored markdown with .markdown-content styling
+ * - Smart button states: Disabled when document is generating, failed, or empty
+ *
  * Visual specifications:
  * - Dialog: sm:max-w-[70vw] h-[80vh]
  * - Content: bg-gray-50 rounded-md px-6 py-4
  * - Markdown: .markdown-content class (globals.css)
  * - Fonts: Inter (body), Georgia serif (headings)
+ *
+ * PDF Generation:
+ * - Uses html2canvas to capture markdown content as high-quality image (2x scale)
+ * - Uses jsPDF to create A4 portrait PDF
+ * - Filename format: {documentType}_{sanitized-title}.pdf
+ * - Progress indication: Loader2 spinner replaces Download icon during generation
  */
 
 import { useState, useRef } from "react";
@@ -92,7 +105,24 @@ export function DocumentViewer({
   const isFailed = status === 'failed';
   const hasContent = markdownContent && markdownContent.length > 0;
 
-  // Handle PDF download
+  /**
+   * Handles PDF download for the document.
+   *
+   * Flow:
+   * 1. Validates contentRef has a valid DOM element
+   * 2. Sets isGeneratingPdf to true (shows loading spinner)
+   * 3. Generates filename using documentType and titleSuffix
+   * 4. Captures contentRef element as PDF using html2canvas + jsPDF
+   * 5. Triggers browser download
+   * 6. Shows success toast
+   * 7. If error occurs: logs error, shows error toast with retry suggestion
+   * 8. Finally: sets isGeneratingPdf to false (hides spinner)
+   *
+   * Error handling:
+   * - Early return if contentRef is null (shouldn't happen, but defensive)
+   * - Catch block handles html2canvas or jsPDF failures
+   * - User-friendly Portuguese error messages
+   */
   const handleDownloadPdf = async () => {
     if (!contentRef.current) {
       toast.error('Erro ao gerar PDF', {

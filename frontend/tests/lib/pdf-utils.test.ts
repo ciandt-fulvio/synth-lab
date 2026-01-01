@@ -76,11 +76,11 @@ describe('generatePdfFilename', () => {
 
 describe('generatePdfFromElement', () => {
   it('should throw error if element is null', async () => {
-    await expect(generatePdfFromElement(null as any, 'test.pdf')).rejects.toThrow('Conteúdo não encontrado');
+    await expect(generatePdfFromElement(null as unknown as HTMLElement, 'test.pdf')).rejects.toThrow('Conteúdo não encontrado');
   });
 
   it('should throw error if element is undefined', async () => {
-    await expect(generatePdfFromElement(undefined as any, 'test.pdf')).rejects.toThrow('Conteúdo não encontrado');
+    await expect(generatePdfFromElement(undefined as unknown as HTMLElement, 'test.pdf')).rejects.toThrow('Conteúdo não encontrado');
   });
 
   // Note: Full integration tests with html2canvas and jsPDF would require complex mocking
