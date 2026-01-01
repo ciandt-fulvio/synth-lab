@@ -77,16 +77,16 @@ export function generatePdfFilename(
  * Generates a PDF file from a DOM element and triggers browser download.
  *
  * Process:
- * 1. Creates a jsPDF document (A4, portrait)
- * 2. Uses jsPDF.html() to render DOM with intelligent page breaks
- * 3. Automatically splits content at natural break points (between elements)
- * 4. Triggers browser download
+ * 1. Captures the element using html2canvas (high quality)
+ * 2. Creates a jsPDF document (A4, portrait)
+ * 3. Calculates dimensions with margins
+ * 4. Splits image across pages with proper positioning
+ * 5. Triggers browser download
  *
  * Page specifications:
  * - Format: A4 (210mm x 297mm)
- * - Margins: 10mm on all sides
- * - Usable area: 190mm x 277mm per page
- * - Smart pagination: Avoids breaking text lines or elements in the middle
+ * - Margins: 15mm on all sides (for safer page breaks)
+ * - Usable area: 180mm x 267mm per page
  *
  * @param element - The HTML element to capture (typically the markdown content container)
  * @param filename - The filename for the downloaded PDF
@@ -107,35 +107,63 @@ export async function generatePdfFromElement(
   }
 
   try {
+    // Capture element as canvas with high quality
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff'
+    });
+
     // Create jsPDF instance (A4, portrait, mm units)
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4'
+      format: 'a4',
+      compress: true
     });
 
-    // PDF page dimensions with margins
-    const margin = 10; // 10mm margins on all sides
+    // PDF dimensions
+    const pageWidth = 210;  // A4 width in mm
+    const pageHeight = 297; // A4 height in mm
+    const margin = 15;      // 15mm margins for safer breaks
 
-    // Use jsPDF.html() for intelligent DOM-to-PDF conversion with smart page breaks
-    await pdf.html(element, {
-      callback: (doc) => {
-        // Save the PDF after rendering
-        doc.save(filename);
-      },
-      x: margin,
-      y: margin,
-      width: 190, // A4 width (210mm) - 2 * margin (20mm) = 190mm
-      windowWidth: element.scrollWidth, // Use element's scroll width for proper scaling
-      margin: [margin, margin, margin, margin], // top, right, bottom, left
-      autoPaging: 'text', // Smart page breaks: avoid breaking text in the middle
-      html2canvas: {
-        scale: 2, // High quality (2x resolution)
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
+    // Content area (with margins)
+    const contentWidth = pageWidth - (2 * margin);   // 180mm
+    const contentHeight = pageHeight - (2 * margin); // 267mm
+
+    // Calculate image dimensions to fit content width
+    const imgWidth = contentWidth;
+    const imgHeight = (canvas.height * contentWidth) / canvas.width;
+
+    // Calculate number of pages needed
+    const totalPages = Math.ceil(imgHeight / contentHeight);
+
+    // Convert canvas to image
+    const imgData = canvas.toDataURL('image/png', 1.0);
+
+    // Add each page
+    for (let page = 0; page < totalPages; page++) {
+      if (page > 0) {
+        pdf.addPage();
       }
-    });
+
+      // Calculate position for this page
+      const position = -(page * contentHeight);
+
+      // Add image positioned for this page
+      pdf.addImage(
+        imgData,
+        'PNG',
+        margin,           // x (with left margin)
+        margin + position, // y (with top margin + page offset)
+        imgWidth,
+        imgHeight
+      );
+    }
+
+    // Download PDF
+    pdf.save(filename);
 
   } catch (error) {
     console.error('PDF generation failed:', error);
