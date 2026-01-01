@@ -77,24 +77,21 @@ export function generatePdfFilename(
  * Generates a PDF file from a DOM element and triggers browser download.
  *
  * Process:
- * 1. Captures the element using html2canvas (2x scale for quality)
- * 2. Converts canvas to PNG data URL
- * 3. Creates a jsPDF document (A4, portrait)
- * 4. Calculates dimensions with 10mm margins on all sides
- * 5. Automatically splits content across multiple pages if needed
- * 6. Adds paginated images to PDF
- * 7. Triggers browser download
+ * 1. Creates a jsPDF document (A4, portrait)
+ * 2. Uses jsPDF.html() to render DOM with intelligent page breaks
+ * 3. Automatically splits content at natural break points (between elements)
+ * 4. Triggers browser download
  *
  * Page specifications:
  * - Format: A4 (210mm x 297mm)
  * - Margins: 10mm on all sides
  * - Usable area: 190mm x 277mm per page
- * - Auto-pagination: Content flows across multiple pages as needed
+ * - Smart pagination: Avoids breaking text lines or elements in the middle
  *
  * @param element - The HTML element to capture (typically the markdown content container)
  * @param filename - The filename for the downloaded PDF
  * @returns Promise that resolves when PDF is generated and download initiated
- * @throws Error if element is null, canvas generation fails, or PDF creation fails
+ * @throws Error if element is null or PDF generation fails
  *
  * @example
  * const contentElement = contentRef.current;
@@ -110,14 +107,6 @@ export async function generatePdfFromElement(
   }
 
   try {
-    // Capture element as canvas with high quality (2x scale)
-    const canvas = await html2canvas(element, {
-      scale: 2,                    // 2x for high quality
-      useCORS: true,              // Allow cross-origin images if any
-      logging: false,             // Disable console logs
-      backgroundColor: '#ffffff'  // White background for PDFs
-    });
-
     // Create jsPDF instance (A4, portrait, mm units)
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -126,88 +115,27 @@ export async function generatePdfFromElement(
     });
 
     // PDF page dimensions with margins
-    const pageWidth = 210;           // A4 width in mm
-    const pageHeight = 297;          // A4 height in mm
-    const margin = 10;               // 10mm margins on all sides
-    const contentWidth = pageWidth - (2 * margin);   // 190mm usable width
-    const contentHeight = pageHeight - (2 * margin); // 277mm usable height
+    const margin = 10; // 10mm margins on all sides
 
-    // Convert mm to pixels for canvas calculations (assuming 96 DPI)
-    const mmToPixel = (mm: number) => (mm * 96) / 25.4;
-    const contentWidthPx = mmToPixel(contentWidth);
-    const contentHeightPx = mmToPixel(contentHeight);
-
-    // Calculate scale factor to fit canvas width to content width
-    const scaleFactor = contentWidthPx / canvas.width;
-    const scaledCanvasHeight = canvas.height * scaleFactor;
-
-    // Calculate how many pages are needed
-    const totalPages = Math.ceil(scaledCanvasHeight / contentHeightPx);
-
-    // Create a temporary canvas for slicing
-    const sliceCanvas = document.createElement('canvas');
-    const sliceCtx = sliceCanvas.getContext('2d');
-    if (!sliceCtx) {
-      throw new Error('Não foi possível criar contexto do canvas');
-    }
-
-    // Set slice canvas dimensions to match content area
-    sliceCanvas.width = canvas.width;
-    sliceCanvas.height = Math.min(
-      canvas.height,
-      Math.ceil(contentHeightPx / scaleFactor)
-    );
-
-    // Add pages with content slices
-    for (let page = 0; page < totalPages; page++) {
-      // Add new page for all pages except the first
-      if (page > 0) {
-        pdf.addPage();
+    // Use jsPDF.html() for intelligent DOM-to-PDF conversion with smart page breaks
+    await pdf.html(element, {
+      callback: (doc) => {
+        // Save the PDF after rendering
+        doc.save(filename);
+      },
+      x: margin,
+      y: margin,
+      width: 190, // A4 width (210mm) - 2 * margin (20mm) = 190mm
+      windowWidth: element.scrollWidth, // Use element's scroll width for proper scaling
+      margin: [margin, margin, margin, margin], // top, right, bottom, left
+      autoPaging: 'text', // Smart page breaks: avoid breaking text in the middle
+      html2canvas: {
+        scale: 2, // High quality (2x resolution)
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
       }
-
-      // Calculate source Y position in original canvas
-      const sourceY = page * (contentHeightPx / scaleFactor);
-      const sourceHeight = Math.min(
-        sliceCanvas.height,
-        canvas.height - sourceY
-      );
-
-      // Clear the slice canvas
-      sliceCtx.fillStyle = '#ffffff';
-      sliceCtx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-
-      // Draw the slice from the original canvas
-      sliceCtx.drawImage(
-        canvas,
-        0,              // source x
-        sourceY,        // source y (offset for this page)
-        canvas.width,   // source width
-        sourceHeight,   // source height
-        0,              // destination x
-        0,              // destination y
-        canvas.width,   // destination width
-        sourceHeight    // destination height
-      );
-
-      // Convert slice to image data
-      const sliceImgData = sliceCanvas.toDataURL('image/png');
-
-      // Add the slice to the PDF
-      pdf.addImage(
-        sliceImgData,
-        'PNG',
-        margin,        // x position (with left margin)
-        margin,        // y position (with top margin)
-        contentWidth,  // image width (fits content area)
-        Math.min(contentHeight, (sourceHeight * scaleFactor * 25.4) / 96) // image height in mm
-      );
-    }
-
-    // Clean up
-    sliceCanvas.remove();
-
-    // Trigger download
-    pdf.save(filename);
+    });
 
   } catch (error) {
     console.error('PDF generation failed:', error);
