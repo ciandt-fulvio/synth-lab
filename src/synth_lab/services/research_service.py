@@ -11,10 +11,6 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime, timedelta, timezone
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from synth_lab.domain.entities.artifact_state import ArtifactStateModel
 
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.research import (
@@ -32,9 +28,12 @@ from synth_lab.repositories.interview_guide_repository import (
     InterviewGuideRepository,
 )
 from synth_lab.repositories.research_repository import ResearchRepository
-from synth_lab.services.errors import SummaryNotFoundError
 from synth_lab.services.message_broker import BrokerMessage, MessageBroker
-from synth_lab.services.research_agentic.runner import ConversationMessage, InterviewGuideData
+from synth_lab.services.research_agentic.runner import (
+    ConversationMessage,
+    InterviewGuideData,
+    InterviewResult,
+)
 
 # GMT-3 timezone (São Paulo)
 TZ_GMT_MINUS_3 = timezone(timedelta(hours=-3))
@@ -134,83 +133,6 @@ class ResearchService:
         """
         return self.research_repo.get_transcript(exec_id, synth_id)
 
-    def get_summary(self, exec_id: str) -> str:
-        """
-        Get the summary markdown content for an execution.
-
-        Args:
-            exec_id: Execution ID.
-
-        Returns:
-            Markdown summary content.
-
-        Raises:
-            ExecutionNotFoundError: If execution not found.
-            SummaryNotFoundError: If summary doesn't exist.
-        """
-        summary_content = self.research_repo.get_summary_content(exec_id)
-
-        if summary_content is None:
-            raise SummaryNotFoundError(exec_id)
-
-        return summary_content
-
-    def get_artifact_states(
-        self, exec_id: str
-    ) -> tuple["ArtifactStateModel", "ArtifactStateModel"]:
-        """
-        Get the current state of summary and PR-FAQ artifacts.
-
-        Computes artifact states based on execution data and prfaq metadata.
-
-        Args:
-            exec_id: Execution ID.
-
-        Returns:
-            Tuple of (summary_state, prfaq_state) as ArtifactStateModel instances.
-
-        Raises:
-            ExecutionNotFoundError: If execution not found.
-        """
-        from loguru import logger
-
-        from synth_lab.domain.entities.artifact_state import (
-            compute_prfaq_state,
-            compute_summary_state,
-        )
-
-        # Get execution to check summary availability
-        execution = self.research_repo.get_execution(exec_id)
-        execution_status = execution.status.value
-        summary_available = execution.summary_available
-
-        # Get summary content for state computation
-        summary_content = self.research_repo.get_summary_content(exec_id)
-
-        # Check if transcripts exist
-        transcripts = self.research_repo.get_transcripts(exec_id)
-        has_transcripts = len(transcripts.data) > 0
-
-        # Compute summary state
-        summary_state = compute_summary_state(execution_status, summary_content, has_transcripts)
-        logger.debug(
-            f"[{exec_id}] Summary state computed: {summary_state.state.value} "
-            f"(status={execution_status}, has_content={summary_content is not None}, "
-            f"has_transcripts={has_transcripts})"
-        )
-
-        # Get prfaq metadata if exists
-        prfaq_metadata = self.research_repo.get_prfaq_metadata(exec_id)
-
-        # Compute prfaq state
-        prfaq_state = compute_prfaq_state(summary_available, prfaq_metadata)
-        logger.debug(
-            f"[{exec_id}] PR-FAQ state computed: {prfaq_state.state.value} "
-            f"(status={prfaq_metadata.get('status') if prfaq_metadata else 'none'})"
-        )
-
-        return summary_state, prfaq_state
-
     async def generate_summary(self, exec_id: str, model: str = "gpt-4.1-mini") -> str:
         """
         Generate a summary for a completed execution.
@@ -249,6 +171,17 @@ class ResearchService:
             raise ValueError(f"Execution {exec_id} has no transcripts")
 
         logger.info(f"Generating summary for {exec_id} with {len(transcripts.data)} transcripts")
+
+        # Verify experiment_id is set (required for saving document)
+        if not execution.experiment_id:
+            raise ValueError(f"Execution {exec_id} must be linked to an experiment")
+
+        from synth_lab.domain.entities.experiment_document import DocumentType
+        from synth_lab.services.document_service import DocumentService
+
+        doc_service = DocumentService()
+        # Note: start_generation is now called in the router before the background task
+        # to prevent race conditions. Here we only complete the generation.
 
         # Load synths for enrichment
         all_synths = load_synths()
@@ -300,9 +233,13 @@ class ResearchService:
             model=model,
         )
 
-        # Save to database
-        self.research_repo.update_summary_content(exec_id, summary)
-        logger.info(f"Summary generated and saved for {exec_id}: {len(summary)} chars")
+        # Complete generation (update status from "generating" to "completed")
+        doc_service.complete_generation(
+            experiment_id=execution.experiment_id,
+            document_type=DocumentType.SUMMARY,
+            markdown_content=summary,
+            metadata={"exec_id": exec_id, "transcript_count": len(transcripts.data)},
+        )
 
         return summary
 
@@ -507,10 +444,9 @@ class ResearchService:
             logger.debug(f"Published avatar_generation_completed for {count} synths")
 
         async def on_interview_complete(
-            exec_id: str, synth_id: str, total_turns: int, result: "InterviewResult"
+            exec_id: str, synth_id: str, total_turns: int, result: InterviewResult
         ) -> None:
             """Save transcript and publish interview_completed event for a single interview."""
-            from synth_lab.services.research_agentic.runner import InterviewResult
 
             # Save transcript immediately so it's available when user clicks the card
             messages = [
@@ -579,14 +515,18 @@ class ResearchService:
 
             # Transcripts are now saved immediately in on_interview_complete callback
             # This ensures they're available as soon as the user clicks on a completed card
-            logger.info(f"Batch completed: {len(result.successful_interviews)} successful interviews for {exec_id}")
+            logger.info(
+                f"Batch completed: {len(result.successful_interviews)} successful interviews "
+                f"for {exec_id}"
+            )
 
             # Now generate summary if requested
-            summary_content = None
             if generate_summary and result.successful_interviews:
                 # Notify that summary generation is starting
                 await on_summary_start(exec_id)
 
+                from synth_lab.domain.entities.experiment_document import DocumentType
+                from synth_lab.services.document_service import DocumentService
                 from synth_lab.services.research_agentic.summarizer import (
                     summarize_interviews,
                 )
@@ -600,12 +540,25 @@ class ResearchService:
                         topic_guide_name=summary_title or guide_name,
                         model="gpt-4.1-mini",
                     )
-                    logger.info(
-                        f"Summary generated: {len(summary_content) if summary_content else 0} chars"
-                    )
+                    logger.info(f"Summary generated: {len(summary_content)} chars")
+
+                    # Get execution to find experiment_id
+                    execution = self.research_repo.get_execution(exec_id)
+                    if execution.experiment_id:
+                        # Save to experiment_documents
+                        doc_service = DocumentService()
+                        doc_service.save_document(
+                            experiment_id=execution.experiment_id,
+                            document_type=DocumentType.SUMMARY,
+                            markdown_content=summary_content,
+                            model="gpt-4.1-mini",
+                            metadata={"exec_id": exec_id, "interview_count": len(result.successful_interviews)},
+                        )
+                        logger.info(f"Summary saved to experiment_documents for {execution.experiment_id}")
+                    else:
+                        logger.warning(f"Execution {exec_id} not linked to experiment, summary not saved")
                 except Exception as e:
                     logger.error(f"Failed to generate summary: {e}")
-                    summary_content = f"Erro ao gerar síntese: {e}"
 
             # Update execution status
             self.research_repo.update_execution_status(
@@ -613,7 +566,6 @@ class ResearchService:
                 status=ExecutionStatus.COMPLETED,
                 successful_count=result.total_completed,
                 failed_count=result.total_failed,
-                summary_content=summary_content,
             )
 
             logger.info(f"Research execution {exec_id} completed successfully")
@@ -706,20 +658,6 @@ if __name__ == "__main__":
                 print(f"  Got transcript with {len(transcript.messages)} messages")
     except Exception as e:
         all_validation_failures.append(f"Get transcript failed: {e}")
-
-    # Test 6: Get summary (may not exist)
-    total_tests += 1
-    try:
-        result = service.list_executions(PaginationParams(limit=1))
-        if result.data:
-            exec_id = result.data[0].exec_id
-            try:
-                summary = service.get_summary(exec_id)
-                print(f"  Got summary: {len(summary)} chars")
-            except SummaryNotFoundError:
-                print(f"  Summary not found for {exec_id} (expected)")
-    except Exception as e:
-        all_validation_failures.append(f"Get summary failed: {e}")
 
     db.close()
 

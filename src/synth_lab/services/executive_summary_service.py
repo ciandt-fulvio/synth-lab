@@ -46,6 +46,33 @@ from synth_lab.services.document_service import DocumentService
 _tracer = get_tracer()
 
 
+def _strip_markdown_fence(content: str) -> str:
+    """
+    Strip markdown code fence wrapper from LLM response.
+
+    LLMs sometimes wrap markdown in ```markdown ... ``` even when asked not to.
+    This function removes that wrapper to get clean markdown.
+
+    Args:
+        content: Raw LLM response
+
+    Returns:
+        Clean markdown without code fence wrapper
+    """
+    content = content.strip()
+    # Check for ```markdown or ``` at start
+    if content.startswith("```markdown"):
+        content = content[len("```markdown") :].strip()
+    elif content.startswith("```"):
+        content = content[3:].strip()
+
+    # Check for ``` at end
+    if content.endswith("```"):
+        content = content[:-3].strip()
+
+    return content
+
+
 class ExecutiveSummaryService:
     """Service for generating AI-powered executive summaries."""
 
@@ -303,6 +330,9 @@ Sintetize os seguintes {len(insights)} insights de gráficos em um resumo execut
                     messages=[{"role": "user", "content": prompt}],
                     model=REASONING_MODEL,
                 )
+
+                # Strip any markdown code fence wrapper from LLM response
+                markdown_content = _strip_markdown_fence(markdown_content)
 
                 # Determine status (partial if some insights failed)
                 status_str = (

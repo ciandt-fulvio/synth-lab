@@ -13,7 +13,7 @@ import { ptBR } from 'date-fns/locale';
 import { ExplorationStatusBadge } from './ExplorationStatusBadge';
 import { formatSuccessRate } from '@/lib/exploration-utils';
 import type { ExplorationSummary, ExplorationStatus } from '@/types/exploration';
-import { ChevronRight, TreeDeciduous, GitBranch, Target } from 'lucide-react';
+import { ChevronRight, Network, GitBranch, Target } from 'lucide-react';
 
 interface ExplorationListItemProps {
   exploration: ExplorationSummary;
@@ -45,7 +45,7 @@ export function ExplorationListItem({
             ${isRunning ? 'bg-blue-100' : 'bg-slate-100'}
           `}
         >
-          <TreeDeciduous
+          <Network
             className={`h-5 w-5 ${isRunning ? 'text-blue-600' : 'text-slate-600'}`}
           />
         </div>

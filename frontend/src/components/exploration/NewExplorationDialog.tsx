@@ -31,7 +31,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Loader2, TreeDeciduous } from 'lucide-react';
+import { Loader2, Network } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Form validation schema
@@ -116,7 +116,7 @@ export function NewExplorationDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <div className="icon-box-primary">
-              <TreeDeciduous className="h-5 w-5" />
+              <Network className="h-5 w-5" />
             </div>
             Nova Exploração de Cenários
           </DialogTitle>

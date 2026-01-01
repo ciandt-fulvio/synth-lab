@@ -20,11 +20,8 @@ export const queryKeys = {
   // Research
   researchList: ['research'] as const,
   researchDetail: (execId: string) => ['research', execId] as const,
-  researchSummary: (execId: string) => ['research', execId, 'summary'] as const,
   researchTranscripts: (execId: string) => ['research', execId, 'transcripts'] as const,
   researchTranscript: (execId: string, synthId: string) => ['research', execId, 'transcripts', synthId] as const,
-  artifactStates: (execId: string) => ['research', execId, 'artifact-states'] as const,
-  prfaqMarkdown: (execId: string) => ['research', execId, 'prfaq-markdown'] as const,
   autoInterview: (experimentId: string) => ['auto-interview', experimentId] as const,
 
   // Analysis (experiment-based)
@@ -75,4 +72,12 @@ export const queryKeys = {
   explorationTree: (id: string) => ['explorations', 'tree', id] as const,
   explorationWinningPath: (id: string) => ['explorations', 'winning-path', id] as const,
   actionCatalog: ['explorations', 'catalog'] as const,
+
+  // Documents
+  documents: {
+    list: (experimentId: string) => ['documents', experimentId, 'list'] as const,
+    availability: (experimentId: string) => ['documents', experimentId, 'availability'] as const,
+    detail: (experimentId: string, documentType: string) => ['documents', experimentId, documentType] as const,
+    markdown: (experimentId: string, documentType: string) => ['documents', experimentId, documentType, 'markdown'] as const,
+  },
 };

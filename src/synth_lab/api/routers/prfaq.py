@@ -7,14 +7,13 @@ References:
     - OpenAPI spec: specs/010-rest-api/contracts/openapi.yaml
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.prfaq import PRFAQGenerateRequest, PRFAQGenerateResponse, PRFAQSummary
 from synth_lab.services.prfaq_service import (
     MarkdownNotFoundError,
-    PRFAQAlreadyGeneratingError,
     PRFAQService,
 )
 
@@ -77,35 +76,97 @@ async def get_prfaq_markdown(exec_id: str) -> PlainTextResponse:
         ) from e
 
 
-@router.post("/generate", response_model=PRFAQGenerateResponse)
-async def generate_prfaq(request: PRFAQGenerateRequest) -> PRFAQGenerateResponse:
-    """
-    Generate a PR-FAQ from a research execution.
+def _generate_prfaq_background(request: PRFAQGenerateRequest) -> None:
+    """Background task for PR-FAQ generation."""
+    from loguru import logger
 
-    This generates a PR-FAQ document from the summary of a completed research execution.
-    The execution must have a summary available.
+    service = get_prfaq_service()
+    try:
+        service.generate_prfaq(request)
+        logger.info(f"PR-FAQ generation completed for {request.exec_id}")
+    except Exception as e:
+        logger.error(f"PR-FAQ generation failed for {request.exec_id}: {e}")
+        # Note: errors are handled in the service (status updated to "failed")
+
+
+@router.post("/generate", response_model=PRFAQGenerateResponse)
+async def generate_prfaq(
+    request: PRFAQGenerateRequest,
+    background_tasks: BackgroundTasks,
+) -> PRFAQGenerateResponse:
+    """
+    Start generation of a PR-FAQ from a research execution.
+
+    This endpoint starts generation and returns immediately.
+    The actual generation runs in a background task.
 
     Args:
         request: Generation parameters including exec_id and model.
+        background_tasks: FastAPI background tasks.
 
     Returns:
-        Generation status and metadata.
+        Generation status (generating).
 
     Raises:
         409 Conflict: If PR-FAQ is already being generated for this execution.
+        400: If execution is not linked to an experiment or summary is not available.
     """
-    service = get_prfaq_service()
+    from datetime import datetime
+
+    from synth_lab.domain.entities.experiment_document import DocumentType
+    from synth_lab.repositories.research_repository import ResearchRepository
+    from synth_lab.services.document_service import DocumentService
+
+    # Verify execution exists and get experiment_id
+    research_repo = ResearchRepository()
     try:
-        return service.generate_prfaq(request)
-    except PRFAQAlreadyGeneratingError as e:
+        execution = research_repo.get_execution(request.exec_id)
+    except Exception:
+        raise HTTPException(status_code=404, detail="Execution not found")
+
+    if not execution.experiment_id:
         raise HTTPException(
-            status_code=409,
-            detail={
-                "code": "PRFAQ_ALREADY_GENERATING",
-                "message": str(e),
-                "exec_id": e.exec_id,
-            },
-        ) from e
+            status_code=400,
+            detail="Execution must be linked to an experiment",
+        )
+
+    # Create "generating" status record BEFORE starting background task
+    # This prevents race condition where frontend polls before record exists
+    doc_service = DocumentService()
+
+    # Check if summary exists (prerequisite for prfaq)
+    try:
+        doc_service.get_markdown(execution.experiment_id, DocumentType.SUMMARY)
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail="Summary must be generated first",
+        )
+
+    pending = doc_service.start_generation(
+        experiment_id=execution.experiment_id,
+        document_type=DocumentType.PRFAQ,
+        model=request.model,
+    )
+
+    if pending is None:
+        # Already generating
+        return PRFAQGenerateResponse(
+            exec_id=request.exec_id,
+            status="generating",
+            generated_at=datetime.now(),
+            validation_status="pending",
+        )
+
+    # Start background generation (service will handle validation and locking)
+    background_tasks.add_task(_generate_prfaq_background, request)
+
+    return PRFAQGenerateResponse(
+        exec_id=request.exec_id,
+        status="generating",
+        generated_at=datetime.now(),
+        validation_status="pending",
+    )
 
 
 if __name__ == "__main__":

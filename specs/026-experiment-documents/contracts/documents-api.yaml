@@ -1,0 +1,317 @@
+openapi: 3.0.3
+info:
+  title: Experiment Documents API
+  description: REST API for unified experiment documents (summary, prfaq, executive_summary)
+  version: 1.0.0
+
+paths:
+  /experiments/{experiment_id}/documents:
+    get:
+      operationId: listDocuments
+      summary: List all documents for an experiment
+      description: Returns summary info for each document (without content)
+      tags:
+        - documents
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^exp_[a-f0-9]{8}$
+          example: exp_12345678
+      responses:
+        '200':
+          description: List of document summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DocumentSummaryResponse'
+        '404':
+          description: Experiment not found
+
+  /experiments/{experiment_id}/documents/availability:
+    get:
+      operationId: checkAvailability
+      summary: Check document availability for an experiment
+      description: Returns status for each document type
+      tags:
+        - documents
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^exp_[a-f0-9]{8}$
+      responses:
+        '200':
+          description: Availability status for all document types
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentAvailabilityResponse'
+
+  /experiments/{experiment_id}/documents/{document_type}:
+    get:
+      operationId: getDocument
+      summary: Get a specific document
+      description: Returns full document details including markdown content
+      tags:
+        - documents
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^exp_[a-f0-9]{8}$
+        - name: document_type
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/DocumentTypeEnum'
+      responses:
+        '200':
+          description: Full document details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentDetailResponse'
+        '404':
+          description: Document not found
+
+    delete:
+      operationId: deleteDocument
+      summary: Delete a document
+      description: Deletes a specific document
+      tags:
+        - documents
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: document_type
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/DocumentTypeEnum'
+      responses:
+        '200':
+          description: Document deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                  document_type:
+                    type: string
+        '404':
+          description: Document not found
+
+  /experiments/{experiment_id}/documents/{document_type}/markdown:
+    get:
+      operationId: getDocumentMarkdown
+      summary: Get document markdown content
+      description: Returns plain text markdown content
+      tags:
+        - documents
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: document_type
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/DocumentTypeEnum'
+      responses:
+        '200':
+          description: Markdown content
+          content:
+            text/markdown:
+              schema:
+                type: string
+        '404':
+          description: Document not found
+
+  /experiments/{experiment_id}/documents/{document_type}/generate:
+    post:
+      operationId: generateDocument
+      summary: Generate or regenerate a document
+      description: Starts document generation in background
+      tags:
+        - documents
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: document_type
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/DocumentTypeEnum'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateDocumentRequest'
+      responses:
+        '200':
+          description: Generation started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateDocumentResponse'
+        '400':
+          description: Cannot generate (e.g., no analysis results for executive_summary)
+
+components:
+  schemas:
+    DocumentTypeEnum:
+      type: string
+      enum:
+        - summary
+        - prfaq
+        - executive_summary
+      description: Type of document
+
+    DocumentStatusEnum:
+      type: string
+      enum:
+        - pending
+        - generating
+        - completed
+        - failed
+        - partial
+      description: Document generation status
+
+    DocumentSummaryResponse:
+      type: object
+      required:
+        - id
+        - document_type
+        - status
+        - generated_at
+        - model
+      properties:
+        id:
+          type: string
+          description: Document ID
+          example: doc_12345678
+        document_type:
+          $ref: '#/components/schemas/DocumentTypeEnum'
+        status:
+          $ref: '#/components/schemas/DocumentStatusEnum'
+        generated_at:
+          type: string
+          format: date-time
+          description: Generation timestamp
+        model:
+          type: string
+          description: LLM model used
+          example: gpt-4o-mini
+
+    DocumentDetailResponse:
+      type: object
+      required:
+        - id
+        - experiment_id
+        - document_type
+        - markdown_content
+        - generated_at
+        - model
+        - status
+      properties:
+        id:
+          type: string
+          example: doc_12345678
+        experiment_id:
+          type: string
+          example: exp_abcdef12
+        document_type:
+          $ref: '#/components/schemas/DocumentTypeEnum'
+        markdown_content:
+          type: string
+          description: Full markdown content
+        metadata:
+          type: object
+          nullable: true
+          description: Type-specific metadata
+        generated_at:
+          type: string
+          format: date-time
+        model:
+          type: string
+        status:
+          $ref: '#/components/schemas/DocumentStatusEnum'
+        error_message:
+          type: string
+          nullable: true
+          description: Error details if status is failed
+
+    DocumentAvailabilityResponse:
+      type: object
+      required:
+        - summary
+        - prfaq
+        - executive_summary
+      properties:
+        summary:
+          type: object
+          properties:
+            available:
+              type: boolean
+            status:
+              type: string
+              nullable: true
+        prfaq:
+          type: object
+          properties:
+            available:
+              type: boolean
+            status:
+              type: string
+              nullable: true
+        executive_summary:
+          type: object
+          properties:
+            available:
+              type: boolean
+            status:
+              type: string
+              nullable: true
+
+    GenerateDocumentRequest:
+      type: object
+      properties:
+        model:
+          type: string
+          default: gpt-4o-mini
+          description: LLM model to use for generation
+
+    GenerateDocumentResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        document_id:
+          type: string
+          nullable: true
+          description: Document ID if generation started
+        status:
+          $ref: '#/components/schemas/DocumentStatusEnum'
+        message:
+          type: string
+          description: Status message
