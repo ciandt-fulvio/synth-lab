@@ -61,16 +61,6 @@ export async function getTranscript(
   );
 }
 
-export async function getSummary(execId: string): Promise<string> {
-  return fetchAPI<string>(`/research/${execId}/summary`);
-}
-
-export async function getArtifactStates(
-  execId: string
-): Promise<ArtifactStatesResponse> {
-  return fetchAPI<ArtifactStatesResponse>(`/research/${execId}/artifacts`);
-}
-
 export async function executeResearch(
   request: ResearchExecuteRequest
 ): Promise<ResearchExecuteResponse> {

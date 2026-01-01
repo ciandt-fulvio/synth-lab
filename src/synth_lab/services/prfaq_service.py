@@ -126,28 +126,44 @@ class PRFAQService:
 
         from synth_lab.services.research_prfaq.generator import generate_prfaq_from_content
 
-        # Verify execution exists and has summary
+        # Verify execution exists
         research_repo = ResearchRepository()
         try:
             execution = research_repo.get_execution(request.exec_id)
         except ExecutionNotFoundError:
             raise
 
-        if not execution.summary_available:
-            raise SummaryNotFoundError(request.exec_id)
-
         # Try to create pending record - prevents concurrent requests
         if not self.prfaq_repo.create_pending_prfaq(request.exec_id, request.model):
             raise PRFAQAlreadyGeneratingError(request.exec_id)
 
         try:
-            # Get summary content from database
-            summary_content = research_repo.get_summary_content(request.exec_id)
-            if not summary_content:
+            # Verify experiment_id is set (required for saving document)
+            if not execution.experiment_id:
                 self.prfaq_repo.update_prfaq_status(
                     request.exec_id,
                     status="failed",
-                    error_message="Summary content not found",
+                    error_message="Execution not linked to an experiment",
+                )
+                raise SummaryNotFoundError(request.exec_id)
+
+            from synth_lab.domain.entities.experiment_document import DocumentType
+            from synth_lab.services.document_service import DocumentService
+
+            doc_service = DocumentService()
+            # Note: start_generation is now called in the router before the background task
+            # to prevent race conditions. Here we only complete the generation.
+
+            try:
+                summary_content = doc_service.get_markdown(
+                    execution.experiment_id, DocumentType.SUMMARY
+                )
+            except Exception:
+                # Summary not found in experiment_documents
+                self.prfaq_repo.update_prfaq_status(
+                    request.exec_id,
+                    status="failed",
+                    error_message="Summary content not found in experiment_documents",
                 )
                 raise SummaryNotFoundError(request.exec_id)
 
@@ -166,15 +182,19 @@ class PRFAQService:
                     headline = line[2:].strip()
                     break
 
-            # Update with completed content
+            # Complete generation (update status from "generating" to "completed")
+            doc_service.complete_generation(
+                experiment_id=execution.experiment_id,
+                document_type=DocumentType.PRFAQ,
+                markdown_content=prfaq_markdown,
+                metadata={"exec_id": request.exec_id, "headline": headline},
+            )
+
+            # Update legacy table status for backward compatibility (status only, no content)
             self.prfaq_repo.update_prfaq_status(
                 request.exec_id,
                 status="completed",
-                markdown_content=prfaq_markdown,
-                headline=headline,
             )
-
-            logger.info(f"PR-FAQ generated and saved for {request.exec_id}")
 
             return PRFAQGenerateResponse(
                 exec_id=request.exec_id,

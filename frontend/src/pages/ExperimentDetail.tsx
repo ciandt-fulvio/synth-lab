@@ -8,7 +8,7 @@
  *   - Spec: specs/019-experiment-refactor/spec.md
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -51,7 +51,7 @@ import {
   ArrowLeft,
   Trash2,
   PieChart,
-  TreeDeciduous,
+  Network,
   Info,
   Users,
 } from 'lucide-react';
@@ -132,6 +132,31 @@ export default function ExperimentDetail() {
   const [interviewPage, setInterviewPage] = useState(0);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isNewExplorationOpen, setIsNewExplorationOpen] = useState(false);
+
+  // Tab underline animation state
+  const [activeTab, setActiveTab] = useState('analysis');
+  const [underlineStyle, setUnderlineStyle] = useState({ left: 0, width: 0 });
+  const tabsListRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+
+  const updateUnderline = useCallback(() => {
+    const activeTabEl = tabRefs.current.get(activeTab);
+    const listEl = tabsListRef.current;
+    if (activeTabEl && listEl) {
+      const listRect = listEl.getBoundingClientRect();
+      const tabRect = activeTabEl.getBoundingClientRect();
+      setUnderlineStyle({
+        left: tabRect.left - listRect.left,
+        width: tabRect.width,
+      });
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    updateUnderline();
+    window.addEventListener('resize', updateUnderline);
+    return () => window.removeEventListener('resize', updateUnderline);
+  }, [updateUnderline]);
 
   const { data: experiment, isLoading, isError, error } = useExperiment(id ?? '');
   const runAnalysisMutation = useRunAnalysis();
@@ -303,53 +328,86 @@ export default function ExperimentDetail() {
         </div>
 
         {/* Main Tabs Section */}
-        <Tabs defaultValue="analysis" className="w-full">
-          {/* Tab Navigation */}
-          <TabsList className="w-full h-auto p-1.5 bg-slate-100 rounded-xl mb-6 grid grid-cols-3 gap-1">
-            {/* Analysis Tab */}
-            <TabsTrigger
-              value="analysis"
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-slate-800 text-slate-500 transition-all"
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          {/* Tab Navigation - Underline Style */}
+          <div className="relative mb-6">
+            <TabsList
+              ref={tabsListRef}
+              className="relative w-full h-auto p-0 bg-transparent rounded-none border-b border-slate-200 grid grid-cols-3"
             >
-              <PieChart className="h-4 w-4" />
-              <span className="font-medium">Análise</span>
-              <Badge
-                variant="secondary"
-                className={`ml-1 text-[10px] px-1.5 py-0 ${
-                  analysisStatus.count
-                    ? 'bg-slate-200 text-slate-700'
-                    : 'bg-slate-200/60 text-slate-500'
-                }`}
+              {/* Analysis Tab */}
+              <TabsTrigger
+                ref={(el) => el && tabRefs.current.set('analysis', el)}
+                value="analysis"
+                className="relative flex items-center justify-center gap-2.5 px-4 py-4 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-violet-700 text-slate-500 hover:text-slate-700 transition-colors duration-200"
               >
-                {analysisStatus.label}
-              </Badge>
-            </TabsTrigger>
+                <PieChart className="h-4 w-4" />
+                <span className="font-semibold">Análise</span>
+                <Badge
+                  variant="secondary"
+                  className={`ml-1 text-[10px] px-2 py-0.5 rounded-full transition-colors ${
+                    activeTab === 'analysis'
+                      ? 'bg-violet-100 text-violet-700'
+                      : analysisStatus.count
+                        ? 'bg-slate-100 text-slate-600'
+                        : 'bg-slate-100/60 text-slate-400'
+                  }`}
+                >
+                  {analysisStatus.label}
+                </Badge>
+              </TabsTrigger>
 
-            {/* Interviews Tab */}
-            <TabsTrigger
-              value="interviews"
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-slate-800 text-slate-500 transition-all"
-            >
-              <MessageSquare className="h-4 w-4" />
-              <span className="font-medium">Entrevistas</span>
-              <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0 bg-slate-200 text-slate-700">
-                {experiment.interview_count}
-              </Badge>
-            </TabsTrigger>
+              {/* Interviews Tab */}
+              <TabsTrigger
+                ref={(el) => el && tabRefs.current.set('interviews', el)}
+                value="interviews"
+                className="relative flex items-center justify-center gap-2.5 px-4 py-4 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-violet-700 text-slate-500 hover:text-slate-700 transition-colors duration-200"
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span className="font-semibold">Entrevistas</span>
+                <Badge
+                  variant="secondary"
+                  className={`ml-1 text-[10px] px-2 py-0.5 rounded-full transition-colors ${
+                    activeTab === 'interviews'
+                      ? 'bg-violet-100 text-violet-700'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {experiment.interview_count}
+                </Badge>
+              </TabsTrigger>
 
-            {/* Explorations Tab */}
-            <TabsTrigger
-              value="explorations"
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-slate-800 text-slate-500 transition-all disabled:opacity-40"
-              disabled={!hasScorecard || !hasAnalysis}
-            >
-              <TreeDeciduous className="h-4 w-4" />
-              <span className="font-medium">Explorações</span>
-              <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0 bg-slate-200 text-slate-700">
-                {hasScorecard && hasAnalysis ? (explorations?.length ?? 0) : '—'}
-              </Badge>
-            </TabsTrigger>
-          </TabsList>
+              {/* Explorations Tab */}
+              <TabsTrigger
+                ref={(el) => el && tabRefs.current.set('explorations', el)}
+                value="explorations"
+                className="relative flex items-center justify-center gap-2.5 px-4 py-4 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-violet-700 text-slate-500 hover:text-slate-700 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                disabled={!hasScorecard || !hasAnalysis}
+              >
+                <Network className="h-4 w-4" />
+                <span className="font-semibold">Explorações</span>
+                <Badge
+                  variant="secondary"
+                  className={`ml-1 text-[10px] px-2 py-0.5 rounded-full transition-colors ${
+                    activeTab === 'explorations'
+                      ? 'bg-violet-100 text-violet-700'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {hasScorecard && hasAnalysis ? (explorations?.length ?? 0) : '—'}
+                </Badge>
+              </TabsTrigger>
+
+              {/* Animated Underline */}
+              <div
+                className="absolute bottom-0 h-[3px] bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all duration-300 ease-out"
+                style={{
+                  left: underlineStyle.left,
+                  width: underlineStyle.width,
+                }}
+              />
+            </TabsList>
+          </div>
 
           {/* Analysis Content */}
           <TabsContent value="analysis" className="mt-0">
@@ -594,7 +652,7 @@ export default function ExperimentDetail() {
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-slate-100 rounded-lg">
-                    <TreeDeciduous className="w-5 h-5 text-slate-600" />
+                    <Network className="w-5 h-5 text-slate-600" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900">Explorações de Cenários</h3>

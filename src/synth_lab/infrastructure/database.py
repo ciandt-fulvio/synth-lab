@@ -19,7 +19,7 @@ from loguru import logger
 
 from synth_lab.infrastructure.config import DB_PATH
 
-# Database schema SQL - Version 13 (2025-12)
+# Database schema SQL - Version 15 (2025-12)
 # Changes:
 #   - v4: synths.data: single JSON field for all nested data
 #   - v5: Added simulation tables (feature_scorecards, simulation_runs, synth_outcomes,
@@ -35,6 +35,7 @@ from synth_lab.infrastructure.config import DB_PATH
 #   - v11: Added scenario_id field to analysis_runs table
 #   - v12: Added analysis_cache table for pre-computed chart data
 #   - v13: Added explorations and scenario_nodes tables for LLM-assisted exploration
+#   - v15: Added experiment_documents table for unified document storage
 SCHEMA_SQL = """
 -- Enable recommended settings
 PRAGMA journal_mode=WAL;
@@ -133,7 +134,6 @@ CREATE TABLE IF NOT EXISTS research_executions (
     max_turns INTEGER DEFAULT 6,
     started_at TEXT NOT NULL,
     completed_at TEXT,
-    summary_content TEXT,
     additional_context TEXT,
     CHECK(status IN ('pending', 'running', 'generating_summary', 'completed', 'failed')),
     FOREIGN KEY (experiment_id) REFERENCES experiments(id) ON DELETE SET NULL
@@ -160,28 +160,6 @@ CREATE TABLE IF NOT EXISTS transcripts (
 
 CREATE INDEX IF NOT EXISTS idx_transcripts_exec ON transcripts(exec_id);
 CREATE INDEX IF NOT EXISTS idx_transcripts_synth ON transcripts(synth_id);
-
--- PR-FAQ metadata table
-CREATE TABLE IF NOT EXISTS prfaq_metadata (
-    exec_id TEXT PRIMARY KEY,
-    generated_at TEXT,
-    model TEXT DEFAULT 'gpt-4o-mini',
-    validation_status TEXT DEFAULT 'valid',
-    confidence_score REAL,
-    headline TEXT,
-    one_liner TEXT,
-    faq_count INTEGER DEFAULT 0,
-    markdown_content TEXT,
-    json_content TEXT CHECK(json_valid(json_content) OR json_content IS NULL),
-    status TEXT DEFAULT 'completed',
-    error_message TEXT,
-    started_at TEXT,
-    CHECK(validation_status IN ('valid', 'invalid', 'pending')),
-    CHECK(status IN ('generating', 'completed', 'failed'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_prfaq_generated ON prfaq_metadata(generated_at DESC);
-CREATE INDEX IF NOT EXISTS idx_prfaq_status ON prfaq_metadata(status);
 
 -- Interview Guide table (1:1 with experiment)
 CREATE TABLE IF NOT EXISTS interview_guide (
@@ -331,6 +309,27 @@ CREATE INDEX IF NOT EXISTS idx_scenario_nodes_exploration ON scenario_nodes(expl
 CREATE INDEX IF NOT EXISTS idx_scenario_nodes_parent ON scenario_nodes(parent_id);
 CREATE INDEX IF NOT EXISTS idx_scenario_nodes_status ON scenario_nodes(exploration_id, node_status);
 CREATE INDEX IF NOT EXISTS idx_scenario_nodes_depth ON scenario_nodes(exploration_id, depth);
+
+-- Experiment Documents table (v15 - unified document storage)
+CREATE TABLE IF NOT EXISTS experiment_documents (
+    id TEXT PRIMARY KEY,
+    experiment_id TEXT NOT NULL,
+    document_type TEXT NOT NULL,
+    markdown_content TEXT NOT NULL,
+    metadata TEXT CHECK(json_valid(metadata) OR metadata IS NULL),
+    generated_at TEXT NOT NULL,
+    model TEXT DEFAULT 'gpt-4o-mini',
+    status TEXT NOT NULL DEFAULT 'completed',
+    error_message TEXT,
+    UNIQUE(experiment_id, document_type),
+    FOREIGN KEY (experiment_id) REFERENCES experiments(id) ON DELETE CASCADE,
+    CHECK(document_type IN ('summary', 'prfaq', 'executive_summary')),
+    CHECK(status IN ('pending', 'generating', 'completed', 'failed', 'partial'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_experiment_documents_experiment ON experiment_documents(experiment_id);
+CREATE INDEX IF NOT EXISTS idx_experiment_documents_type ON experiment_documents(document_type);
+CREATE INDEX IF NOT EXISTS idx_experiment_documents_status ON experiment_documents(status);
 """
 
 
@@ -388,6 +387,41 @@ def init_database(db_path: Path | None = None) -> None:
             conn.execute("ALTER TABLE scenario_nodes ADD COLUMN short_action TEXT")
             conn.commit()
             logger.info("Migration v14 completed: short_action column added")
+
+        # Migration v15: Create experiment_documents table if not exists
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='experiment_documents'"
+        )
+        if cursor.fetchone() is None:
+            logger.info("Migrating database: creating experiment_documents table")
+            conn.execute("""
+                CREATE TABLE experiment_documents (
+                    id TEXT PRIMARY KEY,
+                    experiment_id TEXT NOT NULL,
+                    document_type TEXT NOT NULL,
+                    markdown_content TEXT NOT NULL,
+                    metadata TEXT CHECK(json_valid(metadata) OR metadata IS NULL),
+                    generated_at TEXT NOT NULL,
+                    model TEXT DEFAULT 'gpt-4o-mini',
+                    status TEXT NOT NULL DEFAULT 'completed',
+                    error_message TEXT,
+                    UNIQUE(experiment_id, document_type),
+                    FOREIGN KEY (experiment_id) REFERENCES experiments(id) ON DELETE CASCADE,
+                    CHECK(document_type IN ('summary', 'prfaq', 'executive_summary')),
+                    CHECK(status IN ('pending', 'generating', 'completed', 'failed', 'partial'))
+                )
+            """)
+            conn.execute(
+                "CREATE INDEX idx_experiment_documents_experiment ON experiment_documents(experiment_id)"
+            )
+            conn.execute(
+                "CREATE INDEX idx_experiment_documents_type ON experiment_documents(document_type)"
+            )
+            conn.execute(
+                "CREATE INDEX idx_experiment_documents_status ON experiment_documents(status)"
+            )
+            conn.commit()
+            logger.info("Migration v15 completed: experiment_documents table created")
 
         # Ensure default synth group exists (ID=1, always present)
         conn.execute(

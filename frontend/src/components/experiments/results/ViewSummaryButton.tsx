@@ -17,8 +17,9 @@ import { useState } from 'react';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useExecutiveSummary } from '@/hooks/use-executive-summary';
+import { useDocumentAvailability, useGenerateDocument } from '@/hooks/use-documents';
 import { ExecutiveSummaryModal } from './ExecutiveSummaryModal';
+import { toast } from 'sonner';
 
 interface ViewSummaryButtonProps {
   experimentId: string;
@@ -26,25 +27,54 @@ interface ViewSummaryButtonProps {
 
 export function ViewSummaryButton({ experimentId }: ViewSummaryButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { data: summary, isLoading } = useExecutiveSummary(experimentId);
+  const { data: availability, isLoading } = useDocumentAvailability(experimentId);
+  const generateMutation = useGenerateDocument(experimentId, 'executive_summary');
+
+  const summary = availability?.executive_summary;
 
   // Check if summary is new (generated in last 5 minutes)
   const isNew =
-    summary &&
-    summary.status === 'completed' &&
-    Date.now() - new Date(summary.generation_timestamp).getTime() < 5 * 60 * 1000;
+    summary?.available &&
+    summary?.generated_at &&
+    Date.now() - new Date(summary.generated_at).getTime() < 5 * 60 * 1000;
 
-  // Button should be disabled if: loading, no data, or failed
-  const isDisabled = isLoading || !summary || summary.status === 'failed';
+  // Determine button state
+  const isAvailable = summary?.available;
+  const isGenerating = summary?.status === 'generating' || generateMutation.isPending;
+  const canGenerate = !isAvailable && !isGenerating;
+
+  // Button should be disabled if: loading or failed
+  const isDisabled = isLoading || summary?.status === 'failed';
+
+  const handleClick = () => {
+    if (canGenerate) {
+      // Start generation
+      generateMutation.mutate(undefined, {
+        onSuccess: () => {
+          toast.success('Resumo executivo em geração', {
+            description: 'O documento estará disponível em alguns segundos.',
+          });
+        },
+        onError: (error) => {
+          toast.error('Erro ao gerar resumo', {
+            description: error instanceof Error ? error.message : 'Tente novamente mais tarde.',
+          });
+        },
+      });
+    } else {
+      // Open modal to view
+      setIsModalOpen(true);
+    }
+  };
 
   return (
     <>
       <Button
-        onClick={() => setIsModalOpen(true)}
+        onClick={handleClick}
         disabled={isDisabled}
         className="btn-primary relative"
       >
-        {summary?.status === 'pending' || summary?.status === 'partial' ? (
+        {isGenerating ? (
           <>
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             Gerando...
@@ -52,10 +82,10 @@ export function ViewSummaryButton({ experimentId }: ViewSummaryButtonProps) {
         ) : (
           <>
             <Sparkles className="h-4 w-4 mr-2" />
-            Ver Resumo Executivo
+            {canGenerate ? 'Gerar Resumo Executivo' : 'Ver Resumo Executivo'}
           </>
         )}
-        {isNew && summary.status === 'completed' && (
+        {isNew && summary?.status === 'completed' && (
           <Badge className="badge-success ml-2 absolute -top-2 -right-2">Novo</Badge>
         )}
       </Button>

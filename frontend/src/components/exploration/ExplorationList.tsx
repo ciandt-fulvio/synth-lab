@@ -10,7 +10,7 @@
 import { ExplorationListItem } from './ExplorationListItem';
 import type { ExplorationSummary } from '@/types/exploration';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TreeDeciduous } from 'lucide-react';
+import { Network } from 'lucide-react';
 
 interface ExplorationListProps {
   explorations: ExplorationSummary[] | undefined;
@@ -35,7 +35,7 @@ export function ExplorationList({
   if (!explorations || explorations.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center">
-        <TreeDeciduous className="h-10 w-10 text-slate-300 mb-3" />
+        <Network className="h-10 w-10 text-slate-300 mb-3" />
         <p className="text-muted-foreground text-sm">
           Nenhuma exploração encontrada
         </p>

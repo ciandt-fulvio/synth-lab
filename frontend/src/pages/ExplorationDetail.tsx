@@ -9,7 +9,7 @@
 
 import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { TreeDeciduous } from 'lucide-react';
+import { Network } from 'lucide-react';
 
 import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
 import { ExplorationTreeFlow } from '@/components/exploration/ExplorationTreeFlow';
@@ -94,7 +94,7 @@ export default function ExplorationDetail() {
       <SynthLabHeader
         subtitle={
           <span className="flex items-center gap-2">
-            <TreeDeciduous className="h-5 w-5 text-indigo-600" />
+            <Network className="h-5 w-5 text-indigo-600" />
             Exploração de Cenários
           </span>
         }
@@ -108,7 +108,7 @@ export default function ExplorationDetail() {
         {/* Tree visualization */}
         <div className="card p-6">
           <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-            <TreeDeciduous className="h-5 w-5 text-indigo-600" />
+            <Network className="h-5 w-5 text-indigo-600" />
             Árvore de Cenários
           </h2>
           <ExplorationTreeFlow

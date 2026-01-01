@@ -15,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useExplorations } from '@/hooks/use-exploration';
 import { ExplorationList } from '@/components/exploration/ExplorationList';
 import { NewExplorationDialog } from '@/components/exploration/NewExplorationDialog';
-import { TreeDeciduous, Plus, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { Network, Plus, ChevronDown, ChevronUp, Info } from 'lucide-react';
 
 interface ExplorationSectionProps {
   experimentId: string;
@@ -51,7 +51,7 @@ export function ExplorationSection({
           <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 rounded-t-lg transition-colors">
             <div className="flex items-center gap-3">
               <div className="icon-box-light">
-                <TreeDeciduous className="h-5 w-5" />
+                <Network className="h-5 w-5" />
               </div>
               <div>
                 <h3 className="text-card-title">Explorações de Cenários</h3>

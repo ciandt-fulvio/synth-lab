@@ -11,10 +11,6 @@ export async function getPrfaq(execId: string): Promise<PRFAQSummary> {
   return fetchAPI<PRFAQSummary>(`/prfaq/${execId}`);
 }
 
-export async function getPrfaqMarkdown(execId: string): Promise<string> {
-  return fetchAPI<string>(`/prfaq/${execId}/markdown`);
-}
-
 export async function generatePrfaq(
   request: PRFAQGenerateRequest
 ): Promise<PRFAQGenerateResponse> {

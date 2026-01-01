@@ -195,6 +195,23 @@ class AnalysisRepository(BaseRepository):
         )
         return True
 
+    def get_latest_completed_analysis_id(self, experiment_id: str) -> str | None:
+        """
+        Get the ID of the latest completed analysis for an experiment.
+
+        Args:
+            experiment_id: Parent experiment ID.
+
+        Returns:
+            Analysis ID if found, None otherwise.
+        """
+        row = self.db.fetchone(
+            "SELECT id FROM analysis_runs WHERE experiment_id = ? AND status = 'completed' "
+            "ORDER BY started_at DESC LIMIT 1",
+            (experiment_id,),
+        )
+        return row["id"] if row else None
+
     def _row_to_analysis(self, row) -> AnalysisRun:
         """Convert a database row to AnalysisRun entity."""
         started_at = row["started_at"]

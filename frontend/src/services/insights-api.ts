@@ -14,7 +14,7 @@
  */
 
 import { fetchAPI } from './api';
-import type { ChartInsight, AllInsightsResponse, ExecutiveSummary } from '../types/insights';
+import type { ChartInsight, AllInsightsResponse } from '../types/insights';
 
 /**
  * Get AI-generated insight for a specific chart type.
@@ -43,15 +43,4 @@ export async function getChartInsight(
  */
 export async function getAllChartInsights(experimentId: string): Promise<AllInsightsResponse> {
   return fetchAPI<AllInsightsResponse>(`/experiments/${experimentId}/insights`);
-}
-
-/**
- * Get executive summary synthesizing all chart insights.
- *
- * @param experimentId - Experiment ID
- * @returns ExecutiveSummary with aggregated insights
- * @throws 404 if experiment, analysis, or summary not found
- */
-export async function getExecutiveSummary(experimentId: string): Promise<ExecutiveSummary> {
-  return fetchAPI<ExecutiveSummary>(`/experiments/${experimentId}/insights/executive-summary`);
 }

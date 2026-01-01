@@ -6,7 +6,6 @@ import {
   listExecutions,
   getExecution,
   getTranscripts,
-  getSummary,
   executeResearch,
 } from '@/services/research-api';
 import type {
@@ -34,14 +33,6 @@ export function useResearchTranscripts(execId: string, params?: PaginationParams
     queryKey: [...queryKeys.researchTranscripts(execId), params],
     queryFn: () => getTranscripts(execId, params),
     enabled: !!execId,
-  });
-}
-
-export function useResearchSummary(execId: string, enabled: boolean = true) {
-  return useQuery({
-    queryKey: queryKeys.researchSummary(execId),
-    queryFn: () => getSummary(execId),
-    enabled: enabled && !!execId,
   });
 }
 

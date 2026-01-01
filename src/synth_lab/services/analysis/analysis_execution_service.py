@@ -565,10 +565,17 @@ class AnalysisExecutionService:
 
             # Generate executive summary after all insights
             try:
-                summary = summary_service.generate_summary(analysis_id)
-                logger_ref.info(
-                    f"Generated executive summary for {analysis_id}: {summary.status}"
-                )
+                # Get experiment_id from analysis_run
+                analysis_run = self.analysis_repo.get_by_id(analysis_id)
+                if not analysis_run:
+                    logger_ref.error(f"Analysis run not found: {analysis_id}")
+                    return
+
+                experiment_id = analysis_run.experiment_id
+
+                # Generate markdown summary (saves to experiment_documents)
+                summary_service.generate_markdown_summary(experiment_id, analysis_id)
+                logger_ref.info(f"Generated executive summary for {experiment_id}/{analysis_id}")
             except Exception as e:
                 logger_ref.error(f"Failed to generate executive summary: {e}")
 
