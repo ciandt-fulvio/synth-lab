@@ -135,8 +135,6 @@ export async function generatePdfFromElement(
     // Image scaling: fit canvas width to content width in PDF
     // The canvas is captured, now we need to fit it to PDF page width
     const pdfImgWidth = contentWidthMM;
-    const ratio = pdfImgWidth / contentWidthMM;
-    const pdfImgHeight = (canvas.height * pdfImgWidth) / canvas.width;
 
     // Calculate pixels per mm based on canvas dimensions
     const pixelsPerMM = canvas.width / pdfImgWidth;
