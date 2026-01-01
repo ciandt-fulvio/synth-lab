@@ -118,9 +118,6 @@ export async function generatePdfFromElement(
       backgroundColor: '#ffffff'  // White background for PDFs
     });
 
-    // Convert canvas to PNG data URL
-    const imgData = canvas.toDataURL('image/png');
-
     // Create jsPDF instance (A4, portrait, mm units)
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -135,33 +132,79 @@ export async function generatePdfFromElement(
     const contentWidth = pageWidth - (2 * margin);   // 190mm usable width
     const contentHeight = pageHeight - (2 * margin); // 277mm usable height
 
-    // Calculate image dimensions to fit content area
-    const imgWidth = contentWidth;
-    const imgHeight = (canvas.height * contentWidth) / canvas.width;
+    // Convert mm to pixels for canvas calculations (assuming 96 DPI)
+    const mmToPixel = (mm: number) => (mm * 96) / 25.4;
+    const contentWidthPx = mmToPixel(contentWidth);
+    const contentHeightPx = mmToPixel(contentHeight);
+
+    // Calculate scale factor to fit canvas width to content width
+    const scaleFactor = contentWidthPx / canvas.width;
+    const scaledCanvasHeight = canvas.height * scaleFactor;
 
     // Calculate how many pages are needed
-    const totalPages = Math.ceil(imgHeight / contentHeight);
+    const totalPages = Math.ceil(scaledCanvasHeight / contentHeightPx);
 
-    // Add pages with content
+    // Create a temporary canvas for slicing
+    const sliceCanvas = document.createElement('canvas');
+    const sliceCtx = sliceCanvas.getContext('2d');
+    if (!sliceCtx) {
+      throw new Error('Não foi possível criar contexto do canvas');
+    }
+
+    // Set slice canvas dimensions to match content area
+    sliceCanvas.width = canvas.width;
+    sliceCanvas.height = Math.min(
+      canvas.height,
+      Math.ceil(contentHeightPx / scaleFactor)
+    );
+
+    // Add pages with content slices
     for (let page = 0; page < totalPages; page++) {
       // Add new page for all pages except the first
       if (page > 0) {
         pdf.addPage();
       }
 
-      // Calculate the vertical offset for this page
-      const yOffset = page * contentHeight;
+      // Calculate source Y position in original canvas
+      const sourceY = page * (contentHeightPx / scaleFactor);
+      const sourceHeight = Math.min(
+        sliceCanvas.height,
+        canvas.height - sourceY
+      );
 
-      // Add image slice for this page
+      // Clear the slice canvas
+      sliceCtx.fillStyle = '#ffffff';
+      sliceCtx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+
+      // Draw the slice from the original canvas
+      sliceCtx.drawImage(
+        canvas,
+        0,              // source x
+        sourceY,        // source y (offset for this page)
+        canvas.width,   // source width
+        sourceHeight,   // source height
+        0,              // destination x
+        0,              // destination y
+        canvas.width,   // destination width
+        sourceHeight    // destination height
+      );
+
+      // Convert slice to image data
+      const sliceImgData = sliceCanvas.toDataURL('image/png');
+
+      // Add the slice to the PDF
       pdf.addImage(
-        imgData,
+        sliceImgData,
         'PNG',
-        margin,                    // x position (with left margin)
-        margin - yOffset,          // y position (with top margin, offset by page)
-        imgWidth,                  // image width (fits content area)
-        imgHeight                  // full image height
+        margin,        // x position (with left margin)
+        margin,        // y position (with top margin)
+        contentWidth,  // image width (fits content area)
+        Math.min(contentHeight, (sourceHeight * scaleFactor * 25.4) / 96) // image height in mm
       );
     }
+
+    // Clean up
+    sliceCanvas.remove();
 
     // Trigger download
     pdf.save(filename);
