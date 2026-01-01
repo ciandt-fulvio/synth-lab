@@ -11,17 +11,21 @@
  * - Fonts: Inter (body), Georgia serif (headings)
  */
 
+import { useState, useRef } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Loader2, AlertCircle, FileText, Newspaper, Sparkles } from "lucide-react";
+import { Loader2, AlertCircle, FileText, Newspaper, Sparkles, Download } from "lucide-react";
+import { toast } from "sonner";
 import type { DocumentType, DocumentStatus } from "@/types/document";
 import { DOCUMENT_TYPE_LABELS } from "@/types/document";
+import { generatePdfFromElement, generatePdfFilename } from "@/lib/pdf-utils";
 
 interface DocumentViewerProps {
   /** Whether the dialog is open */
@@ -73,6 +77,12 @@ export function DocumentViewer({
   errorMessage,
   titleSuffix,
 }: DocumentViewerProps) {
+  // State for PDF generation
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  // Ref to markdown content for PDF capture
+  const contentRef = useRef<HTMLDivElement>(null);
+
   const title = DOCUMENT_TYPE_LABELS[documentType];
   const fullTitle = titleSuffix ? `${title} - ${titleSuffix}` : title;
   const icon = getDocumentIcon(documentType);
@@ -82,14 +92,55 @@ export function DocumentViewer({
   const isFailed = status === 'failed';
   const hasContent = markdownContent && markdownContent.length > 0;
 
+  // Handle PDF download
+  const handleDownloadPdf = async () => {
+    if (!contentRef.current) {
+      toast.error('Erro ao gerar PDF', {
+        description: 'Conteúdo não encontrado.',
+      });
+      return;
+    }
+
+    setIsGeneratingPdf(true);
+
+    try {
+      const filename = generatePdfFilename(documentType, titleSuffix);
+      await generatePdfFromElement(contentRef.current, filename);
+
+      toast.success('PDF gerado com sucesso!');
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      toast.error('Erro ao gerar PDF', {
+        description: 'Tente novamente ou reduza o tamanho do documento.',
+      });
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[70vw] h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {icon}
-            {fullTitle}
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              {icon}
+              {fullTitle}
+            </DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDownloadPdf}
+              disabled={isGenerating || isFailed || !hasContent || isGeneratingPdf}
+              aria-label="Download PDF"
+            >
+              {isGeneratingPdf ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </DialogHeader>
         <div className="flex-grow overflow-y-auto px-6 py-4 bg-gray-50 rounded-md">
           {isGenerating ? (
@@ -106,7 +157,7 @@ export function DocumentViewer({
               )}
             </div>
           ) : hasContent ? (
-            <article className="markdown-content">
+            <article ref={contentRef} className="markdown-content">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {markdownContent}
               </ReactMarkdown>
