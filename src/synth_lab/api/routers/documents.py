@@ -22,6 +22,7 @@ from synth_lab.api.schemas.documents import (
     GenerateDocumentResponse,
 )
 from synth_lab.domain.entities.experiment_document import DocumentStatus, DocumentType
+from synth_lab.repositories.analysis_repository import AnalysisRepository
 from synth_lab.repositories.experiment_document_repository import DocumentNotFoundError
 from synth_lab.services.document_service import DocumentService
 from synth_lab.services.executive_summary_service import ExecutiveSummaryService
@@ -46,15 +47,8 @@ def _map_status(domain_status: DocumentStatus) -> DocumentStatusEnum:
 
 def _get_analysis_id(experiment_id: str) -> str | None:
     """Get the latest completed analysis_id for an experiment."""
-    from synth_lab.api.dependencies import get_db
-
-    db = get_db()
-    row = db.fetchone(
-        "SELECT id FROM analysis_runs WHERE experiment_id = ? AND status = 'completed' "
-        "ORDER BY started_at DESC LIMIT 1",
-        (experiment_id,),
-    )
-    return row["id"] if row else None
+    repo = AnalysisRepository()
+    return repo.get_latest_completed_analysis_id(experiment_id)
 
 
 def _generate_executive_summary_background(experiment_id: str, analysis_id: str) -> None:

@@ -24,7 +24,7 @@ export function useSummaryGenerate(execId: string, experimentId?: string) {
   return useMutation({
     mutationFn: (request?: Partial<SummaryGenerateRequest>) =>
       generateSummary(execId, {
-        model: request?.model ?? 'gpt-5',
+        model: request?.model ?? 'gpt-5-mini',
       }),
     onMutate: async () => {
       // Optimistic update: immediately show "generating" state
