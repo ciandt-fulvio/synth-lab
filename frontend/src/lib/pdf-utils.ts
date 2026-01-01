@@ -80,9 +80,16 @@ export function generatePdfFilename(
  * 1. Captures the element using html2canvas (2x scale for quality)
  * 2. Converts canvas to PNG data URL
  * 3. Creates a jsPDF document (A4, portrait)
- * 4. Calculates dimensions to fit A4 width
- * 5. Adds image to PDF
- * 6. Triggers browser download
+ * 4. Calculates dimensions with 10mm margins on all sides
+ * 5. Automatically splits content across multiple pages if needed
+ * 6. Adds paginated images to PDF
+ * 7. Triggers browser download
+ *
+ * Page specifications:
+ * - Format: A4 (210mm x 297mm)
+ * - Margins: 10mm on all sides
+ * - Usable area: 190mm x 277mm per page
+ * - Auto-pagination: Content flows across multiple pages as needed
  *
  * @param element - The HTML element to capture (typically the markdown content container)
  * @param filename - The filename for the downloaded PDF
@@ -121,19 +128,40 @@ export async function generatePdfFromElement(
       format: 'a4'
     });
 
-    // Calculate dimensions to fit A4 width (210mm)
-    const imgWidth = 210; // A4 width in mm
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    // PDF page dimensions with margins
+    const pageWidth = 210;           // A4 width in mm
+    const pageHeight = 297;          // A4 height in mm
+    const margin = 10;               // 10mm margins on all sides
+    const contentWidth = pageWidth - (2 * margin);   // 190mm usable width
+    const contentHeight = pageHeight - (2 * margin); // 277mm usable height
 
-    // Add image to PDF
-    pdf.addImage(
-      imgData,
-      'PNG',
-      0,       // x position
-      0,       // y position
-      imgWidth,
-      imgHeight
-    );
+    // Calculate image dimensions to fit content area
+    const imgWidth = contentWidth;
+    const imgHeight = (canvas.height * contentWidth) / canvas.width;
+
+    // Calculate how many pages are needed
+    const totalPages = Math.ceil(imgHeight / contentHeight);
+
+    // Add pages with content
+    for (let page = 0; page < totalPages; page++) {
+      // Add new page for all pages except the first
+      if (page > 0) {
+        pdf.addPage();
+      }
+
+      // Calculate the vertical offset for this page
+      const yOffset = page * contentHeight;
+
+      // Add image slice for this page
+      pdf.addImage(
+        imgData,
+        'PNG',
+        margin,                    // x position (with left margin)
+        margin - yOffset,          // y position (with top margin, offset by page)
+        imgWidth,                  // image width (fits content area)
+        imgHeight                  // full image height
+      );
+    }
 
     // Trigger download
     pdf.save(filename);
