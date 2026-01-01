@@ -10,10 +10,9 @@ References:
 
 from collections.abc import AsyncGenerator
 
-from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import PlainTextResponse, StreamingResponse
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi.responses import StreamingResponse
 
-from synth_lab.api.schemas.artifact_state import ArtifactState, ArtifactStatesResponse
 from synth_lab.models.events import InterviewMessageEvent
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.research import (
@@ -98,52 +97,38 @@ async def get_transcript(exec_id: str, synth_id: str) -> TranscriptDetail:
     return service.get_transcript(exec_id, synth_id)
 
 
-@router.get("/{exec_id}/artifacts", response_model=ArtifactStatesResponse)
-async def get_artifact_states(exec_id: str) -> ArtifactStatesResponse:
-    """
-    Get artifact states for a research execution.
+async def _generate_summary_background(exec_id: str, model: str) -> None:
+    """Background task for summary generation."""
+    from loguru import logger
 
-    Returns the current state of summary and PR-FAQ artifacts, including
-    whether they can be generated or viewed, and any error messages.
-    """
     service = get_research_service()
-    summary_state, prfaq_state = service.get_artifact_states(exec_id)
-    return ArtifactStatesResponse(
-        exec_id=exec_id,
-        summary=ArtifactState.from_domain(summary_state),
-        prfaq=ArtifactState.from_domain(prfaq_state),
-    )
-
-
-@router.get("/{exec_id}/summary")
-async def get_summary(exec_id: str) -> PlainTextResponse:
-    """
-    Get the summary for a research execution.
-
-    Returns the summary as markdown text.
-    """
-    service = get_research_service()
-    summary = service.get_summary(exec_id)
-    return PlainTextResponse(content=summary, media_type="text/markdown")
+    try:
+        await service.generate_summary(exec_id, model=model)
+        logger.info(f"Summary generation completed for {exec_id}")
+    except Exception as e:
+        logger.error(f"Summary generation failed for {exec_id}: {e}")
+        # Note: errors are handled in the service (status updated to "failed")
 
 
 @router.post("/{exec_id}/summary/generate", response_model=SummaryGenerateResponse)
 async def generate_summary(
     exec_id: str,
+    background_tasks: BackgroundTasks,
     request: SummaryGenerateRequest | None = None,
 ) -> SummaryGenerateResponse:
     """
-    Generate a summary for a completed research execution.
+    Start generation of a summary for a completed research execution.
 
-    This is used when interviews completed but summary was not generated
-    (e.g., generate_summary was False during execution).
+    This endpoint starts generation and returns immediately.
+    The actual generation runs in a background task.
 
     Args:
         exec_id: Execution ID.
+        background_tasks: FastAPI background tasks.
         request: Optional generation parameters.
 
     Returns:
-        Generation status and completion timestamp.
+        Generation status (generating).
 
     Raises:
         404: If execution not found.
@@ -151,24 +136,63 @@ async def generate_summary(
     """
     from datetime import datetime
 
+    from synth_lab.domain.entities.experiment_document import DocumentType
+    from synth_lab.services.document_service import DocumentService
+
     service = get_research_service()
 
     # Use default request if none provided
     if request is None:
         request = SummaryGenerateRequest()
 
+    # Verify execution exists and is valid (quick check before background task)
     try:
-        await service.generate_summary(exec_id, model=request.model)
-        return SummaryGenerateResponse(
-            exec_id=exec_id,
-            status="completed",
-            message="Summary generated successfully",
-            generated_at=datetime.now(),
-        )
+        execution = service.research_repo.get_execution(exec_id)
+        if execution.status.value not in ("completed", "failed"):
+            raise ValueError(
+                f"Execution {exec_id} is not completed (status: {execution.status.value})"
+            )
+        transcripts = service.research_repo.get_transcripts(exec_id)
+        if not transcripts.data:
+            raise ValueError(f"Execution {exec_id} has no transcripts")
+        if not execution.experiment_id:
+            raise ValueError(f"Execution {exec_id} must be linked to an experiment")
     except ExecutionNotFoundError:
         raise HTTPException(status_code=404, detail="Execution not found")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    # Create "generating" status record BEFORE starting background task
+    # This prevents race condition where frontend polls before record exists
+    doc_service = DocumentService()
+    pending = doc_service.start_generation(
+        experiment_id=execution.experiment_id,
+        document_type=DocumentType.SUMMARY,
+        model=request.model,
+    )
+
+    if pending is None:
+        # Already generating
+        return SummaryGenerateResponse(
+            exec_id=exec_id,
+            status="generating",
+            message="Summary is already being generated",
+            generated_at=datetime.now(),
+        )
+
+    # Start background generation
+    background_tasks.add_task(
+        _generate_summary_background,
+        exec_id,
+        request.model,
+    )
+
+    return SummaryGenerateResponse(
+        exec_id=exec_id,
+        status="generating",
+        message="Started summary generation",
+        generated_at=datetime.now(),
+    )
 
 
 @router.post("/execute", response_model=ResearchExecuteResponse)
@@ -328,8 +352,6 @@ if __name__ == "__main__":
             "/{exec_id}",
             "/{exec_id}/transcripts",
             "/{exec_id}/transcripts/{synth_id}",
-            "/{exec_id}/artifacts",  # Artifact states endpoint
-            "/{exec_id}/summary",
             "/{exec_id}/summary/generate",  # Summary generation endpoint
             "/execute",
             "/{exec_id}/stream",  # SSE endpoint

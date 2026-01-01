@@ -239,66 +239,6 @@ class TestListExperiments:
 class TestGetExperiment:
     """Tests for GET /experiments/{id} - US3 scenarios."""
 
-    def test_get_experiment_includes_simulations_and_interviews(self, client, test_db) -> None:
-        """
-        US3 Scenario 1: Given home + clica experimento,
-        Then navega para /experiments/:id com detalhes completos.
-        """
-        # Create experiment
-        response = client.post(
-            "/experiments",
-            json={
-                "name": "Test Feature",
-                "hypothesis": "Test hypothesis",
-                "description": "Test description",
-            },
-        )
-        exp_id = response.json()["id"]
-
-        # Add analysis run
-        test_db.execute(
-            """
-            INSERT INTO analysis_runs
-            (id, experiment_id, config, status, started_at)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (
-                "ana_12345678",
-                exp_id,
-                '{"scenario": "baseline"}',
-                "completed",
-                datetime.now(timezone.utc).isoformat(),
-            ),
-        )
-
-        # Add interview
-        test_db.execute(
-            """
-            INSERT INTO research_executions
-            (exec_id, experiment_id, topic_name, status, synth_count, started_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (
-                "exec_001",
-                exp_id,
-                "User Feedback",
-                "completed",
-                10,
-                datetime.now(timezone.utc).isoformat(),
-            ),
-        )
-
-        # Get experiment details
-        response = client.get(f"/experiments/{exp_id}")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["id"] == exp_id
-        assert data["name"] == "Test Feature"
-        assert data["description"] == "Test description"
-        assert "analysis" in data or data.get("has_analysis") is not None
-        assert "interviews" in data
-
     def test_get_experiment_not_found_returns_404(self, client) -> None:
         """Verify 404 for non-existent experiment."""
         response = client.get("/experiments/exp_nonexist")

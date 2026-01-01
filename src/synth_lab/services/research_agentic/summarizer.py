@@ -100,7 +100,7 @@ Estruture seu relatório nas seguintes seções:
 (Citações organizadas por tema, com contexto de persona)
 
 ## Recomendações
-(Baseadas nas evidências encontradas)
+(2 a 4 Baseadas nas evidências encontradas)
 
 ---
 
@@ -122,7 +122,8 @@ def _get_model_settings(model: str, reasoning_effort: str = "medium") -> ModelSe
         ModelSettings with reasoning configured if supported, None otherwise.
     """
     if supports_reasoning_effort(model):
-        return ModelSettings(reasoning=Reasoning(effort=reasoning_effort))  # type: ignore
+        # type: ignore
+        return ModelSettings(reasoning=Reasoning(effort=reasoning_effort))
     # Model doesn't support reasoning_effort, return None (no special settings)
     return None
 
@@ -144,7 +145,8 @@ def format_interview_for_summary(
     lines = []
 
     # Header with synth info
-    lines.append(f"### Entrevista: {result.synth_name} (ID: {result.synth_id})")
+    lines.append(
+        f"### Entrevista: {result.synth_name} (ID: {result.synth_id})")
     lines.append("")
 
     # Demographics
@@ -155,7 +157,8 @@ def format_interview_for_summary(
     lines.append(f"- Escolaridade: {demo.get('escolaridade', 'N/A')}")
     lines.append(f"- Ocupação: {demo.get('ocupacao', 'N/A')}")
     loc = demo.get("localizacao", {})
-    lines.append(f"- Localização: {loc.get('cidade', 'N/A')}, {loc.get('estado', 'N/A')}")
+    lines.append(
+        f"- Localização: {loc.get('cidade', 'N/A')}, {loc.get('estado', 'N/A')}")
     lines.append("")
 
     # Conversation
@@ -231,7 +234,8 @@ async def summarize_interviews(
     print(summary)
     ```
     """
-    logger.info(f"Summarizing {len(interview_results)} interviews with model={model}")
+    logger.info(
+        f"Summarizing {len(interview_results)} interviews with model={model}")
 
     with _tracer.start_as_current_span(
         f"Summarize {len(interview_results)} interviews: {topic_guide_name}",
@@ -245,12 +249,14 @@ async def summarize_interviews(
         # Format all interviews
         interviews_content_parts = []
         for i, (result, synth_data) in enumerate(interview_results):
-            logger.debug(f"Formatting interview {i + 1}/{len(interview_results)}")
+            logger.debug(
+                f"Formatting interview {i + 1}/{len(interview_results)}")
             formatted = format_interview_for_summary(result, synth_data)
             interviews_content_parts.append(formatted)
 
         interviews_content = "\n".join(interviews_content_parts)
-        logger.info(f"Formatted interviews content length: {len(interviews_content)} chars")
+        logger.info(
+            f"Formatted interviews content length: {len(interviews_content)} chars")
 
         if span:
             span.set_attribute("content_length", len(interviews_content))
@@ -308,8 +314,10 @@ if __name__ == "__main__":
 
         mock_result = InterviewResult(
             messages=[
-                ConversationMessage(speaker="Interviewer", text="Como você faz compras?"),
-                ConversationMessage(speaker="Interviewee", text="Eu uso o celular."),
+                ConversationMessage(speaker="Interviewer",
+                                    text="Como você faz compras?"),
+                ConversationMessage(speaker="Interviewee",
+                                    text="Eu uso o celular."),
             ],
             synth_id="abc123",
             synth_name="Maria",
@@ -367,6 +375,7 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("Summarizer module is validated and ready for use")
         sys.exit(0)

@@ -103,7 +103,9 @@ export function useGenerateAnalysisExecutiveSummary(experimentId: string) {
   return useMutation({
     mutationFn: () => generateAnalysisExecutiveSummary(experimentId),
     onSuccess: () => {
+      // Invalidate caches - polling is handled automatically by useDocumentAvailability
       queryClient.invalidateQueries({ queryKey: queryKeys.analysis.insights(experimentId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.documents.availability(experimentId) });
     },
   });
 }

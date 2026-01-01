@@ -15,10 +15,6 @@ from synth_lab.api.schemas.analysis import (
     ShapParams,
     TryVsSuccessParams,
 )
-from synth_lab.api.schemas.artifact_state import (
-    ArtifactState,
-    ArtifactStatesResponse,
-)
 from synth_lab.api.schemas.synth_schemas import (
     ObservableWithLabelResponse,
     SimulationAttributesFormatted,
@@ -28,9 +24,6 @@ from synth_lab.api.schemas.synth_schemas import (
 )
 
 __all__ = [
-    # Artifact state
-    "ArtifactState",
-    "ArtifactStatesResponse",
     # Analysis
     "BoxPlotParams",
     "ClusterRequest",

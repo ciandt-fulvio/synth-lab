@@ -130,28 +130,6 @@ class ResearchRepository(BaseRepository):
 
         return self._row_to_transcript_detail(row)
 
-    def get_summary_content(self, exec_id: str) -> str | None:
-        """
-        Get the summary content for an execution.
-
-        Args:
-            exec_id: Execution ID.
-
-        Returns:
-            Summary markdown content, or None if not available.
-
-        Raises:
-            ExecutionNotFoundError: If execution not found.
-        """
-        row = self.db.fetchone(
-            "SELECT summary_content FROM research_executions WHERE exec_id = ?",
-            (exec_id,),
-        )
-        if row is None:
-            raise ExecutionNotFoundError(exec_id)
-
-        return row["summary_content"]
-
     def _row_to_summary(self, row) -> ResearchExecutionSummary:
         """Convert a database row to ResearchExecutionSummary."""
         started_at = row["started_at"]
@@ -182,16 +160,31 @@ class ResearchRepository(BaseRepository):
         if isinstance(completed_at, str):
             completed_at = datetime.fromisoformat(completed_at)
 
-        # Check if summary exists in database
-        summary_content = row["summary_content"] if "summary_content" in row.keys() else None
-        summary_available = summary_content is not None and len(summary_content) > 0
+        # Check if summary exists in experiment_documents (unified table)
+        experiment_id = row["experiment_id"] if "experiment_id" in row.keys() else None
+        summary_available = False
+        prfaq_available = False
 
-        # Check if PR-FAQ exists
-        prfaq_row = self.db.fetchone(
-            "SELECT 1 FROM prfaq_metadata WHERE exec_id = ?",
-            (row["exec_id"],),
-        )
-        prfaq_available = prfaq_row is not None
+        if experiment_id:
+            # Check for summary in experiment_documents
+            summary_row = self.db.fetchone(
+                """
+                SELECT 1 FROM experiment_documents
+                WHERE experiment_id = ? AND document_type = 'summary' AND status = 'completed'
+                """,
+                (experiment_id,),
+            )
+            summary_available = summary_row is not None
+
+            # Check for PR-FAQ in experiment_documents
+            prfaq_row = self.db.fetchone(
+                """
+                SELECT 1 FROM experiment_documents
+                WHERE experiment_id = ? AND document_type = 'prfaq' AND status = 'completed'
+                """,
+                (experiment_id,),
+            )
+            prfaq_available = prfaq_row is not None
 
         return ResearchExecutionDetail(
             exec_id=row["exec_id"],
@@ -310,7 +303,6 @@ class ResearchRepository(BaseRepository):
         status: ExecutionStatus,
         successful_count: int | None = None,
         failed_count: int | None = None,
-        summary_content: str | None = None,
     ) -> None:
         """
         Update execution status and counts.
@@ -320,7 +312,6 @@ class ResearchRepository(BaseRepository):
             status: New status.
             successful_count: Number of successful interviews.
             failed_count: Number of failed interviews.
-            summary_content: Summary markdown content.
         """
         updates = ["status = ?"]
         params: list = [status.value]
@@ -332,10 +323,6 @@ class ResearchRepository(BaseRepository):
         if failed_count is not None:
             updates.append("failed_count = ?")
             params.append(failed_count)
-
-        if summary_content is not None:
-            updates.append("summary_content = ?")
-            params.append(summary_content)
 
         if status in (ExecutionStatus.COMPLETED, ExecutionStatus.FAILED):
             updates.append("completed_at = ?")
@@ -390,62 +377,6 @@ class ResearchRepository(BaseRepository):
                 messages_json,
             ),
         )
-
-    def update_summary_content(self, exec_id: str, summary_content: str) -> None:
-        """
-        Update only the summary content for an execution.
-
-        Args:
-            exec_id: Execution ID.
-            summary_content: Summary markdown content.
-
-        Raises:
-            ExecutionNotFoundError: If execution not found.
-        """
-        # Verify execution exists
-        self.get_execution(exec_id)
-
-        query = "UPDATE research_executions SET summary_content = ? WHERE exec_id = ?"
-        self.db.execute(query, (summary_content, exec_id))
-
-    def get_prfaq_metadata(self, exec_id: str) -> dict | None:
-        """
-        Get PR-FAQ metadata for an execution.
-
-        Args:
-            exec_id: Execution ID.
-
-        Returns:
-            Dict with prfaq_metadata fields or None if not found.
-
-        Note:
-            This returns raw dict for use with compute_prfaq_state.
-            The dict includes: status, error_message, started_at, generated_at
-        """
-        row = self.db.fetchone(
-            """
-            SELECT exec_id, status, error_message, started_at, generated_at,
-                   headline, markdown_content, validation_status, confidence_score
-            FROM prfaq_metadata
-            WHERE exec_id = ?
-            """,
-            (exec_id,),
-        )
-        if row is None:
-            return None
-
-        return {
-            "exec_id": row["exec_id"],
-            # Default for legacy records
-            "status": row["status"] or "completed",
-            "error_message": row["error_message"],
-            "started_at": row["started_at"],
-            "generated_at": row["generated_at"],
-            "headline": row["headline"],
-            "markdown_content": row["markdown_content"],
-            "validation_status": row["validation_status"],
-            "confidence_score": row["confidence_score"],
-        }
 
     def list_executions_by_experiment(
         self,

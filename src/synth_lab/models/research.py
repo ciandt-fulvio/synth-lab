@@ -26,21 +26,26 @@ class ExecutionStatus(str, Enum):
 class Message(BaseModel):
     """A single message in an interview transcript."""
 
-    speaker: str = Field(..., description="Speaker name (Interviewer or synth name)")
+    speaker: str = Field(...,
+                         description="Speaker name (Interviewer or synth name)")
     text: str = Field(..., description="Message text")
-    internal_notes: str | None = Field(default=None, description="Interviewer notes")
+    internal_notes: str | None = Field(
+        default=None, description="Interviewer notes")
 
 
 class ResearchExecutionBase(BaseModel):
     """Base research execution model."""
 
-    exec_id: str = Field(..., description="Execution ID (e.g., batch_topic_timestamp)")
-    experiment_id: str | None = Field(default=None, description="Parent experiment ID (if linked)")
+    exec_id: str = Field(...,
+                         description="Execution ID (e.g., batch_topic_timestamp)")
+    experiment_id: str | None = Field(
+        default=None, description="Parent experiment ID (if linked)")
     topic_name: str = Field(..., description="Topic guide name")
     status: ExecutionStatus = Field(..., description="Execution status")
     synth_count: int = Field(..., description="Number of synths in execution")
     started_at: datetime = Field(..., description="Start timestamp")
-    completed_at: datetime | None = Field(default=None, description="Completion timestamp")
+    completed_at: datetime | None = Field(
+        default=None, description="Completion timestamp")
 
 
 class ResearchExecutionSummary(ResearchExecutionBase):
@@ -52,11 +57,13 @@ class ResearchExecutionSummary(ResearchExecutionBase):
 class ResearchExecutionDetail(ResearchExecutionBase):
     """Full research execution with all details."""
 
-    successful_count: int = Field(default=0, description="Completed interviews")
+    successful_count: int = Field(
+        default=0, description="Completed interviews")
     failed_count: int = Field(default=0, description="Failed interviews")
     model: str = Field(default="gpt-4o-mini", description="LLM model used")
     max_turns: int = Field(default=6, description="Max interview turns")
-    summary_available: bool = Field(default=False, description="Summary exists")
+    summary_available: bool = Field(
+        default=False, description="Summary exists")
     prfaq_available: bool = Field(default=False, description="PR-FAQ exists")
 
 
@@ -79,7 +86,8 @@ class TranscriptDetail(BaseModel):
     turn_count: int = Field(default=0, description="Number of turns")
     timestamp: datetime = Field(..., description="Interview timestamp")
     status: str = Field(default="completed", description="Transcript status")
-    messages: list[Message] = Field(default_factory=list, description="Interview messages")
+    messages: list[Message] = Field(
+        default_factory=list, description="Interview messages")
 
 
 class ResearchExecuteRequest(BaseModel):
@@ -115,7 +123,8 @@ class ResearchExecuteRequest(BaseModel):
         description="Max concurrent interviews",
     )
     model: str = Field(default="gpt-4o-mini", description="LLM model to use")
-    generate_summary: bool = Field(default=True, description="Generate summary after completion")
+    generate_summary: bool = Field(
+        default=True, description="Generate summary after completion")
     skip_interviewee_review: bool = Field(
         default=True,
         description="Skip interviewee response reviewer for faster execution",
@@ -135,16 +144,19 @@ class ResearchExecuteResponse(BaseModel):
 class SummaryGenerateRequest(BaseModel):
     """Request model for generating summary."""
 
-    model: str = Field(default="gpt-5", description="LLM model to use for summarization")
+    model: str = Field(default="gpt-5-mini",
+                       description="LLM model to use for summarization")
 
 
 class SummaryGenerateResponse(BaseModel):
     """Response model for summary generation."""
 
     exec_id: str = Field(..., description="Execution ID")
-    status: str = Field(..., description="Generation status (generating, completed, failed)")
+    status: str = Field(...,
+                        description="Generation status (generating, completed, failed)")
     message: str | None = Field(default=None, description="Status message")
-    generated_at: datetime | None = Field(default=None, description="Completion timestamp")
+    generated_at: datetime | None = Field(
+        default=None, description="Completion timestamp")
 
 
 if __name__ == "__main__":
@@ -159,7 +171,8 @@ if __name__ == "__main__":
     try:
         status = ExecutionStatus.COMPLETED
         if status.value != "completed":
-            all_validation_failures.append(f"Status value mismatch: {status.value}")
+            all_validation_failures.append(
+                f"Status value mismatch: {status.value}")
         if ExecutionStatus("pending") != ExecutionStatus.PENDING:
             all_validation_failures.append("Status from string failed")
     except Exception as e:
@@ -172,7 +185,8 @@ if __name__ == "__main__":
         if msg.speaker != "Interviewer":
             all_validation_failures.append(f"Speaker mismatch: {msg.speaker}")
         if msg.internal_notes is not None:
-            all_validation_failures.append(f"Default notes should be None: {msg.internal_notes}")
+            all_validation_failures.append(
+                f"Default notes should be None: {msg.internal_notes}")
 
         msg_with_notes = Message(
             speaker="Interviewer",
@@ -180,7 +194,8 @@ if __name__ == "__main__":
             internal_notes="Strategy note",
         )
         if msg_with_notes.internal_notes != "Strategy note":
-            all_validation_failures.append(f"Notes mismatch: {msg_with_notes.internal_notes}")
+            all_validation_failures.append(
+                f"Notes mismatch: {msg_with_notes.internal_notes}")
     except Exception as e:
         all_validation_failures.append(f"Message test failed: {e}")
 
@@ -195,13 +210,15 @@ if __name__ == "__main__":
             started_at=datetime.now(),
         )
         if execution.exec_id != "batch_test_20251219_120000":
-            all_validation_failures.append(f"Exec ID mismatch: {execution.exec_id}")
+            all_validation_failures.append(
+                f"Exec ID mismatch: {execution.exec_id}")
         if execution.completed_at is not None:
             all_validation_failures.append(
                 f"Default completed_at should be None: {execution.completed_at}"
             )
     except Exception as e:
-        all_validation_failures.append(f"ResearchExecutionBase test failed: {e}")
+        all_validation_failures.append(
+            f"ResearchExecutionBase test failed: {e}")
 
     # Test 4: ResearchExecutionDetail
     total_tests += 1
@@ -217,13 +234,15 @@ if __name__ == "__main__":
             summary_available=True,
         )
         if detail.successful_count != 4:
-            all_validation_failures.append(f"Successful count mismatch: {detail.successful_count}")
+            all_validation_failures.append(
+                f"Successful count mismatch: {detail.successful_count}")
         if detail.summary_available is not True:
             all_validation_failures.append(
                 f"summary_available should be True: {detail.summary_available}"
             )
     except Exception as e:
-        all_validation_failures.append(f"ResearchExecutionDetail test failed: {e}")
+        all_validation_failures.append(
+            f"ResearchExecutionDetail test failed: {e}")
 
     # Test 5: TranscriptSummary
     total_tests += 1
@@ -235,9 +254,11 @@ if __name__ == "__main__":
             timestamp=datetime.now(),
         )
         if summary.synth_id != "abc123":
-            all_validation_failures.append(f"Synth ID mismatch: {summary.synth_id}")
+            all_validation_failures.append(
+                f"Synth ID mismatch: {summary.synth_id}")
         if summary.turn_count != 6:
-            all_validation_failures.append(f"Turn count mismatch: {summary.turn_count}")
+            all_validation_failures.append(
+                f"Turn count mismatch: {summary.turn_count}")
     except Exception as e:
         all_validation_failures.append(f"TranscriptSummary test failed: {e}")
 
@@ -254,9 +275,11 @@ if __name__ == "__main__":
             ],
         )
         if len(detail.messages) != 2:
-            all_validation_failures.append(f"Messages length mismatch: {len(detail.messages)}")
+            all_validation_failures.append(
+                f"Messages length mismatch: {len(detail.messages)}")
         if detail.messages[0].speaker != "Interviewer":
-            all_validation_failures.append(f"First speaker mismatch: {detail.messages[0].speaker}")
+            all_validation_failures.append(
+                f"First speaker mismatch: {detail.messages[0].speaker}")
     except Exception as e:
         all_validation_failures.append(f"TranscriptDetail test failed: {e}")
 
@@ -267,7 +290,8 @@ if __name__ == "__main__":
 
         req = ResearchExecuteRequest(topic_name="test")
         if req.max_turns != 6:
-            all_validation_failures.append(f"Default max_turns should be 6: {req.max_turns}")
+            all_validation_failures.append(
+                f"Default max_turns should be 6: {req.max_turns}")
 
         try:
             ResearchExecuteRequest(topic_name="test", max_turns=0)
@@ -281,7 +305,8 @@ if __name__ == "__main__":
         except ValidationError:
             pass  # Expected
     except Exception as e:
-        all_validation_failures.append(f"ResearchExecuteRequest validation failed: {e}")
+        all_validation_failures.append(
+            f"ResearchExecuteRequest validation failed: {e}")
 
     # Test 8: ResearchExecuteResponse
     total_tests += 1
@@ -294,16 +319,20 @@ if __name__ == "__main__":
             started_at=datetime.now(),
         )
         if response.status != ExecutionStatus.RUNNING:
-            all_validation_failures.append(f"Status mismatch: {response.status}")
+            all_validation_failures.append(
+                f"Status mismatch: {response.status}")
     except Exception as e:
-        all_validation_failures.append(f"ResearchExecuteResponse test failed: {e}")
+        all_validation_failures.append(
+            f"ResearchExecuteResponse test failed: {e}")
 
     # Final validation result
     if all_validation_failures:
-        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(
+            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         sys.exit(0)

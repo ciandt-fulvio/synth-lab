@@ -9,17 +9,16 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useResearchDetail, useResearchTranscripts, useResearchSummary } from '@/hooks/use-research';
-import { useArtifactStatesWithPolling } from '@/hooks/use-artifact-states';
+import { useResearchDetail, useResearchTranscripts } from '@/hooks/use-research';
 import { usePrfaqGenerate } from '@/hooks/use-prfaq-generate';
 import { useSummaryGenerate } from '@/hooks/use-summary-generate';
 import { useExperiment } from '@/hooks/use-experiments';
+import { useDocumentMarkdown, useDocumentAvailability } from '@/hooks/use-documents';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getPrfaqMarkdown } from '@/services/prfaq-api';
 import { getSynthAvatarUrl } from '@/services/synths-api';
 import { queryKeys } from '@/lib/query-keys';
 import { ArtifactButton } from '@/components/shared/ArtifactButton';
-import MarkdownPopup from '@/components/shared/MarkdownPopup';
+import { DocumentViewer } from '@/components/shared/DocumentViewer';
 import { TranscriptDialog } from '@/components/shared/TranscriptDialog';
 import { LiveInterviewGrid } from '@/components/interviews/LiveInterviewGrid';
 import SynthLabHeader from '@/components/shared/SynthLabHeader';
@@ -87,12 +86,43 @@ export default function InterviewDetail() {
 
   const { data: execution, isLoading, error } = useResearchDetail(execId!);
   const { data: transcripts } = useResearchTranscripts(execId!);
-  const { data: artifactStates } = useArtifactStatesWithPolling(execId!);
 
   // Fetch experiment name for display (when linked to experiment)
   const experimentId = expId || execution?.experiment_id;
   const { data: experiment } = useExperiment(experimentId || '');
   const displayTitle = experiment?.name || execution?.topic_name || 'Entrevista';
+
+  // Fetch document availability from unified API (instead of legacy artifact states)
+  const { data: documentAvailability } = useDocumentAvailability(
+    experimentId || '',
+    { enabled: !!experimentId }
+  );
+
+  // Map document availability to artifact states format for compatibility with existing components
+  const getArtifactState = (doc: { available: boolean; status: string | null }) => {
+    if (doc.available) return 'available';
+    if (doc.status === 'generating') return 'generating';
+    return 'unavailable';
+  };
+
+  const artifactStates = documentAvailability
+    ? {
+        summary: {
+          state: getArtifactState(documentAvailability.summary),
+          prerequisite_met: execution?.status === 'completed',
+          prerequisite_message: execution?.status !== 'completed' ? 'Execution must be completed' : null,
+          error_message: null,
+          completed_at: null,
+        },
+        prfaq: {
+          state: getArtifactState(documentAvailability.prfaq),
+          prerequisite_met: documentAvailability.summary.available,
+          prerequisite_message: !documentAvailability.summary.available ? 'Summary must be generated first' : null,
+          error_message: null,
+          completed_at: null,
+        },
+      }
+    : null;
 
   // T061: Auto-redirect legacy URLs to experiment-scoped URLs (only once)
   useEffect(() => {
@@ -124,19 +154,25 @@ export default function InterviewDetail() {
   const handleExecutionCompleted = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.researchDetail(execId!) });
     queryClient.invalidateQueries({ queryKey: queryKeys.researchTranscripts(execId!) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.artifactStates(execId!) });
+    // Invalidate document availability and markdown for this experiment
+    if (experimentId) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.documents.availability(experimentId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.documents.markdown(experimentId, 'summary') });
+      queryClient.invalidateQueries({ queryKey: queryKeys.documents.markdown(experimentId, 'prfaq') });
+    }
   };
 
   // Aggressive polling effect
   useEffect(() => {
-    if (!aggressivePolling || !execId) return;
+    if (!aggressivePolling || !execId || !experimentId) return;
 
     const interval = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.artifactStates(execId) });
+      // Poll document availability instead of artifact states
+      queryClient.invalidateQueries({ queryKey: queryKeys.documents.availability(experimentId) });
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [aggressivePolling, execId, queryClient]);
+  }, [aggressivePolling, execId, experimentId, queryClient]);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -147,19 +183,23 @@ export default function InterviewDetail() {
     };
   }, []);
 
-  // Fetch content based on artifact states
+  // Fetch content based on artifact states (using unified documents API)
   const summaryAvailable = artifactStates?.summary.state === 'available';
   const prfaqAvailable = artifactStates?.prfaq.state === 'available';
 
-  const { data: summaryMarkdown } = useResearchSummary(execId!, summaryAvailable);
-  const { data: prfaqMarkdown } = useQuery({
-    queryKey: queryKeys.prfaqMarkdown(execId!),
-    queryFn: () => getPrfaqMarkdown(execId!),
-    enabled: prfaqAvailable,
-  });
+  const { data: summaryMarkdown } = useDocumentMarkdown(
+    experimentId || '',
+    'summary',
+    { enabled: summaryAvailable && !!experimentId }
+  );
+  const { data: prfaqMarkdown } = useDocumentMarkdown(
+    experimentId || '',
+    'prfaq',
+    { enabled: prfaqAvailable && !!experimentId }
+  );
 
-  const generatePrfaqMutation = usePrfaqGenerate(execId!);
-  const generateSummaryMutation = useSummaryGenerate(execId!);
+  const generatePrfaqMutation = usePrfaqGenerate(execId!, experimentId);
+  const generateSummaryMutation = useSummaryGenerate(execId!, experimentId);
 
   if (isLoading) {
     return (
@@ -399,27 +439,21 @@ export default function InterviewDetail() {
       </main>
 
       {/* Modals */}
-      {summaryMarkdown && (
-        <MarkdownPopup
-          isOpen={summaryOpen}
-          onClose={() => setSummaryOpen(false)}
-          title={`Summary - ${displayTitle}`}
-          markdownContent={summaryMarkdown}
-        />
-      )}
+      <DocumentViewer
+        isOpen={summaryOpen}
+        onClose={() => setSummaryOpen(false)}
+        documentType="summary"
+        markdownContent={summaryMarkdown}
+        titleSuffix={displayTitle}
+      />
 
-      {prfaqMarkdown && (
-        <MarkdownPopup
-          isOpen={prfaqOpen}
-          onClose={() => setPrfaqOpen(false)}
-          title={`PR/FAQ - ${displayTitle}${
-            artifactStates?.prfaq.completed_at
-              ? ` (${format(new Date(artifactStates.prfaq.completed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })})`
-              : ''
-          }`}
-          markdownContent={prfaqMarkdown}
-        />
-      )}
+      <DocumentViewer
+        isOpen={prfaqOpen}
+        onClose={() => setPrfaqOpen(false)}
+        documentType="prfaq"
+        markdownContent={prfaqMarkdown}
+        titleSuffix={displayTitle}
+      />
 
       <TranscriptDialog
         execId={execId!}
