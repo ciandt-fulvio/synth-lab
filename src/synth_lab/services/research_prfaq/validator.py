@@ -32,8 +32,7 @@ import jsonschema
 
 from .generation_models import (
     PRFAQDocument,
-    ResearchReport,
-)
+    ResearchReport)
 from .prompts import get_json_schema
 
 
@@ -116,8 +115,7 @@ def validate_research_report(report: ResearchReport) -> ValidationResult:
             "optional_sections_present": present_optional,
             "total_optional_sections": len(optional_sections),
             "summary_length": len(report.summary_content),
-        },
-    )
+        })
 
 
 def validate_prfaq(prfaq: PRFAQDocument) -> ValidationResult:
@@ -223,8 +221,7 @@ def validate_prfaq(prfaq: PRFAQDocument) -> ValidationResult:
             "headline_length": len(pr.headline),
             "problem_length": len(pr.problem_statement),
             "solution_length": len(pr.solution_overview),
-        },
-    )
+        })
 
 
 if __name__ == "__main__":
@@ -233,8 +230,7 @@ if __name__ == "__main__":
 
     from .generation_models import (
         FAQItem,
-        PressRelease,
-    )
+        PressRelease)
 
     validation_failures = []
     total_tests = 0
@@ -249,8 +245,7 @@ if __name__ == "__main__":
                 "executive_summary": "Key insights from 8 interviews with product managers",
                 "recommendations": "Build AI-powered synthesis tool for faster analysis",
                 "recurrent_patterns": "All users struggle with manual consolidation",
-            },
-        )
+            })
         result = validate_research_report(valid_report)
         if not result.is_valid:
             validation_failures.append(f"Valid report rejected: {result.errors}")
@@ -278,18 +273,15 @@ if __name__ == "__main__":
                 headline="Introducing ResearchSync: Transform Interviews into Documents",
                 one_liner="AI-powered synthesis of customer research",
                 problem_statement="Product teams spend weeks manually consolidating interview data",
-                solution_overview="Automated synthesis generates PR-FAQ from research summaries",
-            ),
+                solution_overview="Automated synthesis generates PR-FAQ from research summaries"),
             faq=[
                 FAQItem(
                     question=f"Why is feature {i} important?",
                     answer=f"Because research showed customers need {i} to solve their problems efficiently",
-                    customer_segment="Product Manager",
-                )
+                    customer_segment="Product Manager")
                 for i in range(1, 9)  # 8 FAQ items
             ],
-            confidence_score=0.85,
-        )
+            confidence_score=0.85)
         result = validate_prfaq(valid_prfaq)
         if not result.is_valid:
             validation_failures.append(f"Valid PR-FAQ rejected: {result.errors}")
@@ -309,16 +301,13 @@ if __name__ == "__main__":
                 headline="Test Product",
                 one_liner="Test value",
                 problem_statement="Test problem",
-                solution_overview="Test solution",
-            ),
+                solution_overview="Test solution"),
             faq=[
                 FAQItem(
                     question="Q1?",
                     answer="Answer 1 with sufficient detail here",
-                    customer_segment="PM",
-                )
-            ],
-        )
+                    customer_segment="PM")
+            ])
         result = validate_prfaq(few_faq_prfaq)
         if result.is_valid and len(result.warnings) == 0:
             validation_failures.append("Should warn when FAQ has < 8 items")
@@ -331,8 +320,7 @@ if __name__ == "__main__":
         minimal_report = ResearchReport(
             batch_id="batch_001",
             summary_content="A" * 100,
-            sections={"executive_summary": "Summary", "recommendations": "Recommendations"},
-        )
+            sections={"executive_summary": "Summary", "recommendations": "Recommendations"})
         full_report = ResearchReport(
             batch_id="batch_001",
             summary_content="A" * 2000,
@@ -344,8 +332,7 @@ if __name__ == "__main__":
                 "identified_tensions": "Tensions",
                 "notable_absences": "Absences",
                 "key_quotes": "Quotes",
-            },
-        )
+            })
         minimal_result = validate_research_report(minimal_report)
         full_result = validate_research_report(full_report)
 

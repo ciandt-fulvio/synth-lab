@@ -64,8 +64,7 @@ def sigmoid(x: float) -> float:
 
 def calculate_p_attempt(
     user_state: UserState,
-    scorecard_scores: dict[str, float],
-) -> float:
+    scorecard_scores: dict[str, float]) -> float:
     """
     Calculate probability that user attempts the feature.
 
@@ -123,8 +122,7 @@ def calculate_p_attempt(
 
 def calculate_p_success(
     user_state: UserState,
-    scorecard_scores: dict[str, float],
-) -> float:
+    scorecard_scores: dict[str, float]) -> float:
     """
     Calculate probability of success given user attempted.
 
@@ -178,8 +176,7 @@ def calculate_p_success(
 def sample_outcome(
     p_attempt: float,
     p_success: float,
-    rng: Generator,
-) -> Outcome:
+    rng: Generator) -> Outcome:
     """
     Sample outcome based on attempt and success probabilities.
 
@@ -209,8 +206,7 @@ def sample_outcome(
 
 def calculate_outcome_probabilities(
     user_state: UserState,
-    scorecard_scores: dict[str, float],
-) -> dict[str, float]:
+    scorecard_scores: dict[str, float]) -> dict[str, float]:
     """
     Calculate exact outcome probabilities (no sampling).
 
@@ -272,15 +268,13 @@ if __name__ == "__main__":
             trust=0.5,
             friction_tolerance=0.5,
             explores=False,
-            motivation=0.2,
-        )
+            motivation=0.2)
         state_high_motivation = UserState(
             capability=0.5,
             trust=0.5,
             friction_tolerance=0.5,
             explores=False,
-            motivation=0.8,
-        )
+            motivation=0.8)
 
         p_low = calculate_p_attempt(state_low_motivation, scorecard)
         p_high = calculate_p_attempt(state_high_motivation, scorecard)
@@ -306,15 +300,13 @@ if __name__ == "__main__":
             trust=0.5,
             friction_tolerance=0.5,
             explores=False,
-            motivation=0.5,
-        )
+            motivation=0.5)
         state_high_cap = UserState(
             capability=0.8,
             trust=0.5,
             friction_tolerance=0.5,
             explores=False,
-            motivation=0.5,
-        )
+            motivation=0.5)
 
         p_low = calculate_p_success(state_low_cap, scorecard)
         p_high = calculate_p_success(state_high_cap, scorecard)
@@ -338,8 +330,7 @@ if __name__ == "__main__":
             trust=0.5,
             friction_tolerance=0.5,
             explores=False,
-            motivation=0.5,
-        )
+            motivation=0.5)
 
         p_low_risk = calculate_p_attempt(state, {"perceived_risk": 0.2, "initial_effort": 0.5})
         p_high_risk = calculate_p_attempt(state, {"perceived_risk": 0.8, "initial_effort": 0.5})
@@ -391,8 +382,7 @@ if __name__ == "__main__":
             trust=0.5,
             friction_tolerance=0.5,
             explores=True,
-            motivation=0.5,
-        )
+            motivation=0.5)
         scorecard = {
             "complexity": 0.4,
             "initial_effort": 0.3,
@@ -420,15 +410,13 @@ if __name__ == "__main__":
             trust=0.5,
             friction_tolerance=0.5,
             explores=False,
-            motivation=0.5,
-        )
+            motivation=0.5)
         state_explore = UserState(
             capability=0.5,
             trust=0.5,
             friction_tolerance=0.5,
             explores=True,
-            motivation=0.5,
-        )
+            motivation=0.5)
 
         p_no = calculate_p_attempt(state_no_explore, scorecard)
         p_yes = calculate_p_attempt(state_explore, scorecard)

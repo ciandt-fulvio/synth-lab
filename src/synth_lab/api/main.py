@@ -18,15 +18,12 @@ from synth_lab.api.errors import register_exception_handlers
 from synth_lab.infrastructure.config import (
     API_HOST,
     API_PORT,
-    DB_PATH,
     configure_logging,
-    ensure_directories,
-)
-from synth_lab.infrastructure.database import init_database
+    ensure_directories)
+from synth_lab.infrastructure.database_v2 import init_database_v2, get_database_url
 from synth_lab.infrastructure.phoenix_tracing import (
     maybe_setup_tracing,
-    shutdown_tracing,
-)
+    shutdown_tracing)
 
 
 @asynccontextmanager
@@ -40,8 +37,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     configure_logging()
     logger.info("Starting synth-lab API...")
     ensure_directories()
-    # Initialize database schema
-    init_database(DB_PATH)
+    # Initialize database schema (PostgreSQL or SQLite via DATABASE_URL)
+    db_url = get_database_url()
+    logger.info(f"Using database: {db_url.split('@')[-1] if '@' in db_url else db_url}")
+    init_database_v2()
     logger.info("Database schema initialized")
     # Setup Phoenix tracing if PHOENIX_ENABLED=true
     maybe_setup_tracing()
@@ -58,8 +57,7 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
     docs_url="/docs",
-    redoc_url="/redoc",
-)
+    redoc_url="/redoc")
 
 # Configure CORS
 app.add_middleware(
@@ -67,8 +65,7 @@ app.add_middleware(
     allow_origins=["*"],  # Allow all origins for development
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
-)
+    allow_headers=["*"])
 
 # Register exception handlers
 register_exception_handlers(app)
@@ -103,8 +100,7 @@ from synth_lab.api.routers import (
     research,
     simulation,
     synth_groups,
-    synths,
-)
+    synths)
 
 # Register routers
 app.include_router(synths.router, prefix="/synths", tags=["synths"])

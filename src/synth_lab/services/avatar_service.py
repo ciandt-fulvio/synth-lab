@@ -41,8 +41,7 @@ class AvatarService:
         self,
         synths: list[dict[str, Any]],
         on_generation_start: Callable[[int], Awaitable[None]] | None = None,
-        on_generation_complete: Callable[[int], Awaitable[None]] | None = None,
-    ) -> dict[str, Path]:
+        on_generation_complete: Callable[[int], Awaitable[None]] | None = None) -> dict[str, Path]:
         """
         Ensure all synths have avatars generated.
 

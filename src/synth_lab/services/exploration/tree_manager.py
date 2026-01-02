@@ -18,8 +18,7 @@ from synth_lab.domain.entities.exploration import Exploration
 from synth_lab.domain.entities.scenario_node import (
     ScenarioNode,
     ScorecardParams,
-    SimulationResults,
-)
+    SimulationResults)
 from synth_lab.repositories.exploration_repository import ExplorationRepository
 
 
@@ -45,8 +44,7 @@ class TreeManager:
         self,
         exploration: Exploration,
         experiment: Experiment,
-        analysis_run: AnalysisRun,
-    ) -> ScenarioNode:
+        analysis_run: AnalysisRun) -> ScenarioNode:
         """
         Create the root node for an exploration.
 
@@ -76,24 +74,21 @@ class TreeManager:
             complexity=scorecard.complexity.score,
             initial_effort=scorecard.initial_effort.score,
             perceived_risk=scorecard.perceived_risk.score,
-            time_to_value=scorecard.time_to_value.score,
-        )
+            time_to_value=scorecard.time_to_value.score)
 
         # Extract simulation results from analysis
         outcomes = analysis_run.aggregated_outcomes
         simulation_results = SimulationResults(
             success_rate=outcomes.success_rate,
             fail_rate=outcomes.failed_rate,
-            did_not_try_rate=outcomes.did_not_try_rate,
-        )
+            did_not_try_rate=outcomes.did_not_try_rate)
 
         # Create root node
         root_node = ScenarioNode(
             exploration_id=exploration.id,
             depth=0,
             scorecard_params=scorecard_params,
-            simulation_results=simulation_results,
-        )
+            simulation_results=simulation_results)
 
         # Persist and return
         self.repository.create_node(root_node)
@@ -109,8 +104,7 @@ class TreeManager:
         parent: ScenarioNode,
         proposal: ActionProposal,
         simulation_results: SimulationResults | None = None,
-        execution_time: float | None = None,
-    ) -> ScenarioNode:
+        execution_time: float | None = None) -> ScenarioNode:
         """
         Create a child node from a proposal.
 
@@ -139,8 +133,7 @@ class TreeManager:
             short_action=proposal.short_action,
             scorecard_params=new_params,
             simulation_results=simulation_results,
-            execution_time_seconds=execution_time,
-        )
+            execution_time_seconds=execution_time)
 
         # Persist and return
         self.repository.create_node(child_node)
@@ -196,10 +189,8 @@ if __name__ == "__main__":
     from synth_lab.domain.entities.experiment import (
         Experiment,
         ScorecardData,
-        ScorecardDimension,
-    )
+        ScorecardDimension)
     from synth_lab.domain.entities.exploration import Exploration, Goal
-    from synth_lab.infrastructure.database import DatabaseManager, init_database
 
     all_validation_failures = []
     total_tests = 0
@@ -208,7 +199,7 @@ if __name__ == "__main__":
         test_db_path = Path(tmpdir) / "test.db"
         init_database(test_db_path)
         db = DatabaseManager(test_db_path)
-        repo = ExplorationRepository(db)
+        repo = ExplorationRepository()
         tree_manager = TreeManager(repo)
 
         # Create test data
@@ -220,16 +211,13 @@ if __name__ == "__main__":
             (
                 '{"feature_name":"Test","description_text":"Test",'
                 '"complexity":{"score":0.45},"initial_effort":{"score":0.30},'
-                '"perceived_risk":{"score":0.25},"time_to_value":{"score":0.40}}',
-            ),
-        )
+                '"perceived_risk":{"score":0.25},"time_to_value":{"score":0.40}}'))
         db.execute(
             """
             INSERT INTO analysis_runs (id, experiment_id, config, status, aggregated_outcomes, started_at)
             VALUES ('ana_87654321', 'exp_12345678', '{}', 'completed', ?, datetime('now'))
             """,
-            ('{"success_rate":0.25,"fail_rate":0.45,"did_not_try_rate":0.30}',),
-        )
+            ('{"success_rate":0.25,"fail_rate":0.45,"did_not_try_rate":0.30}'))
 
         # Create experiment and analysis objects
         experiment = Experiment(
@@ -242,9 +230,7 @@ if __name__ == "__main__":
                 complexity=ScorecardDimension(score=0.45),
                 initial_effort=ScorecardDimension(score=0.30),
                 perceived_risk=ScorecardDimension(score=0.25),
-                time_to_value=ScorecardDimension(score=0.40),
-            ),
-        )
+                time_to_value=ScorecardDimension(score=0.40)))
 
         from synth_lab.domain.entities.analysis_run import AggregatedOutcomes
 
@@ -254,15 +240,12 @@ if __name__ == "__main__":
             aggregated_outcomes=AggregatedOutcomes(
                 success_rate=0.25,
                 failed_rate=0.45,
-                did_not_try_rate=0.30,
-            ),
-        )
+                did_not_try_rate=0.30))
 
         exploration = Exploration(
             experiment_id="exp_12345678",
             baseline_analysis_id="ana_87654321",
-            goal=Goal(value=0.40),
-        )
+            goal=Goal(value=0.40))
         repo.create_exploration(exploration)
 
         # Test 1: Create root node
@@ -292,17 +275,14 @@ if __name__ == "__main__":
                 short_action="Tooltip contextual",
                 category="ux_interface",
                 rationale="Reduz friccao",
-                impacts={"complexity": -0.02, "time_to_value": -0.02},
-            )
+                impacts={"complexity": -0.02, "time_to_value": -0.02})
             child = tree_manager.create_child_node(
                 parent=root,
                 proposal=proposal,
                 simulation_results=SimulationResults(
                     success_rate=0.32,
                     fail_rate=0.40,
-                    did_not_try_rate=0.28,
-                ),
-            )
+                    did_not_try_rate=0.28))
             if child.depth != 1:
                 all_validation_failures.append(f"Child depth should be 1: {child.depth}")
             if child.parent_id != root.id:

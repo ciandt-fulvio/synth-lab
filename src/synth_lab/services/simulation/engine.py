@@ -31,8 +31,7 @@ from synth_lab.domain.entities import FeatureScorecard, Scenario
 from synth_lab.services.simulation.probability import (
     calculate_p_attempt,
     calculate_p_success,
-    sample_outcome,
-)
+    sample_outcome)
 from synth_lab.services.simulation.sample_state import sample_user_state
 
 
@@ -70,8 +69,7 @@ class MonteCarloEngine:
     def __init__(
         self,
         seed: int | None = None,
-        sigma: float = 0.1,
-    ) -> None:
+        sigma: float = 0.1) -> None:
         """
         Initialize Monte Carlo engine.
 
@@ -87,8 +85,7 @@ class MonteCarloEngine:
         synths: list[dict[str, Any]],
         scorecard: FeatureScorecard,
         scenario: Scenario,
-        n_executions: int = 100,
-    ) -> SimulationResults:
+        n_executions: int = 100) -> SimulationResults:
         """
         Run Monte Carlo simulation.
 
@@ -150,8 +147,7 @@ class MonteCarloEngine:
                 latent_traits=latent_traits,
                 scorecard_scores=scorecard_scores,
                 scenario=scenario_dict,
-                n_executions=n_executions,
-            )
+                n_executions=n_executions)
 
             # Calculate rates with 3 decimal precision
             did_not_try_rate = round(outcomes["did_not_try"] / n_executions, 3)
@@ -164,8 +160,7 @@ class MonteCarloEngine:
                     did_not_try_rate=did_not_try_rate,
                     failed_rate=failed_rate,
                     success_rate=success_rate,
-                    synth_attributes=sim_attrs,
-                )
+                    synth_attributes=sim_attrs)
             )
 
             # Accumulate for aggregation
@@ -188,16 +183,14 @@ class MonteCarloEngine:
             aggregated_success=aggregated_success,
             total_synths=n_synths,
             n_executions=n_executions,
-            execution_time_seconds=execution_time,
-        )
+            execution_time_seconds=execution_time)
 
     def _run_synth_executions(
         self,
         latent_traits: dict[str, float],
         scorecard_scores: dict[str, float],
         scenario: dict[str, float],
-        n_executions: int,
-    ) -> dict[str, int]:
+        n_executions: int) -> dict[str, int]:
         """
         Run M executions for a single synth.
 
@@ -218,8 +211,7 @@ class MonteCarloEngine:
                 latent_traits=latent_traits,
                 scenario=scenario,
                 sigma=self.sigma,
-                rng=self.rng,
-            )
+                rng=self.rng)
 
             # Calculate probabilities
             p_attempt = calculate_p_attempt(user_state, scorecard_scores)
@@ -237,8 +229,7 @@ if __name__ == "__main__":
 
     from synth_lab.domain.entities import (
         ScorecardDimension,
-        ScorecardIdentification,
-    )
+        ScorecardIdentification)
 
     print("=== Monte Carlo Engine Validation ===\n")
 
@@ -249,14 +240,12 @@ if __name__ == "__main__":
     test_scorecard = FeatureScorecard(
         identification=ScorecardIdentification(
             feature_name="Test Feature",
-            use_scenario="Test",
-        ),
+            use_scenario="Test"),
         description_text="Test",
         complexity=ScorecardDimension(score=0.4),
         initial_effort=ScorecardDimension(score=0.3),
         perceived_risk=ScorecardDimension(score=0.2),
-        time_to_value=ScorecardDimension(score=0.5),
-    )
+        time_to_value=ScorecardDimension(score=0.5))
 
     # Create test scenario (baseline)
     test_scenario = Scenario(
@@ -266,8 +255,7 @@ if __name__ == "__main__":
         motivation_modifier=0.0,
         trust_modifier=0.0,
         friction_modifier=0.0,
-        task_criticality=0.5,
-    )
+        task_criticality=0.5)
 
     # Create test synths with simulation_attributes
     test_synths = [
@@ -300,8 +288,7 @@ if __name__ == "__main__":
             synths=test_synths,
             scorecard=test_scorecard,
             scenario=test_scenario,
-            n_executions=100,
-        )
+            n_executions=100)
 
         if results.total_synths != 10:
             all_validation_failures.append(f"Expected 10 synths, got {results.total_synths}")

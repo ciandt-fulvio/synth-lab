@@ -15,12 +15,10 @@ from synth_lab.domain.entities.experiment_document import (
     DocumentStatus,
     DocumentType,
     ExperimentDocument,
-    ExperimentDocumentSummary,
-)
+    ExperimentDocumentSummary)
 from synth_lab.repositories.experiment_document_repository import (
     DocumentNotFoundError,
-    ExperimentDocumentRepository,
-)
+    ExperimentDocumentRepository)
 
 
 class DocumentService:
@@ -33,16 +31,14 @@ class DocumentService:
 
     def __init__(
         self,
-        repository: ExperimentDocumentRepository | None = None,
-    ):
+        repository: ExperimentDocumentRepository | None = None):
         self.repository = repository or ExperimentDocumentRepository()
         self.logger = logger.bind(component="document_service")
 
     def get_document(
         self,
         experiment_id: str,
-        document_type: DocumentType,
-    ) -> ExperimentDocument:
+        document_type: DocumentType) -> ExperimentDocument:
         """
         Get a specific document for an experiment.
 
@@ -64,8 +60,7 @@ class DocumentService:
     def get_markdown(
         self,
         experiment_id: str,
-        document_type: DocumentType,
-    ) -> str:
+        document_type: DocumentType) -> str:
         """
         Get markdown content for a document.
 
@@ -86,8 +81,7 @@ class DocumentService:
 
     def list_documents(
         self,
-        experiment_id: str,
-    ) -> list[ExperimentDocumentSummary]:
+        experiment_id: str) -> list[ExperimentDocumentSummary]:
         """
         List all documents for an experiment.
 
@@ -102,8 +96,7 @@ class DocumentService:
     def get_document_status(
         self,
         experiment_id: str,
-        document_type: DocumentType,
-    ) -> DocumentStatus | None:
+        document_type: DocumentType) -> DocumentStatus | None:
         """
         Get the current status of a document.
 
@@ -118,8 +111,7 @@ class DocumentService:
 
     def check_availability(
         self,
-        experiment_id: str,
-    ) -> dict[DocumentType, dict]:
+        experiment_id: str) -> dict[DocumentType, dict]:
         """
         Check availability of all document types for an experiment.
 
@@ -166,8 +158,7 @@ class DocumentService:
         document_type: DocumentType,
         markdown_content: str,
         model: str = "gpt-4o-mini",
-        metadata: dict | None = None,
-    ) -> ExperimentDocument:
+        metadata: dict | None = None) -> ExperimentDocument:
         """
         Save a completed document.
 
@@ -194,8 +185,7 @@ class DocumentService:
             markdown_content=markdown_content,
             metadata=metadata,
             model=model,
-            status=DocumentStatus.COMPLETED,
-        )
+            status=DocumentStatus.COMPLETED)
 
         self.repository.save(doc)
         self.logger.info(
@@ -208,8 +198,7 @@ class DocumentService:
         self,
         experiment_id: str,
         document_type: DocumentType,
-        model: str = "gpt-4o-mini",
-    ) -> ExperimentDocument | None:
+        model: str = "gpt-4o-mini") -> ExperimentDocument | None:
         """
         Mark a document as generating (to prevent concurrent generation).
 
@@ -228,8 +217,7 @@ class DocumentService:
         experiment_id: str,
         document_type: DocumentType,
         markdown_content: str,
-        metadata: dict | None = None,
-    ) -> None:
+        metadata: dict | None = None) -> None:
         """
         Mark a document generation as completed with content.
 
@@ -244,8 +232,7 @@ class DocumentService:
             document_type,
             DocumentStatus.COMPLETED,
             markdown_content=markdown_content,
-            metadata=metadata,
-        )
+            metadata=metadata)
         self.logger.info(
             f"Completed {document_type.value} for {experiment_id} "
             f"({len(markdown_content)} chars)"
@@ -255,8 +242,7 @@ class DocumentService:
         self,
         experiment_id: str,
         document_type: DocumentType,
-        error_message: str,
-    ) -> None:
+        error_message: str) -> None:
         """
         Mark a document generation as failed.
 
@@ -269,8 +255,7 @@ class DocumentService:
             experiment_id,
             document_type,
             DocumentStatus.FAILED,
-            error_message=error_message,
-        )
+            error_message=error_message)
         self.logger.error(
             f"Failed {document_type.value} for {experiment_id}: {error_message}"
         )
@@ -278,8 +263,7 @@ class DocumentService:
     def delete_document(
         self,
         experiment_id: str,
-        document_type: DocumentType,
-    ) -> bool:
+        document_type: DocumentType) -> bool:
         """
         Delete a document.
 
@@ -298,7 +282,6 @@ if __name__ == "__main__":
     import tempfile
     from pathlib import Path
 
-    from synth_lab.infrastructure.database import DatabaseManager
 
     # Validation
     all_validation_failures = []
@@ -346,7 +329,7 @@ if __name__ == "__main__":
             """
         )
 
-        repo = ExperimentDocumentRepository(db)
+        repo = ExperimentDocumentRepository()
         service = DocumentService(repository=repo)
 
         # Test 1: Save document
@@ -356,8 +339,7 @@ if __name__ == "__main__":
                 "exp_12345678",
                 DocumentType.SUMMARY,
                 "# Summary\n\nTest content",
-                metadata={"synth_count": 50},
-            )
+                metadata={"synth_count": 50})
             if doc.status != DocumentStatus.COMPLETED:
                 all_validation_failures.append(f"Expected COMPLETED: {doc.status}")
         except Exception as e:
@@ -416,8 +398,7 @@ if __name__ == "__main__":
                 "exp_12345678",
                 DocumentType.PRFAQ,
                 "# PR-FAQ\n\nGenerated content",
-                metadata={"headline": "Test"},
-            )
+                metadata={"headline": "Test"})
 
             # Verify
             doc = service.get_document("exp_12345678", DocumentType.PRFAQ)
@@ -433,8 +414,7 @@ if __name__ == "__main__":
             service.fail_generation(
                 "exp_12345678",
                 DocumentType.EXECUTIVE_SUMMARY,
-                "Test error",
-            )
+                "Test error")
             status = service.get_document_status(
                 "exp_12345678", DocumentType.EXECUTIVE_SUMMARY
             )

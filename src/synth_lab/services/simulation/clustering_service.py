@@ -29,11 +29,9 @@ from synth_lab.domain.entities import (
     RadarAxis,
     RadarChart,
     SuggestedCut,
-    SynthOutcome,
-)
+    SynthOutcome)
 from synth_lab.services.simulation.cluster_labeling_service import (
-    ClusterLabelingService,
-)
+    ClusterLabelingService)
 from synth_lab.services.simulation.feature_extraction import get_attribute_value
 
 
@@ -72,8 +70,7 @@ class ClusteringService:
         simulation_id: str,
         outcomes: list[SynthOutcome],
         n_clusters: int | None = None,
-        features: list[str] | None = None,
-    ) -> KMeansResult:
+        features: list[str] | None = None) -> KMeansResult:
         """
         Perform K-Means clustering on synth outcomes.
 
@@ -146,8 +143,7 @@ class ClusteringService:
             labels=labels,
             centroids=kmeans.cluster_centers_,
             scaler=scaler,
-            feature_names=features,
-        )
+            feature_names=features)
 
         # Build synth assignments
         synth_assignments = {synth_id: int(label) for synth_id, label in zip(synth_ids, labels)}
@@ -161,16 +157,14 @@ class ClusteringService:
             clusters=clusters,
             synth_assignments=synth_assignments,
             elbow_data=elbow_data,
-            recommended_k=recommended_k,
-        )
+            recommended_k=recommended_k)
 
     def cluster_hierarchical(
         self,
         simulation_id: str,
         outcomes: list[SynthOutcome],
         features: list[str] | None = None,
-        linkage_method: str = "ward",
-    ) -> HierarchicalResult:
+        linkage_method: str = "ward") -> HierarchicalResult:
         """
         Perform hierarchical clustering on synth outcomes.
 
@@ -211,8 +205,7 @@ class ClusteringService:
             features_used=features,
             nodes=nodes,
             linkage_matrix=linkage_matrix.tolist(),
-            suggested_cuts=suggested_cuts,
-        )
+            suggested_cuts=suggested_cuts)
 
     # =========================================================================
     # Convenience Wrapper Methods (for router compatibility)
@@ -222,8 +215,7 @@ class ClusteringService:
         self,
         outcomes: list[SynthOutcome],
         k: int = 4,
-        features: list[str] | None = None,
-    ) -> KMeansResult:
+        features: list[str] | None = None) -> KMeansResult:
         """
         Convenience wrapper for cluster_kmeans.
 
@@ -241,14 +233,12 @@ class ClusteringService:
             simulation_id=analysis_id,
             outcomes=outcomes,
             n_clusters=k,
-            features=features,
-        )
+            features=features)
 
     def hierarchical(
         self,
         outcomes: list[SynthOutcome],
-        features: list[str] | None = None,
-    ) -> HierarchicalResult:
+        features: list[str] | None = None) -> HierarchicalResult:
         """
         Convenience wrapper for cluster_hierarchical.
 
@@ -263,15 +253,13 @@ class ClusteringService:
         return self.cluster_hierarchical(
             simulation_id=analysis_id,
             outcomes=outcomes,
-            features=features,
-        )
+            features=features)
 
     def elbow_method(
         self,
         outcomes: list[SynthOutcome],
         max_k: int = 10,
-        features: list[str] | None = None,
-    ) -> list[ElbowDataPoint]:
+        features: list[str] | None = None) -> list[ElbowDataPoint]:
         """
         Calculate elbow method data for K selection.
 
@@ -300,8 +288,7 @@ class ClusteringService:
 
     def radar_comparison(
         self,
-        kmeans_result: KMeansResult,
-    ) -> RadarChart:
+        kmeans_result: KMeansResult) -> RadarChart:
         """
         Convenience wrapper for get_radar_chart.
 
@@ -313,14 +300,12 @@ class ClusteringService:
         """
         return self.get_radar_chart(
             simulation_id=kmeans_result.simulation_id,
-            kmeans_result=kmeans_result,
-        )
+            kmeans_result=kmeans_result)
 
     def cut_dendrogram(
         self,
         hierarchical_result: HierarchicalResult,
-        n_clusters: int,
-    ) -> HierarchicalResult:
+        n_clusters: int) -> HierarchicalResult:
         """
         Cut dendrogram at specified number of clusters.
 
@@ -354,14 +339,12 @@ class ClusteringService:
             linkage_matrix=hierarchical_result.linkage_matrix,
             suggested_cuts=hierarchical_result.suggested_cuts,
             cluster_assignments=cluster_assignments,
-            n_clusters=n_clusters,
-        )
+            n_clusters=n_clusters)
 
     def get_radar_chart(
         self,
         simulation_id: str,
-        kmeans_result: KMeansResult,
-    ) -> RadarChart:
+        kmeans_result: KMeansResult) -> RadarChart:
         """
         Generate radar chart for cluster comparison.
 
@@ -411,8 +394,7 @@ class ClusteringService:
                         name=feature,
                         label=feature.replace("_", " ").title(),
                         value=float(value),
-                        normalized=float(normalized),
-                    )
+                        normalized=float(normalized))
                 )
 
             cluster_radars.append(
@@ -422,8 +404,7 @@ class ClusteringService:
                     explanation=cluster.suggested_explanation,
                     color=self.CLUSTER_COLORS[i % len(self.CLUSTER_COLORS)],
                     axes=axes,
-                    success_rate=cluster.avg_success_rate,
-                )
+                    success_rate=cluster.avg_success_rate)
             )
 
         # Build axis labels and baseline
@@ -434,15 +415,13 @@ class ClusteringService:
             simulation_id=simulation_id,
             clusters=cluster_radars,
             axis_labels=axis_labels,
-            baseline=baseline_values,
-        )
+            baseline=baseline_values)
 
     def get_pca_scatter(
         self,
         simulation_id: str,
         outcomes: list[SynthOutcome],
-        kmeans_result: KMeansResult,
-    ) -> PCAScatterChart:
+        kmeans_result: KMeansResult) -> PCAScatterChart:
         """
         Generate PCA 2D scatter plot with cluster colors.
 
@@ -470,8 +449,7 @@ class ClusteringService:
             cluster_id = kmeans_result.synth_assignments.get(synth_id, -1)
             cluster_profile = next(
                 (c for c in kmeans_result.clusters if c.cluster_id == cluster_id),
-                None,
-            )
+                None)
 
             if cluster_profile:
                 color = self.CLUSTER_COLORS[cluster_id % len(self.CLUSTER_COLORS)]
@@ -487,8 +465,7 @@ class ClusteringService:
                     y=float(X_pca[i, 1]),
                     cluster_id=cluster_id,
                     cluster_label=label,
-                    color=color,
-                )
+                    color=color)
             )
 
         return PCAScatterChart(
@@ -498,8 +475,7 @@ class ClusteringService:
                 float(pca.explained_variance_ratio_[0]),
                 float(pca.explained_variance_ratio_[1]),
             ],
-            total_variance=float(pca.explained_variance_ratio_.sum()),
-        )
+            total_variance=float(pca.explained_variance_ratio_.sum()))
 
     # =========================================================================
     # Private Helper Methods
@@ -605,8 +581,7 @@ class ClusteringService:
         labels: np.ndarray,
         centroids: np.ndarray,
         scaler: StandardScaler,
-        feature_names: list[str],
-    ) -> list[ClusterProfile]:
+        feature_names: list[str]) -> list[ClusterProfile]:
         """
         Build cluster profiles from K-Means results.
 
@@ -683,8 +658,7 @@ class ClusteringService:
                     high_traits=high_traits,
                     low_traits=low_traits,
                     suggested_label=temp_label,
-                    synth_ids=[o.synth_id for o in cluster_outcomes],
-                )
+                    synth_ids=[o.synth_id for o in cluster_outcomes])
             )
 
         # Generate descriptive labels via LLM
@@ -706,8 +680,7 @@ class ClusteringService:
         cluster_id: int,
         avg_success: float,
         high_traits: list[str],
-        low_traits: list[str],
-    ) -> str:
+        low_traits: list[str]) -> str:
         """
         Suggest a human-readable label for the cluster.
 
@@ -777,8 +750,7 @@ class ClusteringService:
                     left_child=left_child,
                     right_child=right_child,
                     distance=distance,
-                    count=count,
-                )
+                    count=count)
             )
 
         return nodes
@@ -819,8 +791,7 @@ class ClusteringService:
                 SuggestedCut(
                     n_clusters=k,
                     distance=float(cut_height),
-                    silhouette_estimate=float(silhouette),
-                )
+                    silhouette_estimate=float(silhouette))
             )
 
         # Sort by silhouette score (best first)
@@ -837,8 +808,7 @@ if __name__ == "__main__":
         SimulationAttributes,
         SimulationLatentTraits,
         SimulationObservables,
-        SynthOutcome,
-    )
+        SynthOutcome)
 
     all_validation_failures = []
     total_tests = 0
@@ -872,16 +842,12 @@ if __name__ == "__main__":
                             similar_tool_experience=0.4,
                             motor_ability=0.8,
                             time_availability=0.3,
-                            domain_expertise=0.6,
-                        ),
+                            domain_expertise=0.6),
                         latent_traits=SimulationLatentTraits(
                             capability_mean=0.5 + np.random.rand() * 0.3,
                             trust_mean=0.5 + np.random.rand() * 0.3,
                             friction_tolerance_mean=0.5 + np.random.rand() * 0.3,
-                            exploration_prob=0.35,
-                        ),
-                    ),
-                )
+                            exploration_prob=0.35)))
             )
 
         service = ClusteringService()

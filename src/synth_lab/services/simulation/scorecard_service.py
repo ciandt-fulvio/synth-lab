@@ -31,8 +31,7 @@ from loguru import logger
 from synth_lab.domain.entities import (
     FeatureScorecard,
     ScorecardDimension,
-    ScorecardIdentification,
-)
+    ScorecardIdentification)
 from synth_lab.repositories.scorecard_repository import ScorecardRepository
 
 
@@ -51,14 +50,14 @@ class ValidationError(Exception):
 class ScorecardService:
     """Service for feature scorecard operations."""
 
-    def __init__(self, repository: ScorecardRepository) -> None:
+    def __init__(self, repository: ScorecardRepository | None = None) -> None:
         """
         Initialize service with repository.
 
         Args:
-            repository: Scorecard repository instance
+            repository: Scorecard repository. Defaults to new instance.
         """
-        self.repository = repository
+        self.repository = repository or ScorecardRepository()
         self.logger = logger.bind(component="scorecard_service")
 
     def create_scorecard(self, data: dict[str, Any]) -> FeatureScorecard:
@@ -104,8 +103,7 @@ class ScorecardService:
     def list_scorecards(
         self,
         limit: int = 20,
-        offset: int = 0,
-    ) -> dict[str, Any]:
+        offset: int = 0) -> dict[str, Any]:
         """
         List scorecards with pagination.
 
@@ -128,8 +126,7 @@ class ScorecardService:
         self,
         scorecard_id: str,
         justification: str | None = None,
-        impact_hypotheses: list[str] | None = None,
-    ) -> FeatureScorecard:
+        impact_hypotheses: list[str] | None = None) -> FeatureScorecard:
         """
         Update a scorecard with LLM-generated insights.
 
@@ -172,8 +169,7 @@ class ScorecardService:
         identification = ScorecardIdentification(
             feature_name=data.get("feature_name", ""),
             use_scenario=data.get("use_scenario", ""),
-            evaluators=data.get("evaluators", []),
-        )
+            evaluators=data.get("evaluators", []))
 
         # Build dimensions
         def build_dimension(dim_data: dict[str, Any] | None) -> ScorecardDimension:
@@ -183,8 +179,7 @@ class ScorecardService:
                 score=dim_data.get("score", 0.5),
                 rules_applied=dim_data.get("rules_applied", []),
                 min_uncertainty=dim_data.get("min_uncertainty", 0.0),
-                max_uncertainty=dim_data.get("max_uncertainty", 0.0),
-            )
+                max_uncertainty=dim_data.get("max_uncertainty", 0.0))
 
         return FeatureScorecard(
             experiment_id=data.get("experiment_id"),
@@ -196,8 +191,7 @@ class ScorecardService:
             perceived_risk=build_dimension(data.get("perceived_risk")),
             time_to_value=build_dimension(data.get("time_to_value")),
             justification=data.get("justification"),
-            impact_hypotheses=data.get("impact_hypotheses", []),
-        )
+            impact_hypotheses=data.get("impact_hypotheses", []))
 
     def _validate_scorecard(self, scorecard: FeatureScorecard) -> None:
         """
@@ -246,7 +240,6 @@ if __name__ == "__main__":
     import tempfile
     from pathlib import Path
 
-    from synth_lab.infrastructure.database import DatabaseManager, init_database
     from synth_lab.repositories.scorecard_repository import ScorecardRepository
 
     print("=== Scorecard Service Validation ===\n")
@@ -259,7 +252,7 @@ if __name__ == "__main__":
         db_path = Path(tmpdir) / "test.db"
         init_database(db_path)
         db = DatabaseManager(db_path)
-        repo = ScorecardRepository(db)
+        repo = ScorecardRepository()
         service = ScorecardService(repo)
 
         # Test 1: Create valid scorecard
@@ -333,8 +326,7 @@ if __name__ == "__main__":
             updated = service.update_scorecard_insights(
                 scorecard.id,
                 justification="LLM generated justification",
-                impact_hypotheses=["Hypothesis 1", "Hypothesis 2"],
-            )
+                impact_hypotheses=["Hypothesis 1", "Hypothesis 2"])
             if updated.justification != "LLM generated justification":
                 all_validation_failures.append(
                     f"Update insights: Justification mismatch: {updated.justification}"

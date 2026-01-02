@@ -32,8 +32,7 @@ from .instructions import (
     format_interviewee_reviewer_instructions,
     format_interviewer_instructions,
     format_interviewer_reviewer_instructions,
-    format_orchestrator_instructions,
-)
+    format_orchestrator_instructions)
 
 
 def _get_model_settings(model: str, reasoning_effort: str = "low") -> ModelSettings | None:
@@ -60,8 +59,7 @@ def create_interviewer(
     mcp_servers: list[Any] | None = None,
     model: str = "gpt-4o-mini",
     reasoning_effort: str = "low",
-    additional_context: str | None = None,
-) -> Agent:
+    additional_context: str | None = None) -> Agent:
     """
     Create an interviewer agent.
 
@@ -84,8 +82,7 @@ def create_interviewer(
         topic_guide=topic_guide,
         conversation_history=conversation_history,
         max_turns=max_turns,
-        additional_context=additional_context,
-    )
+        additional_context=additional_context)
 
     # Build agent kwargs - only include model_settings if model supports it
     agent_kwargs = {
@@ -109,8 +106,7 @@ def create_interviewee(
     available_images: list[str] | None = None,
     initial_context: str = "",
     model: str = "gpt-4o-mini",
-    reasoning_effort: str = "low",
-) -> Agent:
+    reasoning_effort: str = "low") -> Agent:
     """
     Create an interviewee agent.
 
@@ -153,8 +149,7 @@ def create_interviewee(
 def create_interviewer_reviewer(
     raw_response: str,
     model: str = "gpt-4o-mini",
-    reasoning_effort: str = "low",
-) -> Agent:
+    reasoning_effort: str = "low") -> Agent:
     """
     Create an interviewer reviewer agent.
 
@@ -188,8 +183,7 @@ def create_interviewee_reviewer(
     synth: dict[str, Any],
     raw_response: str,
     model: str = "gpt-4o-mini",
-    reasoning_effort: str = "low",
-) -> Agent:
+    reasoning_effort: str = "low") -> Agent:
     """
     Create an interviewee reviewer agent.
 
@@ -225,8 +219,7 @@ def create_orchestrator(
     conversation_history: str,
     last_message: str,
     model: str = "gpt-4o-mini",
-    reasoning_effort: str = "low",
-) -> Agent:
+    reasoning_effort: str = "low") -> Agent:
     """
     Create an orchestrator agent.
 

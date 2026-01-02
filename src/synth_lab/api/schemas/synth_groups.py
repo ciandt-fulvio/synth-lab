@@ -22,19 +22,16 @@ class SynthGroupCreate(BaseModel):
         default=None,
         pattern=r"^grp_[a-f0-9]{8}$",
         description="Optional ID. If not provided, will be generated.",
-        examples=["grp_a1b2c3d4"],
-    )
+        examples=["grp_a1b2c3d4"])
 
     name: str = Field(
         description="Descriptive name for the group.",
-        examples=["Geração Dezembro 2025"],
-    )
+        examples=["Geração Dezembro 2025"])
 
     description: str | None = Field(
         default=None,
         description="Description of the purpose/context.",
-        examples=["Synths gerados para testes de checkout"],
-    )
+        examples=["Synths gerados para testes de checkout"])
 
 
 class SynthSummary(BaseModel):
@@ -63,8 +60,7 @@ class SynthGroupDetail(SynthGroupSummary):
 
     synths: list[SynthSummary] = Field(
         default_factory=list,
-        description="Synths in this group.",
-    )
+        description="Synths in this group.")
 
 
 class PaginatedSynthGroup(BaseModel):

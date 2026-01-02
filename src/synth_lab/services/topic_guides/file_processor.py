@@ -181,8 +181,7 @@ def call_openai_api(
     prompt: str,
     image_base64: str | None = None,
     api_key: str | None = None,
-    tracer: Tracer | None = None,
-) -> str:
+    tracer: Tracer | None = None) -> str:
     """
     Call OpenAI API with retry logic and exponential backoff.
 
@@ -233,16 +232,14 @@ def call_openai_api(
                     }
                 ],
                 max_tokens=60,
-                temperature=0.2,
-            )
+                temperature=0.2)
         else:
             # Text-only API call
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=60,
-                temperature=0.2,
-            )
+                temperature=0.2)
 
         return response
 
@@ -254,8 +251,7 @@ def call_openai_api(
                 "prompt": prompt[:500] + "..." if len(prompt) > 500 else prompt,
                 "model": "gpt-4o-mini",
                 "has_image": image_base64 is not None,
-            },
-        ) as span:
+            }) as span:
             try:
                 response = _make_request()
                 content = response.choices[0].message.content

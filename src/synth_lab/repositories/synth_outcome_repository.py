@@ -1,32 +1,48 @@
 """
 SynthOutcomeRepository for synth-lab.
 
-Data access layer for synth outcomes in SQLite database.
-Handles N:1 relationship with analysis runs.
+Data access layer for synth outcomes. Uses SQLAlchemy ORM for database operations. Handles N:1 relationship with analysis runs.
 
 References:
     - Spec: specs/019-experiment-refactor/spec.md
     - Data model: specs/019-experiment-refactor/data-model.md
+    - ORM models: synth_lab.models.orm.analysis
 """
 
 import json
 
+from sqlalchemy import func as sqlfunc
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
 from synth_lab.domain.entities.simulation_attributes import (
     SimulationAttributes,
     SimulationLatentTraits,
-    SimulationObservables,
-)
+    SimulationObservables)
 from synth_lab.domain.entities.synth_outcome import SynthOutcome
-from synth_lab.infrastructure.database import DatabaseManager
+from synth_lab.models.orm.analysis import AnalysisRun as AnalysisRunORM
+from synth_lab.models.orm.analysis import SynthOutcome as SynthOutcomeORM
 from synth_lab.models.pagination import PaginatedResponse, PaginationMeta, PaginationParams
 from synth_lab.repositories.base import BaseRepository
 
 
 class SynthOutcomeRepository(BaseRepository):
-    """Repository for synth outcome data access."""
+    """Repository for synth outcome data access.
 
-    def __init__(self, db: DatabaseManager | None = None):
-        super().__init__(db)
+    Uses SQLAlchemy ORM for database operations.
+
+    Usage:
+        # ORM mode
+        repo = SynthOutcomeRepository(db=database_manager)
+
+        # ORM mode (SQLAlchemy)
+        repo = SynthOutcomeRepository(session=session)
+    """
+
+    def __init__(
+        self,
+session: Session | None = None):
+        super().__init__( session=session)
 
     def create(self, outcome: SynthOutcome) -> SynthOutcome:
         """
@@ -38,28 +54,18 @@ class SynthOutcomeRepository(BaseRepository):
         Returns:
             Created synth outcome.
         """
-        synth_attrs_json = json.dumps(outcome.synth_attributes.model_dump())
-
-        self.db.execute(
-            """
-            INSERT INTO synth_outcomes (
-                id, analysis_id, synth_id, did_not_try_rate,
-                failed_rate, success_rate, synth_attributes
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                outcome.id,
-                outcome.analysis_id,
-                outcome.synth_id,
-                outcome.did_not_try_rate,
-                outcome.failed_rate,
-                outcome.success_rate,
-                synth_attrs_json,
-            ),
-        )
+        orm_outcome = SynthOutcomeORM(
+            id=outcome.id,
+            analysis_id=outcome.analysis_id,
+            synth_id=outcome.synth_id,
+            did_not_try_rate=outcome.did_not_try_rate,
+            failed_rate=outcome.failed_rate,
+            success_rate=outcome.success_rate,
+            synth_attributes=outcome.synth_attributes.model_dump())
+        self._add(orm_outcome)
+        self._flush()
+        self._commit()
         return outcome
-
     def create_batch(self, outcomes: list[SynthOutcome]) -> list[SynthOutcome]:
         """
         Create multiple synth outcomes in a batch.
@@ -73,33 +79,19 @@ class SynthOutcomeRepository(BaseRepository):
         if not outcomes:
             return []
 
-        values = []
         for outcome in outcomes:
-            synth_attrs_json = json.dumps(outcome.synth_attributes.model_dump())
-            values.append(
-                (
-                    outcome.id,
-                    outcome.analysis_id,
-                    outcome.synth_id,
-                    outcome.did_not_try_rate,
-                    outcome.failed_rate,
-                    outcome.success_rate,
-                    synth_attrs_json,
-                )
-            )
-
-        self.db.executemany(
-            """
-            INSERT INTO synth_outcomes (
-                id, analysis_id, synth_id, did_not_try_rate,
-                failed_rate, success_rate, synth_attributes
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            values,
-        )
+            orm_outcome = SynthOutcomeORM(
+                id=outcome.id,
+                analysis_id=outcome.analysis_id,
+                synth_id=outcome.synth_id,
+                did_not_try_rate=outcome.did_not_try_rate,
+                failed_rate=outcome.failed_rate,
+                success_rate=outcome.success_rate,
+                synth_attributes=outcome.synth_attributes.model_dump())
+            self._add(orm_outcome)
+        self._flush()
+        self._commit()
         return outcomes
-
     def get_by_id(self, outcome_id: str) -> SynthOutcome | None:
         """
         Get a synth outcome by ID.
@@ -110,19 +102,14 @@ class SynthOutcomeRepository(BaseRepository):
         Returns:
             SynthOutcome if found, None otherwise.
         """
-        row = self.db.fetchone(
-            "SELECT * FROM synth_outcomes WHERE id = ?",
-            (outcome_id,),
-        )
-        if row is None:
+        orm_outcome = self._get_by_id(SynthOutcomeORM, outcome_id)
+        if orm_outcome is None:
             return None
-        return self._row_to_outcome(row)
-
+        return self._orm_to_outcome(orm_outcome)
     def list_by_analysis_id(
         self,
         analysis_id: str,
-        params: PaginationParams | None = None,
-    ) -> PaginatedResponse[SynthOutcome]:
+        params: PaginationParams | None = None) -> PaginatedResponse[SynthOutcome]:
         """
         List outcomes for an analysis with pagination.
 
@@ -136,27 +123,22 @@ class SynthOutcomeRepository(BaseRepository):
         params = params or PaginationParams()
 
         # Get total count
-        count_row = self.db.fetchone(
-            """
-            SELECT COUNT(*) as count FROM synth_outcomes
-            WHERE analysis_id = ?
-            """,
-            (analysis_id,),
-        )
-        total = count_row["count"] if count_row else 0
+        count_stmt = select(sqlfunc.count()).where(
+            SynthOutcomeORM.analysis_id == analysis_id
+        ).select_from(SynthOutcomeORM)
+        total = self.session.execute(count_stmt).scalar() or 0
 
-        # Get paginated results
-        rows = self.db.fetchall(
-            """
-            SELECT * FROM synth_outcomes
-            WHERE analysis_id = ?
-            ORDER BY synth_id
-            LIMIT ? OFFSET ?
-            """,
-            (analysis_id, params.limit, params.offset),
+        # Get paginated results ordered by synth_id
+        stmt = (
+            select(SynthOutcomeORM)
+            .where(SynthOutcomeORM.analysis_id == analysis_id)
+            .order_by(SynthOutcomeORM.synth_id)
+            .limit(params.limit)
+            .offset(params.offset)
         )
+        orm_outcomes = list(self.session.execute(stmt).scalars().all())
 
-        outcomes = [self._row_to_outcome(row) for row in rows]
+        outcomes = [self._orm_to_outcome(o) for o in orm_outcomes]
 
         return PaginatedResponse(
             data=outcomes,
@@ -164,10 +146,7 @@ class SynthOutcomeRepository(BaseRepository):
                 total=total,
                 limit=params.limit,
                 offset=params.offset,
-                has_next=(params.offset + len(outcomes)) < total,
-            ),
-        )
-
+                has_next=(params.offset + len(outcomes)) < total))
     def delete_by_analysis_id(self, analysis_id: str) -> int:
         """
         Delete all outcomes for an analysis.
@@ -178,18 +157,20 @@ class SynthOutcomeRepository(BaseRepository):
         Returns:
             Number of outcomes deleted.
         """
-        count_row = self.db.fetchone(
-            "SELECT COUNT(*) as count FROM synth_outcomes WHERE analysis_id = ?",
-            (analysis_id,),
-        )
-        count = count_row["count"] if count_row else 0
+        # Get count first
+        count_stmt = select(sqlfunc.count()).where(
+            SynthOutcomeORM.analysis_id == analysis_id
+        ).select_from(SynthOutcomeORM)
+        count = self.session.execute(count_stmt).scalar() or 0
 
-        self.db.execute(
-            "DELETE FROM synth_outcomes WHERE analysis_id = ?",
-            (analysis_id,),
-        )
+        # Get and delete each outcome
+        stmt = select(SynthOutcomeORM).where(SynthOutcomeORM.analysis_id == analysis_id)
+        outcomes = list(self.session.execute(stmt).scalars().all())
+        for outcome in outcomes:
+            self._delete(outcome)
+        self._flush()
+        self._commit()
         return count
-
     def count_by_analysis_id(self, analysis_id: str) -> int:
         """
         Count outcomes for an analysis.
@@ -200,12 +181,10 @@ class SynthOutcomeRepository(BaseRepository):
         Returns:
             Number of outcomes.
         """
-        row = self.db.fetchone(
-            "SELECT COUNT(*) as count FROM synth_outcomes WHERE analysis_id = ?",
-            (analysis_id,),
-        )
-        return row["count"] if row else 0
-
+        count_stmt = select(sqlfunc.count()).where(
+            SynthOutcomeORM.analysis_id == analysis_id
+        ).select_from(SynthOutcomeORM)
+        return self.session.execute(count_stmt).scalar() or 0
     def get_by_synth_and_analysis(self, synth_id: str, analysis_id: str) -> SynthOutcome | None:
         """
         Get simulation results for a specific synth in an analysis.
@@ -219,17 +198,13 @@ class SynthOutcomeRepository(BaseRepository):
         Returns:
             SynthOutcome if found, None otherwise.
         """
-        row = self.db.fetchone(
-            """
-            SELECT * FROM synth_outcomes
-            WHERE synth_id = ? AND analysis_id = ?
-            """,
-            (synth_id, analysis_id),
-        )
-        if row is None:
+        stmt = select(SynthOutcomeORM).where(
+            SynthOutcomeORM.synth_id == synth_id,
+            SynthOutcomeORM.analysis_id == analysis_id)
+        orm_outcome = self.session.execute(stmt).scalar_one_or_none()
+        if orm_outcome is None:
             return None
-        return self._row_to_outcome(row)
-
+        return self._orm_to_outcome(orm_outcome)
     def get_analysis_statistics(self, analysis_id: str) -> dict | None:
         """
         Get aggregated statistics for an analysis.
@@ -243,28 +218,21 @@ class SynthOutcomeRepository(BaseRepository):
             Dict with avg_success_rate, avg_did_not_try_rate, synth_count.
             None if no outcomes found.
         """
-        row = self.db.fetchone(
-            """
-            SELECT
-                AVG(success_rate) as avg_success_rate,
-                AVG(did_not_try_rate) as avg_did_not_try_rate,
-                AVG(failed_rate) as avg_failed_rate,
-                COUNT(*) as synth_count
-            FROM synth_outcomes
-            WHERE analysis_id = ?
-            """,
-            (analysis_id,),
-        )
-        if row is None or row["synth_count"] == 0:
+        stmt = select(
+            sqlfunc.avg(SynthOutcomeORM.success_rate).label("avg_success_rate"),
+            sqlfunc.avg(SynthOutcomeORM.did_not_try_rate).label("avg_did_not_try_rate"),
+            sqlfunc.avg(SynthOutcomeORM.failed_rate).label("avg_failed_rate"),
+            sqlfunc.count().label("synth_count")).where(SynthOutcomeORM.analysis_id == analysis_id)
+        result = self.session.execute(stmt).one_or_none()
+        if result is None or result.synth_count == 0:
             return None
 
         return {
-            "avg_success_rate": row["avg_success_rate"],
-            "avg_did_not_try_rate": row["avg_did_not_try_rate"],
-            "avg_failed_rate": row["avg_failed_rate"],
-            "synth_count": row["synth_count"],
+            "avg_success_rate": result.avg_success_rate,
+            "avg_did_not_try_rate": result.avg_did_not_try_rate,
+            "avg_failed_rate": result.avg_failed_rate,
+            "synth_count": result.synth_count,
         }
-
     def get_latest_outcome_for_synth(self, synth_id: str) -> SynthOutcome | None:
         """
         Get the most recent simulation outcome for a synth.
@@ -278,21 +246,19 @@ class SynthOutcomeRepository(BaseRepository):
         Returns:
             SynthOutcome from most recent analysis, or None if not found.
         """
-        row = self.db.fetchone(
-            """
-            SELECT so.* FROM synth_outcomes so
-            JOIN analysis_runs ar ON so.analysis_id = ar.id
-            WHERE so.synth_id = ?
-            AND ar.status = 'completed'
-            ORDER BY ar.completed_at DESC
-            LIMIT 1
-            """,
-            (synth_id,),
+        stmt = (
+            select(SynthOutcomeORM)
+            .join(AnalysisRunORM, SynthOutcomeORM.analysis_id == AnalysisRunORM.id)
+            .where(
+                SynthOutcomeORM.synth_id == synth_id,
+                AnalysisRunORM.status == "completed")
+            .order_by(AnalysisRunORM.completed_at.desc())
+            .limit(1)
         )
-        if row is None:
+        orm_outcome = self.session.execute(stmt).scalar_one_or_none()
+        if orm_outcome is None:
             return None
-        return self._row_to_outcome(row)
-
+        return self._orm_to_outcome(orm_outcome)
     def _row_to_outcome(self, row) -> SynthOutcome:
         """Convert a database row to SynthOutcome entity."""
         attrs_dict = json.loads(row["synth_attributes"])
@@ -302,8 +268,7 @@ class SynthOutcomeRepository(BaseRepository):
         latent_traits = SimulationLatentTraits(**attrs_dict["latent_traits"])
         synth_attrs = SimulationAttributes(
             observables=observables,
-            latent_traits=latent_traits,
-        )
+            latent_traits=latent_traits)
 
         return SynthOutcome(
             id=row["id"],
@@ -312,8 +277,31 @@ class SynthOutcomeRepository(BaseRepository):
             did_not_try_rate=row["did_not_try_rate"],
             failed_rate=row["failed_rate"],
             success_rate=row["success_rate"],
-            synth_attributes=synth_attrs,
-        )
+            synth_attributes=synth_attrs)
+
+    # =========================================================================
+    # ORM conversion methods
+    # =========================================================================
+
+    def _orm_to_outcome(self, orm_outcome: SynthOutcomeORM) -> SynthOutcome:
+        """Convert ORM model to SynthOutcome entity."""
+        attrs_dict = orm_outcome.synth_attributes
+
+        # Build SimulationAttributes from dict
+        observables = SimulationObservables(**attrs_dict["observables"])
+        latent_traits = SimulationLatentTraits(**attrs_dict["latent_traits"])
+        synth_attrs = SimulationAttributes(
+            observables=observables,
+            latent_traits=latent_traits)
+
+        return SynthOutcome(
+            id=orm_outcome.id,
+            analysis_id=orm_outcome.analysis_id,
+            synth_id=orm_outcome.synth_id,
+            did_not_try_rate=orm_outcome.did_not_try_rate,
+            failed_rate=orm_outcome.failed_rate,
+            success_rate=orm_outcome.success_rate,
+            synth_attributes=synth_attrs)
 
 
 if __name__ == "__main__":
@@ -323,7 +311,6 @@ if __name__ == "__main__":
 
     from synth_lab.domain.entities.analysis_run import AnalysisRun
     from synth_lab.domain.entities.experiment import Experiment
-    from synth_lab.infrastructure.database import init_database
     from synth_lab.repositories.analysis_repository import AnalysisRepository
     from synth_lab.repositories.experiment_repository import ExperimentRepository
 
@@ -337,27 +324,24 @@ if __name__ == "__main__":
         similar_tool_experience=0.42,
         motor_ability=0.85,
         time_availability=0.28,
-        domain_expertise=0.55,
-    )
+        domain_expertise=0.55)
     sample_latent = SimulationLatentTraits(
         capability_mean=0.42,
         trust_mean=0.39,
         friction_tolerance_mean=0.35,
-        exploration_prob=0.38,
-    )
+        exploration_prob=0.38)
     sample_attrs = SimulationAttributes(
         observables=sample_observables,
-        latent_traits=sample_latent,
-    )
+        latent_traits=sample_latent)
 
     # Use a temporary database for testing
     with tempfile.TemporaryDirectory() as tmpdir:
         test_db_path = Path(tmpdir) / "test.db"
         init_database(test_db_path)
         db = DatabaseManager(test_db_path)
-        exp_repo = ExperimentRepository(db)
-        ana_repo = AnalysisRepository(db)
-        outcome_repo = SynthOutcomeRepository(db)
+        exp_repo = ExperimentRepository()
+        ana_repo = AnalysisRepository()
+        outcome_repo = SynthOutcomeRepository()
 
         # Create parent experiment and analysis
         exp = Experiment(name="Test", hypothesis="Test hypothesis")
@@ -374,8 +358,7 @@ if __name__ == "__main__":
                 did_not_try_rate=0.22,
                 failed_rate=0.38,
                 success_rate=0.40,
-                synth_attributes=sample_attrs,
-            )
+                synth_attributes=sample_attrs)
             result = outcome_repo.create(outcome)
             if result.id != outcome.id:
                 all_validation_failures.append(f"ID mismatch: {result.id}")
@@ -405,8 +388,7 @@ if __name__ == "__main__":
                     did_not_try_rate=0.20,
                     failed_rate=0.30,
                     success_rate=0.50,
-                    synth_attributes=sample_attrs,
-                )
+                    synth_attributes=sample_attrs)
                 for i in range(2, 12)  # 10 more outcomes
             ]
             result = outcome_repo.create_batch(batch)
@@ -420,8 +402,7 @@ if __name__ == "__main__":
         try:
             response = outcome_repo.list_by_analysis_id(
                 analysis.id,
-                params=PaginationParams(limit=5, offset=0),
-            )
+                params=PaginationParams(limit=5, offset=0))
             if len(response.data) != 5:
                 all_validation_failures.append(
                     f"List returned {len(response.data)} items, expected 5"
@@ -452,8 +433,7 @@ if __name__ == "__main__":
                 did_not_try_rate=0.25,
                 failed_rate=0.35,
                 success_rate=0.40,
-                synth_attributes=sample_attrs,
-            )
+                synth_attributes=sample_attrs)
             outcome_repo.create(test_outcome)
 
             retrieved = outcome_repo.get_by_synth_and_analysis("synth_test", analysis.id)

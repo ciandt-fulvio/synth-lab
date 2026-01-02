@@ -66,8 +66,7 @@ class TranscriptNotFoundError(NotFoundError):
     def __init__(self, exec_id: str, synth_id: str):
         super().__init__(
             f"Transcript not found for synth {synth_id} in execution {exec_id}",
-            {"exec_id": exec_id, "synth_id": synth_id},
-        )
+            {"exec_id": exec_id, "synth_id": synth_id})
 
 
 class PRFAQNotFoundError(NotFoundError):

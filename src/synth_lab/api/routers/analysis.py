@@ -24,8 +24,7 @@ from synth_lab.api.schemas.analysis_run import (
     PaginatedSynthOutcomes,
     RegionAnalysisResponse,
     SynthAttributesSchema,
-    SynthOutcomeResponse,
-)
+    SynthOutcomeResponse)
 from synth_lab.domain.entities.analysis_cache import CacheKeys
 from synth_lab.domain.entities.analysis_run import AggregatedOutcomes, AnalysisConfig
 from synth_lab.domain.entities.chart_data import (
@@ -33,22 +32,19 @@ from synth_lab.domain.entities.chart_data import (
     OutcomeDistributionChart,
     SankeyFlowChart,
     ScatterCorrelationChart,
-    TryVsSuccessChart,
-)
+    TryVsSuccessChart)
 from synth_lab.domain.entities.cluster_result import (
     HierarchicalResult,
     KMeansResult,
     PCAScatterChart,
-    RadarChart,
-)
+    RadarChart)
 from synth_lab.domain.entities.explainability import (
     PDPComparison,
     PDPResult,
     ShapExplanation,
-    ShapSummary,
-)
+    ShapSummary)
 from synth_lab.domain.entities.outlier_result import ExtremeCasesTable, OutlierResult
-from synth_lab.infrastructure.database import get_database
+from synth_lab.infrastructure.database_v2 import get_session
 from synth_lab.models.pagination import PaginationParams
 from synth_lab.repositories.analysis_cache_repository import AnalysisCacheRepository
 from synth_lab.repositories.analysis_outcome_repository import AnalysisOutcomeRepository
@@ -74,12 +70,7 @@ router = APIRouter()
 
 def get_analysis_service() -> AnalysisService:
     """Get analysis service instance."""
-    db = get_database()
-    return AnalysisService(
-        db=db,
-        analysis_repo=AnalysisRepository(db),
-        experiment_repo=ExperimentRepository(db),
-    )
+    return AnalysisService()
 
 
 def get_experiment_service() -> ExperimentService:
@@ -113,8 +104,7 @@ def _convert_config_schema_to_domain(schema: AnalysisConfigSchema) -> AnalysisCo
         n_synths=schema.n_synths,
         n_executions=schema.n_executions,
         sigma=schema.sigma,
-        seed=schema.seed,
-    )
+        seed=schema.seed)
 
 
 def _convert_config_to_schema(config: AnalysisConfig) -> AnalysisConfigSchema:
@@ -123,19 +113,16 @@ def _convert_config_to_schema(config: AnalysisConfig) -> AnalysisConfigSchema:
         n_synths=config.n_synths,
         n_executions=config.n_executions,
         sigma=config.sigma,
-        seed=config.seed,
-    )
+        seed=config.seed)
 
 
 def _convert_outcomes_to_schema(
-    outcomes: AggregatedOutcomes,
-) -> AggregatedOutcomesSchema:
+    outcomes: AggregatedOutcomes) -> AggregatedOutcomesSchema:
     """Convert domain entity to API schema."""
     return AggregatedOutcomesSchema(
         did_not_try_rate=outcomes.did_not_try_rate,
         failed_rate=outcomes.failed_rate,
-        success_rate=outcomes.success_rate,
-    )
+        success_rate=outcomes.success_rate)
 
 
 # =============================================================================
@@ -150,24 +137,20 @@ class RunAnalysisRequest(BaseModel):
         default=500,
         ge=10,
         le=10000,
-        description="Number of synths to simulate.",
-    )
+        description="Number of synths to simulate.")
     n_executions: int = Field(
         default=100,
         ge=10,
         le=1000,
-        description="Number of Monte Carlo executions per synth.",
-    )
+        description="Number of Monte Carlo executions per synth.")
     sigma: float = Field(
         default=0.05,
         ge=0.0,
         le=0.5,
-        description="Standard deviation for noise.",
-    )
+        description="Standard deviation for noise.")
     seed: int | None = Field(
         default=None,
-        description="Random seed for reproducibility.",
-    )
+        description="Random seed for reproducibility.")
 
 
 # =============================================================================
@@ -188,8 +171,7 @@ async def get_analysis(experiment_id: str) -> AnalysisResponse:
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     # Convert to response
     outcomes_schema = None
@@ -205,19 +187,16 @@ async def get_analysis(experiment_id: str) -> AnalysisResponse:
         completed_at=analysis.completed_at,
         total_synths=analysis.total_synths,
         aggregated_outcomes=outcomes_schema,
-        execution_time_seconds=analysis.execution_time_seconds,
-    )
+        execution_time_seconds=analysis.execution_time_seconds)
 
 
 @router.post(
     "/{experiment_id}/analysis",
     response_model=AnalysisResponse,
-    status_code=status.HTTP_201_CREATED,
-)
+    status_code=status.HTTP_201_CREATED)
 async def run_analysis(
     experiment_id: str,
-    request: RunAnalysisRequest | None = None,
-) -> AnalysisResponse:
+    request: RunAnalysisRequest | None = None) -> AnalysisResponse:
     """
     Execute (or re-execute) quantitative analysis.
 
@@ -234,8 +213,7 @@ async def run_analysis(
     if existing and existing.status == "running":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Analysis for experiment {experiment_id} is already running",
-        )
+            detail=f"Analysis for experiment {experiment_id} is already running")
 
     # Build config
     config = None
@@ -244,8 +222,7 @@ async def run_analysis(
             n_synths=request.n_synths,
             n_executions=request.n_executions,
             sigma=request.sigma,
-            seed=request.seed,
-        )
+            seed=request.seed)
 
     try:
         # Execute the analysis (this actually runs Monte Carlo!)
@@ -265,24 +242,20 @@ async def run_analysis(
             completed_at=analysis.completed_at,
             total_synths=analysis.total_synths,
             aggregated_outcomes=outcomes_schema,
-            execution_time_seconds=analysis.execution_time_seconds,
-        )
+            execution_time_seconds=analysis.execution_time_seconds)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+            detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Analysis execution failed: {str(e)}",
-        )
+            detail=f"Analysis execution failed: {str(e)}")
 
 
 @router.delete(
     "/{experiment_id}/analysis",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
+    status_code=status.HTTP_204_NO_CONTENT)
 async def delete_analysis(experiment_id: str) -> None:
     """
     Delete the analysis for an experiment.
@@ -295,8 +268,7 @@ async def delete_analysis(experiment_id: str) -> None:
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
 
 # =============================================================================
@@ -306,13 +278,11 @@ async def delete_analysis(experiment_id: str) -> None:
 
 @router.get(
     "/{experiment_id}/analysis/outcomes",
-    response_model=PaginatedSynthOutcomes,
-)
+    response_model=PaginatedSynthOutcomes)
 async def list_outcomes(
     experiment_id: str,
     limit: int = Query(default=50, ge=1, le=500, description="Items per page"),
-    offset: int = Query(default=0, ge=0, description="Items to skip"),
-) -> PaginatedSynthOutcomes:
+    offset: int = Query(default=0, ge=0, description="Items to skip")) -> PaginatedSynthOutcomes:
     """
     List synth outcomes for an analysis.
 
@@ -324,18 +294,16 @@ async def list_outcomes(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     # Get outcomes from repository
-    db = get_database()
     from synth_lab.repositories.synth_outcome_repository import SynthOutcomeRepository
 
-    outcome_repo = SynthOutcomeRepository(db)
-    result = outcome_repo.list_by_analysis_id(
-        analysis_id=analysis.id,
-        params=PaginationParams(limit=limit, offset=offset),
-    )
+    with get_session() as session:
+        outcome_repo = SynthOutcomeRepository(session=session)
+        result = outcome_repo.list_by_analysis_id(
+            analysis_id=analysis.id,
+            params=PaginationParams(limit=limit, offset=offset))
 
     # Convert to response
     outcomes = []
@@ -349,8 +317,7 @@ async def list_outcomes(
 
         attrs = SynthAttributesSchema(
             observables=observables_dict,
-            latent_traits=latent_traits_dict,
-        )
+            latent_traits=latent_traits_dict)
         outcomes.append(
             SynthOutcomeResponse(
                 id=outcome.id,
@@ -358,14 +325,12 @@ async def list_outcomes(
                 did_not_try_rate=outcome.did_not_try_rate,
                 failed_rate=outcome.failed_rate,
                 success_rate=outcome.success_rate,
-                synth_attributes=attrs,
-            )
+                synth_attributes=attrs)
         )
 
     return PaginatedSynthOutcomes(
         data=outcomes,
-        pagination=result.pagination,
-    )
+        pagination=result.pagination)
 
 
 # =============================================================================
@@ -375,17 +340,14 @@ async def list_outcomes(
 
 @router.get(
     "/{experiment_id}/analysis/regions",
-    response_model=RegionAnalysisResponse,
-)
+    response_model=RegionAnalysisResponse)
 async def analyze_regions(
     experiment_id: str,
     min_failure_rate: float = Query(
         default=0.3,
         ge=0.0,
         le=1.0,
-        description="Minimum failure rate for high-risk regions",
-    ),
-) -> RegionAnalysisResponse:
+        description="Minimum failure rate for high-risk regions")) -> RegionAnalysisResponse:
     """
     Analyze high-risk regions in the analysis.
 
@@ -397,14 +359,12 @@ async def analyze_regions(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed to analyze regions (status: {analysis.status})",
-        )
+            detail=f"Analysis must be completed to analyze regions (status: {analysis.status})")
 
     # TODO: Implement region analysis using clustering
     # For now, return empty regions
@@ -418,17 +378,14 @@ async def analyze_regions(
 
 @router.get(
     "/{experiment_id}/analysis/interview-suggestions",
-    response_model=InterviewSuggestionsResponse,
-)
+    response_model=InterviewSuggestionsResponse)
 async def get_interview_suggestions(
     experiment_id: str,
     max_suggestions: int = Query(
         default=5,
         ge=1,
         le=20,
-        description="Maximum number of suggestions",
-    ),
-) -> InterviewSuggestionsResponse:
+        description="Maximum number of suggestions")) -> InterviewSuggestionsResponse:
     """
     Get interview suggestions based on analysis.
 
@@ -441,15 +398,13 @@ async def get_interview_suggestions(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Analysis must be completed for interview suggestions "
-            f"(status: {analysis.status})",
-        )
+            f"(status: {analysis.status})")
 
     # TODO: Implement interview suggestions based on region analysis
     # For now, return empty suggestions
@@ -463,11 +418,9 @@ async def get_interview_suggestions(
 
 @router.get(
     "/{experiment_id}/analysis/insights",
-    response_model=InsightsResponse,
-)
+    response_model=InsightsResponse)
 async def get_insights(
-    experiment_id: str,
-) -> InsightsResponse:
+    experiment_id: str) -> InsightsResponse:
     """
     Get AI-generated insights from the analysis.
 
@@ -479,24 +432,20 @@ async def get_insights(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     # TODO: Implement insights retrieval from database
     # For now, return empty insights
     return InsightsResponse(
         insights=[],
-        generated_at=datetime.now(timezone.utc),
-    )
+        generated_at=datetime.now(timezone.utc))
 
 
 @router.post(
     "/{experiment_id}/analysis/insights",
-    response_model=InsightsResponse,
-)
+    response_model=InsightsResponse)
 async def generate_insights(
-    experiment_id: str,
-) -> InsightsResponse:
+    experiment_id: str) -> InsightsResponse:
     """
     Generate AI insights from analysis results.
 
@@ -508,14 +457,12 @@ async def generate_insights(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed to generate insights (status: {analysis.status})",
-        )
+            detail=f"Analysis must be completed to generate insights (status: {analysis.status})")
 
     # TODO: Implement LLM insight generation
     # For now, return placeholder insights
@@ -525,11 +472,9 @@ async def generate_insights(
                 type="recommendation",
                 title="Analysis Complete",
                 description="Analysis completed successfully. Full insight generation coming soon.",
-                confidence=0.5,
-            )
+                confidence=0.5)
         ],
-        generated_at=datetime.now(timezone.utc),
-    )
+        generated_at=datetime.now(timezone.utc))
 
 
 # =============================================================================
@@ -539,23 +484,19 @@ async def generate_insights(
 
 @router.get(
     "/{experiment_id}/analysis/charts/try-vs-success",
-    response_model=TryVsSuccessChart,
-)
+    response_model=TryVsSuccessChart)
 async def get_try_vs_success_chart(
     experiment_id: str,
     attempt_rate_threshold: float = Query(
         default=0.5,
         ge=0.0,
         le=1.0,
-        description="Minimum attempt rate for high engagement quadrants",
-    ),
+        description="Minimum attempt rate for high engagement quadrants"),
     success_rate_threshold: float = Query(
         default=0.5,
         ge=0.0,
         le=1.0,
-        description="Minimum success rate for high performance quadrants",
-    ),
-) -> TryVsSuccessChart:
+        description="Minimum success rate for high performance quadrants")) -> TryVsSuccessChart:
     """
     Get Try vs Success scatter plot data for an analysis.
 
@@ -568,14 +509,12 @@ async def get_try_vs_success_chart(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
+            detail=f"Analysis must be completed (status: {analysis.status})")
 
     # Check cache for default parameters
     is_default = attempt_rate_threshold == 0.5 and success_rate_threshold == 0.5
@@ -593,30 +532,25 @@ async def get_try_vs_success_chart(
     if not outcomes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No outcomes found for this analysis",
-        )
+            detail="No outcomes found for this analysis")
 
     return chart_service.get_try_vs_success(
         simulation_id=analysis.id,
         outcomes=outcomes,
         x_threshold=attempt_rate_threshold,
-        y_threshold=success_rate_threshold,
-    )
+        y_threshold=success_rate_threshold)
 
 
 @router.get(
     "/{experiment_id}/analysis/charts/distribution",
-    response_model=OutcomeDistributionChart,
-)
+    response_model=OutcomeDistributionChart)
 async def get_distribution_chart(
     experiment_id: str,
     sort_by: str = Query(
         default="success_rate",
-        description="Field to sort by: success_rate, failed_rate, did_not_try_rate",
-    ),
+        description="Field to sort by: success_rate, failed_rate, did_not_try_rate"),
     order: str = Query(default="desc", description="Sort order: asc or desc"),
-    limit: int = Query(default=50, ge=1, le=1000, description="Maximum results"),
-) -> OutcomeDistributionChart:
+    limit: int = Query(default=50, ge=1, le=1000, description="Maximum results")) -> OutcomeDistributionChart:
     """
     Get outcome distribution chart data for an analysis.
 
@@ -629,14 +563,12 @@ async def get_distribution_chart(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
+            detail=f"Analysis must be completed (status: {analysis.status})")
 
     # Check cache for default parameters
     is_default = sort_by == "success_rate" and order == "desc" and limit == 50
@@ -654,22 +586,19 @@ async def get_distribution_chart(
     if not outcomes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No outcomes found for this analysis",
-        )
+            detail="No outcomes found for this analysis")
 
     return chart_service.get_outcome_distribution(
         simulation_id=analysis.id,
         outcomes=outcomes,
         sort_by=sort_by,
         order=order,
-        limit=limit,
-    )
+        limit=limit)
 
 
 @router.get(
     "/{experiment_id}/analysis/charts/failure-heatmap",
-    response_model=FailureHeatmapChart,
-)
+    response_model=FailureHeatmapChart)
 async def get_failure_heatmap_chart(
     experiment_id: str,
     x_axis: str = Query(default="digital_literacy", description="X-axis attribute"),
@@ -677,9 +606,7 @@ async def get_failure_heatmap_chart(
     bins: int = Query(default=5, ge=2, le=20, description="Number of bins per axis"),
     metric: str = Query(
         default="failed_rate",
-        description="Metric to display: failed_rate, success_rate, did_not_try_rate",
-    ),
-) -> FailureHeatmapChart:
+        description="Metric to display: failed_rate, success_rate, did_not_try_rate")) -> FailureHeatmapChart:
     """
     Get failure heatmap data for an analysis.
 
@@ -692,21 +619,18 @@ async def get_failure_heatmap_chart(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
+            detail=f"Analysis must be completed (status: {analysis.status})")
 
     valid_metrics = ["failed_rate", "success_rate", "did_not_try_rate"]
     if metric not in valid_metrics:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid metric: {metric}. Must be one of {valid_metrics}",
-        )
+            detail=f"Invalid metric: {metric}. Must be one of {valid_metrics}")
 
     # Check cache for default parameters
     is_default = (
@@ -729,8 +653,7 @@ async def get_failure_heatmap_chart(
     if not outcomes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No outcomes found for this analysis",
-        )
+            detail="No outcomes found for this analysis")
 
     return chart_service.get_failure_heatmap(
         simulation_id=analysis.id,
@@ -738,20 +661,17 @@ async def get_failure_heatmap_chart(
         x_axis=x_axis,
         y_axis=y_axis,
         bins=bins,
-        metric=metric,
-    )
+        metric=metric)
 
 
 @router.get(
     "/{experiment_id}/analysis/charts/scatter",
-    response_model=ScatterCorrelationChart,
-)
+    response_model=ScatterCorrelationChart)
 async def get_scatter_correlation_chart(
     experiment_id: str,
     x_axis: str = Query(default="capability_mean", description="X-axis attribute"),
     y_axis: str = Query(default="success_rate", description="Y-axis attribute"),
-    show_trendline: bool = Query(default=True, description="Include trend line"),
-) -> ScatterCorrelationChart:
+    show_trendline: bool = Query(default=True, description="Include trend line")) -> ScatterCorrelationChart:
     """
     Get scatter correlation chart data for an analysis.
 
@@ -764,14 +684,12 @@ async def get_scatter_correlation_chart(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
+            detail=f"Analysis must be completed (status: {analysis.status})")
 
     # Check cache for default parameters
     is_default = x_axis == "capability_mean" and y_axis == "success_rate"
@@ -789,25 +707,21 @@ async def get_scatter_correlation_chart(
     if not outcomes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No outcomes found for this analysis",
-        )
+            detail="No outcomes found for this analysis")
 
     return chart_service.get_scatter_correlation(
         simulation_id=analysis.id,
         outcomes=outcomes,
         x_axis=x_axis,
         y_axis=y_axis,
-        show_trendline=show_trendline,
-    )
+        show_trendline=show_trendline)
 
 
 @router.get(
     "/{experiment_id}/analysis/charts/sankey-flow",
-    response_model=SankeyFlowChart,
-)
+    response_model=SankeyFlowChart)
 async def get_sankey_flow_chart(
-    experiment_id: str,
-) -> SankeyFlowChart:
+    experiment_id: str) -> SankeyFlowChart:
     """
     Get Sankey flow chart data for an analysis.
 
@@ -821,28 +735,24 @@ async def get_sankey_flow_chart(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
+            detail=f"Analysis must be completed (status: {analysis.status})")
 
     # Get experiment to access scorecard
     experiment = experiment_service.get_experiment(experiment_id)
     if experiment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found",
-        )
+            detail=f"Experiment {experiment_id} not found")
 
     if experiment.scorecard_data is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Experiment must have a scorecard for Sankey flow analysis",
-        )
+            detail="Experiment must have a scorecard for Sankey flow analysis")
 
     # Get outcomes
     chart_service = get_chart_data_service()
@@ -852,14 +762,12 @@ async def get_sankey_flow_chart(
     if not outcomes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No outcomes found for this analysis",
-        )
+            detail="No outcomes found for this analysis")
 
     return chart_service.get_sankey_flow(
         analysis_id=analysis.id,
         outcomes=outcomes,
-        scorecard=experiment.scorecard_data,
-    )
+        scorecard=experiment.scorecard_data)
 
 
 # =============================================================================
@@ -877,7 +785,7 @@ def get_clustering_service() -> ClusteringService:
 
 def get_cache_repository() -> AnalysisCacheRepository:
     """Get cache repository instance."""
-    return AnalysisCacheRepository(get_database())
+    return AnalysisCacheRepository()
 
 
 def _get_cached_kmeans(analysis_id: str, k: int) -> KMeansResult | None:
@@ -919,12 +827,10 @@ def _save_kmeans_to_cache(analysis_id: str, result: KMeansResult) -> None:
 
 @router.post(
     "/{experiment_id}/analysis/clusters",
-    response_model=KMeansResult | HierarchicalResult,
-)
+    response_model=KMeansResult | HierarchicalResult)
 async def create_analysis_clustering(
     experiment_id: str,
-    request: ClusterRequest,
-) -> KMeansResult | HierarchicalResult:
+    request: ClusterRequest) -> KMeansResult | HierarchicalResult:
     """Create clustering analysis for experiment."""
     service = get_analysis_service()
     clustering_service = get_clustering_service()
@@ -934,14 +840,12 @@ async def create_analysis_clustering(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
+            detail=f"Analysis must be completed (status: {analysis.status})")
 
     # Create clustering
     if request.method == "kmeans":
@@ -959,8 +863,7 @@ async def create_analysis_clustering(
         if not outcomes:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No outcomes found for this analysis",
-            )
+                detail="No outcomes found for this analysis")
 
         result = clustering_service.kmeans(outcomes, k=k)
 
@@ -976,8 +879,7 @@ async def create_analysis_clustering(
         if not outcomes:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No outcomes found for this analysis",
-            )
+                detail="No outcomes found for this analysis")
 
         result = clustering_service.hierarchical(outcomes)
         _analysis_clustering_cache[f"{analysis.id}:hierarchical"] = result
@@ -986,11 +888,9 @@ async def create_analysis_clustering(
 
 @router.post(
     "/{experiment_id}/analysis/clusters/auto",
-    response_model=KMeansResult,
-)
+    response_model=KMeansResult)
 async def create_auto_analysis_clustering(
-    experiment_id: str,
-) -> KMeansResult:
+    experiment_id: str) -> KMeansResult:
     """
     Automatically create K-Means clustering with optimal K detection.
 
@@ -1006,21 +906,18 @@ async def create_auto_analysis_clustering(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
+            detail=f"Analysis must be completed (status: {analysis.status})")
 
     outcomes, _ = outcome_repo.get_outcomes(analysis.id)
     if not outcomes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No outcomes found for this analysis",
-        )
+            detail="No outcomes found for this analysis")
 
     # Run elbow method first to get recommended K (fast, no LLM)
     elbow_data = clustering_service.elbow_method(outcomes)
@@ -1037,8 +934,7 @@ async def create_auto_analysis_clustering(
     result = clustering_service.cluster_kmeans(
         simulation_id=analysis.id,
         outcomes=outcomes,
-        n_clusters=recommended_k,
-    )
+        n_clusters=recommended_k)
 
     # Save to database cache
     _save_kmeans_to_cache(analysis.id, result)
@@ -1051,11 +947,9 @@ async def create_auto_analysis_clustering(
 
 @router.get(
     "/{experiment_id}/analysis/clusters",
-    response_model=KMeansResult | HierarchicalResult,
-)
+    response_model=KMeansResult | HierarchicalResult)
 async def get_analysis_clustering(
-    experiment_id: str,
-) -> KMeansResult | HierarchicalResult:
+    experiment_id: str) -> KMeansResult | HierarchicalResult:
     """Get cached clustering result for analysis (memory or database)."""
     service = get_analysis_service()
     analysis = service.get_analysis(experiment_id)
@@ -1063,8 +957,7 @@ async def get_analysis_clustering(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     kmeans_key = f"{analysis.id}:kmeans"
     hierarchical_key = f"{analysis.id}:hierarchical"
@@ -1091,18 +984,15 @@ async def get_analysis_clustering(
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f"No clustering found for experiment {experiment_id}. "
-        "Create clustering first via POST /clusters",
-    )
+        "Create clustering first via POST /clusters")
 
 
 @router.get(
     "/{experiment_id}/analysis/clusters/elbow",
-    response_model=list,
-)
+    response_model=list)
 async def get_analysis_elbow(
     experiment_id: str,
-    max_k: int = Query(default=10, ge=2, le=20),
-) -> list:
+    max_k: int = Query(default=10, ge=2, le=20)) -> list:
     """Get elbow method data for K selection."""
     service = get_analysis_service()
     clustering_service = get_clustering_service()
@@ -1112,32 +1002,27 @@ async def get_analysis_elbow(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
+            detail=f"Analysis must be completed (status: {analysis.status})")
 
     outcomes, _ = outcome_repo.get_outcomes(analysis.id)
     if not outcomes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No outcomes found for this analysis",
-        )
+            detail="No outcomes found for this analysis")
 
     return clustering_service.elbow_method(outcomes, max_k=max_k)
 
 
 @router.get(
     "/{experiment_id}/analysis/clusters/dendrogram",
-    response_model=HierarchicalResult,
-)
+    response_model=HierarchicalResult)
 async def get_analysis_dendrogram(
-    experiment_id: str,
-) -> HierarchicalResult:
+    experiment_id: str) -> HierarchicalResult:
     """Get hierarchical clustering dendrogram data."""
     service = get_analysis_service()
     clustering_service = get_clustering_service()
@@ -1147,21 +1032,18 @@ async def get_analysis_dendrogram(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
+            detail=f"Analysis must be completed (status: {analysis.status})")
 
     outcomes, _ = outcome_repo.get_outcomes(analysis.id)
     if not outcomes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No outcomes found for this analysis",
-        )
+            detail="No outcomes found for this analysis")
 
     cache_key = f"{analysis.id}:hierarchical"
     if cache_key not in _analysis_clustering_cache:
@@ -1173,11 +1055,9 @@ async def get_analysis_dendrogram(
 
 @router.get(
     "/{experiment_id}/analysis/clusters/radar",
-    response_model=RadarChart,
-)
+    response_model=RadarChart)
 async def get_analysis_radar_comparison(
-    experiment_id: str,
-) -> RadarChart:
+    experiment_id: str) -> RadarChart:
     """Get radar comparison chart for all clusters."""
     service = get_analysis_service()
     clustering_service = get_clustering_service()
@@ -1186,35 +1066,30 @@ async def get_analysis_radar_comparison(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     cache_key = f"{analysis.id}:kmeans"
     if cache_key not in _analysis_clustering_cache:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No K-Means clustering found for experiment {experiment_id}. "
-            "Create clustering first via POST /clusters",
-        )
+            "Create clustering first via POST /clusters")
 
     kmeans_result = _analysis_clustering_cache[cache_key]
     if not isinstance(kmeans_result, KMeansResult):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Radar comparison only available for K-Means clustering",
-        )
+            detail="Radar comparison only available for K-Means clustering")
 
     return clustering_service.radar_comparison(kmeans_result)
 
 
 @router.post(
     "/{experiment_id}/analysis/clusters/cut",
-    response_model=HierarchicalResult,
-)
+    response_model=HierarchicalResult)
 async def cut_analysis_dendrogram(
     experiment_id: str,
-    request: CutDendrogramRequest,
-) -> HierarchicalResult:
+    request: CutDendrogramRequest) -> HierarchicalResult:
     """Cut dendrogram at specified height to create clusters."""
     service = get_analysis_service()
     clustering_service = get_clustering_service()
@@ -1223,23 +1098,20 @@ async def cut_analysis_dendrogram(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     cache_key = f"{analysis.id}:hierarchical"
     if cache_key not in _analysis_clustering_cache:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No hierarchical clustering found for experiment {experiment_id}. "
-            "Get dendrogram first via GET /clusters/dendrogram",
-        )
+            "Get dendrogram first via GET /clusters/dendrogram")
 
     hierarchical_result = _analysis_clustering_cache[cache_key]
     if not isinstance(hierarchical_result, HierarchicalResult):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cut only available for hierarchical clustering",
-        )
+            detail="Cut only available for hierarchical clustering")
 
     cut_result = clustering_service.cut_dendrogram(hierarchical_result, request.n_clusters)
     _analysis_clustering_cache[cache_key] = cut_result
@@ -1248,8 +1120,7 @@ async def cut_analysis_dendrogram(
 
 @router.get(
     "/{experiment_id}/analysis/clusters/pca-scatter",
-    response_model=PCAScatterChart,
-)
+    response_model=PCAScatterChart)
 async def get_analysis_pca_scatter(experiment_id: str) -> PCAScatterChart:
     """Get PCA 2D scatter plot with cluster colors."""
     service = get_analysis_service()
@@ -1260,36 +1131,31 @@ async def get_analysis_pca_scatter(experiment_id: str) -> PCAScatterChart:
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     cache_key = f"{analysis.id}:kmeans"
     if cache_key not in _analysis_clustering_cache:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No K-Means clustering found for experiment {experiment_id}. "
-            "Create clustering first via POST /clusters",
-        )
+            "Create clustering first via POST /clusters")
 
     kmeans_result = _analysis_clustering_cache[cache_key]
     if not isinstance(kmeans_result, KMeansResult):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="PCA scatter only available for K-Means clustering",
-        )
+            detail="PCA scatter only available for K-Means clustering")
 
     outcomes, _ = outcome_repo.get_outcomes(analysis.id)
     if not outcomes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No outcomes found for this analysis",
-        )
+            detail="No outcomes found for this analysis")
 
     return clustering_service.get_pca_scatter(
         simulation_id=analysis.id,
         outcomes=outcomes,
-        kmeans_result=kmeans_result,
-    )
+        kmeans_result=kmeans_result)
 
 
 # =============================================================================
@@ -1309,43 +1175,37 @@ def get_explainability_service() -> ExplainabilityService:
 
 @router.get(
     "/{experiment_id}/analysis/extreme-cases",
-    response_model=ExtremeCasesTable,
-)
+    response_model=ExtremeCasesTable)
 async def get_analysis_extreme_cases(
     experiment_id: str,
-    n_per_category: int = Query(default=10, ge=1, le=50),
-) -> ExtremeCasesTable:
+    n_per_category: int = Query(default=10, ge=1, le=50)) -> ExtremeCasesTable:
     """Get extreme cases for qualitative research."""
     service = get_analysis_service()
     outlier_service = get_outlier_service()
     outcome_repo = get_outcome_repository()
-    synth_repo = SynthRepository(get_database())
+    synth_repo = SynthRepository()
 
     analysis = service.get_analysis(experiment_id)
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
+            detail=f"Analysis must be completed (status: {analysis.status})")
 
     outcomes, _ = outcome_repo.get_outcomes(analysis.id)
     if not outcomes or len(outcomes) < 10:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Extreme cases requires at least 10 synths",
-        )
+            detail="Extreme cases requires at least 10 synths")
 
     result = outlier_service.get_extreme_cases(
         simulation_id=analysis.id,
         outcomes=outcomes,
-        n_per_category=n_per_category,
-    )
+        n_per_category=n_per_category)
 
     # Collect all synth IDs to fetch names
     all_synth_ids = set()
@@ -1378,12 +1238,10 @@ async def get_analysis_extreme_cases(
 
 @router.get(
     "/{experiment_id}/analysis/outliers",
-    response_model=OutlierResult,
-)
+    response_model=OutlierResult)
 async def get_analysis_outliers(
     experiment_id: str,
-    contamination: float = Query(default=0.1, ge=0.01, le=0.5),
-) -> OutlierResult:
+    contamination: float = Query(default=0.1, ge=0.01, le=0.5)) -> OutlierResult:
     """Get statistical outliers using Isolation Forest."""
     service = get_analysis_service()
     outlier_service = get_outlier_service()
@@ -1393,27 +1251,23 @@ async def get_analysis_outliers(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
+            detail=f"Analysis must be completed (status: {analysis.status})")
 
     outcomes, _ = outcome_repo.get_outcomes(analysis.id)
     if not outcomes or len(outcomes) < 10:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Outlier detection requires at least 10 synths",
-        )
+            detail="Outlier detection requires at least 10 synths")
 
     return outlier_service.detect_outliers(
         simulation_id=analysis.id,
         outcomes=outcomes,
-        contamination=contamination,
-    )
+        contamination=contamination)
 
 
 # =============================================================================
@@ -1423,11 +1277,9 @@ async def get_analysis_outliers(
 
 @router.get(
     "/{experiment_id}/analysis/shap/summary",
-    response_model=ShapSummary,
-)
+    response_model=ShapSummary)
 async def get_analysis_shap_summary(
-    experiment_id: str,
-) -> ShapSummary:
+    experiment_id: str) -> ShapSummary:
     """Get global SHAP summary showing feature importance."""
     service = get_analysis_service()
     explain_service = get_explainability_service()
@@ -1437,36 +1289,30 @@ async def get_analysis_shap_summary(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
+            detail=f"Analysis must be completed (status: {analysis.status})")
 
     outcomes, _ = outcome_repo.get_outcomes(analysis.id)
     if not outcomes or len(outcomes) < 20:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="SHAP summary requires at least 20 synths",
-        )
+            detail="SHAP summary requires at least 20 synths")
 
     return explain_service.get_shap_summary(
         simulation_id=analysis.id,
-        outcomes=outcomes,
-    )
+        outcomes=outcomes)
 
 
 @router.get(
     "/{experiment_id}/analysis/shap/{synth_id}",
-    response_model=ShapExplanation,
-)
+    response_model=ShapExplanation)
 async def get_analysis_shap_explanation(
     experiment_id: str,
-    synth_id: str,
-) -> ShapExplanation:
+    synth_id: str) -> ShapExplanation:
     """Get SHAP explanation for a specific synth."""
     service = get_analysis_service()
     explain_service = get_explainability_service()
@@ -1476,46 +1322,39 @@ async def get_analysis_shap_explanation(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
+            detail=f"Analysis must be completed (status: {analysis.status})")
 
     outcomes, _ = outcome_repo.get_outcomes(analysis.id)
     if not outcomes or len(outcomes) < 20:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="SHAP explanation requires at least 20 synths",
-        )
+            detail="SHAP explanation requires at least 20 synths")
 
     # Find the target synth
     target_synth = next((o for o in outcomes if o.synth_id == synth_id), None)
     if target_synth is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Synth {synth_id} not found in analysis",
-        )
+            detail=f"Synth {synth_id} not found in analysis")
 
     return explain_service.get_shap_explanation(
         simulation_id=analysis.id,
         outcomes=outcomes,
-        synth_id=synth_id,
-    )
+        synth_id=synth_id)
 
 
 @router.get(
     "/{experiment_id}/analysis/pdp",
-    response_model=PDPResult,
-)
+    response_model=PDPResult)
 async def get_analysis_pdp(
     experiment_id: str,
     feature: str = Query(..., description="Feature to analyze"),
-    grid_resolution: int = Query(default=20, ge=5, le=100),
-) -> PDPResult:
+    grid_resolution: int = Query(default=20, ge=5, le=100)) -> PDPResult:
     """Get Partial Dependence Plot for a single feature."""
     service = get_analysis_service()
     explain_service = get_explainability_service()
@@ -1525,39 +1364,33 @@ async def get_analysis_pdp(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
+            detail=f"Analysis must be completed (status: {analysis.status})")
 
     outcomes, _ = outcome_repo.get_outcomes(analysis.id)
     if not outcomes or len(outcomes) < 20:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="PDP requires at least 20 synths",
-        )
+            detail="PDP requires at least 20 synths")
 
     return explain_service.get_pdp(
         simulation_id=analysis.id,
         outcomes=outcomes,
         feature=feature,
-        grid_resolution=grid_resolution,
-    )
+        grid_resolution=grid_resolution)
 
 
 @router.get(
     "/{experiment_id}/analysis/pdp/comparison",
-    response_model=PDPComparison,
-)
+    response_model=PDPComparison)
 async def get_analysis_pdp_comparison(
     experiment_id: str,
     features: str = Query(..., description="Comma-separated list of features"),
-    grid_resolution: int = Query(default=20, ge=5, le=100),
-) -> PDPComparison:
+    grid_resolution: int = Query(default=20, ge=5, le=100)) -> PDPComparison:
     """Get PDP comparison for multiple features."""
     service = get_analysis_service()
     explain_service = get_explainability_service()
@@ -1567,35 +1400,30 @@ async def get_analysis_pdp_comparison(
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     if analysis.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})",
-        )
+            detail=f"Analysis must be completed (status: {analysis.status})")
 
     outcomes, _ = outcome_repo.get_outcomes(analysis.id)
     if not outcomes or len(outcomes) < 20:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="PDP comparison requires at least 20 synths",
-        )
+            detail="PDP comparison requires at least 20 synths")
 
     feature_list = [f.strip() for f in features.split(",") if f.strip()]
     if not feature_list:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="At least one feature is required",
-        )
+            detail="At least one feature is required")
 
     return explain_service.get_pdp_comparison(
         simulation_id=analysis.id,
         outcomes=outcomes,
         features=feature_list,
-        grid_resolution=grid_resolution,
-    )
+        grid_resolution=grid_resolution)
 
 
 # =============================================================================
@@ -1698,8 +1526,7 @@ if __name__ == "__main__":
         outcomes = AggregatedOutcomes(
             did_not_try_rate=0.2,
             failed_rate=0.3,
-            success_rate=0.5,
-        )
+            success_rate=0.5)
         schema = _convert_outcomes_to_schema(outcomes)
         if schema.success_rate != 0.5:
             all_validation_failures.append("Outcomes to schema success_rate mismatch")

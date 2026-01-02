@@ -78,14 +78,12 @@ def get_cache_repo() -> AnalysisCacheRepository:
     "/{experiment_id}/analysis/insights/{chart_type}",
     response_model=ChartInsight,
     summary="Generate chart insight",
-    description="Generate or regenerate AI insight for a specific chart",
-)
+    description="Generate or regenerate AI insight for a specific chart")
 async def generate_chart_insight(
     experiment_id: str,
     chart_type: str,
     request: GenerateInsightRequest,
-    background_tasks: BackgroundTasks,
-) -> ChartInsight:
+    background_tasks: BackgroundTasks) -> ChartInsight:
     """
     Generate insight for a specific chart type.
 
@@ -121,8 +119,7 @@ async def generate_chart_insight(
     if chart_type not in valid_chart_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid chart_type. Must be one of: {', '.join(valid_chart_types)}",
-        )
+            detail=f"Invalid chart_type. Must be one of: {', '.join(valid_chart_types)}")
 
     # Get experiment and analysis
     exp_repo = get_experiment_repo()
@@ -132,15 +129,13 @@ async def generate_chart_insight(
     if experiment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found",
-        )
+            detail=f"Experiment {experiment_id} not found")
 
     analysis = ana_repo.get_by_experiment_id(experiment_id)
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     # Create pending insight immediately
     insight_service = InsightService()
@@ -171,8 +166,7 @@ async def generate_chart_insight(
     "/{experiment_id}/insights/executive-summary",
     response_model=ExecutiveSummary,
     summary="Get executive summary",
-    description="Retrieve executive summary synthesizing all chart insights",
-)
+    description="Retrieve executive summary synthesizing all chart insights")
 async def get_executive_summary(experiment_id: str) -> ExecutiveSummary:
     """
     Get executive summary for an experiment.
@@ -195,23 +189,20 @@ async def get_executive_summary(experiment_id: str) -> ExecutiveSummary:
     if experiment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found",
-        )
+            detail=f"Experiment {experiment_id} not found")
 
     analysis = ana_repo.get_by_experiment_id(experiment_id)
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     # Get executive summary
     summary = cache_repo.get_executive_summary(analysis.id)
     if summary is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Executive summary not found. Run analysis to generate summary.",
-        )
+            detail="Executive summary not found. Run analysis to generate summary.")
 
     return summary
 
@@ -220,12 +211,10 @@ async def get_executive_summary(experiment_id: str) -> ExecutiveSummary:
     "/{experiment_id}/insights/{chart_type}",
     response_model=ChartInsight,
     summary="Get chart-specific insight",
-    description="Retrieve AI-generated insight for a specific chart type",
-)
+    description="Retrieve AI-generated insight for a specific chart type")
 async def get_chart_insight(
     experiment_id: str,
-    chart_type: str,
-) -> ChartInsight:
+    chart_type: str) -> ChartInsight:
     """
     Get insight for a specific chart type.
 
@@ -256,8 +245,7 @@ async def get_chart_insight(
     if chart_type not in valid_chart_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid chart_type. Must be one of: {', '.join(valid_chart_types)}",
-        )
+            detail=f"Invalid chart_type. Must be one of: {', '.join(valid_chart_types)}")
 
     # Get experiment and analysis
     exp_repo = get_experiment_repo()
@@ -268,23 +256,20 @@ async def get_chart_insight(
     if experiment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found",
-        )
+            detail=f"Experiment {experiment_id} not found")
 
     analysis = ana_repo.get_by_experiment_id(experiment_id)
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     # Get insight from cache
     insight = cache_repo.get_chart_insight(analysis.id, chart_type)
     if insight is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Insight not found for chart type '{chart_type}'. Run analysis to generate insights.",
-        )
+            detail=f"Insight not found for chart type '{chart_type}'. Run analysis to generate insights.")
 
     return insight
 
@@ -293,8 +278,7 @@ async def get_chart_insight(
     "/{experiment_id}/insights",
     response_model=AllInsightsResponse,
     summary="Get all insights",
-    description="Retrieve all chart insights and executive summary with statistics",
-)
+    description="Retrieve all chart insights and executive summary with statistics")
 async def get_all_insights(experiment_id: str) -> AllInsightsResponse:
     """
     Get all insights for an experiment with statistics.
@@ -317,15 +301,13 @@ async def get_all_insights(experiment_id: str) -> AllInsightsResponse:
     if experiment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found",
-        )
+            detail=f"Experiment {experiment_id} not found")
 
     analysis = ana_repo.get_by_experiment_id(experiment_id)
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}",
-        )
+            detail=f"No analysis found for experiment {experiment_id}")
 
     # Get all insights
     insights = cache_repo.get_all_chart_insights(analysis.id)
@@ -341,15 +323,13 @@ async def get_all_insights(experiment_id: str) -> AllInsightsResponse:
         total_charts=total_expected,
         completed_insights=completed,
         pending_insights=pending,
-        failed_insights=failed,
-    )
+        failed_insights=failed)
 
     return AllInsightsResponse(
         analysis_id=analysis.id,
         insights=insights,
         executive_summary=summary,
-        stats=stats,
-    )
+        stats=stats)
 
 
 if __name__ == "__main__":

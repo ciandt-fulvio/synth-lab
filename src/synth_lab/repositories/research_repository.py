@@ -2,38 +2,55 @@
 Research repository for synth-lab.
 
 Data access layer for research execution and transcript data.
+Uses SQLAlchemy ORM for database operations.
 
 References:
     - Schema: specs/010-rest-api/data-model.md
+    - ORM models: synth_lab.models.orm.research
 """
 
 import json
 from datetime import datetime
+from uuid import uuid4
 
-from synth_lab.infrastructure.database import DatabaseManager
-from synth_lab.models.pagination import PaginatedResponse, PaginationParams
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from synth_lab.models.orm.research import ResearchExecution as ResearchExecutionORM
+from synth_lab.models.orm.research import Transcript as TranscriptORM
+from synth_lab.models.pagination import PaginatedResponse, PaginationMeta, PaginationParams
 from synth_lab.models.research import (
     ExecutionStatus,
     Message,
     ResearchExecutionDetail,
     ResearchExecutionSummary,
     TranscriptDetail,
-    TranscriptSummary,
-)
+    TranscriptSummary)
 from synth_lab.repositories.base import BaseRepository
 from synth_lab.services.errors import ExecutionNotFoundError, TranscriptNotFoundError
 
 
 class ResearchRepository(BaseRepository):
-    """Repository for research execution data access."""
+    """Repository for research execution data access.
 
-    def __init__(self, db: DatabaseManager | None = None):
-        super().__init__(db)
+    Uses SQLAlchemy ORM for database operations.
+
+    Usage:
+        # ORM mode
+        repo = ResearchRepository(db=database_manager)
+
+        # ORM mode (SQLAlchemy)
+        repo = ResearchRepository(session=session)
+    """
+
+    def __init__(
+        self,
+session: Session | None = None):
+        super().__init__( session=session)
 
     def list_executions(
         self,
-        params: PaginationParams,
-    ) -> PaginatedResponse[ResearchExecutionSummary]:
+        params: PaginationParams) -> PaginatedResponse[ResearchExecutionSummary]:
         """
         List research executions with pagination.
 
@@ -43,10 +60,27 @@ class ResearchRepository(BaseRepository):
         Returns:
             Paginated response with execution summaries.
         """
-        base_query = "SELECT * FROM research_executions"
-        rows, meta = self._paginate_query(base_query, params)
-        executions = [self._row_to_summary(row) for row in rows]
-        return PaginatedResponse(data=executions, pagination=meta)
+        return self._list_executions_orm(params)
+
+    def _list_executions_orm(
+        self,
+        params: PaginationParams) -> PaginatedResponse[ResearchExecutionSummary]:
+        """List executions using ORM."""
+        stmt = select(ResearchExecutionORM).order_by(
+            ResearchExecutionORM.started_at.desc()
+        )
+
+        # Get total count
+        count_stmt = select(func.count()).select_from(ResearchExecutionORM)
+        total = self.session.execute(count_stmt).scalar() or 0
+
+        # Apply pagination
+        stmt = stmt.limit(params.limit).offset(params.offset)
+        executions_orm = list(self.session.execute(stmt).scalars().all())
+
+        summaries = [self._orm_to_summary(e) for e in executions_orm]
+        meta = PaginationMeta.from_params(total, params)
+        return PaginatedResponse(data=summaries, pagination=meta)
 
     def get_execution(self, exec_id: str) -> ResearchExecutionDetail:
         """
@@ -61,20 +95,20 @@ class ResearchRepository(BaseRepository):
         Raises:
             ExecutionNotFoundError: If execution not found.
         """
-        row = self.db.fetchone(
-            "SELECT * FROM research_executions WHERE exec_id = ?",
-            (exec_id,),
-        )
-        if row is None:
+        return self._get_execution_orm(exec_id)
+
+    def _get_execution_orm(self, exec_id: str) -> ResearchExecutionDetail:
+        """Get execution by ID using ORM."""
+        orm_exec = self.session.get(ResearchExecutionORM, exec_id)
+        if orm_exec is None:
             raise ExecutionNotFoundError(exec_id)
 
-        return self._row_to_detail(row)
+        return self._orm_to_detail(orm_exec)
 
     def get_transcripts(
         self,
         exec_id: str,
-        params: PaginationParams | None = None,
-    ) -> PaginatedResponse[TranscriptSummary]:
+        params: PaginationParams | None = None) -> PaginatedResponse[TranscriptSummary]:
         """
         Get transcripts for a research execution.
 
@@ -92,15 +126,33 @@ class ResearchRepository(BaseRepository):
         self.get_execution(exec_id)
 
         params = params or PaginationParams()
-        base_query = """
-            SELECT t.*, s.nome as synth_name
-            FROM transcripts t
-            LEFT JOIN synths s ON t.synth_id = s.id
-            WHERE t.exec_id = ?
-        """
-        rows, meta = self._paginate_query(base_query, params, query_params=(exec_id,))
-        transcripts = [self._row_to_transcript_summary(row) for row in rows]
-        return PaginatedResponse(data=transcripts, pagination=meta)
+
+        return self._get_transcripts_orm(exec_id, params)
+
+    def _get_transcripts_orm(
+        self,
+        exec_id: str,
+        params: PaginationParams) -> PaginatedResponse[TranscriptSummary]:
+        """Get transcripts using ORM."""
+        stmt = select(TranscriptORM).where(
+            TranscriptORM.exec_id == exec_id
+        ).order_by(TranscriptORM.timestamp.desc())
+
+        # Get total count
+        count_stmt = (
+            select(func.count())
+            .select_from(TranscriptORM)
+            .where(TranscriptORM.exec_id == exec_id)
+        )
+        total = self.session.execute(count_stmt).scalar() or 0
+
+        # Apply pagination
+        stmt = stmt.limit(params.limit).offset(params.offset)
+        transcripts_orm = list(self.session.execute(stmt).scalars().all())
+
+        summaries = [self._orm_to_transcript_summary(t) for t in transcripts_orm]
+        meta = PaginationMeta.from_params(total, params)
+        return PaginatedResponse(data=summaries, pagination=meta)
 
     def get_transcript(self, exec_id: str, synth_id: str) -> TranscriptDetail:
         """
@@ -116,140 +168,133 @@ class ResearchRepository(BaseRepository):
         Raises:
             TranscriptNotFoundError: If transcript not found.
         """
-        row = self.db.fetchone(
-            """
-            SELECT t.*, s.nome as synth_name
-            FROM transcripts t
-            LEFT JOIN synths s ON t.synth_id = s.id
-            WHERE t.exec_id = ? AND t.synth_id = ?
-            """,
-            (exec_id, synth_id),
-        )
-        if row is None:
+        return self._get_transcript_orm(exec_id, synth_id)
+
+    def _get_transcript_orm(self, exec_id: str, synth_id: str) -> TranscriptDetail:
+        """Get specific transcript using ORM."""
+        stmt = select(TranscriptORM).where(
+            TranscriptORM.exec_id == exec_id,
+            TranscriptORM.synth_id == synth_id)
+        orm_transcript = self.session.execute(stmt).scalar_one_or_none()
+        if orm_transcript is None:
             raise TranscriptNotFoundError(exec_id, synth_id)
 
-        return self._row_to_transcript_detail(row)
+        return self._orm_to_transcript_detail(orm_transcript)
 
-    def _row_to_summary(self, row) -> ResearchExecutionSummary:
-        """Convert a database row to ResearchExecutionSummary."""
-        started_at = row["started_at"]
+    # =========================================================================
+    # ORM conversion methods
+    # =========================================================================
+
+    def _orm_to_summary(self, orm_exec: ResearchExecutionORM) -> ResearchExecutionSummary:
+        """Convert ORM model to ResearchExecutionSummary."""
+        started_at = orm_exec.started_at
         if isinstance(started_at, str):
             started_at = datetime.fromisoformat(started_at)
 
-        completed_at = row["completed_at"]
-        if isinstance(completed_at, str):
+        completed_at = orm_exec.completed_at
+        if completed_at and isinstance(completed_at, str):
             completed_at = datetime.fromisoformat(completed_at)
 
         return ResearchExecutionSummary(
-            exec_id=row["exec_id"],
-            experiment_id=row["experiment_id"] if "experiment_id" in row.keys() else None,
-            topic_name=row["topic_name"],
-            status=ExecutionStatus(row["status"]),
-            synth_count=row["synth_count"],
+            exec_id=orm_exec.exec_id,
+            experiment_id=orm_exec.experiment_id,
+            topic_name=orm_exec.topic_name,
+            status=ExecutionStatus(orm_exec.status),
+            synth_count=orm_exec.synth_count,
             started_at=started_at,
-            completed_at=completed_at,
-        )
+            completed_at=completed_at)
 
-    def _row_to_detail(self, row) -> ResearchExecutionDetail:
-        """Convert a database row to ResearchExecutionDetail."""
-        started_at = row["started_at"]
+    def _orm_to_detail(self, orm_exec: ResearchExecutionORM) -> ResearchExecutionDetail:
+        """Convert ORM model to ResearchExecutionDetail."""
+        started_at = orm_exec.started_at
         if isinstance(started_at, str):
             started_at = datetime.fromisoformat(started_at)
 
-        completed_at = row["completed_at"]
-        if isinstance(completed_at, str):
+        completed_at = orm_exec.completed_at
+        if completed_at and isinstance(completed_at, str):
             completed_at = datetime.fromisoformat(completed_at)
 
-        # Check if summary exists in experiment_documents (unified table)
-        experiment_id = row["experiment_id"] if "experiment_id" in row.keys() else None
+        # Check if summary/prfaq exist in experiment_documents
+        experiment_id = orm_exec.experiment_id
         summary_available = False
         prfaq_available = False
 
         if experiment_id:
+            from sqlalchemy import text
+
             # Check for summary in experiment_documents
-            summary_row = self.db.fetchone(
-                """
+            summary_stmt = text("""
                 SELECT 1 FROM experiment_documents
-                WHERE experiment_id = ? AND document_type = 'summary' AND status = 'completed'
-                """,
-                (experiment_id,),
-            )
-            summary_available = summary_row is not None
+                WHERE experiment_id = :exp_id AND document_type = 'summary' AND status = 'completed'
+            """)
+            summary_result = self.session.execute(
+                summary_stmt, {"exp_id": experiment_id}
+            ).first()
+            summary_available = summary_result is not None
 
             # Check for PR-FAQ in experiment_documents
-            prfaq_row = self.db.fetchone(
-                """
+            prfaq_stmt = text("""
                 SELECT 1 FROM experiment_documents
-                WHERE experiment_id = ? AND document_type = 'prfaq' AND status = 'completed'
-                """,
-                (experiment_id,),
-            )
-            prfaq_available = prfaq_row is not None
+                WHERE experiment_id = :exp_id AND document_type = 'prfaq' AND status = 'completed'
+            """)
+            prfaq_result = self.session.execute(
+                prfaq_stmt, {"exp_id": experiment_id}
+            ).first()
+            prfaq_available = prfaq_result is not None
 
         return ResearchExecutionDetail(
-            exec_id=row["exec_id"],
-            experiment_id=row["experiment_id"] if "experiment_id" in row.keys() else None,
-            topic_name=row["topic_name"],
-            status=ExecutionStatus(row["status"]),
-            synth_count=row["synth_count"],
+            exec_id=orm_exec.exec_id,
+            experiment_id=orm_exec.experiment_id,
+            topic_name=orm_exec.topic_name,
+            status=ExecutionStatus(orm_exec.status),
+            synth_count=orm_exec.synth_count,
             started_at=started_at,
             completed_at=completed_at,
-            successful_count=row["successful_count"] or 0,
-            failed_count=row["failed_count"] or 0,
-            model=row["model"] or "gpt-4o-mini",
-            max_turns=row["max_turns"] or 6,
+            successful_count=orm_exec.successful_count or 0,
+            failed_count=orm_exec.failed_count or 0,
+            model=orm_exec.model or "gpt-4o-mini",
+            max_turns=orm_exec.max_turns or 6,
             summary_available=summary_available,
-            prfaq_available=prfaq_available,
-        )
+            prfaq_available=prfaq_available)
 
-    def _row_to_transcript_summary(self, row) -> TranscriptSummary:
-        """Convert a database row to TranscriptSummary."""
-        timestamp = row["timestamp"]
+    def _orm_to_transcript_summary(self, orm_transcript: TranscriptORM) -> TranscriptSummary:
+        """Convert ORM model to TranscriptSummary."""
+        timestamp = orm_transcript.timestamp
         if isinstance(timestamp, str):
             timestamp = datetime.fromisoformat(timestamp)
-
-        # sqlite3.Row doesn't have .get(), use key access with fallback
-        synth_name = row["synth_name"] if "synth_name" in row.keys() else None
 
         return TranscriptSummary(
-            synth_id=row["synth_id"],
-            synth_name=synth_name,
-            turn_count=row["turn_count"] or 0,
+            synth_id=orm_transcript.synth_id,
+            synth_name=orm_transcript.synth_name,
+            turn_count=orm_transcript.turn_count or 0,
             timestamp=timestamp,
-            status=row["status"],
-        )
+            status=orm_transcript.status)
 
-    def _row_to_transcript_detail(self, row) -> TranscriptDetail:
-        """Convert a database row to TranscriptDetail."""
-        timestamp = row["timestamp"]
+    def _orm_to_transcript_detail(self, orm_transcript: TranscriptORM) -> TranscriptDetail:
+        """Convert ORM model to TranscriptDetail."""
+        timestamp = orm_transcript.timestamp
         if isinstance(timestamp, str):
             timestamp = datetime.fromisoformat(timestamp)
 
-        # sqlite3.Row doesn't have .get(), use key access with fallback
-        synth_name = row["synth_name"] if "synth_name" in row.keys() else None
-
-        # Parse messages JSON
+        # Parse messages - ORM stores as list[dict] directly
         messages = []
-        if row["messages"]:
-            raw_messages = json.loads(row["messages"])
-            for msg in raw_messages:
+        if orm_transcript.messages:
+            for msg in orm_transcript.messages:
                 messages.append(
                     Message(
                         speaker=msg.get("speaker", "Unknown"),
                         text=msg.get("text", ""),
-                        internal_notes=msg.get("internal_notes"),
-                    )
+                        internal_notes=msg.get("internal_notes"))
                 )
 
         return TranscriptDetail(
-            exec_id=row["exec_id"],
-            synth_id=row["synth_id"],
-            synth_name=synth_name,
-            turn_count=row["turn_count"] or 0,
+            exec_id=orm_transcript.exec_id,
+            synth_id=orm_transcript.synth_id,
+            synth_name=orm_transcript.synth_name,
+            turn_count=orm_transcript.turn_count or 0,
             timestamp=timestamp,
-            status=row["status"],
-            messages=messages,
-        )
+            status=orm_transcript.status,
+            messages=messages)
 
     # Write methods for creating executions and transcripts
 
@@ -262,8 +307,7 @@ class ResearchRepository(BaseRepository):
         max_turns: int = 6,
         status: ExecutionStatus = ExecutionStatus.PENDING,
         experiment_id: str | None = None,
-        additional_context: str | None = None,
-    ) -> None:
+        additional_context: str | None = None) -> None:
         """
         Create a new research execution record.
 
@@ -277,33 +321,26 @@ class ResearchRepository(BaseRepository):
             experiment_id: Optional parent experiment ID.
             additional_context: Optional additional context for the interview.
         """
-        query = """
-            INSERT INTO research_executions
-            (exec_id, experiment_id, topic_name, synth_count, model, max_turns, status, started_at, additional_context)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """
-        self.db.execute(
-            query,
-            (
-                exec_id,
-                experiment_id,
-                topic_name,
-                synth_count,
-                model,
-                max_turns,
-                status.value,
-                datetime.now().isoformat(),
-                additional_context,
-            ),
-        )
-
+        orm_exec = ResearchExecutionORM(
+            exec_id=exec_id,
+            experiment_id=experiment_id,
+            topic_name=topic_name,
+            synth_count=synth_count,
+            model=model,
+            max_turns=max_turns,
+            status=status.value,
+            started_at=datetime.now().isoformat(),
+            additional_context=additional_context)
+        self._add(orm_exec)
+        self._flush()
+        self._commit()
+        return
     def update_execution_status(
         self,
         exec_id: str,
         status: ExecutionStatus,
         successful_count: int | None = None,
-        failed_count: int | None = None,
-    ) -> None:
+        failed_count: int | None = None) -> None:
         """
         Update execution status and counts.
 
@@ -313,33 +350,31 @@ class ResearchRepository(BaseRepository):
             successful_count: Number of successful interviews.
             failed_count: Number of failed interviews.
         """
-        updates = ["status = ?"]
-        params: list = [status.value]
+        orm_exec = self.session.get(ResearchExecutionORM, exec_id)
+        if orm_exec is None:
+            return
+
+        orm_exec.status = status.value
 
         if successful_count is not None:
-            updates.append("successful_count = ?")
-            params.append(successful_count)
+            orm_exec.successful_count = successful_count
 
         if failed_count is not None:
-            updates.append("failed_count = ?")
-            params.append(failed_count)
+            orm_exec.failed_count = failed_count
 
         if status in (ExecutionStatus.COMPLETED, ExecutionStatus.FAILED):
-            updates.append("completed_at = ?")
-            params.append(datetime.now().isoformat())
+            orm_exec.completed_at = datetime.now().isoformat()
 
-        params.append(exec_id)
-        query = f"UPDATE research_executions SET {', '.join(updates)} WHERE exec_id = ?"
-        self.db.execute(query, tuple(params))
-
+        self._flush()
+        self._commit()
+        return
     def create_transcript(
         self,
         exec_id: str,
         synth_id: str,
         synth_name: str,
         messages: list[Message],
-        status: str = "completed",
-    ) -> None:
+        status: str = "completed") -> None:
         """
         Create a new transcript record.
 
@@ -350,39 +385,30 @@ class ResearchRepository(BaseRepository):
             messages: List of interview messages.
             status: Transcript status.
         """
-        messages_json = json.dumps(
-            [
-                {"speaker": m.speaker, "text": m.text, "internal_notes": m.internal_notes}
-                for m in messages
-            ],
-            ensure_ascii=False,
-        )
         # A turn is a complete exchange (question + answer), so divide by 2
         turn_count = len(messages) // 2
 
-        query = """
-            INSERT INTO transcripts
-            (exec_id, synth_id, synth_name, turn_count, timestamp, status, messages)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """
-        self.db.execute(
-            query,
-            (
-                exec_id,
-                synth_id,
-                synth_name,
-                turn_count,
-                datetime.now().isoformat(),
-                status,
-                messages_json,
-            ),
-        )
-
+        messages_list = [
+            {"speaker": m.speaker, "text": m.text, "internal_notes": m.internal_notes}
+            for m in messages
+        ]
+        orm_transcript = TranscriptORM(
+            id=str(uuid4()),
+            exec_id=exec_id,
+            synth_id=synth_id,
+            synth_name=synth_name,
+            turn_count=turn_count,
+            timestamp=datetime.now().isoformat(),
+            status=status,
+            messages=messages_list)
+        self._add(orm_transcript)
+        self._flush()
+        self._commit()
+        return
     def list_executions_by_experiment(
         self,
         experiment_id: str,
-        params: PaginationParams | None = None,
-    ) -> PaginatedResponse[ResearchExecutionSummary]:
+        params: PaginationParams | None = None) -> PaginatedResponse[ResearchExecutionSummary]:
         """
         List research executions for a specific experiment.
 
@@ -394,11 +420,28 @@ class ResearchRepository(BaseRepository):
             Paginated response with execution summaries.
         """
         params = params or PaginationParams()
-        base_query = "SELECT * FROM research_executions WHERE experiment_id = ?"
-        rows, meta = self._paginate_query(base_query, params, query_params=(experiment_id,))
-        executions = [self._row_to_summary(row) for row in rows]
-        return PaginatedResponse(data=executions, pagination=meta)
 
+        stmt = (
+            select(ResearchExecutionORM)
+            .where(ResearchExecutionORM.experiment_id == experiment_id)
+            .order_by(ResearchExecutionORM.started_at.desc())
+        )
+
+        # Get total count
+        count_stmt = (
+            select(func.count())
+            .select_from(ResearchExecutionORM)
+            .where(ResearchExecutionORM.experiment_id == experiment_id)
+        )
+        total = self.session.execute(count_stmt).scalar() or 0
+
+        # Apply pagination
+        stmt = stmt.limit(params.limit).offset(params.offset)
+        executions_orm = list(self.session.execute(stmt).scalars().all())
+
+        summaries = [self._orm_to_summary(e) for e in executions_orm]
+        meta = PaginationMeta.from_params(total, params)
+        return PaginatedResponse(data=summaries, pagination=meta)
     def get_auto_interview_for_experiment(
         self, experiment_id: str
     ) -> ResearchExecutionSummary | None:
@@ -413,21 +456,19 @@ class ResearchRepository(BaseRepository):
         Returns:
             Most recent auto-interview execution summary, or None if not found.
         """
-        query = """
-            SELECT * FROM research_executions
-            WHERE experiment_id = ?
-            AND topic_name LIKE ?
-            ORDER BY started_at DESC
-            LIMIT 1
-        """
         topic_pattern = f"exp_{experiment_id}_auto%"
-        row = self.db.fetchone(query, (experiment_id, topic_pattern))
 
-        if row is None:
+        stmt = (
+            select(ResearchExecutionORM)
+            .where(ResearchExecutionORM.experiment_id == experiment_id)
+            .where(ResearchExecutionORM.topic_name.like(topic_pattern))
+            .order_by(ResearchExecutionORM.started_at.desc())
+            .limit(1)
+        )
+        orm_exec = self.session.execute(stmt).scalar_one_or_none()
+        if orm_exec is None:
             return None
-
-        return self._row_to_summary(row)
-
+        return self._orm_to_summary(orm_exec)
     def check_summaries_exist_batch(self, exec_ids: list[str]) -> dict[str, bool]:
         """
         Check which executions have summary_content.
@@ -441,19 +482,18 @@ class ResearchRepository(BaseRepository):
         if not exec_ids:
             return {}
 
-        placeholders = ",".join("?" * len(exec_ids))
-        rows = self.db.fetchall(
-            f"""
+        # Note: summary_content column not in ORM model - use raw SQL via session
+        from sqlalchemy import text
+
+        stmt = text("""
             SELECT exec_id
             FROM research_executions
-            WHERE exec_id IN ({placeholders})
+            WHERE exec_id IN :exec_ids
             AND summary_content IS NOT NULL
             AND summary_content != ''
-            """,
-            tuple(exec_ids),
-        )
-        return {row["exec_id"]: True for row in rows}
-
+        """)
+        result = self.session.execute(stmt, {"exec_ids": tuple(exec_ids)})
+        return {row[0]: True for row in result}
     def check_prfaqs_exist_batch(self, exec_ids: list[str]) -> dict[str, bool]:
         """
         Check which executions have completed prfaq_metadata.
@@ -467,18 +507,17 @@ class ResearchRepository(BaseRepository):
         if not exec_ids:
             return {}
 
-        placeholders = ",".join("?" * len(exec_ids))
-        rows = self.db.fetchall(
-            f"""
+        # prfaq_metadata not in ORM model - use raw SQL via session
+        from sqlalchemy import text
+
+        stmt = text("""
             SELECT exec_id
             FROM prfaq_metadata
-            WHERE exec_id IN ({placeholders})
+            WHERE exec_id IN :exec_ids
             AND status = 'completed'
-            """,
-            tuple(exec_ids),
-        )
-        return {row["exec_id"]: True for row in rows}
-
+        """)
+        result = self.session.execute(stmt, {"exec_ids": tuple(exec_ids)})
+        return {row[0]: True for row in result}
     def check_additional_context_exist_batch(self, exec_ids: list[str]) -> dict[str, bool]:
         """
         Check which executions have additional_context filled.
@@ -492,19 +531,14 @@ class ResearchRepository(BaseRepository):
         if not exec_ids:
             return {}
 
-        placeholders = ",".join("?" * len(exec_ids))
-        rows = self.db.fetchall(
-            f"""
-            SELECT exec_id
-            FROM research_executions
-            WHERE exec_id IN ({placeholders})
-            AND additional_context IS NOT NULL
-            AND additional_context != ''
-            """,
-            tuple(exec_ids),
+        stmt = (
+            select(ResearchExecutionORM.exec_id)
+            .where(ResearchExecutionORM.exec_id.in_(exec_ids))
+            .where(ResearchExecutionORM.additional_context.isnot(None))
+            .where(ResearchExecutionORM.additional_context != "")
         )
-        return {row["exec_id"]: True for row in rows}
-
+        result = self.session.execute(stmt)
+        return {row[0]: True for row in result}
     def get_additional_context_batch(self, exec_ids: list[str]) -> dict[str, str | None]:
         """
         Get additional_context text for executions.
@@ -518,17 +552,14 @@ class ResearchRepository(BaseRepository):
         if not exec_ids:
             return {}
 
-        placeholders = ",".join("?" * len(exec_ids))
-        rows = self.db.fetchall(
-            f"""
-            SELECT exec_id, additional_context
-            FROM research_executions
-            WHERE exec_id IN ({placeholders})
-            """,
-            tuple(exec_ids),
+        stmt = (
+            select(
+                ResearchExecutionORM.exec_id,
+                ResearchExecutionORM.additional_context)
+            .where(ResearchExecutionORM.exec_id.in_(exec_ids))
         )
-        return {row["exec_id"]: row["additional_context"] for row in rows}
-
+        result = self.session.execute(stmt)
+        return {row[0]: row[1] for row in result}
     def get_total_turns_batch(self, exec_ids: list[str]) -> dict[str, int]:
         """
         Get total turn count for executions (sum of turns from all transcripts).
@@ -542,102 +573,16 @@ class ResearchRepository(BaseRepository):
         if not exec_ids:
             return {}
 
-        placeholders = ",".join("?" * len(exec_ids))
-        rows = self.db.fetchall(
-            f"""
-            SELECT exec_id, COALESCE(SUM(turn_count), 0) as total_turns
-            FROM transcripts
-            WHERE exec_id IN ({placeholders})
-            GROUP BY exec_id
-            """,
-            tuple(exec_ids),
+        from sqlalchemy import func as sqlfunc
+
+        stmt = (
+            select(
+                TranscriptORM.exec_id,
+                sqlfunc.coalesce(sqlfunc.sum(TranscriptORM.turn_count), 0).label(
+                    "total_turns"
+                ))
+            .where(TranscriptORM.exec_id.in_(exec_ids))
+            .group_by(TranscriptORM.exec_id)
         )
-        return {row["exec_id"]: row["total_turns"] for row in rows}
-
-
-if __name__ == "__main__":
-    import sys
-
-    from synth_lab.infrastructure.config import DB_PATH
-    from synth_lab.infrastructure.database import DatabaseManager
-
-    # Validation with real database
-    all_validation_failures = []
-    total_tests = 0
-
-    if not DB_PATH.exists():
-        print(f"Database not found at {DB_PATH}. Run migration first.")
-        sys.exit(1)
-
-    db = DatabaseManager(DB_PATH)
-    repo = ResearchRepository(db)
-
-    # Test 1: List executions
-    total_tests += 1
-    try:
-        result = repo.list_executions(PaginationParams(limit=10))
-        print(f"  Found {result.pagination.total} executions")
-        if result.pagination.total < 1:
-            all_validation_failures.append("No executions found in database")
-    except Exception as e:
-        all_validation_failures.append(f"List executions failed: {e}")
-
-    # Test 2: Get execution by ID
-    total_tests += 1
-    try:
-        result = repo.list_executions(PaginationParams(limit=1))
-        if result.data:
-            exec_id = result.data[0].exec_id
-            execution = repo.get_execution(exec_id)
-            if execution.exec_id != exec_id:
-                all_validation_failures.append(f"Exec ID mismatch: {execution.exec_id}")
-            print(f"  Got execution: {execution.topic_name}")
-    except Exception as e:
-        all_validation_failures.append(f"Get execution failed: {e}")
-
-    # Test 3: Get non-existent execution
-    total_tests += 1
-    try:
-        repo.get_execution("nonexistent_12345678")
-        all_validation_failures.append("Should raise ExecutionNotFoundError")
-    except ExecutionNotFoundError:
-        pass  # Expected
-    except Exception as e:
-        all_validation_failures.append(f"Wrong exception: {e}")
-
-    # Test 4: Get transcripts
-    total_tests += 1
-    try:
-        result = repo.list_executions(PaginationParams(limit=1))
-        if result.data:
-            exec_id = result.data[0].exec_id
-            transcripts = repo.get_transcripts(exec_id)
-            print(f"  Found {transcripts.pagination.total} transcripts")
-    except Exception as e:
-        all_validation_failures.append(f"Get transcripts failed: {e}")
-
-    # Test 5: Get specific transcript
-    total_tests += 1
-    try:
-        result = repo.list_executions(PaginationParams(limit=1))
-        if result.data:
-            exec_id = result.data[0].exec_id
-            transcripts = repo.get_transcripts(exec_id)
-            if transcripts.data:
-                synth_id = transcripts.data[0].synth_id
-                transcript = repo.get_transcript(exec_id, synth_id)
-                print(f"  Got transcript with {len(transcript.messages)} messages")
-    except Exception as e:
-        all_validation_failures.append(f"Get transcript failed: {e}")
-
-    db.close()
-
-    # Final validation result
-    if all_validation_failures:
-        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
-        for failure in all_validation_failures:
-            print(f"  - {failure}")
-        sys.exit(1)
-    else:
-        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
-        sys.exit(0)
+        result = self.session.execute(stmt)
+        return {row[0]: row[1] for row in result}

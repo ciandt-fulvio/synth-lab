@@ -12,8 +12,7 @@ from synth_lab.domain.entities.experiment import Experiment, ScorecardData
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.repositories.experiment_repository import (
     ExperimentRepository,
-    ExperimentSummary,
-)
+    ExperimentSummary)
 
 
 class ExperimentService:
@@ -38,8 +37,7 @@ class ExperimentService:
         name: str,
         hypothesis: str,
         description: str | None = None,
-        scorecard_data: ScorecardData | None = None,
-    ) -> Experiment:
+        scorecard_data: ScorecardData | None = None) -> Experiment:
         """
         Create a new experiment.
 
@@ -80,8 +78,7 @@ class ExperimentService:
             name=name.strip(),
             hypothesis=hypothesis.strip(),
             description=description.strip() if description else None,
-            scorecard_data=scorecard_data,
-        )
+            scorecard_data=scorecard_data)
 
         return self.repository.create(experiment)
 
@@ -137,8 +134,7 @@ class ExperimentService:
         experiment_id: str,
         name: str | None = None,
         hypothesis: str | None = None,
-        description: str | None = None,
-    ) -> Experiment | None:
+        description: str | None = None) -> Experiment | None:
         """
         Update an experiment.
 
@@ -173,8 +169,7 @@ class ExperimentService:
             experiment_id,
             name=name,
             hypothesis=hypothesis,
-            description=description,
-        )
+            description=description)
 
     def delete_experiment(self, experiment_id: str) -> bool:
         """
@@ -191,8 +186,7 @@ class ExperimentService:
     def update_scorecard(
         self,
         experiment_id: str,
-        scorecard_data: ScorecardData,
-    ) -> Experiment | None:
+        scorecard_data: ScorecardData) -> Experiment | None:
         """
         Update the scorecard data of an experiment.
 
@@ -243,7 +237,6 @@ if __name__ == "__main__":
     import tempfile
     from pathlib import Path
 
-    from synth_lab.infrastructure.database import DatabaseManager, init_database
 
     # Validation
     all_validation_failures = []
@@ -254,7 +247,7 @@ if __name__ == "__main__":
         test_db_path = Path(tmpdir) / "test.db"
         init_database(test_db_path)
         db = DatabaseManager(test_db_path)
-        repo = ExperimentRepository(db)
+        repo = ExperimentRepository()
         service = ExperimentService(repo)
 
         # Test 1: Create experiment
@@ -262,8 +255,7 @@ if __name__ == "__main__":
         try:
             exp = service.create_experiment(
                 name="Test Feature",
-                hypothesis="Users will prefer this approach",
-            )
+                hypothesis="Users will prefer this approach")
             if not exp.id.startswith("exp_"):
                 all_validation_failures.append(f"ID should start with exp_: {exp.id}")
         except Exception as e:
@@ -324,13 +316,11 @@ if __name__ == "__main__":
                 complexity=ScorecardDimension(score=0.3),
                 initial_effort=ScorecardDimension(score=0.4),
                 perceived_risk=ScorecardDimension(score=0.2),
-                time_to_value=ScorecardDimension(score=0.5),
-            )
+                time_to_value=ScorecardDimension(score=0.5))
             exp_with_sc = service.create_experiment(
                 name="Feature with Scorecard",
                 hypothesis="Test hypothesis",
-                scorecard_data=scorecard,
-            )
+                scorecard_data=scorecard)
             if not exp_with_sc.has_scorecard():
                 all_validation_failures.append("Experiment should have scorecard")
             elif exp_with_sc.scorecard_data.feature_name != "Test Feature":
@@ -347,8 +337,7 @@ if __name__ == "__main__":
                 complexity=ScorecardDimension(score=0.6),
                 initial_effort=ScorecardDimension(score=0.5),
                 perceived_risk=ScorecardDimension(score=0.4),
-                time_to_value=ScorecardDimension(score=0.3),
-            )
+                time_to_value=ScorecardDimension(score=0.3))
             updated = service.update_scorecard(exp.id, new_scorecard)
             if updated is None:
                 all_validation_failures.append("Update scorecard returned None")

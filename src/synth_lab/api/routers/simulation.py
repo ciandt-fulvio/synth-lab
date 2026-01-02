@@ -32,8 +32,7 @@ from synth_lab.domain.entities import (
     ShapExplanation,
     ShapSummary,
     SynthOutcome,
-    TryVsSuccessChart,
-)
+    TryVsSuccessChart)
 
 # NOTE: ChartInsight entities temporarily disabled during feature 023 migration
 # from synth_lab.domain.entities.chart_insight import (
@@ -41,7 +40,7 @@ from synth_lab.domain.entities import (
 #     ChartType,
 #     SimulationInsights,
 # )
-from synth_lab.infrastructure.database import get_database
+from synth_lab.infrastructure.database_v2 import get_session
 from synth_lab.repositories.scorecard_repository import ScorecardRepository
 from synth_lab.services.simulation.chart_data_service import ChartDataService
 from synth_lab.services.simulation.clustering_service import ClusteringService
@@ -54,8 +53,7 @@ from synth_lab.services.simulation.scorecard_llm import ScorecardLLM
 from synth_lab.services.simulation.scorecard_service import (
     ScorecardNotFoundError,
     ScorecardService,
-    ValidationError,
-)
+    ValidationError)
 from synth_lab.services.simulation.simulation_service import SimulationService
 
 router = APIRouter()
@@ -160,20 +158,17 @@ class SimulationRequest(BaseModel):
     scenario_id: str = Field(description="ID of the scenario to use")
     synth_ids: list[str] | None = Field(
         default=None,
-        description="Optional list of synth IDs (default: all synths)",
-    )
+        description="Optional list of synth IDs (default: all synths)")
     n_executions: int = Field(
         default=100,
         ge=10,
         le=1000,
-        description="Number of Monte Carlo executions per synth",
-    )
+        description="Number of Monte Carlo executions per synth")
     sigma: float = Field(
         default=0.1,
         ge=0.01,
         le=0.5,
-        description="Standard deviation for state sampling noise",
-    )
+        description="Standard deviation for state sampling noise")
     seed: int | None = Field(default=None, description="Random seed for reproducibility")
 
 
@@ -264,8 +259,7 @@ class CompareSimulationRequest(BaseModel):
     simulation_ids: list[str] = Field(
         min_length=2,
         max_length=5,
-        description="List of simulation IDs to compare (2-5)",
-    )
+        description="List of simulation IDs to compare (2-5)")
 
 
 class CompareSimulationInfo(BaseModel):
@@ -318,9 +312,7 @@ class SensitivityResultResponse(BaseModel):
 
 def get_scorecard_service() -> ScorecardService:
     """Get scorecard service instance."""
-    db = get_database()
-    repo = ScorecardRepository(db)
-    return ScorecardService(repo)
+    return ScorecardService()
 
 
 def get_scorecard_llm() -> ScorecardLLM:
@@ -330,8 +322,7 @@ def get_scorecard_llm() -> ScorecardLLM:
 
 def get_simulation_service() -> SimulationService:
     """Get simulation service instance."""
-    db = get_database()
-    return SimulationService(db)
+    return SimulationService()
 
 
 def scorecard_to_response(scorecard: FeatureScorecard) -> ScorecardResponse:
@@ -348,8 +339,7 @@ def scorecard_to_response(scorecard: FeatureScorecard) -> ScorecardResponse:
         justification=scorecard.justification,
         impact_hypotheses=scorecard.impact_hypotheses,
         created_at=scorecard.created_at,
-        updated_at=scorecard.updated_at,
-    )
+        updated_at=scorecard.updated_at)
 
 
 def load_scenarios() -> dict[str, Scenario]:
@@ -413,8 +403,7 @@ async def create_scorecard(request: ScorecardCreate) -> ScorecardResponse:
 @router.get("/scorecards", response_model=ScorecardListResponse)
 async def list_scorecards(
     limit: int = Query(default=20, ge=1, le=100, description="Items per page"),
-    offset: int = Query(default=0, ge=0, description="Items to skip"),
-) -> ScorecardListResponse:
+    offset: int = Query(default=0, ge=0, description="Items to skip")) -> ScorecardListResponse:
     """
     List all feature scorecards with pagination.
 
@@ -427,8 +416,7 @@ async def list_scorecards(
         scorecards=[scorecard_to_response(s) for s in result["scorecards"]],
         total=result["total"],
         limit=result["limit"],
-        offset=result["offset"],
-    )
+        offset=result["offset"])
 
 
 @router.get("/scorecards/{scorecard_id}", response_model=ScorecardResponse)
@@ -449,12 +437,10 @@ async def get_scorecard(scorecard_id: str) -> ScorecardResponse:
 
 @router.post(
     "/scorecards/{scorecard_id}/generate-insights",
-    response_model=GenerateInsightsResponse,
-)
+    response_model=GenerateInsightsResponse)
 async def generate_scorecard_insights(
     scorecard_id: str,
-    request: GenerateInsightsRequest | None = None,
-) -> GenerateInsightsResponse:
+    request: GenerateInsightsRequest | None = None) -> GenerateInsightsResponse:
     """
     Generate LLM-powered insights for a scorecard.
 
@@ -489,14 +475,12 @@ async def generate_scorecard_insights(
     service.update_scorecard_insights(
         scorecard_id,
         justification=justification,
-        impact_hypotheses=hypotheses,
-    )
+        impact_hypotheses=hypotheses)
 
     return GenerateInsightsResponse(
         justification=justification,
         impact_hypotheses=hypotheses,
-        suggested_adjustments=suggestions,
-    )
+        suggested_adjustments=suggestions)
 
 
 # --- Scenario Endpoints ---
@@ -519,8 +503,7 @@ async def list_scenarios() -> list[ScenarioResponse]:
             motivation_modifier=scenario.motivation_modifier,
             trust_modifier=scenario.trust_modifier,
             friction_modifier=scenario.friction_modifier,
-            task_criticality=scenario.task_criticality,
-        )
+            task_criticality=scenario.task_criticality)
         for scenario in scenarios.values()
     ]
 
@@ -545,8 +528,7 @@ async def get_scenario(scenario_id: str) -> ScenarioResponse:
         motivation_modifier=scenario.motivation_modifier,
         trust_modifier=scenario.trust_modifier,
         friction_modifier=scenario.friction_modifier,
-        task_criticality=scenario.task_criticality,
-    )
+        task_criticality=scenario.task_criticality)
 
 
 # --- Simulation Endpoints ---
@@ -559,8 +541,7 @@ def simulation_to_response(run: Any) -> SimulationResponse:
         agg_outcomes = AggregatedOutcomes(
             did_not_try=run.aggregated_outcomes.get("did_not_try", 0.0),
             failed=run.aggregated_outcomes.get("failed", 0.0),
-            success=run.aggregated_outcomes.get("success", 0.0),
-        )
+            success=run.aggregated_outcomes.get("success", 0.0))
 
     return SimulationResponse(
         id=run.id,
@@ -570,15 +551,13 @@ def simulation_to_response(run: Any) -> SimulationResponse:
             n_synths=run.config.n_synths,
             n_executions=run.config.n_executions,
             sigma=run.config.sigma,
-            seed=run.config.seed,
-        ),
+            seed=run.config.seed),
         status=run.status,
         started_at=run.started_at,
         completed_at=run.completed_at,
         total_synths=run.total_synths,
         aggregated_outcomes=agg_outcomes,
-        execution_time_seconds=run.execution_time_seconds,
-    )
+        execution_time_seconds=run.execution_time_seconds)
 
 
 @router.post("/simulations", response_model=SimulationResponse, status_code=201)
@@ -597,8 +576,7 @@ async def run_simulation(request: SimulationRequest) -> SimulationResponse:
             synth_ids=request.synth_ids,
             n_executions=request.n_executions,
             sigma=request.sigma,
-            seed=request.seed,
-        )
+            seed=request.seed)
         return simulation_to_response(run)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -612,8 +590,7 @@ async def list_simulations_endpoint(
     scenario_id: str | None = Query(default=None, description="Filter by scenario"),
     status: str | None = Query(default=None, description="Filter by status"),
     limit: int = Query(default=20, ge=1, le=100, description="Items per page"),
-    offset: int = Query(default=0, ge=0, description="Items to skip"),
-) -> SimulationListResponse:
+    offset: int = Query(default=0, ge=0, description="Items to skip")) -> SimulationListResponse:
     """
     List simulation runs with optional filters.
 
@@ -625,8 +602,7 @@ async def list_simulations_endpoint(
         scenario_id=scenario_id,
         status=status,
         limit=limit,
-        offset=offset,
-    )
+        offset=offset)
 
     # Convert items back to SimulationRun objects for response conversion
     from synth_lab.domain.entities import SimulationRun
@@ -640,8 +616,7 @@ async def list_simulations_endpoint(
         simulations=simulations,
         total=result["total"],
         limit=result["limit"],
-        offset=result["offset"],
-    )
+        offset=result["offset"])
 
 
 @router.get("/simulations/{simulation_id}", response_model=SimulationResponse)
@@ -662,13 +637,11 @@ async def get_simulation_endpoint(simulation_id: str) -> SimulationResponse:
 
 @router.get(
     "/simulations/{simulation_id}/outcomes",
-    response_model=SynthOutcomeListResponse,
-)
+    response_model=SynthOutcomeListResponse)
 async def get_simulation_outcomes(
     simulation_id: str,
     limit: int = Query(default=100, ge=1, le=500, description="Items per page"),
-    offset: int = Query(default=0, ge=0, description="Items to skip"),
-) -> SynthOutcomeListResponse:
+    offset: int = Query(default=0, ge=0, description="Items to skip")) -> SynthOutcomeListResponse:
     """
     Get synth outcomes for a simulation.
 
@@ -684,8 +657,7 @@ async def get_simulation_outcomes(
     result = service.get_simulation_outcomes(
         run_id=simulation_id,
         limit=limit,
-        offset=offset,
-    )
+        offset=offset)
 
     outcomes = [
         SynthOutcomeResponse(
@@ -693,8 +665,7 @@ async def get_simulation_outcomes(
             did_not_try_rate=item["did_not_try_rate"],
             failed_rate=item["failed_rate"],
             success_rate=item["success_rate"],
-            synth_attributes=item["synth_attributes"],
-        )
+            synth_attributes=item["synth_attributes"])
         for item in result["items"]
     ]
 
@@ -702,23 +673,19 @@ async def get_simulation_outcomes(
         outcomes=outcomes,
         total=result["total"],
         limit=result["limit"],
-        offset=result["offset"],
-    )
+        offset=result["offset"])
 
 
 @router.get(
     "/simulations/{simulation_id}/regions",
-    response_model=RegionAnalysisListResponse,
-)
+    response_model=RegionAnalysisListResponse)
 async def analyze_simulation_regions(
     simulation_id: str,
     min_failure_rate: float = Query(
         default=0.5,
         ge=0.0,
         le=1.0,
-        description="Minimum failure rate to identify problematic regions",
-    ),
-) -> RegionAnalysisListResponse:
+        description="Minimum failure rate to identify problematic regions")) -> RegionAnalysisListResponse:
     """
     Analyze simulation to identify high-failure regions.
 
@@ -745,30 +712,26 @@ async def analyze_simulation_regions(
     outcomes_result = service.get_simulation_outcomes(
         run_id=simulation_id,
         limit=1000,  # Get all outcomes for analysis
-        offset=0,
-    )
+        offset=0)
 
     if len(outcomes_result["items"]) < 40:  # min_samples_split from analyzer
         count = len(outcomes_result["items"])
         raise HTTPException(
             status_code=400,
-            detail=f"Not enough outcomes ({count}) for region analysis. Need at least 40.",
-        )
+            detail=f"Not enough outcomes ({count}) for region analysis. Need at least 40.")
 
     # Run region analysis (no caching - always fresh results)
     analyzer = RegionAnalyzer()
     regions = analyzer.analyze_regions(
         outcomes=outcomes_result["items"],
         simulation_id=simulation_id,
-        min_failure_rate=min_failure_rate,
-    )
+        min_failure_rate=min_failure_rate)
 
     # Persist regions to database for later comparison
     if regions:
         from synth_lab.repositories.region_repository import RegionRepository
 
-        db = get_database()
-        region_repo = RegionRepository(db)
+        region_repo = RegionRepository()
         # Delete previous analyses for this simulation to avoid duplicates
         region_repo.delete_region_analyses(simulation_id)
         region_repo.save_region_analyses(regions)
@@ -782,8 +745,7 @@ async def analyze_simulation_regions(
                 RegionRuleResponse(
                     attribute=rule.attribute,
                     operator=rule.operator,
-                    threshold=rule.threshold,
-                )
+                    threshold=rule.threshold)
                 for rule in region.rules
             ],
             rule_text=region.rule_text,
@@ -792,21 +754,18 @@ async def analyze_simulation_regions(
             did_not_try_rate=region.did_not_try_rate,
             failed_rate=region.failed_rate,
             success_rate=region.success_rate,
-            failure_delta=region.failure_delta,
-        )
+            failure_delta=region.failure_delta)
         for region in regions
     ]
 
     return RegionAnalysisListResponse(
         regions=regions_response,
-        total=len(regions_response),
-    )
+        total=len(regions_response))
 
 
 @router.post("/simulations/compare", response_model=CompareResultResponse)
 async def compare_simulations(
-    request: CompareSimulationRequest,
-) -> CompareResultResponse:
+    request: CompareSimulationRequest) -> CompareResultResponse:
     """
     Compare multiple simulations across scenarios.
 
@@ -821,8 +780,7 @@ async def compare_simulations(
     """
     from synth_lab.services.simulation.comparison_service import ComparisonService
 
-    db = get_database()
-    comparison_service = ComparisonService(db)
+    comparison_service = ComparisonService()
 
     try:
         result = comparison_service.compare_simulations(request.simulation_ids)
@@ -832,23 +790,20 @@ async def compare_simulations(
             CompareSimulationInfo(
                 id=sim["id"],
                 scenario_id=sim["scenario_id"],
-                aggregated_outcomes=sim["aggregated_outcomes"],
-            )
+                aggregated_outcomes=sim["aggregated_outcomes"])
             for sim in result["simulations"]
         ]
 
         regions_response = [
             AffectedRegionResponse(
                 rule_text=region["rule_text"],
-                outcomes_by_scenario=region["outcomes_by_scenario"],
-            )
+                outcomes_by_scenario=region["outcomes_by_scenario"])
             for region in result["most_affected_regions"]
         ]
 
         return CompareResultResponse(
             simulations=simulations_response,
-            most_affected_regions=regions_response,
-        )
+            most_affected_regions=regions_response)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -865,15 +820,12 @@ async def compare_simulations(
 
 @router.get(
     "/simulations/{simulation_id}/sensitivity",
-    response_model=SensitivityResultResponse,
-)
+    response_model=SensitivityResultResponse)
 async def analyze_sensitivity(
     simulation_id: str,
     deltas: str = Query(
         default="0.05,0.10",
-        description="Comma-separated delta values (e.g., '0.05,0.10')",
-    ),
-) -> SensitivityResultResponse:
+        description="Comma-separated delta values (e.g., '0.05,0.10')")) -> SensitivityResultResponse:
     """
     Perform One-At-a-Time sensitivity analysis on a simulation.
 
@@ -889,8 +841,7 @@ async def analyze_sensitivity(
     """
     from synth_lab.services.simulation.sensitivity import SensitivityAnalyzer
 
-    db = get_database()
-    analyzer = SensitivityAnalyzer(db)
+    analyzer = SensitivityAnalyzer()
 
     # Parse deltas
     try:
@@ -898,16 +849,14 @@ async def analyze_sensitivity(
     except ValueError:
         raise HTTPException(
             status_code=400,
-            detail="Invalid delta format. Use comma-separated floats (e.g., '0.05,0.10')",
-        )
+            detail="Invalid delta format. Use comma-separated floats (e.g., '0.05,0.10')")
 
     # Validate deltas
     for delta in delta_values:
         if delta <= 0 or delta >= 1:
             raise HTTPException(
                 status_code=400,
-                detail=f"Delta values must be in range (0, 1), got {delta}",
-            )
+                detail=f"Delta values must be in range (0, 1), got {delta}")
 
     try:
         result = analyzer.analyze_sensitivity(simulation_id=simulation_id, deltas=delta_values)
@@ -922,8 +871,7 @@ async def analyze_sensitivity(
                 deltas_tested=dim.deltas_tested,
                 outcomes_by_delta=dim.outcomes_by_delta,
                 sensitivity_index=dim.sensitivity_index,
-                rank=dim.rank,
-            )
+                rank=dim.rank)
             for dim in result.dimensions
         ]
 
@@ -932,8 +880,7 @@ async def analyze_sensitivity(
             analyzed_at=result.analyzed_at.isoformat(),
             deltas_used=result.deltas_used,
             dimensions=dimensions_response,
-            baseline_success=result.baseline_success,
-        )
+            baseline_success=result.baseline_success)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -978,39 +925,33 @@ def get_simulation_outcomes_as_entities(
             did_not_try_rate=item["did_not_try_rate"],
             failed_rate=item["failed_rate"],
             success_rate=item["success_rate"],
-            synth_attributes=SimulationAttributes.model_validate(item["synth_attributes"]),
-        )
+            synth_attributes=SimulationAttributes.model_validate(item["synth_attributes"]))
         outcomes.append(outcome)
 
     if len(outcomes) < min_outcomes:
         raise HTTPException(
             status_code=400,
             detail=f"Simulation {simulation_id} has {len(outcomes)} outcomes, "
-            f"but at least {min_outcomes} are required for this operation",
-        )
+            f"but at least {min_outcomes} are required for this operation")
 
     return outcomes
 
 
 @router.get(
     "/simulations/{simulation_id}/charts/try-vs-success",
-    response_model=TryVsSuccessChart,
-)
+    response_model=TryVsSuccessChart)
 async def get_try_vs_success_chart(
     simulation_id: str,
     attempt_rate_threshold: float = Query(
         default=0.5,
         ge=0.0,
         le=1.0,
-        description="Minimum attempt rate (1 - did_not_try_rate) for high engagement quadrants",
-    ),
+        description="Minimum attempt rate (1 - did_not_try_rate) for high engagement quadrants"),
     success_rate_threshold: float = Query(
         default=0.5,
         ge=0.0,
         le=1.0,
-        description="Minimum success rate for high performance quadrants",
-    ),
-) -> TryVsSuccessChart:
+        description="Minimum success rate for high performance quadrants")) -> TryVsSuccessChart:
     """
     Get Try vs Success scatter plot data.
 
@@ -1034,8 +975,7 @@ async def get_try_vs_success_chart(
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
-            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
-        )
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})")
 
     outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
 
@@ -1043,23 +983,19 @@ async def get_try_vs_success_chart(
         simulation_id=simulation_id,
         outcomes=outcomes,
         attempt_rate_threshold=attempt_rate_threshold,
-        success_rate_threshold=success_rate_threshold,
-    )
+        success_rate_threshold=success_rate_threshold)
 
 
 @router.get(
     "/simulations/{simulation_id}/charts/distribution",
-    response_model=OutcomeDistributionChart,
-)
+    response_model=OutcomeDistributionChart)
 async def get_distribution_chart(
     simulation_id: str,
     sort_by: str = Query(
         default="success_rate",
-        description="Field to sort by: success_rate, failed_rate, did_not_try_rate",
-    ),
+        description="Field to sort by: success_rate, failed_rate, did_not_try_rate"),
     order: str = Query(default="desc", description="Sort order: asc or desc"),
-    limit: int = Query(default=50, ge=1, le=1000, description="Maximum results"),
-) -> OutcomeDistributionChart:
+    limit: int = Query(default=50, ge=1, le=1000, description="Maximum results")) -> OutcomeDistributionChart:
     """
     Get outcome distribution chart data.
 
@@ -1075,16 +1011,14 @@ async def get_distribution_chart(
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
-            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
-        )
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})")
 
     # Validate sort_by
     valid_sort_fields = ["success_rate", "failed_rate", "did_not_try_rate"]
     if sort_by not in valid_sort_fields:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid sort_by: {sort_by}. Must be one of {valid_sort_fields}",
-        )
+            detail=f"Invalid sort_by: {sort_by}. Must be one of {valid_sort_fields}")
 
     # Validate order
     if order not in ["asc", "desc"]:
@@ -1099,14 +1033,12 @@ async def get_distribution_chart(
         outcomes=outcomes,
         sort_by=sort_by,  # type: ignore
         order=order,  # type: ignore
-        limit=limit,
-    )
+        limit=limit)
 
 
 @router.get(
     "/simulations/{simulation_id}/charts/failure-heatmap",
-    response_model=FailureHeatmapChart,
-)
+    response_model=FailureHeatmapChart)
 async def get_failure_heatmap_chart(
     simulation_id: str,
     x_axis: str = Query(default="capability_mean", description="X-axis attribute"),
@@ -1114,9 +1046,7 @@ async def get_failure_heatmap_chart(
     bins: int = Query(default=5, ge=2, le=20, description="Number of bins per axis"),
     metric: str = Query(
         default="failed_rate",
-        description="Metric to display: failed_rate, success_rate, did_not_try_rate",
-    ),
-) -> FailureHeatmapChart:
+        description="Metric to display: failed_rate, success_rate, did_not_try_rate")) -> FailureHeatmapChart:
     """
     Get failure heatmap data.
 
@@ -1133,16 +1063,14 @@ async def get_failure_heatmap_chart(
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
-            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
-        )
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})")
 
     # Validate metric
     valid_metrics = ["failed_rate", "success_rate", "did_not_try_rate"]
     if metric not in valid_metrics:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid metric: {metric}. Must be one of {valid_metrics}",
-        )
+            detail=f"Invalid metric: {metric}. Must be one of {valid_metrics}")
 
     outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
 
@@ -1158,14 +1086,12 @@ async def get_failure_heatmap_chart(
 
 @router.get(
     "/simulations/{simulation_id}/charts/scatter",
-    response_model=ScatterCorrelationChart,
-)
+    response_model=ScatterCorrelationChart)
 async def get_scatter_correlation_chart(
     simulation_id: str,
     x_axis: str = Query(default="trust_mean", description="X-axis attribute"),
     y_axis: str = Query(default="success_rate", description="Y-axis attribute"),
-    show_trendline: bool = Query(default=True, description="Include trend line"),
-) -> ScatterCorrelationChart:
+    show_trendline: bool = Query(default=True, description="Include trend line")) -> ScatterCorrelationChart:
     """
     Get scatter correlation chart data.
 
@@ -1182,8 +1108,7 @@ async def get_scatter_correlation_chart(
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
-            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
-        )
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})")
 
     outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
 
@@ -1192,8 +1117,7 @@ async def get_scatter_correlation_chart(
         outcomes=outcomes,
         x_axis=x_axis,
         y_axis=y_axis,
-        show_trendline=show_trendline,
-    )
+        show_trendline=show_trendline)
 
 
 # --- Clustering Endpoints (User Story 3) ---
@@ -1230,12 +1154,10 @@ def _clear_clustering_cache() -> None:
 
 @router.post(
     "/simulations/{simulation_id}/clusters",
-    response_model=KMeansResult | HierarchicalResult,
-)
+    response_model=KMeansResult | HierarchicalResult)
 async def create_clustering(
     simulation_id: str,
-    request: ClusterRequest,
-) -> KMeansResult | HierarchicalResult:
+    request: ClusterRequest) -> KMeansResult | HierarchicalResult:
     """
     Create clustering analysis for simulation.
 
@@ -1259,8 +1181,7 @@ async def create_clustering(
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
-            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
-        )
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})")
 
     # Get outcomes
     outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
@@ -1268,8 +1189,7 @@ async def create_clustering(
     if len(outcomes) < 10:
         raise HTTPException(
             status_code=400,
-            detail=f"Clustering requires at least 10 synths, got {len(outcomes)}",
-        )
+            detail=f"Clustering requires at least 10 synths, got {len(outcomes)}")
 
     # Perform clustering
     if request.method == "kmeans":
@@ -1277,15 +1197,13 @@ async def create_clustering(
             simulation_id=simulation_id,
             outcomes=outcomes,
             n_clusters=request.n_clusters,
-            features=request.features,
-        )
+            features=request.features)
     else:  # hierarchical
         result = clustering_service.cluster_hierarchical(
             simulation_id=simulation_id,
             outcomes=outcomes,
             features=request.features,
-            linkage_method=request.linkage,
-        )
+            linkage_method=request.linkage)
 
     # Cache result
     cache_key = f"{simulation_id}:{request.method}"
@@ -1296,11 +1214,9 @@ async def create_clustering(
 
 @router.get(
     "/simulations/{simulation_id}/clusters",
-    response_model=KMeansResult | HierarchicalResult,
-)
+    response_model=KMeansResult | HierarchicalResult)
 async def get_clustering(
-    simulation_id: str,
-) -> KMeansResult | HierarchicalResult:
+    simulation_id: str) -> KMeansResult | HierarchicalResult:
     """
     Get cached clustering result for simulation.
 
@@ -1321,17 +1237,14 @@ async def get_clustering(
         raise HTTPException(
             status_code=404,
             detail=f"No clustering found for simulation {simulation_id}. "
-            "Create clustering first via POST /clusters",
-        )
+            "Create clustering first via POST /clusters")
 
 
 @router.get(
     "/simulations/{simulation_id}/clusters/elbow",
-    response_model=list,
-)
+    response_model=list)
 async def get_elbow_data(
-    simulation_id: str,
-) -> list:
+    simulation_id: str) -> list:
     """
     Get elbow method data for determining optimal number of clusters.
 
@@ -1344,8 +1257,7 @@ async def get_elbow_data(
         raise HTTPException(
             status_code=404,
             detail=f"No K-Means clustering found for simulation {simulation_id}. "
-            "Create K-Means clustering first via POST /clusters with method='kmeans'",
-        )
+            "Create K-Means clustering first via POST /clusters with method='kmeans'")
 
     result = _clustering_cache[cache_key]
     if isinstance(result, KMeansResult):
@@ -1353,17 +1265,14 @@ async def get_elbow_data(
     else:
         raise HTTPException(
             status_code=400,
-            detail="Elbow data only available for K-Means clustering",
-        )
+            detail="Elbow data only available for K-Means clustering")
 
 
 @router.get(
     "/simulations/{simulation_id}/clusters/dendrogram",
-    response_model=HierarchicalResult,
-)
+    response_model=HierarchicalResult)
 async def get_dendrogram(
-    simulation_id: str,
-) -> HierarchicalResult:
+    simulation_id: str) -> HierarchicalResult:
     """
     Get dendrogram data for hierarchical clustering.
 
@@ -1375,8 +1284,7 @@ async def get_dendrogram(
         raise HTTPException(
             status_code=404,
             detail=f"No hierarchical clustering found for simulation {simulation_id}. "
-            "Create hierarchical clustering first via POST /clusters with method='hierarchical'",
-        )
+            "Create hierarchical clustering first via POST /clusters with method='hierarchical'")
 
     result = _clustering_cache[cache_key]
     if isinstance(result, HierarchicalResult):
@@ -1384,18 +1292,15 @@ async def get_dendrogram(
     else:
         raise HTTPException(
             status_code=400,
-            detail="Dendrogram only available for hierarchical clustering",
-        )
+            detail="Dendrogram only available for hierarchical clustering")
 
 
 @router.get(
     "/simulations/{simulation_id}/clusters/{cluster_id}/radar",
-    response_model=RadarChart,
-)
+    response_model=RadarChart)
 async def get_cluster_radar(
     simulation_id: str,
-    cluster_id: int,
-) -> RadarChart:
+    cluster_id: int) -> RadarChart:
     """
     Get radar chart for a specific cluster.
 
@@ -1408,29 +1313,25 @@ async def get_cluster_radar(
     if cache_key not in _clustering_cache:
         raise HTTPException(
             status_code=404,
-            detail=f"No K-Means clustering found for simulation {simulation_id}",
-        )
+            detail=f"No K-Means clustering found for simulation {simulation_id}")
 
     kmeans_result = _clustering_cache[cache_key]
     if not isinstance(kmeans_result, KMeansResult):
         raise HTTPException(
             status_code=400,
-            detail="Radar chart only available for K-Means clustering",
-        )
+            detail="Radar chart only available for K-Means clustering")
 
     # Verify cluster exists
     if cluster_id < 0 or cluster_id >= kmeans_result.n_clusters:
         raise HTTPException(
             status_code=404,
             detail=f"Cluster {cluster_id} not found. "
-            f"Valid cluster IDs: 0 to {kmeans_result.n_clusters - 1}",
-        )
+            f"Valid cluster IDs: 0 to {kmeans_result.n_clusters - 1}")
 
     # Generate radar chart for all clusters, then filter
     full_radar = clustering_service.get_radar_chart(
         simulation_id=simulation_id,
-        kmeans_result=kmeans_result,
-    )
+        kmeans_result=kmeans_result)
 
     # Return chart with only the requested cluster
     filtered_clusters = [c for c in full_radar.clusters if c.cluster_id == cluster_id]
@@ -1439,17 +1340,14 @@ async def get_cluster_radar(
         simulation_id=simulation_id,
         clusters=filtered_clusters,
         axis_labels=full_radar.axis_labels,
-        baseline=full_radar.baseline,
-    )
+        baseline=full_radar.baseline)
 
 
 @router.get(
     "/simulations/{simulation_id}/clusters/radar-comparison",
-    response_model=RadarChart,
-)
+    response_model=RadarChart)
 async def get_radar_comparison(
-    simulation_id: str,
-) -> RadarChart:
+    simulation_id: str) -> RadarChart:
     """
     Get radar chart comparing all clusters.
 
@@ -1462,30 +1360,25 @@ async def get_radar_comparison(
     if cache_key not in _clustering_cache:
         raise HTTPException(
             status_code=404,
-            detail=f"No K-Means clustering found for simulation {simulation_id}",
-        )
+            detail=f"No K-Means clustering found for simulation {simulation_id}")
 
     kmeans_result = _clustering_cache[cache_key]
     if not isinstance(kmeans_result, KMeansResult):
         raise HTTPException(
             status_code=400,
-            detail="Radar chart only available for K-Means clustering",
-        )
+            detail="Radar chart only available for K-Means clustering")
 
     return clustering_service.get_radar_chart(
         simulation_id=simulation_id,
-        kmeans_result=kmeans_result,
-    )
+        kmeans_result=kmeans_result)
 
 
 @router.post(
     "/simulations/{simulation_id}/clusters/cut",
-    response_model=HierarchicalResult,
-)
+    response_model=HierarchicalResult)
 async def cut_dendrogram(
     simulation_id: str,
-    request: CutDendrogramRequest,
-) -> HierarchicalResult:
+    request: CutDendrogramRequest) -> HierarchicalResult:
     """
     Cut hierarchical clustering dendrogram at specified number of clusters.
 
@@ -1499,21 +1392,18 @@ async def cut_dendrogram(
         raise HTTPException(
             status_code=404,
             detail=f"No hierarchical clustering found for simulation {simulation_id}. "
-            "Create hierarchical clustering first.",
-        )
+            "Create hierarchical clustering first.")
 
     hierarchical_result = _clustering_cache[cache_key]
     if not isinstance(hierarchical_result, HierarchicalResult):
         raise HTTPException(
             status_code=400,
-            detail="Cut operation only available for hierarchical clustering",
-        )
+            detail="Cut operation only available for hierarchical clustering")
 
     # Cut the dendrogram
     cut_result = clustering_service.cut_dendrogram(
         hierarchical_result=hierarchical_result,
-        n_clusters=request.n_clusters,
-    )
+        n_clusters=request.n_clusters)
 
     # Update cache with cut result
     _clustering_cache[cache_key] = cut_result
@@ -1531,12 +1421,10 @@ def get_outlier_service() -> OutlierService:
 
 @router.get(
     "/simulations/{simulation_id}/extreme-cases",
-    response_model=ExtremeCasesTable,
-)
+    response_model=ExtremeCasesTable)
 async def get_extreme_cases(
     simulation_id: str,
-    n_per_category: int = Query(10, ge=1, le=50, description="Number of synths per category"),
-) -> ExtremeCasesTable:
+    n_per_category: int = Query(10, ge=1, le=50, description="Number of synths per category")) -> ExtremeCasesTable:
     """
     Get extreme cases for qualitative research.
 
@@ -1560,8 +1448,7 @@ async def get_extreme_cases(
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
-            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
-        )
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})")
 
     # Get outcomes
     outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
@@ -1569,32 +1456,27 @@ async def get_extreme_cases(
     if len(outcomes) < 10:
         raise HTTPException(
             status_code=400,
-            detail=f"Extreme cases requires at least 10 synths, got {len(outcomes)}",
-        )
+            detail=f"Extreme cases requires at least 10 synths, got {len(outcomes)}")
 
     # Get extreme cases
     result = outlier_service.get_extreme_cases(
         simulation_id=simulation_id,
         outcomes=outcomes,
-        n_per_category=n_per_category,
-    )
+        n_per_category=n_per_category)
 
     return result
 
 
 @router.get(
     "/simulations/{simulation_id}/outliers",
-    response_model=OutlierResult,
-)
+    response_model=OutlierResult)
 async def detect_outliers(
     simulation_id: str,
     contamination: float = Query(
         0.1,
         ge=0.01,
         le=0.5,
-        description="Expected proportion of outliers (0.01-0.5)",
-    ),
-) -> OutlierResult:
+        description="Expected proportion of outliers (0.01-0.5)")) -> OutlierResult:
     """
     Detect statistical outliers using Isolation Forest.
 
@@ -1618,8 +1500,7 @@ async def detect_outliers(
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
-            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
-        )
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})")
 
     # Get outcomes
     outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
@@ -1627,15 +1508,13 @@ async def detect_outliers(
     if len(outcomes) < 10:
         raise HTTPException(
             status_code=400,
-            detail=f"Outlier detection requires at least 10 synths, got {len(outcomes)}",
-        )
+            detail=f"Outlier detection requires at least 10 synths, got {len(outcomes)}")
 
     # Detect outliers
     result = outlier_service.detect_outliers(
         simulation_id=simulation_id,
         outcomes=outcomes,
-        contamination=contamination,
-    )
+        contamination=contamination)
 
     return result
 
@@ -1650,11 +1529,9 @@ def get_explainability_service() -> ExplainabilityService:
 
 @router.get(
     "/simulations/{simulation_id}/shap/summary",
-    response_model=ShapSummary,
-)
+    response_model=ShapSummary)
 async def get_shap_summary(
-    simulation_id: str,
-) -> ShapSummary:
+    simulation_id: str) -> ShapSummary:
     """
     Get global SHAP summary showing feature importance.
 
@@ -1677,8 +1554,7 @@ async def get_shap_summary(
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
-            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
-        )
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})")
 
     # Get outcomes
     outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
@@ -1686,14 +1562,12 @@ async def get_shap_summary(
     if len(outcomes) < 20:
         raise HTTPException(
             status_code=400,
-            detail=f"SHAP summary requires at least 20 synths, got {len(outcomes)}",
-        )
+            detail=f"SHAP summary requires at least 20 synths, got {len(outcomes)}")
 
     try:
         result = explain_service.get_shap_summary(
             simulation_id=simulation_id,
-            outcomes=outcomes,
-        )
+            outcomes=outcomes)
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -1701,12 +1575,10 @@ async def get_shap_summary(
 
 @router.get(
     "/simulations/{simulation_id}/shap/{synth_id}",
-    response_model=ShapExplanation,
-)
+    response_model=ShapExplanation)
 async def get_shap_explanation(
     simulation_id: str,
-    synth_id: str,
-) -> ShapExplanation:
+    synth_id: str) -> ShapExplanation:
     """
     Get SHAP explanation for a specific synth.
 
@@ -1730,8 +1602,7 @@ async def get_shap_explanation(
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
-            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
-        )
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})")
 
     # Get outcomes
     outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
@@ -1739,15 +1610,13 @@ async def get_shap_explanation(
     if len(outcomes) < 20:
         raise HTTPException(
             status_code=400,
-            detail=f"SHAP explanation requires at least 20 synths, got {len(outcomes)}",
-        )
+            detail=f"SHAP explanation requires at least 20 synths, got {len(outcomes)}")
 
     try:
         result = explain_service.explain_synth(
             simulation_id=simulation_id,
             outcomes=outcomes,
-            synth_id=synth_id,
-        )
+            synth_id=synth_id)
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -1755,8 +1624,7 @@ async def get_shap_explanation(
 
 @router.get(
     "/simulations/{simulation_id}/pdp",
-    response_model=PDPResult,
-)
+    response_model=PDPResult)
 async def get_pdp(
     simulation_id: str,
     feature: str = Query(
@@ -1764,8 +1632,7 @@ async def get_pdp(
     ),
     grid_resolution: int = Query(
         default=20, ge=5, le=100, description="Number of points in PDP curve"
-    ),
-) -> PDPResult:
+    )) -> PDPResult:
     """
     Get Partial Dependence Plot for a feature.
 
@@ -1790,8 +1657,7 @@ async def get_pdp(
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
-            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
-        )
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})")
 
     # Get outcomes
     outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
@@ -1799,16 +1665,14 @@ async def get_pdp(
     if len(outcomes) < 20:
         raise HTTPException(
             status_code=400,
-            detail=f"PDP requires at least 20 synths, got {len(outcomes)}",
-        )
+            detail=f"PDP requires at least 20 synths, got {len(outcomes)}")
 
     try:
         result = explain_service.calculate_pdp(
             simulation_id=simulation_id,
             outcomes=outcomes,
             feature=feature,
-            grid_resolution=grid_resolution,
-        )
+            grid_resolution=grid_resolution)
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -1816,18 +1680,15 @@ async def get_pdp(
 
 @router.get(
     "/simulations/{simulation_id}/pdp/comparison",
-    response_model=PDPComparison,
-)
+    response_model=PDPComparison)
 async def get_pdp_comparison(
     simulation_id: str,
     features: str = Query(
         ...,
-        description="Comma-separated features (e.g., 'trust_mean,capability_mean')",
-    ),
+        description="Comma-separated features (e.g., 'trust_mean,capability_mean')"),
     grid_resolution: int = Query(
         default=20, ge=5, le=100, description="Number of points in each PDP curve"
-    ),
-) -> PDPComparison:
+    )) -> PDPComparison:
     """
     Compare PDPs across multiple features.
 
@@ -1852,16 +1713,14 @@ async def get_pdp_comparison(
     if run.status != "completed":
         raise HTTPException(
             status_code=400,
-            detail=f"Simulation {simulation_id} not completed (status: {run.status})",
-        )
+            detail=f"Simulation {simulation_id} not completed (status: {run.status})")
 
     # Parse features
     feature_list = [f.strip() for f in features.split(",") if f.strip()]
     if len(feature_list) < 2:
         raise HTTPException(
             status_code=400,
-            detail="At least 2 features required for comparison",
-        )
+            detail="At least 2 features required for comparison")
 
     # Get outcomes
     outcomes = get_simulation_outcomes_as_entities(sim_service, simulation_id)
@@ -1869,16 +1728,14 @@ async def get_pdp_comparison(
     if len(outcomes) < 20:
         raise HTTPException(
             status_code=400,
-            detail=f"PDP comparison requires at least 20 synths, got {len(outcomes)}",
-        )
+            detail=f"PDP comparison requires at least 20 synths, got {len(outcomes)}")
 
     try:
         result = explain_service.compare_pdps(
             simulation_id=simulation_id,
             outcomes=outcomes,
             features=feature_list,
-            grid_resolution=grid_resolution,
-        )
+            grid_resolution=grid_resolution)
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -1939,8 +1796,7 @@ if __name__ == "__main__":
         data = ScorecardCreate(
             feature_name="Test",
             use_scenario="Test",
-            description_text="Test description",
-        )
+            description_text="Test description")
         if data.feature_name != "Test":
             all_validation_failures.append("ScorecardCreate feature_name mismatch")
         else:
@@ -1984,8 +1840,7 @@ if __name__ == "__main__":
                 motivation_modifier=scenarios["baseline"].motivation_modifier,
                 trust_modifier=scenarios["baseline"].trust_modifier,
                 friction_modifier=scenarios["baseline"].friction_modifier,
-                task_criticality=scenarios["baseline"].task_criticality,
-            )
+                task_criticality=scenarios["baseline"].task_criticality)
             if response.id != "baseline":
                 all_validation_failures.append("Scenario response ID mismatch")
             else:

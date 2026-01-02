@@ -8,30 +8,23 @@ References:
 """
 
 from functools import lru_cache
+from typing import Generator
 
-from synth_lab.infrastructure.database import DatabaseManager, get_database
+from sqlalchemy.orm import Session
+
+from synth_lab.infrastructure.database_v2 import get_db_session, get_session
 from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
 
 
-@lru_cache
-def get_db() -> DatabaseManager:
-    """Get the database manager instance."""
-    return get_database()
+def get_db() -> Generator[Session, None, None]:
+    """FastAPI dependency for database sessions."""
+    return get_db_session()
 
 
 @lru_cache
 def get_llm() -> LLMClient:
     """Get the LLM client instance."""
     return get_llm_client()
-
-
-# Service dependencies will be added as services are implemented
-# Example:
-# def get_synth_service() -> SynthService:
-#     """Get synth service with dependencies."""
-#     return SynthService(
-#         synth_repo=SynthRepository(get_db()),
-#     )
 
 
 if __name__ == "__main__":
@@ -41,26 +34,16 @@ if __name__ == "__main__":
     all_validation_failures = []
     total_tests = 0
 
-    # Test 1: get_db returns DatabaseManager
+    # Test 1: get_db returns a generator
     total_tests += 1
     try:
-        db = get_db()
-        if not isinstance(db, DatabaseManager):
-            all_validation_failures.append(f"get_db should return DatabaseManager: {type(db)}")
+        db_gen = get_db()
+        if not hasattr(db_gen, "__next__"):
+            all_validation_failures.append(f"get_db should return generator: {type(db_gen)}")
     except Exception as e:
         all_validation_failures.append(f"get_db test failed: {e}")
 
-    # Test 2: get_db is cached (same instance)
-    total_tests += 1
-    try:
-        db1 = get_db()
-        db2 = get_db()
-        if db1 is not db2:
-            all_validation_failures.append("get_db should return same instance (cached)")
-    except Exception as e:
-        all_validation_failures.append(f"get_db caching test failed: {e}")
-
-    # Test 3: get_llm returns LLMClient
+    # Test 2: get_llm returns LLMClient
     total_tests += 1
     try:
         llm = get_llm()
@@ -69,7 +52,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"get_llm test failed: {e}")
 
-    # Test 4: get_llm is cached
+    # Test 3: get_llm is cached
     total_tests += 1
     try:
         llm1 = get_llm()
