@@ -17,6 +17,8 @@ import {
   XCircle,
   Clock,
   FileText,
+  Layers,
+  DollarSign,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -25,7 +27,7 @@ import { cn } from '@/lib/utils';
 // Types
 // =============================================================================
 
-export type BadgeVariant = 'success' | 'info' | 'warning' | 'error' | 'neutral';
+export type BadgeVariant = 'success' | 'info' | 'warning' | 'error' | 'neutral' | 'completed';
 
 export interface StatusConfig {
   label: string;
@@ -53,6 +55,8 @@ const ICON_REGISTRY: Record<string, LucideIcon> = {
   XCircle,
   Clock,
   FileText,
+  Layers,
+  DollarSign,
 };
 
 // =============================================================================
@@ -65,6 +69,7 @@ const VARIANT_CLASSES: Record<BadgeVariant, string> = {
   warning: 'bg-amber-100 text-amber-800 border-amber-200',
   error: 'bg-red-100 text-red-800 border-red-200',
   neutral: 'bg-slate-100 text-slate-800 border-slate-200',
+  completed: 'bg-gradient-to-r from-indigo-100 via-blue-100 to-indigo-100 text-indigo-900 border-indigo-300 shadow-sm font-medium',
 };
 
 // =============================================================================
@@ -92,8 +97,8 @@ export const EXPLORATION_STATUS_CONFIG: StatusConfigMap<
 > = {
   running: { label: 'Executando', variant: 'info', icon: 'Loader2' },
   goal_achieved: { label: 'Meta Atingida', variant: 'success', icon: 'CheckCircle' },
-  depth_limit_reached: { label: 'Limite Profundidade', variant: 'warning', icon: 'AlertTriangle' },
-  cost_limit_reached: { label: 'Limite Custo', variant: 'warning', icon: 'AlertTriangle' },
+  depth_limit_reached: { label: 'Exploração Completa', variant: 'completed', icon: 'Layers' },
+  cost_limit_reached: { label: 'Completo - Custo Atingido', variant: 'completed', icon: 'DollarSign' },
   no_viable_paths: { label: 'Sem Caminhos', variant: 'error', icon: 'XCircle' },
 };
 
