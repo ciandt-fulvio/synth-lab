@@ -16,8 +16,7 @@ from .runner import InterviewGuideData
 guide = InterviewGuideData(
     context_definition="Pesquisa sobre checkout 1-clique...",
     questions="Q1: Como você se sente...?",
-    context_examples="Exemplo de experiência...",
-)
+    context_examples="Exemplo de experiência...")
 
 results, summary = await run_batch_interviews(
     interview_guide=guide,
@@ -47,8 +46,7 @@ from rich.progress import (
     SpinnerColumn,
     TaskID,
     TextColumn,
-    TimeElapsedColumn,
-)
+    TimeElapsedColumn)
 
 from synth_lab.infrastructure.config import AVATARS_DIR
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
@@ -99,8 +97,7 @@ def get_timestamp_gmt3() -> str:
 def _select_synths_for_interview(
     all_synths: list[dict[str, Any]],
     synth_ids: list[str] | None,
-    max_interviews: int,
-) -> list[dict[str, Any]]:
+    max_interviews: int) -> list[dict[str, Any]]:
     """
     Select synths for interview based on provided IDs or random sampling.
 
@@ -156,8 +153,7 @@ def _select_synths_for_interview(
 async def _ensure_avatars_for_synths(
     synths: list[dict[str, Any]],
     on_avatar_generation_start: Callable[[int], Awaitable[None]] | None = None,
-    on_avatar_generation_complete: Callable[[int], Awaitable[None]] | None = None,
-) -> None:
+    on_avatar_generation_complete: Callable[[int], Awaitable[None]] | None = None) -> None:
     """
     Garante que todos os synths tenham avatares gerados.
 
@@ -175,8 +171,7 @@ async def _ensure_avatars_for_synths(
     await avatar_service.ensure_avatars_for_synths(
         synths=synths,
         on_generation_start=on_avatar_generation_start,
-        on_generation_complete=on_avatar_generation_complete,
-    )
+        on_generation_complete=on_avatar_generation_complete)
 
 
 async def run_single_interview_safe(
@@ -194,8 +189,7 @@ async def run_single_interview_safe(
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
     guide_name: str = "interview",
-    analysis_id: str | None = None,
-) -> tuple[InterviewResult | None, dict[str, Any], Exception | None]:
+    analysis_id: str | None = None) -> tuple[InterviewResult | None, dict[str, Any], Exception | None]:
     """
     Run a single interview with error handling and semaphore control.
 
@@ -231,8 +225,7 @@ async def run_single_interview_safe(
                 "synth_name": synth_name,
                 "guide_name": guide_name,
                 "model": model,
-            },
-        ) as span:
+            }) as span:
             logger.info(f"Starting interview with {synth_name} ({synth_id})")
             progress.update(task_id, description=f"[cyan]Entrevistando {synth_name}...")
 
@@ -256,8 +249,7 @@ async def run_single_interview_safe(
                     skip_interviewee_review=skip_interviewee_review,
                     additional_context=additional_context,
                     guide_name=guide_name,
-                    analysis_id=analysis_id,
-                )
+                    analysis_id=analysis_id)
 
                 logger.info(f"Completed interview with {synth_name} ({synth_id})")
                 progress.advance(task_id)
@@ -298,8 +290,7 @@ async def run_batch_interviews(
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
     guide_name: str = "interview",
-    analysis_id: str | None = None,
-) -> BatchResult:
+    analysis_id: str | None = None) -> BatchResult:
     """
     Run multiple interviews in parallel with progress tracking.
 
@@ -334,8 +325,7 @@ async def run_batch_interviews(
     ```python
     guide = InterviewGuideData(
         context_definition="Checkout 1-clique...",
-        questions="Q1: Como você...?",
-    )
+        questions="Q1: Como você...?")
     result = await run_batch_interviews(
         interview_guide=guide,
         max_interviews=5,
@@ -354,8 +344,7 @@ async def run_batch_interviews(
     synths_to_interview = _select_synths_for_interview(
         all_synths=all_synths,
         synth_ids=synth_ids,
-        max_interviews=max_interviews,
-    )
+        max_interviews=max_interviews)
 
     # Start avatar generation in background (non-blocking)
     # Avatars will be generated while interviews run in parallel
@@ -363,8 +352,7 @@ async def run_batch_interviews(
         _ensure_avatars_for_synths(
             synths=synths_to_interview,
             on_avatar_generation_start=on_avatar_generation_start,
-            on_avatar_generation_complete=on_avatar_generation_complete,
-        )
+            on_avatar_generation_complete=on_avatar_generation_complete)
     )
     logger.info("Avatar generation started in background (non-blocking)")
 
@@ -387,12 +375,10 @@ async def run_batch_interviews(
         BarColumn(),
         MofNCompleteColumn(),
         TimeElapsedColumn(),
-        console=console,
-    ) as progress:
+        console=console) as progress:
         task_id = progress.add_task(
             "[cyan]Iniciando entrevistas...",
-            total=len(synths_to_interview),
-        )
+            total=len(synths_to_interview))
 
         # Create tasks for all interviews
         tasks = [
@@ -411,8 +397,7 @@ async def run_batch_interviews(
                 skip_interviewee_review=skip_interviewee_review,
                 additional_context=additional_context,
                 guide_name=guide_name,
-                analysis_id=analysis_id,
-            )
+                analysis_id=analysis_id)
             for synth in synths_to_interview
         ]
 
@@ -438,8 +423,7 @@ async def run_batch_interviews(
         await on_transcription_completed(
             batch_id,
             len(successful_interviews),
-            len(failed_interviews),
-        )
+            len(failed_interviews))
 
     # Generate summary if requested and we have successful interviews
     summary = None
@@ -462,8 +446,7 @@ async def run_batch_interviews(
             summary = await summarize_interviews(
                 interview_results=successful_interviews,
                 topic_guide_name=guide_name,
-                model="gpt-4o-mini",
-            )
+                model="gpt-4o-mini")
             logger.info(
                 f"Summary generated successfully. Length: {len(summary) if summary else 0} chars"
             )
@@ -495,8 +478,7 @@ async def run_batch_interviews(
         batch_id=batch_id,
         total_requested=len(synths_to_interview),
         total_completed=len(successful_interviews),
-        total_failed=len(failed_interviews),
-    )
+        total_failed=len(failed_interviews))
 
 
 def run_batch_interviews_sync(
@@ -512,8 +494,7 @@ def run_batch_interviews_sync(
     on_transcription_completed: Callable[[str, int, int], Awaitable[None]] | None = None,
     on_summary_start: Callable[[str], Awaitable[None]] | None = None,
     skip_interviewee_review: bool = True,
-    guide_name: str = "interview",
-) -> BatchResult:
+    guide_name: str = "interview") -> BatchResult:
     """
     Synchronous wrapper for run_batch_interviews.
 
@@ -549,8 +530,7 @@ def run_batch_interviews_sync(
             on_transcription_completed=on_transcription_completed,
             on_summary_start=on_summary_start,
             skip_interviewee_review=skip_interviewee_review,
-            guide_name=guide_name,
-        )
+            guide_name=guide_name)
     )
 
 
@@ -569,8 +549,7 @@ if __name__ == "__main__":
         from .batch_runner import (
             BatchResult,
             load_all_synths,
-            run_batch_interviews,
-        )
+            run_batch_interviews)
 
         print("✓ All imports successful")
     except Exception as e:
@@ -599,8 +578,7 @@ if __name__ == "__main__":
             batch_id="test_batch_001",
             total_requested=5,
             total_completed=3,
-            total_failed=2,
-        )
+            total_failed=2)
         assert result.total_requested == 5
         assert result.total_completed == 3
         assert result.batch_id == "test_batch_001"

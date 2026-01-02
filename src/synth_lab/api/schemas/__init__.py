@@ -13,15 +13,13 @@ from synth_lab.api.schemas.analysis import (
     PDPParams,
     ScatterParams,
     ShapParams,
-    TryVsSuccessParams,
-)
+    TryVsSuccessParams)
 from synth_lab.api.schemas.synth_schemas import (
     ObservableWithLabelResponse,
     SimulationAttributesFormatted,
     SimulationAttributesRaw,
     SimulationLatentTraitsResponse,
-    SimulationObservablesResponse,
-)
+    SimulationObservablesResponse)
 
 __all__ = [
     # Analysis

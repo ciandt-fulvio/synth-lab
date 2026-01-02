@@ -28,8 +28,7 @@ class ExperienceClassification:
 def classify_experience(
     synth_outcome: SynthOutcome,
     avg_success_rate: float,
-    threshold: float = 0.05,
-) -> ExperienceClassification:
+    threshold: float = 0.05) -> ExperienceClassification:
     """
     Classify synth experience based on simulation results.
 
@@ -82,14 +81,12 @@ def classify_experience(
         digital_literacy=observables.digital_literacy,
         trust_mean=latent.trust_mean,
         exploration_prob=latent.exploration_prob,
-        friction_tolerance=latent.friction_tolerance_mean,
-    )
+        friction_tolerance=latent.friction_tolerance_mean)
 
     return ExperienceClassification(
         sentiment=sentiment,
         reason=reason,
-        non_attempt_reason=behavior_reason,
-    )
+        non_attempt_reason=behavior_reason)
 
 
 def _generate_behavior_description(
@@ -98,8 +95,7 @@ def _generate_behavior_description(
     digital_literacy: float,
     trust_mean: float,
     exploration_prob: float,
-    friction_tolerance: float,
-) -> str:
+    friction_tolerance: float) -> str:
     """
     Generate deterministic behavior description based on synth attributes.
 
@@ -309,8 +305,7 @@ if __name__ == "__main__":
             attempt_rate=0.90,
             success_rate=0.85,
             failure_rate=0.05,
-            n_executions=100,
-        )
+            n_executions=100)
         text = format_simulation_context(ctx)
         if "90%" not in text:
             all_validation_failures.append("High attempt rate not mentioned")
@@ -330,8 +325,7 @@ if __name__ == "__main__":
             attempt_rate=0.50,
             success_rate=0.15,
             failure_rate=0.35,
-            n_executions=100,
-        )
+            n_executions=100)
         text = format_simulation_context(ctx)
         if "50%" not in text:
             all_validation_failures.append("Medium attempt rate not mentioned")
@@ -351,8 +345,7 @@ if __name__ == "__main__":
             attempt_rate=0.20,
             success_rate=0.60,
             failure_rate=0.20,
-            n_executions=100,
-        )
+            n_executions=100)
         text = format_simulation_context(ctx)
         if "raramente" not in text.lower():
             all_validation_failures.append("'raramente' not found for low attempt rate")
@@ -370,8 +363,7 @@ if __name__ == "__main__":
             attempt_rate=0.75,
             success_rate=0.50,
             failure_rate=0.25,
-            n_executions=100,
-        )
+            n_executions=100)
         brief = format_simulation_context_brief(ctx)
         if "75%" not in brief:
             all_validation_failures.append("Brief format missing attempt rate")
@@ -391,8 +383,7 @@ if __name__ == "__main__":
             attempt_rate=0.80,
             success_rate=0.70,
             failure_rate=0.10,
-            n_executions=100,
-        )
+            n_executions=100)
         text = format_simulation_context(ctx)
         if "Baseie suas respostas" not in text:
             all_validation_failures.append("Behavior instruction not found")
@@ -410,8 +401,7 @@ if __name__ == "__main__":
             attempt_rate=0.55,
             success_rate=0.40,
             failure_rate=0.15,
-            n_executions=100,
-        )
+            n_executions=100)
         text = format_simulation_context(ctx)
         if "metade" not in text.lower():
             all_validation_failures.append("'metade' not found for medium attempt rate")
@@ -427,8 +417,7 @@ if __name__ == "__main__":
             attempt_rate=0.85,
             success_rate=0.45,
             failure_rate=0.40,
-            n_executions=100,
-        )
+            n_executions=100)
         text = format_simulation_context(ctx)
         if "quase sempre" not in text.lower():
             all_validation_failures.append("'quase sempre' not found for high attempt")
@@ -443,8 +432,7 @@ if __name__ == "__main__":
         from synth_lab.domain.entities.simulation_attributes import (
             SimulationAttributes,
             SimulationLatentTraits,
-            SimulationObservables,
-        )
+            SimulationObservables)
 
         sample_attrs = SimulationAttributes(
             observables=SimulationObservables(
@@ -452,23 +440,19 @@ if __name__ == "__main__":
                 similar_tool_experience=0.42,
                 motor_ability=0.85,
                 time_availability=0.28,
-                domain_expertise=0.55,
-            ),
+                domain_expertise=0.55),
             latent_traits=SimulationLatentTraits(
                 capability_mean=0.42,
                 trust_mean=0.39,
                 friction_tolerance_mean=0.35,
-                exploration_prob=0.38,
-            ),
-        )
+                exploration_prob=0.38))
         outcome = SynthOutcome(
             analysis_id="ana_12345678",
             synth_id="test123",
             did_not_try_rate=0.20,
             failed_rate=0.20,
             success_rate=0.60,
-            synth_attributes=sample_attrs,
-        )
+            synth_attributes=sample_attrs)
         ctx = create_simulation_context_from_outcome(outcome)
         if ctx.synth_id != "test123":
             all_validation_failures.append(f"synth_id mismatch: {ctx.synth_id}")

@@ -2,21 +2,24 @@
 Repository for chart insights persistence.
 
 Handles saving and retrieving LLM-generated insights for simulation charts.
+Uses SQLAlchemy ORM for database operations.
 
 References:
     - Spec: specs/017-analysis-ux-research/spec.md (US6)
     - Data model: specs/017-analysis-ux-research/data-model.md
     - Entities: synth_lab.domain.entities.chart_insight
+    - ORM models: synth_lab.models.orm.insight
 
 Sample usage:
     from synth_lab.repositories.insight_repository import InsightRepository
-    from synth_lab.infrastructure.database import get_database
 
-    repo = InsightRepository(get_database())
+    # ORM mode
+    repo = InsightRepository(db=get_database())
     insight = repo.get("sim_123", "try_vs_success")
-    if insight is None:
-        # Generate via LLM and save
-        repo.save("sim_123", "try_vs_success", chart_insight)
+
+    # ORM mode (SQLAlchemy)
+    repo = InsightRepository(session=session)
+    insight = repo.get("sim_123", "try_vs_success")
 
 Expected output:
     ChartInsight or None (if not found)
@@ -28,9 +31,12 @@ from datetime import datetime, timezone
 from typing import Any
 
 from loguru import logger
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from synth_lab.domain.entities.chart_insight import ChartInsight, ChartType
-from synth_lab.infrastructure.database import DatabaseManager, get_database
+from synth_lab.models.orm.insight import ChartInsight as ChartInsightORM
+from synth_lab.repositories.base import BaseRepository
 
 
 def generate_insight_id() -> str:
@@ -38,52 +44,38 @@ def generate_insight_id() -> str:
     return f"ins_{uuid.uuid4().hex[:12]}"
 
 
-class InsightRepository:
-    """Repository for chart insight persistence."""
+class InsightRepository(BaseRepository):
+    """Repository for chart insight persistence.
+
+    Uses SQLAlchemy ORM for database operations.
+
+    Usage:
+        # ORM mode
+        repo = InsightRepository(db=database_manager)
+
+        # ORM mode (SQLAlchemy)
+        repo = InsightRepository(session=session)
+    """
 
     # Table name
     TABLE = "chart_insights"
 
-    def __init__(self, db: DatabaseManager | None = None) -> None:
+    def __init__(
+        self,
+session: Session | None = None) -> None:
         """
         Initialize repository.
 
         Args:
-            db: Database manager instance. Defaults to global instance.
+            session: SQLAlchemy session for ORM operations.
         """
-        self.db = db or get_database()
+        super().__init__(session=session)
         self.logger = logger.bind(component="insight_repository")
-        self._ensure_table_exists()
-
-    def _ensure_table_exists(self) -> None:
-        """Create table if it doesn't exist."""
-        sql = """
-            CREATE TABLE IF NOT EXISTS chart_insights (
-                id TEXT PRIMARY KEY,
-                simulation_id TEXT NOT NULL,
-                insight_type TEXT NOT NULL,
-                response_json TEXT NOT NULL CHECK(json_valid(response_json)),
-                created_at TEXT NOT NULL DEFAULT (datetime('now')),
-                updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-                UNIQUE(simulation_id, insight_type)
-            )
-        """
-        self.db.execute(sql)
-
-        # Create indices
-        self.db.execute(
-            "CREATE INDEX IF NOT EXISTS idx_chart_insights_simulation "
-            "ON chart_insights(simulation_id)"
-        )
-        self.db.execute(
-            "CREATE INDEX IF NOT EXISTS idx_chart_insights_type ON chart_insights(insight_type)"
-        )
 
     def get(
         self,
         simulation_id: str,
-        insight_type: ChartType,
-    ) -> ChartInsight | None:
+        insight_type: ChartType) -> ChartInsight | None:
         """
         Get insight for a simulation and chart type.
 
@@ -94,23 +86,16 @@ class InsightRepository:
         Returns:
             ChartInsight if found, None otherwise
         """
-        sql = """
-            SELECT id, simulation_id, insight_type, response_json, created_at, updated_at
-            FROM chart_insights
-            WHERE simulation_id = ? AND insight_type = ?
-        """
-
-        row = self.db.fetchone(sql, (simulation_id, insight_type))
-
-        if row is None:
+        stmt = select(ChartInsightORM).where(
+            ChartInsightORM.simulation_id == simulation_id,
+            ChartInsightORM.insight_type == insight_type)
+        orm_insight = self.session.execute(stmt).scalar_one_or_none()
+        if orm_insight is None:
             return None
-
-        return self._row_to_insight(row)
-
+        return self._orm_to_insight(orm_insight)
     def get_all_for_simulation(
         self,
-        simulation_id: str,
-    ) -> dict[str, ChartInsight]:
+        simulation_id: str) -> dict[str, ChartInsight]:
         """
         Get all insights for a simulation (excluding executive_summary).
 
@@ -120,28 +105,24 @@ class InsightRepository:
         Returns:
             Dict mapping insight_type to ChartInsight
         """
-        sql = """
-            SELECT id, simulation_id, insight_type, response_json, created_at, updated_at
-            FROM chart_insights
-            WHERE simulation_id = ? AND insight_type != 'executive_summary'
-            ORDER BY created_at ASC
-        """
-
-        rows = self.db.fetchall(sql, (simulation_id,))
-
+        stmt = (
+            select(ChartInsightORM)
+            .where(
+                ChartInsightORM.simulation_id == simulation_id,
+                ChartInsightORM.insight_type != "executive_summary")
+            .order_by(ChartInsightORM.created_at.asc())
+        )
+        orm_insights = list(self.session.execute(stmt).scalars().all())
         result: dict[str, ChartInsight] = {}
-        for row in rows:
-            insight = self._row_to_insight(row)
-            result[row["insight_type"]] = insight
-
+        for orm_insight in orm_insights:
+            insight = self._orm_to_insight(orm_insight)
+            result[orm_insight.insight_type] = insight
         return result
-
     def save(
         self,
         simulation_id: str,
         insight_type: ChartType,
-        insight: ChartInsight,
-    ) -> str:
+        insight: ChartInsight) -> str:
         """
         Save or update an insight.
 
@@ -155,48 +136,49 @@ class InsightRepository:
         """
         now = datetime.now(timezone.utc).isoformat()
 
-        # Serialize insight to JSON
-        response_json = json.dumps(insight.model_dump())
+        # Serialize insight to JSON (dict for ORM, string for SQLite)
+        # Use mode="json" to ensure datetime objects are serialized
+        insight_dict = insight.model_dump(mode="json")
+        response_json = json.dumps(insight_dict)
 
         # Check if exists
-        existing = self.get(simulation_id, insight_type)
+        stmt = select(ChartInsightORM).where(
+            ChartInsightORM.simulation_id == simulation_id,
+            ChartInsightORM.insight_type == insight_type)
+        orm_insight = self.session.execute(stmt).scalar_one_or_none()
 
-        if existing:
+        if orm_insight:
             # Update
-            sql = """
-                UPDATE chart_insights
-                SET response_json = ?, updated_at = ?
-                WHERE simulation_id = ? AND insight_type = ?
-            """
-            self.db.execute(sql, (response_json, now, simulation_id, insight_type))
-
-            # Get the ID
-            row = self.db.fetchone(
-                "SELECT id FROM chart_insights WHERE simulation_id = ? AND insight_type = ?",
-                (simulation_id, insight_type),
+            orm_insight.response_json = insight_dict
+            orm_insight.updated_at = now
+            self._flush()
+            self._commit()
+            insight_id = orm_insight.id
+            self.logger.debug(
+                f"Updated insight {insight_id} for {simulation_id}/{insight_type}"
             )
-            insight_id = row["id"] if row else generate_insight_id()
-
-            self.logger.debug(f"Updated insight {insight_id} for {simulation_id}/{insight_type}")
         else:
             # Insert
             insight_id = generate_insight_id()
-            sql = """
-                INSERT INTO chart_insights (
-                    id, simulation_id, insight_type, response_json, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?)
-            """
-            self.db.execute(sql, (insight_id, simulation_id, insight_type, response_json, now, now))
-
-            self.logger.debug(f"Saved insight {insight_id} for {simulation_id}/{insight_type}")
+            new_insight = ChartInsightORM(
+                id=insight_id,
+                simulation_id=simulation_id,
+                insight_type=insight_type,
+                response_json=insight_dict,
+                created_at=now,
+                updated_at=now)
+            self._add(new_insight)
+            self._flush()
+            self._commit()
+            self.logger.debug(
+                f"Saved insight {insight_id} for {simulation_id}/{insight_type}"
+            )
 
         return insight_id
-
     def save_executive_summary(
         self,
         simulation_id: str,
-        summary: str,
-    ) -> str:
+        summary: str) -> str:
         """
         Save executive summary for a simulation.
 
@@ -210,35 +192,36 @@ class InsightRepository:
         now = datetime.now(timezone.utc).isoformat()
         insight_type = "executive_summary"
 
-        # Serialize as JSON
-        response_json = json.dumps({"executive_summary": summary, "generated_at": now})
+        # Serialize as JSON (dict for ORM, string for SQLite)
+        summary_dict = {"executive_summary": summary, "generated_at": now}
+        response_json = json.dumps(summary_dict)
 
-        # Check if exists
-        existing_row = self.db.fetchone(
-            "SELECT id FROM chart_insights WHERE simulation_id = ? AND insight_type = ?",
-            (simulation_id, insight_type),
-        )
+        stmt = select(ChartInsightORM).where(
+            ChartInsightORM.simulation_id == simulation_id,
+            ChartInsightORM.insight_type == insight_type)
+        orm_insight = self.session.execute(stmt).scalar_one_or_none()
 
-        if existing_row:
-            sql = """
-                UPDATE chart_insights
-                SET response_json = ?, updated_at = ?
-                WHERE simulation_id = ? AND insight_type = ?
-            """
-            self.db.execute(sql, (response_json, now, simulation_id, insight_type))
-            insight_id = existing_row["id"]
+        if orm_insight:
+            orm_insight.response_json = summary_dict
+            orm_insight.updated_at = now
+            self._flush()
+            self._commit()
+            insight_id = orm_insight.id
         else:
             insight_id = generate_insight_id()
-            sql = """
-                INSERT INTO chart_insights (
-                    id, simulation_id, insight_type, response_json, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?)
-            """
-            self.db.execute(sql, (insight_id, simulation_id, insight_type, response_json, now, now))
+            new_insight = ChartInsightORM(
+                id=insight_id,
+                simulation_id=simulation_id,
+                insight_type=insight_type,
+                response_json=summary_dict,
+                created_at=now,
+                updated_at=now)
+            self._add(new_insight)
+            self._flush()
+            self._commit()
 
         self.logger.debug(f"Saved executive summary for {simulation_id}")
         return insight_id
-
     def get_executive_summary(self, simulation_id: str) -> str | None:
         """
         Get executive summary for a simulation.
@@ -249,19 +232,14 @@ class InsightRepository:
         Returns:
             Executive summary text or None
         """
-        sql = """
-            SELECT response_json
-            FROM chart_insights
-            WHERE simulation_id = ? AND insight_type = 'executive_summary'
-        """
-        row = self.db.fetchone(sql, (simulation_id,))
-
-        if row is None:
+        stmt = select(ChartInsightORM).where(
+            ChartInsightORM.simulation_id == simulation_id,
+            ChartInsightORM.insight_type == "executive_summary")
+        orm_insight = self.session.execute(stmt).scalar_one_or_none()
+        if orm_insight is None:
             return None
-
-        data = json.loads(row["response_json"])
-        return data.get("executive_summary")
-
+        # response_json is a dict in ORM mode
+        return orm_insight.response_json.get("executive_summary")
     def delete_for_simulation(self, simulation_id: str) -> int:
         """
         Delete all insights for a simulation.
@@ -272,18 +250,21 @@ class InsightRepository:
         Returns:
             Number of deleted records
         """
-        sql = "DELETE FROM chart_insights WHERE simulation_id = ?"
-        cursor = self.db.execute(sql, (simulation_id,))
-        deleted = cursor.rowcount
-
+        stmt = select(ChartInsightORM).where(
+            ChartInsightORM.simulation_id == simulation_id
+        )
+        orm_insights = list(self.session.execute(stmt).scalars().all())
+        deleted = len(orm_insights)
+        for orm_insight in orm_insights:
+            self._delete(orm_insight)
+        self._flush()
+        self._commit()
         self.logger.info(f"Deleted {deleted} insights for simulation {simulation_id}")
         return deleted
-
     def delete_insight(
         self,
         simulation_id: str,
-        insight_type: ChartType,
-    ) -> bool:
+        insight_type: ChartType) -> bool:
         """
         Delete a specific insight.
 
@@ -294,10 +275,16 @@ class InsightRepository:
         Returns:
             True if deleted, False if not found
         """
-        sql = "DELETE FROM chart_insights WHERE simulation_id = ? AND insight_type = ?"
-        cursor = self.db.execute(sql, (simulation_id, insight_type))
-        return cursor.rowcount > 0
-
+        stmt = select(ChartInsightORM).where(
+            ChartInsightORM.simulation_id == simulation_id,
+            ChartInsightORM.insight_type == insight_type)
+        orm_insight = self.session.execute(stmt).scalar_one_or_none()
+        if orm_insight is None:
+            return False
+        self._delete(orm_insight)
+        self._flush()
+        self._commit()
+        return True
     def _row_to_insight(self, row: dict[str, Any]) -> ChartInsight:
         """
         Convert database row to ChartInsight entity.
@@ -310,6 +297,19 @@ class InsightRepository:
         """
         data = json.loads(row["response_json"])
         return ChartInsight(**data)
+
+    def _orm_to_insight(self, orm_insight: ChartInsightORM) -> ChartInsight:
+        """
+        Convert ORM model to ChartInsight entity.
+
+        Args:
+            orm_insight: ORM ChartInsight model
+
+        Returns:
+            ChartInsight domain entity
+        """
+        # response_json is already a dict in ORM mode
+        return ChartInsight(**orm_insight.response_json)
 
 
 # =============================================================================
@@ -324,10 +324,11 @@ if __name__ == "__main__":
 
     # Initialize database and repository
     db = get_database()
-    repo = InsightRepository(db)
+    repo = InsightRepository()
 
-    # Use a test simulation ID
-    test_sim_id = "sim_test_insight_repo"
+    # Use a test simulation ID (must match analysis_id pattern)
+    test_analysis_id = "ana_12345678"
+    test_sim_id = f"sim_{test_analysis_id}"
 
     # Clean up any existing test data
     repo.delete_for_simulation(test_sim_id)
@@ -336,14 +337,11 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         test_insight = ChartInsight(
-            simulation_id=test_sim_id,
+            analysis_id=test_analysis_id,
             chart_type="try_vs_success",
-            caption="42% of synths in usability issue quadrant",
-            explanation="Analysis shows significant usability challenges.",
-            evidence=["Point 1", "Point 2"],
-            recommendation="Focus on improving discoverability",
-            confidence=0.95,
-        )
+            summary="42% of synths in usability issue quadrant. Analysis shows challenges.",
+            status="completed",
+            model="gpt-4.1-mini")
 
         # Save
         insight_id = repo.save(test_sim_id, "try_vs_success", test_insight)
@@ -353,12 +351,12 @@ if __name__ == "__main__":
 
         if retrieved is None:
             all_validation_failures.append("Failed to retrieve saved insight")
-        elif retrieved.caption != test_insight.caption:
+        elif retrieved.summary != test_insight.summary:
             all_validation_failures.append(
-                f"Caption mismatch: {retrieved.caption} != {test_insight.caption}"
+                f"Summary mismatch: {retrieved.summary} != {test_insight.summary}"
             )
-        elif retrieved.confidence != 0.95:
-            all_validation_failures.append(f"Confidence mismatch: {retrieved.confidence}")
+        elif retrieved.status != "completed":
+            all_validation_failures.append(f"Status mismatch: {retrieved.status}")
         else:
             print(f"Test 1 PASSED: Save and retrieve insight (id={insight_id})")
     except Exception as e:
@@ -368,19 +366,18 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         updated_insight = ChartInsight(
-            simulation_id=test_sim_id,
+            analysis_id=test_analysis_id,
             chart_type="try_vs_success",
-            caption="Updated caption",
-            explanation="Updated explanation",
-        )
+            summary="Updated summary with new analysis.",
+            status="completed")
 
         repo.save(test_sim_id, "try_vs_success", updated_insight)
         retrieved = repo.get(test_sim_id, "try_vs_success")
 
         if retrieved is None:
             all_validation_failures.append("Failed to retrieve updated insight")
-        elif retrieved.caption != "Updated caption":
-            all_validation_failures.append(f"Update failed: {retrieved.caption}")
+        elif retrieved.summary != "Updated summary with new analysis.":
+            all_validation_failures.append(f"Update failed: {retrieved.summary}")
         else:
             print("Test 2 PASSED: Update existing insight")
     except Exception as e:
@@ -391,11 +388,10 @@ if __name__ == "__main__":
     try:
         # Add another insight
         clustering_insight = ChartInsight(
-            simulation_id=test_sim_id,
+            analysis_id=test_analysis_id,
             chart_type="clustering",
-            caption="3 personas identified",
-            explanation="K-means clustering results.",
-        )
+            summary="3 personas identified via K-means clustering.",
+            status="completed")
         repo.save(test_sim_id, "clustering", clustering_insight)
 
         all_insights = repo.get_all_for_simulation(test_sim_id)
@@ -429,7 +425,7 @@ if __name__ == "__main__":
     # Test 5: Get non-existent insight
     total_tests += 1
     try:
-        result = repo.get("non_existent_sim", "tornado")
+        result = repo.get("non_existent_sim", "dendrogram")
         if result is not None:
             all_validation_failures.append("Should return None for non-existent")
         else:
@@ -445,7 +441,7 @@ if __name__ == "__main__":
             all_validation_failures.append("Delete should return True")
         else:
             remaining = repo.get_all_for_simulation(test_sim_id)
-            # Should have try_vs_success and executive_summary
+            # Should only have try_vs_success (executive_summary is excluded)
             if "clustering" in remaining:
                 all_validation_failures.append("clustering should be deleted")
             else:

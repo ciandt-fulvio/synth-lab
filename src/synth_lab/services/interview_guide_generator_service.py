@@ -12,16 +12,14 @@ References:
 Sample usage:
 ```python
 from synth_lab.services.interview_guide_generator_service import (
-    InterviewGuideGeneratorService,
-)
+    InterviewGuideGeneratorService)
 
 service = InterviewGuideGeneratorService()
 guide = await service.generate_for_experiment(
     experiment_id="exp_123",
     name="Checkout 1-clique",
     hypothesis="Usuários preferem checkout simplificado",
-    description="Testar nova experiência de compra rápida",
-)
+    description="Testar nova experiência de compra rápida")
 ```
 """
 
@@ -36,8 +34,7 @@ from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
 from synth_lab.repositories.interview_guide_repository import (
     InterviewGuide,
-    InterviewGuideRepository,
-)
+    InterviewGuideRepository)
 
 # Phoenix/OpenTelemetry tracer for observability
 _tracer = get_tracer("interview-guide-generator")
@@ -62,8 +59,7 @@ class InterviewGuideGeneratorService:
     def __init__(
         self,
         llm_client: LLMClient | None = None,
-        interview_guide_repo: InterviewGuideRepository | None = None,
-    ):
+        interview_guide_repo: InterviewGuideRepository | None = None):
         """
         Initialize the service.
 
@@ -79,8 +75,7 @@ class InterviewGuideGeneratorService:
         self,
         name: str,
         hypothesis: str,
-        description: str | None,
-    ) -> str:
+        description: str | None) -> str:
         """
         Build the prompt for interview guide generation.
 
@@ -123,8 +118,7 @@ class InterviewGuideGeneratorService:
         context_examples_example = (
             '"negative: No natal passado fui comprar um presente para minha mãe na Amazon.com e o pedido atrasou duas semanas, chegou depois do natal. Fiquei muito frustrado porque era um presente especial. Outra vez, semana passada eu precisava de um carregador urgente, comprei com entrega rápida mas veio o modelo errado. Tive que devolver e esperar mais uma semana, me senti enganado.',
             "positive: No natal passado fui comprar um presente para minha mãe na Amazon.com e chegou super rápido, antes do prazo até. Fiquei impressionado com a eficiência. Semana passada eu precisava de um carregador urgente, usei o 1-clique e no dia seguinte já estava na minha casa. Me senti muito bem atendido, virei fã.",
-            'neutral: Eu sempre ouço falar da Amazon.com e do tal botão de comprar com 1 clique, mas sinceramente nunca experimentei. Faço minhas compras mais em lojas físicas mesmo, não tenho muito costume de comprar online."',
-        )
+            'neutral: Eu sempre ouço falar da Amazon.com e do tal botão de comprar com 1 clique, mas sinceramente nunca experimentei. Faço minhas compras mais em lojas físicas mesmo, não tenho muito costume de comprar online."')
 
         return f"""{intro}
 
@@ -171,8 +165,7 @@ Responda APENAS com o JSON, sem explicações adicionais."""
         self,
         name: str,
         hypothesis: str,
-        description: str | None = None,
-    ) -> GeneratedGuideContent:
+        description: str | None = None) -> GeneratedGuideContent:
         """
         Generate interview guide content using LLM.
 
@@ -193,8 +186,7 @@ Responda APENAS com o JSON, sem explicações adicionais."""
             attributes={
                 "experiment_name": name,
                 "has_description": description is not None,
-            },
-        ) as span:
+            }) as span:
             prompt = self._build_prompt(name, hypothesis, description)
             self.logger.info(f"Generating interview guide for: {name}")
 
@@ -203,8 +195,7 @@ Responda APENAS com o JSON, sem explicações adicionais."""
                 response = self.llm.complete_json(
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.7,
-                    operation_name="Interview Guide Generation",
-                )
+                    operation_name="Interview Guide Generation")
 
                 # Parse JSON response
                 data = json.loads(response)
@@ -218,8 +209,7 @@ Responda APENAS com o JSON, sem explicações adicionais."""
                 content = GeneratedGuideContent(
                     questions=data["questions"],
                     context_definition=data["context_definition"],
-                    context_examples=data["context_examples"],
-                )
+                    context_examples=data["context_examples"])
 
                 self.logger.info(f"Interview guide generated successfully for: {name}")
                 if span:
@@ -245,8 +235,7 @@ Responda APENAS com o JSON, sem explicações adicionais."""
         experiment_id: str,
         name: str,
         hypothesis: str,
-        description: str | None = None,
-    ) -> InterviewGuide:
+        description: str | None = None) -> InterviewGuide:
         """
         Generate and save interview guide for an experiment.
 
@@ -268,8 +257,7 @@ Responda APENAS com o JSON, sem explicações adicionais."""
             attributes={
                 "experiment_id": experiment_id,
                 "experiment_name": name,
-            },
-        ):
+            }):
             # Check if guide already exists
             existing = self.interview_guide_repo.get_by_experiment_id(experiment_id)
             if existing is not None:
@@ -289,8 +277,7 @@ Responda APENAS com o JSON, sem explicações adicionais."""
                 questions=content.questions,
                 context_examples=content.context_examples,
                 created_at=now,
-                updated_at=None,
-            )
+                updated_at=None)
 
             created_guide = self.interview_guide_repo.create(guide)
             self.logger.info(f"Interview guide created for experiment: {experiment_id}")
@@ -302,8 +289,7 @@ Responda APENAS com o JSON, sem explicações adicionais."""
         experiment_id: str,
         name: str,
         hypothesis: str,
-        description: str | None = None,
-    ) -> InterviewGuide:
+        description: str | None = None) -> InterviewGuide:
         """
         Synchronous wrapper for generate_for_experiment.
 
@@ -336,8 +322,7 @@ Responda APENAS com o JSON, sem explicações adicionais."""
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future = executor.submit(
                     asyncio.run,
-                    self.generate_for_experiment(experiment_id, name, hypothesis, description),
-                )
+                    self.generate_for_experiment(experiment_id, name, hypothesis, description))
                 return future.result()
 
 
@@ -345,8 +330,7 @@ async def generate_interview_guide_async(
     experiment_id: str,
     name: str,
     hypothesis: str,
-    description: str | None = None,
-) -> InterviewGuide | None:
+    description: str | None = None) -> InterviewGuide | None:
     """
     Standalone async function to generate interview guide.
 
@@ -383,8 +367,7 @@ if __name__ == "__main__":
     try:
         from synth_lab.services.interview_guide_generator_service import (
             GeneratedGuideContent,
-            InterviewGuideGeneratorService,
-        )
+            InterviewGuideGeneratorService)
 
         print("✓ All imports successful")
     except Exception as e:
@@ -407,8 +390,7 @@ if __name__ == "__main__":
         prompt = service._build_prompt(
             name="Checkout 1-clique",
             hypothesis="Usuários preferem checkout simplificado",
-            description="Testar nova experiência de compra",
-        )
+            description="Testar nova experiência de compra")
         assert "Checkout 1-clique" in prompt
         assert "Usuários preferem checkout simplificado" in prompt
         assert "questions" in prompt
@@ -425,8 +407,7 @@ if __name__ == "__main__":
         prompt = service._build_prompt(
             name="Test",
             hypothesis="Test hypothesis",
-            description=None,
-        )
+            description=None)
         assert "Não fornecida" in prompt
         print("✓ Prompt handles None description correctly")
     except Exception as e:
@@ -438,8 +419,7 @@ if __name__ == "__main__":
         content = GeneratedGuideContent(
             questions="Tema central. Pergunta 1? Pergunta 2?",
             context_definition="Contexto da pesquisa.",
-            context_examples="pos1|pos2|neu1|neu2|neg1|neg2",
-        )
+            context_examples="pos1|pos2|neu1|neu2|neg1|neg2")
         assert content.questions is not None
         assert content.context_definition is not None
         assert content.context_examples is not None

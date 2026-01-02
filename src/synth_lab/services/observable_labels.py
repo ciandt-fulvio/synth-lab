@@ -20,8 +20,7 @@ from dataclasses import dataclass
 
 from synth_lab.domain.constants.observable_metadata import (
     OBSERVABLE_METADATA,
-    ObservableMetadata,
-)
+    ObservableMetadata)
 from synth_lab.domain.entities.simulation_attributes import SimulationObservables
 
 # Label thresholds (upper bounds, exclusive except for last)
@@ -107,13 +106,11 @@ def format_observable_with_label(
         name=metadata.name,
         value=value,
         label=value_to_label(value),
-        description=metadata.description,
-    )
+        description=metadata.description)
 
 
 def format_observables_with_labels(
-    observables: SimulationObservables,
-) -> list[ObservableWithLabel]:
+    observables: SimulationObservables) -> list[ObservableWithLabel]:
     """
     Format all observables with their labels and metadata.
 
@@ -216,8 +213,7 @@ if __name__ == "__main__":
         similar_tool_experience=0.42,
         motor_ability=0.85,
         time_availability=0.28,
-        domain_expertise=0.55,
-    )
+        domain_expertise=0.55)
     formatted_list = format_observables_with_labels(obs)
     if len(formatted_list) != 5:
         all_validation_failures.append(

@@ -66,8 +66,7 @@ def load_image_base64(filename: str, topic_guide_name: str) -> str:
 
 def create_image_loader_tool(
     topic_guide_name: str,
-    available_images: list[str],
-) -> FunctionTool:
+    available_images: list[str]) -> FunctionTool:
     """
     Create a function tool for loading images from a topic guide.
 
@@ -99,8 +98,7 @@ def create_image_loader_tool(
             f"Use esta ferramenta quando quiser ver uma imagem específica "
             f"que está sendo discutida na entrevista. "
             f"Imagens disponíveis: {images_list}"
-        ),
-    )
+        ))
     def load_image(filename: str) -> str:
         """
         Load an image from the topic guide for visual analysis.

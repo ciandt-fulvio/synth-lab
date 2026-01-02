@@ -16,8 +16,7 @@ from synth_lab.repositories.research_repository import ResearchRepository
 from synth_lab.services.errors import (
     ExecutionNotFoundError,
     PRFAQNotFoundError,
-    SummaryNotFoundError,
-)
+    SummaryNotFoundError)
 
 
 class PRFAQAlreadyGeneratingError(Exception):
@@ -52,8 +51,7 @@ class PRFAQService:
 
     def list_prfaqs(
         self,
-        params: PaginationParams | None = None,
-    ) -> PaginatedResponse[PRFAQSummary]:
+        params: PaginationParams | None = None) -> PaginatedResponse[PRFAQSummary]:
         """
         List PR-FAQ documents with pagination.
 
@@ -143,8 +141,7 @@ class PRFAQService:
                 self.prfaq_repo.update_prfaq_status(
                     request.exec_id,
                     status="failed",
-                    error_message="Execution not linked to an experiment",
-                )
+                    error_message="Execution not linked to an experiment")
                 raise SummaryNotFoundError(request.exec_id)
 
             from synth_lab.domain.entities.experiment_document import DocumentType
@@ -163,8 +160,7 @@ class PRFAQService:
                 self.prfaq_repo.update_prfaq_status(
                     request.exec_id,
                     status="failed",
-                    error_message="Summary content not found in experiment_documents",
-                )
+                    error_message="Summary content not found in experiment_documents")
                 raise SummaryNotFoundError(request.exec_id)
 
             # Generate PR-FAQ markdown from summary content
@@ -172,8 +168,7 @@ class PRFAQService:
             prfaq_markdown = generate_prfaq_from_content(
                 summary_content=summary_content,
                 batch_id=request.exec_id,
-                model=request.model,
-            )
+                model=request.model)
 
             # Extract headline from markdown (first # line)
             headline = None
@@ -187,21 +182,18 @@ class PRFAQService:
                 experiment_id=execution.experiment_id,
                 document_type=DocumentType.PRFAQ,
                 markdown_content=prfaq_markdown,
-                metadata={"exec_id": request.exec_id, "headline": headline},
-            )
+                metadata={"exec_id": request.exec_id, "headline": headline})
 
             # Update legacy table status for backward compatibility (status only, no content)
             self.prfaq_repo.update_prfaq_status(
                 request.exec_id,
-                status="completed",
-            )
+                status="completed")
 
             return PRFAQGenerateResponse(
                 exec_id=request.exec_id,
                 status="generated",
                 generated_at=datetime.now(),
-                validation_status="valid",
-            )
+                validation_status="valid")
 
         except Exception as e:
             # Update with error status
@@ -210,27 +202,27 @@ class PRFAQService:
             self.prfaq_repo.update_prfaq_status(
                 request.exec_id,
                 status="failed",
-                error_message=error_msg,
-            )
+                error_message=error_msg)
             raise
 
 
 if __name__ == "__main__":
+    import os
     import sys
 
-    from synth_lab.infrastructure.config import DB_PATH
-    from synth_lab.infrastructure.database import DatabaseManager
+    from synth_lab.infrastructure.database_v2 import init_database_v2
 
-    # Validation with real data
+    # Validation with real database
     all_validation_failures = []
     total_tests = 0
 
-    if not DB_PATH.exists():
-        print(f"Database not found at {DB_PATH}. Run migration first.")
+    if not os.getenv("DATABASE_URL"):
+        print("DATABASE_URL environment variable is required.")
+        print("Set it to: postgresql://user:pass@localhost:5432/synthlab")
         sys.exit(1)
 
-    db = DatabaseManager(DB_PATH)
-    repo = PRFAQRepository(db)
+    init_database_v2()
+    repo = PRFAQRepository()
     service = PRFAQService(repo)
 
     # Test 1: List PR-FAQs
@@ -289,7 +281,6 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Pagination test failed: {e}")
 
-    db.close()
 
     # Final validation result
     if all_validation_failures:

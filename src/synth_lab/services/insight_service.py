@@ -47,8 +47,7 @@ class InsightService:
         llm_client: LLMClient | None = None,
         cache_repo: AnalysisCacheRepository | None = None,
         analysis_repo: AnalysisRepository | None = None,
-        experiment_repo: ExperimentRepository | None = None,
-    ):
+        experiment_repo: ExperimentRepository | None = None):
         """
         Initialize InsightService.
 
@@ -88,8 +87,7 @@ class InsightService:
         self,
         analysis_id: str,
         chart_type: str,
-        chart_data: dict[str, Any],
-    ) -> ChartInsight:
+        chart_data: dict[str, Any]) -> ChartInsight:
         """
         Generate insight for a specific chart type.
 
@@ -113,8 +111,7 @@ class InsightService:
                 "chart.type": chart_type,
                 "operation.type": "chart_insight",
                 "llm.model": INSIGHT_MODEL,
-            },
-        ):
+            }):
             try:
                 # Get hypothesis for context
                 hypothesis = self._get_hypothesis(analysis_id)
@@ -128,8 +125,7 @@ class InsightService:
                     f"Generating insight for {chart_type} (analysis: {analysis_id})")
                 llm_response_str = self.llm.complete_json(
                     messages=[{"role": "user", "content": prompt}],
-                    model=INSIGHT_MODEL,
-                )
+                    model=INSIGHT_MODEL)
 
                 # Parse JSON string to dict
                 llm_response = json.loads(llm_response_str)
@@ -146,8 +142,7 @@ class InsightService:
                     chart_type=chart_type,
                     summary=summary,
                     status="completed",
-                    model=INSIGHT_MODEL,
-                )
+                    model=INSIGHT_MODEL)
 
                 # Store in cache
                 self.cache_repo.store_chart_insight(insight)
@@ -165,16 +160,14 @@ class InsightService:
                     chart_type=chart_type,
                     summary=f"Falha ao gerar insight: {e}",
                     status="failed",
-                    model=INSIGHT_MODEL,
-                )
+                    model=INSIGHT_MODEL)
                 self.cache_repo.store_chart_insight(failed_insight)
                 return failed_insight
 
     def _create_pending_insight(
         self,
         analysis_id: str,
-        chart_type: str,
-    ) -> ChartInsight:
+        chart_type: str) -> ChartInsight:
         """
         Create a pending insight immediately to return to the client.
 
@@ -190,8 +183,7 @@ class InsightService:
             chart_type=chart_type,
             summary="Gerando insight... Aguarde.",
             status="pending",
-            model=INSIGHT_MODEL,
-        )
+            model=INSIGHT_MODEL)
         self.cache_repo.store_chart_insight(pending_insight)
         return pending_insight
 

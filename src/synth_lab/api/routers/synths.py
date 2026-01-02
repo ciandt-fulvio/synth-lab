@@ -30,8 +30,7 @@ async def list_synths(
     sort_by: str | None = Query(default=None, description="Field to sort by"),
     sort_order: str = Query(default="desc", pattern="^(asc|desc)$", description="Sort order"),
     fields: str | None = Query(default=None, description="Comma-separated list of fields"),
-    synth_group_id: str | None = Query(default=None, description="Filter by synth group ID"),
-) -> PaginatedResponse[SynthSummary]:
+    synth_group_id: str | None = Query(default=None, description="Filter by synth group ID")) -> PaginatedResponse[SynthSummary]:
     """
     List all synths with pagination.
 
@@ -43,8 +42,7 @@ async def list_synths(
         limit=limit,
         offset=offset,
         sort_by=sort_by,
-        sort_order=sort_order,
-    )
+        sort_order=sort_order)
     field_list = fields.split(",") if fields else None
     return service.list_synths(params, field_list, synth_group_id=synth_group_id)
 
@@ -89,8 +87,7 @@ async def get_avatar(synth_id: str) -> FileResponse | RedirectResponse:
         return FileResponse(
             path=avatar_path,
             media_type="image/png",
-            filename=f"{synth_id}.png",
-        )
+            filename=f"{synth_id}.png")
     except AvatarNotFoundError:
         # Fallback: try to use link_photo
         synth = service.get_synth(synth_id)
@@ -102,16 +99,14 @@ async def get_avatar(synth_id: str) -> FileResponse | RedirectResponse:
         # No avatar file and no link_photo available
         raise HTTPException(
             status_code=404,
-            detail=f"Avatar not found for synth {synth_id} and no fallback link_photo available",
-        )
+            detail=f"Avatar not found for synth {synth_id} and no fallback link_photo available")
 
 
 @router.post("/search", response_model=PaginatedResponse[SynthSummary])
 async def search_synths(
     request: SynthSearchRequest,
     limit: int = Query(default=50, ge=1, le=200, description="Maximum items per page"),
-    offset: int = Query(default=0, ge=0, description="Number of items to skip"),
-) -> PaginatedResponse[SynthSummary]:
+    offset: int = Query(default=0, ge=0, description="Number of items to skip")) -> PaginatedResponse[SynthSummary]:
     """
     Search synths with WHERE clause or full query.
 

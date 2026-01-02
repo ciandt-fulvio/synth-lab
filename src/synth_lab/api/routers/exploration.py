@@ -23,9 +23,8 @@ from synth_lab.api.schemas.exploration import (
     PathStepResponse,
     WinningPathResponse,
     exploration_to_response,
-    node_to_response,
-)
-from synth_lab.infrastructure.database import get_database
+    node_to_response)
+from synth_lab.infrastructure.database_v2 import get_session
 from synth_lab.repositories.synth_repository import SynthRepository
 from synth_lab.services.exploration.action_catalog import get_action_catalog_service
 from synth_lab.services.exploration.exploration_service import (
@@ -33,8 +32,7 @@ from synth_lab.services.exploration.exploration_service import (
     ExplorationNotFoundError,
     ExplorationService,
     NoBaselineAnalysisError,
-    NoScorecardError,
-)
+    NoScorecardError)
 
 router = APIRouter()
 
@@ -81,33 +79,28 @@ async def create_exploration(data: ExplorationCreate) -> ExplorationResponse:
             max_depth=data.max_depth,
             max_llm_calls=data.max_llm_calls,
             n_executions=data.n_executions,
-            seed=data.seed,
-        )
+            seed=data.seed)
         logger.info(f"Created exploration {exploration.id} for experiment {data.experiment_id}")
         return exploration_to_response(exploration)
 
     except ExperimentNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {data.experiment_id} not found",
-        )
+            detail=f"Experiment {data.experiment_id} not found")
     except NoScorecardError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Experiment {data.experiment_id} has no scorecard data",
-        )
+            detail=f"Experiment {data.experiment_id} has no scorecard data")
     except NoBaselineAnalysisError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Experiment {data.experiment_id} has no completed baseline analysis",
-        )
+            detail=f"Experiment {data.experiment_id} has no completed baseline analysis")
 
 
 @router.post("/{exploration_id}/run", response_model=ExplorationResponse)
 async def run_exploration(
     exploration_id: str,
-    background_tasks: BackgroundTasks,
-) -> ExplorationResponse:
+    background_tasks: BackgroundTasks) -> ExplorationResponse:
     """
     Run an exploration in the background.
 
@@ -128,18 +121,15 @@ async def run_exploration(
         exploration = service.get_exploration(exploration_id)
 
         # Get synths for simulation (derives simulation_attributes from observables)
-        db = get_database()
-        synth_repo = SynthRepository(db)
+        synth_repo = SynthRepository()
         synth_dicts = synth_repo.get_synths_for_simulation(
             experiment_id=exploration.experiment_id,
-            limit=200,
-        )
+            limit=200)
 
         if not synth_dicts:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="No synths found for this experiment's analysis",
-            )
+                detail="No synths found for this experiment's analysis")
 
         # Run exploration in background
         async def run_exploration_task():
@@ -156,8 +146,7 @@ async def run_exploration(
     except ExplorationNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Exploration {exploration_id} not found",
-        )
+            detail=f"Exploration {exploration_id} not found")
 
 
 @router.get("/{exploration_id}", response_model=ExplorationResponse)
@@ -181,8 +170,7 @@ async def get_exploration(exploration_id: str) -> ExplorationResponse:
     except ExplorationNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Exploration {exploration_id} not found",
-        )
+            detail=f"Exploration {exploration_id} not found")
 
 
 @router.get("/{exploration_id}/tree", response_model=ExplorationTreeResponse)
@@ -207,13 +195,11 @@ async def get_exploration_tree(exploration_id: str) -> ExplorationTreeResponse:
         return ExplorationTreeResponse(
             exploration=exploration_to_response(tree_data["exploration"]),
             nodes=[node_to_response(node) for node in tree_data["nodes"]],
-            node_count_by_status=tree_data["node_count_by_status"],
-        )
+            node_count_by_status=tree_data["node_count_by_status"])
     except ExplorationNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Exploration {exploration_id} not found",
-        )
+            detail=f"Exploration {exploration_id} not found")
 
 
 @router.get("/{exploration_id}/winning-path", response_model=WinningPathResponse | None)
@@ -248,17 +234,14 @@ async def get_winning_path(exploration_id: str) -> WinningPathResponse | None:
                     category=step["category"],
                     rationale=step["rationale"],
                     success_rate=step["success_rate"],
-                    delta_success_rate=step["delta_success_rate"],
-                )
+                    delta_success_rate=step["delta_success_rate"])
                 for step in path_data["path"]
             ],
-            total_improvement=path_data["total_improvement"],
-        )
+            total_improvement=path_data["total_improvement"])
     except ExplorationNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Exploration {exploration_id} not found",
-        )
+            detail=f"Exploration {exploration_id} not found")
 
 
 # =============================================================================
@@ -292,14 +275,11 @@ async def get_action_catalog() -> ActionCatalogResponse:
                         typical_impacts={
                             k: ImpactRangeResponse(min=v.min, max=v.max)
                             for k, v in example.typical_impacts.items()
-                        },
-                    )
+                        })
                     for example in cat.examples
-                ],
-            )
+                ])
             for cat in catalog.categories
-        ],
-    )
+        ])
 
 
 if __name__ == "__main__":
@@ -311,9 +291,7 @@ if __name__ == "__main__":
     from synth_lab.domain.entities.experiment import (
         Experiment,
         ScorecardData,
-        ScorecardDimension,
-    )
-    from synth_lab.infrastructure.database import DatabaseManager, init_database
+        ScorecardDimension)
     from synth_lab.repositories.analysis_repository import AnalysisRepository
     from synth_lab.repositories.experiment_repository import ExperimentRepository
     from synth_lab.repositories.exploration_repository import ExplorationRepository
@@ -328,17 +306,16 @@ if __name__ == "__main__":
         init_database(test_db_path)
         db = DatabaseManager(test_db_path)
 
-        experiment_repo = ExperimentRepository(db)
-        analysis_repo = AnalysisRepository(db)
-        exploration_repo = ExplorationRepository(db)
+        experiment_repo = ExperimentRepository()
+        analysis_repo = AnalysisRepository()
+        exploration_repo = ExplorationRepository()
         tree_manager = TreeManager(exploration_repo)
 
         service = ExplorationService(
             exploration_repo=exploration_repo,
             experiment_repo=experiment_repo,
             analysis_repo=analysis_repo,
-            tree_manager=tree_manager,
-        )
+            tree_manager=tree_manager)
 
         # Create test experiment with scorecard
         experiment = Experiment(
@@ -350,9 +327,7 @@ if __name__ == "__main__":
                 complexity=ScorecardDimension(score=0.45),
                 initial_effort=ScorecardDimension(score=0.30),
                 perceived_risk=ScorecardDimension(score=0.25),
-                time_to_value=ScorecardDimension(score=0.40),
-            ),
-        )
+                time_to_value=ScorecardDimension(score=0.40)))
         experiment_repo.create(experiment)
 
         # Create analysis
@@ -362,9 +337,7 @@ if __name__ == "__main__":
             aggregated_outcomes=AggregatedOutcomes(
                 success_rate=0.25,
                 failed_rate=0.45,
-                did_not_try_rate=0.30,
-            ),
-        )
+                did_not_try_rate=0.30))
         analysis_repo.create(analysis)
 
         # Test 1: exploration_to_response conversion
@@ -372,8 +345,7 @@ if __name__ == "__main__":
         try:
             exploration = service.start_exploration(
                 experiment_id=experiment.id,
-                goal_value=0.40,
-            )
+                goal_value=0.40)
             response = exploration_to_response(exploration)
             if response.id != exploration.id:
                 all_validation_failures.append(f"ID mismatch: {response.id}")

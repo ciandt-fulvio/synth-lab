@@ -13,7 +13,6 @@ References:
 
 Sample usage:
     from synth_lab.services.simulation.sensitivity import SensitivityAnalyzer
-    from synth_lab.infrastructure.database import DatabaseManager
 
     db = DatabaseManager("output/synthlab.db")
     analyzer = SensitivityAnalyzer(db)
@@ -31,7 +30,6 @@ from typing import Any
 from loguru import logger
 
 from synth_lab.domain.entities import DimensionSensitivity, SensitivityResult
-from synth_lab.infrastructure.database import DatabaseManager
 from synth_lab.repositories.scorecard_repository import ScorecardRepository
 from synth_lab.repositories.simulation_repository import SimulationRepository
 from synth_lab.services.simulation.simulation_service import SimulationService
@@ -47,24 +45,28 @@ class SensitivityAnalyzer:
         "time_to_value",
     ]
 
-    def __init__(self, db: DatabaseManager) -> None:
+    def __init__(
+        self,
+        simulation_repo: SimulationRepository | None = None,
+        scorecard_repo: ScorecardRepository | None = None,
+        simulation_service: SimulationService | None = None) -> None:
         """
         Initialize sensitivity analyzer.
 
         Args:
-            db: Database manager instance
+            simulation_repo: Simulation repository. Defaults to new instance.
+            scorecard_repo: Scorecard repository. Defaults to new instance.
+            simulation_service: Simulation service. Defaults to new instance.
         """
-        self.db = db
-        self.simulation_repo = SimulationRepository(db)
-        self.scorecard_repo = ScorecardRepository(db)
-        self.simulation_service = SimulationService(db)
+        self.simulation_repo = simulation_repo or SimulationRepository()
+        self.scorecard_repo = scorecard_repo or ScorecardRepository()
+        self.simulation_service = simulation_service or SimulationService()
         self.logger = logger.bind(component="sensitivity_analyzer")
 
     def analyze_sensitivity(
         self,
         simulation_id: str,
-        deltas: list[float] | None = None,
-    ) -> SensitivityResult:
+        deltas: list[float] | None = None) -> SensitivityResult:
         """
         Perform One-At-a-Time sensitivity analysis.
 
@@ -109,8 +111,7 @@ class SensitivityAnalyzer:
                 scorecard=scorecard,
                 baseline_run=baseline_run,
                 baseline_outcomes=baseline_outcomes,
-                deltas=deltas,
-            )
+                deltas=deltas)
             dimension_results.append(result)
 
         # Calculate sensitivity indices and rank
@@ -118,8 +119,7 @@ class SensitivityAnalyzer:
             dim_result["sensitivity_index"] = self._calculate_sensitivity_index(
                 baseline_outcomes=baseline_outcomes,
                 outcomes_by_delta=dim_result["outcomes_by_delta"],
-                deltas_tested=dim_result["deltas_tested"],
-            )
+                deltas_tested=dim_result["deltas_tested"])
 
         # Sort by sensitivity index descending
         dimension_results.sort(key=lambda x: x["sensitivity_index"], reverse=True)
@@ -134,8 +134,7 @@ class SensitivityAnalyzer:
                     deltas_tested=dim_result["deltas_tested"],
                     outcomes_by_delta=dim_result["outcomes_by_delta"],
                     sensitivity_index=dim_result["sensitivity_index"],
-                    rank=rank,
-                )
+                    rank=rank)
             )
 
         # Get the most sensitive dimension (rank 1)
@@ -147,8 +146,7 @@ class SensitivityAnalyzer:
             simulation_id=simulation_id,
             deltas_used=deltas,
             dimensions=dimensions,
-            most_sensitive_dimension=most_sensitive,
-        )
+            most_sensitive_dimension=most_sensitive)
 
     def _analyze_dimension(
         self,
@@ -156,8 +154,7 @@ class SensitivityAnalyzer:
         scorecard: Any,
         baseline_run: Any,
         baseline_outcomes: dict[str, float],
-        deltas: list[float],
-    ) -> dict[str, Any]:
+        deltas: list[float]) -> dict[str, Any]:
         """
         Analyze a single dimension using OAT.
 
@@ -259,8 +256,7 @@ class SensitivityAnalyzer:
         self,
         baseline_outcomes: dict[str, float],
         outcomes_by_delta: dict[str, dict[str, float]],
-        deltas_tested: list[float],
-    ) -> float:
+        deltas_tested: list[float]) -> float:
         """
         Calculate sensitivity index for a dimension.
 

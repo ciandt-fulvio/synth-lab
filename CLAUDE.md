@@ -18,6 +18,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-22
 - Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, Pydantic, React 18, Recharts, TanStack Query (025-sankey-diagram)
 - Python 3.13 (backend), TypeScript 5.5 (frontend) + FastAPI 0.109+, Pydantic 2.5+, SQLite 3 with JSON1, React 18, TanStack Query 5.56+ (026-experiment-documents)
 - SQLite 3 with WAL mode (`output/synthlab.db`) (026-experiment-documents)
+- Python 3.13+ + SQLAlchemy 2.0+, Alembic 1.12+, psycopg2-binary (PostgreSQL driver) (027-postgresql-migration)
+- PostgreSQL 14+ (production), SQLite 3 with JSON1 (development/fallback) (027-postgresql-migration)
 
 ### Backend
 - **Python**: 3.13+
@@ -345,9 +347,9 @@ LOG_LEVEL=INFO
 
 
 ## Recent Changes
+- 027-postgresql-migration: Added Python 3.13+ + SQLAlchemy 2.0+, Alembic 1.12+, psycopg2-binary (PostgreSQL driver)
 - 026-experiment-documents: Added Python 3.13 (backend), TypeScript 5.5 (frontend) + FastAPI 0.109+, Pydantic 2.5+, SQLite 3 with JSON1, React 18, TanStack Query 5.56+
 - 025-sankey-diagram: Added Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, Pydantic, React 18, Recharts, TanStack Query
-- 024-llm-scenario-exploration: Added Python 3.13+ (backend) + FastAPI 0.109+, Pydantic 2.5+, OpenAI SDK, asyncio
 
 
 <!-- MANUAL ADDITIONS START -->

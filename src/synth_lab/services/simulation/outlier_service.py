@@ -24,8 +24,7 @@ from synth_lab.domain.entities import (
     ExtremeSynth,
     OutlierResult,
     OutlierSynth,
-    SynthOutcome,
-)
+    SynthOutcome)
 
 
 class OutlierService:
@@ -35,8 +34,7 @@ class OutlierService:
         self,
         simulation_id: str,
         outcomes: list[SynthOutcome],
-        n_per_category: int = 10,
-    ) -> ExtremeCasesTable:
+        n_per_category: int = 10) -> ExtremeCasesTable:
         """
         Identify extreme cases for qualitative research.
 
@@ -85,16 +83,14 @@ class OutlierService:
             worst_failures=worst_failures,
             best_successes=best_successes,
             unexpected_cases=unexpected,
-            total_synths=len(outcomes),
-        )
+            total_synths=len(outcomes))
 
     def detect_outliers(
         self,
         simulation_id: str,
         outcomes: list[SynthOutcome],
         contamination: float = 0.1,
-        features: list[str] | None = None,
-    ) -> OutlierResult:
+        features: list[str] | None = None) -> OutlierResult:
         """
         Detect statistical outliers using Isolation Forest.
 
@@ -120,8 +116,7 @@ class OutlierService:
         iso_forest = IsolationForest(
             contamination=contamination,
             random_state=42,
-            n_estimators=100,
-        )
+            n_estimators=100)
 
         # Fit and predict (-1 = outlier, 1 = inlier)
         predictions = iso_forest.fit_predict(X)
@@ -151,8 +146,7 @@ class OutlierService:
                     trust_mean=synth.synth_attributes.latent_traits.trust_mean,
                     friction_tolerance_mean=synth.synth_attributes.latent_traits.friction_tolerance_mean,
                     digital_literacy=synth.synth_attributes.observables.digital_literacy,
-                    similar_tool_experience=synth.synth_attributes.observables.similar_tool_experience,
-                )
+                    similar_tool_experience=synth.synth_attributes.observables.similar_tool_experience)
             )
 
         return OutlierResult(
@@ -162,8 +156,7 @@ class OutlierService:
             outliers=outlier_synths,
             total_synths=len(outcomes),
             n_outliers=len(outlier_synths),
-            features_used=features_used,
-        )
+            features_used=features_used)
 
     def _create_extreme_synth(self, outcome: SynthOutcome, category: str) -> ExtremeSynth:
         """Create ExtremeSynth entity with profile and questions."""
@@ -180,8 +173,7 @@ class OutlierService:
             interview_questions=interview_questions,
             capability_mean=outcome.synth_attributes.latent_traits.capability_mean,
             trust_mean=outcome.synth_attributes.latent_traits.trust_mean,
-            friction_tolerance_mean=outcome.synth_attributes.latent_traits.friction_tolerance_mean,
-        )
+            friction_tolerance_mean=outcome.synth_attributes.latent_traits.friction_tolerance_mean)
 
     def _generate_profile_summary(self, outcome: SynthOutcome) -> str:
         """Generate human-readable profile summary."""
@@ -302,8 +294,7 @@ class OutlierService:
     def _extract_features(
         self,
         outcomes: list[SynthOutcome],
-        features: list[str] | None = None,
-    ) -> tuple[np.ndarray, list[str], list[str]]:
+        features: list[str] | None = None) -> tuple[np.ndarray, list[str], list[str]]:
         """Extract feature matrix for outlier detection."""
         if features is None:
             features = [

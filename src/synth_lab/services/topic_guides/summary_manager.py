@@ -44,8 +44,7 @@ def create_initial_summary(guide_name: str, summary_path: Path) -> SummaryFile:
     return SummaryFile(
         path=summary_path,
         context_description="",
-        file_descriptions=[],
-    )
+        file_descriptions=[])
 
 
 def parse_summary(summary_path: Path) -> SummaryFile:
@@ -85,8 +84,7 @@ def parse_summary(summary_path: Path) -> SummaryFile:
     context_match = re.search(
         r"# contexto para o guide:.*?\n\n(.*?)(?=\n## FILE DESCRIPTION|\Z)",
         content,
-        re.DOTALL,
-    )
+        re.DOTALL)
     context_description = context_match.group(1).strip() if context_match else ""
 
     # Parse file descriptions
@@ -113,15 +111,13 @@ def parse_summary(summary_path: Path) -> SummaryFile:
                     content_hash=content_hash,
                     description=description,
                     generated_at=datetime.now(),
-                    is_placeholder=False,
-                )
+                    is_placeholder=False)
             )
 
     return SummaryFile(
         path=summary_path,
         context_description=context_description,
-        file_descriptions=file_descriptions,
-    )
+        file_descriptions=file_descriptions)
 
 
 def add_file_description(summary_file: SummaryFile, file_description: FileDescription) -> None:
@@ -411,14 +407,12 @@ Just a context, no FILE DESCRIPTION section.
             filename="test.png",
             content_hash="abc123",
             description="A test file",
-            generated_at=datetime.now(),
-        )
+            generated_at=datetime.now())
 
         original = SummaryFile(
             path=tmp_path,
             context_description="Round trip test",
-            file_descriptions=[desc],
-        )
+            file_descriptions=[desc])
 
         write_summary(original)
         parsed = parse_summary(tmp_path)

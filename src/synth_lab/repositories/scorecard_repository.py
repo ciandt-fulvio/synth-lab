@@ -2,6 +2,7 @@
 Scorecard repository for synth-lab.
 
 Provides data access layer for feature scorecards with SQLite persistence.
+Uses SQLAlchemy ORM for database operations.
 
 Functions:
 - create_scorecard(): Create a new scorecard
@@ -12,13 +13,18 @@ Functions:
 References:
     - Spec: specs/016-feature-impact-simulation/spec.md
     - Database: src/synth_lab/infrastructure/database.py
+    - ORM models: synth_lab.models.orm.legacy
 
 Sample usage:
     from synth_lab.repositories.scorecard_repository import ScorecardRepository
 
-    repo = ScorecardRepository(db)
+    # ORM mode
+    repo = ScorecardRepository(db=database_manager)
     scorecard_id = repo.create_scorecard(scorecard)
     scorecard = repo.get_scorecard(scorecard_id)
+
+    # ORM mode (SQLAlchemy)
+    repo = ScorecardRepository(session=session)
 
 Expected output:
     FeatureScorecard instance or None if not found
@@ -28,22 +34,38 @@ import json
 from datetime import datetime, timezone
 
 from loguru import logger
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 from synth_lab.domain.entities import FeatureScorecard
-from synth_lab.infrastructure.database import DatabaseManager
+from synth_lab.models.orm.legacy import FeatureScorecard as FeatureScorecardORM
+from synth_lab.repositories.base import BaseRepository
 
 
-class ScorecardRepository:
-    """Repository for feature scorecard persistence."""
+class ScorecardRepository(BaseRepository):
+    """Repository for feature scorecard persistence.
 
-    def __init__(self, db: DatabaseManager) -> None:
+    Uses SQLAlchemy ORM for database operations.
+
+    Usage:
+        # ORM mode
+        repo = ScorecardRepository(db=database_manager)
+
+        # ORM mode (SQLAlchemy)
+        repo = ScorecardRepository(session=session)
+    """
+
+    def __init__(
+        self,
+session: Session | None = None) -> None:
         """
-        Initialize repository with database manager.
+        Initialize repository with database manager or session.
 
         Args:
-            db: Database manager instance
+            db: Legacy database manager instance.
+            session: SQLAlchemy session for ORM operations.
         """
-        self.db = db
+        super().__init__( session=session)
         self.logger = logger.bind(component="scorecard_repository")
 
     def create_scorecard(self, scorecard: FeatureScorecard) -> str:
@@ -56,16 +78,23 @@ class ScorecardRepository:
         Returns:
             str: Created scorecard ID
         """
+        return self._create_scorecard_orm(scorecard)
+
+    def _create_scorecard_orm(self, scorecard: FeatureScorecard) -> str:
+        """Create scorecard using ORM."""
         data = scorecard.model_dump(mode="json")
         created_at = scorecard.created_at.isoformat()
+        updated_at = scorecard.updated_at.isoformat() if scorecard.updated_at else None
 
-        sql = """
-            INSERT INTO feature_scorecards (id, experiment_id, data, created_at)
-            VALUES (?, ?, ?, ?)
-        """
-
-        with self.db.transaction() as conn:
-            conn.execute(sql, (scorecard.id, scorecard.experiment_id, json.dumps(data), created_at))
+        orm_scorecard = FeatureScorecardORM(
+            id=scorecard.id,
+            experiment_id=scorecard.experiment_id,
+            data=data,
+            created_at=created_at,
+            updated_at=updated_at)
+        self._add(orm_scorecard)
+        self._flush()
+        self._commit()
 
         self.logger.info(
             f"Created scorecard {scorecard.id} for experiment {scorecard.experiment_id}"
@@ -82,20 +111,20 @@ class ScorecardRepository:
         Returns:
             FeatureScorecard if found, None otherwise
         """
-        sql = "SELECT data FROM feature_scorecards WHERE id = ?"
-        row = self.db.fetchone(sql, (scorecard_id,))
+        return self._get_scorecard_orm(scorecard_id)
 
-        if row is None:
+    def _get_scorecard_orm(self, scorecard_id: str) -> FeatureScorecard | None:
+        """Get scorecard by ID using ORM."""
+        stmt = select(FeatureScorecardORM).where(FeatureScorecardORM.id == scorecard_id)
+        result = self.session.execute(stmt).scalar_one_or_none()
+        if result is None:
             return None
-
-        data = json.loads(row["data"])
-        return FeatureScorecard.model_validate(data)
+        return self._orm_to_scorecard(result)
 
     def list_scorecards(
         self,
         limit: int = 20,
-        offset: int = 0,
-    ) -> tuple[list[FeatureScorecard], int]:
+        offset: int = 0) -> tuple[list[FeatureScorecard], int]:
         """
         List scorecards with pagination.
 
@@ -106,20 +135,26 @@ class ScorecardRepository:
         Returns:
             Tuple of (list of scorecards, total count)
         """
+        return self._list_scorecards_orm(limit, offset)
+
+    def _list_scorecards_orm(
+        self, limit: int, offset: int
+    ) -> tuple[list[FeatureScorecard], int]:
+        """List scorecards using ORM."""
         # Get total count
-        count_sql = "SELECT COUNT(*) as count FROM feature_scorecards"
-        count_row = self.db.fetchone(count_sql)
-        total = count_row["count"] if count_row else 0
+        count_stmt = select(func.count()).select_from(FeatureScorecardORM)
+        total = self.session.execute(count_stmt).scalar() or 0
 
         # Get paginated results
-        list_sql = """
-            SELECT data FROM feature_scorecards
-            ORDER BY created_at DESC
-            LIMIT ? OFFSET ?
-        """
-        rows = self.db.fetchall(list_sql, (limit, offset))
+        stmt = (
+            select(FeatureScorecardORM)
+            .order_by(FeatureScorecardORM.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        results = list(self.session.execute(stmt).scalars().all())
 
-        scorecards = [FeatureScorecard.model_validate(json.loads(row["data"])) for row in rows]
+        scorecards = [self._orm_to_scorecard(orm_sc) for orm_sc in results]
 
         return scorecards, total
 
@@ -133,30 +168,25 @@ class ScorecardRepository:
         Returns:
             bool: True if updated, False if not found
         """
+        return self._update_scorecard_orm(scorecard)
+
+    def _update_scorecard_orm(self, scorecard: FeatureScorecard) -> bool:
+        """Update scorecard using ORM."""
+        stmt = select(FeatureScorecardORM).where(FeatureScorecardORM.id == scorecard.id)
+        orm_scorecard = self.session.execute(stmt).scalar_one_or_none()
+        if orm_scorecard is None:
+            self.logger.warning(f"Scorecard {scorecard.id} not found for update")
+            return False
+
         # Set updated_at timestamp
         updated_scorecard = scorecard.model_copy(update={"updated_at": datetime.now(timezone.utc)})
-        data = updated_scorecard.model_dump(mode="json")
-        updated_at = updated_scorecard.updated_at.isoformat()
+        orm_scorecard.data = updated_scorecard.model_dump(mode="json")
+        orm_scorecard.updated_at = updated_scorecard.updated_at.isoformat()
+        self._flush()
+        self._commit()
 
-        sql = """
-            UPDATE feature_scorecards
-            SET data = ?, updated_at = ?
-            WHERE id = ?
-        """
-
-        with self.db.transaction() as conn:
-            cursor = conn.execute(
-                sql,
-                (json.dumps(data), updated_at, scorecard.id),
-            )
-            updated = cursor.rowcount > 0
-
-        if updated:
-            self.logger.info(f"Updated scorecard {scorecard.id}")
-        else:
-            self.logger.warning(f"Scorecard {scorecard.id} not found for update")
-
-        return updated
+        self.logger.info(f"Updated scorecard {scorecard.id}")
+        return True
 
     def delete_scorecard(self, scorecard_id: str) -> bool:
         """
@@ -168,25 +198,28 @@ class ScorecardRepository:
         Returns:
             bool: True if deleted, False if not found
         """
-        sql = "DELETE FROM feature_scorecards WHERE id = ?"
+        return self._delete_scorecard_orm(scorecard_id)
 
-        with self.db.transaction() as conn:
-            cursor = conn.execute(sql, (scorecard_id,))
-            deleted = cursor.rowcount > 0
-
-        if deleted:
-            self.logger.info(f"Deleted scorecard {scorecard_id}")
-        else:
+    def _delete_scorecard_orm(self, scorecard_id: str) -> bool:
+        """Delete scorecard using ORM."""
+        stmt = select(FeatureScorecardORM).where(FeatureScorecardORM.id == scorecard_id)
+        orm_scorecard = self.session.execute(stmt).scalar_one_or_none()
+        if orm_scorecard is None:
             self.logger.warning(f"Scorecard {scorecard_id} not found for deletion")
+            return False
 
-        return deleted
+        self._delete(orm_scorecard)
+        self._flush()
+        self._commit()
+
+        self.logger.info(f"Deleted scorecard {scorecard_id}")
+        return True
 
     def list_by_experiment_id(
         self,
         experiment_id: str,
         limit: int = 20,
-        offset: int = 0,
-    ) -> tuple[list[FeatureScorecard], int]:
+        offset: int = 0) -> tuple[list[FeatureScorecard], int]:
         """
         List scorecards for a specific experiment.
 
@@ -198,23 +231,41 @@ class ScorecardRepository:
         Returns:
             Tuple of (list of scorecards, total count)
         """
+        return self._list_by_experiment_id_orm(experiment_id, limit, offset)
+
+    def _list_by_experiment_id_orm(
+        self, experiment_id: str, limit: int, offset: int
+    ) -> tuple[list[FeatureScorecard], int]:
+        """List scorecards by experiment ID using ORM."""
         # Get total count
-        count_sql = "SELECT COUNT(*) as count FROM feature_scorecards WHERE experiment_id = ?"
-        count_row = self.db.fetchone(count_sql, (experiment_id,))
-        total = count_row["count"] if count_row else 0
+        count_stmt = (
+            select(func.count())
+            .select_from(FeatureScorecardORM)
+            .where(FeatureScorecardORM.experiment_id == experiment_id)
+        )
+        total = self.session.execute(count_stmt).scalar() or 0
 
         # Get paginated results
-        list_sql = """
-            SELECT data FROM feature_scorecards
-            WHERE experiment_id = ?
-            ORDER BY created_at DESC
-            LIMIT ? OFFSET ?
-        """
-        rows = self.db.fetchall(list_sql, (experiment_id, limit, offset))
+        stmt = (
+            select(FeatureScorecardORM)
+            .where(FeatureScorecardORM.experiment_id == experiment_id)
+            .order_by(FeatureScorecardORM.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        results = list(self.session.execute(stmt).scalars().all())
 
-        scorecards = [FeatureScorecard.model_validate(json.loads(row["data"])) for row in rows]
+        scorecards = [self._orm_to_scorecard(orm_sc) for orm_sc in results]
 
         return scorecards, total
+
+    # =========================================================================
+    # ORM conversion methods
+    # =========================================================================
+
+    def _orm_to_scorecard(self, orm_scorecard: FeatureScorecardORM) -> FeatureScorecard:
+        """Convert ORM model to FeatureScorecard entity."""
+        return FeatureScorecard.model_validate(orm_scorecard.data)
 
 
 if __name__ == "__main__":
@@ -224,9 +275,7 @@ if __name__ == "__main__":
 
     from synth_lab.domain.entities import (
         ScorecardDimension,
-        ScorecardIdentification,
-    )
-    from synth_lab.infrastructure.database import DatabaseManager, init_database
+        ScorecardIdentification)
 
     print("=== Scorecard Repository Validation ===\n")
 
@@ -238,20 +287,18 @@ if __name__ == "__main__":
         db_path = Path(tmpdir) / "test.db"
         init_database(db_path)
         db = DatabaseManager(db_path)
-        repo = ScorecardRepository(db)
+        repo = ScorecardRepository()
 
         # Create test scorecard
         test_scorecard = FeatureScorecard(
             identification=ScorecardIdentification(
                 feature_name="Test Feature",
-                use_scenario="First use",
-            ),
+                use_scenario="First use"),
             description_text="Test description",
             complexity=ScorecardDimension(score=0.4),
             initial_effort=ScorecardDimension(score=0.3),
             perceived_risk=ScorecardDimension(score=0.2),
-            time_to_value=ScorecardDimension(score=0.5),
-        )
+            time_to_value=ScorecardDimension(score=0.5))
 
         # Test 1: Create scorecard
         total_tests += 1
@@ -332,14 +379,12 @@ if __name__ == "__main__":
                 id="fakefake",
                 identification=ScorecardIdentification(
                     feature_name="Fake",
-                    use_scenario="Fake",
-                ),
+                    use_scenario="Fake"),
                 description_text="Fake",
                 complexity=ScorecardDimension(score=0.1),
                 initial_effort=ScorecardDimension(score=0.1),
                 perceived_risk=ScorecardDimension(score=0.1),
-                time_to_value=ScorecardDimension(score=0.1),
-            )
+                time_to_value=ScorecardDimension(score=0.1))
             updated = repo.update_scorecard(fake_scorecard)
             if updated:
                 all_validation_failures.append("Update non-existent: Should return False")

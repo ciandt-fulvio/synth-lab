@@ -2,6 +2,7 @@
 Simulation repository for synth-lab.
 
 Provides data access layer for simulation runs and outcomes with SQLite persistence.
+Uses SQLAlchemy ORM for database operations.
 
 Functions:
 - create_simulation_run(): Create a new simulation run
@@ -14,36 +15,61 @@ Functions:
 References:
     - Spec: specs/016-feature-impact-simulation/spec.md
     - Database: src/synth_lab/infrastructure/database.py
+    - ORM models: synth_lab.models.orm.legacy
 
 Sample usage:
     from synth_lab.repositories.simulation_repository import SimulationRepository
 
-    repo = SimulationRepository(db)
+    # ORM mode
+    repo = SimulationRepository(db=database_manager)
+
+    # ORM mode (SQLAlchemy)
+    repo = SimulationRepository(session=session)
+
     run_id = repo.create_simulation_run(simulation_run)
     outcomes = repo.get_synth_outcomes(run_id)
 """
 
 import json
+import uuid
 from datetime import datetime, timezone
 from typing import Any
 
 from loguru import logger
+from sqlalchemy import func as sqlfunc
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from synth_lab.domain.entities import SimulationConfig, SimulationRun, SynthOutcome
-from synth_lab.infrastructure.database import DatabaseManager
+from synth_lab.models.orm.analysis import SynthOutcome as SynthOutcomeORM
+from synth_lab.models.orm.legacy import SimulationRun as SimulationRunORM
+from synth_lab.repositories.base import BaseRepository
 
 
-class SimulationRepository:
-    """Repository for simulation run and outcome persistence."""
+class SimulationRepository(BaseRepository):
+    """Repository for simulation run and outcome persistence.
 
-    def __init__(self, db: DatabaseManager) -> None:
+    Uses SQLAlchemy ORM for database operations.
+
+    Usage:
+        # ORM mode
+        repo = SimulationRepository(db=database_manager)
+
+        # ORM mode (SQLAlchemy)
+        repo = SimulationRepository(session=session)
+    """
+
+    def __init__(
+        self,
+session: Session | None = None) -> None:
         """
-        Initialize repository with database manager.
+        Initialize repository with database manager or SQLAlchemy session.
 
         Args:
-            db: Database manager instance
+            db: Legacy database manager instance
+            session: SQLAlchemy session for ORM operations
         """
-        self.db = db
+        super().__init__( session=session)
         self.logger = logger.bind(component="simulation_repository")
 
     def create_simulation_run(self, run: SimulationRun) -> str:
@@ -56,33 +82,25 @@ class SimulationRepository:
         Returns:
             str: Created simulation run ID
         """
-        config_json = run.config.model_dump(mode="json")
-        aggregated_json = json.dumps(run.aggregated_outcomes) if run.aggregated_outcomes else None
+        return self._create_simulation_run_orm(run)
 
-        sql = """
-            INSERT INTO simulation_runs (
-                id, scorecard_id, scenario_id, config, status,
-                started_at, completed_at, total_synths,
-                aggregated_outcomes, execution_time_seconds
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """
-
-        params = (
-            run.id,
-            run.scorecard_id,
-            run.scenario_id,
-            json.dumps(config_json),
-            run.status,
-            run.started_at.isoformat() if run.started_at else None,
-            run.completed_at.isoformat() if run.completed_at else None,
-            run.total_synths,
-            aggregated_json,
-            run.execution_time_seconds,
-        )
-
-        with self.db.transaction() as conn:
-            conn.execute(sql, params)
-
+    def _create_simulation_run_orm(self, run: SimulationRun) -> str:
+        """Create simulation run using ORM."""
+        default_started = datetime.now(timezone.utc).isoformat()
+        orm_run = SimulationRunORM(
+            id=run.id,
+            scorecard_id=run.scorecard_id,
+            scenario_id=run.scenario_id,
+            config=run.config.model_dump(mode="json"),
+            status=run.status,
+            started_at=run.started_at.isoformat() if run.started_at else default_started,
+            completed_at=run.completed_at.isoformat() if run.completed_at else None,
+            total_synths=run.total_synths,
+            aggregated_outcomes=run.aggregated_outcomes,
+            execution_time_seconds=run.execution_time_seconds)
+        self._add(orm_run)
+        self._flush()
+        self._commit()
         self.logger.info(f"Created simulation run {run.id}")
         return run.id
 
@@ -96,37 +114,26 @@ class SimulationRepository:
         Returns:
             bool: True if updated, False if not found
         """
-        aggregated_json = json.dumps(run.aggregated_outcomes) if run.aggregated_outcomes else None
+        return self._update_simulation_run_orm(run)
 
-        sql = """
-            UPDATE simulation_runs
-            SET status = ?,
-                completed_at = ?,
-                total_synths = ?,
-                aggregated_outcomes = ?,
-                execution_time_seconds = ?
-            WHERE id = ?
-        """
-
-        params = (
-            run.status,
-            run.completed_at.isoformat() if run.completed_at else None,
-            run.total_synths,
-            aggregated_json,
-            run.execution_time_seconds,
-            run.id,
-        )
-
-        with self.db.transaction() as conn:
-            cursor = conn.execute(sql, params)
-            updated = cursor.rowcount > 0
-
-        if updated:
-            self.logger.info(f"Updated simulation run {run.id}")
-        else:
+    def _update_simulation_run_orm(self, run: SimulationRun) -> bool:
+        """Update simulation run using ORM."""
+        stmt = select(SimulationRunORM).where(SimulationRunORM.id == run.id)
+        orm_run = self.session.execute(stmt).scalar_one_or_none()
+        if orm_run is None:
             self.logger.warning(f"Simulation run {run.id} not found for update")
+            return False
 
-        return updated
+        orm_run.status = run.status
+        orm_run.completed_at = run.completed_at.isoformat() if run.completed_at else None
+        orm_run.total_synths = run.total_synths
+        orm_run.aggregated_outcomes = run.aggregated_outcomes
+        orm_run.execution_time_seconds = run.execution_time_seconds
+        self._flush()
+        self._commit()
+
+        self.logger.info(f"Updated simulation run {run.id}")
+        return True
 
     def get_simulation_run(self, run_id: str) -> SimulationRun | None:
         """
@@ -138,19 +145,15 @@ class SimulationRepository:
         Returns:
             SimulationRun if found, None otherwise
         """
-        sql = """
-            SELECT id, scorecard_id, scenario_id, config, status,
-                   started_at, completed_at, total_synths,
-                   aggregated_outcomes, execution_time_seconds
-            FROM simulation_runs
-            WHERE id = ?
-        """
-        row = self.db.fetchone(sql, (run_id,))
+        return self._get_simulation_run_orm(run_id)
 
-        if row is None:
+    def _get_simulation_run_orm(self, run_id: str) -> SimulationRun | None:
+        """Get simulation run by ID using ORM."""
+        stmt = select(SimulationRunORM).where(SimulationRunORM.id == run_id)
+        orm_run = self.session.execute(stmt).scalar_one_or_none()
+        if orm_run is None:
             return None
-
-        return self._row_to_simulation_run(row)
+        return self._orm_to_simulation_run(orm_run)
 
     def list_simulation_runs(
         self,
@@ -158,8 +161,7 @@ class SimulationRepository:
         scenario_id: str | None = None,
         status: str | None = None,
         limit: int = 20,
-        offset: int = 0,
-    ) -> tuple[list[SimulationRun], int]:
+        offset: int = 0) -> tuple[list[SimulationRun], int]:
         """
         List simulation runs with optional filters.
 
@@ -173,48 +175,47 @@ class SimulationRepository:
         Returns:
             Tuple of (list of runs, total count)
         """
-        # Build WHERE clause
-        conditions = []
-        params: list[Any] = []
+        return self._list_simulation_runs_orm(
+                scorecard_id=scorecard_id,
+                scenario_id=scenario_id,
+                status=status,
+                limit=limit,
+                offset=offset)
+
+    def _list_simulation_runs_orm(
+        self,
+        scorecard_id: str | None = None,
+        scenario_id: str | None = None,
+        status: str | None = None,
+        limit: int = 20,
+        offset: int = 0) -> tuple[list[SimulationRun], int]:
+        """List simulation runs using ORM."""
+        # Build query with filters
+        stmt = select(SimulationRunORM)
 
         if scorecard_id:
-            conditions.append("scorecard_id = ?")
-            params.append(scorecard_id)
+            stmt = stmt.where(SimulationRunORM.scorecard_id == scorecard_id)
         if scenario_id:
-            conditions.append("scenario_id = ?")
-            params.append(scenario_id)
+            stmt = stmt.where(SimulationRunORM.scenario_id == scenario_id)
         if status:
-            conditions.append("status = ?")
-            params.append(status)
+            stmt = stmt.where(SimulationRunORM.status == status)
 
-        where_clause = " AND ".join(conditions) if conditions else "1=1"
+        # Get total count
+        count_stmt = select(sqlfunc.count()).select_from(stmt.subquery())
+        total = self.session.execute(count_stmt).scalar() or 0
 
-        # Count total
-        count_sql = f"SELECT COUNT(*) as count FROM simulation_runs WHERE {where_clause}"
-        count_row = self.db.fetchone(count_sql, tuple(params))
-        total = count_row["count"] if count_row else 0
+        # Apply ordering and pagination
+        stmt = stmt.order_by(SimulationRunORM.started_at.desc())
+        stmt = stmt.limit(limit).offset(offset)
+        orm_runs = list(self.session.execute(stmt).scalars().all())
 
-        # Get paginated results
-        list_sql = f"""
-            SELECT id, scorecard_id, scenario_id, config, status,
-                   started_at, completed_at, total_synths,
-                   aggregated_outcomes, execution_time_seconds
-            FROM simulation_runs
-            WHERE {where_clause}
-            ORDER BY started_at DESC
-            LIMIT ? OFFSET ?
-        """
-        params.extend([limit, offset])
-        rows = self.db.fetchall(list_sql, tuple(params))
-
-        runs = [self._row_to_simulation_run(row) for row in rows]
+        runs = [self._orm_to_simulation_run(orm_run) for orm_run in orm_runs]
         return runs, total
 
     def save_synth_outcomes(
         self,
         simulation_id: str,
-        outcomes: list[SynthOutcome],
-    ) -> int:
+        outcomes: list[SynthOutcome]) -> int:
         """
         Save synth outcomes for a simulation.
 
@@ -225,44 +226,42 @@ class SimulationRepository:
         Returns:
             int: Number of outcomes saved
         """
+        return self._save_synth_outcomes_orm(simulation_id, outcomes)
+
+    def _save_synth_outcomes_orm(
+        self,
+        simulation_id: str,
+        outcomes: list[SynthOutcome]) -> int:
+        """Save synth outcomes using ORM."""
         # Convert simulation_id to analysis_id format (sim_ -> ana_)
         analysis_id = simulation_id.replace("sim_", "ana_")
 
         # Ensure analysis_runs entry exists for foreign key constraint
-        # This is needed because synth_outcomes references analysis_runs
-        self._ensure_analysis_run_exists(simulation_id, analysis_id)
+        self._ensure_analysis_run_exists_orm(simulation_id, analysis_id)
 
-        sql = """
-            INSERT INTO synth_outcomes (
-                analysis_id, synth_id,
-                did_not_try_rate, failed_rate, success_rate,
-                synth_attributes
-            ) VALUES (?, ?, ?, ?, ?, ?)
-        """
+        for outcome in outcomes:
+            orm_outcome = SynthOutcomeORM(
+                id=f"out_{uuid.uuid4().hex[:12]}",
+                analysis_id=analysis_id,
+                synth_id=outcome.synth_id,
+                did_not_try_rate=outcome.did_not_try_rate,
+                failed_rate=outcome.failed_rate,
+                success_rate=outcome.success_rate,
+                synth_attributes=(
+                    outcome.synth_attributes.model_dump()
+                    if outcome.synth_attributes
+                    else None
+                ))
+            self._add(orm_outcome)
 
-        params_list = [
-            (
-                analysis_id,
-                outcome.synth_id,
-                outcome.did_not_try_rate,
-                outcome.failed_rate,
-                outcome.success_rate,
-                json.dumps(outcome.synth_attributes.model_dump())
-                if outcome.synth_attributes
-                else None,
-            )
-            for outcome in outcomes
-        ]
-
-        with self.db.transaction() as conn:
-            conn.executemany(sql, params_list)
-
+        self._flush()
+        self._commit()
         self.logger.info(f"Saved {len(outcomes)} outcomes for simulation {simulation_id}")
         return len(outcomes)
 
-    def _ensure_analysis_run_exists(self, simulation_id: str, analysis_id: str) -> None:
+    def _ensure_analysis_run_exists_orm(self, simulation_id: str, analysis_id: str) -> None:
         """
-        Ensure an analysis_runs entry exists for the given simulation.
+        Ensure an analysis_runs entry exists for the given simulation using ORM.
 
         This is needed because synth_outcomes has a foreign key to analysis_runs.
         Creates a shadow entry in analysis_runs if it doesn't exist.
@@ -271,56 +270,58 @@ class SimulationRepository:
             simulation_id: Original simulation run ID
             analysis_id: Converted analysis ID (ana_* format)
         """
+        from synth_lab.models.orm.analysis import AnalysisRun as AnalysisRunORM
+        from synth_lab.models.orm.experiment import Experiment as ExperimentORM
+
         # Check if analysis_runs entry already exists
-        check_sql = "SELECT id FROM analysis_runs WHERE id = ?"
-        existing = self.db.fetchone(check_sql, (analysis_id,))
+        stmt = select(AnalysisRunORM).where(AnalysisRunORM.id == analysis_id)
+        existing = self.session.execute(stmt).scalar_one_or_none()
         if existing:
             return
 
         # Get simulation run details to create matching analysis_runs entry
-        sim_run = self.get_simulation_run(simulation_id)
+        sim_run = self._get_simulation_run_orm(simulation_id)
         if not sim_run:
             self.logger.warning(f"Simulation run not found: {simulation_id}")
             return
 
         # Create a placeholder experiment if needed
         exp_id = f"exp_{simulation_id[4:]}"  # sim_xxxx -> exp_xxxx
-        exp_check = self.db.fetchone("SELECT id FROM experiments WHERE id = ?", (exp_id,))
+        exp_stmt = select(ExperimentORM).where(ExperimentORM.id == exp_id)
+        exp_check = self.session.execute(exp_stmt).scalar_one_or_none()
         if not exp_check:
-            with self.db.transaction() as conn:
-                conn.execute(
-                    """
-                    INSERT INTO experiments (id, name, hypothesis, status, created_at)
-                    VALUES (?, ?, ?, 'active', datetime('now'))
-                """,
-                    (exp_id, f"Simulation {simulation_id}", "Auto-generated from simulation"),
-                )
+            orm_exp = ExperimentORM(
+                id=exp_id,
+                name=f"Simulation {simulation_id}",
+                hypothesis="Auto-generated from simulation",
+                status="active",
+                created_at=datetime.now(timezone.utc).isoformat())
+            self._add(orm_exp)
+            self._flush()
+            self._commit()
 
         # Create analysis_runs entry
-        with self.db.transaction() as conn:
-            conn.execute(
-                """
-                INSERT INTO analysis_runs (id, experiment_id, scenario_id, config, status, started_at, completed_at, total_synths)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    analysis_id,
-                    exp_id,
-                    sim_run.scenario_id,
-                    json.dumps(sim_run.config.model_dump()) if sim_run.config else "{}",
-                    sim_run.status,
-                    sim_run.started_at.isoformat() if sim_run.started_at else None,
-                    sim_run.completed_at.isoformat() if sim_run.completed_at else None,
-                    sim_run.total_synths,
-                ),
-            )
+        default_started = datetime.now(timezone.utc).isoformat()
+        orm_analysis = AnalysisRunORM(
+            id=analysis_id,
+            experiment_id=exp_id,
+            scenario_id=sim_run.scenario_id,
+            config=sim_run.config.model_dump() if sim_run.config else {},
+            status=sim_run.status,
+            started_at=(
+                sim_run.started_at.isoformat() if sim_run.started_at else default_started
+            ),
+            completed_at=sim_run.completed_at.isoformat() if sim_run.completed_at else None,
+            total_synths=sim_run.total_synths)
+        self._add(orm_analysis)
+        self._flush()
+        self._commit()
 
     def get_synth_outcomes(
         self,
         simulation_id: str,
         limit: int = 100,
-        offset: int = 0,
-    ) -> tuple[list[SynthOutcome], int]:
+        offset: int = 0) -> tuple[list[SynthOutcome], int]:
         """
         Get synth outcomes for a simulation.
 
@@ -332,53 +333,40 @@ class SimulationRepository:
         Returns:
             Tuple of (list of outcomes, total count)
         """
+        return self._get_synth_outcomes_orm(simulation_id, limit, offset)
+
+    def _get_synth_outcomes_orm(
+        self,
+        simulation_id: str,
+        limit: int = 100,
+        offset: int = 0) -> tuple[list[SynthOutcome], int]:
+        """Get synth outcomes using ORM."""
         # Convert simulation_id to analysis_id format (sim_ -> ana_)
         analysis_id = simulation_id.replace("sim_", "ana_")
 
-        # Count total
-        count_sql = """
-            SELECT COUNT(*) as count FROM synth_outcomes
-            WHERE analysis_id = ?
-        """
-        count_row = self.db.fetchone(count_sql, (analysis_id,))
-        total = count_row["count"] if count_row else 0
+        # Build query
+        stmt = select(SynthOutcomeORM).where(SynthOutcomeORM.analysis_id == analysis_id)
 
-        # Get paginated results
-        list_sql = """
-            SELECT synth_id, did_not_try_rate, failed_rate, success_rate, synth_attributes
-            FROM synth_outcomes
-            WHERE analysis_id = ?
-            ORDER BY synth_id
-            LIMIT ? OFFSET ?
-        """
-        rows = self.db.fetchall(list_sql, (analysis_id, limit, offset))
+        # Get total count
+        count_stmt = select(sqlfunc.count()).select_from(stmt.subquery())
+        total = self.session.execute(count_stmt).scalar() or 0
 
-        outcomes = []
-        for row in rows:
-            attrs_dict = json.loads(row["synth_attributes"]) if row["synth_attributes"] else None
-            # Convert dict to SimulationAttributes if present
-            from synth_lab.domain.entities.simulation_attributes import SimulationAttributes
+        # Apply ordering and pagination
+        stmt = stmt.order_by(SynthOutcomeORM.synth_id)
+        stmt = stmt.limit(limit).offset(offset)
+        orm_outcomes = list(self.session.execute(stmt).scalars().all())
 
-            attrs = SimulationAttributes.model_validate(attrs_dict) if attrs_dict else None
-            outcomes.append(
-                SynthOutcome(
-                    analysis_id=analysis_id,
-                    synth_id=row["synth_id"],
-                    did_not_try_rate=row["did_not_try_rate"],
-                    failed_rate=row["failed_rate"],
-                    success_rate=row["success_rate"],
-                    synth_attributes=attrs,
-                )
-            )
-
+        outcomes = [
+            self._orm_to_synth_outcome(orm_outcome, analysis_id)
+            for orm_outcome in orm_outcomes
+        ]
         return outcomes, total
 
     def list_by_experiment_id(
         self,
         experiment_id: str,
         limit: int = 20,
-        offset: int = 0,
-    ) -> tuple[list[SimulationRun], int]:
+        offset: int = 0) -> tuple[list[SimulationRun], int]:
         """
         List simulation runs for a specific experiment (via scorecards).
 
@@ -390,30 +378,33 @@ class SimulationRepository:
         Returns:
             Tuple of (list of runs, total count)
         """
-        # Count total - join with feature_scorecards to filter by experiment
-        count_sql = """
-            SELECT COUNT(*) as count
-            FROM simulation_runs sr
-            JOIN feature_scorecards fs ON sr.scorecard_id = fs.id
-            WHERE fs.experiment_id = ?
-        """
-        count_row = self.db.fetchone(count_sql, (experiment_id,))
-        total = count_row["count"] if count_row else 0
+        return self._list_by_experiment_id_orm(experiment_id, limit, offset)
 
-        # Get paginated results
-        list_sql = """
-            SELECT sr.id, sr.scorecard_id, sr.scenario_id, sr.config, sr.status,
-                   sr.started_at, sr.completed_at, sr.total_synths,
-                   sr.aggregated_outcomes, sr.execution_time_seconds
-            FROM simulation_runs sr
-            JOIN feature_scorecards fs ON sr.scorecard_id = fs.id
-            WHERE fs.experiment_id = ?
-            ORDER BY sr.started_at DESC
-            LIMIT ? OFFSET ?
-        """
-        rows = self.db.fetchall(list_sql, (experiment_id, limit, offset))
+    def _list_by_experiment_id_orm(
+        self,
+        experiment_id: str,
+        limit: int = 20,
+        offset: int = 0) -> tuple[list[SimulationRun], int]:
+        """List simulation runs by experiment ID using ORM."""
+        from synth_lab.models.orm.legacy import FeatureScorecard as FeatureScorecardORM
 
-        runs = [self._row_to_simulation_run(row) for row in rows]
+        # Build query with join
+        stmt = (
+            select(SimulationRunORM)
+            .join(FeatureScorecardORM, SimulationRunORM.scorecard_id == FeatureScorecardORM.id)
+            .where(FeatureScorecardORM.experiment_id == experiment_id)
+        )
+
+        # Get total count
+        count_stmt = select(sqlfunc.count()).select_from(stmt.subquery())
+        total = self.session.execute(count_stmt).scalar() or 0
+
+        # Apply ordering and pagination
+        stmt = stmt.order_by(SimulationRunORM.started_at.desc())
+        stmt = stmt.limit(limit).offset(offset)
+        orm_runs = list(self.session.execute(stmt).scalars().all())
+
+        runs = [self._orm_to_simulation_run(orm_run) for orm_run in orm_runs]
         return runs, total
 
     def _row_to_simulation_run(self, row: Any) -> SimulationRun:
@@ -433,8 +424,53 @@ class SimulationRepository:
             ),
             total_synths=row["total_synths"],
             aggregated_outcomes=aggregated,
-            execution_time_seconds=row["execution_time_seconds"],
-        )
+            execution_time_seconds=row["execution_time_seconds"])
+
+    # =========================================================================
+    # ORM conversion methods
+    # =========================================================================
+
+    def _orm_to_simulation_run(self, orm_run: SimulationRunORM) -> SimulationRun:
+        """Convert ORM model to SimulationRun entity."""
+        config = SimulationConfig.model_validate(orm_run.config)
+
+        started_at = orm_run.started_at
+        if isinstance(started_at, str):
+            started_at = datetime.fromisoformat(started_at)
+
+        completed_at = orm_run.completed_at
+        if isinstance(completed_at, str):
+            completed_at = datetime.fromisoformat(completed_at)
+
+        return SimulationRun(
+            id=orm_run.id,
+            scorecard_id=orm_run.scorecard_id,
+            scenario_id=orm_run.scenario_id,
+            config=config,
+            status=orm_run.status,
+            started_at=started_at,
+            completed_at=completed_at,
+            total_synths=orm_run.total_synths,
+            aggregated_outcomes=orm_run.aggregated_outcomes,
+            execution_time_seconds=orm_run.execution_time_seconds)
+
+    def _orm_to_synth_outcome(
+        self, orm_outcome: SynthOutcomeORM, analysis_id: str
+    ) -> SynthOutcome:
+        """Convert ORM model to SynthOutcome entity."""
+        from synth_lab.domain.entities.simulation_attributes import SimulationAttributes
+
+        attrs = None
+        if orm_outcome.synth_attributes:
+            attrs = SimulationAttributes.model_validate(orm_outcome.synth_attributes)
+
+        return SynthOutcome(
+            analysis_id=analysis_id,
+            synth_id=orm_outcome.synth_id,
+            did_not_try_rate=orm_outcome.did_not_try_rate,
+            failed_rate=orm_outcome.failed_rate,
+            success_rate=orm_outcome.success_rate,
+            synth_attributes=attrs)
 
 
 if __name__ == "__main__":
@@ -445,14 +481,11 @@ if __name__ == "__main__":
     from synth_lab.domain.entities import (
         FeatureScorecard,
         ScorecardDimension,
-        ScorecardIdentification,
-    )
+        ScorecardIdentification)
     from synth_lab.domain.entities.simulation_attributes import (
         SimulationAttributes,
         SimulationLatentTraits,
-        SimulationObservables,
-    )
-    from synth_lab.infrastructure.database import init_database
+        SimulationObservables)
     from synth_lab.repositories.scorecard_repository import ScorecardRepository
 
     print("=== Simulation Repository Validation ===\n")
@@ -465,37 +498,33 @@ if __name__ == "__main__":
         db_path = Path(tmpdir) / "test.db"
         init_database(db_path)
         db = DatabaseManager(db_path)
-        repo = SimulationRepository(db)
+        repo = SimulationRepository()
 
         # Create test scorecard first (to satisfy foreign key constraint)
-        scorecard_repo = ScorecardRepository(db)
+        scorecard_repo = ScorecardRepository()
         test_scorecard = FeatureScorecard(
             id="testsc01",  # Must be 8 alphanumeric chars
             identification=ScorecardIdentification(
                 feature_name="Test Feature",
-                use_scenario="Testing simulation repository",
-            ),
+                use_scenario="Testing simulation repository"),
             description_text="A test scorecard for validation",
             complexity=ScorecardDimension(score=0.5),
             initial_effort=ScorecardDimension(score=0.4),
             perceived_risk=ScorecardDimension(score=0.3),
-            time_to_value=ScorecardDimension(score=0.6),
-        )
+            time_to_value=ScorecardDimension(score=0.6))
         scorecard_repo.create_scorecard(test_scorecard)
 
         # Create test simulation run
         test_config = SimulationConfig(
             n_executions=100,
             sigma=0.1,
-            seed=42,
-        )
+            seed=42)
         test_run = SimulationRun(
             scorecard_id="testsc01",
             scenario_id="baseline",
             config=test_config,
             status="running",
-            total_synths=10,
-        )
+            total_synths=10)
 
         # Test 1: Create simulation run
         total_tests += 1
@@ -560,15 +589,12 @@ if __name__ == "__main__":
                     similar_tool_experience=0.5,
                     motor_ability=1.0,
                     time_availability=0.5,
-                    domain_expertise=0.5,
-                ),
+                    domain_expertise=0.5),
                 latent_traits=SimulationLatentTraits(
                     capability_mean=0.5,
                     trust_mean=0.5,
                     friction_tolerance_mean=0.5,
-                    exploration_prob=0.5,
-                ),
-            )
+                    exploration_prob=0.5))
             # Convert simulation_id to analysis_id format for SynthOutcome
             analysis_id = test_run.id.replace("sim_", "ana_")
             test_outcomes = [
@@ -578,8 +604,7 @@ if __name__ == "__main__":
                     did_not_try_rate=0.3,
                     failed_rate=0.2,
                     success_rate=0.5,
-                    synth_attributes=sample_attrs,
-                )
+                    synth_attributes=sample_attrs)
                 for i in range(5)
             ]
 

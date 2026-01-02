@@ -68,8 +68,7 @@ class ScorecardLLM:
                 "scorecard.id": scorecard.id,
                 "feature.name": feature_name,
                 "operation.type": "scorecard_justification",
-            },
-        ):
+            }):
             prompt = self._build_justification_prompt(scorecard)
 
             messages = [
@@ -87,8 +86,7 @@ class ScorecardLLM:
             response = self.llm.complete(
                 messages=messages,
                 temperature=0.7,
-                operation_name="generate_justification",
-            )
+                operation_name="generate_justification")
 
             self.logger.info(f"Generated justification for scorecard {scorecard.id}")
             return response
@@ -96,8 +94,7 @@ class ScorecardLLM:
     def generate_impact_hypotheses(
         self,
         scorecard: FeatureScorecard,
-        num_hypotheses: int = 3,
-    ) -> list[str]:
+        num_hypotheses: int = 3) -> list[str]:
         """
         Generate hypotheses about impact on different synth groups.
 
@@ -118,8 +115,7 @@ class ScorecardLLM:
                 "feature.name": feature_name,
                 "operation.type": "scorecard_hypotheses",
                 "hypotheses.count": num_hypotheses,
-            },
-        ):
+            }):
             prompt = self._build_hypotheses_prompt(scorecard, num_hypotheses)
 
             messages = [
@@ -139,8 +135,7 @@ class ScorecardLLM:
             response = self.llm.complete_json(
                 messages=messages,
                 temperature=0.8,
-                operation_name="generate_impact_hypotheses",
-            )
+                operation_name="generate_impact_hypotheses")
 
             try:
                 data = json.loads(response)
@@ -158,8 +153,7 @@ class ScorecardLLM:
 
     def generate_suggested_adjustments(
         self,
-        scorecard: FeatureScorecard,
-    ) -> list[str]:
+        scorecard: FeatureScorecard) -> list[str]:
         """
         Generate suggestions to improve scorecard dimensions.
 
@@ -178,8 +172,7 @@ class ScorecardLLM:
                 "scorecard.id": scorecard.id,
                 "feature.name": feature_name,
                 "operation.type": "scorecard_adjustments",
-            },
-        ):
+            }):
             prompt = self._build_adjustments_prompt(scorecard)
 
             messages = [
@@ -199,8 +192,7 @@ class ScorecardLLM:
             response = self.llm.complete_json(
                 messages=messages,
                 temperature=0.7,
-                operation_name="generate_suggested_adjustments",
-            )
+                operation_name="generate_suggested_adjustments")
 
             try:
                 data = json.loads(response)
@@ -252,8 +244,7 @@ Por favor, justifique cada score considerando as regras aplicadas e o cenario de
     def _build_hypotheses_prompt(
         self,
         scorecard: FeatureScorecard,
-        num_hypotheses: int,
-    ) -> str:
+        num_hypotheses: int) -> str:
         """Build prompt for impact hypotheses generation."""
         return f"""
 Com base no scorecard abaixo, gere {num_hypotheses} hipoteses sobre como diferentes grupos de usuarios serao impactados:
@@ -332,21 +323,17 @@ if __name__ == "__main__":
     test_scorecard = FeatureScorecard(
         identification=ScorecardIdentification(
             feature_name="Novo Fluxo de Onboarding",
-            use_scenario="Primeiro acesso ao produto",
-        ),
+            use_scenario="Primeiro acesso ao produto"),
         description_text="Fluxo de onboarding simplificado com 3 passos e wizard interativo",
         complexity=ScorecardDimension(
             score=0.4,
-            rules_applied=["2 conceitos novos", "wizard interativo"],
-        ),
+            rules_applied=["2 conceitos novos", "wizard interativo"]),
         initial_effort=ScorecardDimension(score=0.3),
         perceived_risk=ScorecardDimension(
             score=0.2,
             min_uncertainty=0.1,
-            max_uncertainty=0.3,
-        ),
-        time_to_value=ScorecardDimension(score=0.5),
-    )
+            max_uncertainty=0.3),
+        time_to_value=ScorecardDimension(score=0.5))
 
     # Test 1: Prompt building for justification
     total_tests += 1
@@ -395,14 +382,12 @@ if __name__ == "__main__":
         test_scorecard2 = FeatureScorecard(
             identification=ScorecardIdentification(
                 feature_name="Test",
-                use_scenario="Test",
-            ),
+                use_scenario="Test"),
             description_text="Test",
             complexity=ScorecardDimension(score=0.9),  # Worst
             initial_effort=ScorecardDimension(score=0.2),
             perceived_risk=ScorecardDimension(score=0.8),  # Second worst
-            time_to_value=ScorecardDimension(score=0.3),
-        )
+            time_to_value=ScorecardDimension(score=0.3))
         prompt = llm._build_adjustments_prompt(test_scorecard2)
         if "Complexidade" not in prompt or "Risco Percebido" not in prompt:
             all_validation_failures.append(

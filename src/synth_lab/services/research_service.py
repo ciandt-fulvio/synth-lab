@@ -21,19 +21,16 @@ from synth_lab.models.research import (
     ResearchExecutionDetail,
     ResearchExecutionSummary,
     TranscriptDetail,
-    TranscriptSummary,
-)
+    TranscriptSummary)
 from synth_lab.repositories.interview_guide_repository import (
     InterviewGuide,
-    InterviewGuideRepository,
-)
+    InterviewGuideRepository)
 from synth_lab.repositories.research_repository import ResearchRepository
 from synth_lab.services.message_broker import BrokerMessage, MessageBroker
 from synth_lab.services.research_agentic.runner import (
     ConversationMessage,
     InterviewGuideData,
-    InterviewResult,
-)
+    InterviewResult)
 
 # GMT-3 timezone (São Paulo)
 TZ_GMT_MINUS_3 = timezone(timedelta(hours=-3))
@@ -45,8 +42,7 @@ class ResearchService:
     def __init__(
         self,
         research_repo: ResearchRepository | None = None,
-        interview_guide_repo: InterviewGuideRepository | None = None,
-    ):
+        interview_guide_repo: InterviewGuideRepository | None = None):
         """
         Initialize research service.
 
@@ -62,13 +58,11 @@ class ResearchService:
         return InterviewGuideData(
             context_definition=guide.context_definition,
             questions=guide.questions,
-            context_examples=guide.context_examples,
-        )
+            context_examples=guide.context_examples)
 
     def list_executions(
         self,
-        params: PaginationParams | None = None,
-    ) -> PaginatedResponse[ResearchExecutionSummary]:
+        params: PaginationParams | None = None) -> PaginatedResponse[ResearchExecutionSummary]:
         """
         List research executions with pagination.
 
@@ -99,8 +93,7 @@ class ResearchService:
     def get_transcripts(
         self,
         exec_id: str,
-        params: PaginationParams | None = None,
-    ) -> PaginatedResponse[TranscriptSummary]:
+        params: PaginationParams | None = None) -> PaginatedResponse[TranscriptSummary]:
         """
         Get transcripts for a research execution.
 
@@ -197,8 +190,7 @@ class ResearchService:
                 ConversationMessage(
                     speaker=msg.speaker,
                     text=msg.text,
-                    internal_notes=msg.internal_notes,
-                )
+                    internal_notes=msg.internal_notes)
                 for msg in transcript.messages
             ]
 
@@ -208,8 +200,7 @@ class ResearchService:
                 synth_name=transcript.synth_name or transcript.synth_id,
                 topic_guide_name=execution.topic_name,
                 trace_path=None,
-                total_turns=transcript.turn_count,
-            )
+                total_turns=transcript.turn_count)
 
             # Get synth data for enrichment
             synth_data = synths_by_id.get(
@@ -230,16 +221,14 @@ class ResearchService:
         summary = await summarize_interviews(
             interview_results=interview_results,
             topic_guide_name=summary_title,
-            model=model,
-        )
+            model=model)
 
         # Complete generation (update status from "generating" to "completed")
         doc_service.complete_generation(
             experiment_id=execution.experiment_id,
             document_type=DocumentType.SUMMARY,
             markdown_content=summary,
-            metadata={"exec_id": exec_id, "transcript_count": len(transcripts.data)},
-        )
+            metadata={"exec_id": exec_id, "transcript_count": len(transcripts.data)})
 
         return summary
 
@@ -299,8 +288,7 @@ class ResearchService:
             max_turns=request.max_turns,
             status=ExecutionStatus.RUNNING,
             experiment_id=request.experiment_id,
-            additional_context=request.additional_context,
-        )
+            additional_context=request.additional_context)
 
         # Convert to InterviewGuideData for runner
         interview_guide_data = self._guide_to_interview_guide_data(interview_guide)
@@ -320,8 +308,7 @@ class ResearchService:
                 generate_summary=request.generate_summary,
                 skip_interviewee_review=request.skip_interviewee_review,
                 analysis_id=analysis_id,
-                summary_title=experiment_name,
-            )
+                summary_title=experiment_name)
         )
 
         return ResearchExecuteResponse(
@@ -329,8 +316,7 @@ class ResearchService:
             status=ExecutionStatus.RUNNING,
             topic_name=request.topic_name,
             synth_count=synth_count,
-            started_at=datetime.now(),
-        )
+            started_at=datetime.now())
 
     async def _run_batch_and_save(
         self,
@@ -346,8 +332,7 @@ class ResearchService:
         model: str = "gpt-4o-mini",
         skip_interviewee_review: bool = True,
         analysis_id: str | None = None,
-        summary_title: str | None = None,
-    ) -> None:
+        summary_title: str | None = None) -> None:
         """
         Run batch interviews and save results to database.
 
@@ -389,9 +374,7 @@ class ResearchService:
                         "text": msg.text,
                         "sentiment": msg.sentiment,
                     },
-                    timestamp=datetime.now(UTC),
-                ),
-            )
+                    timestamp=datetime.now(UTC)))
 
         async def on_transcription_complete(exec_id: str, successful: int, failed: int) -> None:
             """Publish transcription_completed event before summary generation."""
@@ -403,17 +386,14 @@ class ResearchService:
                         "successful_count": successful,
                         "failed_count": failed,
                     },
-                    timestamp=datetime.now(UTC),
-                ),
-            )
+                    timestamp=datetime.now(UTC)))
 
         async def on_summary_start(exec_id: str) -> None:
             """Update execution status to generating_summary when summary starts."""
             logger.info(f"Updating execution {exec_id} status to generating_summary")
             self.research_repo.update_execution_status(
                 exec_id=exec_id,
-                status=ExecutionStatus.GENERATING_SUMMARY,
-            )
+                status=ExecutionStatus.GENERATING_SUMMARY)
 
         async def on_avatar_generation_start(count: int) -> None:
             """Publish avatar_generation_started event."""
@@ -424,9 +404,7 @@ class ResearchService:
                     data={
                         "count": count,
                     },
-                    timestamp=datetime.now(UTC),
-                ),
-            )
+                    timestamp=datetime.now(UTC)))
             logger.debug(f"Published avatar_generation_started for {count} synths")
 
         async def on_avatar_generation_complete(count: int) -> None:
@@ -438,9 +416,7 @@ class ResearchService:
                     data={
                         "count": count,
                     },
-                    timestamp=datetime.now(UTC),
-                ),
-            )
+                    timestamp=datetime.now(UTC)))
             logger.debug(f"Published avatar_generation_completed for {count} synths")
 
         async def on_interview_complete(
@@ -453,8 +429,7 @@ class ResearchService:
                 Message(
                     speaker=msg.speaker,
                     text=msg.text,
-                    internal_notes=msg.internal_notes,
-                )
+                    internal_notes=msg.internal_notes)
                 for msg in result.messages
             ]
             self.research_repo.create_transcript(
@@ -462,8 +437,7 @@ class ResearchService:
                 synth_id=result.synth_id,
                 synth_name=result.synth_name,
                 messages=messages,
-                status="completed",
-            )
+                status="completed")
             logger.debug(f"Saved transcript for {synth_id}")
 
             # Then publish the event to notify frontend
@@ -475,9 +449,7 @@ class ResearchService:
                         "synth_id": synth_id,
                         "total_turns": total_turns,
                     },
-                    timestamp=datetime.now(UTC),
-                ),
-            )
+                    timestamp=datetime.now(UTC)))
             logger.debug(f"Published interview_completed for {synth_id}")
 
         try:
@@ -510,8 +482,7 @@ class ResearchService:
                 skip_interviewee_review=skip_interviewee_review,
                 additional_context=additional_context,
                 guide_name=guide_name,
-                analysis_id=analysis_id,
-            )
+                analysis_id=analysis_id)
 
             # Transcripts are now saved immediately in on_interview_complete callback
             # This ensures they're available as soon as the user clicks on a completed card
@@ -528,8 +499,7 @@ class ResearchService:
                 from synth_lab.domain.entities.experiment_document import DocumentType
                 from synth_lab.services.document_service import DocumentService
                 from synth_lab.services.research_agentic.summarizer import (
-                    summarize_interviews,
-                )
+                    summarize_interviews)
 
                 logger.info(
                     f"Generating summary for {len(result.successful_interviews)} interviews"
@@ -538,8 +508,7 @@ class ResearchService:
                     summary_content = await summarize_interviews(
                         interview_results=result.successful_interviews,
                         topic_guide_name=summary_title or guide_name,
-                        model="gpt-4.1-mini",
-                    )
+                        model="gpt-4.1-mini")
                     logger.info(f"Summary generated: {len(summary_content)} chars")
 
                     # Get execution to find experiment_id
@@ -552,8 +521,7 @@ class ResearchService:
                             document_type=DocumentType.SUMMARY,
                             markdown_content=summary_content,
                             model="gpt-4.1-mini",
-                            metadata={"exec_id": exec_id, "interview_count": len(result.successful_interviews)},
-                        )
+                            metadata={"exec_id": exec_id, "interview_count": len(result.successful_interviews)})
                         logger.info(f"Summary saved to experiment_documents for {execution.experiment_id}")
                     else:
                         logger.warning(f"Execution {exec_id} not linked to experiment, summary not saved")
@@ -565,8 +533,7 @@ class ResearchService:
                 exec_id=exec_id,
                 status=ExecutionStatus.COMPLETED,
                 successful_count=result.total_completed,
-                failed_count=result.total_failed,
-            )
+                failed_count=result.total_failed)
 
             logger.info(f"Research execution {exec_id} completed successfully")
 
@@ -578,8 +545,7 @@ class ResearchService:
             self.research_repo.update_execution_status(
                 exec_id=exec_id,
                 status=ExecutionStatus.FAILED,
-                failed_count=synth_count,
-            )
+                failed_count=synth_count)
             # Signal end of execution to SSE subscribers even on failure
             await broker.close_execution(exec_id)
 
@@ -588,7 +554,6 @@ if __name__ == "__main__":
     import sys
 
     from synth_lab.infrastructure.config import DB_PATH
-    from synth_lab.infrastructure.database import DatabaseManager
     from synth_lab.services.errors import ExecutionNotFoundError
 
     # Validation with real database
@@ -600,7 +565,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     db = DatabaseManager(DB_PATH)
-    repo = ResearchRepository(db)
+    repo = ResearchRepository()
     service = ResearchService(repo)
 
     # Test 1: List executions
@@ -659,7 +624,6 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Get transcript failed: {e}")
 
-    db.close()
 
     # Final validation result
     if all_validation_failures:

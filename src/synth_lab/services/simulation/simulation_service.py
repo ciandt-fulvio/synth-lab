@@ -14,13 +14,12 @@ References:
 Sample usage:
     from synth_lab.services.simulation.simulation_service import SimulationService
 
-    service = SimulationService(db)
+    service = SimulationService()
     run = service.execute_simulation(
         scorecard_id="abc12345",
         scenario_id="baseline",
         synth_ids=["synth_1", "synth_2"],
-        n_executions=100,
-    )
+        n_executions=100)
 
 Expected output:
     SimulationRun with status="completed" and aggregated_outcomes
@@ -36,10 +35,8 @@ from synth_lab.domain.entities import (
     Scenario,
     SimulationConfig,
     SimulationRun,
-    SynthOutcome,
-)
+    SynthOutcome)
 from synth_lab.domain.entities.simulation_attributes import SimulationAttributes
-from synth_lab.infrastructure.database import DatabaseManager
 from synth_lab.repositories.scorecard_repository import ScorecardRepository
 from synth_lab.repositories.simulation_repository import SimulationRepository
 from synth_lab.services.simulation.engine import MonteCarloEngine
@@ -48,16 +45,19 @@ from synth_lab.services.simulation.engine import MonteCarloEngine
 class SimulationService:
     """Service for executing feature impact simulations."""
 
-    def __init__(self, db: DatabaseManager) -> None:
+    def __init__(
+        self,
+        simulation_repo: SimulationRepository | None = None,
+        scorecard_repo: ScorecardRepository | None = None) -> None:
         """
-        Initialize simulation service with database manager.
+        Initialize simulation service.
 
         Args:
-            db: Database manager instance
+            simulation_repo: Simulation repository. Defaults to new instance.
+            scorecard_repo: Scorecard repository. Defaults to new instance.
         """
-        self.db = db
-        self.simulation_repo = SimulationRepository(db)
-        self.scorecard_repo = ScorecardRepository(db)
+        self.simulation_repo = simulation_repo or SimulationRepository()
+        self.scorecard_repo = scorecard_repo or ScorecardRepository()
         self.logger = logger.bind(component="simulation_service")
 
     def execute_simulation(
@@ -67,8 +67,7 @@ class SimulationService:
         synth_ids: list[str] | None = None,
         n_executions: int = 100,
         sigma: float = 0.1,
-        seed: int | None = None,
-    ) -> SimulationRun:
+        seed: int | None = None) -> SimulationRun:
         """
         Execute a Monte Carlo simulation.
 
@@ -121,8 +120,7 @@ class SimulationService:
             n_synths=len(synths),
             n_executions=n_executions,
             sigma=sigma,
-            seed=seed,
-        )
+            seed=seed)
 
         # Create simulation run
         run = SimulationRun(
@@ -131,8 +129,7 @@ class SimulationService:
             config=config,
             status="running",
             started_at=datetime.now(timezone.utc),
-            total_synths=len(synths),
-        )
+            total_synths=len(synths))
         self.simulation_repo.create_simulation_run(run)
 
         try:
@@ -142,15 +139,13 @@ class SimulationService:
                 synths=synths,
                 scorecard=scorecard,
                 scenario=scenario,
-                n_executions=n_executions,
-            )
+                n_executions=n_executions)
 
             # Convert results to SynthOutcome entities
             synth_outcomes = self._convert_to_synth_outcomes(
                 simulation_id=run.id,
                 results=results,
-                synths=synths,
-            )
+                synths=synths)
 
             # Save outcomes
             self.simulation_repo.save_synth_outcomes(run.id, synth_outcomes)
@@ -199,8 +194,7 @@ class SimulationService:
         scenario_id: str | None = None,
         status: str | None = None,
         limit: int = 20,
-        offset: int = 0,
-    ) -> dict[str, Any]:
+        offset: int = 0) -> dict[str, Any]:
         """
         List simulation runs with optional filters.
 
@@ -219,8 +213,7 @@ class SimulationService:
             scenario_id=scenario_id,
             status=status,
             limit=limit,
-            offset=offset,
-        )
+            offset=offset)
         return {
             "items": [run.model_dump(mode="json") for run in runs],
             "total": total,
@@ -232,8 +225,7 @@ class SimulationService:
         self,
         run_id: str,
         limit: int = 100,
-        offset: int = 0,
-    ) -> dict[str, Any]:
+        offset: int = 0) -> dict[str, Any]:
         """
         Get synth outcomes for a simulation.
 
@@ -248,8 +240,7 @@ class SimulationService:
         outcomes, total = self.simulation_repo.get_synth_outcomes(
             simulation_id=run_id,
             limit=limit,
-            offset=offset,
-        )
+            offset=offset)
         return {
             "items": [outcome.model_dump(mode="json") for outcome in outcomes],
             "total": total,
@@ -296,21 +287,22 @@ class SimulationService:
         Returns:
             List of synth dicts with simulation_attributes (observables + latent_traits)
         """
-        # Build query
-        if synth_ids:
-            placeholders = ",".join("?" * len(synth_ids))
-            sql = f"""
-                SELECT id, data FROM synths WHERE id IN ({placeholders})
-            """
-            rows = self.db.fetchall(sql, tuple(synth_ids))
-        else:
-            sql = "SELECT id, data FROM synths LIMIT 500"  # Safety limit
-            rows = self.db.fetchall(sql)
+        from sqlalchemy import select
+        from synth_lab.infrastructure.database_v2 import get_session
+        from synth_lab.models.orm.synth import Synth as SynthORM
+
+        with get_session() as session:
+            stmt = select(SynthORM)
+            if synth_ids:
+                stmt = stmt.where(SynthORM.id.in_(synth_ids))
+            else:
+                stmt = stmt.limit(500)  # Safety limit
+            orm_synths = list(session.execute(stmt).scalars().all())
 
         synths = []
-        for row in rows:
-            synth_data = json.loads(row["data"]) if row["data"] else {}
-            synth_data["id"] = row["id"]
+        for orm_synth in orm_synths:
+            synth_data = orm_synth.data if isinstance(orm_synth.data, dict) else {}
+            synth_data["id"] = orm_synth.id
 
             # Convert real synth data to simulation_attributes
             synth_data["simulation_attributes"] = self._generate_simulation_attributes(synth_data)
@@ -335,8 +327,7 @@ class SimulationService:
             Dict with observables and latent_traits
         """
         from synth_lab.domain.entities.simulation_attributes import (
-            SimulationObservables,
-        )
+            SimulationObservables)
         from synth_lab.gen_synth.simulation_attributes import derive_latent_traits
 
         # Check if synth already has pre-computed observables (v2.3.0+)
@@ -417,8 +408,7 @@ class SimulationService:
             similar_tool_experience=round(similar_tool_experience, 3),
             motor_ability=round(motor_ability, 3),
             time_availability=round(time_availability, 3),
-            domain_expertise=round(domain_expertise, 3),
-        )
+            domain_expertise=round(domain_expertise, 3))
 
         # Derive latent traits using standard formula
         latent_traits = derive_latent_traits(observables)
@@ -432,8 +422,7 @@ class SimulationService:
         self,
         simulation_id: str,
         results: Any,  # SimulationResults from engine
-        synths: list[dict[str, Any]],
-    ) -> list[SynthOutcome]:
+        synths: list[dict[str, Any]]) -> list[SynthOutcome]:
         """
         Convert engine results to SynthOutcome entities.
 
@@ -447,8 +436,7 @@ class SimulationService:
         """
         from synth_lab.domain.entities.simulation_attributes import (
             SimulationLatentTraits,
-            SimulationObservables,
-        )
+            SimulationObservables)
 
         # Default attributes for synths without simulation_attributes
         def create_default_attrs() -> SimulationAttributes:
@@ -458,15 +446,12 @@ class SimulationService:
                     similar_tool_experience=0.5,
                     motor_ability=1.0,
                     time_availability=0.5,
-                    domain_expertise=0.5,
-                ),
+                    domain_expertise=0.5),
                 latent_traits=SimulationLatentTraits(
                     capability_mean=0.5,
                     trust_mean=0.5,
                     friction_tolerance_mean=0.5,
-                    exploration_prob=0.5,
-                ),
-            )
+                    exploration_prob=0.5))
 
         # Build synth_id -> simulation_attributes mapping
         synth_attrs_map = {}
@@ -496,8 +481,7 @@ class SimulationService:
                     did_not_try_rate=result.did_not_try_rate,
                     failed_rate=result.failed_rate,
                     success_rate=result.success_rate,
-                    synth_attributes=synth_attrs,
-                )
+                    synth_attributes=synth_attrs)
             )
 
         return outcomes
@@ -561,9 +545,7 @@ if __name__ == "__main__":
     from synth_lab.domain.entities import (
         FeatureScorecard,
         ScorecardDimension,
-        ScorecardIdentification,
-    )
-    from synth_lab.infrastructure.database import DatabaseManager, init_database
+        ScorecardIdentification)
 
     print("=== Simulation Service Validation ===\n")
 
@@ -614,22 +596,20 @@ if __name__ == "__main__":
         db_path = Path(tmpdir) / "test.db"
         init_database(db_path)
         db = DatabaseManager(db_path)
-        service = SimulationService(db)
+        service = SimulationService()
 
         # Create test scorecard
-        scorecard_repo = ScorecardRepository(db)
+        scorecard_repo = ScorecardRepository()
         test_scorecard = FeatureScorecard(
             id="simtest1",
             identification=ScorecardIdentification(
                 feature_name="Test Feature",
-                use_scenario="Testing simulation service",
-            ),
+                use_scenario="Testing simulation service"),
             description_text="A test scorecard",
             complexity=ScorecardDimension(score=0.4),
             initial_effort=ScorecardDimension(score=0.3),
             perceived_risk=ScorecardDimension(score=0.2),
-            time_to_value=ScorecardDimension(score=0.5),
-        )
+            time_to_value=ScorecardDimension(score=0.5))
         scorecard_repo.create_scorecard(test_scorecard)
 
         # Create test synths with observables (new v2.3.0 format)
@@ -667,8 +647,7 @@ if __name__ == "__main__":
                 scenario_id="baseline",
                 synth_ids=test_synths_data,
                 n_executions=50,
-                seed=42,
-            )
+                seed=42)
             if run.status != "completed":
                 all_validation_failures.append(f"Simulation should be completed: {run.status}")
             elif run.total_synths != 5:
@@ -730,8 +709,7 @@ if __name__ == "__main__":
             service.execute_simulation(
                 scorecard_id="nonexist",
                 scenario_id="baseline",
-                synth_ids=test_synths_data,
-            )
+                synth_ids=test_synths_data)
             all_validation_failures.append("Should raise ValueError for non-existent scorecard")
         except ValueError:
             print("Test 8 PASSED: ValueError raised for non-existent scorecard")
@@ -744,8 +722,7 @@ if __name__ == "__main__":
             service.execute_simulation(
                 scorecard_id="simtest1",
                 scenario_id="nonexistent_scenario",
-                synth_ids=test_synths_data,
-            )
+                synth_ids=test_synths_data)
             all_validation_failures.append("Should raise ValueError for non-existent scenario")
         except ValueError:
             print("Test 9 PASSED: ValueError raised for non-existent scenario")

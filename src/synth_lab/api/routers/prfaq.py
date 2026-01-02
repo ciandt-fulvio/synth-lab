@@ -14,8 +14,7 @@ from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.prfaq import PRFAQGenerateRequest, PRFAQGenerateResponse, PRFAQSummary
 from synth_lab.services.prfaq_service import (
     MarkdownNotFoundError,
-    PRFAQService,
-)
+    PRFAQService)
 
 router = APIRouter()
 
@@ -30,8 +29,7 @@ async def list_prfaqs(
     limit: int = Query(default=50, ge=1, le=200, description="Maximum items per page"),
     offset: int = Query(default=0, ge=0, description="Number of items to skip"),
     sort_by: str | None = Query(default="generated_at", description="Field to sort by"),
-    sort_order: str = Query(default="desc", pattern="^(asc|desc)$", description="Sort order"),
-) -> PaginatedResponse[PRFAQSummary]:
+    sort_order: str = Query(default="desc", pattern="^(asc|desc)$", description="Sort order")) -> PaginatedResponse[PRFAQSummary]:
     """
     List all PR-FAQ documents with pagination.
 
@@ -42,8 +40,7 @@ async def list_prfaqs(
         limit=limit,
         offset=offset,
         sort_by=sort_by,
-        sort_order=sort_order,
-    )
+        sort_order=sort_order)
     return service.list_prfaqs(params)
 
 
@@ -72,8 +69,7 @@ async def get_prfaq_markdown(exec_id: str) -> PlainTextResponse:
     except MarkdownNotFoundError as e:
         raise HTTPException(
             status_code=404,
-            detail={"code": "MARKDOWN_NOT_FOUND", "message": str(e)},
-        ) from e
+            detail={"code": "MARKDOWN_NOT_FOUND", "message": str(e)}) from e
 
 
 def _generate_prfaq_background(request: PRFAQGenerateRequest) -> None:
@@ -92,8 +88,7 @@ def _generate_prfaq_background(request: PRFAQGenerateRequest) -> None:
 @router.post("/generate", response_model=PRFAQGenerateResponse)
 async def generate_prfaq(
     request: PRFAQGenerateRequest,
-    background_tasks: BackgroundTasks,
-) -> PRFAQGenerateResponse:
+    background_tasks: BackgroundTasks) -> PRFAQGenerateResponse:
     """
     Start generation of a PR-FAQ from a research execution.
 
@@ -127,8 +122,7 @@ async def generate_prfaq(
     if not execution.experiment_id:
         raise HTTPException(
             status_code=400,
-            detail="Execution must be linked to an experiment",
-        )
+            detail="Execution must be linked to an experiment")
 
     # Create "generating" status record BEFORE starting background task
     # This prevents race condition where frontend polls before record exists
@@ -140,14 +134,12 @@ async def generate_prfaq(
     except Exception:
         raise HTTPException(
             status_code=400,
-            detail="Summary must be generated first",
-        )
+            detail="Summary must be generated first")
 
     pending = doc_service.start_generation(
         experiment_id=execution.experiment_id,
         document_type=DocumentType.PRFAQ,
-        model=request.model,
-    )
+        model=request.model)
 
     if pending is None:
         # Already generating
@@ -155,8 +147,7 @@ async def generate_prfaq(
             exec_id=request.exec_id,
             status="generating",
             generated_at=datetime.now(),
-            validation_status="pending",
-        )
+            validation_status="pending")
 
     # Start background generation (service will handle validation and locking)
     background_tasks.add_task(_generate_prfaq_background, request)
@@ -165,8 +156,7 @@ async def generate_prfaq(
         exec_id=request.exec_id,
         status="generating",
         generated_at=datetime.now(),
-        validation_status="pending",
-    )
+        validation_status="pending")
 
 
 if __name__ == "__main__":

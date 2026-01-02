@@ -37,11 +37,9 @@ from synth_lab.domain.entities import (
     SynthOutcome,
     TrendlinePoint,
     TryVsSuccessChart,
-    TryVsSuccessPoint,
-)
+    TryVsSuccessPoint)
 from synth_lab.domain.entities.experiment import (
-    ScorecardData,
-)
+    ScorecardData)
 from synth_lab.services.simulation.feature_extraction import get_attribute_value
 
 
@@ -61,8 +59,7 @@ class ChartDataService:
         simulation_id: str,
         outcomes: list[SynthOutcome],
         x_threshold: float = 0.5,
-        y_threshold: float = 0.5,
-    ) -> TryVsSuccessChart:
+        y_threshold: float = 0.5) -> TryVsSuccessChart:
         """
         Generate Try vs Success scatter plot data.
 
@@ -117,8 +114,7 @@ class ChartDataService:
                 synth_id=outcome.synth_id,
                 attempt_rate=attempt_rate,
                 success_rate=success_rate,
-                quadrant=quadrant,
-            )
+                quadrant=quadrant)
             points.append(point)
             quadrant_counts[quadrant] += 1
 
@@ -127,8 +123,7 @@ class ChartDataService:
             points=points,
             quadrant_counts=quadrant_counts,
             quadrant_thresholds={"x": x_threshold, "y": y_threshold},
-            total_synths=len(outcomes),
-        )
+            total_synths=len(outcomes))
 
     def get_outcome_distribution(
         self,
@@ -136,8 +131,7 @@ class ChartDataService:
         outcomes: list[SynthOutcome],
         sort_by: Literal["success_rate", "failed_rate", "did_not_try_rate"] = "success_rate",
         order: Literal["asc", "desc"] = "desc",
-        limit: int = 50,
-    ) -> OutcomeDistributionChart:
+        limit: int = 50) -> OutcomeDistributionChart:
         """
         Generate outcome distribution chart data.
 
@@ -171,8 +165,7 @@ class ChartDataService:
                 did_not_try_rate=outcome.did_not_try_rate,
                 failed_rate=outcome.failed_rate,
                 success_rate=outcome.success_rate,
-                sort_key=sort_key,
-            )
+                sort_key=sort_key)
             distributions.append(dist)
             success_rates.append(outcome.success_rate)
             failed_rates.append(outcome.failed_rate)
@@ -205,8 +198,7 @@ class ChartDataService:
             summary=summary,
             worst_performers=worst_performers,
             best_performers=best_performers,
-            total_synths=len(outcomes),
-        )
+            total_synths=len(outcomes))
 
     # =========================================================================
     # Phase 2: Localização de Problemas (User Story 2)
@@ -220,8 +212,7 @@ class ChartDataService:
         y_axis: str = "domain_expertise",
         bins: int = 5,
         metric: Literal["failed_rate", "success_rate", "did_not_try_rate"] = "failed_rate",
-        critical_threshold: float = 0.7,
-    ) -> FailureHeatmapChart:
+        critical_threshold: float = 0.7) -> FailureHeatmapChart:
         """
         Generate failure heatmap data.
 
@@ -255,8 +246,7 @@ class ChartDataService:
                 max_value=0.0,
                 min_value=0.0,
                 critical_cells=[],
-                critical_threshold=critical_threshold,
-            )
+                critical_threshold=critical_threshold)
 
         # Extract values
         x_values = [get_attribute_value(o, x_axis) for o in outcomes]
@@ -328,8 +318,7 @@ class ChartDataService:
                     y_range=(y_min, y_max),
                     metric_value=avg_metric,
                     synth_count=len(cell_indices),
-                    synth_ids=cell_synths,
-                )
+                    synth_ids=cell_synths)
                 cells.append(cell)
                 all_metric_values.append(avg_metric)
 
@@ -348,8 +337,7 @@ class ChartDataService:
             max_value=max(all_metric_values) if all_metric_values else 0.0,
             min_value=min(all_metric_values) if all_metric_values else 0.0,
             critical_cells=critical_cells,
-            critical_threshold=critical_threshold,
-        )
+            critical_threshold=critical_threshold)
 
     def get_box_plot(
         self,
@@ -357,8 +345,7 @@ class ChartDataService:
         outcomes: list[SynthOutcome],
         region_analysis: RegionAnalysis | None,
         metric: Literal["success_rate", "failed_rate", "did_not_try_rate"] = "success_rate",
-        include_baseline: bool = True,
-    ) -> BoxPlotChart:
+        include_baseline: bool = True) -> BoxPlotChart:
         """
         Generate box plot data by region.
 
@@ -402,16 +389,14 @@ class ChartDataService:
                         if len(region.rule_text) > 50
                         else region.rule_text,
                         synth_count=len(region_values),
-                        stats=stats,
-                    )
+                        stats=stats)
                     regions.append(region_box)
 
         return BoxPlotChart(
             simulation_id=simulation_id,
             metric=metric,
             regions=regions,
-            baseline_stats=baseline_stats if include_baseline else self._calculate_box_stats([]),
-        )
+            baseline_stats=baseline_stats if include_baseline else self._calculate_box_stats([]))
 
     def _calculate_box_stats(self, values: list[float]) -> BoxPlotStats:
         """Calculate box plot statistics for a list of values."""
@@ -423,8 +408,7 @@ class ChartDataService:
                 q3=0.0,
                 max=0.0,
                 mean=0.0,
-                outliers=[],
-            )
+                outliers=[])
 
         arr = np.array(values)
         q1 = float(np.percentile(arr, 25))
@@ -443,8 +427,7 @@ class ChartDataService:
             q3=q3,
             max=float(np.max(arr)),
             mean=float(np.mean(arr)),
-            outliers=outliers,
-        )
+            outliers=outliers)
 
     def get_scatter_correlation(
         self,
@@ -452,8 +435,7 @@ class ChartDataService:
         outcomes: list[SynthOutcome],
         x_axis: str = "digital_literacy",
         y_axis: str = "success_rate",
-        show_trendline: bool = True,
-    ) -> ScatterCorrelationChart:
+        show_trendline: bool = True) -> ScatterCorrelationChart:
         """
         Generate scatter correlation chart data.
 
@@ -483,10 +465,8 @@ class ChartDataService:
                     r_squared=0.0,
                     is_significant=False,
                     trend_slope=0.0,
-                    trend_intercept=0.0,
-                ),
-                trendline=[],
-            )
+                    trend_intercept=0.0),
+                trendline=[])
 
         # Extract values
         points: list[CorrelationPoint] = []
@@ -500,8 +480,7 @@ class ChartDataService:
                 CorrelationPoint(
                     synth_id=outcome.synth_id,
                     x_value=x_val,
-                    y_value=y_val,
-                )
+                    y_value=y_val)
             )
             x_values.append(x_val)
             y_values.append(y_val)
@@ -536,8 +515,7 @@ class ChartDataService:
             r_squared=float(pearson_r**2),
             is_significant=p_value < 0.05 and not np.isnan(p_value),
             trend_slope=float(slope),
-            trend_intercept=float(intercept),
-        )
+            trend_intercept=float(intercept))
 
         # Calculate trendline points
         trendline: list[TrendlinePoint] = []
@@ -554,8 +532,7 @@ class ChartDataService:
             y_axis=y_axis,
             points=points,
             correlation=correlation,
-            trendline=trendline,
-        )
+            trendline=trendline)
 
     # =========================================================================
     # Phase 2b: Attribute Correlations
@@ -577,8 +554,7 @@ class ChartDataService:
     def get_attribute_correlations(
         self,
         simulation_id: str,
-        outcomes: list[SynthOutcome],
-    ) -> AttributeCorrelationChart:
+        outcomes: list[SynthOutcome]) -> AttributeCorrelationChart:
         """
         Calculate correlation of each synth attribute with attempt_rate and success_rate.
 
@@ -597,8 +573,7 @@ class ChartDataService:
             return AttributeCorrelationChart(
                 simulation_id=simulation_id,
                 correlations=[],
-                total_synths=len(outcomes),
-            )
+                total_synths=len(outcomes))
 
         # Calculate attempt_rate and success_rate for each synth
         attempt_rates = np.array([1.0 - o.did_not_try_rate for o in outcomes])
@@ -650,8 +625,7 @@ class ChartDataService:
                     p_value_attempt=float(p_attempt),
                     p_value_success=float(p_success),
                     is_significant_attempt=p_attempt < 0.05,
-                    is_significant_success=p_success < 0.05,
-                )
+                    is_significant_success=p_success < 0.05)
             )
 
         # Keep fixed order (same as X_AXIS_OPTIONS in frontend)
@@ -660,8 +634,7 @@ class ChartDataService:
         return AttributeCorrelationChart(
             simulation_id=simulation_id,
             correlations=correlations,
-            total_synths=len(outcomes),
-        )
+            total_synths=len(outcomes))
 
     # =========================================================================
     # Sankey Flow Chart (Outcome Flow Visualization)
@@ -703,8 +676,7 @@ class ChartDataService:
 
     def get_dominant_outcome(
         self,
-        outcome: SynthOutcome,
-    ) -> Literal["did_not_try", "failed", "success"]:
+        outcome: SynthOutcome) -> Literal["did_not_try", "failed", "success"]:
         """
         Determine the dominant outcome for a synth.
 
@@ -732,8 +704,7 @@ class ChartDataService:
     def diagnose_did_not_try(
         self,
         outcome: SynthOutcome,
-        scorecard: FeatureScorecard | ScorecardData,
-    ) -> str:
+        scorecard: FeatureScorecard | ScorecardData) -> str:
         """
         Diagnose root cause for did_not_try outcome.
 
@@ -774,8 +745,7 @@ class ChartDataService:
         sorted_gaps = sorted(
             gaps.items(),
             key=lambda x: (x[1], priority.get(x[0], 0)),
-            reverse=True,
-        )
+            reverse=True)
         largest_gap = sorted_gaps[0][0]
 
         # Map gap to barrier
@@ -788,8 +758,7 @@ class ChartDataService:
     def diagnose_failed(
         self,
         outcome: SynthOutcome,
-        scorecard: FeatureScorecard | ScorecardData,
-    ) -> str:
+        scorecard: FeatureScorecard | ScorecardData) -> str:
         """
         Diagnose root cause for failed outcome.
 
@@ -820,8 +789,7 @@ class ChartDataService:
         sorted_gaps = sorted(
             gaps.items(),
             key=lambda x: (x[1], self.FAILED_PRIORITY.get(x[0], 0)),
-            reverse=True,
-        )
+            reverse=True)
         largest_gap = sorted_gaps[0][0]
 
         # Map gap to barrier
@@ -835,8 +803,7 @@ class ChartDataService:
         self,
         analysis_id: str,
         outcomes: list[SynthOutcome],
-        scorecard: FeatureScorecard | ScorecardData,
-    ) -> SankeyFlowChart:
+        scorecard: FeatureScorecard | ScorecardData) -> SankeyFlowChart:
         """
         Generate Sankey flow chart data for outcome flow visualization.
 
@@ -861,8 +828,7 @@ class ChartDataService:
                 nodes=[],
                 links=[],
                 total_synths=0,
-                outcome_counts=OutcomeCounts(did_not_try=0, failed=0, success=0),
-            )
+                outcome_counts=OutcomeCounts(did_not_try=0, failed=0, success=0))
 
         total_synths = len(outcomes)
 
@@ -891,8 +857,7 @@ class ChartDataService:
         outcome_counts = OutcomeCounts(
             did_not_try=did_not_try_count,
             failed=failed_count,
-            success=success_count,
-        )
+            success=success_count)
 
         # Step 2: Diagnose root causes using rate-weighted distribution
         # For each synth, weight the root cause by their did_not_try_rate or failed_rate
@@ -968,8 +933,7 @@ class ChartDataService:
                 label=self.SANKEY_LABELS["population"],
                 level=1,
                 color=self.SANKEY_COLORS["population"],
-                value=total_synths,
-            )
+                value=total_synths)
         )
 
         # Level 2: Outcomes (only include if count > 0)
@@ -982,8 +946,7 @@ class ChartDataService:
                         label=self.SANKEY_LABELS[outcome_id],
                         level=2,
                         color=self.SANKEY_COLORS[outcome_id],
-                        value=count,
-                    )
+                        value=count)
                 )
 
         # Level 3: Root causes (only include if count > 0)
@@ -995,8 +958,7 @@ class ChartDataService:
                         label=self.SANKEY_LABELS[cause_id],
                         level=3,
                         color=self.SANKEY_COLORS[cause_id],
-                        value=count,
-                    )
+                        value=count)
                 )
 
         # Step 4: Build links (only include if value > 0)
@@ -1031,8 +993,7 @@ class ChartDataService:
             nodes=nodes,
             links=links,
             total_synths=total_synths,
-            outcome_counts=outcome_counts,
-        )
+            outcome_counts=outcome_counts)
 
 
 # =============================================================================
@@ -1045,8 +1006,7 @@ if __name__ == "__main__":
     from synth_lab.domain.entities.simulation_attributes import (
         SimulationAttributes,
         SimulationLatentTraits,
-        SimulationObservables,
-    )
+        SimulationObservables)
 
     all_validation_failures: list[str] = []
     total_tests = 0
@@ -1057,8 +1017,7 @@ if __name__ == "__main__":
         success: float,
         failed: float,
         capability: float = 0.5,
-        trust: float = 0.5,
-    ) -> SynthOutcome:
+        trust: float = 0.5) -> SynthOutcome:
         return SynthOutcome(
             simulation_id="sim_test",
             synth_id=synth_id,
@@ -1071,16 +1030,12 @@ if __name__ == "__main__":
                     similar_tool_experience=0.4,
                     motor_ability=0.8,
                     time_availability=0.3,
-                    domain_expertise=0.6,
-                ),
+                    domain_expertise=0.6),
                 latent_traits=SimulationLatentTraits(
                     capability_mean=capability,
                     trust_mean=trust,
                     friction_tolerance_mean=0.40,
-                    exploration_prob=0.35,
-                ),
-            ),
-        )
+                    exploration_prob=0.35)))
 
     outcomes = [
         create_outcome("synth_001", 0.70, 0.20, capability=0.8, trust=0.7),  # ok

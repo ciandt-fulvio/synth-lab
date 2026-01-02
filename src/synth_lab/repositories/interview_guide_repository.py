@@ -6,13 +6,15 @@ Interview guides are 1:1 with experiments and contain the context for interviews
 
 References:
     - Database module: synth_lab.infrastructure.database
+    - ORM models: synth_lab.models.orm.experiment
 """
 
 from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
-from synth_lab.infrastructure.database import DatabaseManager
+from synth_lab.models.orm.experiment import InterviewGuide as InterviewGuideORM
 from synth_lab.repositories.base import BaseRepository
 
 
@@ -28,10 +30,15 @@ class InterviewGuide(BaseModel):
 
 
 class InterviewGuideRepository(BaseRepository):
-    """Repository for interview guide data access."""
+    """Repository for interview guide data access.
 
-    def __init__(self, db: DatabaseManager | None = None):
-        super().__init__(db)
+    Uses SQLAlchemy ORM for database operations.
+    """
+
+    def __init__(
+        self,
+session: Session | None = None):
+        super().__init__( session=session)
 
     def create(self, guide: InterviewGuide) -> InterviewGuide:
         """
@@ -43,25 +50,17 @@ class InterviewGuideRepository(BaseRepository):
         Returns:
             Created interview guide.
         """
-        self.db.execute(
-            """
-            INSERT INTO interview_guide (
-                experiment_id, context_definition, questions,
-                context_examples, created_at, updated_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (
-                guide.experiment_id,
-                guide.context_definition,
-                guide.questions,
-                guide.context_examples,
-                guide.created_at.isoformat(),
-                guide.updated_at.isoformat() if guide.updated_at else None,
-            ),
-        )
+        orm_guide = InterviewGuideORM(
+            experiment_id=guide.experiment_id,
+            context_definition=guide.context_definition,
+            questions=guide.questions,
+            context_examples=guide.context_examples,
+            created_at=guide.created_at.isoformat(),
+            updated_at=guide.updated_at.isoformat() if guide.updated_at else None)
+        self._add(orm_guide)
+        self._flush()
+        self._commit()
         return guide
-
     def get_by_experiment_id(self, experiment_id: str) -> InterviewGuide | None:
         """
         Get interview guide by experiment ID.
@@ -72,14 +71,10 @@ class InterviewGuideRepository(BaseRepository):
         Returns:
             InterviewGuide if found, None otherwise.
         """
-        row = self.db.fetchone(
-            "SELECT * FROM interview_guide WHERE experiment_id = ?",
-            (experiment_id,),
-        )
-        if row is None:
+        orm_guide = self.session.get(InterviewGuideORM, experiment_id)
+        if orm_guide is None:
             return None
-        return self._row_to_guide(row)
-
+        return self._orm_to_guide(orm_guide)
     def exists(self, experiment_id: str) -> bool:
         """
         Check if interview guide exists for an experiment.
@@ -90,19 +85,14 @@ class InterviewGuideRepository(BaseRepository):
         Returns:
             True if guide exists, False otherwise.
         """
-        row = self.db.fetchone(
-            "SELECT 1 FROM interview_guide WHERE experiment_id = ?",
-            (experiment_id,),
-        )
-        return row is not None
-
+        orm_guide = self.session.get(InterviewGuideORM, experiment_id)
+        return orm_guide is not None
     def update(
         self,
         experiment_id: str,
         context_definition: str | None = None,
         questions: str | None = None,
-        context_examples: str | None = None,
-    ) -> InterviewGuide | None:
+        context_examples: str | None = None) -> InterviewGuide | None:
         """
         Update an interview guide.
 
@@ -115,36 +105,21 @@ class InterviewGuideRepository(BaseRepository):
         Returns:
             Updated interview guide if found, None otherwise.
         """
-        existing = self.get_by_experiment_id(experiment_id)
-        if existing is None:
+        orm_guide = self.session.get(InterviewGuideORM, experiment_id)
+        if orm_guide is None:
             return None
 
-        updates = []
-        params = []
-
         if context_definition is not None:
-            updates.append("context_definition = ?")
-            params.append(context_definition)
+            orm_guide.context_definition = context_definition
         if questions is not None:
-            updates.append("questions = ?")
-            params.append(questions)
+            orm_guide.questions = questions
         if context_examples is not None:
-            updates.append("context_examples = ?")
-            params.append(context_examples)
+            orm_guide.context_examples = context_examples
 
-        # Always set updated_at
-        updated_at = datetime.now(timezone.utc)
-        updates.append("updated_at = ?")
-        params.append(updated_at.isoformat())
-
-        params.append(experiment_id)
-
-        if updates:
-            query = f"UPDATE interview_guide SET {', '.join(updates)} WHERE experiment_id = ?"
-            self.db.execute(query, tuple(params))
-
-        return self.get_by_experiment_id(experiment_id)
-
+        orm_guide.updated_at = datetime.now(timezone.utc).isoformat()
+        self._flush()
+        self._commit()
+        return self._orm_to_guide(orm_guide)
     def delete(self, experiment_id: str) -> bool:
         """
         Delete an interview guide.
@@ -155,16 +130,13 @@ class InterviewGuideRepository(BaseRepository):
         Returns:
             True if deleted, False if not found.
         """
-        existing = self.get_by_experiment_id(experiment_id)
-        if existing is None:
+        orm_guide = self.session.get(InterviewGuideORM, experiment_id)
+        if orm_guide is None:
             return False
-
-        self.db.execute(
-            "DELETE FROM interview_guide WHERE experiment_id = ?",
-            (experiment_id,),
-        )
+        self.session.delete(orm_guide)
+        self._flush()
+        self._commit()
         return True
-
     def _row_to_guide(self, row) -> InterviewGuide:
         """Convert a database row to InterviewGuide entity."""
         created_at = row["created_at"]
@@ -181,8 +153,25 @@ class InterviewGuideRepository(BaseRepository):
             questions=row["questions"],
             context_examples=row["context_examples"],
             created_at=created_at,
-            updated_at=updated_at,
-        )
+            updated_at=updated_at)
+
+    def _orm_to_guide(self, orm_guide: InterviewGuideORM) -> InterviewGuide:
+        """Convert ORM model to InterviewGuide entity."""
+        created_at = orm_guide.created_at
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
+
+        updated_at = orm_guide.updated_at
+        if isinstance(updated_at, str):
+            updated_at = datetime.fromisoformat(updated_at)
+
+        return InterviewGuide(
+            experiment_id=orm_guide.experiment_id,
+            context_definition=orm_guide.context_definition,
+            questions=orm_guide.questions,
+            context_examples=orm_guide.context_examples,
+            created_at=created_at,
+            updated_at=updated_at)
 
 
 if __name__ == "__main__":
@@ -190,7 +179,6 @@ if __name__ == "__main__":
     import tempfile
     from pathlib import Path
 
-    from synth_lab.infrastructure.database import DatabaseManager, init_database
 
     # Validation
     all_validation_failures = []
@@ -200,7 +188,7 @@ if __name__ == "__main__":
         test_db_path = Path(tmpdir) / "test.db"
         init_database(test_db_path)
         db = DatabaseManager(test_db_path)
-        repo = InterviewGuideRepository(db)
+        repo = InterviewGuideRepository()
 
         # Create a test experiment first
         db.execute(
@@ -218,8 +206,7 @@ if __name__ == "__main__":
                 context_definition="Test context definition",
                 questions="Q1: Test question?",
                 context_examples="Example 1",
-                created_at=datetime.now(timezone.utc),
-            )
+                created_at=datetime.now(timezone.utc))
             result = repo.create(guide)
             if result.experiment_id != "exp_test1":
                 all_validation_failures.append(f"ID mismatch: {result.experiment_id} != exp_test1")

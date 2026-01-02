@@ -3,36 +3,52 @@ ExplorationRepository for synth-lab.
 
 Data access layer for exploration and scenario node data in SQLite database.
 Supports tree traversal, frontier management, and path reconstruction.
+Uses SQLAlchemy ORM for database operations.
 
 References:
     - Spec: specs/024-llm-scenario-exploration/spec.md
     - Data model: specs/024-llm-scenario-exploration/data-model.md
+    - ORM models: synth_lab.models.orm.exploration
 """
 
 import json
 from datetime import datetime
 
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
 from synth_lab.domain.entities.exploration import (
     Exploration,
     ExplorationConfig,
     ExplorationStatus,
-    Goal,
-)
+    Goal)
 from synth_lab.domain.entities.scenario_node import (
     NodeStatus,
     ScenarioNode,
     ScorecardParams,
-    SimulationResults,
-)
-from synth_lab.infrastructure.database import DatabaseManager
+    SimulationResults)
+from synth_lab.models.orm.exploration import Exploration as ExplorationORM
+from synth_lab.models.orm.exploration import ScenarioNode as ScenarioNodeORM
 from synth_lab.repositories.base import BaseRepository
 
 
 class ExplorationRepository(BaseRepository):
-    """Repository for exploration and scenario node data access."""
+    """Repository for exploration and scenario node data access.
 
-    def __init__(self, db: DatabaseManager | None = None):
-        super().__init__(db)
+    Uses SQLAlchemy ORM for database operations.
+
+    Usage:
+        # ORM mode
+        repo = ExplorationRepository(db=database_manager)
+
+        # ORM mode (SQLAlchemy)
+        repo = ExplorationRepository(session=session)
+    """
+
+    def __init__(
+        self,
+session: Session | None = None):
+        super().__init__( session=session)
 
     # ========== Exploration Methods ==========
 
@@ -46,34 +62,25 @@ class ExplorationRepository(BaseRepository):
         Returns:
             Created exploration with persisted data.
         """
-        goal_json = json.dumps(exploration.goal.model_dump())
-        config_json = json.dumps(exploration.config.model_dump())
-
-        self.db.execute(
-            """
-            INSERT INTO explorations (
-                id, experiment_id, baseline_analysis_id, goal, config, status,
-                current_depth, total_nodes, total_llm_calls, best_success_rate,
-                started_at, completed_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                exploration.id,
-                exploration.experiment_id,
-                exploration.baseline_analysis_id,
-                goal_json,
-                config_json,
-                exploration.status.value,
-                exploration.current_depth,
-                exploration.total_nodes,
-                exploration.total_llm_calls,
-                exploration.best_success_rate,
-                exploration.started_at.isoformat(),
-                exploration.completed_at.isoformat() if exploration.completed_at else None,
-            ),
-        )
+        orm_exploration = ExplorationORM(
+            id=exploration.id,
+            experiment_id=exploration.experiment_id,
+            baseline_analysis_id=exploration.baseline_analysis_id,
+            goal=exploration.goal.model_dump(),
+            config=exploration.config.model_dump(),
+            status=exploration.status.value,
+            current_depth=exploration.current_depth,
+            total_nodes=exploration.total_nodes,
+            total_llm_calls=exploration.total_llm_calls,
+            best_success_rate=exploration.best_success_rate,
+            started_at=exploration.started_at.isoformat(),
+            completed_at=(
+                exploration.completed_at.isoformat() if exploration.completed_at else None
+            ))
+        self._add(orm_exploration)
+        self._flush()
+        self._commit()
         return exploration
-
     def get_exploration_by_id(self, exploration_id: str) -> Exploration | None:
         """
         Get an exploration by ID.
@@ -84,14 +91,10 @@ class ExplorationRepository(BaseRepository):
         Returns:
             Exploration if found, None otherwise.
         """
-        row = self.db.fetchone(
-            "SELECT * FROM explorations WHERE id = ?",
-            (exploration_id,),
-        )
-        if row is None:
+        orm_exploration = self.session.get(ExplorationORM, exploration_id)
+        if orm_exploration is None:
             return None
-        return self._row_to_exploration(row)
-
+        return self._orm_to_exploration(orm_exploration)
     def update_exploration(self, exploration: Exploration) -> Exploration:
         """
         Update an existing exploration.
@@ -102,31 +105,21 @@ class ExplorationRepository(BaseRepository):
         Returns:
             Updated exploration.
         """
-        goal_json = json.dumps(exploration.goal.model_dump())
-        config_json = json.dumps(exploration.config.model_dump())
-
-        self.db.execute(
-            """
-            UPDATE explorations SET
-                goal = ?, config = ?, status = ?, current_depth = ?,
-                total_nodes = ?, total_llm_calls = ?, best_success_rate = ?,
-                completed_at = ?
-            WHERE id = ?
-            """,
-            (
-                goal_json,
-                config_json,
-                exploration.status.value,
-                exploration.current_depth,
-                exploration.total_nodes,
-                exploration.total_llm_calls,
-                exploration.best_success_rate,
-                exploration.completed_at.isoformat() if exploration.completed_at else None,
-                exploration.id,
-            ),
-        )
+        orm_exploration = self.session.get(ExplorationORM, exploration.id)
+        if orm_exploration is not None:
+            orm_exploration.goal = exploration.goal.model_dump()
+            orm_exploration.config = exploration.config.model_dump()
+            orm_exploration.status = exploration.status.value
+            orm_exploration.current_depth = exploration.current_depth
+            orm_exploration.total_nodes = exploration.total_nodes
+            orm_exploration.total_llm_calls = exploration.total_llm_calls
+            orm_exploration.best_success_rate = exploration.best_success_rate
+            orm_exploration.completed_at = (
+                exploration.completed_at.isoformat() if exploration.completed_at else None
+            )
+            self._flush()
+            self._commit()
         return exploration
-
     def list_explorations_by_experiment(self, experiment_id: str) -> list[Exploration]:
         """
         List all explorations for an experiment.
@@ -137,14 +130,13 @@ class ExplorationRepository(BaseRepository):
         Returns:
             List of explorations.
         """
-        rows = self.db.fetchall(
-            "SELECT * FROM explorations WHERE experiment_id = ? ORDER BY started_at DESC",
-            (experiment_id,),
+        stmt = (
+            select(ExplorationORM)
+            .where(ExplorationORM.experiment_id == experiment_id)
+            .order_by(ExplorationORM.started_at.desc())
         )
-        return [self._row_to_exploration(row) for row in rows]
-
-    # ========== ScenarioNode Methods ==========
-
+        orm_explorations = list(self.session.execute(stmt).scalars().all())
+        return [self._orm_to_exploration(e) for e in orm_explorations]
     def create_node(self, node: ScenarioNode) -> ScenarioNode:
         """
         Create a new scenario node.
@@ -155,39 +147,26 @@ class ExplorationRepository(BaseRepository):
         Returns:
             Created node with persisted data.
         """
-        scorecard_json = json.dumps(node.scorecard_params.model_dump())
-        simulation_json = (
-            json.dumps(node.simulation_results.model_dump())
-            if node.simulation_results
-            else None
-        )
-
-        self.db.execute(
-            """
-            INSERT INTO scenario_nodes (
-                id, exploration_id, parent_id, depth, action_applied, action_category,
-                rationale, short_action, scorecard_params, simulation_results,
-                execution_time_seconds, node_status, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                node.id,
-                node.exploration_id,
-                node.parent_id,
-                node.depth,
-                node.action_applied,
-                node.action_category,
-                node.rationale,
-                node.short_action,
-                scorecard_json,
-                simulation_json,
-                node.execution_time_seconds,
-                node.node_status.value,
-                node.created_at.isoformat(),
+        orm_node = ScenarioNodeORM(
+            id=node.id,
+            exploration_id=node.exploration_id,
+            parent_id=node.parent_id,
+            depth=node.depth,
+            action_applied=node.action_applied,
+            action_category=node.action_category,
+            rationale=node.rationale,
+            short_action=node.short_action,
+            scorecard_params=node.scorecard_params.model_dump(),
+            simulation_results=(
+                node.simulation_results.model_dump() if node.simulation_results else None
             ),
-        )
+            execution_time_seconds=node.execution_time_seconds,
+            node_status=node.node_status.value,
+            created_at=node.created_at.isoformat())
+        self._add(orm_node)
+        self._flush()
+        self._commit()
         return node
-
     def get_node_by_id(self, node_id: str) -> ScenarioNode | None:
         """
         Get a scenario node by ID.
@@ -198,14 +177,10 @@ class ExplorationRepository(BaseRepository):
         Returns:
             ScenarioNode if found, None otherwise.
         """
-        row = self.db.fetchone(
-            "SELECT * FROM scenario_nodes WHERE id = ?",
-            (node_id,),
-        )
-        if row is None:
+        orm_node = self.session.get(ScenarioNodeORM, node_id)
+        if orm_node is None:
             return None
-        return self._row_to_node(row)
-
+        return self._orm_to_node(orm_node)
     def update_node(self, node: ScenarioNode) -> ScenarioNode:
         """
         Update an existing scenario node.
@@ -216,30 +191,17 @@ class ExplorationRepository(BaseRepository):
         Returns:
             Updated node.
         """
-        scorecard_json = json.dumps(node.scorecard_params.model_dump())
-        simulation_json = (
-            json.dumps(node.simulation_results.model_dump())
-            if node.simulation_results
-            else None
-        )
-
-        self.db.execute(
-            """
-            UPDATE scenario_nodes SET
-                scorecard_params = ?, simulation_results = ?,
-                execution_time_seconds = ?, node_status = ?
-            WHERE id = ?
-            """,
-            (
-                scorecard_json,
-                simulation_json,
-                node.execution_time_seconds,
-                node.node_status.value,
-                node.id,
-            ),
-        )
+        orm_node = self.session.get(ScenarioNodeORM, node.id)
+        if orm_node is not None:
+            orm_node.scorecard_params = node.scorecard_params.model_dump()
+            orm_node.simulation_results = (
+                node.simulation_results.model_dump() if node.simulation_results else None
+            )
+            orm_node.execution_time_seconds = node.execution_time_seconds
+            orm_node.node_status = node.node_status.value
+            self._flush()
+            self._commit()
         return node
-
     def update_node_status(self, node_id: str, status: NodeStatus) -> None:
         """
         Update the status of a scenario node.
@@ -248,17 +210,17 @@ class ExplorationRepository(BaseRepository):
             node_id: Node ID to update.
             status: New status.
         """
-        self.db.execute(
-            "UPDATE scenario_nodes SET node_status = ? WHERE id = ?",
-            (status.value, node_id),
-        )
-
+        orm_node = self.session.get(ScenarioNodeORM, node_id)
+        if orm_node is not None:
+            orm_node.node_status = status.value
+            self._flush()
+            self._commit()
+        return
     def update_node_simulation(
         self,
         node_id: str,
         simulation_results: SimulationResults,
-        execution_time_seconds: float,
-    ) -> None:
+        execution_time_seconds: float) -> None:
         """
         Update a node's simulation results.
 
@@ -267,17 +229,13 @@ class ExplorationRepository(BaseRepository):
             simulation_results: Simulation results to store.
             execution_time_seconds: Time taken for simulation.
         """
-        simulation_json = json.dumps(simulation_results.model_dump())
-        self.db.execute(
-            """
-            UPDATE scenario_nodes SET
-                simulation_results = ?,
-                execution_time_seconds = ?
-            WHERE id = ?
-            """,
-            (simulation_json, execution_time_seconds, node_id),
-        )
-
+        orm_node = self.session.get(ScenarioNodeORM, node_id)
+        if orm_node is not None:
+            orm_node.simulation_results = simulation_results.model_dump()
+            orm_node.execution_time_seconds = execution_time_seconds
+            self._flush()
+            self._commit()
+        return
     def get_nodes_by_exploration(self, exploration_id: str) -> list[ScenarioNode]:
         """
         Get all nodes for an exploration.
@@ -288,16 +246,13 @@ class ExplorationRepository(BaseRepository):
         Returns:
             List of all nodes, ordered by depth.
         """
-        rows = self.db.fetchall(
-            """
-            SELECT * FROM scenario_nodes
-            WHERE exploration_id = ?
-            ORDER BY depth ASC, created_at ASC
-            """,
-            (exploration_id,),
+        stmt = (
+            select(ScenarioNodeORM)
+            .where(ScenarioNodeORM.exploration_id == exploration_id)
+            .order_by(ScenarioNodeORM.depth.asc(), ScenarioNodeORM.created_at.asc())
         )
-        return [self._row_to_node(row) for row in rows]
-
+        orm_nodes = list(self.session.execute(stmt).scalars().all())
+        return [self._orm_to_node(n) for n in orm_nodes]
     def get_frontier_nodes(self, exploration_id: str) -> list[ScenarioNode]:
         """
         Get active nodes in the frontier (nodes that can be expanded).
@@ -308,16 +263,14 @@ class ExplorationRepository(BaseRepository):
         Returns:
             List of active nodes.
         """
-        rows = self.db.fetchall(
-            """
-            SELECT * FROM scenario_nodes
-            WHERE exploration_id = ? AND node_status = 'active'
-            ORDER BY depth DESC, created_at ASC
-            """,
-            (exploration_id,),
+        stmt = (
+            select(ScenarioNodeORM)
+            .where(ScenarioNodeORM.exploration_id == exploration_id)
+            .where(ScenarioNodeORM.node_status == "active")
+            .order_by(ScenarioNodeORM.depth.desc(), ScenarioNodeORM.created_at.asc())
         )
-        return [self._row_to_node(row) for row in rows]
-
+        orm_nodes = list(self.session.execute(stmt).scalars().all())
+        return [self._orm_to_node(n) for n in orm_nodes]
     def get_root_node(self, exploration_id: str) -> ScenarioNode | None:
         """
         Get the root node of an exploration.
@@ -328,14 +281,15 @@ class ExplorationRepository(BaseRepository):
         Returns:
             Root node if found, None otherwise.
         """
-        row = self.db.fetchone(
-            "SELECT * FROM scenario_nodes WHERE exploration_id = ? AND depth = 0",
-            (exploration_id,),
+        stmt = (
+            select(ScenarioNodeORM)
+            .where(ScenarioNodeORM.exploration_id == exploration_id)
+            .where(ScenarioNodeORM.depth == 0)
         )
-        if row is None:
+        orm_node = self.session.execute(stmt).scalar_one_or_none()
+        if orm_node is None:
             return None
-        return self._row_to_node(row)
-
+        return self._orm_to_node(orm_node)
     def get_winner_node(self, exploration_id: str) -> ScenarioNode | None:
         """
         Get the winner node of an exploration.
@@ -346,19 +300,20 @@ class ExplorationRepository(BaseRepository):
         Returns:
             Winner node if found, None otherwise.
         """
-        row = self.db.fetchone(
-            "SELECT * FROM scenario_nodes WHERE exploration_id = ? AND node_status = 'winner'",
-            (exploration_id,),
+        stmt = (
+            select(ScenarioNodeORM)
+            .where(ScenarioNodeORM.exploration_id == exploration_id)
+            .where(ScenarioNodeORM.node_status == "winner")
         )
-        if row is None:
+        orm_node = self.session.execute(stmt).scalar_one_or_none()
+        if orm_node is None:
             return None
-        return self._row_to_node(row)
-
+        return self._orm_to_node(orm_node)
     def get_path_to_node(self, node_id: str) -> list[ScenarioNode]:
         """
         Get the path from root to a specific node.
 
-        Uses recursive CTE to traverse the tree.
+        Uses recursive CTE to traverse the tree (or in-memory traversal for ORM).
 
         Args:
             node_id: Target node ID.
@@ -366,20 +321,17 @@ class ExplorationRepository(BaseRepository):
         Returns:
             List of nodes from root to target, ordered by depth.
         """
-        rows = self.db.fetchall(
-            """
-            WITH RECURSIVE path AS (
-                SELECT * FROM scenario_nodes WHERE id = ?
-                UNION ALL
-                SELECT sn.* FROM scenario_nodes sn
-                INNER JOIN path p ON sn.id = p.parent_id
-            )
-            SELECT * FROM path ORDER BY depth ASC
-            """,
-            (node_id,),
-        )
-        return [self._row_to_node(row) for row in rows]
-
+        # Build path by traversing parent relationships
+        path = []
+        current = self.session.get(ScenarioNodeORM, node_id)
+        while current is not None:
+            path.append(self._orm_to_node(current))
+            if current.parent_id is None:
+                break
+            current = self.session.get(ScenarioNodeORM, current.parent_id)
+        # Reverse to get root-to-target order
+        path.reverse()
+        return path
     def count_nodes_by_status(self, exploration_id: str) -> dict[str, int]:
         """
         Count nodes by status for an exploration.
@@ -390,20 +342,16 @@ class ExplorationRepository(BaseRepository):
         Returns:
             Dictionary mapping status to count.
         """
-        rows = self.db.fetchall(
-            """
-            SELECT node_status, COUNT(*) as count
-            FROM scenario_nodes
-            WHERE exploration_id = ?
-            GROUP BY node_status
-            """,
-            (exploration_id,),
+        stmt = (
+            select(ScenarioNodeORM.node_status, func.count())
+            .where(ScenarioNodeORM.exploration_id == exploration_id)
+            .group_by(ScenarioNodeORM.node_status)
         )
+        rows = self.session.execute(stmt).all()
         result = {status.value: 0 for status in NodeStatus}
-        for row in rows:
-            result[row["node_status"]] = row["count"]
+        for status_val, count in rows:
+            result[status_val] = count
         return result
-
     def get_best_node_by_success_rate(self, exploration_id: str) -> ScenarioNode | None:
         """
         Get the node with highest success rate.
@@ -414,19 +362,22 @@ class ExplorationRepository(BaseRepository):
         Returns:
             Best node if found, None otherwise.
         """
-        row = self.db.fetchone(
-            """
-            SELECT * FROM scenario_nodes
-            WHERE exploration_id = ? AND simulation_results IS NOT NULL
-            ORDER BY json_extract(simulation_results, '$.success_rate') DESC
-            LIMIT 1
-            """,
-            (exploration_id,),
+        # Fetch all nodes with simulation results and find best in Python
+        stmt = (
+            select(ScenarioNodeORM)
+            .where(ScenarioNodeORM.exploration_id == exploration_id)
+            .where(ScenarioNodeORM.simulation_results.isnot(None))
         )
-        if row is None:
+        orm_nodes = list(self.session.execute(stmt).scalars().all())
+        if not orm_nodes:
             return None
-        return self._row_to_node(row)
-
+        # Find best by success_rate
+        best_node = max(
+            orm_nodes,
+            key=lambda n: n.simulation_results.get("success_rate", 0.0)
+            if n.simulation_results
+            else 0.0)
+        return self._orm_to_node(best_node)
     def get_children(self, parent_id: str) -> list[ScenarioNode]:
         """
         Get all child nodes of a parent.
@@ -437,14 +388,13 @@ class ExplorationRepository(BaseRepository):
         Returns:
             List of child nodes.
         """
-        rows = self.db.fetchall(
-            "SELECT * FROM scenario_nodes WHERE parent_id = ? ORDER BY created_at ASC",
-            (parent_id,),
+        stmt = (
+            select(ScenarioNodeORM)
+            .where(ScenarioNodeORM.parent_id == parent_id)
+            .order_by(ScenarioNodeORM.created_at.asc())
         )
-        return [self._row_to_node(row) for row in rows]
-
-    # ========== Private Conversion Methods ==========
-
+        orm_nodes = list(self.session.execute(stmt).scalars().all())
+        return [self._orm_to_node(n) for n in orm_nodes]
     def _row_to_exploration(self, row) -> Exploration:
         """Convert a database row to Exploration entity."""
         started_at = row["started_at"]
@@ -470,8 +420,7 @@ class ExplorationRepository(BaseRepository):
             total_llm_calls=row["total_llm_calls"],
             best_success_rate=row["best_success_rate"],
             started_at=started_at,
-            completed_at=completed_at,
-        )
+            completed_at=completed_at)
 
     def _row_to_node(self, row) -> ScenarioNode:
         """Convert a database row to ScenarioNode entity."""
@@ -501,8 +450,64 @@ class ExplorationRepository(BaseRepository):
             ),
             execution_time_seconds=row["execution_time_seconds"],
             node_status=NodeStatus(row["node_status"]),
-            created_at=created_at,
-        )
+            created_at=created_at)
+
+    # ========== ORM Conversion Methods ==========
+
+    def _orm_to_exploration(self, orm_exploration: ExplorationORM) -> Exploration:
+        """Convert ORM model to Exploration entity."""
+        started_at = orm_exploration.started_at
+        if isinstance(started_at, str):
+            started_at = datetime.fromisoformat(started_at)
+
+        completed_at = orm_exploration.completed_at
+        if isinstance(completed_at, str):
+            completed_at = datetime.fromisoformat(completed_at)
+
+        # ORM stores goal and config as dicts
+        goal_dict = orm_exploration.goal or {}
+        config_dict = orm_exploration.config or {}
+
+        return Exploration(
+            id=orm_exploration.id,
+            experiment_id=orm_exploration.experiment_id,
+            baseline_analysis_id=orm_exploration.baseline_analysis_id,
+            goal=Goal(**goal_dict),
+            config=ExplorationConfig(**config_dict),
+            status=ExplorationStatus(orm_exploration.status),
+            current_depth=orm_exploration.current_depth,
+            total_nodes=orm_exploration.total_nodes,
+            total_llm_calls=orm_exploration.total_llm_calls,
+            best_success_rate=orm_exploration.best_success_rate,
+            started_at=started_at,
+            completed_at=completed_at)
+
+    def _orm_to_node(self, orm_node: ScenarioNodeORM) -> ScenarioNode:
+        """Convert ORM model to ScenarioNode entity."""
+        created_at = orm_node.created_at
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
+
+        # ORM stores scorecard_params and simulation_results as dicts
+        scorecard_dict = orm_node.scorecard_params or {}
+        simulation_dict = orm_node.simulation_results
+
+        return ScenarioNode(
+            id=orm_node.id,
+            exploration_id=orm_node.exploration_id,
+            parent_id=orm_node.parent_id,
+            depth=orm_node.depth,
+            action_applied=orm_node.action_applied,
+            action_category=orm_node.action_category,
+            rationale=orm_node.rationale,
+            short_action=orm_node.short_action,
+            scorecard_params=ScorecardParams(**scorecard_dict),
+            simulation_results=(
+                SimulationResults(**simulation_dict) if simulation_dict else None
+            ),
+            execution_time_seconds=orm_node.execution_time_seconds,
+            node_status=NodeStatus(orm_node.node_status),
+            created_at=created_at)
 
 
 if __name__ == "__main__":
@@ -510,7 +515,6 @@ if __name__ == "__main__":
     import tempfile
     from pathlib import Path
 
-    from synth_lab.infrastructure.database import DatabaseManager, init_database
 
     # Validation
     all_validation_failures = []
@@ -521,7 +525,7 @@ if __name__ == "__main__":
         test_db_path = Path(tmpdir) / "test.db"
         init_database(test_db_path)
         db = DatabaseManager(test_db_path)
-        repo = ExplorationRepository(db)
+        repo = ExplorationRepository()
 
         # Create test experiment and analysis
         db.execute(
@@ -543,8 +547,7 @@ if __name__ == "__main__":
             exploration = Exploration(
                 experiment_id="exp_12345678",
                 baseline_analysis_id="ana_87654321",
-                goal=Goal(value=0.40),
-            )
+                goal=Goal(value=0.40))
             result = repo.create_exploration(exploration)
             if result.id != exploration.id:
                 all_validation_failures.append(f"ID mismatch: {result.id}")
@@ -572,14 +575,11 @@ if __name__ == "__main__":
                     complexity=0.45,
                     initial_effort=0.30,
                     perceived_risk=0.25,
-                    time_to_value=0.40,
-                ),
+                    time_to_value=0.40),
                 simulation_results=SimulationResults(
                     success_rate=0.25,
                     fail_rate=0.45,
-                    did_not_try_rate=0.30,
-                ),
-            )
+                    did_not_try_rate=0.30))
             result = repo.create_node(root_node)
             if result.id != root_node.id:
                 all_validation_failures.append(f"Root node ID mismatch: {result.id}")
@@ -612,14 +612,11 @@ if __name__ == "__main__":
                     complexity=0.43,
                     initial_effort=0.30,
                     perceived_risk=0.25,
-                    time_to_value=0.38,
-                ),
+                    time_to_value=0.38),
                 simulation_results=SimulationResults(
                     success_rate=0.32,
                     fail_rate=0.40,
-                    did_not_try_rate=0.28,
-                ),
-            )
+                    did_not_try_rate=0.28))
             result = repo.create_node(child_node)
             if result.parent_id != root_node.id:
                 all_validation_failures.append(f"Child parent_id mismatch: {result.parent_id}")
@@ -691,9 +688,13 @@ if __name__ == "__main__":
             result = repo.update_exploration(exploration)
             retrieved = repo.get_exploration_by_id(exploration.id)
             if retrieved.current_depth != 1:
-                all_validation_failures.append(f"current_depth not updated: {retrieved.current_depth}")
+                all_validation_failures.append(
+                    f"current_depth not updated: {retrieved.current_depth}"
+                )
             if retrieved.best_success_rate != 0.32:
-                all_validation_failures.append(f"best_success_rate not updated: {retrieved.best_success_rate}")
+                all_validation_failures.append(
+                    f"best_success_rate not updated: {retrieved.best_success_rate}"
+                )
         except Exception as e:
             all_validation_failures.append(f"Update exploration failed: {e}")
 

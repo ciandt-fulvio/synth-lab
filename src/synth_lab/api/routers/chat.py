@@ -110,5 +110,4 @@ async def chat_with_synth_stream(synth_id: str, request: ChatRequest) -> Streami
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
-        },
-    )
+        })

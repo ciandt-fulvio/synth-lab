@@ -80,8 +80,7 @@ class ExecutiveSummaryService:
         self,
         llm_client: LLMClient | None = None,
         cache_repo: AnalysisCacheRepository | None = None,
-        document_service: DocumentService | None = None,
-    ):
+        document_service: DocumentService | None = None):
         """
         Initialize ExecutiveSummaryService.
 
@@ -119,8 +118,7 @@ class ExecutiveSummaryService:
                 "analysis.id": analysis_id,
                 "operation.type": "executive_summary",
                 "output.format": "json",
-            },
-        ):
+            }):
             try:
                 # Retrieve all insights
                 all_insights = self.cache_repo.get_all_chart_insights(
@@ -143,8 +141,7 @@ class ExecutiveSummaryService:
                 )
                 llm_response_str = self.llm.complete_json(
                     messages=[{"role": "user", "content": prompt}],
-                    model=REASONING_MODEL,
-                )
+                    model=REASONING_MODEL)
 
                 # Parse JSON string to dict
                 import json
@@ -165,8 +162,7 @@ class ExecutiveSummaryService:
                     included_chart_types=[
                         i.chart_type for i in completed_insights],
                     status=status,
-                    model=REASONING_MODEL,
-                )
+                    model=REASONING_MODEL)
 
                 # Store in cache
                 self.cache_repo.store_executive_summary(summary)
@@ -192,8 +188,7 @@ class ExecutiveSummaryService:
                                      "Retry summary generation"],
                     included_chart_types=["unknown"],
                     status="failed",
-                    model=REASONING_MODEL,
-                )
+                    model=REASONING_MODEL)
                 self.cache_repo.store_executive_summary(failed_summary)
                 return failed_summary
 
@@ -280,15 +275,13 @@ Sintetize os seguintes {len(insights)} insights de gráficos em um resumo execut
                 "analysis.id": analysis_id,
                 "operation.type": "executive_summary_markdown",
                 "output.format": "markdown",
-            },
-        ):
+            }):
             try:
                 # Mark as generating (prevents concurrent generation)
                 pending = self.document_service.start_generation(
                     experiment_id,
                     DocumentType.EXECUTIVE_SUMMARY,
-                    model=REASONING_MODEL,
-                )
+                    model=REASONING_MODEL)
                 if pending is None:
                     # Already generating, check current status
                     status = self.document_service.get_document_status(
@@ -311,8 +304,7 @@ Sintetize os seguintes {len(insights)} insights de gráficos em um resumo execut
                     self.document_service.fail_generation(
                         experiment_id,
                         DocumentType.EXECUTIVE_SUMMARY,
-                        f"Need at least 2 completed insights, got {len(completed_insights)}",
-                    )
+                        f"Need at least 2 completed insights, got {len(completed_insights)}")
                     raise ValueError(
                         f"Need at least 2 completed insights to generate summary, "
                         f"got {len(completed_insights)}"
@@ -328,8 +320,7 @@ Sintetize os seguintes {len(insights)} insights de gráficos em um resumo execut
                 )
                 markdown_content = self.llm.complete(
                     messages=[{"role": "user", "content": prompt}],
-                    model=REASONING_MODEL,
-                )
+                    model=REASONING_MODEL)
 
                 # Strip any markdown code fence wrapper from LLM response
                 markdown_content = _strip_markdown_fence(markdown_content)
@@ -353,8 +344,7 @@ Sintetize os seguintes {len(insights)} insights de gráficos em um resumo execut
                         "completed_insights": len(completed_insights),
                         "generation_status": status_str,
                         "model": REASONING_MODEL,
-                    },
-                )
+                    })
 
                 self.logger.info(
                     f"Markdown executive summary generated: {status_str} "
@@ -370,8 +360,7 @@ Sintetize os seguintes {len(insights)} insights de gráficos em um resumo execut
                 self.document_service.fail_generation(
                     experiment_id,
                     DocumentType.EXECUTIVE_SUMMARY,
-                    str(e),
-                )
+                    str(e))
                 raise
 
     def _build_markdown_synthesis_prompt(self, insights: list[ChartInsight]) -> str:
@@ -467,8 +456,7 @@ if __name__ == "__main__":
                 analysis_id="ana_12345678",
                 chart_type=f"chart_{i}",
                 summary=f"Insight resumido número {i} sobre o gráfico",
-                status="completed",
-            )
+                status="completed")
             for i in range(3)
         ]
         prompt = service._build_synthesis_prompt(sample_insights)
@@ -488,8 +476,7 @@ if __name__ == "__main__":
                 analysis_id="ana_12345678",
                 chart_type=f"chart_{i}",
                 summary=f"Insight resumido número {i} sobre o gráfico",
-                status="completed",
-            )
+                status="completed")
             for i in range(3)
         ]
         prompt = service._build_markdown_synthesis_prompt(sample_insights)
