@@ -154,7 +154,7 @@ export function DocumentViewer({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[70vw] h-[80vh] flex flex-col">
         {/* Header with title and download button */}
-        <DialogHeader className="flex-row items-center justify-between space-y-0 pb-4 border-b border-slate-200">
+        <DialogHeader className="flex-row items-center justify-between space-y-0 pb-4 border-b border-slate-200 pr-12">
           <DialogTitle className="flex items-center gap-3 text-xl">
             <div className="p-2 rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200">
               {icon}
@@ -167,7 +167,7 @@ export function DocumentViewer({
             size="sm"
             onClick={handleDownloadPdf}
             disabled={isGenerating || isFailed || !hasContent || isGeneratingPdf}
-            className="ml-4 gap-2 border-slate-300 hover:border-violet-400 hover:bg-violet-50 transition-all"
+            className="gap-2 border-slate-300 hover:border-violet-400 hover:bg-violet-50 transition-all"
           >
             {isGeneratingPdf ? (
               <>
@@ -177,7 +177,7 @@ export function DocumentViewer({
             ) : (
               <>
                 <Download className="h-4 w-4 text-violet-600" />
-                <span className="text-sm font-medium">Download PDF</span>
+                <span className="text-sm font-medium">PDF</span>
               </>
             )}
           </Button>
