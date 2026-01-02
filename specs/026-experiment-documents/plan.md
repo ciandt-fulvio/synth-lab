@@ -15,8 +15,8 @@ This is a "finalization" task - most code already exists but is not properly int
 ## Technical Context
 
 **Language/Version**: Python 3.13 (backend), TypeScript 5.5 (frontend)
-**Primary Dependencies**: FastAPI 0.109+, Pydantic 2.5+, SQLite 3 with JSON1, React 18, TanStack Query 5.56+
-**Storage**: SQLite 3 with WAL mode (`output/synthlab.db`)
+**Primary Dependencies**: FastAPI 0.109+, Pydantic 2.5+, PostgreSQL 3 with JSON1, React 18, TanStack Query 5.56+
+**Storage**: PostgreSQL 3 with WAL mode (`output/synthlab.db`)
 **Testing**: pytest 8.0+, pytest-asyncio 0.23+
 **Target Platform**: Linux/macOS server, web browser
 **Project Type**: Web application (backend + frontend)

@@ -35,8 +35,11 @@ uv sync
 # Configurar API Key
 export OPENAI_API_KEY="sk-your-api-key-here"
 
-# Inicializar banco de dados
-uv run python scripts/migrate_to_sqlite.py
+# Configurar DATABASE_URL
+export DATABASE_URL="postgresql://synthlab:synthlab_dev@localhost:5432/synthlab"
+
+# Rodar migrações do banco
+alembic upgrade head
 
 # Testar CLI
 uv run synthlab --help
@@ -413,13 +416,17 @@ export OPENAI_API_KEY="sk-your-api-key-here"
 ### Banco de dados não encontrado
 
 ```
-Error: Database file not found: output/synthlab.db
+Error: could not connect to server: Connection refused
 ```
 
 **Solução**:
 
 ```bash
-uv run python scripts/migrate_to_sqlite.py
+# Verificar se PostgreSQL está rodando
+docker compose up -d postgres
+
+# Rodar migrações
+alembic upgrade head
 ```
 
 ---

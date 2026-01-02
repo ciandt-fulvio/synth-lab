@@ -1,7 +1,7 @@
 """
 InterviewGuideRepository for synth-lab.
 
-Data access layer for interview guide data in SQLite database.
+Data access layer for interview guide data in PostgreSQL database.
 Interview guides are 1:1 with experiments and contain the context for interviews.
 
 References:

@@ -1,7 +1,7 @@
 """
 ExplorationRepository for synth-lab.
 
-Data access layer for exploration and scenario node data in SQLite database.
+Data access layer for exploration and scenario node data in PostgreSQL database.
 Supports tree traversal, frontier management, and path reconstruction.
 Uses SQLAlchemy ORM for database operations.
 

@@ -1,7 +1,7 @@
 """
 Scorecard repository for synth-lab.
 
-Provides data access layer for feature scorecards with SQLite persistence.
+Provides data access layer for feature scorecards with PostgreSQL persistence.
 Uses SQLAlchemy ORM for database operations.
 
 Functions:

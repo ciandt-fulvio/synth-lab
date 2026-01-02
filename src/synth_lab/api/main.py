@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     configure_logging()
     logger.info("Starting synth-lab API...")
     ensure_directories()
-    # Initialize database schema (PostgreSQL or SQLite via DATABASE_URL)
+    # Initialize database schema (PostgreSQL via DATABASE_URL)
     db_url = get_database_url()
     logger.info(f"Using database: {db_url.split('@')[-1] if '@' in db_url else db_url}")
     init_database_v2()

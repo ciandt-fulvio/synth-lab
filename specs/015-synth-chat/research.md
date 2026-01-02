@@ -67,7 +67,7 @@ Responda em primeira pessoa, mantendo sua persona e lembrando da entrevista.
 - Usuário pode fechar e reabrir, histórico preservado via React state
 
 **Alternatives Considered**:
-- Persistir no SQLite: Adiciona complexidade sem valor claro
+- Persistir no PostgreSQL: Adiciona complexidade sem valor claro
 - LocalStorage: Poderia ser adicionado futuramente se necessário
 
 ## Decision 5: Interface do Chat (Frontend)

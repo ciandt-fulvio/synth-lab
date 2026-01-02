@@ -16,7 +16,7 @@
       "Bash(src/synth_lab/services/research_agentic/summarizer.py )",
       "Bash(src/synth_lab/services/research_prfaq/generator.py )",
       "Bash(src/synth_lab/gen_synth/avatar_generator.py)",
-      "Bash(sqlite3:*)"
+      "Bash(psql:*)"
     ]
   }
 }

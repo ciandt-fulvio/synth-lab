@@ -398,7 +398,7 @@ make test
 tail -f /tmp/synth-lab-backend.log | grep insight
 
 # 2. Verify chart data exists in analysis_cache
-sqlite3 output/synthlab.db "SELECT cache_key FROM analysis_cache WHERE analysis_id='ana_xxx'"
+postgresql3 output/synthlab.db "SELECT cache_key FROM analysis_cache WHERE analysis_id='ana_xxx'"
 
 # 3. Manually trigger insight generation
 curl -X POST http://localhost:8000/api/experiments/exp_xxx/insights/generate

@@ -11,7 +11,7 @@ Implementar um sistema de exploracao de cenarios de produto via simulacoes itera
 
 **Language/Version**: Python 3.13+ (backend)
 **Primary Dependencies**: FastAPI 0.109+, Pydantic 2.5+, OpenAI SDK, asyncio
-**Storage**: SQLite 3 com JSON1 extension (`output/synthlab.db`)
+**Storage**: PostgreSQL 3 com JSON1 extension (`output/synthlab.db`)
 **Testing**: pytest, pytest-asyncio
 **Target Platform**: Linux/macOS server
 **Project Type**: Web application (backend API)
@@ -221,7 +221,7 @@ async def expand_frontier(self, frontier_nodes: list[ScenarioNode]):
 | ExperimentRepository | `repositories/experiment_repository.py` | Busca experimento |
 | AnalysisRepository | `repositories/analysis_repository.py` | Busca baseline |
 
-### New Tables (SQLite)
+### New Tables (PostgreSQL)
 
 ```sql
 CREATE TABLE explorations (

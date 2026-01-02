@@ -15,7 +15,7 @@ Refatorar o modelo de synths para separar claramente características **observá
 
 **Language/Version**: Python 3.13+ (backend), TypeScript 5.5+ (frontend)
 **Primary Dependencies**: FastAPI 0.109+, Pydantic 2.5+, React 18, TanStack Query, shadcn/ui
-**Storage**: SQLite 3 with JSON1 extension (output/synthlab.db)
+**Storage**: PostgreSQL 3 with JSON1 extension (output/synthlab.db)
 **Testing**: pytest 8.0+, pytest-asyncio
 **Target Platform**: Linux/macOS server, Web browser
 **Project Type**: Web application (backend + frontend)

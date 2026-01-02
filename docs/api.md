@@ -1482,10 +1482,14 @@ kill -9 <PID>
 
 ```bash
 # Verificar se DB existe
-ls -lh output/synthlab.db
+# Conectar ao PostgreSQL
+psql postgresql://synthlab:synthlab_dev@localhost:5432/synthlab
 
-# Recriar DB
-uv run python scripts/migrate_to_sqlite.py
+# Verificar tamanho do banco
+SELECT pg_size_pretty(pg_database_size('synthlab'));
+
+# Rodar migrações
+alembic upgrade head
 ```
 
 ### CORS errors no navegador

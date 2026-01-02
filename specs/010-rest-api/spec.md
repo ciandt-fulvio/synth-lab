@@ -3,7 +3,7 @@
 **Feature Branch**: `010-rest-api`
 **Created**: 2025-12-19
 **Status**: Draft
-**Input**: User description: "Implement a REST API for synth-lab based on the specification in `specs/api-pre-work.md`, migrating data from the current file-based structure to a database solution with SQLite, exposed via standalone FastAPI service."
+**Input**: User description: "Implement a REST API for synth-lab based on the specification in `specs/api-pre-work.md`, migrating data from the current file-based structure to a database solution with PostgreSQL, exposed via standalone FastAPI service."
 
 ## User Scenarios & Testing *(mandatory)*
 

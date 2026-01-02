@@ -26,8 +26,8 @@ uv pip install -e ".[dev]"
 ### Environment Variables
 
 ```bash
-# SQLite (default, development)
-export DATABASE_URL="sqlite:///output/synthlab.db"
+# PostgreSQL (default, development)
+export DATABASE_URL="postgresql:///output/synthlab.db"
 
 # PostgreSQL (production)
 export DATABASE_URL="postgresql://user:password@localhost:5432/synthlab"
@@ -117,7 +117,7 @@ def get_experiment(
 
 ## Using Alembic Migrations
 
-Alembic is configured in `src/synth_lab/alembic/` with dual-dialect support (SQLite and PostgreSQL).
+Alembic is configured in `src/synth_lab/alembic/` with dual-dialect support (PostgreSQL and PostgreSQL).
 
 ### Makefile Commands (Recommended)
 
@@ -181,7 +181,7 @@ The initial migration `001_initial_schema.py` creates all 17 tables:
 
 ## Repository Migration Guide
 
-### Before (sqlite3 direct)
+### Before (postgresql3 direct)
 
 ```python
 class ExperimentRepository(BaseRepository):
@@ -216,14 +216,14 @@ class ExperimentRepository(BaseRepository):
 
 ## Testing
 
-### Run Tests with SQLite
+### Run Tests with PostgreSQL
 
 ```bash
 # Default behavior
 pytest tests/
 
-# Explicit SQLite
-DATABASE_URL="sqlite:///test.db" pytest tests/
+# Explicit PostgreSQL
+DATABASE_URL="postgresql:///test.db" pytest tests/
 ```
 
 ### Run Tests with PostgreSQL

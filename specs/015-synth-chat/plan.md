@@ -11,7 +11,7 @@ Implementar funcionalidade de chat direto com synths após visualização de ent
 
 **Language/Version**: Python 3.13+ (backend), TypeScript 5.5+ (frontend)
 **Primary Dependencies**: FastAPI, OpenAI SDK, React 18, TanStack Query, shadcn/ui
-**Storage**: SQLite (leitura apenas - sem persistência de chat)
+**Storage**: PostgreSQL (leitura apenas - sem persistência de chat)
 **Testing**: pytest (backend), vitest (frontend)
 **Target Platform**: Web application (desktop/mobile browsers)
 **Project Type**: Web (frontend + backend)

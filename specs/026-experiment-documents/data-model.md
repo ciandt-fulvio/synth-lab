@@ -44,7 +44,7 @@ Central entity for all experiment documents (summary, prfaq, executive_summary).
 | prfaq | PR-FAQ document | PRFAQService (legacy, out of scope) |
 | executive_summary | Executive summary from analysis | ExecutiveSummaryService |
 
-## Database Schema (SQLite)
+## Database Schema (PostgreSQL)
 
 ```sql
 -- Experiment Documents table (v15)

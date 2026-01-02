@@ -1,7 +1,7 @@
 """
 AnalysisCacheRepository for synth-lab.
 
-Data access layer for pre-computed analysis cache in SQLite database.
+Data access layer for pre-computed analysis cache in PostgreSQL database.
 Provides CRUD operations for chart data caching.
 
 Uses SQLAlchemy ORM for database operations.

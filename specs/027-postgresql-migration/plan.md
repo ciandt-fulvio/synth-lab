@@ -5,13 +5,13 @@
 
 ## Summary
 
-Migrate the synth-lab application from SQLite to PostgreSQL using SQLAlchemy ORM and Alembic migrations. The migration follows a phased approach that maintains backward compatibility during transition, allowing incremental repository migration without application downtime. Key deliverables include SQLAlchemy models for all 19 existing tables, an Alembic migration environment, updated repositories using the new ORM, and Docker-based PostgreSQL testing infrastructure.
+Migrate the synth-lab application from PostgreSQL to PostgreSQL using SQLAlchemy ORM and Alembic migrations. The migration follows a phased approach that maintains backward compatibility during transition, allowing incremental repository migration without application downtime. Key deliverables include SQLAlchemy models for all 19 existing tables, an Alembic migration environment, updated repositories using the new ORM, and Docker-based PostgreSQL testing infrastructure.
 
 ## Technical Context
 
 **Language/Version**: Python 3.13+
 **Primary Dependencies**: SQLAlchemy 2.0+, Alembic 1.12+, psycopg2-binary (PostgreSQL driver)
-**Storage**: PostgreSQL 14+ (production), SQLite 3 with JSON1 (development/fallback)
+**Storage**: PostgreSQL 14+ (production), PostgreSQL 3 with JSON1 (development/fallback)
 **Testing**: pytest 8.0+, pytest-asyncio 0.23+
 **Target Platform**: Linux server (Docker), macOS (development)
 **Project Type**: Web application (FastAPI backend + React frontend)
@@ -27,7 +27,7 @@ Migrate the synth-lab application from SQLite to PostgreSQL using SQLAlchemy ORM
 |-----------|--------|-------|
 | I. Test-First Development (TDD/BDD) | PASS | Acceptance scenarios defined in spec; tests will be written before implementation |
 | II. Fast Test Battery (<5s) | PASS | Unit tests for models/repositories will be fast; integration tests in slow battery |
-| III. Complete Test Battery Before PR | PASS | Full test suite runs against both SQLite and PostgreSQL |
+| III. Complete Test Battery Before PR | PASS | Full test suite runs against both PostgreSQL and PostgreSQL |
 | IV. Frequent Version Control Commits | PASS | Phased migration enables atomic commits per repository |
 | V. Simplicity and Code Quality | PASS | SQLAlchemy ORM simplifies database access; files <500 lines |
 | VI. Language | PASS | Code in English, documentation in Portuguese as needed |
@@ -55,7 +55,7 @@ specs/027-postgresql-migration/
 ```text
 src/synth_lab/
 ├── infrastructure/
-│   ├── database.py              # Legacy SQLite (kept during migration)
+│   ├── database.py              # Legacy PostgreSQL (kept during migration)
 │   ├── database_v2.py           # NEW: SQLAlchemy engine + session factory
 │   └── config.py                # Updated: DATABASE_URL support
 ├── models/                      # NEW: SQLAlchemy ORM models

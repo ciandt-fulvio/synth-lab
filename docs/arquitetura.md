@@ -86,10 +86,10 @@ src/synth_lab/
 │
 ├── infrastructure/               # Camada de Infraestrutura
 │   ├── config.py                 # Configurações (env vars)
-│   ├── database.py               # DatabaseManager (SQLite)
+│   ├── database_v2.py            # Database (PostgreSQL + SQLAlchemy)
 │   ├── llm_client.py             # LLMClient (OpenAI)
 │   ├── phoenix_tracing.py        # Tracing (Phoenix/OTEL)
-│   └── migrations/               # Migrações de schema
+│   └── migrations/               # Migrações Alembic
 │
 ├── domain/                       # Camada de Domínio
 │   └── entities/                 # Entidades de negócio
@@ -275,24 +275,21 @@ self.db.execute(f"SELECT * FROM synths WHERE id = '{synth_id}'")
 | Arquivo | Responsabilidade |
 |---------|------------------|
 | `config.py` | Variáveis de ambiente, constantes |
-| `database_v2.py` | SQLAlchemy engine, session factory, PostgreSQL/SQLite |
-| `database.py` | `DatabaseManager` (conexões SQLite - legacy) |
+| `database_v2.py` | SQLAlchemy engine, session factory, PostgreSQL |
 | `llm_client.py` | `LLMClient` (OpenAI com retry, timeout, logging) |
 | `phoenix_tracing.py` | Setup Phoenix/OTEL, instrumentação |
 
-#### Database Layer (SQLAlchemy)
+#### Database Layer (SQLAlchemy + PostgreSQL)
 
-O sistema suporta dois backends de banco de dados:
-- **SQLite**: Desenvolvimento e testes (padrão)
-- **PostgreSQL**: Produção
+O sistema utiliza **PostgreSQL** como banco de dados principal.
 
 **Configuração via ambiente:**
 ```bash
-# SQLite (padrão)
-DATABASE_URL="sqlite:///output/synthlab.db"
-
-# PostgreSQL
+# PostgreSQL (produção e desenvolvimento)
 DATABASE_URL="postgresql://user:pass@localhost:5432/synthlab"
+
+# Docker Compose (local)
+DATABASE_URL="postgresql://synthlab:synthlab_dev@localhost:5432/synthlab"
 ```
 
 **Padrão de uso (SQLAlchemy Session):**

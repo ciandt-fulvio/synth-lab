@@ -150,7 +150,7 @@ async def expand_frontier(self, nodes: list[ScenarioNode]) -> list[ScenarioNode]
 **Alternatives Considered**:
 | Alternative | Why Rejected |
 |-------------|--------------|
-| SQLite table | Over-engineering para dados estaticos |
+| PostgreSQL table | Over-engineering para dados estaticos |
 | Python constants | Menos flexivel para editar |
 | Configuravel por experimento | Complexidade prematura |
 
@@ -158,7 +158,7 @@ async def expand_frontier(self, nodes: list[ScenarioNode]) -> list[ScenarioNode]
 
 ## 6. Exploration Persistence Strategy
 
-**Decision**: Persistir em SQLite com JSON fields para dados estruturados
+**Decision**: Persistir em PostgreSQL com JSON fields para dados estruturados
 
 **Rationale**:
 - Consistente com arquitetura existente (synthlab.db)

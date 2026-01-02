@@ -8,7 +8,7 @@
 Implement a REST API for synth-lab with proper architectural separation:
 - **Entry Layer**: CLI and FastAPI as thin adapters (no business logic)
 - **Service Layer**: Business logic, LLM orchestration, and workflow coordination
-- **Repository Layer**: Data access abstraction over SQLite
+- **Repository Layer**: Data access abstraction over PostgreSQL
 - **Infrastructure Layer**: Centralized LLM client, database connection management
 
 Key architectural goals (per user requirements):
@@ -20,8 +20,8 @@ Key architectural goals (per user requirements):
 ## Technical Context
 
 **Language/Version**: Python 3.13+
-**Primary Dependencies**: FastAPI, uvicorn, SQLite (stdlib), openai>=2.8.0, openai-agents>=0.0.16, typer, rich, pydantic>=2.5.0
-**Storage**: SQLite with JSON1 extension (single file: `output/synthlab.db`)
+**Primary Dependencies**: FastAPI, uvicorn, PostgreSQL (stdlib), openai>=2.8.0, openai-agents>=0.0.16, typer, rich, pydantic>=2.5.0
+**Storage**: PostgreSQL with JSON1 extension (single file: `output/synthlab.db`)
 **Testing**: pytest with pytest-asyncio
 **Target Platform**: Linux/macOS development server
 **Project Type**: Single Python package with layered architecture
@@ -89,7 +89,7 @@ src/synth_lab/
 ├── repositories/               # NEW: Data access abstraction
 │   ├── __init__.py
 │   ├── base.py                 # Base repository with common patterns
-│   ├── synth_repository.py     # Synth data access (SQLite)
+│   ├── synth_repository.py     # Synth data access (PostgreSQL)
 │   ├── topic_repository.py     # Topic guide access (filesystem + DB metadata)
 │   ├── research_repository.py  # Research executions, transcripts
 │   └── prfaq_repository.py     # PR-FAQ storage and retrieval
@@ -98,7 +98,7 @@ src/synth_lab/
 ├── infrastructure/             # NEW: Shared infrastructure
 │   ├── __init__.py
 │   ├── llm_client.py           # SINGLE LLM client (OpenAI + retry + logging)
-│   ├── database.py             # SQLite connection manager
+│   ├── database.py             # PostgreSQL connection manager
 │   └── config.py               # Centralized configuration
 │
 ├── # === DOMAIN MODELS ===
@@ -135,7 +135,7 @@ tests/
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| Repository pattern | Abstracts SQLite + filesystem access for topic guides | Direct DB access would scatter SQL and file I/O across services, violating DRY |
+| Repository pattern | Abstracts PostgreSQL + filesystem access for topic guides | Direct DB access would scatter SQL and file I/O across services, violating DRY |
 | Service layer | Centralizes business logic for CLI and API reuse | Putting logic in CLI/API would duplicate code and make testing harder |
 
 ## Architectural Principles
@@ -170,7 +170,7 @@ tests/
 │                  ▼            INFRASTRUCTURE                     │
 │  ┌─────────────────────┐  ┌─────────────────────────────────┐   │
 │  │   llm_client.py     │  │       database.py               │   │
-│  │  (SINGLE OpenAI)    │  │    (SQLite connection)          │   │
+│  │  (SINGLE OpenAI)    │  │    (PostgreSQL connection)          │   │
 │  │  • Retry logic      │  │    • Connection pool            │   │
 │  │  • Timeout handling │  │    • WAL mode                   │   │
 │  │  • Model selection  │  │    • Transaction management     │   │
@@ -184,7 +184,7 @@ tests/
 │  │  synth_repo │ topic_repo │ research_repo │ prfaq_repo    │   │
 │  │                                                          │   │
 │  │  • Data access abstraction                               │   │
-│  │  • SQLite queries                                        │   │
+│  │  • PostgreSQL queries                                        │   │
 │  │  • Filesystem operations (topic guides, avatars)         │   │
 │  │  • Maps DB rows → domain models                          │   │
 │  └──────────────────────────────────────────────────────────┘   │
@@ -193,7 +193,7 @@ tests/
 ┌─────────────────────────────────────────────────────────────────┐
 │                    DATA LAYER                                    │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │   SQLite     │  │  Filesystem  │  │   OpenAI     │          │
+│  │   PostgreSQL     │  │  Filesystem  │  │   OpenAI     │          │
 │  │  synthlab.db │  │  (avatars,   │  │    API       │          │
 │  │              │  │  transcripts)│  │              │          │
 │  └──────────────┘  └──────────────┘  └──────────────┘          │
@@ -219,9 +219,9 @@ tests/
 
 ### YAGNI Principles Applied
 
-1. **No ORM**: SQLite with raw SQL is sufficient for current scale
+1. **No ORM**: PostgreSQL with raw SQL is sufficient for current scale
 2. **No Caching Layer**: Current dataset is small; add only if performance issues arise
-3. **No Async for SQLite**: Synchronous operations are adequate for current load
+3. **No Async for PostgreSQL**: Synchronous operations are adequate for current load
 4. **No Authentication**: Internal/development use only (per spec assumptions)
 5. **No Event System**: Direct function calls; add pub/sub only if needed
 
@@ -230,7 +230,7 @@ tests/
 ### Phase 1: Infrastructure Foundation
 1. Create `infrastructure/` with `llm_client.py` and `database.py`
 2. Create `models/` with shared Pydantic models
-3. Migrate SQLite schema from DuckDB patterns
+3. Migrate PostgreSQL schema from DuckDB patterns
 
 ### Phase 2: Repository Layer
 1. Create `repositories/` with data access abstraction

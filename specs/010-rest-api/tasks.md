@@ -34,12 +34,12 @@
 ### Infrastructure Layer
 
 - [X] T004 Implement `src/synth_lab/infrastructure/config.py` with environment variables (DB path, log level, default model)
-- [X] T005 [P] Implement `src/synth_lab/infrastructure/database.py` with SQLite connection manager (WAL mode, foreign keys, connection pooling)
+- [X] T005 [P] Implement `src/synth_lab/infrastructure/database.py` with PostgreSQL connection manager (WAL mode, foreign keys, connection pooling)
 - [X] T006 [P] Implement `src/synth_lab/infrastructure/llm_client.py` with centralized OpenAI client (retry logic via tenacity, timeout handling, model selection)
 
 ### Database Setup
 
-- [X] T007 Create `scripts/migrate_to_sqlite.py` migration script per data-model.md schema
+- [X] T007 Create `scripts/migrate_to_postgresql.py` migration script per data-model.md schema
 - [X] T008 Run migration to create `output/synthlab.db` with initial data from JSON sources
 
 ### Domain Models

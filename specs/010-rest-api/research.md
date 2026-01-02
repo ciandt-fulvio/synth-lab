@@ -4,9 +4,9 @@
 
 ## Technology Decisions
 
-### 1. Database: SQLite with JSON1
+### 1. Database: PostgreSQL with JSON1
 
-**Decision**: Use SQLite (Python stdlib) with JSON1 extension
+**Decision**: Use PostgreSQL (Python stdlib) with JSON1 extension
 
 **Rationale**:
 - Zero dependencies - built into Python 3.13
@@ -40,7 +40,7 @@ PRAGMA synchronous=NORMAL;    -- Balance safety/performance
 - Pydantic integration for request/response validation
 - High performance with uvicorn
 - Excellent Python 3.13 support
-- Async support for future scaling (but sync operations for SQLite)
+- Async support for future scaling (but sync operations for PostgreSQL)
 
 **Alternatives Considered**:
 | Alternative | Rejected Because |
@@ -169,25 +169,25 @@ class LLMClient:
 
 ### 5. Data Model Strategy
 
-**Decision**: SQLite tables + filesystem for large files
+**Decision**: PostgreSQL tables + filesystem for large files
 
 **Rationale**:
-- Synth JSON is ~1KB per record - fits well in SQLite JSON columns
+- Synth JSON is ~1KB per record - fits well in PostgreSQL JSON columns
 - Transcripts are ~50KB - JSON column is fine
-- Avatar images are ~500KB - filesystem is better (SQLite BLOB overhead)
+- Avatar images are ~500KB - filesystem is better (PostgreSQL BLOB overhead)
 - Topic guides have file references - keep in filesystem
 
 **Storage Mapping**:
 
 | Entity | Storage | Reason |
 |--------|---------|--------|
-| Synths | SQLite (JSON columns) | Small, needs querying |
-| Research Executions | SQLite | Metadata queries |
-| Transcripts | SQLite (JSON column) | Query by exec_id, synth_id |
+| Synths | PostgreSQL (JSON columns) | Small, needs querying |
+| Research Executions | PostgreSQL | Metadata queries |
+| Transcripts | PostgreSQL (JSON column) | Query by exec_id, synth_id |
 | Summaries | Filesystem (Markdown) | Large text, served as-is |
-| PR-FAQs | SQLite (metadata) + Filesystem (content) | Metadata queries + large content |
+| PR-FAQs | PostgreSQL (metadata) + Filesystem (content) | Metadata queries + large content |
 | Avatars | Filesystem (PNG) | Binary data, served directly |
-| Topic Guides | Filesystem + SQLite (metadata cache) | Directory structure + quick listing |
+| Topic Guides | Filesystem + PostgreSQL (metadata cache) | Directory structure + quick listing |
 
 ---
 
@@ -265,7 +265,7 @@ async def validation_handler(request: Request, exc: ValidationError):
 - Simple implementation for current dataset size (~100 records)
 - Cursor-based pagination is overkill for static data
 - Matches existing DuckDB query patterns
-- Easy to implement with SQLite `LIMIT` + `OFFSET`
+- Easy to implement with PostgreSQL `LIMIT` + `OFFSET`
 
 **Implementation**:
 ```python
@@ -302,11 +302,11 @@ class PaginationMeta(BaseModel):
 
 **Fast Battery (<5s)**:
 - Unit tests for services (mocked repositories, mocked LLM)
-- Unit tests for repositories (in-memory SQLite)
+- Unit tests for repositories (in-memory PostgreSQL)
 - Unit tests for infrastructure (mocked external calls)
 
 **Slow Battery**:
-- Integration tests with real SQLite database
+- Integration tests with real PostgreSQL database
 - API contract tests with TestClient
 - End-to-end tests with actual LLM calls (optional, CI-gated)
 
@@ -343,7 +343,7 @@ tests/
 **Phase 1 - Foundation**:
 1. Create `infrastructure/` module
 2. Create `models/` module
-3. Create SQLite schema and migration script
+3. Create PostgreSQL schema and migration script
 4. Run migration script to populate initial data
 
 **Phase 2 - Repositories**:
@@ -410,8 +410,8 @@ dev = [
 
 | Risk | Mitigation |
 |------|------------|
-| SQLite concurrency limits | WAL mode + connection pooling; low traffic expected |
+| PostgreSQL concurrency limits | WAL mode + connection pooling; low traffic expected |
 | Migration data loss | Backup JSON before migration; migration is idempotent |
 | LLM client breaking existing flows | Gradual rollout; keep old code paths until verified |
-| Performance regression | Benchmark before/after; SQLite is fast for small datasets |
+| Performance regression | Benchmark before/after; PostgreSQL is fast for small datasets |
 | Breaking CLI commands | Integration tests for all CLI commands; same interface |

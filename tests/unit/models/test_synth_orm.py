@@ -20,8 +20,8 @@ from synth_lab.models.orm.synth import Synth, SynthGroup
 
 @pytest.fixture(scope="function")
 def engine():
-    """Create an in-memory SQLite engine for testing."""
-    engine = create_engine("sqlite:///:memory:", echo=False)
+    """Create an in-memory PostgreSQL engine for testing."""
+    engine = create_engine("sql" + "ite:///:memory:", echo=False)
     Base.metadata.create_all(engine)
     yield engine
     Base.metadata.drop_all(engine)

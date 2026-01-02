@@ -1,8 +1,7 @@
 """
 SQLAlchemy ORM base classes and utilities for synth-lab.
 
-Provides cross-database compatible types and mixins for all ORM models.
-Supports both SQLite (development) and PostgreSQL (production).
+Provides types and mixins for all ORM models using PostgreSQL.
 
 References:
     - SQLAlchemy 2.0 ORM: https://docs.sqlalchemy.org/en/20/orm/
@@ -17,8 +16,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-# Cross-database JSON type: Uses JSONB on PostgreSQL for better indexing,
-# standard JSON on SQLite for compatibility
+# JSON type: Uses JSONB on PostgreSQL for better indexing and performance
 JSONVariant = JSON().with_variant(JSONB(), "postgresql")
 
 # Mutable JSON types for in-place change detection

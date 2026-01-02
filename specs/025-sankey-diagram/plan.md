@@ -11,7 +11,7 @@ Implement a Sankey diagram visualization showing outcome flow: Population → Ou
 
 **Language/Version**: Python 3.13+ (backend), TypeScript 5.5+ (frontend)
 **Primary Dependencies**: FastAPI, Pydantic, React 18, D3-Sankey (d3-sankey + d3-shape), TanStack Query
-**Storage**: SQLite 3 with JSON1 extension (output/synthlab.db)
+**Storage**: PostgreSQL 3 with JSON1 extension (output/synthlab.db)
 **Testing**: pytest (backend), React Testing Library (frontend)
 **Target Platform**: Web application (Linux/macOS server, modern browsers)
 **Project Type**: Web (frontend + backend)

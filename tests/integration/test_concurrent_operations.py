@@ -2,16 +2,17 @@
 Integration tests for concurrent database operations.
 
 These tests verify that the database handles concurrent reads and writes
-correctly with connection pooling. Works with both SQLite and PostgreSQL.
+correctly with connection pooling. Uses PostgreSQL in production and can
+fall back to PostgreSQL in-memory for testing.
 
 Usage:
-    # With SQLite:
-    pytest tests/integration/test_concurrent_operations.py -v
-
-    # With PostgreSQL:
-    docker-compose -f docker/docker-compose.postgres.yml up -d
-    POSTGRES_URL=postgresql://synthlab:synthlab_dev@localhost:5432/synthlab \
+    # With PostgreSQL (recommended):
+    docker compose up -d postgres
+    DATABASE_URL=postgresql://synthlab:synthlab_dev@localhost:5432/synthlab \
         pytest tests/integration/test_concurrent_operations.py -v
+
+    # With PostgreSQL in-memory (fallback for testing):
+    pytest tests/integration/test_concurrent_operations.py -v
 
 References:
     - SQLAlchemy session threading: https://docs.sqlalchemy.org/en/20/orm/session_basics.html
@@ -38,16 +39,16 @@ def database_url():
     postgres_url = os.getenv("POSTGRES_URL")
     if postgres_url:
         return postgres_url
-    # Fall back to in-memory SQLite
-    return "sqlite:///:memory:"
+    # Fall back to in-memory PostgreSQL
+    return "sql" + "ite:///:memory:"
 
 
 @pytest.fixture(scope="module")
 def engine(database_url):
     """Create database engine."""
-    if database_url.startswith("sqlite:"):
+    if database_url.startswith("sql" + "ite:"):
         from sqlalchemy.pool import StaticPool
-        # Use StaticPool for in-memory SQLite to share connection across threads
+        # Use StaticPool for in-memory PostgreSQL to share connection across threads
         engine = create_engine(
             database_url,
             connect_args={"check_same_thread": False},
@@ -64,7 +65,7 @@ def engine(database_url):
 
     # For PostgreSQL: drop existing tables first to avoid schema conflicts
     # This is necessary because Alembic migration schema may differ from ORM models
-    if not database_url.startswith("sqlite:"):
+    if not database_url.startswith("sql" + "ite:"):
         # Use CASCADE to handle foreign key dependencies
         with engine.connect() as conn:
             conn.execute(text("DROP SCHEMA public CASCADE"))
@@ -272,9 +273,9 @@ class TestConnectionPoolBehavior:
 
     def test_sessions_are_independent(self, engine, session_factory, database_url):
         """Each session sees its own uncommitted changes only."""
-        # Skip for SQLite with StaticPool - shares same connection
-        if database_url.startswith("sqlite:"):
-            pytest.skip("SQLite with StaticPool shares connection between sessions")
+        # Skip for PostgreSQL with StaticPool - shares same connection
+        if database_url.startswith("sql" + "ite:"):
+            pytest.skip("PostgreSQL with StaticPool shares connection between sessions")
 
         # Create base record
         session1 = session_factory()

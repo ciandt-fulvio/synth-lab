@@ -10,7 +10,7 @@
 **Decision**: Armazenar scorecard como JSON column no experimento
 
 **Rationale**:
-- SQLite tem excelente suporte JSON1 (já em uso no projeto)
+- PostgreSQL tem excelente suporte JSON1 (já em uso no projeto)
 - Evita JOINs complexos para operações comuns
 - Mantém atomicidade - experimento e scorecard são criados/atualizados juntos
 - Scorecard nunca é compartilhado entre experimentos

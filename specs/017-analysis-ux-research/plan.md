@@ -21,7 +21,7 @@ A implementação extende a API de simulação existente com novos endpoints par
 - numpy (já existente)
 - OpenAI SDK (já existente - para LLM insights)
 
-**Storage**: SQLite 3 com JSON1 extension (output/synthlab.db) - reutiliza tabelas existentes (synth_outcomes, region_analyses, sensitivity_results)
+**Storage**: PostgreSQL 3 com JSON1 extension (output/synthlab.db) - reutiliza tabelas existentes (synth_outcomes, region_analyses, sensitivity_results)
 
 **Testing**: pytest (já existente)
 
@@ -194,7 +194,7 @@ Nenhuma violação identificada. A feature segue padrões existentes do projeto.
 - Suficiente para escopo atual
 - Evita dependência de Redis/Memcached
 **Alternativas consideradas**:
-- Persistir em SQLite (complexidade adicional)
+- Persistir em PostgreSQL (complexidade adicional)
 - Redis (infra adicional)
 
 ### Dependências Novas

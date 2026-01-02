@@ -404,7 +404,7 @@ class AssumptionLog(BaseModel):
 
 ## Persistência
 
-### SQLite Tables
+### PostgreSQL Tables
 
 ```sql
 -- Nova coluna em synths (JSON)

@@ -1,7 +1,7 @@
 """
 Simulation repository for synth-lab.
 
-Provides data access layer for simulation runs and outcomes with SQLite persistence.
+Provides data access layer for simulation runs and outcomes with PostgreSQL persistence.
 Uses SQLAlchemy ORM for database operations.
 
 Functions:

@@ -91,7 +91,7 @@ Updated help text naturally guides users to available commands and API documenta
 └────────┬─────────┘
          │ queries
 ┌────────▼─────────┐
-│   Database       │  (SQLite, DuckDB)
+│   Database       │  (PostgreSQL, DuckDB)
 └──────────────────┘
 ```
 

@@ -13,7 +13,7 @@ Implement automatic AI-generated insights for quantitative analysis results. The
 
 **Language/Version**: Python 3.13+ (backend), TypeScript 5.5.3 (frontend), React 18.3.1
 **Primary Dependencies**: FastAPI 0.109+, Pydantic 2.5+, OpenAI SDK 2.8.0+, TanStack Query 5.56+, Recharts 2.12.7+, shadcn/ui (Radix UI)
-**Storage**: SQLite 3 with JSON1 extension and WAL mode (`output/synthlab.db`)
+**Storage**: PostgreSQL 3 with JSON1 extension and WAL mode (`output/synthlab.db`)
 **Testing**: pytest 8.0+ (backend), React Testing Library (frontend)
 **Target Platform**: Web application (FastAPI backend + React frontend)
 **Project Type**: Web (backend + frontend)

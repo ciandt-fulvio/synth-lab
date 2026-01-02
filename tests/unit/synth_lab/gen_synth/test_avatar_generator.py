@@ -173,7 +173,7 @@ class TestValidateSynthForAvatar:
 
 
 # NOTE: TestLoadSynthById and TestLoadSynthsByIds removed
-# These functions now use SQLite database instead of JSON files
+# These functions now use PostgreSQL database instead of JSON files
 # Integration tests should be used to test these functions
 
 
