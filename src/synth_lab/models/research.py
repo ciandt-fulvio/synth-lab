@@ -123,8 +123,6 @@ class ResearchExecuteRequest(BaseModel):
         description="Max concurrent interviews",
     )
     model: str = Field(default="gpt-4o-mini", description="LLM model to use")
-    generate_summary: bool = Field(
-        default=True, description="Generate summary after completion")
     skip_interviewee_review: bool = Field(
         default=True,
         description="Skip interviewee response reviewer for faster execution",
