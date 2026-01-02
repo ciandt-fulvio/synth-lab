@@ -25,7 +25,7 @@ def main():
     if len(sys.argv) < 2:
         print("Usage: python scripts/test_executive_summary_v16.py <experiment_id>")
         print("\nTo find experiment IDs:")
-        print("  sqlite3 output/synthlab.db 'SELECT id, name FROM experiments LIMIT 10'")
+        print("  psql postgresql://synthlab:synthlab_dev@localhost:5432/synthlab -c 'SELECT id, name FROM experiments LIMIT 10'")
         sys.exit(1)
 
     experiment_id = sys.argv[1]

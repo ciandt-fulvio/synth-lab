@@ -24,10 +24,10 @@ uv pip install -e .
 
 ## Migração de Dados
 
-Execute o script de migração para criar o banco SQLite:
+Execute o script de migração para criar o banco PostgreSQL:
 
 ```bash
-uv run python scripts/migrate_to_sqlite.py
+uv run python scripts/migrate_to_postgresql.py
 ```
 
 Isso cria `output/synthlab.db` com os dados existentes.
@@ -237,7 +237,7 @@ uv run python -m synth_lab listsynth
 | Variável | Descrição | Padrão |
 |----------|-----------|--------|
 | `OPENAI_API_KEY` | API key do OpenAI | (obrigatório) |
-| `SYNTHLAB_DB_PATH` | Caminho do banco SQLite | `output/synthlab.db` |
+| `SYNTHLAB_DB_PATH` | Caminho do banco PostgreSQL | `output/synthlab.db` |
 | `SYNTHLAB_LOG_LEVEL` | Nível de log | `INFO` |
 | `SYNTHLAB_DEFAULT_MODEL` | Modelo LLM padrão | `gpt-5-mini` |
 
@@ -245,7 +245,7 @@ uv run python -m synth_lab listsynth
 
 ```
 output/
-├── synthlab.db           # Banco de dados SQLite
+├── synthlab.db           # Banco de dados PostgreSQL
 ├── synths/
 │   ├── synths.json       # Backup JSON (source of truth original)
 │   └── avatar/           # Imagens de avatar

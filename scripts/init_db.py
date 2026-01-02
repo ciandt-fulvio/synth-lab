@@ -1,14 +1,19 @@
 """
-Initialize SQLite database with schema.
+Initialize PostgreSQL database with schema.
 
-Creates the database with all required tables and indexes.
+Creates the database with all required tables and indexes using Alembic migrations.
 Does NOT migrate any data - just creates the empty schema.
 
 Usage:
+    # Use Alembic instead:
+    alembic upgrade head
+
+    # Or run this legacy script (deprecated):
     uv run python scripts/init_db.py
 
 References:
-    - Schema definition: specs/010-rest-api/data-model.md
+    - Schema definition: docs/database_model.md
+    - Migrations: src/synth_lab/alembic/versions/
 """
 
 from loguru import logger

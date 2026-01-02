@@ -205,7 +205,7 @@ class InsightService:
 | Estratégia | Prós | Contras | Decisão |
 |------------|------|---------|---------|
 | In-memory dict | Simples, sem deps | Perde em restart | ✅ Escolhido |
-| SQLite | Persistente | Mais complexo | ❌ (futuro) |
+| PostgreSQL | Persistente | Mais complexo | ❌ (futuro) |
 | Redis | Distribuído, TTL | Infra adicional | ❌ |
 
 ---

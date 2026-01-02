@@ -165,7 +165,7 @@
     │             │                  │                    │
     ▼             ▼                  ▼                    ▼
  Generate     Persist          Extract latents     Pass observables
- observables  to SQLite        for probability     + sim context
+ observables  to PostgreSQL        for probability     + sim context
  from demo-   with JSON        calculations        to interviewee
  graphics     encoding                             prompt
 ```

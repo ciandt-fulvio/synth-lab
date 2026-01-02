@@ -1,7 +1,7 @@
 """Initial schema for synth-lab v15
 
 This migration creates all tables for the synth-lab application.
-Compatible with both SQLite (development) and PostgreSQL (production).
+Uses PostgreSQL as the database backend.
 
 Revision ID: 001
 Revises: None

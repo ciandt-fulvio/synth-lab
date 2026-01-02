@@ -11,10 +11,10 @@ Reorganização da arquitetura de navegação do SynthLab para centralizar o con
 
 **Language/Version**: Python 3.13+ (backend), TypeScript 5.5.3 (frontend)
 **Primary Dependencies**:
-- Backend: FastAPI 0.109.0+, Pydantic 2.5.0+, OpenAI SDK 2.8.0+, SQLite3
+- Backend: FastAPI 0.109.0+, Pydantic 2.5.0+, OpenAI SDK 2.8.0+, PostgreSQL3
 - Frontend: React 18.3.1, TanStack React Query 5.56, React Router DOM 6.26, shadcn/ui, Tailwind CSS 3.4
 
-**Storage**: SQLite 3 with JSON1 extension and WAL mode (`output/synthlab.db`)
+**Storage**: PostgreSQL 3 with JSON1 extension and WAL mode (`output/synthlab.db`)
 **Testing**: pytest 8.0+ (backend), ESLint (frontend - sem testes automatizados)
 **Target Platform**: Web application (Linux/macOS server + browser)
 **Project Type**: Web application (backend + frontend separados)

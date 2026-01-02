@@ -19,7 +19,7 @@ Sistema de simulacao Monte Carlo para avaliar impacto de decisoes de design de p
 - Existentes: FastAPI 0.109.0+, OpenAI SDK 2.8.0+, NumPy (a adicionar), SciPy (a adicionar para distribuicoes Beta)
 - Rich, Typer, Loguru (CLI e logging)
 - Pydantic 2.5.0+ (validacao)
-**Storage**: SQLite 3 com JSON1 extension (output/synthlab.db) - WAL mode
+**Storage**: PostgreSQL 3 com JSON1 extension (output/synthlab.db) - WAL mode
 **Testing**: pytest 8.0.0+ com pytest-asyncio
 **Target Platform**: Linux/macOS server, CLI inicial
 **Project Type**: Single project (backend Python)

@@ -136,7 +136,7 @@ session: Session | None = None) -> None:
         """
         now = datetime.now(timezone.utc).isoformat()
 
-        # Serialize insight to JSON (dict for ORM, string for SQLite)
+        # Serialize insight to JSON (dict for ORM, string for database)
         # Use mode="json" to ensure datetime objects are serialized
         insight_dict = insight.model_dump(mode="json")
         response_json = json.dumps(insight_dict)
@@ -192,7 +192,7 @@ session: Session | None = None) -> None:
         now = datetime.now(timezone.utc).isoformat()
         insight_type = "executive_summary"
 
-        # Serialize as JSON (dict for ORM, string for SQLite)
+        # Serialize as JSON (dict for ORM, string for database)
         summary_dict = {"executive_summary": summary, "generated_at": now}
         response_json = json.dumps(summary_dict)
 

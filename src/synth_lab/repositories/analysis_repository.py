@@ -1,7 +1,7 @@
 """
 AnalysisRepository for synth-lab.
 
-Data access layer for analysis runs in SQLite database.
+Data access layer for analysis runs in PostgreSQL database.
 Handles 1:1 relationship with experiments.
 
 References:
@@ -46,7 +46,7 @@ session: Session | None = None):
             Created analysis run.
 
         Raises:
-            sqlite3.IntegrityError: If experiment already has an analysis.
+            IntegrityError: If experiment already has an analysis.
         """
         config_dict = analysis.config.model_dump()
         outcomes_dict = None

@@ -89,7 +89,7 @@ Este documento lista componentes legados do sistema de simulação original (fea
 
 ---
 
-## Banco de Dados - Tabelas SQLite
+## Banco de Dados - Tabelas PostgreSQL
 
 ### Tabelas Removidas (já executado)
 

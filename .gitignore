@@ -60,11 +60,6 @@ coverage/
 .hypothesis/
 .pytest_cache/
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
 # Logs
 logs/
 *.log

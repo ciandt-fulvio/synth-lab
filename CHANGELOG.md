@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `--help` and `--version` global options
 
 **Migration path:**
-- For queries: Use `curl http://localhost:8000/synths/list` or `duckdb synths.duckdb "SELECT * FROM synths"`
+- For queries: Use `curl http://localhost:8000/synths/list` or connect to PostgreSQL with `psql`
 - For topic guides: Create directories manually in `data/topic_guides/` and access via API
 - For research: Access execution data via `GET /research/list` and `GET /research/{execution_id}`
 - For PR-FAQ: Access reports via `GET /prfaq/list` and `GET /prfaq/{execution_id}`
@@ -62,7 +62,7 @@ See [specs/011-remove-cli-commands/](specs/011-remove-cli-commands/) for complet
 
 - Added comprehensive REST API with 17 endpoints
 - FastAPI server with automatic OpenAPI documentation
-- SQLite database with JSON1 extension for data persistence
+- PostgreSQL database with SQLAlchemy ORM for data persistence
 - Endpoints for synths, research, topics, and PR-FAQ resources
 - Interactive API documentation at `/docs`
 - OpenAPI specification at `/openapi.json`
@@ -70,9 +70,9 @@ See [specs/011-remove-cli-commands/](specs/011-remove-cli-commands/) for complet
 
 ### Changed
 
-- Migrated data storage from JSON files to SQLite database
-- Added `output/synthlab.db` as central data store
-- Updated all services to use repository pattern
+- Migrated data storage from JSON files to PostgreSQL database
+- Added PostgreSQL with Alembic migrations as central data store
+- Updated all services to use repository pattern with SQLAlchemy ORM
 
 ---
 

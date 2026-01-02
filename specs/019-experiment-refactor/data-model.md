@@ -193,7 +193,7 @@ class Transcript(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now)
 ```
 
-## Schema SQL (SQLite)
+## Schema SQL (PostgreSQL)
 
 ```sql
 -- Tabela principal: Experimentos com scorecard embutido

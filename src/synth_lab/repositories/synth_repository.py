@@ -1,7 +1,7 @@
 """
 Synth repository for synth-lab.
 
-Data access layer for synth persona data in SQLite database.
+Data access layer for synth persona data in PostgreSQL database.
 
 References:
     - Schema: specs/010-rest-api/data-model.md

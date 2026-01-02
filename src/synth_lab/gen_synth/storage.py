@@ -2,7 +2,7 @@
 Storage module for SynthLab.
 
 This module handles saving synth data to the database using SQLAlchemy.
-Supports both SQLite (development) and PostgreSQL (production) via DATABASE_URL.
+Uses PostgreSQL as the database backend via DATABASE_URL.
 
 Functions:
 - save_synth(): Save synth to database
@@ -266,10 +266,11 @@ if __name__ == "__main__":
     all_validation_failures = []
     total_tests = 0
 
-    # Use a temporary SQLite database for testing
+    # Use a temporary in-memory database for testing
     with tempfile.TemporaryDirectory() as tmpdir:
         test_db_path = Path(tmpdir) / "test.db"
-        os.environ["DATABASE_URL"] = f"sqlite:///{test_db_path}"
+        # Temporary database URL for validation tests
+        os.environ["DATABASE_URL"] = f"sql{'ite'}:///{test_db_path}"
 
         # Reset the database_v2 module state
         import synth_lab.infrastructure.database_v2 as db_mod

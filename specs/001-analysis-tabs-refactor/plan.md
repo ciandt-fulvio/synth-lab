@@ -16,7 +16,7 @@ Reorganizar abas de análise quantitativa do experimento, movendo gráficos entr
 - Backend: FastAPI 0.109+, Pydantic 2.5+
 - Frontend: React 18, TanStack Query 5.56+, shadcn/ui, Recharts 2.12.7+
 
-**Storage**: SQLite 3 with JSON1 extension (output/synthlab.db)
+**Storage**: PostgreSQL 3 with JSON1 extension (output/synthlab.db)
 **Testing**: pytest (backend), React Testing Library (frontend)
 **Target Platform**: Web application (frontend + backend)
 **Project Type**: Web

@@ -6,18 +6,18 @@
 
 ## Research Topics
 
-This document consolidates research findings for migrating synth-lab from SQLite to PostgreSQL using SQLAlchemy 2.0+ and Alembic.
+This document consolidates research findings for migrating synth-lab from PostgreSQL to PostgreSQL using SQLAlchemy 2.0+ and Alembic.
 
 ---
 
-## 1. Dual Database Support (SQLite + PostgreSQL)
+## 1. Dual Database Support (PostgreSQL + PostgreSQL)
 
 ### Decision
 Use a factory function that creates database engines based on environment configuration. SQLAlchemy 2.0 determines the dialect at engine creation time from the connection URL.
 
 ### Rationale
 - SQLAlchemy 2.0 requires separate engine instances for each dialect
-- Environment-based configuration allows seamless switching between SQLite (development) and PostgreSQL (production)
+- Environment-based configuration allows seamless switching between PostgreSQL (development) and PostgreSQL (production)
 - Factory pattern enables easy testing with different backends
 
 ### Alternatives Considered
@@ -35,12 +35,12 @@ from sqlalchemy.pool import QueuePool, StaticPool
 import os
 
 def get_database_url() -> str:
-    return os.getenv("DATABASE_URL", "sqlite:///output/synthlab.db")
+    return os.getenv("DATABASE_URL", "postgresql:///output/synthlab.db")
 
 def create_db_engine(database_url: str | None = None):
     url = database_url or get_database_url()
 
-    if url.startswith("sqlite:"):
+    if url.startswith("postgresql:"):
         return create_engine(
             url,
             connect_args={"check_same_thread": False},
@@ -59,8 +59,8 @@ def create_db_engine(database_url: str | None = None):
 ```
 
 ### Caveats
-- SQLite requires `check_same_thread=False` for FastAPI multi-threaded access
-- In-memory SQLite should use `StaticPool` to maintain single connection
+- PostgreSQL requires `check_same_thread=False` for FastAPI multi-threaded access
+- In-memory PostgreSQL should use `StaticPool` to maintain single connection
 - PostgreSQL pool sizing must not exceed server's `max_connections`
 
 ---
@@ -68,11 +68,11 @@ def create_db_engine(database_url: str | None = None):
 ## 2. JSON Field Handling (Cross-Database)
 
 ### Decision
-Use `JSON().with_variant(JSONB(), "postgresql")` for JSON columns. This automatically uses JSONB on PostgreSQL and standard JSON on SQLite.
+Use `JSON().with_variant(JSONB(), "postgresql")` for JSON columns. This automatically uses JSONB on PostgreSQL and standard JSON on PostgreSQL.
 
 ### Rationale
 - PostgreSQL JSONB provides better indexing and query performance
-- SQLite JSON1 extension has different operator support
+- PostgreSQL JSON1 extension has different operator support
 - `with_variant()` is SQLAlchemy's official cross-dialect pattern
 
 ### Alternatives Considered
@@ -107,7 +107,7 @@ class Experiment(Base):
 ### Caveats
 - JSON/JSONB does NOT detect in-place mutations by default; use `MutableDict.as_mutable()`
 - JSONB operators like `contains()`, `has_key()` are PostgreSQL-only
-- SQLite requires version 3.38.0+ for built-in JSON or JSON1 extension
+- PostgreSQL requires version 3.38.0+ for built-in JSON or JSON1 extension
 - GIN indexes on JSONB available only on PostgreSQL
 
 ---
@@ -115,10 +115,10 @@ class Experiment(Base):
 ## 3. Alembic Multi-Dialect Migrations
 
 ### Decision
-Enable `render_as_batch=True` in Alembic's `env.py`. This uses SQLite's "move and copy" workflow automatically when needed while working normally on PostgreSQL.
+Enable `render_as_batch=True` in Alembic's `env.py`. This uses PostgreSQL's "move and copy" workflow automatically when needed while working normally on PostgreSQL.
 
 ### Rationale
-- SQLite cannot DROP columns or ALTER constraints directly
+- PostgreSQL cannot DROP columns or ALTER constraints directly
 - Batch mode handles table recreation transparently
 - Same migration scripts work on both databases
 
@@ -127,7 +127,7 @@ Enable `render_as_batch=True` in Alembic's `env.py`. This uses SQLite's "move an
 |-------------|------------------|
 | Separate migration files per dialect | Doubles maintenance burden; drift risk |
 | Raw SQL with dialect conditionals | Error-prone; loses Alembic benefits |
-| SQLite-only development | Masks PostgreSQL-specific issues until production |
+| PostgreSQL-only development | Masks PostgreSQL-specific issues until production |
 
 ### Implementation Pattern
 
@@ -144,7 +144,7 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            render_as_batch=True,  # CRITICAL for SQLite
+            render_as_batch=True,  # CRITICAL for PostgreSQL
             compare_type=True,
         )
         with context.begin_transaction():
@@ -166,7 +166,7 @@ def upgrade() -> None:
 
 ### Caveats
 - Batch operations recreate the entire table (slow for large tables)
-- Always test migrations on both SQLite and PostgreSQL
+- Always test migrations on both PostgreSQL and PostgreSQL
 - PostgreSQL ENUM types require dialect-specific handling
 
 ---

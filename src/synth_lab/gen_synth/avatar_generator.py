@@ -40,7 +40,7 @@ INTER_BLOCK_DELAY = 1.5  # Delay entre blocos para evitar rate limits (T049)
 
 def load_synth_by_id(synth_id: str, synths_file: str | Path | None = None) -> dict[str, Any] | None:
     """
-    Carrega dados de um synth por ID do banco de dados SQLite.
+    Carrega dados de um synth por ID do banco de dados PostgreSQL.
 
     Busca um synth específico pelo ID no banco de dados.
     Útil para gerar avatares de synths existentes (User Story 3).

@@ -6,7 +6,7 @@
 
 ### Overview
 
-Database: `output/synthlab.db` (SQLite with JSON1 extension)
+Database: `output/synthlab.db` (PostgreSQL with JSON1 extension)
 
 ```sql
 PRAGMA journal_mode=WAL;
@@ -411,11 +411,11 @@ class PaginatedResponse(BaseModel, Generic[T]):
 
 ## Filesystem Structure
 
-Files that remain on filesystem (not in SQLite):
+Files that remain on filesystem (not in PostgreSQL):
 
 ```
 output/
-├── synthlab.db                     # SQLite database
+├── synthlab.db                     # PostgreSQL database
 ├── synths/
 │   ├── synths.json                 # Backup/migration source
 │   └── avatar/
@@ -442,11 +442,11 @@ data/topic_guides/
 ## Migration Script
 
 ```python
-# scripts/migrate_to_sqlite.py
-"""Migrate existing JSON data to SQLite database."""
+# scripts/migrate_to_postgresql.py
+"""Migrate existing JSON data to PostgreSQL database."""
 
 import json
-import sqlite3
+import postgresql3
 from pathlib import Path
 from datetime import datetime
 
@@ -454,7 +454,7 @@ OUTPUT_DIR = Path("output")
 DB_PATH = OUTPUT_DIR / "synthlab.db"
 SYNTHS_JSON = OUTPUT_DIR / "synths" / "synths.json"
 
-def create_schema(conn: sqlite3.Connection) -> None:
+def create_schema(conn: postgresql3.Connection) -> None:
     """Create database schema."""
     conn.executescript("""
         PRAGMA journal_mode=WAL;
@@ -524,8 +524,8 @@ def create_schema(conn: sqlite3.Connection) -> None:
         VALUES (1, datetime('now'), 'Initial schema creation');
     """)
 
-def migrate_synths(conn: sqlite3.Connection) -> int:
-    """Migrate synths from JSON to SQLite."""
+def migrate_synths(conn: postgresql3.Connection) -> int:
+    """Migrate synths from JSON to PostgreSQL."""
     if not SYNTHS_JSON.exists():
         return 0
 
@@ -563,7 +563,7 @@ def migrate_synths(conn: sqlite3.Connection) -> int:
 
 def main():
     """Run migration."""
-    conn = sqlite3.connect(DB_PATH)
+    conn = postgresql3.connect(DB_PATH)
     try:
         create_schema(conn)
         synth_count = migrate_synths(conn)

@@ -39,7 +39,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-# Cross-database JSON type: JSONB on PostgreSQL, JSON on SQLite
+# Cross-database JSON type: JSONB on PostgreSQL, JSON on PostgreSQL
 JSONVariant = JSON().with_variant(JSONB(), "postgresql")
 MutableJSON = MutableDict.as_mutable(JSONVariant)
 MutableJSONList = MutableList.as_mutable(JSONVariant)
@@ -508,7 +508,7 @@ simulation_runs (legacy) ──── chart_insights, sensitivity_results, regio
 
 ## Migration Notes
 
-1. **Initial Migration**: Generate Alembic migration from these models that creates schema equivalent to current SQLite v15
+1. **Initial Migration**: Generate Alembic migration from these models that creates schema equivalent to current PostgreSQL v15
 2. **JSON Fields**: Use `JSONVariant` type for all JSON columns
 3. **Timestamps**: Store as ISO 8601 strings (TEXT) for compatibility
 4. **IDs**: Keep as TEXT for UUID-style identifiers

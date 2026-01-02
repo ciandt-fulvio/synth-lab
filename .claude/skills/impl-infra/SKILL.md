@@ -20,7 +20,7 @@ allowed-tools: [Read, Write, Edit, Glob, Grep]
 ```
 src/synth_lab/infrastructure/
 ├── config.py                 # Configurações e paths
-├── database.py               # DatabaseManager (SQLite)
+├── database.py               # DatabaseManager (PostgreSQL)
 ├── llm_client.py             # LLMClient (OpenAI)
 ├── phoenix_tracing.py        # Setup de tracing
 └── {external}_client.py      # Clientes de APIs externas

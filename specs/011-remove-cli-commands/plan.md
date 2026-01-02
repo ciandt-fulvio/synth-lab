@@ -28,8 +28,8 @@ This feature removes 5 obsolete CLI commands (listsynth, research, research-batc
 ## Technical Context
 
 **Language/Version**: Python 3.13+
-**Primary Dependencies**: Typer (CLI framework), FastAPI (REST API), Pydantic>=2.5.0 (models), OpenAI SDK, DuckDB/SQLite
-**Storage**: SQLite database (`output/synthlab.db`) + file system for reports (`output/reports/`)
+**Primary Dependencies**: Typer (CLI framework), FastAPI (REST API), Pydantic>=2.5.0 (models), OpenAI SDK, DuckDB/PostgreSQL
+**Storage**: PostgreSQL database (`output/synthlab.db`) + file system for reports (`output/reports/`)
 **Testing**: pytest (unit + integration tests), existing API test suite must pass
 **Target Platform**: CLI tool + REST API server (Linux/macOS)
 **Project Type**: Single project (monorepo with API + CLI + services)

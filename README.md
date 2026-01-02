@@ -19,7 +19,7 @@ Criar Synths representativos da população brasileira para:
 ### 🚀 API REST Moderna (NOVO!)
 - **FastAPI** standalone com documentação automática em `/docs`
 - **Arquitetura em 3 camadas**: Interface → Service → Database
-- **SQLite** com JSON1 para persistência de dados
+- **PostgreSQL** com SQLAlchemy ORM para persistência de dados
 - **17 endpoints REST** para synths, research, topics e PR-FAQ
 - **Streaming SSE** para execução de pesquisas em tempo real
 - **Jobs assíncronos** para geração de relatórios
@@ -231,7 +231,7 @@ curl http://localhost:8000/synths/{synth_id}/avatar
 - `GET /synths/{synth_id}` - Retorna dados completos de um synth
 - `GET /synths/{synth_id}/avatar` - Retorna caminho do avatar (se existir)
 
-> **Nota**: Para consultas SQL personalizadas e filtros avançados, use o DuckDB CLI diretamente: `duckdb synths.duckdb "SELECT * FROM synths WHERE demografia.idade > 30"`
+> **Nota**: Para consultas SQL personalizadas e filtros avançados, conecte-se diretamente ao PostgreSQL via `psql` ou use ferramentas como pgAdmin, DBeaver, etc.
 
 #### Topic Guides (Materiais de Contexto) - via REST API
 
@@ -495,7 +495,7 @@ synth-lab/
 
 - **[Requisitos](docs/requisitos.md)**: Requisitos funcionais e não-funcionais do projeto
 - **[Arquitetura](docs/arquitetura.md)**: Arquitetura em 3 camadas (Interface → Service → Database)
-- **[Modelo de Dados](docs/database_model.md)**: Esquema completo do banco de dados SQLite
+- **[Modelo de Dados](docs/database_model.md)**: Esquema completo do banco de dados PostgreSQL
 - **[API REST](docs/api.md)**: Documentação completa dos 17 endpoints REST
 - **[CLI](docs/cli.md)**: Guia completo da interface de linha de comando
 - **[Camada de Serviços](docs/services.md)**: Documentação da lógica de negócio
@@ -550,7 +550,8 @@ Todas as distribuições estatísticas são baseadas em fontes oficiais e pesqui
 - **Pydantic v2**: Validação estrita de dados e schemas
 - **jsonschema**: Validação de estrutura de dados
 - **rich**: Interface CLI com saída colorida e formatada
-- **DuckDB**: Motor SQL para consultas rápidas em JSON
+- **PostgreSQL**: Banco de dados relacional para persistência
+- **SQLAlchemy 2.0+**: ORM para acesso ao banco de dados
 - **Typer**: Framework CLI moderno com type hints
 - **Loguru**: Sistema de logging estruturado
 - **pytest**: Framework de testes unitários e integração
@@ -619,36 +620,45 @@ uv run synthlab gensynth -n 18 --avatar --analyze all --benchmark
 - 📁 Salvos em: `data/synths/avatar/{synth-id}.png`
 - 💰 ~$0.02 por bloco de 9 avatares usando OpenAI API
 
-**3. Análise Demográfica com DuckDB**
+**3. Análise Demográfica com PostgreSQL**
 ```bash
-# Distribuição por região
-duckdb synths.duckdb "SELECT demografia.localizacao.regiao as regiao, COUNT(*) as total FROM synths GROUP BY regiao ORDER BY total DESC"
+# Conectar ao banco
+psql postgresql://synthlab:synthlab_dev@localhost:5432/synthlab
+
+# Distribuição por região (exemplo - schema pode variar)
+SELECT regiao, COUNT(*) as total FROM synths GROUP BY regiao ORDER BY total DESC;
 
 # Média de renda por escolaridade
-duckdb synths.duckdb "SELECT demografia.escolaridade, AVG(demografia.renda_mensal) as media_renda FROM synths GROUP BY demografia.escolaridade"
+SELECT escolaridade, AVG(renda_mensal) as media_renda FROM synths GROUP BY escolaridade;
 
 # Perfis de alto poder aquisitivo
-duckdb synths.duckdb "SELECT * FROM synths WHERE demografia.renda_mensal > 10000 AND demografia.escolaridade = 'Superior completo'"
+SELECT * FROM synths WHERE renda_mensal > 10000 AND escolaridade = 'Superior completo';
 ```
 
-> **Nota**: Use DuckDB CLI diretamente para consultas SQL avançadas, ou use a REST API para acesso via HTTP.
+> **Nota**: Use `psql` ou ferramentas como pgAdmin, DBeaver para consultas SQL avançadas, ou use a REST API para acesso via HTTP.
 
 **4. Testes de UX/UI**
 ```bash
-# Selecionar Synths com baixa alfabetização digital
-duckdb synths.duckdb "SELECT * FROM synths WHERE capacidades_tecnologicas.alfabetizacao_digital < 40"
+# Conectar ao banco PostgreSQL
+psql postgresql://synthlab:synthlab_dev@localhost:5432/synthlab
+
+# Selecionar Synths com baixa alfabetização digital (exemplo - schema pode variar)
+SELECT * FROM synths WHERE alfabetizacao_digital < 40;
 
 # Usuários com deficiências visuais
-duckdb synths.duckdb "SELECT nome, demografia.idade, demografia.localizacao.cidade FROM synths WHERE deficiencias.visual.tipo != 'nenhuma'"
+SELECT nome, idade, cidade FROM synths WHERE deficiencia_visual != 'nenhuma';
 ```
 
 **5. Segmentação de Mercado**
 ```bash
-# Jovens da região Sudeste
-duckdb synths.duckdb "SELECT * FROM synths WHERE demografia.idade BETWEEN 18 AND 35 AND demografia.localizacao.regiao = 'Sudeste'"
+# Conectar ao banco PostgreSQL
+psql postgresql://synthlab:synthlab_dev@localhost:5432/synthlab
+
+# Jovens da região Sudeste (exemplo - schema pode variar)
+SELECT * FROM synths WHERE idade BETWEEN 18 AND 35 AND regiao = 'Sudeste';
 
 # Perfil tecnológico e renda média-alta
-duckdb synths.duckdb "SELECT * FROM synths WHERE capacidades_tecnologicas.alfabetizacao_digital > 70 AND demografia.renda_mensal > 5000"
+SELECT * FROM synths WHERE alfabetizacao_digital > 70 AND renda_mensal > 5000;
 ```
 
 **6. Análise Comportamental**

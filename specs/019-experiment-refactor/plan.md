@@ -11,7 +11,7 @@ Refatorar o modelo de dados para consolidar o scorecard dentro do experimento (e
 
 **Language/Version**: Python 3.13+ (backend), TypeScript 5.5+ (frontend)
 **Primary Dependencies**: FastAPI 0.109+, Pydantic 2.5+, React 18, TanStack Query 5.56+, shadcn/ui
-**Storage**: SQLite 3 com JSON1 extension e WAL mode (`output/synthlab.db`)
+**Storage**: PostgreSQL 3 com JSON1 extension e WAL mode (`output/synthlab.db`)
 **Testing**: pytest 8+ (backend), vitest (frontend se configurado)
 **Target Platform**: Web application (Linux/macOS/Windows server + modern browsers)
 **Project Type**: Web (backend + frontend)

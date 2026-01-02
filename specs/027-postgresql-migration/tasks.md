@@ -40,7 +40,7 @@
 **CRITICAL**: No user story work can begin until this phase is complete
 
 - [x] T004 Create base.py with DeclarativeBase, JSONVariant, MutableJSON, TimestampMixin in src/synth_lab/models/base.py
-- [x] T005 Create database_v2.py with engine factory (SQLite/PostgreSQL support) in src/synth_lab/infrastructure/database_v2.py
+- [x] T005 Create database_v2.py with engine factory (PostgreSQL/PostgreSQL support) in src/synth_lab/infrastructure/database_v2.py
 - [x] T006 [P] Create get_db_session() dependency for FastAPI in src/synth_lab/infrastructure/database_v2.py
 - [x] T007 Update config.py to support DATABASE_URL environment variable in src/synth_lab/infrastructure/config.py
 
@@ -52,7 +52,7 @@
 
 **Goal**: Migrate all 17 tables to SQLAlchemy models and incrementally update repositories while maintaining backward compatibility with existing API/services.
 
-**Independent Test**: Run full application test suite against SQLite. All existing tests must pass with new SQLAlchemy-based repositories.
+**Independent Test**: Run full application test suite against PostgreSQL. All existing tests must pass with new SQLAlchemy-based repositories.
 
 ### Tests for User Story 1
 
@@ -96,7 +96,7 @@
 - [x] T037 [P] [US1] Migrate ScorecardRepository (legacy) to SQLAlchemy in src/synth_lab/repositories/scorecard_repository.py
 - [x] T038 [P] [US1] Migrate SimulationRepository (legacy) to SQLAlchemy in src/synth_lab/repositories/simulation_repository.py
 
-**Checkpoint**: All models created, all repositories migrated. Full test suite passes with SQLite backend.
+**Checkpoint**: All models created, all repositories migrated. Full test suite passes with PostgreSQL backend.
 
 ---
 
@@ -116,7 +116,7 @@
 - [x] T041 [US2] Create docker-compose.postgres.yml for PostgreSQL test environment in docker/docker-compose.postgres.yml
 - [x] T042 [US2] Add PostgreSQL connection pooling configuration to database_v2.py in src/synth_lab/infrastructure/database_v2.py
 - [x] T043 [US2] Add SSL connection support for PostgreSQL in database_v2.py in src/synth_lab/infrastructure/database_v2.py
-- [x] T044 [US2] Create data migration script from SQLite to PostgreSQL in scripts/migrate_data_to_postgres.py
+- [x] T044 [US2] Create data migration script from PostgreSQL to PostgreSQL in scripts/migrate_data_to_postgres.py
 - [x] T045 [US2] Update .env.example with PostgreSQL DATABASE_URL examples in .env.example
 
 **Checkpoint**: Application runs with PostgreSQL. Docker compose starts PostgreSQL and app connects successfully.
@@ -125,7 +125,7 @@
 
 ## Phase 5: User Story 3 - Database Schema Version Control (Priority: P2)
 
-**Goal**: Set up Alembic for version-controlled database migrations that work on both SQLite and PostgreSQL.
+**Goal**: Set up Alembic for version-controlled database migrations that work on both PostgreSQL and PostgreSQL.
 
 **Independent Test**: Create migration, apply it, rollback it, re-apply it. Verify schema matches expected state at each step.
 
@@ -142,33 +142,33 @@
 - [x] T051 [US3] Generate initial migration (v15 schema) in src/synth_lab/alembic/versions/001_initial_schema.py
 - [x] T052 [US3] Add Makefile targets for alembic commands (upgrade, downgrade, revision) in Makefile
 
-**Checkpoint**: Alembic can apply migrations to fresh database and rollback. Works on both SQLite and PostgreSQL.
+**Checkpoint**: Alembic can apply migrations to fresh database and rollback. Works on both PostgreSQL and PostgreSQL.
 
 ---
 
 ## Phase 6: User Story 4 - Legacy Database Cleanup (Priority: P3)
 
-**Goal**: Remove legacy database.py and sqlite3 dependencies after full migration validation.
+**Goal**: Remove legacy database.py and postgresql3 dependencies after full migration validation.
 
 **Independent Test**: Remove legacy code, run full test suite, verify no import errors or regressions.
 
 ### Tests for User Story 4
 
-- [x] T053 [US4] Verify no sqlite3 imports remain after cleanup in tests/integration/test_no_legacy_imports.py
+- [x] T053 [US4] Verify no postgresql3 imports remain after cleanup in tests/integration/test_no_legacy_imports.py
   - Test created and passing
-  - Core layers (services, API, domain) have no direct sqlite3 imports
+  - Core layers (services, API, domain) have no direct postgresql3 imports
   - Legacy files (database.py, storage.py, base.py) are tracked as allowed during migration
 
 ### Implementation for User Story 4
 
 > **NOTE**: Tasks T054-T058 require updating 40+ files that currently use the legacy DatabaseManager.
-> The repositories already support dual backends (SQLite and SQLAlchemy).
+> The repositories already support dual backends (PostgreSQL and SQLAlchemy).
 > Full cleanup deferred to minimize risk - the migration works with current dual-backend support.
 
 - [ ] T054 [US4] Update all services to use database_v2.py session dependency
 - [ ] T055 [US4] Update api/main.py to use database_v2.py for initialization in src/synth_lab/api/main.py
 - [ ] T056 [US4] Remove legacy database.py file from src/synth_lab/infrastructure/database.py
-- [ ] T057 [US4] Remove sqlite3 imports from all files
+- [ ] T057 [US4] Remove postgresql3 imports from all files
 - [ ] T058 [US4] Update init_database() references to use Alembic migrations
 
 **Checkpoint**: No legacy database code remains. All tests pass. Application uses only SQLAlchemy/Alembic.
@@ -184,15 +184,15 @@
   - Documented initial schema with all 17 tables
 - [x] T060 [P] Add logging for database operations in src/synth_lab/infrastructure/database_v2.py
   - Enhanced logging for engine creation, session factory, and init_database_v2
-- [x] T061 Run full test suite on both SQLite and PostgreSQL backends
-  - SQLite: 94 migration-related tests passing
+- [x] T061 Run full test suite on both PostgreSQL and PostgreSQL backends
+  - PostgreSQL: 94 migration-related tests passing
   - PostgreSQL: Tests skipped without POSTGRES_URL (requires running PostgreSQL)
 - [x] T062 [P] Update docs/arquitetura.md with new database layer in docs/arquitetura.md
   - Added database_v2.py documentation
   - Documented ORM models structure
   - Added Alembic migration commands
 - [x] T063 Validate all acceptance scenarios from spec.md
-  - US1: SQLAlchemy models and repositories working with SQLite
+  - US1: SQLAlchemy models and repositories working with PostgreSQL
   - US2: PostgreSQL support with connection pooling and SSL
   - US3: Alembic migrations with dual-dialect support
   - US4: Legacy cleanup test in place (full cleanup deferred)
@@ -269,13 +269,13 @@ Task: "Migrate TranscriptRepository to SQLAlchemy in src/synth_lab/repositories/
 1. Complete Phase 1: Setup
 2. Complete Phase 2: Foundational (CRITICAL - blocks all stories)
 3. Complete Phase 3: User Story 1
-4. **STOP and VALIDATE**: Run full test suite on SQLite
+4. **STOP and VALIDATE**: Run full test suite on PostgreSQL
 5. Commit and validate basic SQLAlchemy migration works
 
 ### Incremental Delivery
 
 1. Complete Setup + Foundational → Foundation ready
-2. Add User Story 1 → Test on SQLite → MVP complete
+2. Add User Story 1 → Test on PostgreSQL → MVP complete
 3. Add User Story 2 → Test on PostgreSQL Docker → Production-ready
 4. Add User Story 3 → Alembic migrations → Schema version control
 5. Add User Story 4 → Cleanup legacy code → Final state
@@ -318,4 +318,4 @@ With multiple developers:
 | Phase 7 | Polish | 5 |
 | **Total** | | **63** |
 
-**MVP Scope**: Complete Phases 1-3 (US1) for minimal viable migration to SQLAlchemy with SQLite backend.
+**MVP Scope**: Complete Phases 1-3 (US1) for minimal viable migration to SQLAlchemy with PostgreSQL backend.

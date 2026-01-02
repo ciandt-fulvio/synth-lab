@@ -2,24 +2,27 @@
 
 ## Visão Geral
 
-O synth-lab utiliza **SQLite 3.38+** com a extensão **JSON1** para armazenar dados estruturados e semi-estruturados. O banco de dados está localizado em `output/synthlab.db`.
+O synth-lab utiliza **PostgreSQL 14+** com **SQLAlchemy 2.0+** ORM para armazenar dados estruturados e semi-estruturados. A conexão com o banco de dados é configurada via variável de ambiente `DATABASE_URL`.
 
 ### Configurações do Banco
 
-```sql
-PRAGMA journal_mode=WAL;        -- Permite leituras concorrentes
-PRAGMA foreign_keys=ON;         -- Enforça integridade referencial
-PRAGMA synchronous=NORMAL;      -- Balanceia segurança e performance
-PRAGMA temp_store=MEMORY;       -- Usa memória para tabelas temporárias
+```python
+# Connection pooling
+pool_size = WORKERS * 2  # Número de conexões persistentes
+max_overflow = 10        # Conexões adicionais temporárias
+
+# SQLAlchemy settings
+echo = SQL_ECHO          # Log SQL queries (debug only)
 ```
 
 ### Características
 
-- **WAL Mode**: Permite múltiplas leituras simultâneas
+- **Connection Pooling**: Pool de conexões gerenciado pelo SQLAlchemy
 - **Foreign Keys**: Garantem integridade referencial entre tabelas
-- **JSON1 Extension**: Suporta queries em campos JSON aninhados
-- **Row Factory**: Retorna rows como objetos dict-like
-- **Thread-safe**: Conexões thread-local via `threading.local()`
+- **JSONB Type**: Suporta queries eficientes em campos JSON aninhados
+- **ORM Models**: Modelos Pydantic + SQLAlchemy para validação e persistência
+- **Thread-safe**: Pool gerencia conexões de forma thread-safe
+- **Alembic Migrations**: Versionamento e migração de schema
 
 ## Esquema Completo
 
@@ -274,16 +277,16 @@ init_database()  # Cria em output/synthlab.db
 
 ```sql
 -- Verificar tabelas criadas
-SELECT name FROM sqlite_master WHERE type='table';
+SELECT tablename FROM pg_tables WHERE schemaname = 'public';
 
 -- Verificar índices
-SELECT name, tbl_name FROM sqlite_master WHERE type='index';
+SELECT indexname, tablename FROM pg_indexes WHERE schemaname = 'public';
 
--- Verificar foreign keys habilitadas
-PRAGMA foreign_keys;  -- Deve retornar 1
+-- Verificar versão do PostgreSQL
+SELECT version();
 
--- Verificar modo WAL
-PRAGMA journal_mode;  -- Deve retornar 'wal'
+-- Verificar conexões ativas
+SELECT count(*) FROM pg_stat_activity;
 ```
 
 ---
@@ -391,45 +394,54 @@ ON synths(json_extract(data, '$.demografia.localizacao.regiao'));
 ### Backup Manual
 
 ```bash
-# Backup completo
-cp output/synthlab.db output/synthlab_backup_$(date +%Y%m%d).db
+# Backup completo do PostgreSQL
+pg_dump -U synthlab -d synthlab > backup_$(date +%Y%m%d).sql
 
-# Backup com checkpoint WAL
-sqlite3 output/synthlab.db "PRAGMA wal_checkpoint(FULL);"
-cp output/synthlab.db output/synthlab_backup.db
+# Backup comprimido
+pg_dump -U synthlab -d synthlab | gzip > backup_$(date +%Y%m%d).sql.gz
+
+# Backup usando Docker Compose (se aplicável)
+docker compose exec postgres pg_dump -U synthlab synthlab > backup.sql
 ```
 
 ### Verificação de Integridade
 
 ```sql
--- Verificar integridade
-PRAGMA integrity_check;
+-- Verificar integridade de tabelas
+SELECT pg_relation_check();
 
--- Verificar foreign keys
-PRAGMA foreign_key_check;
+-- Verificar replicação (se aplicável)
+SELECT * FROM pg_stat_replication;
+
+-- Verificar locks
+SELECT * FROM pg_locks WHERE NOT granted;
 ```
 
 ### Limpeza
 
 ```sql
--- Vacuum para recuperar espaço
-VACUUM;
+-- Vacuum para recuperar espaço e atualizar estatísticas
+VACUUM ANALYZE;
 
--- Atualizar estatísticas para query planner
+-- Vacuum completo (requer lock exclusivo)
+VACUUM FULL;
+
+-- Atualizar apenas estatísticas para query planner
 ANALYZE;
 ```
 
 ---
 
-## Limitações
+## Considerações PostgreSQL
 
-### SQLite
+### Características
 
-- **Writes concorrentes**: WAL mode permite apenas 1 writer por vez
-- **Tamanho máximo**: ~281 TB (praticamente ilimitado para nosso uso)
-- **Concorrência**: Ideal para até ~100k writes/segundo
+- **Writes concorrentes**: MVCC permite múltiplos writers simultâneos
+- **Tamanho máximo**: ~32 TB por tabela (praticamente ilimitado para nosso uso)
+- **Concorrência**: Suporta milhares de conexões simultâneas com connection pooling
+- **Escalabilidade**: Suporta replicação e sharding para alta disponibilidade
 
-### JSON1
+### JSONB
 
 - **Performance**: Queries em JSON são mais lentas que colunas nativas
 - **Índices**: Criar índices explícitos em campos JSON frequentes

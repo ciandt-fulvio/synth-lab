@@ -35,7 +35,7 @@
 - 20 functional requirements covering all 4 API groups
 - 8 measurable success criteria with specific performance targets
 - Assumptions documented regarding authentication, CORS, and backward compatibility
-- User's implementation plan referenced SQLite/FastAPI but spec focuses on capabilities, not implementation
+- User's implementation plan referenced PostgreSQL/FastAPI but spec focuses on capabilities, not implementation
 
 ## Validation Result
 

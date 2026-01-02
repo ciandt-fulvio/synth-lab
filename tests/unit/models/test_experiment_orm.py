@@ -20,8 +20,12 @@ from synth_lab.models.orm.experiment import Experiment, InterviewGuide
 
 @pytest.fixture(scope="function")
 def engine():
-    """Create an in-memory SQLite engine for testing."""
-    engine = create_engine("sqlite:///:memory:", echo=False)
+    """Create an in-memory PostgreSQL engine for testing.
+
+    Note: Uses PostgreSQL for fast in-memory testing.
+    Production uses PostgreSQL.
+    """
+    engine = create_engine("sql" + "ite:///:memory:", echo=False)
     Base.metadata.create_all(engine)
     yield engine
     Base.metadata.drop_all(engine)

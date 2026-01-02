@@ -17,7 +17,7 @@ uv run uvicorn synth_lab.api.main:app --reload
 
 2. **Verificar se há synths no banco:**
 ```bash
-sqlite3 output/synthlab.db "SELECT COUNT(*) FROM synths;"
+psql postgresql://synthlab:synthlab_dev@localhost:5432/synthlab -c "SELECT COUNT(*) FROM synths;"
 ```
 
 Se não houver synths, gere alguns primeiro:
@@ -182,7 +182,7 @@ curl -X POST http://localhost:8000/simulation/simulations \
 
 ```bash
 # Primeiro, obtenha IDs de synths do banco
-sqlite3 output/synthlab.db "SELECT id FROM synths LIMIT 5;"
+psql postgresql://synthlab:synthlab_dev@localhost:5432/synthlab -c "SELECT id FROM synths LIMIT 5;"
 
 # Execute a simulação com synths específicos
 curl -X POST http://localhost:8000/simulation/simulations \
@@ -1239,20 +1239,26 @@ print("\n✅ Análise UX completa!")
 ## 14. Verificar Dados no Banco
 
 ```bash
+# Conectar ao PostgreSQL
+psql postgresql://synthlab:synthlab_dev@localhost:5432/synthlab
+
 # Ver scorecards
-sqlite3 output/synthlab.db "SELECT id, json_extract(data, '$.identification.feature_name') as name FROM scorecards LIMIT 5;"
+SELECT id, data->'identification'->>'feature_name' as name FROM scorecards LIMIT 5;
 
 # Ver simulações
-sqlite3 output/synthlab.db "SELECT id, scorecard_id, scenario_id, status, total_synths FROM simulation_runs ORDER BY started_at DESC LIMIT 5;"
+SELECT id, scorecard_id, scenario_id, status, total_synths FROM simulation_runs ORDER BY started_at DESC LIMIT 5;
 
 # Ver outcomes de uma simulação
-sqlite3 output/synthlab.db "SELECT synth_id, success_rate FROM synth_outcomes WHERE simulation_id='SIMULATION_ID' LIMIT 10;"
+SELECT synth_id, success_rate FROM synth_outcomes WHERE simulation_id='SIMULATION_ID' LIMIT 10;
 
 # Ver análises de região
-sqlite3 output/synthlab.db "SELECT id, simulation_id, rule_text, failed_rate FROM region_analyses ORDER BY failed_rate DESC LIMIT 5;"
+SELECT id, simulation_id, rule_text, failed_rate FROM region_analyses ORDER BY failed_rate DESC LIMIT 5;
 
 # Contar registros
-sqlite3 output/synthlab.db "SELECT 'scorecards' as table_name, COUNT(*) as count FROM scorecards UNION ALL SELECT 'simulation_runs', COUNT(*) FROM simulation_runs UNION ALL SELECT 'synth_outcomes', COUNT(*) FROM synth_outcomes UNION ALL SELECT 'region_analyses', COUNT(*) FROM region_analyses;"
+SELECT 'scorecards' as table_name, COUNT(*) as count FROM scorecards UNION ALL
+SELECT 'simulation_runs', COUNT(*) FROM simulation_runs UNION ALL
+SELECT 'synth_outcomes', COUNT(*) FROM synth_outcomes UNION ALL
+SELECT 'region_analyses', COUNT(*) FROM region_analyses;
 ```
 
 ---

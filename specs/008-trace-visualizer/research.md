@@ -141,7 +141,7 @@ All architectural decisions were provided upfront during planning. No additional
 - Self-contained (all data in one file)
 
 **Alternatives Considered**:
-- SQLite database → Rejected: harder to share, not Git-friendly
+- PostgreSQL database → Rejected: harder to share, not Git-friendly
 - Binary format (protobuf) → Rejected: not human-readable
 - JSONL (line-delimited) → Rejected: harder to parse entire trace
 

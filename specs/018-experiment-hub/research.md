@@ -9,19 +9,19 @@ Esta pesquisa documenta as decisões técnicas para implementação do Experimen
 
 ---
 
-## 1. Estrutura de Tabelas no SQLite
+## 1. Estrutura de Tabelas no PostgreSQL
 
 ### Decisão
 Adicionar 2 novas tabelas (`experiments`, `synth_groups`) e modificar 3 tabelas existentes (`feature_scorecards`, `research_executions`, `synths`).
 
 ### Racional
-- O projeto já usa SQLite com WAL mode e JSON1 extension
+- O projeto já usa PostgreSQL com WAL mode e JSON1 extension
 - Padrão existente: tabelas com `id TEXT PRIMARY KEY`, campos `created_at/updated_at TEXT`, e dados complexos em `data TEXT CHECK(json_valid(data))`
 - Foreign keys estão habilitadas (`PRAGMA foreign_keys=ON`)
 
 ### Alternativas Consideradas
-1. **DuckDB**: Rejeitado - projeto migrou de DuckDB para SQLite (ver CLAUDE.md: "2025-12-22: Removed DuckDB dependency")
-2. **PostgreSQL**: Rejeitado - escopo single-user, dados locais, SQLite é suficiente
+1. **DuckDB**: Rejeitado - projeto migrou de DuckDB para PostgreSQL (ver CLAUDE.md: "2025-12-22: Removed DuckDB dependency")
+2. **PostgreSQL**: Rejeitado - escopo single-user, dados locais, PostgreSQL é suficiente
 
 ### Implementação
 
@@ -308,7 +308,7 @@ Implementar breadcrumb contextual em páginas de detalhe.
 
 | Área | Decisão | Justificativa |
 |------|---------|---------------|
-| Database | SQLite + novas tabelas | Padrão existente, sem migração |
+| Database | PostgreSQL + novas tabelas | Padrão existente, sem migração |
 | Repository | Herdar BaseRepository | Padrão existente de pagination |
 | API Routes | FastAPI + Pydantic | Padrão existente |
 | IDs | Prefixo semântico + hex | Consistência com scorecards |

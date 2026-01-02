@@ -21,7 +21,7 @@ This feature is a "finalization" task - all major components already exist. Rese
 **Rationale**: Following the existing migration pattern (v10, v11, v14) ensures backward compatibility and consistency.
 
 **Alternatives Considered**:
-- Alembic migration: Rejected because the project doesn't use Alembic for SQLite migrations (uses inline PRAGMA checks)
+- Alembic migration: Rejected because the project doesn't use Alembic for PostgreSQL migrations (uses inline PRAGMA checks)
 - Separate migration script: Rejected because the inline pattern is simpler and already established
 
 ### 2. Router Registration Gap
@@ -62,7 +62,7 @@ This feature is a "finalization" task - all major components already exist. Rese
 
 | Component | Technology | Version | Notes |
 |-----------|------------|---------|-------|
-| Database | SQLite 3 | 3.x | JSON1 extension, WAL mode |
+| Database | PostgreSQL 3 | 3.x | JSON1 extension, WAL mode |
 | Backend | FastAPI | 0.109+ | Async support |
 | ORM | None | - | Raw SQL with parameterized queries |
 | Testing | pytest | 8.0+ | With pytest-asyncio |
