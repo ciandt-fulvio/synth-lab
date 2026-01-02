@@ -6,6 +6,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 import { queryKeys } from '@/lib/query-keys';
 import {
   createExploration,
@@ -55,9 +56,27 @@ export function useExploration(id: string) {
 /**
  * Get exploration tree with all nodes.
  * Refetches when exploration is running.
+ * Performs final refetch when status changes from 'running' to any other status.
  */
 export function useExplorationTree(id: string, enabled = true) {
   const { data: exploration } = useExploration(id);
+  const queryClient = useQueryClient();
+  const prevStatusRef = useRef<string | undefined>();
+
+  // Detect status change from 'running' to another status and force final refetch
+  useEffect(() => {
+    const currentStatus = exploration?.status;
+    const prevStatus = prevStatusRef.current;
+
+    // If status changed from 'running' to something else, do final refetch
+    if (prevStatus === 'running' && currentStatus && currentStatus !== 'running') {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.explorationTree(id),
+      });
+    }
+
+    prevStatusRef.current = currentStatus;
+  }, [exploration?.status, id, queryClient]);
 
   return useQuery({
     queryKey: queryKeys.explorationTree(id),
