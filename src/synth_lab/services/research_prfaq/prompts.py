@@ -152,9 +152,7 @@ def get_few_shot_examples() -> list[dict]:
             "research_summary": """# Achados da Pesquisa: Batch de Entrevistas de Pesquisa com Clientes
 
 ## Resumo Executivo
-Realizamos 8 entrevistas com Product Managers em empresas B2B SaaS. Principal achado:
-PMs gastam 40% do seu tempo em coordenação de documentos entre equipes, com síntese
-manual de pesquisa levando 3-5 semanas por projeto.
+Realizamos 8 entrevistas com Product Managers em empresas B2B SaaS. ...
 
 ## Padrões Recorrentes
 - Todos os participantes compilam manualmente notas de entrevistas em documentos compartilhados
