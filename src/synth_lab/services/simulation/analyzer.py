@@ -47,8 +47,7 @@ class RegionAnalyzer:
         self,
         max_depth: int = 3,
         min_samples_leaf: int = 30,
-        min_samples_split: int = 60,
-    ) -> None:
+        min_samples_split: int = 60) -> None:
         """
         Initialize RegionAnalyzer.
 
@@ -66,8 +65,7 @@ class RegionAnalyzer:
         self,
         outcomes: list[dict[str, Any]],
         simulation_id: str,
-        min_failure_rate: float = 0.5,
-    ) -> list[RegionAnalysis]:
+        min_failure_rate: float = 0.5) -> list[RegionAnalysis]:
         """
         Analyze simulation outcomes to identify high-failure regions.
 
@@ -119,8 +117,7 @@ class RegionAnalyzer:
             X=X,
             outcomes=outcomes,
             simulation_id=simulation_id,
-            min_failure_rate=min_failure_rate,
-        )
+            min_failure_rate=min_failure_rate)
 
         self.logger.info(f"Found {len(regions)} high-failure regions")
         return regions
@@ -213,8 +210,7 @@ class RegionAnalyzer:
         X: np.ndarray,
         outcomes: list[dict[str, Any]],
         simulation_id: str,
-        min_failure_rate: float,
-    ) -> list[RegionAnalysis]:
+        min_failure_rate: float) -> list[RegionAnalysis]:
         """
         Extract interpretable rules from decision tree.
 
@@ -273,10 +269,8 @@ class RegionAnalyzer:
                     RegionRule(
                         attribute=feature_name,
                         operator="<=",
-                        threshold=round(threshold_val, 3),
-                    )
-                ],
-            )
+                        threshold=round(threshold_val, 3))
+                ])
             if result is not None:
                 return result
 
@@ -290,10 +284,8 @@ class RegionAnalyzer:
                     RegionRule(
                         attribute=feature_name,
                         operator=">",
-                        threshold=round(threshold_val, 3),
-                    )
-                ],
-            )
+                        threshold=round(threshold_val, 3))
+                ])
 
         # Process each leaf
         for leaf_id, sample_indices in leaf_to_indices.items():
@@ -331,8 +323,7 @@ class RegionAnalyzer:
                 did_not_try_rate=round(avg_did_not_try, 3),
                 failed_rate=round(avg_failed, 3),
                 success_rate=round(avg_success, 3),
-                failure_delta=failure_delta,
-            )
+                failure_delta=failure_delta)
             regions.append(region)
 
         # Sort by failure rate descending
@@ -499,8 +490,7 @@ if __name__ == "__main__":
         regions = analyzer.analyze_regions(
             outcomes=small_outcomes,
             simulation_id="test_sim",
-            min_failure_rate=0.5,
-        )
+            min_failure_rate=0.5)
         if len(regions) != 0:
             all_validation_failures.append(
                 f"Should return empty list for insufficient data, got {len(regions)} regions"

@@ -26,16 +26,14 @@ from loguru import logger
 
 from synth_lab.domain.entities.action_proposal import (
     VALID_CATEGORIES,
-    ActionProposal,
-)
+    ActionProposal)
 from synth_lab.domain.entities.experiment import Experiment
 from synth_lab.domain.entities.scenario_node import ScenarioNode
 from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
 from synth_lab.services.exploration.action_catalog import (
     ActionCatalogService,
-    get_action_catalog_service,
-)
+    get_action_catalog_service)
 
 # Phoenix/OpenTelemetry tracer for observability
 _tracer = get_tracer("action-proposal-service")
@@ -63,8 +61,7 @@ class ActionProposalService:
     def __init__(
         self,
         llm_client: LLMClient | None = None,
-        catalog_service: ActionCatalogService | None = None,
-    ):
+        catalog_service: ActionCatalogService | None = None):
         """
         Initialize the action proposal service.
 
@@ -80,8 +77,7 @@ class ActionProposalService:
         self,
         node: ScenarioNode,
         experiment: Experiment,
-        max_proposals: int = 2,
-    ) -> list[ActionProposal]:
+        max_proposals: int = 2) -> list[ActionProposal]:
         """
         Generate improvement proposals for a scenario node.
 
@@ -105,8 +101,7 @@ class ActionProposalService:
                 "node_id": node.id,
                 "experiment_id": experiment.id,
                 "node_depth": node.depth,
-            },
-        ):
+            }):
             prompt = self._build_prompt(node, experiment, max_proposals)
 
             self.logger.info(
@@ -122,8 +117,7 @@ class ActionProposalService:
                     ],
                     model=LLM_MODEL,
                     temperature=0.7,  # Some creativity for diverse proposals
-                    operation_name="Generate Action Proposals",
-                )
+                    operation_name="Generate Action Proposals")
 
                 proposals = self._parse_response(response)
                 valid_proposals = self._validate_proposals(proposals)
@@ -179,8 +173,7 @@ EXEMPLOS de short_action:
         self,
         node: ScenarioNode,
         experiment: Experiment,
-        max_proposals: int,
-    ) -> str:
+        max_proposals: int) -> str:
         """Build the user prompt for the LLM."""
         # Get catalog context
         catalog_context = self.catalog.get_prompt_context()
@@ -254,8 +247,7 @@ EXEMPLOS de short_action:
 
     def _validate_proposals(
         self,
-        proposals: list[dict[str, Any]],
-    ) -> list[ActionProposal]:
+        proposals: list[dict[str, Any]]) -> list[ActionProposal]:
         """Validate and convert raw proposals to ActionProposal objects."""
         valid = []
 
@@ -306,8 +298,7 @@ EXEMPLOS de short_action:
                     category=category,
                     rationale=str(raw["rationale"]),
                     short_action=str(raw["short_action"])[:30],
-                    impacts=valid_impacts,
-                )
+                    impacts=valid_impacts)
                 valid.append(proposal)
 
             except Exception as e:
@@ -445,13 +436,11 @@ if __name__ == "__main__":
         from synth_lab.domain.entities.experiment import (
             Experiment,
             ScorecardData,
-            ScorecardDimension,
-        )
+            ScorecardDimension)
         from synth_lab.domain.entities.scenario_node import (
             ScenarioNode,
             ScorecardParams,
-            SimulationResults,
-        )
+            SimulationResults)
 
         experiment = Experiment(
             name="Test Experiment",
@@ -462,9 +451,7 @@ if __name__ == "__main__":
                 complexity=ScorecardDimension(score=0.45),
                 initial_effort=ScorecardDimension(score=0.30),
                 perceived_risk=ScorecardDimension(score=0.25),
-                time_to_value=ScorecardDimension(score=0.40),
-            ),
-        )
+                time_to_value=ScorecardDimension(score=0.40)))
 
         node = ScenarioNode(
             exploration_id="expl_12345678",
@@ -473,14 +460,11 @@ if __name__ == "__main__":
                 complexity=0.45,
                 initial_effort=0.30,
                 perceived_risk=0.25,
-                time_to_value=0.40,
-            ),
+                time_to_value=0.40),
             simulation_results=SimulationResults(
                 success_rate=0.25,
                 fail_rate=0.45,
-                did_not_try_rate=0.30,
-            ),
-        )
+                did_not_try_rate=0.30))
 
         service = ActionProposalService()
         prompt = service._build_prompt(node, experiment, 2)

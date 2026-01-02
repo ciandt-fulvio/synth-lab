@@ -90,8 +90,7 @@ class ClusterLabelingService:
                 "cluster.count": len(profiles),
                 "operation.type": "cluster_labeling",
                 "llm.model": REASONING_MODEL,
-            },
-        ):
+            }):
             self.logger.info(f"Generating labels for {len(profiles)} clusters")
 
             prompt = self._build_prompt(profiles)
@@ -100,8 +99,7 @@ class ClusterLabelingService:
                 response_str = self.llm.complete_json(
                     messages=[{"role": "user", "content": prompt}],
                     model=REASONING_MODEL,
-                    temperature=0.7,
-                )
+                    temperature=0.7)
 
                 labels = self._parse_response(response_str, profiles)
                 self.logger.info(f"Generated labels: {labels}")
@@ -279,8 +277,7 @@ if __name__ == "__main__":
                 high_traits=["capability_mean", "friction_tolerance_mean"],
                 low_traits=["trust_mean"],
                 suggested_label="Test",
-                synth_ids=["s1", "s2"],
-            ),
+                synth_ids=["s1", "s2"]),
             ClusterProfile(
                 cluster_id=1,
                 size=35,
@@ -297,8 +294,7 @@ if __name__ == "__main__":
                 high_traits=["trust_mean", "exploration_prob"],
                 low_traits=["capability_mean"],
                 suggested_label="Test",
-                synth_ids=["s3", "s4", "s5"],
-            ),
+                synth_ids=["s3", "s4", "s5"]),
         ]
 
         prompt = service._build_prompt(mock_profiles)

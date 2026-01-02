@@ -81,8 +81,7 @@ class ScorecardEstimator:
         self,
         name: str,
         hypothesis: str,
-        description: str | None = None,
-    ) -> ScorecardEstimate:
+        description: str | None = None) -> ScorecardEstimate:
         """
         Generate scorecard dimension estimates from text input.
 
@@ -109,8 +108,7 @@ class ScorecardEstimator:
                 "feature.name": name,
                 "operation.type": "scorecard_estimate_text",
                 "has_description": description is not None,
-            },
-        ):
+            }):
             prompt = self._build_prompt_from_text(name, hypothesis, description)
 
             self.logger.info(f"Estimating scorecard for feature: {name}")
@@ -119,8 +117,7 @@ class ScorecardEstimator:
                 response = self.llm.complete_json(
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.3,
-                    operation_name="Scorecard AI Estimation (Form)",
-                )
+                    operation_name="Scorecard AI Estimation (Form)")
 
                 data = json.loads(response)
 
@@ -128,8 +125,7 @@ class ScorecardEstimator:
                     complexity=DimensionEstimate(**data["complexity"]),
                     initial_effort=DimensionEstimate(**data["initial_effort"]),
                     perceived_risk=DimensionEstimate(**data["perceived_risk"]),
-                    time_to_value=DimensionEstimate(**data["time_to_value"]),
-                )
+                    time_to_value=DimensionEstimate(**data["time_to_value"]))
 
                 self.logger.info(f"Generated estimate for feature: {name}")
                 return estimate
@@ -146,8 +142,7 @@ class ScorecardEstimator:
 
     def estimate_from_experiment(
         self,
-        experiment: ExperimentSummary,
-    ) -> ScorecardEstimate:
+        experiment: ExperimentSummary) -> ScorecardEstimate:
         """
         Generate scorecard dimension estimates from experiment data.
 
@@ -171,8 +166,7 @@ class ScorecardEstimator:
                 "experiment.id": experiment.id,
                 "experiment.name": experiment.name,
                 "operation.type": "scorecard_estimate_experiment",
-            },
-        ):
+            }):
             prompt = self._build_prompt(experiment)
 
             self.logger.info(f"Estimating scorecard for experiment {experiment.id}")
@@ -181,8 +175,7 @@ class ScorecardEstimator:
                 response = self.llm.complete_json(
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.3,  # Lower temperature for more consistent results
-                    operation_name="Scorecard AI Estimation",
-                )
+                    operation_name="Scorecard AI Estimation")
 
                 data = json.loads(response)
 
@@ -190,8 +183,7 @@ class ScorecardEstimator:
                     complexity=DimensionEstimate(**data["complexity"]),
                     initial_effort=DimensionEstimate(**data["initial_effort"]),
                     perceived_risk=DimensionEstimate(**data["perceived_risk"]),
-                    time_to_value=DimensionEstimate(**data["time_to_value"]),
-                )
+                    time_to_value=DimensionEstimate(**data["time_to_value"]))
 
                 self.logger.info(f"Generated estimate for experiment {experiment.id}")
                 return estimate
@@ -210,8 +202,7 @@ class ScorecardEstimator:
         self,
         name: str,
         hypothesis: str,
-        description: str | None,
-    ) -> str:
+        description: str | None) -> str:
         """
         Build the estimation prompt from text inputs.
 
@@ -238,15 +229,13 @@ class ScorecardEstimator:
         return self._build_prompt_content(
             experiment.name,
             experiment.hypothesis,
-            experiment.description,
-        )
+            experiment.description)
 
     def _build_prompt_content(
         self,
         name: str,
         hypothesis: str,
-        description: str | None,
-    ) -> str:
+        description: str | None) -> str:
         """
         Build the estimation prompt content.
 
@@ -329,8 +318,7 @@ if __name__ == "__main__":
             simulation_count=0,
             interview_count=0,
             created_at=datetime.now(),
-            updated_at=None,
-        )
+            updated_at=None)
         prompt = estimator._build_prompt(exp)
         if "Dark Mode Toggle" not in prompt:
             all_validation_failures.append("Prompt should contain experiment name")
@@ -346,8 +334,7 @@ if __name__ == "__main__":
             value=0.5,
             justification="Test justification",
             min=0.4,
-            max=0.6,
-        )
+            max=0.6)
         if estimate.value != 0.5:
             all_validation_failures.append("DimensionEstimate value mismatch")
     except Exception as e:

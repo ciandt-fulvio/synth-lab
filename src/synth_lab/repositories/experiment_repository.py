@@ -1,21 +1,26 @@
 """
 ExperimentRepository for synth-lab.
 
-Data access layer for experiment data in SQLite database.
-Supports embedded scorecard data and related counts.
+Data access layer for experiment data. Uses SQLAlchemy ORM for database operations.
 
 References:
     - Spec: specs/019-experiment-refactor/spec.md
     - Data model: specs/019-experiment-refactor/data-model.md
+    - ORM models: synth_lab.models.orm.experiment
 """
 
 import json
 from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from synth_lab.domain.entities.experiment import Experiment, ScorecardData
-from synth_lab.infrastructure.database import DatabaseManager
+from synth_lab.models.orm.experiment import Experiment as ExperimentORM
+from synth_lab.models.orm.experiment import InterviewGuide as InterviewGuideORM
+from synth_lab.models.orm.analysis import AnalysisRun as AnalysisRunORM
+from synth_lab.models.orm.research import ResearchExecution as ResearchExecutionORM
 from synth_lab.models.pagination import PaginatedResponse, PaginationMeta, PaginationParams
 from synth_lab.repositories.base import BaseRepository
 
@@ -38,10 +43,22 @@ class ExperimentSummary(BaseModel):
 
 
 class ExperimentRepository(BaseRepository):
-    """Repository for experiment data access."""
+    """Repository for experiment data access.
 
-    def __init__(self, db: DatabaseManager | None = None):
-        super().__init__(db)
+    Uses SQLAlchemy ORM for database operations.
+
+    Usage:
+        # ORM mode
+        repo = ExperimentRepository(db=database_manager)
+
+        # ORM mode (SQLAlchemy)
+        repo = ExperimentRepository(session=session)
+    """
+
+    def __init__(
+        self,
+session: Session | None = None):
+        super().__init__( session=session)
 
     def create(self, experiment: Experiment) -> Experiment:
         """
@@ -53,25 +70,26 @@ class ExperimentRepository(BaseRepository):
         Returns:
             Created experiment with persisted data.
         """
-        scorecard_json = None
-        if experiment.scorecard_data:
-            scorecard_json = json.dumps(experiment.scorecard_data.model_dump())
+        return self._create_orm(experiment)
 
-        self.db.execute(
-            """
-            INSERT INTO experiments (id, name, hypothesis, description, scorecard_data, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                experiment.id,
-                experiment.name,
-                experiment.hypothesis,
-                experiment.description,
-                scorecard_json,
-                experiment.created_at.isoformat(),
-                experiment.updated_at.isoformat() if experiment.updated_at else None,
-            ),
-        )
+    def _create_orm(self, experiment: Experiment) -> Experiment:
+        """Create experiment using ORM."""
+        scorecard_dict = None
+        if experiment.scorecard_data:
+            scorecard_dict = experiment.scorecard_data.model_dump()
+
+        orm_exp = ExperimentORM(
+            id=experiment.id,
+            name=experiment.name,
+            hypothesis=experiment.hypothesis,
+            description=experiment.description,
+            scorecard_data=scorecard_dict,
+            status="active",
+            created_at=experiment.created_at.isoformat(),
+            updated_at=experiment.updated_at.isoformat() if experiment.updated_at else None)
+        self._add(orm_exp)
+        self._flush()
+        self._commit()
         return experiment
 
     def get_by_id(self, experiment_id: str) -> Experiment | None:
@@ -86,13 +104,17 @@ class ExperimentRepository(BaseRepository):
         Returns:
             Experiment if found and active, None otherwise.
         """
-        row = self.db.fetchone(
-            "SELECT * FROM experiments WHERE id = ? AND (status = 'active' OR status IS NULL)",
-            (experiment_id,),
-        )
-        if row is None:
+        return self._get_by_id_orm(experiment_id)
+
+    def _get_by_id_orm(self, experiment_id: str) -> Experiment | None:
+        """Get experiment by ID using ORM."""
+        stmt = select(ExperimentORM).where(
+            ExperimentORM.id == experiment_id,
+            ExperimentORM.status == "active")
+        result = self.session.execute(stmt).scalar_one_or_none()
+        if result is None:
             return None
-        return self._row_to_experiment(row)
+        return self._orm_to_experiment(result)
 
     def list_experiments(self, params: PaginationParams) -> PaginatedResponse[ExperimentSummary]:
         """
@@ -106,47 +128,31 @@ class ExperimentRepository(BaseRepository):
         Returns:
             Paginated response with experiment summaries.
         """
-        # Query with analysis, interview guide, and interview counts
-        # Filter out deleted experiments
-        base_query = """
-            SELECT
-                e.id,
-                e.name,
-                e.hypothesis,
-                e.description,
-                e.scorecard_data,
-                e.created_at,
-                e.updated_at,
-                CASE WHEN ana.id IS NOT NULL THEN 1 ELSE 0 END as has_analysis,
-                CASE WHEN ig.experiment_id IS NOT NULL THEN 1 ELSE 0 END as has_interview_guide,
-                COALESCE(int.cnt, 0) as interview_count
-            FROM experiments e
-            LEFT JOIN analysis_runs ana ON e.id = ana.experiment_id
-            LEFT JOIN interview_guide ig ON e.id = ig.experiment_id
-            LEFT JOIN (
-                SELECT experiment_id, COUNT(*) as cnt
-                FROM research_executions
-                WHERE experiment_id IS NOT NULL
-                GROUP BY experiment_id
-            ) int ON e.id = int.experiment_id
-            WHERE (e.status = 'active' OR e.status IS NULL)
-            ORDER BY e.created_at DESC
-        """
+        return self._list_experiments_orm(params)
 
-        count_query = """
-            SELECT COUNT(*) as count FROM experiments
-            WHERE (status = 'active' OR status IS NULL)
-        """
+    def _list_experiments_orm(self, params: PaginationParams) -> PaginatedResponse[ExperimentSummary]:
+        """List experiments using ORM with eager-loaded relationships."""
+        from sqlalchemy import func as sqlfunc
+
+        # Base query for active experiments
+        stmt = (
+            select(ExperimentORM)
+            .where(ExperimentORM.status == "active")
+            .order_by(ExperimentORM.created_at.desc())
+        )
 
         # Get total count
-        count_row = self.db.fetchone(count_query)
-        total = count_row["count"] if count_row else 0
+        count_stmt = select(sqlfunc.count()).select_from(
+            select(ExperimentORM).where(ExperimentORM.status == "active").subquery()
+        )
+        total = self.session.execute(count_stmt).scalar() or 0
 
         # Apply pagination
-        paginated_query = f"{base_query} LIMIT ? OFFSET ?"
-        rows = self.db.fetchall(paginated_query, (params.limit, params.offset))
+        stmt = stmt.limit(params.limit).offset(params.offset)
+        experiments = list(self.session.execute(stmt).scalars().all())
 
-        summaries = [self._row_to_summary(row) for row in rows]
+        # Convert to summaries with relationship checks
+        summaries = [self._orm_to_summary(exp) for exp in experiments]
         meta = PaginationMeta.from_params(total, params)
 
         return PaginatedResponse(data=summaries, pagination=meta)
@@ -164,31 +170,32 @@ class ExperimentRepository(BaseRepository):
         Returns:
             Updated experiment if found, None otherwise.
         """
-        existing = self.get_by_id(experiment_id)
-        if existing is None:
+        return self._update_scorecard_orm(experiment_id, scorecard_data)
+
+    def _update_scorecard_orm(
+        self, experiment_id: str, scorecard_data: ScorecardData
+    ) -> Experiment | None:
+        """Update scorecard using ORM."""
+        stmt = select(ExperimentORM).where(
+            ExperimentORM.id == experiment_id,
+            ExperimentORM.status == "active")
+        orm_exp = self.session.execute(stmt).scalar_one_or_none()
+        if orm_exp is None:
             return None
 
-        updated_at = datetime.now(timezone.utc)
-        scorecard_json = json.dumps(scorecard_data.model_dump())
+        orm_exp.scorecard_data = scorecard_data.model_dump()
+        orm_exp.updated_at = datetime.now(timezone.utc).isoformat()
+        self._flush()
+        self._commit()
 
-        self.db.execute(
-            """
-            UPDATE experiments
-            SET scorecard_data = ?, updated_at = ?
-            WHERE id = ?
-            """,
-            (scorecard_json, updated_at.isoformat(), experiment_id),
-        )
-
-        return self.get_by_id(experiment_id)
+        return self._orm_to_experiment(orm_exp)
 
     def update(
         self,
         experiment_id: str,
         name: str | None = None,
         hypothesis: str | None = None,
-        description: str | None = None,
-    ) -> Experiment | None:
+        description: str | None = None) -> Experiment | None:
         """
         Update an experiment.
 
@@ -201,37 +208,34 @@ class ExperimentRepository(BaseRepository):
         Returns:
             Updated experiment if found, None otherwise.
         """
-        # First check if experiment exists
-        existing = self.get_by_id(experiment_id)
-        if existing is None:
+        return self._update_orm(experiment_id, name, hypothesis, description)
+
+    def _update_orm(
+        self,
+        experiment_id: str,
+        name: str | None = None,
+        hypothesis: str | None = None,
+        description: str | None = None) -> Experiment | None:
+        """Update experiment using ORM."""
+        stmt = select(ExperimentORM).where(
+            ExperimentORM.id == experiment_id,
+            ExperimentORM.status == "active")
+        orm_exp = self.session.execute(stmt).scalar_one_or_none()
+        if orm_exp is None:
             return None
 
-        # Build update fields
-        updates = []
-        params = []
-
         if name is not None:
-            updates.append("name = ?")
-            params.append(name)
+            orm_exp.name = name
         if hypothesis is not None:
-            updates.append("hypothesis = ?")
-            params.append(hypothesis)
+            orm_exp.hypothesis = hypothesis
         if description is not None:
-            updates.append("description = ?")
-            params.append(description)
+            orm_exp.description = description
 
-        # Always set updated_at
-        updated_at = datetime.now(timezone.utc)
-        updates.append("updated_at = ?")
-        params.append(updated_at.isoformat())
+        orm_exp.updated_at = datetime.now(timezone.utc).isoformat()
+        self._flush()
+        self._commit()
 
-        params.append(experiment_id)
-
-        if updates:
-            query = f"UPDATE experiments SET {', '.join(updates)} WHERE id = ?"
-            self.db.execute(query, tuple(params))
-
-        return self.get_by_id(experiment_id)
+        return self._orm_to_experiment(orm_exp)
 
     def delete(self, experiment_id: str) -> bool:
         """
@@ -245,16 +249,21 @@ class ExperimentRepository(BaseRepository):
         Returns:
             True if deleted, False if not found.
         """
-        # Check if exists and is active
-        existing = self.get_by_id(experiment_id)
-        if existing is None:
+        return self._delete_orm(experiment_id)
+
+    def _delete_orm(self, experiment_id: str) -> bool:
+        """Soft delete experiment using ORM."""
+        stmt = select(ExperimentORM).where(
+            ExperimentORM.id == experiment_id,
+            ExperimentORM.status == "active")
+        orm_exp = self.session.execute(stmt).scalar_one_or_none()
+        if orm_exp is None:
             return False
 
-        updated_at = datetime.now(timezone.utc)
-        self.db.execute(
-            "UPDATE experiments SET status = 'deleted', updated_at = ? WHERE id = ?",
-            (updated_at.isoformat(), experiment_id),
-        )
+        orm_exp.status = "deleted"
+        orm_exp.updated_at = datetime.now(timezone.utc).isoformat()
+        self._flush()
+        self._commit()
         return True
 
     def _row_to_experiment(self, row) -> Experiment:
@@ -281,8 +290,7 @@ class ExperimentRepository(BaseRepository):
             description=row["description"],
             scorecard_data=scorecard_data,
             created_at=created_at,
-            updated_at=updated_at,
-        )
+            updated_at=updated_at)
 
     def _row_to_summary(self, row) -> ExperimentSummary:
         """Convert a database row to ExperimentSummary."""
@@ -311,8 +319,63 @@ class ExperimentRepository(BaseRepository):
             ),
             interview_count=row["interview_count"] if "interview_count" in row.keys() else 0,
             created_at=created_at,
-            updated_at=updated_at,
-        )
+            updated_at=updated_at)
+
+    # =========================================================================
+    # ORM conversion methods
+    # =========================================================================
+
+    def _orm_to_experiment(self, orm_exp: ExperimentORM) -> Experiment:
+        """Convert ORM model to Experiment entity."""
+        created_at = orm_exp.created_at
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
+
+        updated_at = orm_exp.updated_at
+        if isinstance(updated_at, str):
+            updated_at = datetime.fromisoformat(updated_at)
+
+        # Parse scorecard data if present
+        scorecard_data = None
+        if orm_exp.scorecard_data:
+            scorecard_data = ScorecardData(**orm_exp.scorecard_data)
+
+        return Experiment(
+            id=orm_exp.id,
+            name=orm_exp.name,
+            hypothesis=orm_exp.hypothesis,
+            description=orm_exp.description,
+            scorecard_data=scorecard_data,
+            created_at=created_at,
+            updated_at=updated_at)
+
+    def _orm_to_summary(self, orm_exp: ExperimentORM) -> ExperimentSummary:
+        """Convert ORM model to ExperimentSummary."""
+        created_at = orm_exp.created_at
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
+
+        updated_at = orm_exp.updated_at
+        if isinstance(updated_at, str):
+            updated_at = datetime.fromisoformat(updated_at)
+
+        # Check relationships via lazy loading
+        has_scorecard = orm_exp.scorecard_data is not None
+        has_analysis = orm_exp.analysis_run is not None
+        has_interview_guide = orm_exp.interview_guide is not None
+        interview_count = len(orm_exp.research_executions) if orm_exp.research_executions else 0
+
+        return ExperimentSummary(
+            id=orm_exp.id,
+            name=orm_exp.name,
+            hypothesis=orm_exp.hypothesis,
+            description=orm_exp.description,
+            has_scorecard=has_scorecard,
+            has_analysis=has_analysis,
+            has_interview_guide=has_interview_guide,
+            interview_count=interview_count,
+            created_at=created_at,
+            updated_at=updated_at)
 
 
 if __name__ == "__main__":
@@ -323,9 +386,7 @@ if __name__ == "__main__":
     from synth_lab.domain.entities.experiment import (
         Experiment,
         ScorecardData,
-        ScorecardDimension,
-    )
-    from synth_lab.infrastructure.database import init_database
+        ScorecardDimension)
 
     # Validation
     all_validation_failures = []
@@ -336,7 +397,7 @@ if __name__ == "__main__":
         test_db_path = Path(tmpdir) / "test.db"
         init_database(test_db_path)
         db = DatabaseManager(test_db_path)
-        repo = ExperimentRepository(db)
+        repo = ExperimentRepository()
 
         # Test 1: Create experiment
         total_tests += 1
@@ -400,13 +461,11 @@ if __name__ == "__main__":
                 complexity=ScorecardDimension(score=0.3),
                 initial_effort=ScorecardDimension(score=0.4),
                 perceived_risk=ScorecardDimension(score=0.2),
-                time_to_value=ScorecardDimension(score=0.6),
-            )
+                time_to_value=ScorecardDimension(score=0.6))
             exp2 = Experiment(
                 name="With Scorecard",
                 hypothesis="Has scorecard",
-                scorecard_data=scorecard,
-            )
+                scorecard_data=scorecard)
             result = repo.create(exp2)
             retrieved = repo.get_by_id(exp2.id)
             if retrieved is None:
@@ -427,8 +486,7 @@ if __name__ == "__main__":
                 complexity=ScorecardDimension(score=0.5),
                 initial_effort=ScorecardDimension(score=0.5),
                 perceived_risk=ScorecardDimension(score=0.5),
-                time_to_value=ScorecardDimension(score=0.5),
-            )
+                time_to_value=ScorecardDimension(score=0.5))
             updated = repo.update_scorecard(exp.id, new_scorecard)
             if updated is None:
                 all_validation_failures.append("Update scorecard returned None")

@@ -166,8 +166,7 @@ if __name__ == "__main__":
 
         msg = BrokerMessage(
             event_type="message",
-            data={"synth_id": "synth_001", "text": "Hello"},
-        )
+            data={"synth_id": "synth_001", "text": "Hello"})
         await broker.publish("test_exec_3", msg)
 
         received = await asyncio.wait_for(queue.get(), timeout=1.0)

@@ -31,8 +31,7 @@ class SynthService:
         self,
         params: PaginationParams | None = None,
         fields: list[str] | None = None,
-        synth_group_id: str | None = None,
-    ) -> PaginatedResponse[SynthSummary]:
+        synth_group_id: str | None = None) -> PaginatedResponse[SynthSummary]:
         """
         List synths with pagination.
 
@@ -66,8 +65,7 @@ class SynthService:
         self,
         where_clause: str | None = None,
         query: str | None = None,
-        params: PaginationParams | None = None,
-    ) -> PaginatedResponse[SynthSummary]:
+        params: PaginationParams | None = None) -> PaginatedResponse[SynthSummary]:
         """
         Search synths with WHERE clause or full query.
 
@@ -120,7 +118,6 @@ if __name__ == "__main__":
     import sys
 
     from synth_lab.infrastructure.config import DB_PATH
-    from synth_lab.infrastructure.database import DatabaseManager
     from synth_lab.services.errors import AvatarNotFoundError, SynthNotFoundError
 
     # Validation with real database
@@ -132,7 +129,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     db = DatabaseManager(DB_PATH)
-    repo = SynthRepository(db)
+    repo = SynthRepository()
     service = SynthService(repo)
 
     # Test 1: List synths
@@ -204,7 +201,6 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Get avatar failed: {e}")
 
-    db.close()
 
     # Final validation result
     if all_validation_failures:

@@ -14,8 +14,7 @@ from pydantic import BaseModel, Field
 from synth_lab.domain.entities.simulation_attributes import (
     SimulationAttributes,
     SimulationLatentTraits,
-    SimulationObservables,
-)
+    SimulationObservables)
 
 
 class ObservableWithLabelResponse(BaseModel):
@@ -30,8 +29,7 @@ class ObservableWithLabelResponse(BaseModel):
     value: float = Field(..., ge=0.0, le=1.0, description="Observable value [0, 1]")
     label: str = Field(
         ...,
-        description="Textual label: Muito Baixo, Baixo, Médio, Alto, Muito Alto",
-    )
+        description="Textual label: Muito Baixo, Baixo, Médio, Alto, Muito Alto")
     description: str = Field(..., description="Brief description of what this observable means")
 
     model_config = {
@@ -68,8 +66,7 @@ class SimulationObservablesResponse(BaseModel):
             similar_tool_experience=obs.similar_tool_experience,
             motor_ability=obs.motor_ability,
             time_availability=obs.time_availability,
-            domain_expertise=obs.domain_expertise,
-        )
+            domain_expertise=obs.domain_expertise)
 
 
 class SimulationLatentTraitsResponse(BaseModel):
@@ -91,8 +88,7 @@ class SimulationLatentTraitsResponse(BaseModel):
             capability_mean=traits.capability_mean,
             trust_mean=traits.trust_mean,
             friction_tolerance_mean=traits.friction_tolerance_mean,
-            exploration_prob=traits.exploration_prob,
-        )
+            exploration_prob=traits.exploration_prob)
 
 
 class SimulationAttributesRaw(BaseModel):
@@ -110,8 +106,7 @@ class SimulationAttributesRaw(BaseModel):
         """Create response from entity."""
         return cls(
             observables=SimulationObservablesResponse.from_entity(attrs.observables),
-            latent_traits=SimulationLatentTraitsResponse.from_entity(attrs.latent_traits),
-        )
+            latent_traits=SimulationLatentTraitsResponse.from_entity(attrs.latent_traits))
 
 
 class SimulationAttributesFormatted(BaseModel):
@@ -127,12 +122,10 @@ class SimulationAttributesFormatted(BaseModel):
 
     observables_formatted: list[ObservableWithLabelResponse] = Field(
         ...,
-        description="Array of observables with labels for PM display",
-    )
+        description="Array of observables with labels for PM display")
     raw: SimulationAttributesRaw = Field(
         ...,
-        description="Raw values for backward compatibility",
-    )
+        description="Raw values for backward compatibility")
 
 
 if __name__ == "__main__":
@@ -149,8 +142,7 @@ if __name__ == "__main__":
             name="Literacia Digital",
             value=0.42,
             label="Médio",
-            description="Familiaridade com tecnologia",
-        )
+            description="Familiaridade com tecnologia")
         if obs_label.key != "digital_literacy":
             all_validation_failures.append(f"key mismatch: {obs_label.key}")
     except Exception as e:
@@ -164,8 +156,7 @@ if __name__ == "__main__":
             similar_tool_experience=0.42,
             motor_ability=0.85,
             time_availability=0.28,
-            domain_expertise=0.55,
-        )
+            domain_expertise=0.55)
         response = SimulationObservablesResponse.from_entity(entity)
         if response.digital_literacy != 0.35:
             all_validation_failures.append(
@@ -181,8 +172,7 @@ if __name__ == "__main__":
             capability_mean=0.42,
             trust_mean=0.39,
             friction_tolerance_mean=0.35,
-            exploration_prob=0.38,
-        )
+            exploration_prob=0.38)
         response = SimulationLatentTraitsResponse.from_entity(entity)
         if response.capability_mean != 0.42:
             all_validation_failures.append(f"capability_mean mismatch: {response.capability_mean}")
@@ -198,15 +188,12 @@ if __name__ == "__main__":
                 similar_tool_experience=0.42,
                 motor_ability=0.85,
                 time_availability=0.28,
-                domain_expertise=0.55,
-            ),
+                domain_expertise=0.55),
             latent_traits=SimulationLatentTraits(
                 capability_mean=0.42,
                 trust_mean=0.39,
                 friction_tolerance_mean=0.35,
-                exploration_prob=0.38,
-            ),
-        )
+                exploration_prob=0.38))
         response = SimulationAttributesRaw.from_entity(entity)
         if response.observables.digital_literacy != 0.35:
             all_validation_failures.append("SimulationAttributesRaw conversion failed")
@@ -223,8 +210,7 @@ if __name__ == "__main__":
                     name="Literacia Digital",
                     value=0.35,
                     label="Baixo",
-                    description="Familiaridade com tecnologia",
-                ),
+                    description="Familiaridade com tecnologia"),
             ],
             raw=SimulationAttributesRaw(
                 observables=SimulationObservablesResponse(
@@ -232,16 +218,12 @@ if __name__ == "__main__":
                     similar_tool_experience=0.42,
                     motor_ability=0.85,
                     time_availability=0.28,
-                    domain_expertise=0.55,
-                ),
+                    domain_expertise=0.55),
                 latent_traits=SimulationLatentTraitsResponse(
                     capability_mean=0.42,
                     trust_mean=0.39,
                     friction_tolerance_mean=0.35,
-                    exploration_prob=0.38,
-                ),
-            ),
-        )
+                    exploration_prob=0.38)))
         if len(formatted.observables_formatted) != 1:
             all_validation_failures.append(
                 f"observables_formatted length wrong: {len(formatted.observables_formatted)}"
@@ -260,8 +242,7 @@ if __name__ == "__main__":
                 name="Test",
                 value=1.5,  # Invalid - > 1.0
                 label="Alto",
-                description="Test",
-            )
+                description="Test")
             all_validation_failures.append("Should reject value > 1.0")
         except ValidationError:
             pass  # Expected

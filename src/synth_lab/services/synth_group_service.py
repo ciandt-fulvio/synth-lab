@@ -15,8 +15,7 @@ from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.repositories.synth_group_repository import (
     SynthGroupDetail,
     SynthGroupRepository,
-    SynthGroupSummary,
-)
+    SynthGroupSummary)
 
 
 class SynthGroupService:
@@ -35,8 +34,7 @@ class SynthGroupService:
         self,
         name: str,
         description: str | None = None,
-        group_id: str | None = None,
-    ) -> SynthGroupSummary:
+        group_id: str | None = None) -> SynthGroupSummary:
         """
         Create a new synth group.
 
@@ -60,13 +58,11 @@ class SynthGroupService:
             group = SynthGroup(
                 id=group_id,
                 name=name.strip(),
-                description=description.strip() if description else None,
-            )
+                description=description.strip() if description else None)
         else:
             group = SynthGroup(
                 name=name.strip(),
-                description=description.strip() if description else None,
-            )
+                description=description.strip() if description else None)
 
         self.repository.create(group)
 
@@ -77,8 +73,7 @@ class SynthGroupService:
         self,
         name: str,
         description: str | None = None,
-        group_id: str | None = None,
-    ) -> SynthGroupSummary:
+        group_id: str | None = None) -> SynthGroupSummary:
         """
         Get existing group by name or create new one.
 
@@ -102,8 +97,7 @@ class SynthGroupService:
         return self.create_group(
             name=name,
             description=description,
-            group_id=group_id,
-        )
+            group_id=group_id)
 
     def create_auto_group(self, prefix: str = "Geração") -> SynthGroupSummary:
         """
@@ -209,7 +203,6 @@ if __name__ == "__main__":
     import tempfile
     from pathlib import Path
 
-    from synth_lab.infrastructure.database import DatabaseManager, init_database
 
     # Validation
     all_validation_failures = []
@@ -220,7 +213,7 @@ if __name__ == "__main__":
         test_db_path = Path(tmpdir) / "test.db"
         init_database(test_db_path)
         db = DatabaseManager(test_db_path)
-        repo = SynthGroupRepository(db)
+        repo = SynthGroupRepository()
         service = SynthGroupService(repo)
 
         # Test 1: Create group

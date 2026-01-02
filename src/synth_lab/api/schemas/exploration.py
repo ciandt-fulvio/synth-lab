@@ -21,48 +21,41 @@ class ExplorationCreate(BaseModel):
     experiment_id: str = Field(
         pattern=r"^exp_[a-f0-9]{8}$",
         description="ID of the source experiment.",
-        json_schema_extra={"example": "exp_12345678"},
-    )
+        json_schema_extra={"example": "exp_12345678"})
 
     goal_value: float = Field(
         ge=0.0,
         le=1.0,
         description="Target success_rate to achieve (0-1).",
-        json_schema_extra={"example": 0.40},
-    )
+        json_schema_extra={"example": 0.40})
 
     beam_width: int = Field(
         default=3,
         ge=1,
         le=10,
-        description="Number of scenarios to keep per iteration.",
-    )
+        description="Number of scenarios to keep per iteration.")
 
     max_depth: int = Field(
         default=5,
         ge=1,
         le=10,
-        description="Maximum depth of exploration tree.",
-    )
+        description="Maximum depth of exploration tree.")
 
     max_llm_calls: int = Field(
         default=20,
         ge=1,
         le=100,
-        description="Maximum number of LLM calls.",
-    )
+        description="Maximum number of LLM calls.")
 
     n_executions: int = Field(
         default=100,
         ge=10,
         le=1000,
-        description="Monte Carlo executions per simulation.",
-    )
+        description="Monte Carlo executions per simulation.")
 
     seed: int | None = Field(
         default=None,
-        description="Random seed for reproducibility.",
-    )
+        description="Random seed for reproducibility.")
 
 
 # ========== Response Schemas ==========
@@ -240,24 +233,21 @@ def exploration_to_response(exploration) -> ExplorationResponse:
         goal=GoalResponse(
             metric=exploration.goal.metric,
             operator=exploration.goal.operator,
-            value=exploration.goal.value,
-        ),
+            value=exploration.goal.value),
         config=ConfigResponse(
             beam_width=exploration.config.beam_width,
             max_depth=exploration.config.max_depth,
             max_llm_calls=exploration.config.max_llm_calls,
             n_executions=exploration.config.n_executions,
             sigma=exploration.config.sigma,
-            seed=exploration.config.seed,
-        ),
+            seed=exploration.config.seed),
         status=exploration.status.value,
         current_depth=exploration.current_depth,
         total_nodes=exploration.total_nodes,
         total_llm_calls=exploration.total_llm_calls,
         best_success_rate=exploration.best_success_rate,
         started_at=exploration.started_at,
-        completed_at=exploration.completed_at,
-    )
+        completed_at=exploration.completed_at)
 
 
 def node_to_response(node) -> ScenarioNodeResponse:
@@ -267,8 +257,7 @@ def node_to_response(node) -> ScenarioNodeResponse:
         simulation_results = SimulationResultsResponse(
             success_rate=node.simulation_results.success_rate,
             fail_rate=node.simulation_results.fail_rate,
-            did_not_try_rate=node.simulation_results.did_not_try_rate,
-        )
+            did_not_try_rate=node.simulation_results.did_not_try_rate)
 
     return ScenarioNodeResponse(
         id=node.id,
@@ -283,10 +272,8 @@ def node_to_response(node) -> ScenarioNodeResponse:
             complexity=node.scorecard_params.complexity,
             initial_effort=node.scorecard_params.initial_effort,
             perceived_risk=node.scorecard_params.perceived_risk,
-            time_to_value=node.scorecard_params.time_to_value,
-        ),
+            time_to_value=node.scorecard_params.time_to_value),
         simulation_results=simulation_results,
         execution_time_seconds=node.execution_time_seconds,
         node_status=node.node_status.value,
-        created_at=node.created_at,
-    )
+        created_at=node.created_at)

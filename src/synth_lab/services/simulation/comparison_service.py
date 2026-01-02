@@ -13,10 +13,9 @@ References:
 
 Sample usage:
     from synth_lab.services.simulation.comparison_service import ComparisonService
-    from synth_lab.infrastructure.database import DatabaseManager
 
     db = DatabaseManager("output/synthlab.db")
-    service = ComparisonService(db)
+    service = ComparisonService()
     result = service.compare_simulations(["sim_1", "sim_2", "sim_3"])
 
 Expected output:
@@ -27,7 +26,6 @@ from typing import Any
 
 from loguru import logger
 
-from synth_lab.infrastructure.database import DatabaseManager
 from synth_lab.repositories.region_repository import RegionRepository
 from synth_lab.repositories.simulation_repository import SimulationRepository
 
@@ -35,16 +33,19 @@ from synth_lab.repositories.simulation_repository import SimulationRepository
 class ComparisonService:
     """Service for comparing simulation results across scenarios."""
 
-    def __init__(self, db: DatabaseManager) -> None:
+    def __init__(
+        self,
+        simulation_repo: SimulationRepository | None = None,
+        region_repo: RegionRepository | None = None) -> None:
         """
         Initialize comparison service.
 
         Args:
-            db: Database manager instance
+            simulation_repo: Simulation repository. Defaults to new instance.
+            region_repo: Region repository. Defaults to new instance.
         """
-        self.db = db
-        self.simulation_repo = SimulationRepository(db)
-        self.region_repo = RegionRepository(db)
+        self.simulation_repo = simulation_repo or SimulationRepository()
+        self.region_repo = region_repo or RegionRepository()
         self.logger = logger.bind(component="comparison_service")
 
     def compare_simulations(self, simulation_ids: list[str]) -> dict[str, Any]:
@@ -107,8 +108,7 @@ class ComparisonService:
     def _find_most_affected_regions(
         self,
         simulations: list[dict[str, Any]],
-        regions_by_simulation: dict[str, list[Any]],
-    ) -> list[dict[str, Any]]:
+        regions_by_simulation: dict[str, list[Any]]) -> list[dict[str, Any]]:
         """
         Identify regions with highest variance across scenarios.
 
@@ -191,7 +191,7 @@ if __name__ == "__main__":
 
     # Initialize database and service
     db = DatabaseManager("output/synthlab.db")
-    service = ComparisonService(db)
+    service = ComparisonService()
 
     # Get existing simulations from database
     sql = """

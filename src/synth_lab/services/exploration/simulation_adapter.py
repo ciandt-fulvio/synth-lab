@@ -25,8 +25,7 @@ from loguru import logger
 from synth_lab.domain.entities.feature_scorecard import (
     FeatureScorecard,
     ScorecardDimension,
-    ScorecardIdentification,
-)
+    ScorecardIdentification)
 from synth_lab.domain.entities.scenario import Scenario
 from synth_lab.domain.entities.scenario_node import ScenarioNode, ScorecardParams, SimulationResults
 from synth_lab.services.simulation.engine import MonteCarloEngine
@@ -44,8 +43,7 @@ class SimulationAdapter:
         self,
         seed: int | None = None,
         sigma: float = 0.1,
-        n_executions: int = 100,
-    ):
+        n_executions: int = 100):
         """
         Initialize the simulation adapter.
 
@@ -63,8 +61,7 @@ class SimulationAdapter:
     def run_simulation(
         self,
         scorecard_params: ScorecardParams,
-        synths: list[dict[str, Any]],
-    ) -> tuple[SimulationResults, float]:
+        synths: list[dict[str, Any]]) -> tuple[SimulationResults, float]:
         """
         Run Monte Carlo simulation for a set of scorecard parameters.
 
@@ -86,8 +83,7 @@ class SimulationAdapter:
             motivation_modifier=0.0,
             trust_modifier=0.0,
             friction_modifier=0.0,
-            task_criticality=0.5,
-        )
+            task_criticality=0.5)
 
         # Run simulation
         self.logger.debug(
@@ -97,15 +93,13 @@ class SimulationAdapter:
             synths=synths,
             scorecard=scorecard,
             scenario=scenario,
-            n_executions=self.n_executions,
-        )
+            n_executions=self.n_executions)
 
         # Convert results to exploration SimulationResults
         sim_results = SimulationResults(
             success_rate=engine_results.aggregated_success,
             fail_rate=engine_results.aggregated_failed,
-            did_not_try_rate=engine_results.aggregated_did_not_try,
-        )
+            did_not_try_rate=engine_results.aggregated_did_not_try)
 
         self.logger.debug(
             f"Simulation complete: success_rate={sim_results.success_rate:.2%}, "
@@ -117,8 +111,7 @@ class SimulationAdapter:
     def run_simulation_for_node(
         self,
         node: ScenarioNode,
-        synths: list[dict[str, Any]],
-    ) -> tuple[SimulationResults, float]:
+        synths: list[dict[str, Any]]) -> tuple[SimulationResults, float]:
         """
         Run Monte Carlo simulation for a scenario node.
 
@@ -145,28 +138,22 @@ class SimulationAdapter:
             # Use default factory for valid ID
             identification=ScorecardIdentification(
                 feature_name="Exploration Simulation",
-                use_scenario="Scenario exploration",
-            ),
+                use_scenario="Scenario exploration"),
             description_text="Generated for exploration simulation",
             complexity=ScorecardDimension(
                 score=params.complexity,
-                rules_applied=[],
-            ),
+                rules_applied=[]),
             initial_effort=ScorecardDimension(
                 score=params.initial_effort,
-                rules_applied=[],
-            ),
+                rules_applied=[]),
             perceived_risk=ScorecardDimension(
                 score=params.perceived_risk,
-                rules_applied=[],
-            ),
+                rules_applied=[]),
             time_to_value=ScorecardDimension(
                 score=params.time_to_value,
-                rules_applied=[],
-            ),
+                rules_applied=[]),
             justification="",
-            impact_hypotheses=[],
-        )
+            impact_hypotheses=[])
 
 
 if __name__ == "__main__":
@@ -194,8 +181,7 @@ if __name__ == "__main__":
             complexity=0.45,
             initial_effort=0.30,
             perceived_risk=0.25,
-            time_to_value=0.40,
-        )
+            time_to_value=0.40)
         scorecard = adapter._params_to_scorecard(params)
         if abs(scorecard.complexity.score - 0.45) > 0.001:
             all_validation_failures.append(
@@ -216,8 +202,7 @@ if __name__ == "__main__":
             complexity=0.30,
             initial_effort=0.20,
             perceived_risk=0.15,
-            time_to_value=0.25,
-        )
+            time_to_value=0.25)
         # Create minimal synth data
         synths = [
             {
@@ -261,9 +246,7 @@ if __name__ == "__main__":
                 complexity=0.40,
                 initial_effort=0.30,
                 perceived_risk=0.20,
-                time_to_value=0.35,
-            ),
-        )
+                time_to_value=0.35))
         synths = [
             {
                 "id": "synth_test",
@@ -292,8 +275,7 @@ if __name__ == "__main__":
             complexity=0.50,
             initial_effort=0.50,
             perceived_risk=0.50,
-            time_to_value=0.50,
-        )
+            time_to_value=0.50)
         synths = [
             {
                 "id": "synth_repro",

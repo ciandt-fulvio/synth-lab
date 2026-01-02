@@ -15,8 +15,7 @@ from synth_lab.domain.entities.exploration import (
     Exploration,
     ExplorationConfig,
     ExplorationStatus,
-    Goal,
-)
+    Goal)
 from synth_lab.domain.entities.scenario_node import NodeStatus
 from synth_lab.repositories.analysis_repository import AnalysisRepository
 from synth_lab.repositories.experiment_repository import ExperimentRepository
@@ -67,8 +66,7 @@ class ExplorationService:
         exploration_repo: ExplorationRepository | None = None,
         experiment_repo: ExperimentRepository | None = None,
         analysis_repo: AnalysisRepository | None = None,
-        tree_manager: TreeManager | None = None,
-    ):
+        tree_manager: TreeManager | None = None):
         """
         Initialize the exploration service.
 
@@ -92,8 +90,7 @@ class ExplorationService:
         max_depth: int = 5,
         max_llm_calls: int = 20,
         n_executions: int = 100,
-        seed: int | None = None,
-    ) -> Exploration:
+        seed: int | None = None) -> Exploration:
         """
         Start a new exploration from an experiment.
 
@@ -140,15 +137,13 @@ class ExplorationService:
             max_depth=max_depth,
             max_llm_calls=max_llm_calls,
             n_executions=n_executions,
-            seed=seed,
-        )
+            seed=seed)
 
         exploration = Exploration(
             experiment_id=experiment_id,
             baseline_analysis_id=analysis.id,
             goal=goal,
-            config=config,
-        )
+            config=config)
 
         # Persist exploration
         self.exploration_repo.create_exploration(exploration)
@@ -271,8 +266,7 @@ class ExplorationService:
     async def run_exploration(
         self,
         exploration_id: str,
-        synths: list[dict],
-    ) -> Exploration:
+        synths: list[dict]) -> Exploration:
         """
         Run the exploration loop until termination.
 
@@ -301,8 +295,7 @@ class ExplorationService:
             tree_manager=self.tree_manager,
             seed=exploration.config.seed,
             n_executions=exploration.config.n_executions,
-            sigma=exploration.config.sigma,
-        )
+            sigma=exploration.config.sigma)
 
         self.logger.info(f"Starting exploration loop for {exploration_id}")
 
@@ -360,9 +353,7 @@ if __name__ == "__main__":
     from synth_lab.domain.entities.experiment import (
         Experiment,
         ScorecardData,
-        ScorecardDimension,
-    )
-    from synth_lab.infrastructure.database import DatabaseManager, init_database
+        ScorecardDimension)
 
     all_validation_failures = []
     total_tests = 0
@@ -372,17 +363,16 @@ if __name__ == "__main__":
         init_database(test_db_path)
         db = DatabaseManager(test_db_path)
 
-        exploration_repo = ExplorationRepository(db)
-        experiment_repo = ExperimentRepository(db)
-        analysis_repo = AnalysisRepository(db)
+        exploration_repo = ExplorationRepository()
+        experiment_repo = ExperimentRepository()
+        analysis_repo = AnalysisRepository()
         tree_manager = TreeManager(exploration_repo)
 
         service = ExplorationService(
             exploration_repo=exploration_repo,
             experiment_repo=experiment_repo,
             analysis_repo=analysis_repo,
-            tree_manager=tree_manager,
-        )
+            tree_manager=tree_manager)
 
         # Create test experiment with scorecard
         experiment = Experiment(
@@ -394,9 +384,7 @@ if __name__ == "__main__":
                 complexity=ScorecardDimension(score=0.45),
                 initial_effort=ScorecardDimension(score=0.30),
                 perceived_risk=ScorecardDimension(score=0.25),
-                time_to_value=ScorecardDimension(score=0.40),
-            ),
-        )
+                time_to_value=ScorecardDimension(score=0.40)))
         experiment_repo.create(experiment)
 
         # Test 1: Start exploration without analysis fails
@@ -416,9 +404,7 @@ if __name__ == "__main__":
             aggregated_outcomes=AggregatedOutcomes(
                 success_rate=0.25,
                 failed_rate=0.45,
-                did_not_try_rate=0.30,
-            ),
-        )
+                did_not_try_rate=0.30))
         analysis_repo.create(analysis)
 
         # Test 2: Start exploration successfully
@@ -428,8 +414,7 @@ if __name__ == "__main__":
                 experiment.id,
                 goal_value=0.40,
                 beam_width=3,
-                max_depth=5,
-            )
+                max_depth=5)
             if exploration.status != ExplorationStatus.RUNNING:
                 all_validation_failures.append(f"Status should be RUNNING: {exploration.status}")
             if exploration.total_nodes != 1:
@@ -505,9 +490,7 @@ if __name__ == "__main__":
                     complexity=ScorecardDimension(score=0.20),
                     initial_effort=ScorecardDimension(score=0.20),
                     perceived_risk=ScorecardDimension(score=0.10),
-                    time_to_value=ScorecardDimension(score=0.20),
-                ),
-            )
+                    time_to_value=ScorecardDimension(score=0.20)))
             experiment_repo.create(exp_high)
 
             ana_high = AnalysisRun(
@@ -516,9 +499,7 @@ if __name__ == "__main__":
                 aggregated_outcomes=AggregatedOutcomes(
                     success_rate=0.50,  # Already > 0.40
                     failed_rate=0.30,
-                    did_not_try_rate=0.20,
-                ),
-            )
+                    did_not_try_rate=0.20))
             analysis_repo.create(ana_high)
 
             expl_high = service.start_exploration(exp_high.id, goal_value=0.40)

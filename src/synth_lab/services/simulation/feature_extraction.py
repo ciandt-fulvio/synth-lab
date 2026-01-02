@@ -27,8 +27,7 @@ DEFAULT_FEATURES = [
 def extract_features(
     outcomes: list[SynthOutcome],
     features: list[str] | None = None,
-    include_outcomes: bool = False,
-) -> tuple[np.ndarray, list[str], list[str]]:
+    include_outcomes: bool = False) -> tuple[np.ndarray, list[str], list[str]]:
     """
     Extract feature matrix from synth outcomes.
 
@@ -183,8 +182,7 @@ if __name__ == "__main__":
     from synth_lab.domain.entities.simulation_attributes import (
         SimulationAttributes,
         SimulationLatentTraits,
-        SimulationObservables,
-    )
+        SimulationObservables)
 
     all_validation_failures: list[str] = []
     total_tests = 0
@@ -203,16 +201,12 @@ if __name__ == "__main__":
                     similar_tool_experience=0.4,
                     motor_ability=0.8,
                     time_availability=0.3,
-                    domain_expertise=0.6,
-                ),
+                    domain_expertise=0.6),
                 latent_traits=SimulationLatentTraits(
                     capability_mean=0.55,
                     trust_mean=0.45,
                     friction_tolerance_mean=0.40,
-                    exploration_prob=0.35,
-                ),
-            ),
-        )
+                    exploration_prob=0.35)))
 
     outcomes = [
         create_outcome("synth_001", 0.40, 0.35),

@@ -23,8 +23,7 @@ from synth_lab.models.research import (
     SummaryGenerateRequest,
     SummaryGenerateResponse,
     TranscriptDetail,
-    TranscriptSummary,
-)
+    TranscriptSummary)
 from synth_lab.services.errors import ExecutionNotFoundError
 from synth_lab.services.message_broker import MessageBroker
 from synth_lab.services.research_service import ResearchService
@@ -42,8 +41,7 @@ async def list_executions(
     limit: int = Query(default=50, ge=1, le=200, description="Maximum items per page"),
     offset: int = Query(default=0, ge=0, description="Number of items to skip"),
     sort_by: str | None = Query(default="started_at", description="Field to sort by"),
-    sort_order: str = Query(default="desc", pattern="^(asc|desc)$", description="Sort order"),
-) -> PaginatedResponse[ResearchExecutionSummary]:
+    sort_order: str = Query(default="desc", pattern="^(asc|desc)$", description="Sort order")) -> PaginatedResponse[ResearchExecutionSummary]:
     """
     List all research executions with pagination.
 
@@ -54,8 +52,7 @@ async def list_executions(
         limit=limit,
         offset=offset,
         sort_by=sort_by,
-        sort_order=sort_order,
-    )
+        sort_order=sort_order)
     return service.list_executions(params)
 
 
@@ -74,8 +71,7 @@ async def get_execution(exec_id: str) -> ResearchExecutionDetail:
 async def get_transcripts(
     exec_id: str,
     limit: int = Query(default=50, ge=1, le=200, description="Maximum items per page"),
-    offset: int = Query(default=0, ge=0, description="Number of items to skip"),
-) -> PaginatedResponse[TranscriptSummary]:
+    offset: int = Query(default=0, ge=0, description="Number of items to skip")) -> PaginatedResponse[TranscriptSummary]:
     """
     Get transcripts for a research execution.
 
@@ -114,8 +110,7 @@ async def _generate_summary_background(exec_id: str, model: str) -> None:
 async def generate_summary(
     exec_id: str,
     background_tasks: BackgroundTasks,
-    request: SummaryGenerateRequest | None = None,
-) -> SummaryGenerateResponse:
+    request: SummaryGenerateRequest | None = None) -> SummaryGenerateResponse:
     """
     Start generation of a summary for a completed research execution.
 
@@ -168,8 +163,7 @@ async def generate_summary(
     pending = doc_service.start_generation(
         experiment_id=execution.experiment_id,
         document_type=DocumentType.SUMMARY,
-        model=request.model,
-    )
+        model=request.model)
 
     if pending is None:
         # Already generating
@@ -177,22 +171,19 @@ async def generate_summary(
             exec_id=exec_id,
             status="generating",
             message="Summary is already being generated",
-            generated_at=datetime.now(),
-        )
+            generated_at=datetime.now())
 
     # Start background generation
     background_tasks.add_task(
         _generate_summary_background,
         exec_id,
-        request.model,
-    )
+        request.model)
 
     return SummaryGenerateResponse(
         exec_id=exec_id,
         status="generating",
         message="Started summary generation",
-        generated_at=datetime.now(),
-    )
+        generated_at=datetime.now())
 
 
 @router.post("/execute", response_model=ResearchExecuteResponse)
@@ -259,8 +250,7 @@ async def stream_research_messages(exec_id: str) -> StreamingResponse:
                         speaker=msg.speaker,  # type: ignore
                         text=msg.text,
                         timestamp=transcript.timestamp,
-                        is_replay=True,
-                    )
+                        is_replay=True)
                     yield event.to_sse()
         except Exception:
             pass  # No transcripts yet, continue to live streaming
@@ -311,8 +301,7 @@ async def stream_research_messages(exec_id: str) -> StreamingResponse:
                     text=message.data.get("text"),
                     sentiment=message.data.get("sentiment"),
                     timestamp=message.timestamp,
-                    is_replay=False,
-                )
+                    is_replay=False)
                 yield event.to_sse()
         finally:
             broker.unsubscribe(exec_id, queue)
@@ -324,8 +313,7 @@ async def stream_research_messages(exec_id: str) -> StreamingResponse:
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
-        },
-    )
+        })
 
 
 if __name__ == "__main__":

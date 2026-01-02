@@ -29,30 +29,26 @@ class AnalysisConfigSchema(BaseModel):
         ge=10,
         le=10000,
         description="Number of synths to simulate.",
-        examples=[500],
-    )
+        examples=[500])
 
     n_executions: int = Field(
         default=100,
         ge=10,
         le=1000,
         description="Number of Monte Carlo executions per synth.",
-        examples=[100],
-    )
+        examples=[100])
 
     sigma: float = Field(
         default=0.05,
         ge=0.0,
         le=0.5,
         description="Standard deviation for noise.",
-        examples=[0.05],
-    )
+        examples=[0.05])
 
     seed: int | None = Field(
         default=None,
         description="Random seed for reproducibility.",
-        examples=[42],
-    )
+        examples=[42])
 
 
 # =============================================================================
@@ -67,22 +63,19 @@ class AggregatedOutcomesSchema(BaseModel):
         ge=0.0,
         le=1.0,
         description="Proportion that did not try.",
-        examples=[0.2],
-    )
+        examples=[0.2])
 
     failed_rate: float = Field(
         ge=0.0,
         le=1.0,
         description="Proportion that tried but failed.",
-        examples=[0.3],
-    )
+        examples=[0.3])
 
     success_rate: float = Field(
         ge=0.0,
         le=1.0,
         description="Proportion that succeeded.",
-        examples=[0.5],
-    )
+        examples=[0.5])
 
 
 # =============================================================================
@@ -95,48 +88,39 @@ class AnalysisResponse(BaseModel):
 
     id: str = Field(
         description="Analysis run ID.",
-        examples=["ana_a1b2c3d4"],
-    )
+        examples=["ana_a1b2c3d4"])
 
     experiment_id: str = Field(
         description="Parent experiment ID.",
-        examples=["exp_a1b2c3d4"],
-    )
+        examples=["exp_a1b2c3d4"])
 
     config: AnalysisConfigSchema = Field(
-        description="Analysis configuration.",
-    )
+        description="Analysis configuration.")
 
     status: Literal["pending", "running", "completed", "failed"] = Field(
         description="Current status.",
-        examples=["completed"],
-    )
+        examples=["completed"])
 
     started_at: datetime = Field(
-        description="When analysis started.",
-    )
+        description="When analysis started.")
 
     completed_at: datetime | None = Field(
         default=None,
-        description="When analysis completed.",
-    )
+        description="When analysis completed.")
 
     total_synths: int = Field(
         default=0,
         ge=0,
-        description="Number of synths in analysis.",
-    )
+        description="Number of synths in analysis.")
 
     aggregated_outcomes: AggregatedOutcomesSchema | None = Field(
         default=None,
-        description="Aggregated results.",
-    )
+        description="Aggregated results.")
 
     execution_time_seconds: float | None = Field(
         default=None,
         ge=0.0,
-        description="How long analysis took in seconds.",
-    )
+        description="How long analysis took in seconds.")
 
 
 # =============================================================================
@@ -157,8 +141,7 @@ class SynthAttributesSchema(BaseModel):
                 "time_availability": 0.30,
                 "domain_expertise": 0.55,
             }
-        ],
-    )
+        ])
 
     latent_traits: dict[str, float] = Field(
         description="Latent traits (0-1 values).",
@@ -169,8 +152,7 @@ class SynthAttributesSchema(BaseModel):
                 "friction_tolerance_mean": 0.35,
                 "exploration_prob": 0.40,
             }
-        ],
-    )
+        ])
 
 
 class SynthOutcomeResponse(BaseModel):
@@ -178,47 +160,39 @@ class SynthOutcomeResponse(BaseModel):
 
     id: str = Field(
         description="Outcome ID.",
-        examples=["out_a1b2c3d4"],
-    )
+        examples=["out_a1b2c3d4"])
 
     synth_id: str = Field(
         description="Synth ID.",
-        examples=["synth_001"],
-    )
+        examples=["synth_001"])
 
     did_not_try_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Proportion that did not try.",
-    )
+        description="Proportion that did not try.")
 
     failed_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Proportion that tried but failed.",
-    )
+        description="Proportion that tried but failed.")
 
     success_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Proportion that succeeded.",
-    )
+        description="Proportion that succeeded.")
 
     synth_attributes: SynthAttributesSchema = Field(
-        description="Synth's simulation attributes.",
-    )
+        description="Synth's simulation attributes.")
 
 
 class PaginatedSynthOutcomes(BaseModel):
     """Paginated list of synth outcomes."""
 
     data: list[SynthOutcomeResponse] = Field(
-        description="List of synth outcomes.",
-    )
+        description="List of synth outcomes.")
 
     pagination: PaginationMeta = Field(
-        description="Pagination metadata.",
-    )
+        description="Pagination metadata.")
 
 
 # =============================================================================
@@ -230,37 +204,31 @@ class RegionSchema(BaseModel):
     """Schema for a high-risk region cluster."""
 
     cluster_id: int = Field(
-        description="Cluster identifier.",
-    )
+        description="Cluster identifier.")
 
     synth_count: int = Field(
         ge=0,
-        description="Number of synths in cluster.",
-    )
+        description="Number of synths in cluster.")
 
     avg_failure_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Average failure rate in cluster.",
-    )
+        description="Average failure rate in cluster.")
 
     common_attributes: dict[str, Any] = Field(
         default_factory=dict,
-        description="Common attributes of synths in cluster.",
-    )
+        description="Common attributes of synths in cluster.")
 
     representative_synths: list[str] = Field(
         default_factory=list,
-        description="IDs of representative synths.",
-    )
+        description="IDs of representative synths.")
 
 
 class RegionAnalysisResponse(BaseModel):
     """Response for region analysis."""
 
     regions: list[RegionSchema] = Field(
-        description="Identified high-risk regions.",
-    )
+        description="Identified high-risk regions.")
 
 
 # =============================================================================
@@ -272,35 +240,29 @@ class InterviewSuggestionSchema(BaseModel):
     """Schema for a single interview suggestion."""
 
     synth_id: str = Field(
-        description="Synth ID to interview.",
-    )
+        description="Synth ID to interview.")
 
     synth_name: str = Field(
-        description="Synth display name.",
-    )
+        description="Synth display name.")
 
     reason: str = Field(
-        description="Reason for suggestion.",
-    )
+        description="Reason for suggestion.")
 
     failure_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Synth's failure rate.",
-    )
+        description="Synth's failure rate.")
 
     cluster_id: int | None = Field(
         default=None,
-        description="Cluster the synth belongs to.",
-    )
+        description="Cluster the synth belongs to.")
 
 
 class InterviewSuggestionsResponse(BaseModel):
     """Response for interview suggestions."""
 
     suggestions: list[InterviewSuggestionSchema] = Field(
-        description="List of suggested synths to interview.",
-    )
+        description="List of suggested synths to interview.")
 
 
 # =============================================================================
@@ -312,34 +274,28 @@ class InsightSchema(BaseModel):
     """Schema for a single insight."""
 
     type: Literal["risk", "opportunity", "recommendation"] = Field(
-        description="Type of insight.",
-    )
+        description="Type of insight.")
 
     title: str = Field(
-        description="Short title of the insight.",
-    )
+        description="Short title of the insight.")
 
     description: str = Field(
-        description="Detailed description.",
-    )
+        description="Detailed description.")
 
     confidence: float = Field(
         ge=0.0,
         le=1.0,
-        description="Confidence level (0-1).",
-    )
+        description="Confidence level (0-1).")
 
 
 class InsightsResponse(BaseModel):
     """Response for insights."""
 
     insights: list[InsightSchema] = Field(
-        description="List of insights from analysis.",
-    )
+        description="List of insights from analysis.")
 
     generated_at: datetime = Field(
-        description="When insights were generated.",
-    )
+        description="When insights were generated.")
 
 
 # =============================================================================
@@ -393,8 +349,7 @@ if __name__ == "__main__":
         outcomes = AggregatedOutcomesSchema(
             did_not_try_rate=0.2,
             failed_rate=0.3,
-            success_rate=0.5,
-        )
+            success_rate=0.5)
         if outcomes.success_rate != 0.5:
             all_validation_failures.append(f"success_rate mismatch: {outcomes.success_rate}")
     except Exception as e:
@@ -407,8 +362,7 @@ if __name__ == "__main__":
         outcomes = AggregatedOutcomesSchema(
             did_not_try_rate=0.2,
             failed_rate=0.3,
-            success_rate=0.5,
-        )
+            success_rate=0.5)
         response = AnalysisResponse(
             id="ana_12345678",
             experiment_id="exp_12345678",
@@ -418,8 +372,7 @@ if __name__ == "__main__":
             completed_at=datetime.now(timezone.utc),
             total_synths=500,
             aggregated_outcomes=outcomes,
-            execution_time_seconds=12.5,
-        )
+            execution_time_seconds=12.5)
         if response.status != "completed":
             all_validation_failures.append(f"status mismatch: {response.status}")
         if response.total_synths != 500:
@@ -438,16 +391,14 @@ if __name__ == "__main__":
             latent_traits={
                 "capability_mean": 0.58,
                 "trust_mean": 0.42,
-            },
-        )
+            })
         outcome = SynthOutcomeResponse(
             id="out_12345678",
             synth_id="synth_001",
             did_not_try_rate=0.2,
             failed_rate=0.3,
             success_rate=0.5,
-            synth_attributes=attrs,
-        )
+            synth_attributes=attrs)
         if outcome.success_rate != 0.5:
             all_validation_failures.append(f"outcome success_rate mismatch: {outcome.success_rate}")
     except Exception as e:
@@ -461,8 +412,7 @@ if __name__ == "__main__":
             synth_count=50,
             avg_failure_rate=0.65,
             common_attributes={"low_digital_literacy": True},
-            representative_synths=["synth_001", "synth_015"],
-        )
+            representative_synths=["synth_001", "synth_015"])
         if region.avg_failure_rate != 0.65:
             all_validation_failures.append(f"avg_failure_rate mismatch: {region.avg_failure_rate}")
     except Exception as e:
@@ -476,8 +426,7 @@ if __name__ == "__main__":
             synth_name="Maria Silva",
             reason="High failure rate in low-trust cluster",
             failure_rate=0.75,
-            cluster_id=2,
-        )
+            cluster_id=2)
         if suggestion.failure_rate != 0.75:
             all_validation_failures.append("suggestion failure_rate mismatch")
     except Exception as e:
@@ -490,8 +439,7 @@ if __name__ == "__main__":
             type="risk",
             title="Low Trust Users",
             description="Users with low trust scores show 70% failure rate",
-            confidence=0.85,
-        )
+            confidence=0.85)
         if insight.type != "risk":
             all_validation_failures.append(f"insight type mismatch: {insight.type}")
     except Exception as e:
@@ -504,12 +452,10 @@ if __name__ == "__main__":
             type="opportunity",
             title="High-Trust Users",
             description="Users with high trust show 90% success",
-            confidence=0.90,
-        )
+            confidence=0.90)
         response = InsightsResponse(
             insights=[insight],
-            generated_at=datetime.now(timezone.utc),
-        )
+            generated_at=datetime.now(timezone.utc))
         if len(response.insights) != 1:
             all_validation_failures.append(f"insights count mismatch: {len(response.insights)}")
     except Exception as e:

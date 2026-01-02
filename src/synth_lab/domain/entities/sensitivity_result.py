@@ -74,6 +74,14 @@ class SensitivityResult(BaseModel):
         description="Name of the most sensitive dimension.",
     )
 
+    # Baseline success rate
+    baseline_success: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Baseline success rate from the original simulation.",
+    )
+
 
 if __name__ == "__main__":
     import sys

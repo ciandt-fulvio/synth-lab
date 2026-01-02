@@ -16,8 +16,7 @@ system_prompt = format_chat_instructions(
     synth_name="Maria",
     synth_age=35,
     synth_profile="Nome: Maria\nIdade: 35 anos\n...",
-    interview_history="Entrevistador: Como foi...\nVocê: Foi ótimo...",
-)
+    interview_history="Entrevistador: Como foi...\nVocê: Foi ótimo...")
 ```
 """
 
@@ -83,8 +82,7 @@ def format_chat_instructions(
     synth_descricao: str,
     synth_interesses: str,
     synth_cognitive_contract: str,
-    interview_history: str,
-) -> str:
+    interview_history: str) -> str:
     """
     Format chat system prompt with synth context.
 
@@ -118,5 +116,4 @@ def format_chat_instructions(
         synth_descricao=synth_descricao,
         synth_interesses=synth_interesses,
         synth_cognitive_contract=synth_cognitive_contract,
-        interview_history=interview_history,
-    )
+        interview_history=interview_history)

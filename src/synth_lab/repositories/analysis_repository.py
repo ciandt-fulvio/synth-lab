@@ -7,25 +7,33 @@ Handles 1:1 relationship with experiments.
 References:
     - Spec: specs/019-experiment-refactor/spec.md
     - Data model: specs/019-experiment-refactor/data-model.md
+    - ORM models: synth_lab.models.orm.analysis
 """
 
 import json
 from datetime import datetime, timezone
 
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
 from synth_lab.domain.entities.analysis_run import (
     AggregatedOutcomes,
     AnalysisConfig,
-    AnalysisRun,
-)
-from synth_lab.infrastructure.database import DatabaseManager
+    AnalysisRun)
+from synth_lab.models.orm.analysis import AnalysisRun as AnalysisRunORM
 from synth_lab.repositories.base import BaseRepository
 
 
 class AnalysisRepository(BaseRepository):
-    """Repository for analysis run data access."""
+    """Repository for analysis run data access.
 
-    def __init__(self, db: DatabaseManager | None = None):
-        super().__init__(db)
+    Uses SQLAlchemy ORM for database operations.
+    """
+
+    def __init__(
+        self,
+session: Session | None = None):
+        super().__init__( session=session)
 
     def create(self, analysis: AnalysisRun) -> AnalysisRun:
         """
@@ -40,34 +48,26 @@ class AnalysisRepository(BaseRepository):
         Raises:
             sqlite3.IntegrityError: If experiment already has an analysis.
         """
-        config_json = json.dumps(analysis.config.model_dump())
-        outcomes_json = None
+        config_dict = analysis.config.model_dump()
+        outcomes_dict = None
         if analysis.aggregated_outcomes:
-            outcomes_json = json.dumps(analysis.aggregated_outcomes.model_dump())
+            outcomes_dict = analysis.aggregated_outcomes.model_dump()
 
-        self.db.execute(
-            """
-            INSERT INTO analysis_runs (
-                id, experiment_id, scenario_id, config, status, started_at, completed_at,
-                total_synths, aggregated_outcomes, execution_time_seconds
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                analysis.id,
-                analysis.experiment_id,
-                analysis.scenario_id,
-                config_json,
-                analysis.status,
-                analysis.started_at.isoformat(),
-                analysis.completed_at.isoformat() if analysis.completed_at else None,
-                analysis.total_synths,
-                outcomes_json,
-                analysis.execution_time_seconds,
-            ),
-        )
+        orm_analysis = AnalysisRunORM(
+            id=analysis.id,
+            experiment_id=analysis.experiment_id,
+            scenario_id=analysis.scenario_id,
+            config=config_dict,
+            status=analysis.status,
+            started_at=analysis.started_at.isoformat(),
+            completed_at=analysis.completed_at.isoformat() if analysis.completed_at else None,
+            total_synths=analysis.total_synths,
+            aggregated_outcomes=outcomes_dict,
+            execution_time_seconds=analysis.execution_time_seconds)
+        self._add(orm_analysis)
+        self._flush()
+        self._commit()
         return analysis
-
     def get_by_id(self, analysis_id: str) -> AnalysisRun | None:
         """
         Get an analysis by ID.
@@ -78,14 +78,10 @@ class AnalysisRepository(BaseRepository):
         Returns:
             AnalysisRun if found, None otherwise.
         """
-        row = self.db.fetchone(
-            "SELECT * FROM analysis_runs WHERE id = ?",
-            (analysis_id,),
-        )
-        if row is None:
+        orm_analysis = self.session.get(AnalysisRunORM, analysis_id)
+        if orm_analysis is None:
             return None
-        return self._row_to_analysis(row)
-
+        return self._orm_to_analysis(orm_analysis)
     def get_by_experiment_id(self, experiment_id: str) -> AnalysisRun | None:
         """
         Get analysis by experiment ID.
@@ -98,14 +94,11 @@ class AnalysisRepository(BaseRepository):
         Returns:
             AnalysisRun if found, None otherwise.
         """
-        row = self.db.fetchone(
-            "SELECT * FROM analysis_runs WHERE experiment_id = ?",
-            (experiment_id,),
-        )
-        if row is None:
+        stmt = select(AnalysisRunORM).where(AnalysisRunORM.experiment_id == experiment_id)
+        orm_analysis = self.session.execute(stmt).scalar_one_or_none()
+        if orm_analysis is None:
             return None
-        return self._row_to_analysis(row)
-
+        return self._orm_to_analysis(orm_analysis)
     def update_status(
         self,
         analysis_id: str,
@@ -113,8 +106,7 @@ class AnalysisRepository(BaseRepository):
         completed_at: datetime | None = None,
         total_synths: int | None = None,
         aggregated_outcomes: AggregatedOutcomes | None = None,
-        execution_time_seconds: float | None = None,
-    ) -> AnalysisRun | None:
+        execution_time_seconds: float | None = None) -> AnalysisRun | None:
         """
         Update analysis status and results.
 
@@ -129,35 +121,27 @@ class AnalysisRepository(BaseRepository):
         Returns:
             Updated analysis if found, None otherwise.
         """
-        existing = self.get_by_id(analysis_id)
-        if existing is None:
+        orm_analysis = self.session.get(AnalysisRunORM, analysis_id)
+        if orm_analysis is None:
             return None
 
-        updates = ["status = ?"]
-        params = [status]
+        orm_analysis.status = status
 
         if completed_at is not None:
-            updates.append("completed_at = ?")
-            params.append(completed_at.isoformat())
+            orm_analysis.completed_at = completed_at.isoformat()
 
         if total_synths is not None:
-            updates.append("total_synths = ?")
-            params.append(total_synths)
+            orm_analysis.total_synths = total_synths
 
         if aggregated_outcomes is not None:
-            updates.append("aggregated_outcomes = ?")
-            params.append(json.dumps(aggregated_outcomes.model_dump()))
+            orm_analysis.aggregated_outcomes = aggregated_outcomes.model_dump()
 
         if execution_time_seconds is not None:
-            updates.append("execution_time_seconds = ?")
-            params.append(execution_time_seconds)
+            orm_analysis.execution_time_seconds = execution_time_seconds
 
-        params.append(analysis_id)
-        query = f"UPDATE analysis_runs SET {', '.join(updates)} WHERE id = ?"
-        self.db.execute(query, tuple(params))
-
-        return self.get_by_id(analysis_id)
-
+        self._flush()
+        self._commit()
+        return self._orm_to_analysis(orm_analysis)
     def delete(self, analysis_id: str) -> bool:
         """
         Delete an analysis run.
@@ -168,13 +152,13 @@ class AnalysisRepository(BaseRepository):
         Returns:
             True if deleted, False if not found.
         """
-        existing = self.get_by_id(analysis_id)
-        if existing is None:
+        orm_analysis = self.session.get(AnalysisRunORM, analysis_id)
+        if orm_analysis is None:
             return False
-
-        self.db.execute("DELETE FROM analysis_runs WHERE id = ?", (analysis_id,))
+        self.session.delete(orm_analysis)
+        self._flush()
+        self._commit()
         return True
-
     def delete_by_experiment_id(self, experiment_id: str) -> bool:
         """
         Delete analysis by experiment ID.
@@ -185,16 +169,14 @@ class AnalysisRepository(BaseRepository):
         Returns:
             True if deleted, False if not found.
         """
-        existing = self.get_by_experiment_id(experiment_id)
-        if existing is None:
+        stmt = select(AnalysisRunORM).where(AnalysisRunORM.experiment_id == experiment_id)
+        orm_analysis = self.session.execute(stmt).scalar_one_or_none()
+        if orm_analysis is None:
             return False
-
-        self.db.execute(
-            "DELETE FROM analysis_runs WHERE experiment_id = ?",
-            (experiment_id,),
-        )
+        self.session.delete(orm_analysis)
+        self._flush()
+        self._commit()
         return True
-
     def get_latest_completed_analysis_id(self, experiment_id: str) -> str | None:
         """
         Get the ID of the latest completed analysis for an experiment.
@@ -205,13 +187,15 @@ class AnalysisRepository(BaseRepository):
         Returns:
             Analysis ID if found, None otherwise.
         """
-        row = self.db.fetchone(
-            "SELECT id FROM analysis_runs WHERE experiment_id = ? AND status = 'completed' "
-            "ORDER BY started_at DESC LIMIT 1",
-            (experiment_id,),
+        stmt = (
+            select(AnalysisRunORM.id)
+            .where(AnalysisRunORM.experiment_id == experiment_id)
+            .where(AnalysisRunORM.status == "completed")
+            .order_by(AnalysisRunORM.started_at.desc())
+            .limit(1)
         )
-        return row["id"] if row else None
-
+        result = self.session.execute(stmt).scalar_one_or_none()
+        return result
     def _row_to_analysis(self, row) -> AnalysisRun:
         """Convert a database row to AnalysisRun entity."""
         started_at = row["started_at"]
@@ -243,8 +227,37 @@ class AnalysisRepository(BaseRepository):
             completed_at=completed_at,
             total_synths=row["total_synths"],
             aggregated_outcomes=aggregated_outcomes,
-            execution_time_seconds=row["execution_time_seconds"],
-        )
+            execution_time_seconds=row["execution_time_seconds"])
+
+    def _orm_to_analysis(self, orm_analysis: AnalysisRunORM) -> AnalysisRun:
+        """Convert ORM model to AnalysisRun entity."""
+        started_at = orm_analysis.started_at
+        if isinstance(started_at, str):
+            started_at = datetime.fromisoformat(started_at)
+
+        completed_at = orm_analysis.completed_at
+        if completed_at and isinstance(completed_at, str):
+            completed_at = datetime.fromisoformat(completed_at)
+
+        # ORM stores config as dict
+        config_dict = orm_analysis.config or {}
+        config = AnalysisConfig(**config_dict)
+
+        aggregated_outcomes = None
+        if orm_analysis.aggregated_outcomes:
+            aggregated_outcomes = AggregatedOutcomes(**orm_analysis.aggregated_outcomes)
+
+        return AnalysisRun(
+            id=orm_analysis.id,
+            experiment_id=orm_analysis.experiment_id,
+            scenario_id=orm_analysis.scenario_id or "baseline",
+            config=config,
+            status=orm_analysis.status,
+            started_at=started_at,
+            completed_at=completed_at,
+            total_synths=orm_analysis.total_synths,
+            aggregated_outcomes=aggregated_outcomes,
+            execution_time_seconds=orm_analysis.execution_time_seconds)
 
 
 if __name__ == "__main__":
@@ -254,7 +267,6 @@ if __name__ == "__main__":
 
     from synth_lab.domain.entities.analysis_run import AnalysisRun
     from synth_lab.domain.entities.experiment import Experiment
-    from synth_lab.infrastructure.database import init_database
     from synth_lab.repositories.experiment_repository import ExperimentRepository
 
     # Validation
@@ -266,8 +278,8 @@ if __name__ == "__main__":
         test_db_path = Path(tmpdir) / "test.db"
         init_database(test_db_path)
         db = DatabaseManager(test_db_path)
-        exp_repo = ExperimentRepository(db)
-        ana_repo = AnalysisRepository(db)
+        exp_repo = ExperimentRepository()
+        ana_repo = AnalysisRepository()
 
         # Create parent experiment
         exp = Experiment(name="Test", hypothesis="Test hypothesis")
@@ -278,8 +290,7 @@ if __name__ == "__main__":
         try:
             analysis = AnalysisRun(
                 experiment_id=exp.id,
-                config=AnalysisConfig(n_synths=100, n_executions=50),
-            )
+                config=AnalysisConfig(n_synths=100, n_executions=50))
             result = ana_repo.create(analysis)
             if result.id != analysis.id:
                 all_validation_failures.append(f"ID mismatch: {result.id}")
@@ -314,16 +325,14 @@ if __name__ == "__main__":
             outcomes = AggregatedOutcomes(
                 did_not_try_rate=0.2,
                 failed_rate=0.3,
-                success_rate=0.5,
-            )
+                success_rate=0.5)
             updated = ana_repo.update_status(
                 analysis.id,
                 status="completed",
                 completed_at=datetime.now(timezone.utc),
                 total_synths=100,
                 aggregated_outcomes=outcomes,
-                execution_time_seconds=5.5,
-            )
+                execution_time_seconds=5.5)
             if updated is None:
                 all_validation_failures.append("Update returned None")
             elif updated.status != "completed":

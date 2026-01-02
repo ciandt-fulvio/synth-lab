@@ -41,8 +41,7 @@ def generate_prfaq_from_content(
     summary_content: str,
     batch_id: str,
     model: str = "gpt-4.1-mini",
-    api_key: Optional[str] = None,
-) -> str:
+    api_key: Optional[str] = None) -> str:
     """Generate PR-FAQ Markdown from research summary content using OpenAI API.
 
     Args:
@@ -66,8 +65,7 @@ def generate_prfaq_from_content(
             "batch_id": batch_id,
             "model": model,
             "summary_length": len(summary_content),
-        },
-    ) as span:
+        }) as span:
         # Initialize OpenAI client
         client = OpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"))
 
@@ -178,8 +176,7 @@ if __name__ == "__main__":
             prfaq_md = generate_prfaq_from_content(
                 summary_content=sample_content,
                 batch_id="test_validation",
-                model="gpt-4.1-mini",
-            )
+                model="gpt-4.1-mini")
             logger.info(f"Generated PR-FAQ Markdown ({len(prfaq_md)} characters)")
 
             # Verify structure

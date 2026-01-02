@@ -1,0 +1,66 @@
+# Docker Compose for PostgreSQL testing environment
+#
+# Usage:
+#   docker-compose -f docker/docker-compose.postgres.yml up -d
+#   docker-compose -f docker/docker-compose.postgres.yml down -v
+#
+# Environment variables (can be overridden):
+#   POSTGRES_USER: PostgreSQL user (default: synthlab)
+#   POSTGRES_PASSWORD: PostgreSQL password (default: synthlab_dev)
+#   POSTGRES_DB: Database name (default: synthlab)
+#   POSTGRES_PORT: Host port for PostgreSQL (default: 5432)
+
+services:
+  postgres:
+    image: postgres:14-alpine
+    container_name: synthlab-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-synthlab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-synthlab_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-synthlab}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Optional: mount init scripts
+      # - ./init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-synthlab} -d ${POSTGRES_DB:-synthlab}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - synthlab-network
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: synthlab-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@synthlab.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - synthlab-network
+    profiles:
+      - admin
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  synthlab-network:
+    driver: bridge

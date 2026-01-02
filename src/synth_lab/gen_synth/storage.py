@@ -1,87 +1,61 @@
 """
 Storage module for SynthLab.
 
-This module handles saving synth data directly to SQLite database.
+This module handles saving synth data to the database using SQLAlchemy.
+Supports both SQLite (development) and PostgreSQL (production) via DATABASE_URL.
 
 Functions:
 - save_synth(): Save synth to database
 - load_synths(): Load all synths from database
 - get_synth_by_id(): Load a single synth by ID
+- count_synths(): Count total synths
+- update_avatar_path(): Update avatar path for a synth
 
 Sample Input:
     synth_dict = {"id": "abc123", "nome": "Maria Silva", ...}
-    save_synth(synth_dict)  # Saves to SQLite database
+    save_synth(synth_dict)  # Saves to database
 
 Expected Output:
     Synth saved to database with ID: abc123
 
 Third-party packages:
 - loguru: https://loguru.readthedocs.io/
+- sqlalchemy: https://docs.sqlalchemy.org/en/20/
 """
 
-import json
-import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from loguru import logger
 
-import synth_lab.infrastructure.config as config_module
 from synth_lab.domain.entities.synth_group import (
     DEFAULT_SYNTH_GROUP_DESCRIPTION,
     DEFAULT_SYNTH_GROUP_ID,
     DEFAULT_SYNTH_GROUP_NAME,
 )
+from synth_lab.infrastructure.database_v2 import get_session
+from synth_lab.models.orm.synth import Synth, SynthGroup
 
 
-def _get_db_path():
-    """Get current DB_PATH from config (allows runtime override for tests)."""
-    return config_module.DB_PATH
-
-
-def _ensure_database() -> None:
-    """Ensure database exists and has schema."""
-    db_path = _get_db_path()
-    if not db_path.exists():
-        from synth_lab.infrastructure.database import init_database
-
-        init_database(db_path)
-
-
-def _get_connection() -> sqlite3.Connection:
-    """Get database connection with proper settings."""
-    _ensure_database()
-
-    conn = sqlite3.connect(str(_get_db_path()))
-    conn.execute("PRAGMA foreign_keys=ON")
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-def _ensure_default_group(conn: sqlite3.Connection) -> None:
+def _ensure_default_group() -> None:
     """
     Ensure the default synth group exists in the database.
 
     This is called before saving synths to ensure the default group
     is available for foreign key references.
-
-    Args:
-        conn: Active database connection.
     """
-    from datetime import datetime, timezone
-
-    conn.execute(
-        """
-        INSERT OR IGNORE INTO synth_groups (id, name, description, created_at)
-        VALUES (?, ?, ?, ?)
-        """,
-        (
-            DEFAULT_SYNTH_GROUP_ID,
-            DEFAULT_SYNTH_GROUP_NAME,
-            DEFAULT_SYNTH_GROUP_DESCRIPTION,
-            datetime.now(timezone.utc).isoformat(),
-        ),
-    )
+    with get_session() as session:
+        existing = session.query(SynthGroup).filter_by(id=DEFAULT_SYNTH_GROUP_ID).first()
+        if not existing:
+            group = SynthGroup(
+                id=DEFAULT_SYNTH_GROUP_ID,
+                name=DEFAULT_SYNTH_GROUP_NAME,
+                description=DEFAULT_SYNTH_GROUP_DESCRIPTION,
+                created_at=datetime.now(timezone.utc).isoformat(),
+            )
+            session.add(group)
+            logger.debug(f"Created default synth group: {DEFAULT_SYNTH_GROUP_ID}")
 
 
 def save_synth(
@@ -91,7 +65,7 @@ def save_synth(
     synth_group_id: str | None = None,
 ) -> None:
     """
-    Save synth to SQLite database.
+    Save synth to database.
 
     Args:
         synth_dict: Dictionary containing complete synth data (must have "id" key)
@@ -104,6 +78,9 @@ def save_synth(
         KeyError: If synth_dict doesn't contain "id" key
     """
     synth_id = synth_dict["id"]
+
+    # Ensure default group exists
+    _ensure_default_group()
 
     # Use synth_group_id from parameter, synth_dict, or DEFAULT
     group_id = synth_group_id or synth_dict.get("synth_group_id") or DEFAULT_SYNTH_GROUP_ID
@@ -119,33 +96,35 @@ def save_synth(
     if synth_dict.get("observables"):
         data["observables"] = synth_dict["observables"]
 
-    conn = _get_connection()
-    try:
-        # Ensure default group exists before inserting synth with foreign key
-        _ensure_default_group(conn)
+    with get_session() as session:
+        # Check if synth exists (for update)
+        existing = session.query(Synth).filter_by(id=synth_id).first()
 
-        conn.execute(
-            """
-            INSERT OR REPLACE INTO synths
-            (id, synth_group_id, nome, descricao, link_photo, avatar_path, created_at, version, data)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                synth_id,
-                group_id,
-                synth_dict.get("nome", ""),
-                synth_dict.get("descricao"),
-                synth_dict.get("link_photo"),
-                synth_dict.get("avatar_path"),
-                synth_dict.get("created_at"),
-                synth_dict.get("version", "2.0.0"),
-                json.dumps(data) if data else None,
-            ),
-        )
-        conn.commit()
-        logger.debug(f"Synth saved: {synth_id} (group: {group_id})")
-    finally:
-        conn.close()
+        if existing:
+            # Update existing synth
+            existing.synth_group_id = group_id
+            existing.nome = synth_dict.get("nome", "")
+            existing.descricao = synth_dict.get("descricao")
+            existing.link_photo = synth_dict.get("link_photo")
+            existing.avatar_path = synth_dict.get("avatar_path")
+            existing.version = synth_dict.get("version", "2.0.0")
+            existing.data = data if data else None
+            logger.debug(f"Synth updated: {synth_id} (group: {group_id})")
+        else:
+            # Create new synth
+            synth = Synth(
+                id=synth_id,
+                synth_group_id=group_id,
+                nome=synth_dict.get("nome", ""),
+                descricao=synth_dict.get("descricao"),
+                link_photo=synth_dict.get("link_photo"),
+                avatar_path=synth_dict.get("avatar_path"),
+                created_at=synth_dict.get("created_at") or datetime.now(timezone.utc).isoformat(),
+                version=synth_dict.get("version", "2.0.0"),
+                data=data if data else None,
+            )
+            session.add(synth)
+            logger.debug(f"Synth saved: {synth_id} (group: {group_id})")
 
 
 def load_synths() -> list[dict[str, Any]]:
@@ -155,19 +134,9 @@ def load_synths() -> list[dict[str, Any]]:
     Returns:
         List of synth dictionaries
     """
-    conn = _get_connection()
-    try:
-        cursor = conn.execute("SELECT * FROM synths ORDER BY created_at DESC")
-        rows = cursor.fetchall()
-
-        synths = []
-        for row in rows:
-            synth = _row_to_dict(row)
-            synths.append(synth)
-
-        return synths
-    finally:
-        conn.close()
+    with get_session() as session:
+        synths = session.query(Synth).order_by(Synth.created_at.desc()).all()
+        return [_synth_to_dict(s) for s in synths]
 
 
 def get_synth_by_id(synth_id: str) -> dict[str, Any] | None:
@@ -180,45 +149,38 @@ def get_synth_by_id(synth_id: str) -> dict[str, Any] | None:
     Returns:
         Synth dictionary or None if not found
     """
-    conn = _get_connection()
-    try:
-        cursor = conn.execute("SELECT * FROM synths WHERE id = ?", (synth_id,))
-        row = cursor.fetchone()
-
-        if row is None:
+    with get_session() as session:
+        synth = session.query(Synth).filter_by(id=synth_id).first()
+        if synth is None:
             return None
-
-        return _row_to_dict(row)
-    finally:
-        conn.close()
+        return _synth_to_dict(synth)
 
 
-def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
-    """Convert a database row to a synth dictionary."""
-    synth = {
-        "id": row["id"],
-        "synth_group_id": row["synth_group_id"] if "synth_group_id" in row.keys() else None,
-        "nome": row["nome"],
-        "descricao": row["descricao"],
-        "link_photo": row["link_photo"],
-        "avatar_path": row["avatar_path"],
-        "created_at": row["created_at"],
-        "version": row["version"],
+def _synth_to_dict(synth: Synth) -> dict[str, Any]:
+    """Convert a Synth ORM object to a dictionary."""
+    result = {
+        "id": synth.id,
+        "synth_group_id": synth.synth_group_id,
+        "nome": synth.nome,
+        "descricao": synth.descricao,
+        "link_photo": synth.link_photo,
+        "avatar_path": synth.avatar_path,
+        "created_at": synth.created_at,
+        "version": synth.version,
     }
 
-    # Parse data JSON field (contains all nested data)
-    if row["data"]:
-        data = json.loads(row["data"])
-        if data.get("demografia"):
-            synth["demografia"] = data["demografia"]
-        if data.get("psicografia"):
-            synth["psicografia"] = data["psicografia"]
-        if data.get("deficiencias"):
-            synth["deficiencias"] = data["deficiencias"]
-        if data.get("observables"):
-            synth["observables"] = data["observables"]
+    # Expand data JSON field
+    if synth.data:
+        if synth.data.get("demografia"):
+            result["demografia"] = synth.data["demografia"]
+        if synth.data.get("psicografia"):
+            result["psicografia"] = synth.data["psicografia"]
+        if synth.data.get("deficiencias"):
+            result["deficiencias"] = synth.data["deficiencias"]
+        if synth.data.get("observables"):
+            result["observables"] = synth.data["observables"]
 
-    return synth
+    return result
 
 
 def count_synths() -> int:
@@ -228,12 +190,8 @@ def count_synths() -> int:
     Returns:
         Number of synths
     """
-    conn = _get_connection()
-    try:
-        cursor = conn.execute("SELECT COUNT(*) FROM synths")
-        return cursor.fetchone()[0]
-    finally:
-        conn.close()
+    with get_session() as session:
+        return session.query(Synth).count()
 
 
 def update_avatar_path(synth_id: str, avatar_path: str | Path) -> bool:
@@ -253,22 +211,16 @@ def update_avatar_path(synth_id: str, avatar_path: str | Path) -> bool:
         >>> update_avatar_path("abc123", "output/synths/avatar/abc123.png")
         True
     """
-    conn = _get_connection()
-    try:
-        cursor = conn.execute(
-            "UPDATE synths SET avatar_path = ? WHERE id = ?",
-            (str(avatar_path), synth_id),
-        )
-        conn.commit()
+    with get_session() as session:
+        synth = session.query(Synth).filter_by(id=synth_id).first()
 
-        if cursor.rowcount > 0:
-            logger.debug(f"Avatar path updated for synth {synth_id}: {avatar_path}")
-            return True
-        else:
+        if synth is None:
             logger.warning(f"Synth not found for avatar_path update: {synth_id}")
             return False
-    finally:
-        conn.close()
+
+        synth.avatar_path = str(avatar_path)
+        logger.debug(f"Avatar path updated for synth {synth_id}: {avatar_path}")
+        return True
 
 
 # Deprecated functions kept for backward compatibility
@@ -305,6 +257,7 @@ def save_consolidated_synths(synths: list[dict[str, Any]], output_dir: Path | No
 
 if __name__ == "__main__":
     """Validation block - test with real data."""
+    import os
     import sys
     import tempfile
 
@@ -313,19 +266,18 @@ if __name__ == "__main__":
     all_validation_failures = []
     total_tests = 0
 
-    # Use a temporary database for testing
+    # Use a temporary SQLite database for testing
     with tempfile.TemporaryDirectory() as tmpdir:
-        # Override DB_PATH for testing
         test_db_path = Path(tmpdir) / "test.db"
+        os.environ["DATABASE_URL"] = f"sqlite:///{test_db_path}"
 
-        # Patch the config module DB_PATH temporarily
-        original_db_path = config_module.DB_PATH
-        config_module.DB_PATH = test_db_path
+        # Reset the database_v2 module state
+        import synth_lab.infrastructure.database_v2 as db_mod
+        db_mod.dispose_engine()
 
-        # Initialize test database
-        from synth_lab.infrastructure.database import init_database
-
-        init_database(test_db_path)
+        # Initialize database
+        from synth_lab.infrastructure.database_v2 import init_database_v2
+        init_database_v2()
 
         # Test 1: Save synth to database
         total_tests += 1
@@ -386,7 +338,7 @@ if __name__ == "__main__":
         except Exception as e:
             all_validation_failures.append(f"Test 2 (load all): {str(e)}")
 
-        # Test 3: Update existing synth (INSERT OR REPLACE)
+        # Test 3: Update existing synth
         total_tests += 1
         try:
             updated_synth = {
@@ -421,8 +373,23 @@ if __name__ == "__main__":
         except Exception as e:
             all_validation_failures.append(f"Test 4 (nonexistent): {str(e)}")
 
-        # Restore original DB_PATH
-        config_module.DB_PATH = original_db_path
+        # Test 5: Update avatar path
+        total_tests += 1
+        try:
+            result = update_avatar_path("test01", "/path/to/avatar.png")
+            if not result:
+                all_validation_failures.append("Test 5: update_avatar_path returned False")
+            else:
+                loaded = get_synth_by_id("test01")
+                if loaded["avatar_path"] != "/path/to/avatar.png":
+                    all_validation_failures.append(f"Test 5: Avatar path wrong: {loaded['avatar_path']}")
+                else:
+                    print("Test 5: update_avatar_path() works correctly")
+        except Exception as e:
+            all_validation_failures.append(f"Test 5 (avatar): {str(e)}")
+
+        # Cleanup
+        db_mod.dispose_engine()
 
     # Final validation result
     print(f"\n{'=' * 60}")

@@ -30,7 +30,8 @@ O **synth-lab** implementa uma arquitetura em **camadas** com separação clara 
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                   INFRASTRUCTURE LAYER                           │
-│  infrastructure/database.py      - DatabaseManager              │
+│  infrastructure/database_v2.py   - SQLAlchemy engine/session    │
+│  infrastructure/database.py      - DatabaseManager (legacy)     │
 │  infrastructure/llm_client.py    - Cliente OpenAI               │
 │  infrastructure/phoenix_tracing.py - Observabilidade            │
 │  infrastructure/config.py        - Configurações                │
@@ -274,9 +275,71 @@ self.db.execute(f"SELECT * FROM synths WHERE id = '{synth_id}'")
 | Arquivo | Responsabilidade |
 |---------|------------------|
 | `config.py` | Variáveis de ambiente, constantes |
-| `database.py` | `DatabaseManager` (conexões SQLite, transações) |
+| `database_v2.py` | SQLAlchemy engine, session factory, PostgreSQL/SQLite |
+| `database.py` | `DatabaseManager` (conexões SQLite - legacy) |
 | `llm_client.py` | `LLMClient` (OpenAI com retry, timeout, logging) |
 | `phoenix_tracing.py` | Setup Phoenix/OTEL, instrumentação |
+
+#### Database Layer (SQLAlchemy)
+
+O sistema suporta dois backends de banco de dados:
+- **SQLite**: Desenvolvimento e testes (padrão)
+- **PostgreSQL**: Produção
+
+**Configuração via ambiente:**
+```bash
+# SQLite (padrão)
+DATABASE_URL="sqlite:///output/synthlab.db"
+
+# PostgreSQL
+DATABASE_URL="postgresql://user:pass@localhost:5432/synthlab"
+```
+
+**Padrão de uso (SQLAlchemy Session):**
+```python
+from synth_lab.infrastructure.database_v2 import get_session
+
+with get_session() as session:
+    experiment = session.query(Experiment).filter_by(id=exp_id).first()
+    experiment.name = "Updated"
+    # Auto-commits on exit
+```
+
+**FastAPI Dependency:**
+```python
+from synth_lab.infrastructure.database_v2 import get_db_session
+
+@router.get("/{id}")
+def get_experiment(id: str, db: Session = Depends(get_db_session)):
+    return db.query(Experiment).filter_by(id=id).first()
+```
+
+**ORM Models:**
+Os modelos SQLAlchemy estão em `models/orm/`:
+```
+models/orm/
+├── base.py          # Base, JSONVariant, mixins
+├── experiment.py    # Experiment, InterviewGuide
+├── synth.py         # Synth, SynthGroup
+├── analysis.py      # AnalysisRun, SynthOutcome, AnalysisCache
+├── research.py      # ResearchExecution, Transcript
+├── exploration.py   # Exploration, ScenarioNode
+├── insight.py       # ChartInsight, SensitivityResult, RegionAnalysis
+├── document.py      # ExperimentDocument
+└── legacy.py        # FeatureScorecard, SimulationRun
+```
+
+**Migrações (Alembic):**
+```bash
+# Aplicar migrações
+make alembic-upgrade
+
+# Rollback
+make alembic-downgrade
+
+# Criar nova migração
+make alembic-revision MSG="add column"
+```
 
 **Padrão de uso do LLMClient:**
 ```python

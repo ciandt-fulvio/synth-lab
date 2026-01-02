@@ -16,7 +16,6 @@ from typing import Any
 from loguru import logger
 
 from synth_lab.domain.entities.analysis_cache import CacheKeys
-from synth_lab.infrastructure.database import DatabaseManager, get_database
 from synth_lab.repositories.analysis_cache_repository import AnalysisCacheRepository
 from synth_lab.repositories.analysis_outcome_repository import AnalysisOutcomeRepository
 from synth_lab.services.simulation.chart_data_service import ChartDataService
@@ -55,17 +54,14 @@ class AnalysisCacheService:
 
     def __init__(
         self,
-        db: DatabaseManager | None = None,
         cache_repo: AnalysisCacheRepository | None = None,
         outcome_repo: AnalysisOutcomeRepository | None = None,
         chart_service: ChartDataService | None = None,
         clustering_service: ClusteringService | None = None,
         outlier_service: OutlierService | None = None,
-        explainability_service: ExplainabilityService | None = None,
-    ):
-        self.db = db or get_database()
-        self.cache_repo = cache_repo or AnalysisCacheRepository(self.db)
-        self.outcome_repo = outcome_repo or AnalysisOutcomeRepository(self.db)
+        explainability_service: ExplainabilityService | None = None):
+        self.cache_repo = cache_repo or AnalysisCacheRepository()
+        self.outcome_repo = outcome_repo or AnalysisOutcomeRepository()
         self.chart_service = chart_service or ChartDataService()
         self.clustering_service = clustering_service or ClusteringService()
         self.outlier_service = outlier_service or OutlierService()
@@ -101,8 +97,7 @@ class AnalysisCacheService:
             chart = self.chart_service.get_try_vs_success(
                 simulation_id=analysis_id,
                 outcomes=outcomes,
-                **self.DEFAULT_PARAMS[CacheKeys.TRY_VS_SUCCESS],
-            )
+                **self.DEFAULT_PARAMS[CacheKeys.TRY_VS_SUCCESS])
             cache_entries[CacheKeys.TRY_VS_SUCCESS] = chart.model_dump()
             results[CacheKeys.TRY_VS_SUCCESS] = True
         except Exception as e:
@@ -113,8 +108,7 @@ class AnalysisCacheService:
             chart = self.chart_service.get_outcome_distribution(
                 simulation_id=analysis_id,
                 outcomes=outcomes,
-                **self.DEFAULT_PARAMS[CacheKeys.DISTRIBUTION],
-            )
+                **self.DEFAULT_PARAMS[CacheKeys.DISTRIBUTION])
             cache_entries[CacheKeys.DISTRIBUTION] = chart.model_dump()
             results[CacheKeys.DISTRIBUTION] = True
         except Exception as e:
@@ -126,8 +120,7 @@ class AnalysisCacheService:
             chart = self.chart_service.get_failure_heatmap(
                 simulation_id=analysis_id,
                 outcomes=outcomes,
-                **self.DEFAULT_PARAMS[CacheKeys.HEATMAP],
-            )
+                **self.DEFAULT_PARAMS[CacheKeys.HEATMAP])
             cache_entries[CacheKeys.HEATMAP] = chart.model_dump()
             results[CacheKeys.HEATMAP] = True
         except Exception as e:
@@ -138,8 +131,7 @@ class AnalysisCacheService:
             chart = self.chart_service.get_scatter_correlation(
                 simulation_id=analysis_id,
                 outcomes=outcomes,
-                **self.DEFAULT_PARAMS[CacheKeys.SCATTER],
-            )
+                **self.DEFAULT_PARAMS[CacheKeys.SCATTER])
             cache_entries[CacheKeys.SCATTER] = chart.model_dump()
             results[CacheKeys.SCATTER] = True
         except Exception as e:
@@ -149,8 +141,7 @@ class AnalysisCacheService:
         try:
             chart = self.chart_service.get_attribute_correlations(
                 simulation_id=analysis_id,
-                outcomes=outcomes,
-            )
+                outcomes=outcomes)
             cache_entries[CacheKeys.CORRELATIONS] = chart.model_dump()
             results[CacheKeys.CORRELATIONS] = True
         except Exception as e:
@@ -162,8 +153,7 @@ class AnalysisCacheService:
             chart = self.outlier_service.get_extreme_cases(
                 simulation_id=analysis_id,
                 outcomes=outcomes,
-                **self.DEFAULT_PARAMS[CacheKeys.EXTREME_CASES],
-            )
+                **self.DEFAULT_PARAMS[CacheKeys.EXTREME_CASES])
             cache_entries[CacheKeys.EXTREME_CASES] = chart.model_dump()
             results[CacheKeys.EXTREME_CASES] = True
         except Exception as e:
@@ -174,8 +164,7 @@ class AnalysisCacheService:
             chart = self.outlier_service.detect_outliers(
                 simulation_id=analysis_id,
                 outcomes=outcomes,
-                **self.DEFAULT_PARAMS[CacheKeys.OUTLIERS],
-            )
+                **self.DEFAULT_PARAMS[CacheKeys.OUTLIERS])
             cache_entries[CacheKeys.OUTLIERS] = chart.model_dump()
             results[CacheKeys.OUTLIERS] = True
         except Exception as e:
@@ -187,8 +176,7 @@ class AnalysisCacheService:
             chart = self.explainability_service.get_shap_summary(
                 simulation_id=analysis_id,
                 outcomes=outcomes,
-                **self.DEFAULT_PARAMS[CacheKeys.SHAP_SUMMARY],
-            )
+                **self.DEFAULT_PARAMS[CacheKeys.SHAP_SUMMARY])
             cache_entries[CacheKeys.SHAP_SUMMARY] = chart.model_dump()
             results[CacheKeys.SHAP_SUMMARY] = True
         except Exception as e:
@@ -214,8 +202,7 @@ class AnalysisCacheService:
                 chart = self.clustering_service.get_pca_scatter(
                     simulation_id=analysis_id,
                     outcomes=outcomes,
-                    kmeans_result=kmeans_result,
-                )
+                    kmeans_result=kmeans_result)
                 cache_entries[CacheKeys.PCA_SCATTER] = chart.model_dump()
                 results[CacheKeys.PCA_SCATTER] = True
             except Exception as e:
@@ -248,8 +235,7 @@ class AnalysisCacheService:
     def get_cached(
         self,
         analysis_id: str,
-        cache_key: str,
-    ) -> dict[str, Any] | None:
+        cache_key: str) -> dict[str, Any] | None:
         """
         Get cached chart data.
 
@@ -328,7 +314,6 @@ if __name__ == "__main__":
 
     from synth_lab.domain.entities.analysis_run import AnalysisRun
     from synth_lab.domain.entities.experiment import Experiment
-    from synth_lab.infrastructure.database import init_database
     from synth_lab.repositories.analysis_repository import AnalysisRepository
     from synth_lab.repositories.experiment_repository import ExperimentRepository
 
@@ -342,9 +327,9 @@ if __name__ == "__main__":
         init_database(test_db_path)
         db = DatabaseManager(test_db_path)
 
-        exp_repo = ExperimentRepository(db)
-        ana_repo = AnalysisRepository(db)
-        cache_service = AnalysisCacheService(db=db)
+        exp_repo = ExperimentRepository()
+        ana_repo = AnalysisRepository()
+        cache_service = AnalysisCacheService()
 
         # Create parent experiment and analysis
         exp = Experiment(name="Test", hypothesis="Test hypothesis")

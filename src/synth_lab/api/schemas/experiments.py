@@ -27,28 +27,24 @@ class ScorecardDimensionSchema(BaseModel):
         ge=0.0,
         le=1.0,
         description="Dimension score (0-1).",
-        examples=[0.65],
-    )
+        examples=[0.65])
 
     rules_applied: list[str] = Field(
         default_factory=list,
         description="List of rules that influenced this score.",
-        examples=[["High learning curve", "Similar tools exist"]],
-    )
+        examples=[["High learning curve", "Similar tools exist"]])
 
     lower_bound: float | None = Field(
         default=None,
         ge=0.0,
         le=1.0,
-        description="Lower bound of the score range.",
-    )
+        description="Lower bound of the score range.")
 
     upper_bound: float | None = Field(
         default=None,
         ge=0.0,
         le=1.0,
-        description="Upper bound of the score range.",
-    )
+        description="Upper bound of the score range.")
 
 
 class ScorecardDataSchema(BaseModel):
@@ -56,79 +52,63 @@ class ScorecardDataSchema(BaseModel):
 
     feature_name: str = Field(
         description="Name of the feature being scored.",
-        examples=["Novo Fluxo de Checkout"],
-    )
+        examples=["Novo Fluxo de Checkout"])
 
     scenario: str = Field(
         default="baseline",
         description="Scenario identifier.",
-        examples=["baseline", "optimistic", "pessimistic"],
-    )
+        examples=["baseline", "optimistic", "pessimistic"])
 
     description_text: str = Field(
         description="Detailed description of the feature.",
-        examples=["Sistema de checkout simplificado com menos etapas"],
-    )
+        examples=["Sistema de checkout simplificado com menos etapas"])
 
     description_media_urls: list[str] = Field(
         default_factory=list,
-        description="URLs to media files describing the feature.",
-    )
+        description="URLs to media files describing the feature.")
 
     complexity: ScorecardDimensionSchema = Field(
-        description="Complexity dimension (how hard to understand/use).",
-    )
+        description="Complexity dimension (how hard to understand/use).")
 
     initial_effort: ScorecardDimensionSchema = Field(
-        description="Initial effort dimension (setup/learning cost).",
-    )
+        description="Initial effort dimension (setup/learning cost).")
 
     perceived_risk: ScorecardDimensionSchema = Field(
-        description="Perceived risk dimension (fear of failure/loss).",
-    )
+        description="Perceived risk dimension (fear of failure/loss).")
 
     time_to_value: ScorecardDimensionSchema = Field(
-        description="Time to value dimension (how long until benefit).",
-    )
+        description="Time to value dimension (how long until benefit).")
 
     justification: str | None = Field(
         default=None,
-        description="LLM justification for the scores.",
-    )
+        description="LLM justification for the scores.")
 
     impact_hypotheses: list[str] = Field(
         default_factory=list,
-        description="Impact hypotheses from LLM analysis.",
-    )
+        description="Impact hypotheses from LLM analysis.")
 
 
 class ScorecardEstimateResponse(BaseModel):
     """Response from AI scorecard estimation."""
 
     complexity: ScorecardDimensionSchema = Field(
-        description="Estimated complexity dimension.",
-    )
+        description="Estimated complexity dimension.")
 
     initial_effort: ScorecardDimensionSchema = Field(
-        description="Estimated initial effort dimension.",
-    )
+        description="Estimated initial effort dimension.")
 
     perceived_risk: ScorecardDimensionSchema = Field(
-        description="Estimated perceived risk dimension.",
-    )
+        description="Estimated perceived risk dimension.")
 
     time_to_value: ScorecardDimensionSchema = Field(
-        description="Estimated time to value dimension.",
-    )
+        description="Estimated time to value dimension.")
 
     justification: str = Field(
-        description="LLM justification for the estimates.",
-    )
+        description="LLM justification for the estimates.")
 
     impact_hypotheses: list[str] = Field(
         default_factory=list,
-        description="Impact hypotheses from LLM analysis.",
-    )
+        description="Impact hypotheses from LLM analysis.")
 
 
 # =============================================================================
@@ -142,26 +122,22 @@ class ExperimentCreate(BaseModel):
     name: str = Field(
         max_length=100,
         description="Short name of the feature.",
-        examples=["Novo Fluxo de Checkout"],
-    )
+        examples=["Novo Fluxo de Checkout"])
 
     hypothesis: str = Field(
         max_length=500,
         description="Description of the hypothesis to test.",
-        examples=["Reduzir etapas do checkout aumentará conversão em 15%"],
-    )
+        examples=["Reduzir etapas do checkout aumentará conversão em 15%"])
 
     description: str | None = Field(
         default=None,
         max_length=2000,
         description="Additional context, links, references.",
-        examples=["Baseado em feedback de usuários e análise de abandono"],
-    )
+        examples=["Baseado em feedback de usuários e análise de abandono"])
 
     scorecard_data: ScorecardDataSchema | None = Field(
         default=None,
-        description="Optional embedded scorecard data.",
-    )
+        description="Optional embedded scorecard data.")
 
 
 class ExperimentUpdate(BaseModel):
@@ -170,20 +146,17 @@ class ExperimentUpdate(BaseModel):
     name: str | None = Field(
         default=None,
         max_length=100,
-        description="Short name of the feature.",
-    )
+        description="Short name of the feature.")
 
     hypothesis: str | None = Field(
         default=None,
         max_length=500,
-        description="Description of the hypothesis to test.",
-    )
+        description="Description of the hypothesis to test.")
 
     description: str | None = Field(
         default=None,
         max_length=2000,
-        description="Additional context, links, references.",
-    )
+        description="Additional context, links, references.")
 
 
 # =============================================================================
@@ -197,20 +170,17 @@ class AggregatedOutcomesSchema(BaseModel):
     did_not_try_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Proportion that did not try.",
-    )
+        description="Proportion that did not try.")
 
     failed_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Proportion that tried but failed.",
-    )
+        description="Proportion that tried but failed.")
 
     success_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Proportion that succeeded.",
-    )
+        description="Proportion that succeeded.")
 
 
 class AnalysisSummary(BaseModel):
@@ -228,8 +198,7 @@ class AnalysisSummary(BaseModel):
     )
     aggregated_outcomes: AggregatedOutcomesSchema | None = Field(
         default=None,
-        description="Aggregated outcomes from analysis.",
-    )
+        description="Aggregated outcomes from analysis.")
 
 
 class InterviewSummary(BaseModel):
@@ -263,8 +232,7 @@ class ExperimentResponse(BaseModel):
     description: str | None = Field(default=None, description="Additional context.")
     scorecard_data: ScorecardDataSchema | None = Field(
         default=None,
-        description="Embedded scorecard data.",
-    )
+        description="Embedded scorecard data.")
     has_scorecard: bool = Field(default=False, description="Whether scorecard is filled.")
     has_interview_guide: bool = Field(
         default=False, description="Whether interview guide is configured."
@@ -295,12 +263,10 @@ class ExperimentDetail(ExperimentResponse):
 
     analysis: AnalysisSummary | None = Field(
         default=None,
-        description="Linked analysis (1:1 relationship).",
-    )
+        description="Linked analysis (1:1 relationship).")
     interviews: list[InterviewSummary] = Field(
         default_factory=list,
-        description="Linked interviews (N:1 relationship).",
-    )
+        description="Linked interviews (N:1 relationship).")
     interview_count: int = Field(default=0, description="Number of linked interviews.")
 
 
@@ -326,8 +292,7 @@ if __name__ == "__main__":
     try:
         req = ExperimentCreate(
             name="Test Feature",
-            hypothesis="Test hypothesis",
-        )
+            hypothesis="Test hypothesis")
         if req.name != "Test Feature":
             all_validation_failures.append(f"Name mismatch: {req.name}")
         if req.scorecard_data is not None:
@@ -344,13 +309,11 @@ if __name__ == "__main__":
             complexity=ScorecardDimensionSchema(score=0.3),
             initial_effort=ScorecardDimensionSchema(score=0.4),
             perceived_risk=ScorecardDimensionSchema(score=0.2),
-            time_to_value=ScorecardDimensionSchema(score=0.5),
-        )
+            time_to_value=ScorecardDimensionSchema(score=0.5))
         req = ExperimentCreate(
             name="Test",
             hypothesis="Test",
-            scorecard_data=scorecard,
-        )
+            scorecard_data=scorecard)
         if req.scorecard_data is None:
             all_validation_failures.append("scorecard_data should not be None")
         elif req.scorecard_data.complexity.score != 0.3:
@@ -366,8 +329,7 @@ if __name__ == "__main__":
             score=0.65,
             rules_applied=["Rule 1", "Rule 2"],
             lower_bound=0.5,
-            upper_bound=0.8,
-        )
+            upper_bound=0.8)
         if dim.score != 0.65:
             all_validation_failures.append(f"Score mismatch: {dim.score}")
         if len(dim.rules_applied) != 2:
@@ -405,16 +367,14 @@ if __name__ == "__main__":
             complexity=ScorecardDimensionSchema(score=0.3),
             initial_effort=ScorecardDimensionSchema(score=0.4),
             perceived_risk=ScorecardDimensionSchema(score=0.2),
-            time_to_value=ScorecardDimensionSchema(score=0.5),
-        )
+            time_to_value=ScorecardDimensionSchema(score=0.5))
         resp = ExperimentResponse(
             id="exp_12345678",
             name="Test",
             hypothesis="Test",
             scorecard_data=scorecard,
             has_scorecard=True,
-            created_at=datetime.now(timezone.utc),
-        )
+            created_at=datetime.now(timezone.utc))
         if not resp.has_scorecard:
             all_validation_failures.append("has_scorecard should be True")
     except Exception as e:
@@ -430,8 +390,7 @@ if __name__ == "__main__":
             has_scorecard=True,
             has_analysis=True,
             interview_count=3,
-            created_at=datetime.now(timezone.utc),
-        )
+            created_at=datetime.now(timezone.utc))
         if not summary.has_analysis:
             all_validation_failures.append("has_analysis should be True")
         if summary.interview_count != 3:
@@ -445,16 +404,14 @@ if __name__ == "__main__":
         outcomes = AggregatedOutcomesSchema(
             did_not_try_rate=0.2,
             failed_rate=0.3,
-            success_rate=0.5,
-        )
+            success_rate=0.5)
         analysis = AnalysisSummary(
             id="ana_12345678",
             simulation_id="ana_12345678",
             status="completed",
             started_at=datetime.now(timezone.utc),
             completed_at=datetime.now(timezone.utc),
-            aggregated_outcomes=outcomes,
-        )
+            aggregated_outcomes=outcomes)
         if analysis.aggregated_outcomes is None:
             all_validation_failures.append("aggregated_outcomes should not be None")
         elif analysis.aggregated_outcomes.success_rate != 0.5:
@@ -471,16 +428,14 @@ if __name__ == "__main__":
             id="ana_12345678",
             simulation_id="ana_12345678",
             status="completed",
-            started_at=datetime.now(timezone.utc),
-        )
+            started_at=datetime.now(timezone.utc))
         interview = InterviewSummary(
             exec_id="exec_001",
             topic_name="Test Topic",
             status="completed",
             synth_count=10,
             has_summary=True,
-            started_at=datetime.now(timezone.utc),
-        )
+            started_at=datetime.now(timezone.utc))
         detail = ExperimentDetail(
             id="exp_12345678",
             name="Test",
@@ -489,8 +444,7 @@ if __name__ == "__main__":
             created_at=datetime.now(timezone.utc),
             analysis=analysis,
             interviews=[interview],
-            interview_count=1,
-        )
+            interview_count=1)
         if detail.analysis is None:
             all_validation_failures.append("analysis should not be None")
         if len(detail.interviews) != 1:
@@ -507,8 +461,7 @@ if __name__ == "__main__":
             perceived_risk=ScorecardDimensionSchema(score=0.2),
             time_to_value=ScorecardDimensionSchema(score=0.6),
             justification="Based on feature complexity...",
-            impact_hypotheses=["Users may struggle initially"],
-        )
+            impact_hypotheses=["Users may struggle initially"])
         if estimate.justification == "":
             all_validation_failures.append("justification should not be empty")
     except Exception as e:

@@ -130,8 +130,7 @@ def _get_model_settings(model: str, reasoning_effort: str = "medium") -> ModelSe
 
 def format_interview_for_summary(
     result: InterviewResult,
-    synth_data: dict[str, Any],
-) -> str:
+    synth_data: dict[str, Any]) -> str:
     """
     Format a single interview result for the summarizer.
 
@@ -179,8 +178,7 @@ def create_summarizer_agent(
     topic_guide_name: str,
     interviews_content: str,
     model: str = "gpt-4o-mini",
-    reasoning_effort: str = "medium",
-) -> Agent:
+    reasoning_effort: str = "medium") -> Agent:
     """
     Create a summarizer agent for analyzing multiple interviews.
 
@@ -195,8 +193,7 @@ def create_summarizer_agent(
     """
     instructions = SUMMARIZER_INSTRUCTIONS.format(
         topic_guide=topic_guide_name,
-        interviews_content=interviews_content,
-    )
+        interviews_content=interviews_content)
 
     # Build agent kwargs - only include model_settings if model supports it
     agent_kwargs = {
@@ -214,8 +211,7 @@ def create_summarizer_agent(
 async def summarize_interviews(
     interview_results: list[tuple[InterviewResult, dict[str, Any]]],
     topic_guide_name: str,
-    model: str = "gpt-4o-mini",
-) -> str:
+    model: str = "gpt-4o-mini") -> str:
     """
     Summarize multiple interview results into a synthesis report.
 
@@ -244,8 +240,7 @@ async def summarize_interviews(
             "topic_guide": topic_guide_name,
             "interview_count": len(interview_results),
             "model": model,
-        },
-    ) as span:
+        }) as span:
         # Format all interviews
         interviews_content_parts = []
         for i, (result, synth_data) in enumerate(interview_results):
@@ -267,15 +262,13 @@ async def summarize_interviews(
             topic_guide_name=topic_guide_name,
             interviews_content=interviews_content,
             model=model,
-            reasoning_effort="medium",
-        )
+            reasoning_effort="medium")
 
         # Run summarization
         logger.info("Running summarizer agent...")
         result = await Runner.run(
             summarizer,
-            input="Analise as entrevistas fornecidas e gere o relatório de síntese conforme as diretrizes.",
-        )
+            input="Analise as entrevistas fornecidas e gere o relatório de síntese conforme as diretrizes.")
 
         summary = result.final_output
         logger.info(f"Summary generated: {len(summary)} characters")
@@ -300,8 +293,7 @@ if __name__ == "__main__":
     try:
         from .summarizer import (
             create_summarizer_agent,
-            format_interview_for_summary,
-        )
+            format_interview_for_summary)
 
         print("✓ All imports successful")
     except Exception as e:
@@ -323,8 +315,7 @@ if __name__ == "__main__":
             synth_name="Maria",
             topic_guide_name="compra-amazon",
             trace_path=None,
-            total_turns=1,
-        )
+            total_turns=1)
         mock_synth = {
             "nome": "Maria",
             "demografia": {
@@ -357,8 +348,7 @@ if __name__ == "__main__":
         agent = create_summarizer_agent(
             topic_guide_name="test-guide",
             interviews_content="Test content",
-            model="gpt-4o-mini",
-        )
+            model="gpt-4o-mini")
         assert agent.name == "Research Summarizer"
         assert "test-guide" in agent.instructions  # type: ignore
         print("✓ create_summarizer_agent works correctly")

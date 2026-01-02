@@ -16,9 +16,7 @@ from loguru import logger
 from synth_lab.domain.entities.analysis_run import (
     AggregatedOutcomes,
     AnalysisConfig,
-    AnalysisRun,
-)
-from synth_lab.infrastructure.database import DatabaseManager, get_database
+    AnalysisRun)
 from synth_lab.repositories.analysis_repository import AnalysisRepository
 from synth_lab.repositories.experiment_repository import ExperimentRepository
 
@@ -28,21 +26,17 @@ class AnalysisService:
 
     def __init__(
         self,
-        db: DatabaseManager | None = None,
         analysis_repo: AnalysisRepository | None = None,
-        experiment_repo: ExperimentRepository | None = None,
-    ):
+        experiment_repo: ExperimentRepository | None = None):
         """
         Initialize analysis service.
 
         Args:
-            db: Database manager. Defaults to global instance.
             analysis_repo: Analysis repository. Defaults to new instance.
             experiment_repo: Experiment repository. Defaults to new instance.
         """
-        self.db = db or get_database()
-        self.analysis_repo = analysis_repo or AnalysisRepository(self.db)
-        self.experiment_repo = experiment_repo or ExperimentRepository(self.db)
+        self.analysis_repo = analysis_repo or AnalysisRepository()
+        self.experiment_repo = experiment_repo or ExperimentRepository()
         self.logger = logger.bind(component="analysis_service")
 
     def get_analysis(self, experiment_id: str) -> AnalysisRun | None:
@@ -74,8 +68,7 @@ class AnalysisService:
     def create_analysis(
         self,
         experiment_id: str,
-        config: AnalysisConfig | None = None,
-    ) -> AnalysisRun:
+        config: AnalysisConfig | None = None) -> AnalysisRun:
         """
         Create a new analysis run for an experiment.
 
@@ -114,8 +107,7 @@ class AnalysisService:
             experiment_id=experiment_id,
             config=config or AnalysisConfig(),
             status="pending",
-            started_at=datetime.now(timezone.utc),
-        )
+            started_at=datetime.now(timezone.utc))
 
         return self.analysis_repo.create(analysis)
 
@@ -148,8 +140,7 @@ class AnalysisService:
         analysis_id: str,
         total_synths: int,
         aggregated_outcomes: AggregatedOutcomes,
-        execution_time_seconds: float,
-    ) -> AnalysisRun | None:
+        execution_time_seconds: float) -> AnalysisRun | None:
         """
         Mark an analysis as completed with results.
 
@@ -168,8 +159,7 @@ class AnalysisService:
             completed_at=datetime.now(timezone.utc),
             total_synths=total_synths,
             aggregated_outcomes=aggregated_outcomes,
-            execution_time_seconds=execution_time_seconds,
-        )
+            execution_time_seconds=execution_time_seconds)
 
     def fail_analysis(self, analysis_id: str) -> AnalysisRun | None:
         """
@@ -184,8 +174,7 @@ class AnalysisService:
         return self.analysis_repo.update_status(
             analysis_id=analysis_id,
             status="failed",
-            completed_at=datetime.now(timezone.utc),
-        )
+            completed_at=datetime.now(timezone.utc))
 
     def delete_analysis(self, experiment_id: str) -> bool:
         """
@@ -202,8 +191,7 @@ class AnalysisService:
     def rerun_analysis(
         self,
         experiment_id: str,
-        config: AnalysisConfig | None = None,
-    ) -> AnalysisRun:
+        config: AnalysisConfig | None = None) -> AnalysisRun:
         """
         Delete existing analysis and create a new one.
 
@@ -244,9 +232,7 @@ if __name__ == "__main__":
     from synth_lab.domain.entities.experiment import (
         Experiment,
         ScorecardData,
-        ScorecardDimension,
-    )
-    from synth_lab.infrastructure.database import init_database
+        ScorecardDimension)
 
     all_validation_failures: list[str] = []
     total_tests = 0
@@ -256,8 +242,8 @@ if __name__ == "__main__":
         test_db_path = Path(tmpdir) / "test.db"
         init_database(test_db_path)
         db = DatabaseManager(test_db_path)
-        exp_repo = ExperimentRepository(db)
-        ana_repo = AnalysisRepository(db)
+        exp_repo = ExperimentRepository()
+        ana_repo = AnalysisRepository()
         service = AnalysisService(db, ana_repo, exp_repo)
 
         # Create experiment with scorecard
@@ -267,8 +253,7 @@ if __name__ == "__main__":
             complexity=ScorecardDimension(score=0.3),
             initial_effort=ScorecardDimension(score=0.4),
             perceived_risk=ScorecardDimension(score=0.2),
-            time_to_value=ScorecardDimension(score=0.5),
-        )
+            time_to_value=ScorecardDimension(score=0.5))
         exp = Experiment(name="Test", hypothesis="Test", scorecard_data=scorecard)
         exp_repo.create(exp)
 
@@ -335,14 +320,12 @@ if __name__ == "__main__":
             outcomes = AggregatedOutcomes(
                 did_not_try_rate=0.2,
                 failed_rate=0.3,
-                success_rate=0.5,
-            )
+                success_rate=0.5)
             completed = service.complete_analysis(
                 analysis_id=analysis.id,
                 total_synths=100,
                 aggregated_outcomes=outcomes,
-                execution_time_seconds=5.5,
-            )
+                execution_time_seconds=5.5)
             if completed is None:
                 all_validation_failures.append("Complete analysis returned None")
             elif completed.status != "completed":

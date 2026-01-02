@@ -15,8 +15,7 @@ from pydantic import BaseModel, Field
 
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.repositories.synth_group_repository import (
-    SynthGroupSummary,
-)
+    SynthGroupSummary)
 from synth_lab.services.synth_group_service import SynthGroupService
 
 router = APIRouter()
@@ -31,16 +30,13 @@ class SynthGroupCreate(BaseModel):
     id: str | None = Field(
         default=None,
         pattern=r"^grp_[a-f0-9]{8}$",
-        description="Optional ID. If not provided, will be generated.",
-    )
+        description="Optional ID. If not provided, will be generated.")
     name: str = Field(
         min_length=1,
-        description="Descriptive name for the group.",
-    )
+        description="Descriptive name for the group.")
     description: str | None = Field(
         default=None,
-        description="Description of the purpose/context.",
-    )
+        description="Description of the purpose/context.")
 
 
 class SynthSummaryResponse(BaseModel):
@@ -92,27 +88,23 @@ async def create_synth_group(data: SynthGroupCreate) -> SynthGroupResponse:
         group = service.create_group(
             name=data.name,
             description=data.description,
-            group_id=data.id,
-        )
+            group_id=data.id)
         return SynthGroupResponse(
             id=group.id,
             name=group.name,
             description=group.description,
             synth_count=group.synth_count,
-            created_at=group.created_at,
-        )
+            created_at=group.created_at)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e),
-        )
+            detail=str(e))
 
 
 @router.get("/list", response_model=PaginatedResponse[SynthGroupSummary])
 async def list_synth_groups(
     limit: int = Query(default=50, ge=1, le=200, description="Maximum items per page"),
-    offset: int = Query(default=0, ge=0, description="Number of items to skip"),
-) -> PaginatedResponse[SynthGroupSummary]:
+    offset: int = Query(default=0, ge=0, description="Number of items to skip")) -> PaginatedResponse[SynthGroupSummary]:
     """
     List all synth groups with pagination.
 
@@ -123,8 +115,7 @@ async def list_synth_groups(
         limit=limit,
         offset=offset,
         sort_by="created_at",
-        sort_order="desc",
-    )
+        sort_order="desc")
     return service.list_groups(params)
 
 
@@ -140,8 +131,7 @@ async def get_synth_group(group_id: str) -> SynthGroupDetailResponse:
     if detail is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Synth group {group_id} not found",
-        )
+            detail=f"Synth group {group_id} not found")
 
     # Convert synths to response format
     synths = [
@@ -151,8 +141,7 @@ async def get_synth_group(group_id: str) -> SynthGroupDetailResponse:
             descricao=s.descricao,
             avatar_path=s.avatar_path,
             synth_group_id=s.synth_group_id,
-            created_at=s.created_at,
-        )
+            created_at=s.created_at)
         for s in detail.synths
     ]
 
@@ -162,8 +151,7 @@ async def get_synth_group(group_id: str) -> SynthGroupDetailResponse:
         description=detail.description,
         synth_count=detail.synth_count,
         created_at=detail.created_at,
-        synths=synths,
-    )
+        synths=synths)
 
 
 @router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -179,5 +167,4 @@ async def delete_synth_group(group_id: str) -> None:
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Synth group {group_id} not found",
-        )
+            detail=f"Synth group {group_id} not found")

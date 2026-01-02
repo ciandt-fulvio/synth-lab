@@ -54,8 +54,7 @@ class TraceVisualizerProcessor(TracingProcessor):
         self,
         tracer: Tracer,
         turn_number: int = 1,
-        verbose: bool = True,
-    ):
+        verbose: bool = True):
         """
         Initialize the processor.
 
@@ -190,8 +189,7 @@ class TraceVisualizerProcessor(TracingProcessor):
                     "tool_name": tool_name,
                     "input": str(tool_input) if tool_input else None,
                     "sdk_span_type": type(span_data).__name__,
-                },
-            )
+                })
             # Enter the context manager
             tracer_span.__enter__()
             self._active_spans[span_id] = tracer_span

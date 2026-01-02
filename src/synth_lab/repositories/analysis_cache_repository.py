@@ -4,8 +4,11 @@ AnalysisCacheRepository for synth-lab.
 Data access layer for pre-computed analysis cache in SQLite database.
 Provides CRUD operations for chart data caching.
 
+Uses SQLAlchemy ORM for database operations.
+
 References:
     - Entity: domain/entities/analysis_cache.py
+    - ORM models: synth_lab.models.orm.analysis
     - Database: infrastructure/database.py (v12)
 """
 
@@ -13,18 +16,26 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
 from synth_lab.domain.entities.analysis_cache import AnalysisCache, CacheKeys
 from synth_lab.domain.entities.chart_insight import ChartInsight
 from synth_lab.domain.entities.executive_summary import ExecutiveSummary
-from synth_lab.infrastructure.database import DatabaseManager
+from synth_lab.models.orm.analysis import AnalysisCache as AnalysisCacheORM
 from synth_lab.repositories.base import BaseRepository
 
 
 class AnalysisCacheRepository(BaseRepository):
-    """Repository for analysis cache data access."""
+    """Repository for analysis cache data access.
 
-    def __init__(self, db: DatabaseManager | None = None):
-        super().__init__(db)
+    Uses SQLAlchemy ORM for database operations.
+    """
+
+    def __init__(
+        self,
+session: Session | None = None):
+        super().__init__( session=session)
 
     def get(self, analysis_id: str, cache_key: str) -> AnalysisCache | None:
         """
@@ -37,18 +48,10 @@ class AnalysisCacheRepository(BaseRepository):
         Returns:
             AnalysisCache if found, None otherwise.
         """
-        row = self.db.fetchone(
-            """
-            SELECT analysis_id, cache_key, data, params, computed_at
-            FROM analysis_cache
-            WHERE analysis_id = ? AND cache_key = ?
-            """,
-            (analysis_id, cache_key),
-        )
-        if row is None:
+        orm_cache = self.session.get(AnalysisCacheORM, (analysis_id, cache_key))
+        if orm_cache is None:
             return None
-        return self._row_to_cache(row)
-
+        return self._orm_to_cache(orm_cache)
     def get_all(self, analysis_id: str) -> list[AnalysisCache]:
         """
         Get all cache entries for an analysis.
@@ -59,24 +62,19 @@ class AnalysisCacheRepository(BaseRepository):
         Returns:
             List of AnalysisCache entries.
         """
-        rows = self.db.fetchall(
-            """
-            SELECT analysis_id, cache_key, data, params, computed_at
-            FROM analysis_cache
-            WHERE analysis_id = ?
-            ORDER BY cache_key
-            """,
-            (analysis_id,),
+        stmt = (
+            select(AnalysisCacheORM)
+            .where(AnalysisCacheORM.analysis_id == analysis_id)
+            .order_by(AnalysisCacheORM.cache_key)
         )
-        return [self._row_to_cache(row) for row in rows]
-
+        result = self.session.execute(stmt)
+        return [self._orm_to_cache(orm_cache) for orm_cache in result.scalars().all()]
     def save(
         self,
         analysis_id: str,
         cache_key: str,
         data: dict[str, Any],
-        params: dict[str, Any] | None = None,
-    ) -> AnalysisCache:
+        params: dict[str, Any] | None = None) -> AnalysisCache:
         """
         Save or update a cache entry.
 
@@ -92,31 +90,35 @@ class AnalysisCacheRepository(BaseRepository):
             Created/updated AnalysisCache.
         """
         now = datetime.now(timezone.utc)
-        data_json = json.dumps(data)
-        params_json = json.dumps(params) if params else None
 
-        self.db.execute(
-            """
-            INSERT OR REPLACE INTO analysis_cache
-                (analysis_id, cache_key, data, params, computed_at)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (analysis_id, cache_key, data_json, params_json, now.isoformat()),
-        )
-
+        # Check if entry exists (composite primary key)
+        orm_cache = self.session.get(AnalysisCacheORM, (analysis_id, cache_key))
+        if orm_cache is not None:
+            # Update existing entry
+            orm_cache.data = data
+            orm_cache.params = params
+            orm_cache.computed_at = now.isoformat()
+        else:
+            # Create new entry
+            orm_cache = AnalysisCacheORM(
+                analysis_id=analysis_id,
+                cache_key=cache_key,
+                data=data,
+                params=params,
+                computed_at=now.isoformat())
+            self._add(orm_cache)
+        self._flush()
+        self._commit()
         return AnalysisCache(
             analysis_id=analysis_id,
             cache_key=cache_key,
             data=data,
             params=params,
-            computed_at=now,
-        )
-
+            computed_at=now)
     def save_many(
         self,
         analysis_id: str,
-        entries: dict[str, dict[str, Any]],
-    ) -> int:
+        entries: dict[str, dict[str, Any]]) -> int:
         """
         Save multiple cache entries in a single transaction.
 
@@ -127,24 +129,28 @@ class AnalysisCacheRepository(BaseRepository):
         Returns:
             Number of entries saved.
         """
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(timezone.utc)
 
-        params_list = [
-            (analysis_id, cache_key, json.dumps(data), None, now)
-            for cache_key, data in entries.items()
-        ]
-
-        self.db.executemany(
-            """
-            INSERT OR REPLACE INTO analysis_cache
-                (analysis_id, cache_key, data, params, computed_at)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            params_list,
-        )
-
+        for cache_key, data in entries.items():
+            # Check if entry exists (composite primary key)
+            orm_cache = self.session.get(AnalysisCacheORM, (analysis_id, cache_key))
+            if orm_cache is not None:
+                # Update existing entry
+                orm_cache.data = data
+                orm_cache.params = None
+                orm_cache.computed_at = now.isoformat()
+            else:
+                # Create new entry
+                orm_cache = AnalysisCacheORM(
+                    analysis_id=analysis_id,
+                    cache_key=cache_key,
+                    data=data,
+                    params=None,
+                    computed_at=now.isoformat())
+                self._add(orm_cache)
+        self._flush()
+        self._commit()
         return len(entries)
-
     def delete(self, analysis_id: str, cache_key: str) -> bool:
         """
         Delete a specific cache entry.
@@ -156,16 +162,13 @@ class AnalysisCacheRepository(BaseRepository):
         Returns:
             True if deleted, False if not found.
         """
-        existing = self.get(analysis_id, cache_key)
-        if existing is None:
+        orm_cache = self.session.get(AnalysisCacheORM, (analysis_id, cache_key))
+        if orm_cache is None:
             return False
-
-        self.db.execute(
-            "DELETE FROM analysis_cache WHERE analysis_id = ? AND cache_key = ?",
-            (analysis_id, cache_key),
-        )
+        self.session.delete(orm_cache)
+        self._flush()
+        self._commit()
         return True
-
     def delete_all(self, analysis_id: str) -> int:
         """
         Delete all cache entries for an analysis.
@@ -176,16 +179,18 @@ class AnalysisCacheRepository(BaseRepository):
         Returns:
             Number of entries deleted.
         """
-        entries = self.get_all(analysis_id)
-        if not entries:
-            return 0
-
-        self.db.execute(
-            "DELETE FROM analysis_cache WHERE analysis_id = ?",
-            (analysis_id,),
+        stmt = select(AnalysisCacheORM).where(
+            AnalysisCacheORM.analysis_id == analysis_id
         )
-        return len(entries)
-
+        result = self.session.execute(stmt)
+        orm_caches = result.scalars().all()
+        count = len(orm_caches)
+        for orm_cache in orm_caches:
+            self.session.delete(orm_cache)
+        if count > 0:
+            self._flush()
+            self._commit()
+        return count
     def _row_to_cache(self, row) -> AnalysisCache:
         """Convert a database row to AnalysisCache entity."""
         computed_at = row["computed_at"]
@@ -200,8 +205,24 @@ class AnalysisCacheRepository(BaseRepository):
             cache_key=row["cache_key"],
             data=data,
             params=params,
-            computed_at=computed_at,
-        )
+            computed_at=computed_at)
+
+    def _orm_to_cache(self, orm_cache: AnalysisCacheORM) -> AnalysisCache:
+        """Convert ORM model to AnalysisCache entity."""
+        computed_at = orm_cache.computed_at
+        if isinstance(computed_at, str):
+            computed_at = datetime.fromisoformat(computed_at)
+
+        # ORM stores data and params as dict directly (JSON type)
+        data = orm_cache.data or {}
+        params = orm_cache.params
+
+        return AnalysisCache(
+            analysis_id=orm_cache.analysis_id,
+            cache_key=orm_cache.cache_key,
+            data=data,
+            params=params,
+            computed_at=computed_at)
 
     # Insight-specific methods (Feature 023)
 
@@ -316,7 +337,6 @@ if __name__ == "__main__":
 
     from synth_lab.domain.entities.analysis_run import AnalysisRun
     from synth_lab.domain.entities.experiment import Experiment
-    from synth_lab.infrastructure.database import init_database
     from synth_lab.repositories.analysis_repository import AnalysisRepository
     from synth_lab.repositories.experiment_repository import ExperimentRepository
 
@@ -330,9 +350,9 @@ if __name__ == "__main__":
         init_database(test_db_path)
         db = DatabaseManager(test_db_path)
 
-        exp_repo = ExperimentRepository(db)
-        ana_repo = AnalysisRepository(db)
-        cache_repo = AnalysisCacheRepository(db)
+        exp_repo = ExperimentRepository()
+        ana_repo = AnalysisRepository()
+        cache_repo = AnalysisCacheRepository()
 
         # Create parent experiment and analysis
         exp = Experiment(name="Test", hypothesis="Test hypothesis")
@@ -347,8 +367,7 @@ if __name__ == "__main__":
             cache = cache_repo.save(
                 analysis.id,
                 "try_vs_success",
-                {"quadrants": [1, 2, 3, 4], "count": 100},
-            )
+                {"quadrants": [1, 2, 3, 4], "count": 100})
             if cache.cache_key != "try_vs_success":
                 all_validation_failures.append(f"cache_key mismatch: {cache.cache_key}")
         except Exception as e:
@@ -373,8 +392,7 @@ if __name__ == "__main__":
                 {
                     "distribution": {"items": []},
                     "heatmap": {"bins": []},
-                },
-            )
+                })
             if count != 2:
                 all_validation_failures.append(f"save_many count mismatch: {count}")
         except Exception as e:

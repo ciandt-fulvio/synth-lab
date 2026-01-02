@@ -88,8 +88,7 @@ EFEITO ESPERADO: {cc.efeito_esperado or 'N/A'}"""
             synth_descricao=synth.descricao or "",
             synth_interesses=interesses_str,
             synth_cognitive_contract=cognitive_contract_str,
-            interview_history=interview_history,
-        )
+            interview_history=interview_history)
 
         # Build messages for LLM
         messages = [
@@ -133,20 +132,17 @@ EFEITO ESPERADO: {cc.efeito_esperado or 'N/A'}"""
                 "execution.id": request.exec_id,
                 "operation.type": "chat_response",
                 "chat.history_length": len(request.chat_history),
-            },
-        ):
+            }):
             response_text = self.llm_client.complete(
                 messages=messages,
                 temperature=0.8,
-                operation_name=f"ChatCompl with {synth_name}",
-            )
+                operation_name=f"ChatCompl with {synth_name}")
 
         self.logger.info(f"Generated response: {len(response_text)} chars")
 
         return ChatResponse(
             message=response_text,
-            timestamp=datetime.now(),
-        )
+            timestamp=datetime.now())
 
     def generate_response_stream(self, synth_id: str, request: ChatRequest):
         """
@@ -177,13 +173,11 @@ EFEITO ESPERADO: {cc.efeito_esperado or 'N/A'}"""
                 "execution.id": request.exec_id,
                 "operation.type": "chat_response_stream",
                 "chat.history_length": len(request.chat_history),
-            },
-        ):
+            }):
             for chunk in self.llm_client.complete_stream(
                 messages=messages,
                 temperature=0.8,
-                operation_name=f"ChatCompl with {synth_name}",
-            ):
+                operation_name=f"ChatCompl with {synth_name}"):
                 yield chunk
 
     def _format_transcript(self, transcript) -> str:

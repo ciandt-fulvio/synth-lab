@@ -241,8 +241,7 @@ if __name__ == "__main__":
         content_hash="a3b5c7d9e1f3a5b7",
         description="A test image file",
         generated_at=datetime.now(),
-        is_placeholder=False,
-    )
+        is_placeholder=False)
     markdown = desc.to_markdown()
     if "**test.png**" not in markdown or "a3b5c7d9" not in markdown:
         all_validation_failures.append(
@@ -256,8 +255,7 @@ if __name__ == "__main__":
         path=Path("data/topic_guides/test/image.png"),
         file_type=FileType.PNG,
         size_bytes=1024,
-        content_hash="abc123",
-    )
+        content_hash="abc123")
     if not supported_file.is_supported:
         all_validation_failures.append("ContextFile.is_supported: PNG should be supported")
 
@@ -266,8 +264,7 @@ if __name__ == "__main__":
     summary = SummaryFile(
         path=Path("data/topic_guides/test/summary.md"),
         context_description="Test context",
-        file_descriptions=[desc],
-    )
+        file_descriptions=[desc])
     found = summary.get_description_by_filename("test.png")
     if found != desc:
         all_validation_failures.append(
@@ -300,14 +297,12 @@ if __name__ == "__main__":
         file_type=FileType.PDF,
         size_bytes=2048,
         content_hash="def456",
-        is_documented=True,
-    )
+        is_documented=True)
     guide = TopicGuide(
         name="test",
         path=Path("data/topic_guides/test"),
         summary_file=summary,
-        files=[supported_file, documented_file],
-    )
+        files=[supported_file, documented_file])
     if guide.documented_count != 1:
         all_validation_failures.append(
             f"TopicGuide.documented_count: Expected 1, got {guide.documented_count}"

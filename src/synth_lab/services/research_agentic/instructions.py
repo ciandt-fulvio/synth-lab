@@ -210,8 +210,7 @@ def format_interviewer_instructions(
     topic_guide: str,
     conversation_history: str,
     max_turns: int = 6,
-    additional_context: str | None = None,
-) -> str:
+    additional_context: str | None = None) -> str:
     """
     Format interviewer instructions with context.
 
@@ -235,16 +234,14 @@ def format_interviewer_instructions(
         topic_guide=topic_guide,
         additional_context_section=additional_context_section,
         conversation_history=conversation_history,
-        max_turns=max_turns,
-    )
+        max_turns=max_turns)
 
 
 def format_interviewee_instructions(
     synth: dict,
     conversation_history: str,
     available_images: list[str] | None = None,
-    initial_context: str = "",
-) -> str:
+    initial_context: str = "") -> str:
     """
     Format interviewee instructions with complete persona context.
 
@@ -334,8 +331,7 @@ Use a ferramenta quando o entrevistador mostrar ou mencionar uma imagem e você 
         synth_cognitive_contract=cognitive_contract_str,
         initial_context_section=initial_context_section,
         available_images_section=available_images_section,
-        conversation_history=conversation_history,
-    )
+        conversation_history=conversation_history)
 
 
 def format_interviewer_reviewer_instructions(raw_response: str) -> str:
@@ -375,13 +371,11 @@ def format_interviewee_reviewer_instructions(synth: dict, raw_response: str) -> 
     return INTERVIEWEE_REVIEWER_INSTRUCTIONS.format(
         synth_name=nome,
         synth_profile=synth_profile,
-        raw_response=raw_response,
-    )
+        raw_response=raw_response)
 
 
 def format_orchestrator_instructions(conversation_history: str, last_message: str) -> str:
     """Format orchestrator instructions with conversation state."""
     return ORCHESTRATOR_INSTRUCTIONS.format(
         conversation_history=conversation_history,
-        last_message=last_message if last_message else "(início da conversa)",
-    )
+        last_message=last_message if last_message else "(início da conversa)")

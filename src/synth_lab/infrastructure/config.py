@@ -4,10 +4,13 @@ Centralized configuration for synth-lab.
 Environment variables and default settings for database, logging, and LLM client.
 
 Environment Variables:
-    SYNTHLAB_DB_PATH: Path to SQLite database (default: output/synthlab.db)
+    DATABASE_URL: PostgreSQL connection string (REQUIRED)
+        Format: "postgresql://user:pass@host:5432/dbname"
     LOG_LEVEL: Logging level (default: INFO) - set by Makefile based on ENV
     SYNTHLAB_DEFAULT_MODEL: Default LLM model (default: gpt-4o-mini)
     OPENAI_API_KEY: OpenAI API key (required for LLM operations)
+    SQL_ECHO: Set to "true" to enable SQL query logging
+    WORKERS: Number of workers for connection pool sizing (default: 4)
 """
 
 import os
@@ -22,7 +25,8 @@ OUTPUT_DIR = PROJECT_ROOT / "output"
 DATA_DIR = PROJECT_ROOT / "data"
 
 # Database configuration
-DB_PATH = Path(os.getenv("SYNTHLAB_DB_PATH", str(OUTPUT_DIR / "synthlab.db")))
+# DATABASE_URL is REQUIRED and must be a PostgreSQL URL
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Output directories (execution data, not versioned)
 SYNTHS_DIR = OUTPUT_DIR / "synths"
@@ -123,12 +127,12 @@ if __name__ == "__main__":
         all_validation_failures.append(
             f"PROJECT_ROOT does not exist: {PROJECT_ROOT}")
 
-    # Test 2: DB_PATH parent can be created
+    # Test 2: OUTPUT_DIR can be created
     total_tests += 1
     try:
-        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     except Exception as e:
-        all_validation_failures.append(f"Cannot create DB_PATH parent: {e}")
+        all_validation_failures.append(f"Cannot create OUTPUT_DIR: {e}")
 
     # Test 3: Default values are set
     total_tests += 1
@@ -185,6 +189,6 @@ if __name__ == "__main__":
         print(
             f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         print(f"  PROJECT_ROOT: {PROJECT_ROOT}")
-        print(f"  DB_PATH: {DB_PATH}")
+        print(f"  DATABASE_URL: {DATABASE_URL or '(not set - required for runtime)'}")
         print(f"  DEFAULT_MODEL: {DEFAULT_MODEL}")
         sys.exit(0)

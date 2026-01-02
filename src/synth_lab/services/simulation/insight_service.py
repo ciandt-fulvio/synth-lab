@@ -43,8 +43,7 @@ from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttribu
 from synth_lab.domain.entities.chart_insight import (
     ChartInsight,
     ChartType,
-    SimulationInsights,
-)
+    SimulationInsights)
 from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
 from synth_lab.repositories.insight_repository import InsightRepository
@@ -65,8 +64,7 @@ class InsightService:
     def __init__(
         self,
         llm_client: LLMClient | None = None,
-        repository: InsightRepository | None = None,
-    ) -> None:
+        repository: InsightRepository | None = None) -> None:
         """
         Initialize with optional LLM client and repository.
 
@@ -83,8 +81,7 @@ class InsightService:
         simulation_id: str,
         chart_type: ChartType,
         chart_data: dict[str, Any],
-        force: bool = False,
-    ) -> ChartInsight:
+        force: bool = False) -> ChartInsight:
         """
         Generate insight for a chart.
 
@@ -113,8 +110,7 @@ class InsightService:
                 "chart.type": chart_type,
                 "operation.type": "simulation_insight",
                 "force_regenerate": force,
-            },
-        ):
+            }):
             # Check database first (unless force=True)
             if not force:
                 existing = self.repository.get(simulation_id, chart_type)
@@ -140,8 +136,7 @@ class InsightService:
         self,
         simulation_id: str,
         chart_type: ChartType,
-        chart_data: dict[str, Any],
-    ) -> ChartInsight:
+        chart_data: dict[str, Any]) -> ChartInsight:
         """
         Generate insight using LLM.
 
@@ -179,8 +174,7 @@ class InsightService:
         try:
             response = self.llm.complete_json(
                 messages=messages,
-                operation_name="generate_insight",
-            )
+                operation_name="generate_insight")
         except Exception as e:
             raise InsightGenerationError(f"LLM call failed for {chart_type}: {e}") from e
 
@@ -197,14 +191,12 @@ class InsightService:
             explanation=data.get("explanation", "Detailed analysis is being generated."),
             evidence=data.get("evidence", []),
             recommendation=data.get("recommendation"),
-            confidence=float(data.get("confidence", 0.8)),
-        )
+            confidence=float(data.get("confidence", 0.8)))
 
     def _build_insight_prompt(
         self,
         chart_type: ChartType,
-        chart_data: dict[str, Any],
-    ) -> str:
+        chart_data: dict[str, Any]) -> str:
         """Build prompt for full insight generation."""
         data_str = json.dumps(chart_data, indent=2, default=str)
 
@@ -267,14 +259,12 @@ Return JSON:
             simulation_id=simulation_id,
             insights=insights,
             executive_summary=executive_summary,
-            total_charts_analyzed=len(insights),
-        )
+            total_charts_analyzed=len(insights))
 
     def generate_executive_summary(
         self,
         simulation_id: str,
-        force: bool = False,
-    ) -> str | None:
+        force: bool = False) -> str | None:
         """
         Generate executive summary across all insights.
 
@@ -296,8 +286,7 @@ Return JSON:
                 "simulation.id": simulation_id,
                 "operation.type": "simulation_executive_summary",
                 "force_regenerate": force,
-            },
-        ):
+            }):
             # Check database first (unless force=True)
             if not force:
                 existing = self.repository.get_executive_summary(simulation_id)
@@ -342,8 +331,7 @@ Create an executive summary for this simulation analysis:
                                 ct: {"caption": i.caption, "recommendation": i.recommendation}
                                 for ct, i in insights.items()
                             },
-                            indent=2,
-                        )
+                            indent=2)
                     }
 
 Provide a concise summary highlighting key findings and top priority recommendations.
@@ -353,8 +341,7 @@ Provide a concise summary highlighting key findings and top priority recommendat
 
             response = self.llm.complete(
                 messages=messages,
-                operation_name="generate_executive_summary",
-            )
+                operation_name="generate_executive_summary")
 
             # Persist to database
             self.repository.save_executive_summary(simulation_id, response)
@@ -411,8 +398,7 @@ if __name__ == "__main__":
     try:
         prompt = service._build_insight_prompt(
             chart_type="try_vs_success",
-            chart_data={"quadrants": {"strugglers": {"percentage": 42.0}}},
-        )
+            chart_data={"quadrants": {"strugglers": {"percentage": 42.0}}})
         if "try_vs_success" not in prompt.lower() and "quadrant" not in prompt.lower():
             all_validation_failures.append("Prompt should reference chart type")
         elif "20 token" not in prompt.lower():
@@ -432,8 +418,7 @@ if __name__ == "__main__":
             simulation_id="sim_test",
             chart_type="try_vs_success",
             caption="Cached caption",
-            explanation="Cached explanation",
-        )
+            explanation="Cached explanation")
 
         result = service.generate_insight("sim_test", "try_vs_success", {"data": "test"})
 
@@ -457,8 +442,7 @@ if __name__ == "__main__":
             simulation_id="sim_test",
             chart_type="try_vs_success",
             caption="Cached",
-            explanation="Cached",
-        )
+            explanation="Cached")
         mock_llm.complete_json.return_value = json.dumps(
             {
                 "caption": "New LLM caption",
@@ -495,8 +479,7 @@ if __name__ == "__main__":
                 simulation_id="sim_test",
                 chart_type="try_vs_success",
                 caption="Cap 1",
-                explanation="Exp 1",
-            )
+                explanation="Exp 1")
         }
         mock_repo.get_executive_summary.return_value = "Executive summary"
 

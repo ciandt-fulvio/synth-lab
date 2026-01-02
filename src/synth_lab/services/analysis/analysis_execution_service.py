@@ -22,15 +22,12 @@ from synth_lab.domain.entities import Scenario
 from synth_lab.domain.entities.analysis_run import (
     AggregatedOutcomes,
     AnalysisConfig,
-    AnalysisRun,
-)
+    AnalysisRun)
 from synth_lab.domain.entities.experiment import Experiment
 from synth_lab.domain.entities.feature_scorecard import (
     FeatureScorecard,
     ScorecardDimension,
-    ScorecardIdentification,
-)
-from synth_lab.infrastructure.database import DatabaseManager, get_database
+    ScorecardIdentification)
 from synth_lab.repositories.analysis_outcome_repository import AnalysisOutcomeRepository
 from synth_lab.repositories.analysis_repository import AnalysisRepository
 from synth_lab.repositories.experiment_repository import ExperimentRepository
@@ -42,22 +39,18 @@ class AnalysisExecutionService:
 
     def __init__(
         self,
-        db: DatabaseManager | None = None,
         analysis_repo: AnalysisRepository | None = None,
         experiment_repo: ExperimentRepository | None = None,
-        outcome_repo: AnalysisOutcomeRepository | None = None,
-    ):
-        self.db = db or get_database()
-        self.analysis_repo = analysis_repo or AnalysisRepository(self.db)
-        self.experiment_repo = experiment_repo or ExperimentRepository(self.db)
-        self.outcome_repo = outcome_repo or AnalysisOutcomeRepository(self.db)
+        outcome_repo: AnalysisOutcomeRepository | None = None):
+        self.analysis_repo = analysis_repo or AnalysisRepository()
+        self.experiment_repo = experiment_repo or ExperimentRepository()
+        self.outcome_repo = outcome_repo or AnalysisOutcomeRepository()
         self.logger = logger.bind(component="analysis_execution_service")
 
     def execute_analysis(
         self,
         experiment_id: str,
-        config: AnalysisConfig | None = None,
-    ) -> AnalysisRun:
+        config: AnalysisConfig | None = None) -> AnalysisRun:
         """
         Execute a Monte Carlo analysis for an experiment.
 
@@ -121,8 +114,7 @@ class AnalysisExecutionService:
             config=config,
             status="running",
             started_at=datetime.now(timezone.utc),
-            total_synths=len(synths),
-        )
+            total_synths=len(synths))
         self.analysis_repo.create(analysis)
 
         try:
@@ -139,8 +131,7 @@ class AnalysisExecutionService:
                 synths=synths,
                 scorecard=scorecard,
                 scenario=scenario,
-                n_executions=config.n_executions,
-            )
+                n_executions=config.n_executions)
             execution_time = time.time() - start_time
 
             # Save outcomes
@@ -160,8 +151,7 @@ class AnalysisExecutionService:
             aggregated = AggregatedOutcomes(
                 did_not_try_rate=results.aggregated_did_not_try,
                 failed_rate=results.aggregated_failed,
-                success_rate=results.aggregated_success,
-            )
+                success_rate=results.aggregated_success)
 
             updated_analysis = self.analysis_repo.update_status(
                 analysis_id=analysis.id,
@@ -169,8 +159,7 @@ class AnalysisExecutionService:
                 completed_at=datetime.now(timezone.utc),
                 total_synths=results.total_synths,
                 aggregated_outcomes=aggregated,
-                execution_time_seconds=execution_time,
-            )
+                execution_time_seconds=execution_time)
 
             self.logger.info(
                 f"Analysis {analysis.id} completed in {execution_time:.2f}s "
@@ -187,8 +176,7 @@ class AnalysisExecutionService:
             self.analysis_repo.update_status(
                 analysis_id=analysis.id,
                 status="failed",
-                completed_at=datetime.now(timezone.utc),
-            )
+                completed_at=datetime.now(timezone.utc))
             raise
 
     def _load_synths(self, limit: int = 500) -> list[dict[str, Any]]:
@@ -199,22 +187,20 @@ class AnalysisExecutionService:
 
         For legacy synths: Generates default observables based on Big Five.
         """
+        from sqlalchemy import select
         from synth_lab.domain.entities.simulation_attributes import (
-            SimulationObservables,
-        )
+            SimulationObservables)
         from synth_lab.gen_synth.simulation_attributes import derive_latent_traits
+        from synth_lab.infrastructure.database_v2 import get_session
+        from synth_lab.models.orm.synth import Synth as SynthORM
 
-        sql = """
-            SELECT id, nome, data
-            FROM synths
-            WHERE data IS NOT NULL
-            LIMIT ?
-        """
-        rows = self.db.fetchall(sql, (limit,))
+        with get_session() as session:
+            stmt = select(SynthORM).where(SynthORM.data.isnot(None)).limit(limit)
+            orm_synths = list(session.execute(stmt).scalars().all())
 
         synths = []
-        for row in rows:
-            data = json.loads(row["data"]) if row["data"] else {}
+        for orm_synth in orm_synths:
+            data = orm_synth.data if isinstance(orm_synth.data, dict) else {}
 
             # Extract simulation_attributes if present (new format with latent_traits)
             sim_attrs = data.get("simulation_attributes", {})
@@ -223,8 +209,8 @@ class AnalysisExecutionService:
             if sim_attrs.get("latent_traits") and sim_attrs.get("observables"):
                 synths.append(
                     {
-                        "id": row["id"],
-                        "nome": row["nome"],
+                        "id": orm_synth.id,
+                        "nome": orm_synth.nome,
                         "simulation_attributes": sim_attrs,
                     }
                 )
@@ -284,8 +270,8 @@ class AnalysisExecutionService:
 
             synths.append(
                 {
-                    "id": row["id"],
-                    "nome": row["nome"],
+                    "id": orm_synth.id,
+                    "nome": orm_synth.nome,
                     "simulation_attributes": sim_attrs,
                 }
             )
@@ -302,28 +288,22 @@ class AnalysisExecutionService:
             experiment_id=experiment.id,
             identification=ScorecardIdentification(
                 feature_name=sc.feature_name,
-                use_scenario=sc.scenario if sc.scenario else "baseline",
-            ),
+                use_scenario=sc.scenario if sc.scenario else "baseline"),
             description_text=sc.description_text,
             complexity=ScorecardDimension(
                 score=sc.complexity.score,
-                rules_applied=sc.complexity.rules_applied or [],
-            ),
+                rules_applied=sc.complexity.rules_applied or []),
             initial_effort=ScorecardDimension(
                 score=sc.initial_effort.score,
-                rules_applied=sc.initial_effort.rules_applied or [],
-            ),
+                rules_applied=sc.initial_effort.rules_applied or []),
             perceived_risk=ScorecardDimension(
                 score=sc.perceived_risk.score,
-                rules_applied=sc.perceived_risk.rules_applied or [],
-            ),
+                rules_applied=sc.perceived_risk.rules_applied or []),
             time_to_value=ScorecardDimension(
                 score=sc.time_to_value.score,
-                rules_applied=sc.time_to_value.rules_applied or [],
-            ),
+                rules_applied=sc.time_to_value.rules_applied or []),
             justification=sc.justification,
-            impact_hypotheses=sc.impact_hypotheses or [],
-        )
+            impact_hypotheses=sc.impact_hypotheses or [])
 
     def _load_default_scenario(self) -> Scenario:
         """Load the baseline scenario for analysis."""
@@ -394,8 +374,7 @@ class AnalysisExecutionService:
             w_complexity=0.25,
             w_effort=0.25,
             w_risk=0.25,
-            w_time_to_value=0.25,
-        )
+            w_time_to_value=0.25)
 
     def _pre_compute_cache(self, analysis_id: str) -> None:
         """
@@ -413,8 +392,7 @@ class AnalysisExecutionService:
         def _compute_in_background() -> None:
             try:
                 from synth_lab.services.analysis.analysis_cache_service import (
-                    AnalysisCacheService,
-                )
+                    AnalysisCacheService)
 
                 # Create fresh cache service (with new DB connection for thread safety)
                 cache_service = AnalysisCacheService()
@@ -481,11 +459,9 @@ class AnalysisExecutionService:
 
         try:
             from synth_lab.repositories.analysis_cache_repository import (
-                AnalysisCacheRepository,
-            )
+                AnalysisCacheRepository)
             from synth_lab.services.executive_summary_service import (
-                ExecutiveSummaryService,
-            )
+                ExecutiveSummaryService)
             from synth_lab.services.insight_service import InsightService
 
             cache_repo = AnalysisCacheRepository()
@@ -593,7 +569,7 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         db = get_database()
-        service = AnalysisExecutionService(db)
+        service = AnalysisExecutionService()
         if service is None:
             all_validation_failures.append("Service initialization failed")
     except Exception as e:

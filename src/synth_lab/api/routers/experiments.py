@@ -23,20 +23,16 @@ from synth_lab.api.schemas.experiments import (
     PaginatedExperimentSummary,
     ScorecardDataSchema,
     ScorecardDimensionSchema,
-    ScorecardEstimateResponse,
-)
+    ScorecardEstimateResponse)
 from synth_lab.api.schemas.experiments import (
-    ExperimentCreate as ExperimentCreateSchema,
-)
+    ExperimentCreate as ExperimentCreateSchema)
 from synth_lab.api.schemas.experiments import (
-    ExperimentSummary as ExperimentSummarySchema,
-)
+    ExperimentSummary as ExperimentSummarySchema)
 from synth_lab.api.schemas.experiments import (
-    ExperimentUpdate as ExperimentUpdateSchema,
-)
+    ExperimentUpdate as ExperimentUpdateSchema)
 from synth_lab.api.schemas.exploration import ExplorationSummary
 from synth_lab.domain.entities.experiment import ScorecardData, ScorecardDimension
-from synth_lab.infrastructure.database import get_database
+from synth_lab.infrastructure.database_v2 import get_session
 from synth_lab.models.pagination import PaginationParams
 from synth_lab.models.research import ResearchExecuteRequest, ResearchExecuteResponse
 from synth_lab.repositories.analysis_repository import AnalysisRepository
@@ -46,13 +42,11 @@ from synth_lab.repositories.research_repository import ResearchRepository
 from synth_lab.repositories.synth_repository import SynthRepository
 from synth_lab.services.experiment_service import ExperimentService
 from synth_lab.services.interview_guide_generator_service import (
-    generate_interview_guide_async,
-)
+    generate_interview_guide_async)
 from synth_lab.services.research_service import ResearchService
 from synth_lab.services.scorecard_estimator import (
     ScorecardEstimationError,
-    ScorecardEstimator,
-)
+    ScorecardEstimator)
 
 router = APIRouter()
 
@@ -68,8 +62,7 @@ def get_experiment_service() -> ExperimentService:
 
 
 def _convert_schema_to_scorecard_data(
-    schema: ScorecardDataSchema,
-) -> ScorecardData:
+    schema: ScorecardDataSchema) -> ScorecardData:
     """Convert API schema to domain entity."""
     return ScorecardData(
         feature_name=schema.feature_name,
@@ -80,34 +73,28 @@ def _convert_schema_to_scorecard_data(
             score=schema.complexity.score,
             rules_applied=schema.complexity.rules_applied,
             lower_bound=schema.complexity.lower_bound,
-            upper_bound=schema.complexity.upper_bound,
-        ),
+            upper_bound=schema.complexity.upper_bound),
         initial_effort=ScorecardDimension(
             score=schema.initial_effort.score,
             rules_applied=schema.initial_effort.rules_applied,
             lower_bound=schema.initial_effort.lower_bound,
-            upper_bound=schema.initial_effort.upper_bound,
-        ),
+            upper_bound=schema.initial_effort.upper_bound),
         perceived_risk=ScorecardDimension(
             score=schema.perceived_risk.score,
             rules_applied=schema.perceived_risk.rules_applied,
             lower_bound=schema.perceived_risk.lower_bound,
-            upper_bound=schema.perceived_risk.upper_bound,
-        ),
+            upper_bound=schema.perceived_risk.upper_bound),
         time_to_value=ScorecardDimension(
             score=schema.time_to_value.score,
             rules_applied=schema.time_to_value.rules_applied,
             lower_bound=schema.time_to_value.lower_bound,
-            upper_bound=schema.time_to_value.upper_bound,
-        ),
+            upper_bound=schema.time_to_value.upper_bound),
         justification=schema.justification,
-        impact_hypotheses=schema.impact_hypotheses,
-    )
+        impact_hypotheses=schema.impact_hypotheses)
 
 
 def _convert_scorecard_data_to_schema(
-    data: ScorecardData,
-) -> ScorecardDataSchema:
+    data: ScorecardData) -> ScorecardDataSchema:
     """Convert domain entity to API schema."""
     return ScorecardDataSchema(
         feature_name=data.feature_name,
@@ -118,29 +105,24 @@ def _convert_scorecard_data_to_schema(
             score=data.complexity.score,
             rules_applied=data.complexity.rules_applied,
             lower_bound=data.complexity.lower_bound,
-            upper_bound=data.complexity.upper_bound,
-        ),
+            upper_bound=data.complexity.upper_bound),
         initial_effort=ScorecardDimensionSchema(
             score=data.initial_effort.score,
             rules_applied=data.initial_effort.rules_applied,
             lower_bound=data.initial_effort.lower_bound,
-            upper_bound=data.initial_effort.upper_bound,
-        ),
+            upper_bound=data.initial_effort.upper_bound),
         perceived_risk=ScorecardDimensionSchema(
             score=data.perceived_risk.score,
             rules_applied=data.perceived_risk.rules_applied,
             lower_bound=data.perceived_risk.lower_bound,
-            upper_bound=data.perceived_risk.upper_bound,
-        ),
+            upper_bound=data.perceived_risk.upper_bound),
         time_to_value=ScorecardDimensionSchema(
             score=data.time_to_value.score,
             rules_applied=data.time_to_value.rules_applied,
             lower_bound=data.time_to_value.lower_bound,
-            upper_bound=data.time_to_value.upper_bound,
-        ),
+            upper_bound=data.time_to_value.upper_bound),
         justification=data.justification,
-        impact_hypotheses=data.impact_hypotheses,
-    )
+        impact_hypotheses=data.impact_hypotheses)
 
 
 # =============================================================================
@@ -166,8 +148,7 @@ async def create_experiment(data: ExperimentCreateSchema) -> ExperimentResponse:
             name=data.name,
             hypothesis=data.hypothesis,
             description=data.description,
-            scorecard_data=scorecard_data,
-        )
+            scorecard_data=scorecard_data)
 
         # Trigger async interview guide generation (non-blocking)
         asyncio.create_task(
@@ -175,8 +156,7 @@ async def create_experiment(data: ExperimentCreateSchema) -> ExperimentResponse:
                 experiment_id=experiment.id,
                 name=experiment.name,
                 hypothesis=experiment.hypothesis,
-                description=experiment.description,
-            )
+                description=experiment.description)
         )
         logger.info(f"Interview guide generation started for experiment: {experiment.id}")
 
@@ -186,9 +166,9 @@ async def create_experiment(data: ExperimentCreateSchema) -> ExperimentResponse:
             scorecard_schema = _convert_scorecard_data_to_schema(experiment.scorecard_data)
 
         # Check if interview guide exists (newly created experiments won't have one)
-        db = get_database()
-        interview_guide_repo = InterviewGuideRepository(db)
-        has_interview_guide = interview_guide_repo.exists(experiment.id)
+        with get_session() as session:
+            interview_guide_repo = InterviewGuideRepository(session=session)
+            has_interview_guide = interview_guide_repo.exists(experiment.id)
 
         return ExperimentResponse(
             id=experiment.id,
@@ -199,13 +179,11 @@ async def create_experiment(data: ExperimentCreateSchema) -> ExperimentResponse:
             has_scorecard=experiment.has_scorecard(),
             has_interview_guide=has_interview_guide,
             created_at=experiment.created_at,
-            updated_at=experiment.updated_at,
-        )
+            updated_at=experiment.updated_at)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e),
-        )
+            detail=str(e))
 
 
 class ScorecardEstimateRequest(BaseModel):
@@ -213,27 +191,22 @@ class ScorecardEstimateRequest(BaseModel):
 
     name: str = Field(
         max_length=100,
-        description="Short name of the feature.",
-    )
+        description="Short name of the feature.")
     hypothesis: str = Field(
         max_length=500,
-        description="Description of the hypothesis to test.",
-    )
+        description="Description of the hypothesis to test.")
     description: str | None = Field(
         default=None,
         max_length=2000,
-        description="Additional context.",
-    )
+        description="Additional context.")
 
 
 @router.post(
     "/estimate-scorecard",
     response_model=ScorecardEstimateResponse,
-    status_code=status.HTTP_200_OK,
-)
+    status_code=status.HTTP_200_OK)
 async def estimate_scorecard_from_text(
-    request: ScorecardEstimateRequest,
-) -> ScorecardEstimateResponse:
+    request: ScorecardEstimateRequest) -> ScorecardEstimateResponse:
     """
     Use AI to estimate scorecard dimensions from text input.
 
@@ -246,48 +219,40 @@ async def estimate_scorecard_from_text(
         estimate = estimator.estimate_from_text(
             name=request.name,
             hypothesis=request.hypothesis,
-            description=request.description,
-        )
+            description=request.description)
         return ScorecardEstimateResponse(
             complexity=ScorecardDimensionSchema(
                 score=estimate.complexity.value,
                 rules_applied=[],
                 lower_bound=estimate.complexity.min,
-                upper_bound=estimate.complexity.max,
-            ),
+                upper_bound=estimate.complexity.max),
             initial_effort=ScorecardDimensionSchema(
                 score=estimate.initial_effort.value,
                 rules_applied=[],
                 lower_bound=estimate.initial_effort.min,
-                upper_bound=estimate.initial_effort.max,
-            ),
+                upper_bound=estimate.initial_effort.max),
             perceived_risk=ScorecardDimensionSchema(
                 score=estimate.perceived_risk.value,
                 rules_applied=[],
                 lower_bound=estimate.perceived_risk.min,
-                upper_bound=estimate.perceived_risk.max,
-            ),
+                upper_bound=estimate.perceived_risk.max),
             time_to_value=ScorecardDimensionSchema(
                 score=estimate.time_to_value.value,
                 rules_applied=[],
                 lower_bound=estimate.time_to_value.min,
-                upper_bound=estimate.time_to_value.max,
-            ),
+                upper_bound=estimate.time_to_value.max),
             justification=getattr(estimate, "justification", ""),
-            impact_hypotheses=getattr(estimate, "impact_hypotheses", []),
-        )
+            impact_hypotheses=getattr(estimate, "impact_hypotheses", []))
     except ScorecardEstimationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
+            detail=str(e))
 
 
 @router.get("/list", response_model=PaginatedExperimentSummary)
 async def list_experiments(
     limit: int = Query(default=50, ge=1, le=200, description="Maximum items per page"),
-    offset: int = Query(default=0, ge=0, description="Number of items to skip"),
-) -> PaginatedExperimentSummary:
+    offset: int = Query(default=0, ge=0, description="Number of items to skip")) -> PaginatedExperimentSummary:
     """
     List all experiments with pagination.
 
@@ -298,8 +263,7 @@ async def list_experiments(
         limit=limit,
         offset=offset,
         sort_by="created_at",
-        sort_order="desc",
-    )
+        sort_order="desc")
     result = service.list_experiments(params)
 
     # Convert repository summaries to API schemas
@@ -314,15 +278,13 @@ async def list_experiments(
             has_interview_guide=exp.has_interview_guide,
             interview_count=exp.interview_count,
             created_at=exp.created_at,
-            updated_at=exp.updated_at,
-        )
+            updated_at=exp.updated_at)
         for exp in result.data
     ]
 
     return PaginatedExperimentSummary(
         data=summaries,
-        pagination=result.pagination,
-    )
+        pagination=result.pagination)
 
 
 @router.get("/{experiment_id}", response_model=ExperimentDetail)
@@ -339,72 +301,67 @@ async def get_experiment(experiment_id: str) -> ExperimentDetail:
     if experiment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found",
+            detail=f"Experiment {experiment_id} not found")
+
+    with get_session() as session:
+        # Get analysis (1:1 relationship)
+        analysis_repo = AnalysisRepository(session=session)
+        analysis_run = analysis_repo.get_by_experiment_id(experiment_id)
+        analysis_summary = None
+        if analysis_run:
+            outcomes_schema = None
+            if analysis_run.aggregated_outcomes:
+                outcomes_schema = AggregatedOutcomesSchema(
+                    did_not_try_rate=analysis_run.aggregated_outcomes.did_not_try_rate,
+                    failed_rate=analysis_run.aggregated_outcomes.failed_rate,
+                    success_rate=analysis_run.aggregated_outcomes.success_rate)
+            analysis_summary = AnalysisSummary(
+                id=analysis_run.id,
+                simulation_id=analysis_run.id,  # Use analysis ID for chart endpoints
+                status=analysis_run.status,
+                started_at=analysis_run.started_at,
+                completed_at=analysis_run.completed_at,
+                total_synths=analysis_run.total_synths,
+                n_executions=analysis_run.config.n_executions,
+                execution_time_seconds=analysis_run.execution_time_seconds,
+                aggregated_outcomes=outcomes_schema)
+
+        # Fetch interviews using repository methods
+        research_repo = ResearchRepository(session=session)
+        interview_response = research_repo.list_executions_by_experiment(
+            experiment_id, PaginationParams(limit=100)
         )
 
-    db = get_database()
+        # Batch fetch for summary, prfaq, additional_context, and total_turns
+        exec_ids = [exec.exec_id for exec in interview_response.data]
+        summary_exists = research_repo.check_summaries_exist_batch(exec_ids)
+        prfaq_exists = research_repo.check_prfaqs_exist_batch(exec_ids)
+        additional_contexts = research_repo.get_additional_context_batch(exec_ids)
+        total_turns = research_repo.get_total_turns_batch(exec_ids)
 
-    # Get analysis (1:1 relationship)
-    analysis_repo = AnalysisRepository(db)
-    analysis_run = analysis_repo.get_by_experiment_id(experiment_id)
-    analysis_summary = None
-    if analysis_run:
-        outcomes_schema = None
-        if analysis_run.aggregated_outcomes:
-            outcomes_schema = AggregatedOutcomesSchema(
-                did_not_try_rate=analysis_run.aggregated_outcomes.did_not_try_rate,
-                failed_rate=analysis_run.aggregated_outcomes.failed_rate,
-                success_rate=analysis_run.aggregated_outcomes.success_rate,
-            )
-        analysis_summary = AnalysisSummary(
-            id=analysis_run.id,
-            simulation_id=analysis_run.id,  # Use analysis ID for chart endpoints
-            status=analysis_run.status,
-            started_at=analysis_run.started_at,
-            completed_at=analysis_run.completed_at,
-            total_synths=analysis_run.total_synths,
-            n_executions=analysis_run.config.n_executions,
-            execution_time_seconds=analysis_run.execution_time_seconds,
-            aggregated_outcomes=outcomes_schema,
-        )
+        interviews = [
+            InterviewSummary(
+                exec_id=exec.exec_id,
+                topic_name=exec.topic_name,
+                status=exec.status.value if hasattr(exec.status, "value") else str(exec.status),
+                synth_count=exec.synth_count,
+                total_turns=total_turns.get(exec.exec_id, 0),
+                has_summary=summary_exists.get(exec.exec_id, False),
+                has_prfaq=prfaq_exists.get(exec.exec_id, False),
+                additional_context=additional_contexts.get(exec.exec_id),
+                started_at=exec.started_at,
+                completed_at=exec.completed_at)
+            for exec in interview_response.data
+        ]
 
-    # Fetch interviews using repository methods
-    research_repo = ResearchRepository(db)
-    interview_response = research_repo.list_executions_by_experiment(
-        experiment_id, PaginationParams(limit=100)
-    )
+        # Build response with scorecard if present
+        scorecard_schema = None
+        if experiment.scorecard_data:
+            scorecard_schema = _convert_scorecard_data_to_schema(experiment.scorecard_data)
 
-    # Batch fetch for summary, prfaq, additional_context, and total_turns
-    exec_ids = [exec.exec_id for exec in interview_response.data]
-    summary_exists = research_repo.check_summaries_exist_batch(exec_ids)
-    prfaq_exists = research_repo.check_prfaqs_exist_batch(exec_ids)
-    additional_contexts = research_repo.get_additional_context_batch(exec_ids)
-    total_turns = research_repo.get_total_turns_batch(exec_ids)
-
-    interviews = [
-        InterviewSummary(
-            exec_id=exec.exec_id,
-            topic_name=exec.topic_name,
-            status=exec.status.value if hasattr(exec.status, "value") else str(exec.status),
-            synth_count=exec.synth_count,
-            total_turns=total_turns.get(exec.exec_id, 0),
-            has_summary=summary_exists.get(exec.exec_id, False),
-            has_prfaq=prfaq_exists.get(exec.exec_id, False),
-            additional_context=additional_contexts.get(exec.exec_id),
-            started_at=exec.started_at,
-            completed_at=exec.completed_at,
-        )
-        for exec in interview_response.data
-    ]
-
-    # Build response with scorecard if present
-    scorecard_schema = None
-    if experiment.scorecard_data:
-        scorecard_schema = _convert_scorecard_data_to_schema(experiment.scorecard_data)
-
-    # Check if interview guide exists
-    interview_guide_repo = InterviewGuideRepository(db)
-    has_interview_guide = interview_guide_repo.exists(experiment_id)
+        # Check if interview guide exists
+        interview_guide_repo = InterviewGuideRepository(session=session)
+        has_interview_guide = interview_guide_repo.exists(experiment_id)
 
     return ExperimentDetail(
         id=experiment.id,
@@ -418,15 +375,13 @@ async def get_experiment(experiment_id: str) -> ExperimentDetail:
         updated_at=experiment.updated_at,
         analysis=analysis_summary,
         interviews=interviews,
-        interview_count=len(interviews),
-    )
+        interview_count=len(interviews))
 
 
 @router.put("/{experiment_id}", response_model=ExperimentResponse)
 async def update_experiment(
     experiment_id: str,
-    data: ExperimentUpdateSchema,
-) -> ExperimentResponse:
+    data: ExperimentUpdateSchema) -> ExperimentResponse:
     """
     Update an experiment (name, hypothesis, description only).
 
@@ -438,22 +393,20 @@ async def update_experiment(
             experiment_id,
             name=data.name,
             hypothesis=data.hypothesis,
-            description=data.description,
-        )
+            description=data.description)
         if updated is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Experiment {experiment_id} not found",
-            )
+                detail=f"Experiment {experiment_id} not found")
 
         scorecard_schema = None
         if updated.scorecard_data:
             scorecard_schema = _convert_scorecard_data_to_schema(updated.scorecard_data)
 
         # Check if interview guide exists
-        db = get_database()
-        interview_guide_repo = InterviewGuideRepository(db)
-        has_interview_guide = interview_guide_repo.exists(experiment_id)
+        with get_session() as session:
+            interview_guide_repo = InterviewGuideRepository(session=session)
+            has_interview_guide = interview_guide_repo.exists(experiment_id)
 
         return ExperimentResponse(
             id=updated.id,
@@ -464,13 +417,11 @@ async def update_experiment(
             has_scorecard=updated.has_scorecard(),
             has_interview_guide=has_interview_guide,
             created_at=updated.created_at,
-            updated_at=updated.updated_at,
-        )
+            updated_at=updated.updated_at)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e),
-        )
+            detail=str(e))
 
 
 @router.delete("/{experiment_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -485,8 +436,7 @@ async def delete_experiment(experiment_id: str) -> None:
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found",
-        )
+            detail=f"Experiment {experiment_id} not found")
 
 
 # =============================================================================
@@ -497,8 +447,7 @@ async def delete_experiment(experiment_id: str) -> None:
 @router.put("/{experiment_id}/scorecard", response_model=ExperimentResponse)
 async def update_scorecard(
     experiment_id: str,
-    data: ScorecardDataSchema,
-) -> ExperimentResponse:
+    data: ScorecardDataSchema) -> ExperimentResponse:
     """
     Update the embedded scorecard of an experiment.
 
@@ -514,17 +463,16 @@ async def update_scorecard(
         if updated is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Experiment {experiment_id} not found",
-            )
+                detail=f"Experiment {experiment_id} not found")
 
         scorecard_schema = None
         if updated.scorecard_data:
             scorecard_schema = _convert_scorecard_data_to_schema(updated.scorecard_data)
 
         # Check if interview guide exists
-        db = get_database()
-        interview_guide_repo = InterviewGuideRepository(db)
-        has_interview_guide = interview_guide_repo.exists(experiment_id)
+        with get_session() as session:
+            interview_guide_repo = InterviewGuideRepository(session=session)
+            has_interview_guide = interview_guide_repo.exists(experiment_id)
 
         return ExperimentResponse(
             id=updated.id,
@@ -535,13 +483,11 @@ async def update_scorecard(
             has_scorecard=updated.has_scorecard(),
             has_interview_guide=has_interview_guide,
             created_at=updated.created_at,
-            updated_at=updated.updated_at,
-        )
+            updated_at=updated.updated_at)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e),
-        )
+            detail=str(e))
 
 
 # =============================================================================
@@ -554,24 +500,20 @@ class InterviewCreateRequest(BaseModel):
 
     additional_context: str | None = Field(
         default=None,
-        description="Additional context to complement the research scenario",
-    )
+        description="Additional context to complement the research scenario")
     synth_ids: list[str] | None = Field(
         default=None,
-        description="Specific synth IDs to interview",
-    )
+        description="Specific synth IDs to interview")
     synth_count: int | None = Field(
         default=5,
         ge=1,
         le=50,
-        description="Number of random synths (if synth_ids not provided)",
-    )
+        description="Number of random synths (if synth_ids not provided)")
     max_turns: int = Field(
         default=6,
         ge=1,
         le=20,
-        description="Max interview turns (each turn = 1 question + 1 answer)",
-    )
+        description="Max interview turns (each turn = 1 question + 1 answer)")
     generate_summary: bool = Field(default=True, description="Generate summary after completion")
 
 
@@ -583,12 +525,10 @@ def get_research_service() -> ResearchService:
 @router.post(
     "/{experiment_id}/interviews",
     response_model=ResearchExecuteResponse,
-    status_code=status.HTTP_201_CREATED,
-)
+    status_code=status.HTTP_201_CREATED)
 async def create_interview_for_experiment(
     experiment_id: str,
-    request: InterviewCreateRequest,
-) -> ResearchExecuteResponse:
+    request: InterviewCreateRequest) -> ResearchExecuteResponse:
     """
     Create a new interview linked to an experiment.
 
@@ -602,17 +542,15 @@ async def create_interview_for_experiment(
     if experiment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found",
-        )
+            detail=f"Experiment {experiment_id} not found")
 
     # Validate experiment has interview guide
-    db = get_database()
-    interview_guide_repo = InterviewGuideRepository(db)
-    if not interview_guide_repo.exists(experiment_id):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Experiment does not have an interview guide configured",
-        )
+    with get_session() as session:
+        interview_guide_repo = InterviewGuideRepository(session=session)
+        if not interview_guide_repo.exists(experiment_id):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Experiment does not have an interview guide configured")
 
     # Create research execution request with experiment_id
     # The research_service will load the interview_guide from DB
@@ -623,8 +561,7 @@ async def create_interview_for_experiment(
         synth_ids=request.synth_ids,
         synth_count=request.synth_count,
         max_turns=request.max_turns,
-        generate_summary=request.generate_summary,
-    )
+        generate_summary=request.generate_summary)
 
     # Execute via research service
     research_service = get_research_service()
@@ -633,17 +570,14 @@ async def create_interview_for_experiment(
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e),
-        )
+            detail=str(e))
 
 
 @router.get(
     "/{experiment_id}/interviews/auto",
-    response_model=ResearchExecuteResponse | None,
-)
+    response_model=ResearchExecuteResponse | None)
 async def get_auto_interview_for_experiment(
-    experiment_id: str,
-) -> ResearchExecuteResponse | None:
+    experiment_id: str) -> ResearchExecuteResponse | None:
     """
     Get the auto-interview execution for this experiment if it exists.
 
@@ -656,31 +590,27 @@ async def get_auto_interview_for_experiment(
     Returns:
         ResearchExecuteResponse with interview details, or None if not found.
     """
-    db = get_database()
-    research_repo = ResearchRepository(db)
+    with get_session() as session:
+        research_repo = ResearchRepository(session=session)
+        execution = research_repo.get_auto_interview_for_experiment(experiment_id)
 
-    execution = research_repo.get_auto_interview_for_experiment(experiment_id)
+        if execution is None:
+            return None
 
-    if execution is None:
-        return None
-
-    return ResearchExecuteResponse(
-        exec_id=execution.exec_id,
-        status=execution.status,
-        topic_name=execution.topic_name,
-        synth_count=execution.synth_count,
-        started_at=execution.started_at,
-    )
+        return ResearchExecuteResponse(
+            exec_id=execution.exec_id,
+            status=execution.status,
+            topic_name=execution.topic_name,
+            synth_count=execution.synth_count,
+            started_at=execution.started_at)
 
 
 @router.post(
     "/{experiment_id}/interviews/auto",
     response_model=ResearchExecuteResponse,
-    status_code=status.HTTP_201_CREATED,
-)
+    status_code=status.HTTP_201_CREATED)
 async def create_auto_interview_for_experiment(
-    experiment_id: str,
-) -> ResearchExecuteResponse:
+    experiment_id: str) -> ResearchExecuteResponse:
     """
     Create an interview with extreme case synths (top 5 + bottom 5).
 
@@ -701,33 +631,30 @@ async def create_auto_interview_for_experiment(
     if experiment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found",
-        )
+            detail=f"Experiment {experiment_id} not found")
 
-    # Validate experiment has interview guide
-    db = get_database()
-    interview_guide_repo = InterviewGuideRepository(db)
-    if not interview_guide_repo.exists(experiment_id):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Experiment does not have an interview guide configured",
-        )
+    with get_session() as session:
+        # Validate experiment has interview guide
+        interview_guide_repo = InterviewGuideRepository(session=session)
+        if not interview_guide_repo.exists(experiment_id):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Experiment does not have an interview guide configured")
 
-    # Get extreme cases (top 5 + bottom 5)
-    synth_repo = SynthRepository(db)
-    bottom_ids, top_ids = synth_repo.get_extreme_cases(experiment_id, top_n=5)
+        # Get extreme cases (top 5 + bottom 5)
+        synth_repo = SynthRepository(session=session)
+        bottom_ids, top_ids = synth_repo.get_extreme_cases(experiment_id, top_n=5)
 
-    # Validate we have at least 10 synths
-    total_synths = len(bottom_ids) + len(top_ids)
-    if total_synths < 10:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Not enough synths for auto-interview. Found {total_synths}, "
-            f"need 10 (5 best + 5 worst).",
-        )
+        # Validate we have at least 10 synths
+        total_synths = len(bottom_ids) + len(top_ids)
+        if total_synths < 10:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Not enough synths for auto-interview. Found {total_synths}, "
+                f"need 10 (5 best + 5 worst).")
 
-    # Combine extreme cases (bottom 5 first, then top 5)
-    extreme_synth_ids = bottom_ids[:5] + top_ids[:5]
+        # Combine extreme cases (bottom 5 first, then top 5)
+        extreme_synth_ids = bottom_ids[:5] + top_ids[:5]
 
     # Create research execution request with extreme synth IDs
     auto_context = "Entrevista automática com casos extremos (5 piores + 5 melhores)"
@@ -737,8 +664,7 @@ async def create_auto_interview_for_experiment(
         additional_context=auto_context,
         synth_ids=extreme_synth_ids,
         max_turns=5,
-        generate_summary=True,
-    )
+        generate_summary=True)
 
     # Execute via research service
     research_service = get_research_service()
@@ -747,8 +673,7 @@ async def create_auto_interview_for_experiment(
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e),
-        )
+            detail=str(e))
 
 
 # =============================================================================
@@ -758,11 +683,9 @@ async def create_auto_interview_for_experiment(
 
 @router.get(
     "/{experiment_id}/explorations",
-    response_model=list[ExplorationSummary],
-)
+    response_model=list[ExplorationSummary])
 async def list_explorations_for_experiment(
-    experiment_id: str,
-) -> list[ExplorationSummary]:
+    experiment_id: str) -> list[ExplorationSummary]:
     """
     List all explorations for an experiment.
 
@@ -783,36 +706,32 @@ async def list_explorations_for_experiment(
     if experiment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found",
-        )
+            detail=f"Experiment {experiment_id} not found")
 
     # Get explorations
-    db = get_database()
-    exploration_repo = ExplorationRepository(db)
-    explorations = exploration_repo.list_explorations_by_experiment(experiment_id)
+    with get_session() as session:
+        exploration_repo = ExplorationRepository(session=session)
+        explorations = exploration_repo.list_explorations_by_experiment(experiment_id)
 
-    return [
-        ExplorationSummary(
-            id=e.id,
-            status=e.status.value,
-            goal_value=e.goal.value,
-            best_success_rate=e.best_success_rate,
-            total_nodes=e.total_nodes,
-            started_at=e.started_at,
-            completed_at=e.completed_at,
-        )
-        for e in explorations
-    ]
+        return [
+            ExplorationSummary(
+                id=e.id,
+                status=e.status.value,
+                goal_value=e.goal.value,
+                best_success_rate=e.best_success_rate,
+                total_nodes=e.total_nodes,
+                started_at=e.started_at,
+                completed_at=e.completed_at)
+            for e in explorations
+        ]
 
 
 @router.post(
     "/{experiment_id}/estimate-scorecard",
     response_model=ScorecardEstimateResponse,
-    status_code=status.HTTP_200_OK,
-)
+    status_code=status.HTTP_200_OK)
 async def estimate_scorecard_for_experiment(
-    experiment_id: str,
-) -> ScorecardEstimateResponse:
+    experiment_id: str) -> ScorecardEstimateResponse:
     """
     Use AI to estimate scorecard dimensions for an experiment.
 
@@ -825,8 +744,7 @@ async def estimate_scorecard_for_experiment(
     if experiment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found",
-        )
+            detail=f"Experiment {experiment_id} not found")
 
     # Use ScorecardEstimator service (handles LLM call with tracing)
     estimator = ScorecardEstimator()
@@ -837,31 +755,25 @@ async def estimate_scorecard_for_experiment(
                 score=estimate.complexity.value,
                 rules_applied=[],
                 lower_bound=estimate.complexity.min,
-                upper_bound=estimate.complexity.max,
-            ),
+                upper_bound=estimate.complexity.max),
             initial_effort=ScorecardDimensionSchema(
                 score=estimate.initial_effort.value,
                 rules_applied=[],
                 lower_bound=estimate.initial_effort.min,
-                upper_bound=estimate.initial_effort.max,
-            ),
+                upper_bound=estimate.initial_effort.max),
             perceived_risk=ScorecardDimensionSchema(
                 score=estimate.perceived_risk.value,
                 rules_applied=[],
                 lower_bound=estimate.perceived_risk.min,
-                upper_bound=estimate.perceived_risk.max,
-            ),
+                upper_bound=estimate.perceived_risk.max),
             time_to_value=ScorecardDimensionSchema(
                 score=estimate.time_to_value.value,
                 rules_applied=[],
                 lower_bound=estimate.time_to_value.min,
-                upper_bound=estimate.time_to_value.max,
-            ),
+                upper_bound=estimate.time_to_value.max),
             justification=getattr(estimate, "justification", ""),
-            impact_hypotheses=getattr(estimate, "impact_hypotheses", []),
-        )
+            impact_hypotheses=getattr(estimate, "impact_hypotheses", []))
     except ScorecardEstimationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
+            detail=str(e))

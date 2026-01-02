@@ -43,8 +43,7 @@ class ActionCategory(BaseModel):
     description: str = Field(description="Description of the category.")
     examples: list[ActionExample] = Field(
         default_factory=list,
-        description="Example actions in this category.",
-    )
+        description="Example actions in this category.")
 
 
 class ActionCatalogData(BaseModel):

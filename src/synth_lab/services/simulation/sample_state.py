@@ -46,8 +46,7 @@ def sample_user_state(
     latent_traits: dict[str, float],
     scenario: dict[str, float],
     sigma: float,
-    rng: Generator,
-) -> UserState:
+    rng: Generator) -> UserState:
     """
     Sample user state from latent traits with noise and scenario modifiers.
 
@@ -112,16 +111,14 @@ def sample_user_state(
         trust=trust,
         friction_tolerance=friction_tolerance,
         explores=explores,
-        motivation=motivation,
-    )
+        motivation=motivation)
 
 
 def sample_user_states_batch(
     latent_traits_batch: list[dict[str, float]],
     scenario: dict[str, float],
     sigma: float,
-    rng: Generator,
-) -> list[UserState]:
+    rng: Generator) -> list[UserState]:
     """
     Sample user states for a batch of synths.
 

@@ -15,8 +15,7 @@ result = await run_interview(
     synth_id="abc123",
     context_definition="Contexto da pesquisa...",
     questions="Q1: Pergunta 1?\nQ2: Pergunta 2?",
-    max_turns=6,
-)
+    max_turns=6)
 ```
 """
 
@@ -40,8 +39,7 @@ from synth_lab.trace_visualizer import SpanStatus, SpanType, Tracer
 from .agent_definitions import (
     create_interviewee,
     create_interviewee_reviewer,
-    create_interviewer,
-)
+    create_interviewer)
 from .tracing_bridge import TraceVisualizerProcessor
 
 # Console for colored output
@@ -236,8 +234,7 @@ async def generate_initial_context(
     context_definition: str | None = None,
     additional_context: str | None = None,
     synth_outcome: "SynthOutcome | None" = None,
-    avg_success_rate: float | None = None,
-) -> str:
+    avg_success_rate: float | None = None) -> str:
     """
     Generate initial context for the interviewee based on examples.
 
@@ -262,8 +259,7 @@ async def generate_initial_context(
 
     from synth_lab.services.research_agentic.context_formatter import (
         ExperienceClassification,
-        classify_experience,
-    )
+        classify_experience)
 
     # Determine sentiment based on simulation data or randomly
     classification: ExperienceClassification | None = None
@@ -377,8 +373,7 @@ Responda APENAS com a experiência gerada, sem explicações adicionais."""
             "Você é um gerador de contextos para personas sintéticas. "
             "Gere experiências realistas e personalizadas."
         ),
-        model=model,
-    )
+        model=model)
 
     result = await AgentRunner.run(context_agent, input=prompt)
     generated_context = result.final_output.strip()
@@ -402,8 +397,7 @@ def _get_simulation_context_for_synth(synth_id: str, analysis_id: str) -> str:
     from synth_lab.repositories.synth_outcome_repository import SynthOutcomeRepository
     from synth_lab.services.research_agentic.context_formatter import (
         create_simulation_context_from_outcome,
-        format_simulation_context,
-    )
+        format_simulation_context)
 
     try:
         repo = SynthOutcomeRepository()
@@ -480,8 +474,7 @@ async def run_interview(
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
     guide_name: str = "interview",
-    analysis_id: str | None = None,
-) -> InterviewResult:
+    analysis_id: str | None = None) -> InterviewResult:
     """
     Run an agentic interview with orchestrated turn-taking.
 
@@ -516,8 +509,7 @@ async def run_interview(
     guide = InterviewGuideData(
         context_definition="Pesquisa sobre checkout 1-clique",
         questions="Q1: Como você se sente...?",
-        context_examples="Exemplo de experiência positiva...",
-    )
+        context_examples="Exemplo de experiência positiva...")
     result = await run_interview(
         synth_id="abc123",
         interview_guide=guide,
@@ -568,8 +560,7 @@ async def run_interview(
     # Initialize shared memory
     shared_memory = SharedMemory(
         topic_guide=topic_guide,
-        synth=synth,
-    )
+        synth=synth)
 
     # Initial context will be generated in parallel with first interviewer turn
     # If we have simulation context, prepend it
@@ -585,8 +576,7 @@ async def run_interview(
             "guide_name": guide_name,
             "model": model,
             "max_turns": str(max_turns),
-        },
-    )
+        })
 
     # Add custom trace processor to capture SDK traces
     processor = TraceVisualizerProcessor(tracer, verbose=False)
@@ -607,21 +597,18 @@ async def run_interview(
                         {
                             "speaker": "interviewer",
                             "turn_number": turns + 1,
-                        },
-                    ) as span:
+                        }) as span:
                         interviewer = create_interviewer(
                             topic_guide=topic_guide,
                             conversation_history=shared_memory.format_history(),
                             max_turns=max_turns,
                             model=model,
-                            additional_context=additional_context,
-                        )
+                            additional_context=additional_context)
 
                         # Log request
                         span.set_attribute(
                             "request",
-                            f"[System Prompt]\n{interviewer.instructions}\n\n[Input]\n{interviewer_input}",
-                        )
+                            f"[System Prompt]\n{interviewer.instructions}\n\n[Input]\n{interviewer_input}")
 
                         # On first turn, generate context in parallel with interviewer
                         if turns == 0 and context_examples:
@@ -635,8 +622,7 @@ async def run_interview(
                                 context_definition=interview_guide.context_definition,
                                 additional_context=additional_context,
                                 synth_outcome=synth_outcome,
-                                avg_success_rate=avg_success_rate,
-                            )
+                                avg_success_rate=avg_success_rate)
                             raw_result, generated_context = await asyncio.gather(
                                 interviewer_task, context_task
                             )
@@ -663,8 +649,7 @@ async def run_interview(
                         raw_text=interviewer_response,
                         internal_notes=internal_notes,
                         should_end=should_end,
-                        sentiment=sentiment,
-                    )
+                        sentiment=sentiment)
                     shared_memory.conversation.append(interviewer_msg)
 
                     # Publish interviewer message in real-time
@@ -681,20 +666,17 @@ async def run_interview(
                         {
                             "speaker": "interviewee",
                             "turn_number": turns + 1,
-                        },
-                    ) as span:
+                        }) as span:
                         interviewee = create_interviewee(
                             synth=shared_memory.synth,
                             conversation_history=shared_memory.format_history(),
                             initial_context=initial_context,
-                            model=model,
-                        )
+                            model=model)
 
                         # Log request
                         span.set_attribute(
                             "request",
-                            f"[System Prompt]\n{interviewee.instructions}\n\n[Input]\n{interviewee_input}",
-                        )
+                            f"[System Prompt]\n{interviewee.instructions}\n\n[Input]\n{interviewee_input}")
 
                         raw_result = await Runner.run(interviewee, input=interviewee_input)
                         raw_response = raw_result.final_output
@@ -712,18 +694,15 @@ async def run_interview(
                             {
                                 "speaker": "interviewee_reviewer",
                                 "turn_number": turns + 1,
-                            },
-                        ) as span:
+                            }) as span:
                             reviewer = create_interviewee_reviewer(
                                 synth=shared_memory.synth,
                                 raw_response=raw_response,
-                                model=model,
-                            )
+                                model=model)
 
                             span.set_attribute(
                                 "request",
-                                f"[System Prompt]\n{reviewer.instructions}\n\n[Input]\n{reviewer_input}",
-                            )
+                                f"[System Prompt]\n{reviewer.instructions}\n\n[Input]\n{reviewer_input}")
 
                             review_result = await Runner.run(reviewer, input=reviewer_input)
                             interviewee_response = review_result.final_output
@@ -739,8 +718,7 @@ async def run_interview(
                         text=visible_message,
                         raw_text=interviewee_response,
                         internal_notes=internal_notes,
-                        should_end=should_end,
-                    )
+                        should_end=should_end)
                     shared_memory.conversation.append(interviewee_msg)
 
                     # Publish interviewee message in real-time
@@ -770,8 +748,7 @@ async def run_interview(
         synth_name=synth_name,
         topic_guide_name=guide_name,
         trace_path=trace_path,
-        total_turns=turns,
-    )
+        total_turns=turns)
 
 
 async def run_interview_simple(
@@ -780,8 +757,7 @@ async def run_interview_simple(
     persona_description: str | None = None,
     max_turns: int = 4,
     model: str = "gpt-4o-mini",
-    verbose: bool = True,
-) -> list[ConversationMessage]:
+    verbose: bool = True) -> list[ConversationMessage]:
     """
     Run a simple interview, optionally loading synth from database.
 
@@ -816,8 +792,7 @@ async def run_interview_simple(
 
     shared_memory = SharedMemory(
         topic_guide=f"Tema da entrevista: {topic}",
-        synth=synth,
-    )
+        synth=synth)
 
     messages: list[ConversationMessage] = []
     turns = 0
@@ -828,8 +803,7 @@ async def run_interview_simple(
             topic_guide=shared_memory.topic_guide,
             conversation_history=shared_memory.format_history(),
             max_turns=max_turns,
-            model=model,
-        )
+            model=model)
 
         result = await Runner.run(interviewer, input="Ask your question.")
         response = result.final_output
@@ -841,8 +815,7 @@ async def run_interview_simple(
             raw_text=response,
             internal_notes=internal_notes,
             should_end=should_end,
-            sentiment=sentiment,
-        )
+            sentiment=sentiment)
         messages.append(interviewer_msg)
         shared_memory.conversation.append(interviewer_msg)
 
@@ -853,8 +826,7 @@ async def run_interview_simple(
         interviewee = create_interviewee(
             synth=shared_memory.synth,
             conversation_history=shared_memory.format_history(),
-            model=model,
-        )
+            model=model)
 
         result = await Runner.run(interviewee, input="Answer the question.")
         response = result.final_output
@@ -865,8 +837,7 @@ async def run_interview_simple(
             text=visible_message,
             raw_text=response,
             internal_notes=internal_notes,
-            should_end=should_end,
-        )
+            should_end=should_end)
         messages.append(interviewee_msg)
         shared_memory.conversation.append(interviewee_msg)
 
@@ -885,8 +856,7 @@ def run_interview_sync(
     max_turns: int = 6,
     trace_path: str | None = None,
     model: str = "gpt-4o-mini",
-    verbose: bool = True,
-) -> InterviewResult:
+    verbose: bool = True) -> InterviewResult:
     """
     Synchronous wrapper for run_interview.
 
@@ -908,8 +878,7 @@ def run_interview_sync(
             max_turns=max_turns,
             trace_path=trace_path,
             model=model,
-            verbose=verbose,
-        )
+            verbose=verbose)
     )
 
 
@@ -922,8 +891,7 @@ if __name__ == "__main__":
                 "Mulher, 35 anos, classe média, mora em São Paulo, trabalha como professora"
             ),
             max_turns=4,
-            verbose=True,
-        )
+            verbose=True)
         print(f"\n\nTotal messages: {len(messages)}")
 
     asyncio.run(test_simple())

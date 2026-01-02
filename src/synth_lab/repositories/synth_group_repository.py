@@ -1,24 +1,28 @@
 """
 T014 SynthGroupRepository for synth-lab.
 
-Data access layer for synth group data in SQLite database.
+Data access layer for synth group data. Uses SQLAlchemy ORM for database operations.
 
 References:
     - Spec: specs/018-experiment-hub/spec.md
     - Data model: specs/018-experiment-hub/data-model.md
+    - ORM models: synth_lab.models.orm.synth
 """
 
 from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field
+from sqlalchemy import func as sqlfunc
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from synth_lab.domain.entities.synth_group import (
     DEFAULT_SYNTH_GROUP_DESCRIPTION,
     DEFAULT_SYNTH_GROUP_ID,
     DEFAULT_SYNTH_GROUP_NAME,
-    SynthGroup,
-)
-from synth_lab.infrastructure.database import DatabaseManager
+    SynthGroup)
+from synth_lab.models.orm.synth import Synth as SynthORM
+from synth_lab.models.orm.synth import SynthGroup as SynthGroupORM
 from synth_lab.models.pagination import PaginatedResponse, PaginationMeta, PaginationParams
 from synth_lab.repositories.base import BaseRepository
 
@@ -56,10 +60,15 @@ class SynthGroupDetail(BaseModel):
 
 
 class SynthGroupRepository(BaseRepository):
-    """Repository for synth group data access."""
+    """Repository for synth group data access.
 
-    def __init__(self, db: DatabaseManager | None = None):
-        super().__init__(db)
+    Uses SQLAlchemy ORM for database operations.
+    """
+
+    def __init__(
+        self,
+session: Session | None = None):
+        super().__init__( session=session)
 
     def ensure_default_group(self) -> SynthGroupSummary:
         """
@@ -76,23 +85,16 @@ class SynthGroupRepository(BaseRepository):
         if existing:
             return existing
 
-        # Create default group if it doesn't exist
         now = datetime.now(timezone.utc)
-        self.db.execute(
-            """
-            INSERT OR IGNORE INTO synth_groups (id, name, description, created_at)
-            VALUES (?, ?, ?, ?)
-            """,
-            (
-                DEFAULT_SYNTH_GROUP_ID,
-                DEFAULT_SYNTH_GROUP_NAME,
-                DEFAULT_SYNTH_GROUP_DESCRIPTION,
-                now.isoformat(),
-            ),
-        )
-
+        orm_group = SynthGroupORM(
+            id=DEFAULT_SYNTH_GROUP_ID,
+            name=DEFAULT_SYNTH_GROUP_NAME,
+            description=DEFAULT_SYNTH_GROUP_DESCRIPTION,
+            created_at=now.isoformat())
+        self._add(orm_group)
+        self._flush()
+        self._commit()
         return self.get_by_id(DEFAULT_SYNTH_GROUP_ID)
-
     def create(self, group: SynthGroup) -> SynthGroup:
         """
         Create a new synth group.
@@ -103,20 +105,15 @@ class SynthGroupRepository(BaseRepository):
         Returns:
             Created synth group with persisted data.
         """
-        self.db.execute(
-            """
-            INSERT INTO synth_groups (id, name, description, created_at)
-            VALUES (?, ?, ?, ?)
-            """,
-            (
-                group.id,
-                group.name,
-                group.description,
-                group.created_at.isoformat(),
-            ),
-        )
+        orm_group = SynthGroupORM(
+            id=group.id,
+            name=group.name,
+            description=group.description,
+            created_at=group.created_at.isoformat())
+        self._add(orm_group)
+        self._flush()
+        self._commit()
         return group
-
     def get_by_id(self, group_id: str) -> SynthGroupSummary | None:
         """
         Get a synth group by ID with synth count.
@@ -127,29 +124,10 @@ class SynthGroupRepository(BaseRepository):
         Returns:
             SynthGroupSummary if found, None otherwise.
         """
-        row = self.db.fetchone(
-            """
-            SELECT
-                g.id,
-                g.name,
-                g.description,
-                g.created_at,
-                COALESCE(s.cnt, 0) as synth_count
-            FROM synth_groups g
-            LEFT JOIN (
-                SELECT synth_group_id, COUNT(*) as cnt
-                FROM synths
-                WHERE synth_group_id IS NOT NULL
-                GROUP BY synth_group_id
-            ) s ON g.id = s.synth_group_id
-            WHERE g.id = ?
-            """,
-            (group_id,),
-        )
-        if row is None:
+        orm_group = self.session.get(SynthGroupORM, group_id)
+        if orm_group is None:
             return None
-        return self._row_to_summary(row)
-
+        return self._orm_to_summary(orm_group)
     def get_detail(self, group_id: str) -> SynthGroupDetail | None:
         """
         Get a synth group with full details including synths.
@@ -160,33 +138,29 @@ class SynthGroupRepository(BaseRepository):
         Returns:
             SynthGroupDetail if found, None otherwise.
         """
-        # First get the group summary
-        summary = self.get_by_id(group_id)
-        if summary is None:
+        orm_group = self.session.get(SynthGroupORM, group_id)
+        if orm_group is None:
             return None
 
-        # Get synths in this group
-        rows = self.db.fetchall(
-            """
-            SELECT id, nome, descricao, avatar_path, synth_group_id, created_at
-            FROM synths
-            WHERE synth_group_id = ?
-            ORDER BY created_at DESC
-            """,
-            (group_id,),
-        )
+        created_at = orm_group.created_at
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
 
-        synths = [self._row_to_synth_summary(row) for row in rows]
+        # Sort synths by created_at descending
+        orm_synths = sorted(
+            orm_group.synths,
+            key=lambda s: s.created_at if isinstance(s.created_at, str) else s.created_at.isoformat(),
+            reverse=True)
+
+        synths = [self._orm_synth_to_summary(s) for s in orm_synths]
 
         return SynthGroupDetail(
-            id=summary.id,
-            name=summary.name,
-            description=summary.description,
-            synth_count=summary.synth_count,
-            created_at=summary.created_at,
-            synths=synths,
-        )
-
+            id=orm_group.id,
+            name=orm_group.name,
+            description=orm_group.description,
+            synth_count=len(synths),
+            created_at=created_at,
+            synths=synths)
     def list_groups(self, params: PaginationParams) -> PaginatedResponse[SynthGroupSummary]:
         """
         List synth groups with pagination.
@@ -197,38 +171,16 @@ class SynthGroupRepository(BaseRepository):
         Returns:
             Paginated response with synth group summaries.
         """
-        base_query = """
-            SELECT
-                g.id,
-                g.name,
-                g.description,
-                g.created_at,
-                COALESCE(s.cnt, 0) as synth_count
-            FROM synth_groups g
-            LEFT JOIN (
-                SELECT synth_group_id, COUNT(*) as cnt
-                FROM synths
-                WHERE synth_group_id IS NOT NULL
-                GROUP BY synth_group_id
-            ) s ON g.id = s.synth_group_id
-            ORDER BY g.created_at DESC
-        """
+        stmt = select(SynthGroupORM).order_by(SynthGroupORM.created_at.desc())
+        count_stmt = select(sqlfunc.count()).select_from(SynthGroupORM)
+        total = self.session.execute(count_stmt).scalar() or 0
 
-        count_query = "SELECT COUNT(*) as count FROM synth_groups"
+        stmt = stmt.limit(params.limit).offset(params.offset)
+        groups = list(self.session.execute(stmt).scalars().all())
 
-        # Get total count
-        count_row = self.db.fetchone(count_query)
-        total = count_row["count"] if count_row else 0
-
-        # Apply pagination
-        paginated_query = f"{base_query} LIMIT ? OFFSET ?"
-        rows = self.db.fetchall(paginated_query, (params.limit, params.offset))
-
-        summaries = [self._row_to_summary(row) for row in rows]
+        summaries = [self._orm_to_summary(g) for g in groups]
         meta = PaginationMeta.from_params(total, params)
-
         return PaginatedResponse(data=summaries, pagination=meta)
-
     def delete(self, group_id: str) -> bool:
         """
         Delete a synth group.
@@ -241,21 +193,18 @@ class SynthGroupRepository(BaseRepository):
         Returns:
             True if deleted, False if not found.
         """
-        # Check if exists
-        existing = self.get_by_id(group_id)
-        if existing is None:
+        orm_group = self.session.get(SynthGroupORM, group_id)
+        if orm_group is None:
             return False
 
         # Nullify synth references
-        self.db.execute(
-            "UPDATE synths SET synth_group_id = NULL WHERE synth_group_id = ?",
-            (group_id,),
-        )
+        for synth in orm_group.synths:
+            synth.synth_group_id = None
 
-        # Delete the group
-        self.db.execute("DELETE FROM synth_groups WHERE id = ?", (group_id,))
+        self.session.delete(orm_group)
+        self._flush()
+        self._commit()
         return True
-
     def _row_to_summary(self, row) -> SynthGroupSummary:
         """Convert a database row to SynthGroupSummary."""
         created_at = row["created_at"]
@@ -267,8 +216,7 @@ class SynthGroupRepository(BaseRepository):
             name=row["name"],
             description=row["description"],
             synth_count=row["synth_count"],
-            created_at=created_at,
-        )
+            created_at=created_at)
 
     def _row_to_synth_summary(self, row) -> SynthSummary:
         """Convert a database row to SynthSummary."""
@@ -282,8 +230,40 @@ class SynthGroupRepository(BaseRepository):
             descricao=row["descricao"],
             avatar_path=row["avatar_path"],
             synth_group_id=row["synth_group_id"],
-            created_at=created_at,
-        )
+            created_at=created_at)
+
+    # =========================================================================
+    # ORM conversion methods
+    # =========================================================================
+
+    def _orm_to_summary(self, orm_group: SynthGroupORM) -> SynthGroupSummary:
+        """Convert ORM model to SynthGroupSummary."""
+        created_at = orm_group.created_at
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
+
+        synth_count = len(orm_group.synths) if orm_group.synths else 0
+
+        return SynthGroupSummary(
+            id=orm_group.id,
+            name=orm_group.name,
+            description=orm_group.description,
+            synth_count=synth_count,
+            created_at=created_at)
+
+    def _orm_synth_to_summary(self, orm_synth: SynthORM) -> SynthSummary:
+        """Convert ORM Synth model to SynthSummary."""
+        created_at = orm_synth.created_at
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
+
+        return SynthSummary(
+            id=orm_synth.id,
+            nome=orm_synth.nome,
+            descricao=orm_synth.descricao,
+            avatar_path=orm_synth.avatar_path,
+            synth_group_id=orm_synth.synth_group_id,
+            created_at=created_at)
 
 
 if __name__ == "__main__":
@@ -292,7 +272,6 @@ if __name__ == "__main__":
     from pathlib import Path
 
     from synth_lab.domain.entities.synth_group import SynthGroup
-    from synth_lab.infrastructure.database import init_database
 
     # Validation
     all_validation_failures = []
@@ -303,7 +282,7 @@ if __name__ == "__main__":
         test_db_path = Path(tmpdir) / "test.db"
         init_database(test_db_path)  # Initialize schema first
         db = DatabaseManager(test_db_path)
-        repo = SynthGroupRepository(db)
+        repo = SynthGroupRepository()
 
         # Test 0: Default group should already exist after init_database
         total_tests += 1

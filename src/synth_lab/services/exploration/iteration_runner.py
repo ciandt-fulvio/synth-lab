@@ -77,8 +77,7 @@ class IterationRunner:
         proposal_service: ActionProposalService | None = None,
         seed: int | None = None,
         n_executions: int = 100,
-        sigma: float = 0.1,
-    ):
+        sigma: float = 0.1):
         """
         Initialize the iteration runner.
 
@@ -96,16 +95,14 @@ class IterationRunner:
         self.simulation_adapter = SimulationAdapter(
             seed=seed,
             n_executions=n_executions,
-            sigma=sigma,
-        )
+            sigma=sigma)
         self.logger = logger.bind(component="iteration_runner")
 
     async def run_iteration(
         self,
         exploration: Exploration,
         experiment: Experiment,
-        synths: list[dict[str, Any]],
-    ) -> IterationResult:
+        synths: list[dict[str, Any]]) -> IterationResult:
         """
         Run a single iteration of the exploration loop.
 
@@ -134,8 +131,7 @@ class IterationRunner:
                 llm_calls_made=0,
                 best_success_rate=exploration.best_success_rate or 0.0,
                 frontier_size=0,
-                termination_reason="no_viable_paths",
-            )
+                termination_reason="no_viable_paths")
 
         # Limit frontier to beam_width for expansion
         beam_width = exploration.config.beam_width
@@ -153,16 +149,14 @@ class IterationRunner:
             proposals = self.proposal_service.generate_proposals(
                 node=node,
                 experiment=experiment,
-                max_proposals=2,
-            )
+                max_proposals=2)
             llm_calls += 1
 
             # Create child nodes for each proposal
             for proposal in proposals:
                 child = self.tree_manager.create_child_node(
                     parent=node,
-                    proposal=proposal,
-                )
+                    proposal=proposal)
                 all_new_nodes.append(NodeWithSimulation(node=child))
 
         self.logger.debug(f"Created {len(all_new_nodes)} child nodes")
@@ -179,8 +173,7 @@ class IterationRunner:
                 self.repository.update_node_simulation(
                     nws.node.id,
                     nws.sim_results,
-                    nws.exec_time,
-                )
+                    nws.exec_time)
 
         # Check for goal achievement in new nodes
         goal_achieved = False
@@ -219,8 +212,7 @@ class IterationRunner:
                 llm_calls_made=llm_calls,
                 best_success_rate=best_success_rate,
                 frontier_size=len(new_frontier),
-                goal_achieved=True,
-            )
+                goal_achieved=True)
 
         # Build result
         return IterationResult(
@@ -230,14 +222,12 @@ class IterationRunner:
             nodes_dominated=dominated_count,
             llm_calls_made=llm_calls,
             best_success_rate=best_success_rate,
-            frontier_size=len(new_frontier),
-        )
+            frontier_size=len(new_frontier))
 
     async def _run_simulations_parallel(
         self,
         nodes: list[NodeWithSimulation],
-        synths: list[dict[str, Any]],
-    ) -> None:
+        synths: list[dict[str, Any]]) -> None:
         """Run simulations in parallel for multiple nodes."""
         self.logger.debug(f"Running {len(nodes)} simulations in parallel")
 
@@ -248,8 +238,7 @@ class IterationRunner:
                 None,
                 self.simulation_adapter.run_simulation,
                 nws.node.scorecard_params,
-                synths,
-            )
+                synths)
             nws.sim_results = sim_results
             nws.exec_time = exec_time
 
@@ -333,8 +322,7 @@ class IterationRunner:
             key=lambda n: n.simulation_results.success_rate
             if n.simulation_results
             else 0.0,
-            reverse=True,
-        )
+            reverse=True)
 
         # Mark nodes beyond beam_width as dominated
         for node in sorted_nodes[beam_width:]:
@@ -371,8 +359,7 @@ if __name__ == "__main__":
             nodes_dominated=2,
             llm_calls_made=3,
             best_success_rate=0.35,
-            frontier_size=3,
-        )
+            frontier_size=3)
         if result.goal_achieved:
             all_validation_failures.append("goal_achieved should be False by default")
         if result.termination_reason is not None:
@@ -394,14 +381,11 @@ if __name__ == "__main__":
                 complexity=0.30,
                 initial_effort=0.30,
                 perceived_risk=0.20,
-                time_to_value=0.30,
-            ),
+                time_to_value=0.30),
             simulation_results=SimulationResults(
                 success_rate=0.40,
                 fail_rate=0.35,
-                did_not_try_rate=0.25,
-            ),
-        )
+                did_not_try_rate=0.25))
 
         node_b = ScenarioNode(
             exploration_id="expl_12345678",
@@ -411,14 +395,11 @@ if __name__ == "__main__":
                 complexity=0.35,
                 initial_effort=0.30,
                 perceived_risk=0.25,
-                time_to_value=0.30,
-            ),
+                time_to_value=0.30),
             simulation_results=SimulationResults(
                 success_rate=0.35,
                 fail_rate=0.40,
-                did_not_try_rate=0.25,
-            ),
-        )
+                did_not_try_rate=0.25))
 
         runner = IterationRunner()
         if not runner._dominates(node_a, node_b):
@@ -440,14 +421,11 @@ if __name__ == "__main__":
                 complexity=0.20,  # Better complexity
                 initial_effort=0.30,
                 perceived_risk=0.30,
-                time_to_value=0.30,
-            ),
+                time_to_value=0.30),
             simulation_results=SimulationResults(
                 success_rate=0.30,  # Worse success_rate
                 fail_rate=0.40,
-                did_not_try_rate=0.30,
-            ),
-        )
+                did_not_try_rate=0.30))
 
         node_d = ScenarioNode(
             exploration_id="expl_12345678",
@@ -457,14 +435,11 @@ if __name__ == "__main__":
                 complexity=0.40,  # Worse complexity
                 initial_effort=0.30,
                 perceived_risk=0.25,
-                time_to_value=0.30,
-            ),
+                time_to_value=0.30),
             simulation_results=SimulationResults(
                 success_rate=0.45,  # Better success_rate
                 fail_rate=0.35,
-                did_not_try_rate=0.20,
-            ),
-        )
+                did_not_try_rate=0.20))
 
         runner = IterationRunner()
         if runner._dominates(node_c, node_d):

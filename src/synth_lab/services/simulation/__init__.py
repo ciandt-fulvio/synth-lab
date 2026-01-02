@@ -27,8 +27,7 @@ from synth_lab.services.simulation.feature_extraction import (
     extract_features,
     get_attribute_value,
     get_available_attributes,
-    get_outcome_value,
-)
+    get_outcome_value)
 
 # NOTE: InsightService temporarily disabled during feature 023 migration
 # from synth_lab.services.simulation.insight_service import (
@@ -40,13 +39,11 @@ from synth_lab.services.simulation.scorecard_llm import ScorecardLLM
 from synth_lab.services.simulation.scorecard_service import (
     ScorecardNotFoundError,
     ScorecardService,
-    ValidationError,
-)
+    ValidationError)
 from synth_lab.services.simulation.simulation_service import (
     SimulationService,
     get_scenario,
-    list_scenarios,
-)
+    list_scenarios)
 
 __all__ = [
     # Scorecard
