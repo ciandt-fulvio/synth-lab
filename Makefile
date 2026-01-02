@@ -1,4 +1,4 @@
-.PHONY: help install setup-hooks serve serve-front gensynth phoenix kill db db-stop db-reset db-migrate validate-ui test test-fast test-full test-unit test-integration test-contract lint-format clean
+.PHONY: help install setup-hooks serve serve-front gensynth phoenix kill db db-stop db-reset db-migrate db-test db-test-reset validate-ui test test-fast test-full test-unit test-integration test-contract lint-format clean
 
 # =============================================================================
 # Configuration
@@ -12,6 +12,10 @@ POSTGRES_PASSWORD := synthlab
 POSTGRES_DB := synthlab
 POSTGRES_PORT := 5432
 DATABASE_URL := postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:$(POSTGRES_PORT)/$(POSTGRES_DB)
+
+# Test database (ISOLATED - never use production/dev DB for tests!)
+POSTGRES_TEST_DB := synthlab_test
+DATABASE_TEST_URL := postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:$(POSTGRES_PORT)/$(POSTGRES_TEST_DB)
 
 # Alembic
 ALEMBIC_CONFIG := src/synth_lab/alembic/alembic.ini
@@ -48,6 +52,8 @@ help:
 	@echo "  make db-stop      Stop PostgreSQL"
 	@echo "  make db-reset     Reset database (drop + recreate schema)"
 	@echo "  make db-migrate   Create migration: make db-migrate MSG='description'"
+	@echo "  make db-test      Setup isolated test database (for running tests)"
+	@echo "  make db-test-reset Reset test database"
 	@echo ""
 	@echo "Development:"
 	@echo "  make serve        Start API server (port 8000)"
@@ -118,6 +124,27 @@ endif
 	@DATABASE_URL="$(DATABASE_URL)" uv run alembic -c $(ALEMBIC_CONFIG) revision --autogenerate -m "$(MSG)"
 	@echo "✅ Migration created. Review before applying."
 
+db-test:
+	@echo "Setting up isolated test database..."
+	@echo "Creating test database: $(POSTGRES_TEST_DB)"
+	@podman exec -it $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -tc \
+		"SELECT 1 FROM pg_database WHERE datname = '$(POSTGRES_TEST_DB)'" | grep -q 1 || \
+		podman exec -it $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -c \
+		"CREATE DATABASE $(POSTGRES_TEST_DB)"
+	@echo "Applying migrations to test database..."
+	@DATABASE_URL="$(DATABASE_TEST_URL)" uv run alembic -c $(ALEMBIC_CONFIG) upgrade head
+	@echo ""
+	@echo "✅ Test database ready!"
+	@echo "   $(DATABASE_TEST_URL)"
+	@echo ""
+	@echo "⚠️  This database is for TESTS ONLY - data will be destroyed during tests!"
+
+db-test-reset:
+	@echo "Resetting test database schema..."
+	@DATABASE_URL="$(DATABASE_TEST_URL)" uv run alembic -c $(ALEMBIC_CONFIG) downgrade base
+	@DATABASE_URL="$(DATABASE_TEST_URL)" uv run alembic -c $(ALEMBIC_CONFIG) upgrade head
+	@echo "✅ Test database reset complete"
+
 # =============================================================================
 # Development
 # =============================================================================
@@ -148,19 +175,19 @@ kill:
 # Testing
 # =============================================================================
 test:
-	POSTGRES_URL="$(DATABASE_URL)" uv run pytest
+	POSTGRES_URL="$(DATABASE_TEST_URL)" uv run pytest
 
 test-fast:
 	uv run pytest tests/unit/ -q --tb=short
 
 test-full:
-	POSTGRES_URL="$(DATABASE_URL)" uv run pytest tests/ -v --tb=short
+	POSTGRES_URL="$(DATABASE_TEST_URL)" uv run pytest tests/ -v --tb=short
 
 test-unit:
 	uv run pytest tests/unit/ -v
 
 test-integration:
-	POSTGRES_URL="$(DATABASE_URL)" uv run pytest tests/integration/ -v
+	POSTGRES_URL="$(DATABASE_TEST_URL)" uv run pytest tests/integration/ -v
 
 test-contract:
 	uv run pytest tests/contract/ -v
