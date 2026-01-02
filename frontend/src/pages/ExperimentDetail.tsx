@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -128,13 +128,19 @@ const INTERVIEWS_PER_PAGE = 4;
 export default function ExperimentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isNewInterviewOpen, setIsNewInterviewOpen] = useState(false);
   const [interviewPage, setInterviewPage] = useState(0);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isNewExplorationOpen, setIsNewExplorationOpen] = useState(false);
 
   // Tab underline animation state
-  const [activeTab, setActiveTab] = useState('analysis');
+  // Initialize activeTab from query param 'tab' if present, otherwise default to 'analysis'
+  const tabFromQuery = searchParams.get('tab');
+  const initialTab = ['analysis', 'interviews', 'explorations'].includes(tabFromQuery ?? '')
+    ? tabFromQuery!
+    : 'analysis';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [underlineStyle, setUnderlineStyle] = useState({ left: 0, width: 0 });
   const tabsListRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
