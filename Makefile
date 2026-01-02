@@ -1,4 +1,4 @@
-.PHONY: help install setup-hooks serve serve-front gensynth phoenix kill db db-stop db-reset db-migrate db-test db-test-reset validate-ui test test-fast test-full test-unit test-integration test-contract lint-format clean
+.PHONY: help install setup-hooks serve serve-front gensynth phoenix kill kill-server db db-stop db-reset db-migrate db-test db-test-reset validate-ui test test-fast test-full test-unit test-integration test-contract lint-format clean clean-server
 
 # =============================================================================
 # Configuration
@@ -148,7 +148,7 @@ db-test-reset:
 # =============================================================================
 # Development
 # =============================================================================
-serve:
+serve: kill-server clean-server
 	@echo "API: http://127.0.0.1:$(or $(PORT),8000)/docs"
 	@exec env DATABASE_URL="$(DATABASE_URL)" PHOENIX_ENABLED=$(PHOENIX_ENABLED) LOG_LEVEL=$(LOG_LEVEL) \
 		uv run uvicorn synth_lab.api.main:app --host 127.0.0.1 --port $(or $(PORT),8000) $(UVICORN_RELOAD) $(TEE_BACKEND)
@@ -169,6 +169,11 @@ kill:
 	@-lsof -ti:8000 | xargs kill -9 2>/dev/null || true
 	@-lsof -ti:8080 | xargs kill -9 2>/dev/null || true
 	@-lsof -ti:6006 | xargs kill -9 2>/dev/null || true
+	@echo "✅ Done"
+
+kill-server:
+	@echo "Killing backend server..."
+	@-lsof -ti:8000 | xargs kill -9 2>/dev/null || true
 	@echo "✅ Done"
 
 # =============================================================================
@@ -206,3 +211,8 @@ clean:
 	rm -rf .pytest_cache .ruff_cache .mypy_cache __pycache__ htmlcov dist build *.egg-info
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name "*.pyc" -delete 2>/dev/null || true
+
+clean-server:
+	@echo "Cleaning server logs..."
+	@-rm -f $(BACKEND_LOG) 2>/dev/null || true
+	@echo "✅ Done"
