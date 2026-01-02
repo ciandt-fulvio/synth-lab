@@ -239,7 +239,7 @@ export default function InterviewDetail() {
       {/* Standardized Header */}
       <SynthLabHeader
         subtitle="Entrevista do Experimento"
-        backTo={expId ? `/experiments/${expId}` : '/'}
+        backTo={expId ? `/experiments/${expId}?tab=interviews` : '/'}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
