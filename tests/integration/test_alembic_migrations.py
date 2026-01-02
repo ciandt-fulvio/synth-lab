@@ -69,10 +69,13 @@ class TestAlembicMigrationsPostgres:
 
     @pytest.fixture
     def postgres_db(self) -> str:
-        """Get PostgreSQL database URL from environment."""
+        """
+        DEPRECATED: Use test_database_url fixture from conftest.py instead.
+        This ensures the test database safety check is enforced.
+        """
         return os.environ["POSTGRES_URL"]
 
-    @pytest.mark.skip(reason="Requires clean PostgreSQL database - run in CI with fresh DB")
+    @pytest.mark.skip(reason="Destructive test - use test_database_url fixture instead of postgres_db")
     def test_upgrade_creates_all_tables(self, postgres_db: str):
         """Test that upgrade head creates all expected tables on PostgreSQL."""
         config = get_alembic_config(postgres_db)
@@ -118,7 +121,7 @@ class TestAlembicMigrationsPostgres:
 
         engine.dispose()
 
-    @pytest.mark.skip(reason="Requires clean PostgreSQL database - run in CI with fresh DB")
+    @pytest.mark.skip(reason="Destructive test - use test_database_url fixture instead of postgres_db")
     def test_downgrade_and_upgrade_idempotent(self, postgres_db: str):
         """Test that downgrade -> upgrade cycle works on PostgreSQL."""
         config = get_alembic_config(postgres_db)
@@ -159,14 +162,15 @@ class TestAlembicMigrationsPostgres:
 
         engine.dispose()
 
-    def test_experiments_table_schema(self, postgres_db: str):
+    def test_experiments_table_schema(self, test_database_url: str):
         """Test that experiments table has expected columns."""
-        config = get_alembic_config(postgres_db)
+        # Use test_database_url from conftest.py fixture (ensures safety check)
+        config = get_alembic_config(test_database_url)
 
         # Clean up before test
         try:
             from sqlalchemy import create_engine, text
-            engine = create_engine(postgres_db)
+            engine = create_engine(test_database_url)
             with engine.connect() as conn:
                 conn.execute(text("DROP TABLE IF EXISTS alembic_version CASCADE"))
                 result = conn.execute(text("""
@@ -182,7 +186,7 @@ class TestAlembicMigrationsPostgres:
 
         command.upgrade(config, "head")
 
-        engine = create_engine(postgres_db)
+        engine = create_engine(test_database_url)
         inspector = inspect(engine)
 
         columns = {col["name"] for col in inspector.get_columns("experiments")}
@@ -201,14 +205,15 @@ class TestAlembicMigrationsPostgres:
 
         engine.dispose()
 
-    def test_version_tracked_after_upgrade(self, postgres_db: str):
+    def test_version_tracked_after_upgrade(self, test_database_url: str):
         """Test that Alembic tracks version after upgrade."""
-        config = get_alembic_config(postgres_db)
+        # Use test_database_url from conftest.py fixture (ensures safety check)
+        config = get_alembic_config(test_database_url)
 
         # Clean up before test
         try:
             from sqlalchemy import create_engine, text
-            engine = create_engine(postgres_db)
+            engine = create_engine(test_database_url)
             with engine.connect() as conn:
                 conn.execute(text("DROP TABLE IF EXISTS alembic_version CASCADE"))
                 result = conn.execute(text("""
@@ -224,7 +229,7 @@ class TestAlembicMigrationsPostgres:
 
         command.upgrade(config, "head")
 
-        engine = create_engine(postgres_db)
+        engine = create_engine(test_database_url)
         with engine.connect() as conn:
             result = conn.execute(text("SELECT version_num FROM alembic_version"))
             version = result.scalar()

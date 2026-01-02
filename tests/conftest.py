@@ -1,8 +1,12 @@
 """
 Pytest configuration and shared fixtures for SynthLab tests.
+
+CRITICAL: Integration tests use a SEPARATE test database (synthlab_test).
+This prevents destructive tests from affecting development data.
 """
 
 import json
+import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -88,3 +92,64 @@ def temp_output_dir():
     temp_dir = Path(tempfile.mkdtemp())
     yield temp_dir
     shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+@pytest.fixture(scope="session")
+def test_database_url() -> str:
+    """
+    Provide isolated test database URL.
+
+    CRITICAL: This fixture ensures tests NEVER use the development database.
+    Integration tests will DROP and recreate tables - only safe on test DB!
+
+    Returns:
+        str: PostgreSQL test database URL from POSTGRES_URL environment variable
+
+    Raises:
+        pytest.skip: If POSTGRES_URL is not set (test database not configured)
+    """
+    postgres_url = os.getenv("POSTGRES_URL")
+
+    if not postgres_url:
+        pytest.skip("POSTGRES_URL environment variable not set - test database not configured")
+
+    # Safety check: ensure we're NOT using the development database
+    if "synthlab_test" not in postgres_url:
+        raise ValueError(
+            f"CRITICAL: POSTGRES_URL must point to 'synthlab_test' database, not production/dev DB!\n"
+            f"Current URL: {postgres_url}\n"
+            f"Expected: postgresql://user:pass@localhost:5432/synthlab_test"
+        )
+
+    return postgres_url
+
+
+@pytest.fixture(scope="function")
+def isolated_db_session(test_database_url: str):
+    """
+    Provide an isolated database session for integration tests.
+
+    This fixture:
+    1. Verifies we're using the test database (not dev/prod)
+    2. Creates a fresh session for each test
+    3. Rolls back changes after the test completes
+
+    Usage:
+        def test_something(isolated_db_session):
+            # Use isolated_db_session instead of creating your own connection
+            result = isolated_db_session.execute(text("SELECT 1"))
+            assert result.scalar() == 1
+    """
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    engine = create_engine(test_database_url)
+    SessionLocal = sessionmaker(bind=engine)
+    session = SessionLocal()
+
+    yield session
+
+    # Cleanup: rollback any uncommitted changes
+    session.rollback()
+    session.close()
+    engine.dispose()
