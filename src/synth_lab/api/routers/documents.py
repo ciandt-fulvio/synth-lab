@@ -10,10 +10,10 @@ References:
 """
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Response
-from loguru import logger
 
 from synth_lab.api.schemas.documents import (
     DocumentAvailabilityResponse,
+    DocumentAvailabilityStatus,
     DocumentDetailResponse,
     DocumentStatusEnum,
     DocumentSummaryResponse,
@@ -49,16 +49,6 @@ def _get_analysis_id(experiment_id: str) -> str | None:
     """Get the latest completed analysis_id for an experiment."""
     repo = AnalysisRepository()
     return repo.get_latest_completed_analysis_id(experiment_id)
-
-
-def _generate_executive_summary_background(experiment_id: str, analysis_id: str) -> None:
-    """Background task to generate executive summary."""
-    try:
-        service = ExecutiveSummaryService()
-        service.generate_markdown_summary(experiment_id, analysis_id)
-        logger.info(f"Executive summary generated for {experiment_id}")
-    except Exception as e:
-        logger.error(f"Failed to generate executive summary for {experiment_id}: {e}")
 
 
 @router.get(
@@ -102,9 +92,9 @@ async def check_availability(experiment_id: str) -> DocumentAvailabilityResponse
     avail = service.check_availability(experiment_id)
 
     return DocumentAvailabilityResponse(
-        summary=avail[DocumentType.SUMMARY],
-        prfaq=avail[DocumentType.PRFAQ],
-        executive_summary=avail[DocumentType.EXECUTIVE_SUMMARY],
+        summary=DocumentAvailabilityStatus(**avail[DocumentType.SUMMARY]),
+        prfaq=DocumentAvailabilityStatus(**avail[DocumentType.PRFAQ]),
+        executive_summary=DocumentAvailabilityStatus(**avail[DocumentType.EXECUTIVE_SUMMARY]),
     )
 
 
@@ -200,9 +190,10 @@ async def generate_document(
                 "Run quantitative analysis first.",
             )
 
-        # Start background generation
+        # Start background generation using service method
+        exec_summary_service = ExecutiveSummaryService()
         background_tasks.add_task(
-            _generate_executive_summary_background,
+            exec_summary_service.generate_markdown_summary_background,
             experiment_id,
             analysis_id,
         )

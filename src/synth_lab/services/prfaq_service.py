@@ -214,6 +214,28 @@ class PRFAQService:
             )
             raise
 
+    async def generate_prfaq_background(self, request: PRFAQGenerateRequest) -> None:
+        """
+        Background task wrapper for PR-FAQ generation.
+
+        This method is designed to be called as a FastAPI background task.
+        It catches all exceptions and handles them internally without re-raising,
+        as background tasks should not propagate exceptions to the caller.
+
+        Args:
+            request: Generation request with exec_id and model.
+        """
+        from loguru import logger
+
+        try:
+            self.generate_prfaq(request)
+            logger.info(f"Background task: PR-FAQ generation completed for {request.exec_id}")
+        except Exception as e:
+            # Error already logged and status updated in generate_prfaq
+            logger.error(
+                f"Background task: PR-FAQ generation failed for {request.exec_id}: {e}"
+            )
+
 
 if __name__ == "__main__":
     import sys
