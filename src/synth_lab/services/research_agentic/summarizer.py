@@ -82,7 +82,7 @@ Estruture seu relatório nas seguintes seções:
 # Síntese de Pesquisa: {topic_guide}
 
 ## Resumo Executivo
-(3-5 frases com os principais achados)
+(2 a 3 parágrafos (em torno de 300 palavras) com os principais achados)
 
 ## Padrões Recorrentes
 (Lista com contexto de padrões identificados)

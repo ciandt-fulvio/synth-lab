@@ -18,6 +18,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-22
 - Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, Pydantic, React 18, Recharts, TanStack Query (025-sankey-diagram)
 - Python 3.13 (backend), TypeScript 5.5 (frontend) + FastAPI 0.109+, Pydantic 2.5+, SQLite 3 with JSON1, React 18, TanStack Query 5.56+ (026-experiment-documents)
 - SQLite 3 with WAL mode (`output/synthlab.db`) (026-experiment-documents)
+- TypeScript 5.5.3 with React 18.3.1 + html2canvas ^1.4.1, jspdf ^3.0.4, React, Lucide React (for icons) (027-pdf-download)
+- N/A (client-side only, no server-side persistence) (027-pdf-download)
 
 ### Backend
 - **Python**: 3.13+
@@ -345,9 +347,9 @@ LOG_LEVEL=INFO
 
 
 ## Recent Changes
+- 027-pdf-download: Added TypeScript 5.5.3 with React 18.3.1 + html2canvas ^1.4.1, jspdf ^3.0.4, React, Lucide React (for icons)
 - 026-experiment-documents: Added Python 3.13 (backend), TypeScript 5.5 (frontend) + FastAPI 0.109+, Pydantic 2.5+, SQLite 3 with JSON1, React 18, TanStack Query 5.56+
 - 025-sankey-diagram: Added Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, Pydantic, React 18, Recharts, TanStack Query
-- 024-llm-scenario-exploration: Added Python 3.13+ (backend) + FastAPI 0.109+, Pydantic 2.5+, OpenAI SDK, asyncio
 
 
 <!-- MANUAL ADDITIONS START -->
