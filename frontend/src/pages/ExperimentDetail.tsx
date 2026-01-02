@@ -145,6 +145,15 @@ export default function ExperimentDetail() {
   const tabsListRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
+  // Sync activeTab with query param when it changes
+  useEffect(() => {
+    const newTab = searchParams.get('tab');
+    const validTab = ['analysis', 'interviews', 'explorations'].includes(newTab ?? '')
+      ? newTab!
+      : 'analysis';
+    setActiveTab(validTab);
+  }, [searchParams]);
+
   const updateUnderline = useCallback(() => {
     const activeTabEl = tabRefs.current.get(activeTab);
     const listEl = tabsListRef.current;
