@@ -129,18 +129,35 @@ class DocumentService:
         Returns:
             Dict mapping DocumentType to status info:
             {
-                DocumentType.SUMMARY: {"available": True, "status": "completed"},
-                DocumentType.PRFAQ: {"available": False, "status": None},
+                DocumentType.SUMMARY: {
+                    "available": True,
+                    "status": "completed",
+                    "generated_at": "2024-01-15T10:30:00"
+                },
+                DocumentType.PRFAQ: {
+                    "available": False,
+                    "status": None,
+                    "generated_at": None
+                },
                 ...
             }
         """
         result = {}
         for doc_type in DocumentType:
-            status = self.repository.get_status(experiment_id, doc_type)
-            result[doc_type] = {
-                "available": status == DocumentStatus.COMPLETED,
-                "status": status.value if status else None,
-            }
+            # Get full document to access both status and generated_at
+            doc = self.repository.get_by_experiment(experiment_id, doc_type)
+            if doc:
+                result[doc_type] = {
+                    "available": doc.status == DocumentStatus.COMPLETED,
+                    "status": doc.status.value,
+                    "generated_at": doc.generated_at.isoformat() if doc.generated_at else None,
+                }
+            else:
+                result[doc_type] = {
+                    "available": False,
+                    "status": None,
+                    "generated_at": None,
+                }
         return result
 
     def save_document(

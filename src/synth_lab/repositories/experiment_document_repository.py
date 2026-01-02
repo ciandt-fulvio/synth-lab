@@ -274,38 +274,67 @@ class ExperimentDocumentRepository(BaseRepository):
             markdown_content: Content if status is completed.
             metadata: Optional metadata to update.
             error_message: Error message if status is failed.
+
+        Security Note:
+            This method uses dynamic SQL generation for the SET clause,
+            but it's safe because:
+            1. Field names are from a controlled whitelist (not user input)
+            2. All values use proper `?` parameterization
+            3. Whitelist prevents future modifications from introducing vulnerabilities
         """
         import json
 
-        updates = ["status = ?"]
-        params: list = [status.value]
+        # Whitelist of allowed fields for UPDATE operations
+        # This prevents SQL injection if this code is modified in the future
+        ALLOWED_UPDATE_FIELDS = {
+            "status",
+            "generated_at",
+            "markdown_content",
+            "metadata",
+            "error_message",
+        }
 
+        # Build dynamic SET clause with parameterized values
+        # All field names must be in the whitelist
+        update_clauses: list[str] = []
+        params: list = []
+
+        # Helper to safely add field updates
+        def add_update(field: str, value: any) -> None:
+            if field not in ALLOWED_UPDATE_FIELDS:
+                raise ValueError(f"Security: Invalid field name '{field}' not in whitelist")
+            update_clauses.append(f"{field} = ?")
+            params.append(value)
+
+        # Always update status
+        add_update("status", status.value)
+
+        # Update generated_at when completing
         if status == DocumentStatus.COMPLETED:
-            updates.append("generated_at = ?")
-            params.append(datetime.now().isoformat())
+            add_update("generated_at", datetime.now().isoformat())
 
+        # Update optional fields if provided
         if markdown_content is not None:
-            updates.append("markdown_content = ?")
-            params.append(markdown_content)
+            add_update("markdown_content", markdown_content)
 
         if metadata is not None:
-            updates.append("metadata = ?")
-            params.append(json.dumps(metadata))
+            add_update("metadata", json.dumps(metadata))
 
         if error_message is not None:
-            updates.append("error_message = ?")
-            params.append(error_message)
+            add_update("error_message", error_message)
 
+        # Add WHERE clause parameters
         params.extend([experiment_id, document_type.value])
 
-        self.db.execute(
-            f"""
+        # Execute parameterized query
+        # Note: Field names in SET clause are validated against whitelist
+        # All values use ? placeholders for proper parameterization
+        query = f"""
             UPDATE experiment_documents
-            SET {', '.join(updates)}
+            SET {', '.join(update_clauses)}
             WHERE experiment_id = ? AND document_type = ?
-            """,
-            tuple(params),
-        )
+        """
+        self.db.execute(query, tuple(params))
 
         content_size = len(markdown_content) if markdown_content else 0
         self.logger.info(

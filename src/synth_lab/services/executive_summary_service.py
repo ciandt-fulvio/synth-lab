@@ -374,6 +374,29 @@ Sintetize os seguintes {len(insights)} insights de gráficos em um resumo execut
                 )
                 raise
 
+    async def generate_markdown_summary_background(
+        self, experiment_id: str, analysis_id: str
+    ) -> None:
+        """
+        Background task wrapper for generating executive summary markdown.
+
+        This method is designed to be called as a FastAPI background task.
+        It catches all exceptions and handles them internally without re-raising,
+        as background tasks should not propagate exceptions to the caller.
+
+        Args:
+            experiment_id: Experiment ID (e.g., "exp_12345678")
+            analysis_id: Analysis ID (e.g., "ana_12345678")
+        """
+        try:
+            self.generate_markdown_summary(experiment_id, analysis_id)
+            self.logger.info(f"Executive summary generated for {experiment_id}")
+        except Exception as e:
+            # Error already logged and document marked as failed in generate_markdown_summary
+            self.logger.error(
+                f"Background task: Failed to generate executive summary for {experiment_id}: {e}"
+            )
+
     def _build_markdown_synthesis_prompt(self, insights: list[ChartInsight]) -> str:
         """
         Build LLM prompt to synthesize multiple insights into markdown format.

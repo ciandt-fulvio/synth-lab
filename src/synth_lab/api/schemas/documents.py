@@ -56,12 +56,26 @@ class DocumentDetailResponse(BaseModel):
     error_message: str | None = Field(default=None, description="Error if failed")
 
 
-class DocumentAvailabilityResponse(BaseModel):
-    """Document availability status."""
+class DocumentAvailabilityStatus(BaseModel):
+    """Availability status for a single document type."""
 
-    summary: dict = Field(description="Summary availability")
-    prfaq: dict = Field(description="PRFAQ availability")
-    executive_summary: dict = Field(description="Executive Summary availability")
+    available: bool = Field(description="Whether document is available (completed)")
+    status: str | None = Field(
+        description="Current status (generating, completed, failed, etc.)"
+    )
+    generated_at: str | None = Field(
+        default=None, description="ISO timestamp when document was generated"
+    )
+
+
+class DocumentAvailabilityResponse(BaseModel):
+    """Document availability status for all document types."""
+
+    summary: DocumentAvailabilityStatus = Field(description="Summary availability")
+    prfaq: DocumentAvailabilityStatus = Field(description="PRFAQ availability")
+    executive_summary: DocumentAvailabilityStatus = Field(
+        description="Executive Summary availability"
+    )
 
 
 class GenerateDocumentRequest(BaseModel):
