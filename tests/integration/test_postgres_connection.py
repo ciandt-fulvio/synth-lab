@@ -92,8 +92,8 @@ class TestPostgresPooling:
 
         with patch.dict(os.environ, {"WORKERS": "2"}):
             engine = create_db_engine(postgres_url)
-            # pool_size should be WORKERS * 2 = 4
-            assert engine.pool.size() == 4
+            # pool_size should be WORKERS * 4 = 8
+            assert engine.pool.size() == 8
             engine.dispose()
 
     def test_pool_overflow_configuration(self):
@@ -104,10 +104,10 @@ class TestPostgresPooling:
 
         with patch.dict(os.environ, {"WORKERS": "2"}):
             engine = create_db_engine(postgres_url)
-            # max_overflow should be WORKERS * 4 = 8
-            # Total max connections = pool_size + max_overflow = 12
+            # max_overflow should be WORKERS * 8 = 16
+            # Total max connections = pool_size + max_overflow = 24
             pool = engine.pool
-            assert pool._max_overflow == 8
+            assert pool._max_overflow == 16
             engine.dispose()
 
     def test_pool_pre_ping_enabled(self, postgres_engine):

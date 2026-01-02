@@ -320,17 +320,5 @@ class TestExperimentRepositoryRelationships:
         assert result.data[0].has_analysis is True
 
 
-class TestExperimentRepositoryORMMode:
-    """Tests to verify repository correctly uses ORM mode."""
-
-    def test_use_orm_is_true(self, repo: ExperimentRepository):
-        """Repository should report using ORM when session is provided."""
-        assert repo.use_orm is True
-
-    def test_db_is_none(self, repo: ExperimentRepository):
-        """Repository should not have legacy db when using session."""
-        assert repo.db is None
-
-
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

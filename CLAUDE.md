@@ -3,7 +3,7 @@
 ## Tech Stack
 - **Backend**: Python 3.13+, FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK
 - **Frontend**: TypeScript 5.5+, React 18, TanStack Query, shadcn/ui, Tailwind CSS
-- **Database**: PostgreSQL 14+ (prod), SQLite (dev)
+- **Database**: PostgreSQL 14+
 - **Observability**: Arize Phoenix, OpenTelemetry
 
 ## Project Structure
@@ -56,7 +56,7 @@ npm run lint
 ## Environment (.env)
 ```bash
 OPENAI_API_KEY=sk-...
-DATABASE_URL=postgresql://user:pass@localhost/synthlab  # ou sqlite:///output/synthlab.db
+DATABASE_URL=postgresql://user:pass@localhost/synthlab
 PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
 ```
 

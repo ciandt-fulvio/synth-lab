@@ -64,6 +64,11 @@ class TestRealOpenAIIntegration:
         if not api_key:
             pytest.skip("OPENAI_API_KEY not configured - skipping real API test")
 
+        # Check if DATABASE_URL is configured (required by avatar storage)
+        database_url = os.environ.get("DATABASE_URL")
+        if not database_url:
+            pytest.skip("DATABASE_URL not configured - skipping real API test")
+
         # Generate real avatars
         result = generate_avatars(
             real_synths, blocks=None, avatar_dir=temp_avatar_dir, api_key=api_key
