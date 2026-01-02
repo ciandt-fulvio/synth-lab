@@ -42,7 +42,6 @@ const interviewFormSchema = z.object({
   additional_context: z.string().optional(),
   synth_count: z.number().min(1).max(50),
   max_turns: z.number().min(1).max(20),
-  generate_summary: z.boolean(),
 });
 
 type InterviewFormData = z.infer<typeof interviewFormSchema>;
@@ -71,7 +70,6 @@ export function NewInterviewFromExperimentDialog({
       additional_context: '',
       synth_count: 5,
       max_turns: 6,
-      generate_summary: true,
     },
   });
 
@@ -89,7 +87,6 @@ export function NewInterviewFromExperimentDialog({
           additional_context: data.additional_context || undefined,
           synth_count: data.synth_count,
           max_turns: data.max_turns,
-          generate_summary: data.generate_summary,
         },
       });
 

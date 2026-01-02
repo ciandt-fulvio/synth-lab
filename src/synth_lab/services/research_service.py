@@ -305,7 +305,6 @@ class ResearchService:
                 max_concurrent=request.max_concurrent,
                 max_turns=request.max_turns,
                 model=request.model,
-                generate_summary=request.generate_summary,
                 skip_interviewee_review=request.skip_interviewee_review,
                 analysis_id=analysis_id,
                 summary_title=experiment_name)
@@ -328,7 +327,6 @@ class ResearchService:
         synth_count: int,
         max_concurrent: int,
         max_turns: int,
-        generate_summary: bool,
         model: str = "gpt-4o-mini",
         skip_interviewee_review: bool = True,
         analysis_id: str | None = None,
@@ -349,8 +347,10 @@ class ResearchService:
             max_turns: Max turns per interview.
             skip_interviewee_review: Whether to skip interviewee response reviewer.
             model: LLM model to use.
-            generate_summary: Whether to generate summary.
             summary_title: Title for the research summary (defaults to guide_name).
+
+        Note:
+            Summary is ALWAYS generated automatically after all interviews complete.
         """
         from loguru import logger
 
@@ -491,8 +491,8 @@ class ResearchService:
                 f"for {exec_id}"
             )
 
-            # Now generate summary if requested
-            if generate_summary and result.successful_interviews:
+            # Always generate summary automatically after interviews complete
+            if result.successful_interviews:
                 # Notify that summary generation is starting
                 await on_summary_start(exec_id)
 

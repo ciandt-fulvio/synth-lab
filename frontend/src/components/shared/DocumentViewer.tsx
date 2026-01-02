@@ -2,26 +2,28 @@
  * DocumentViewer component for synth-lab.
  *
  * Standardized popup for viewing experiment documents (summary, prfaq, executive_summary).
- * Based on MarkdownPopup with consistent styling.
+ * Refined design with improved visual hierarchy and polished interactions.
  *
  * Features:
- * - PDF export: Download button with loading state and error handling
- * - Loading states: Spinner while generating document
- * - Error states: User-friendly error messages
+ * - PDF export: Download button with text label, loading state, and error handling
+ * - Loading states: Elegant spinner with contextual messages
+ * - Error states: User-friendly error messages with visual feedback
  * - Markdown rendering: GitHub-flavored markdown with .markdown-content styling
  * - Smart button states: Disabled when document is generating, failed, or empty
  *
  * Visual specifications:
- * - Dialog: sm:max-w-[70vw] h-[80vh]
- * - Content: bg-gray-50 rounded-md px-6 py-4
- * - Markdown: .markdown-content class (globals.css)
+ * - Dialog: sm:max-w-[70vw] h-[80vh] with refined header layout
+ * - Header: Horizontal flex with icon container, title, and download button
+ * - Icon: Contained in subtle gradient box with border
+ * - Content: Gradient background (slate-50 to white) with border, max-width for readability
+ * - Empty states: Circular icon containers with descriptive messages
  * - Fonts: Inter (body), Georgia serif (headings)
  *
  * PDF Generation:
  * - Uses html2canvas to capture markdown content as high-quality image (2x scale)
  * - Uses jsPDF to create A4 portrait PDF
  * - Filename format: {documentType}_{sanitized-title}.pdf
- * - Progress indication: Loader2 spinner replaces Download icon during generation
+ * - Progress indication: Button shows "Gerando..." with spinner during generation
  */
 
 import { useState, useRef } from "react";
@@ -151,51 +153,81 @@ export function DocumentViewer({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[70vw] h-[80vh] flex flex-col">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
+        {/* Header with title and download button */}
+        <DialogHeader className="flex-row items-center justify-between space-y-0 pb-4 border-b border-slate-200">
+          <DialogTitle className="flex items-center gap-3 text-xl">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200">
               {icon}
-              {fullTitle}
-            </DialogTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleDownloadPdf}
-              disabled={isGenerating || isFailed || !hasContent || isGeneratingPdf}
-              aria-label="Download PDF"
-            >
-              {isGeneratingPdf ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
+            </div>
+            <span className="font-semibold text-slate-900">{fullTitle}</span>
+          </DialogTitle>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadPdf}
+            disabled={isGenerating || isFailed || !hasContent || isGeneratingPdf}
+            className="ml-4 gap-2 border-slate-300 hover:border-violet-400 hover:bg-violet-50 transition-all"
+          >
+            {isGeneratingPdf ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin text-violet-600" />
+                <span className="text-sm font-medium">Gerando...</span>
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 text-violet-600" />
+                <span className="text-sm font-medium">Download PDF</span>
+              </>
+            )}
+          </Button>
         </DialogHeader>
-        <div className="flex-grow overflow-y-auto px-6 py-4 bg-gray-50 rounded-md">
+
+        {/* Content area */}
+        <div className="flex-grow overflow-y-auto px-6 py-6 bg-gradient-to-b from-slate-50 to-white rounded-lg border border-slate-100">
           {isGenerating ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-600">
-              <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mb-3" />
-              <span>Gerando {title.toLowerCase()}...</span>
+            <div className="flex flex-col items-center justify-center h-full">
+              <div className="p-4 rounded-full bg-gradient-to-br from-indigo-50 to-violet-50 mb-4">
+                <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
+              </div>
+              <span className="text-base font-medium text-slate-700">
+                Gerando {title.toLowerCase()}...
+              </span>
+              <span className="text-sm text-slate-500 mt-1">
+                Aguarde enquanto processamos o documento
+              </span>
             </div>
           ) : isFailed ? (
-            <div className="flex flex-col items-center justify-center h-full text-red-600">
-              <AlertCircle className="h-8 w-8 mb-3" />
-              <span className="font-medium">Falha ao gerar documento</span>
+            <div className="flex flex-col items-center justify-center h-full">
+              <div className="p-4 rounded-full bg-red-50 mb-4">
+                <AlertCircle className="h-10 w-10 text-red-500" />
+              </div>
+              <span className="text-base font-semibold text-red-700">
+                Falha ao gerar documento
+              </span>
               {errorMessage && (
-                <span className="text-sm text-red-500 mt-2">{errorMessage}</span>
+                <span className="text-sm text-red-600 mt-2 px-4 py-2 bg-red-50 rounded-md max-w-md text-center">
+                  {errorMessage}
+                </span>
               )}
             </div>
           ) : hasContent ? (
-            <article ref={contentRef} className="markdown-content">
+            <article ref={contentRef} className="markdown-content max-w-4xl mx-auto">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {markdownContent}
               </ReactMarkdown>
             </article>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-slate-500">
-              <FileText className="h-8 w-8 mb-3 text-slate-400" />
-              <span>Documento não disponível</span>
+            <div className="flex flex-col items-center justify-center h-full">
+              <div className="p-4 rounded-full bg-slate-100 mb-4">
+                <FileText className="h-10 w-10 text-slate-400" />
+              </div>
+              <span className="text-base font-medium text-slate-600">
+                Documento não disponível
+              </span>
+              <span className="text-sm text-slate-500 mt-1">
+                Este documento ainda não foi gerado
+              </span>
             </div>
           )}
         </div>

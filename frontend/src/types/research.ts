@@ -53,7 +53,6 @@ export interface ResearchExecuteRequest {
   max_turns?: number; // default: 6
   max_concurrent?: number; // default: 10
   model?: string; // default: 'gpt-4o-mini'
-  generate_summary?: boolean; // default: true
 }
 
 /**
@@ -66,7 +65,6 @@ export interface InterviewCreateRequest {
   synth_ids?: string[] | null;
   synth_count?: number | null;
   max_turns?: number; // default: 6
-  generate_summary?: boolean; // default: true
 }
 
 export interface ResearchExecuteResponse {
