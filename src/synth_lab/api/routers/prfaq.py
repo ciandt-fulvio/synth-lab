@@ -72,19 +72,6 @@ async def get_prfaq_markdown(exec_id: str) -> PlainTextResponse:
             detail={"code": "MARKDOWN_NOT_FOUND", "message": str(e)}) from e
 
 
-def _generate_prfaq_background(request: PRFAQGenerateRequest) -> None:
-    """Background task for PR-FAQ generation."""
-    from loguru import logger
-
-    service = get_prfaq_service()
-    try:
-        service.generate_prfaq(request)
-        logger.info(f"PR-FAQ generation completed for {request.exec_id}")
-    except Exception as e:
-        logger.error(f"PR-FAQ generation failed for {request.exec_id}: {e}")
-        # Note: errors are handled in the service (status updated to "failed")
-
-
 @router.post("/generate", response_model=PRFAQGenerateResponse)
 async def generate_prfaq(
     request: PRFAQGenerateRequest,
@@ -149,8 +136,9 @@ async def generate_prfaq(
             generated_at=datetime.now(),
             validation_status="pending")
 
-    # Start background generation (service will handle validation and locking)
-    background_tasks.add_task(_generate_prfaq_background, request)
+    # Start background generation using service method
+    service = get_prfaq_service()
+    background_tasks.add_task(service.generate_prfaq_background, request)
 
     return PRFAQGenerateResponse(
         exec_id=request.exec_id,

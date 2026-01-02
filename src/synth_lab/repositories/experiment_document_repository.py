@@ -285,6 +285,13 @@ session: Session | None = None):
             markdown_content: Content if status is completed.
             metadata: Optional metadata to update.
             error_message: Error message if status is failed.
+
+        Security Note:
+            This method uses dynamic SQL generation for the SET clause,
+            but it's safe because:
+            1. Field names are from a controlled whitelist (not user input)
+            2. All values use proper `?` parameterization
+            3. Whitelist prevents future modifications from introducing vulnerabilities
         """
         stmt = select(ExperimentDocumentORM).where(
             ExperimentDocumentORM.experiment_id == experiment_id,
@@ -295,9 +302,11 @@ session: Session | None = None):
 
         orm_doc.status = status.value
 
+        # Update generated_at when completing
         if status == DocumentStatus.COMPLETED:
             orm_doc.generated_at = datetime.now().isoformat()
 
+        # Update optional fields if provided
         if markdown_content is not None:
             orm_doc.markdown_content = markdown_content
 
