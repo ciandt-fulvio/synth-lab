@@ -104,10 +104,8 @@ class PRFAQService:
         """
         Generate a PR-FAQ from a research execution.
 
-        This method uses optimistic locking to prevent concurrent generation:
-        1. Create a 'generating' record (fails if already generating)
-        2. Generate the PR-FAQ
-        3. Update with content or error
+        Note: The 'generating' status should be set by the router before calling this method
+        via doc_service.start_generation() to prevent race conditions.
 
         Args:
             request: Generation request with exec_id and model.
@@ -118,10 +116,11 @@ class PRFAQService:
         Raises:
             ExecutionNotFoundError: If execution doesn't exist.
             SummaryNotFoundError: If execution doesn't have a summary.
-            PRFAQAlreadyGeneratingError: If already generating (409 Conflict).
         """
         from loguru import logger
 
+        from synth_lab.domain.entities.experiment_document import DocumentType
+        from synth_lab.services.document_service import DocumentService
         from synth_lab.services.research_prfaq.generator import generate_prfaq_from_content
 
         # Verify execution exists
@@ -131,25 +130,16 @@ class PRFAQService:
         except ExecutionNotFoundError:
             raise
 
-        # Try to create pending record - prevents concurrent requests
-        if not self.prfaq_repo.create_pending_prfaq(request.exec_id, request.model):
-            raise PRFAQAlreadyGeneratingError(request.exec_id)
+        doc_service = DocumentService()
 
         try:
             # Verify experiment_id is set (required for saving document)
             if not execution.experiment_id:
-                self.prfaq_repo.update_prfaq_status(
-                    request.exec_id,
-                    status="failed",
-                    error_message="Execution not linked to an experiment")
+                doc_service.fail_generation(
+                    execution.experiment_id or "",
+                    DocumentType.PRFAQ,
+                    "Execution not linked to an experiment")
                 raise SummaryNotFoundError(request.exec_id)
-
-            from synth_lab.domain.entities.experiment_document import DocumentType
-            from synth_lab.services.document_service import DocumentService
-
-            doc_service = DocumentService()
-            # Note: start_generation is now called in the router before the background task
-            # to prevent race conditions. Here we only complete the generation.
 
             try:
                 summary_content = doc_service.get_markdown(
@@ -157,10 +147,10 @@ class PRFAQService:
                 )
             except Exception:
                 # Summary not found in experiment_documents
-                self.prfaq_repo.update_prfaq_status(
-                    request.exec_id,
-                    status="failed",
-                    error_message="Summary content not found in experiment_documents")
+                doc_service.fail_generation(
+                    execution.experiment_id,
+                    DocumentType.PRFAQ,
+                    "Summary content not found in experiment_documents")
                 raise SummaryNotFoundError(request.exec_id)
 
             # Generate PR-FAQ markdown from summary content
@@ -184,25 +174,23 @@ class PRFAQService:
                 markdown_content=prfaq_markdown,
                 metadata={"exec_id": request.exec_id, "headline": headline})
 
-            # Update legacy table status for backward compatibility (status only, no content)
-            self.prfaq_repo.update_prfaq_status(
-                request.exec_id,
-                status="completed")
-
             return PRFAQGenerateResponse(
                 exec_id=request.exec_id,
                 status="generated",
                 generated_at=datetime.now(),
                 validation_status="valid")
 
+        except SummaryNotFoundError:
+            raise
         except Exception as e:
             # Update with error status
             error_msg = str(e)[:500]  # Limit error message length
             logger.error(f"PR-FAQ generation failed for {request.exec_id}: {error_msg}")
-            self.prfaq_repo.update_prfaq_status(
-                request.exec_id,
-                status="failed",
-                error_message=error_msg)
+            if execution.experiment_id:
+                doc_service.fail_generation(
+                    execution.experiment_id,
+                    DocumentType.PRFAQ,
+                    error_msg)
             raise
 
     async def generate_prfaq_background(self, request: PRFAQGenerateRequest) -> None:

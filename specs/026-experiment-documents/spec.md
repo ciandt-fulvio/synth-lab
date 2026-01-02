@@ -124,7 +124,10 @@ As a user, I want to retrieve document content in markdown format, so I can rend
 
 ## Out of Scope
 
-- Migration of existing documents from legacy storage (prfaq_metadata, analysis_cache) to new table
-- Summary and PR-FAQ generation integration with new table (these continue to use their existing storage)
 - Document versioning (documents are replaced on regeneration)
 - Document deletion confirmation in UI
+
+## Completed Migrations
+
+- ✅ PR-FAQ documents now use experiment_documents table
+- ✅ Summary and Executive Summary generation integrated with experiment_documents

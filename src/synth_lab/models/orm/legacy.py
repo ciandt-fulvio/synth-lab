@@ -1,14 +1,14 @@
 """
 SQLAlchemy ORM models for legacy/deprecated tables.
 
-These models map to the 'feature_scorecards', 'simulation_runs', and 'prfaq_metadata' tables.
+These models map to the 'feature_scorecards' and 'simulation_runs' tables.
 These tables are deprecated and maintained only for backward compatibility.
 
 References:
-    - data-model.md: FeatureScorecard, SimulationRun, PRFAQMetadata entity definitions
+    - data-model.md: FeatureScorecard, SimulationRun entity definitions
     - Note: Scorecard data is now embedded in experiments.scorecard_data
     - Note: SimulationRun replaced by analysis_runs table
-    - Note: PRFAQMetadata is legacy; documents are now in experiment_documents table
+    - Note: Documents are now in experiment_documents table
 """
 
 from typing import Any
@@ -100,59 +100,6 @@ class SimulationRun(Base):
         return f"<SimulationRun(id={self.id!r}, status={self.status!r})>"
 
 
-class PRFAQMetadata(Base):
-    """
-    Legacy PR-FAQ metadata model (deprecated).
-
-    PR-FAQ documents are now managed via experiment_documents table.
-    This model is maintained for backward compatibility with existing data.
-
-    Attributes:
-        exec_id: Research execution ID (primary key, FK to research_executions)
-        generated_at: ISO timestamp of generation
-        model: LLM model used (default: gpt-4o-mini)
-        validation_status: valid/invalid/pending
-        confidence_score: Confidence score 0-1
-        headline: Press release headline
-        one_liner: One-line summary
-        faq_count: Number of FAQ items
-        markdown_content: PR-FAQ markdown content
-        json_content: PR-FAQ JSON content
-        status: generating/completed/failed
-        error_message: Error details if failed
-        started_at: ISO timestamp when generation started
-    """
-
-    __tablename__ = "prfaq_metadata"
-
-    exec_id: Mapped[str] = mapped_column(
-        String(100),
-        ForeignKey("research_executions.exec_id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    generated_at: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    model: Mapped[str] = mapped_column(String(50), nullable=False, default="gpt-4o-mini")
-    validation_status: Mapped[str] = mapped_column(String(20), nullable=False, default="valid")
-    confidence_score: Mapped[float | None] = mapped_column(Float, nullable=True)
-    headline: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    one_liner: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    faq_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    markdown_content: Mapped[str | None] = mapped_column(Text, nullable=True)
-    json_content: Mapped[str | None] = mapped_column(Text, nullable=True)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="completed")
-    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
-    started_at: Mapped[str | None] = mapped_column(String(50), nullable=True)
-
-    # Indexes
-    __table_args__ = (
-        Index("idx_prfaq_generated", "generated_at", postgresql_ops={"generated_at": "DESC"}),
-        Index("idx_prfaq_status", "status"),
-    )
-
-    def __repr__(self) -> str:
-        return f"<PRFAQMetadata(exec_id={self.exec_id!r}, status={self.status!r})>"
-
-
 if __name__ == "__main__":
     import sys
 
@@ -194,31 +141,12 @@ if __name__ == "__main__":
     if missing:
         all_validation_failures.append(f"SimulationRun missing columns: {missing}")
 
-    # Test 5: PRFAQMetadata has correct table name
-    total_tests += 1
-    if PRFAQMetadata.__tablename__ != "prfaq_metadata":
-        all_validation_failures.append(
-            f"PRFAQMetadata table name is {PRFAQMetadata.__tablename__}, expected 'prfaq_metadata'"
-        )
-
-    # Test 6: PRFAQMetadata has required columns
-    total_tests += 1
-    required_columns = {
-        "exec_id", "generated_at", "model", "validation_status", "confidence_score",
-        "headline", "one_liner", "faq_count", "markdown_content", "json_content",
-        "status", "error_message", "started_at"
-    }
-    actual_columns = set(PRFAQMetadata.__table__.columns.keys())
-    missing = required_columns - actual_columns
-    if missing:
-        all_validation_failures.append(f"PRFAQMetadata missing columns: {missing}")
-
     # Final validation result
     if all_validation_failures:
-        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
+        print(f"❌ VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
         sys.exit(0)

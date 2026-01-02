@@ -48,7 +48,7 @@
 - [X] T010 [P] Implement `src/synth_lab/models/synth.py` with Synth, SynthSummary, SynthDemografia, SynthPsicografia models
 - [X] T011 [P] Implement `src/synth_lab/models/topic.py` with TopicGuide, TopicGuideSummary, ScriptQuestion models
 - [X] T012 [P] Implement `src/synth_lab/models/research.py` with ResearchExecution, Transcript, TranscriptSummary, ResearchExecuteRequest models
-- [X] T013 [P] Implement `src/synth_lab/models/prfaq.py` with PRFAQMetadata, PRFAQGenerateRequest models
+- [X] T013 [P] Implement `src/synth_lab/models/prfaq.py` with PRFAQSummary, PRFAQGenerateRequest models
 
 ### Error Handling
 

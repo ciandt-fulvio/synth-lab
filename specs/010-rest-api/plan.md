@@ -364,7 +364,7 @@ See `data-model.md` for full schema. Key tables:
 | `synths` | Synth profiles with JSON columns for nested data |
 | `research_executions` | Execution metadata and status |
 | `transcripts` | Interview transcripts (JSON messages) |
-| `prfaq_metadata` | PR-FAQ metadata and validation status |
+| `experiment_documents` | Documents (PRFAQ, Summary, Executive Summary) |
 | `schema_migrations` | Schema version tracking |
 
 Note: Topic guides remain filesystem-based with optional DB metadata caching.

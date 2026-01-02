@@ -81,3 +81,5 @@ yarn-debug.log*
 Thumbs.db
 
 output/
+
+.vscode/

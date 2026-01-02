@@ -102,11 +102,12 @@ class AvatarService:
         try:
             # Run avatar generation in a separate thread to avoid blocking the event loop
             # generate_avatars uses time.sleep() and synchronous API calls
-            paths = await asyncio.to_thread(generate_avatars, synths=synths_without_avatar)
-            self.logger.info(f"Successfully generated {len(paths)} avatar files")
+            path_strings = await asyncio.to_thread(generate_avatars, synths=synths_without_avatar)
+            self.logger.info(f"Successfully generated {len(path_strings)} avatar files")
 
-            # Build result dict
-            for path in paths:
+            # Build result dict - convert strings to Path objects
+            for path_str in path_strings:
+                path = Path(path_str)
                 synth_id = path.stem  # filename without extension
                 generated_paths[synth_id] = path
 
