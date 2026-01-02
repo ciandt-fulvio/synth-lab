@@ -471,7 +471,7 @@ session: Session | None = None):
         return self._orm_to_summary(orm_exec)
     def check_summaries_exist_batch(self, exec_ids: list[str]) -> dict[str, bool]:
         """
-        Check which executions have summary_content.
+        Check which executions have summary documents in experiment_documents.
 
         Args:
             exec_ids: List of execution IDs to check.
@@ -482,21 +482,24 @@ session: Session | None = None):
         if not exec_ids:
             return {}
 
-        # Note: summary_content column not in ORM model - use raw SQL via session
+        # Documents are stored by experiment_id in experiment_documents table
+        # Join research_executions to experiment_documents to check by exec_id
         from sqlalchemy import text
 
         stmt = text("""
-            SELECT exec_id
-            FROM research_executions
-            WHERE exec_id IN :exec_ids
-            AND summary_content IS NOT NULL
-            AND summary_content != ''
+            SELECT re.exec_id
+            FROM research_executions re
+            INNER JOIN experiment_documents ed
+                ON re.experiment_id = ed.experiment_id
+            WHERE re.exec_id IN :exec_ids
+            AND ed.document_type = 'summary'
+            AND ed.status = 'completed'
         """)
         result = self.session.execute(stmt, {"exec_ids": tuple(exec_ids)})
         return {row[0]: True for row in result}
     def check_prfaqs_exist_batch(self, exec_ids: list[str]) -> dict[str, bool]:
         """
-        Check which executions have completed prfaq_metadata.
+        Check which executions have prfaq documents in experiment_documents.
 
         Args:
             exec_ids: List of execution IDs to check.
@@ -507,14 +510,18 @@ session: Session | None = None):
         if not exec_ids:
             return {}
 
-        # prfaq_metadata not in ORM model - use raw SQL via session
+        # Documents are stored by experiment_id in experiment_documents table
+        # Join research_executions to experiment_documents to check by exec_id
         from sqlalchemy import text
 
         stmt = text("""
-            SELECT exec_id
-            FROM prfaq_metadata
-            WHERE exec_id IN :exec_ids
-            AND status = 'completed'
+            SELECT re.exec_id
+            FROM research_executions re
+            INNER JOIN experiment_documents ed
+                ON re.experiment_id = ed.experiment_id
+            WHERE re.exec_id IN :exec_ids
+            AND ed.document_type = 'prfaq'
+            AND ed.status = 'completed'
         """)
         result = self.session.execute(stmt, {"exec_ids": tuple(exec_ids)})
         return {row[0]: True for row in result}

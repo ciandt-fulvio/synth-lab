@@ -128,31 +128,6 @@ CREATE INDEX idx_transcripts_synth ON transcripts(synth_id);
 
 ---
 
-### Table: `prfaq_metadata`
-
-Stores PR-FAQ generation metadata and validation status.
-
-```sql
-CREATE TABLE prfaq_metadata (
-    exec_id TEXT PRIMARY KEY REFERENCES research_executions(exec_id),
-    generated_at TEXT NOT NULL,             -- ISO 8601 timestamp
-    model TEXT DEFAULT 'gpt-5-mini',        -- LLM model used
-    validation_status TEXT DEFAULT 'valid', -- valid, invalid, pending
-    confidence_score REAL,                  -- 0.0 to 1.0
-    headline TEXT,                          -- Press release headline
-    one_liner TEXT,                         -- One-line summary
-    faq_count INTEGER DEFAULT 0,            -- Number of FAQ items
-    markdown_path TEXT,                     -- Path to markdown file
-    json_path TEXT,                         -- Path to structured JSON
-
-    CHECK(validation_status IN ('valid', 'invalid', 'pending'))
-);
-
-CREATE INDEX idx_prfaq_generated ON prfaq_metadata(generated_at DESC);
-```
-
----
-
 ### Table: `topic_guides_cache`
 
 Optional cache for topic guide metadata (filesystem is source of truth).
@@ -222,15 +197,15 @@ VALUES (1, datetime('now'), 'Initial schema creation');
                                      ▲ 1
                                      │
 ┌─────────────────┐       ┌──────────────────────┐
-│ topic_guides_   │       │   prfaq_metadata     │
+│ topic_guides_   │       │ experiment_documents │
 │     cache       │       ├──────────────────────┤
-├─────────────────┤       │ exec_id (PK/FK)      │
-│ name (PK)       │       │ generated_at         │
-│ display_name    │       │ validation_status    │
-│ question_count  │       │ confidence_score     │
-│ file_count      │       │ headline             │
-│ script_hash     │       │ faq_count            │
-└─────────────────┘       │ markdown_path        │
+├─────────────────┤       │ id (PK)              │
+│ name (PK)       │       │ experiment_id (FK)   │
+│ display_name    │       │ document_type        │
+│ question_count  │       │ markdown_content     │
+│ file_count      │       │ metadata (J)         │
+│ script_hash     │       │ generated_at         │
+└─────────────────┘       │ status               │
                           └──────────────────────┘
 
 (J) = JSON column
@@ -526,17 +501,17 @@ def create_schema(conn: sqlite3.Connection) -> None:
             UNIQUE(exec_id, synth_id)
         );
 
-        CREATE TABLE IF NOT EXISTS prfaq_metadata (
-            exec_id TEXT PRIMARY KEY,
+        CREATE TABLE IF NOT EXISTS experiment_documents (
+            id TEXT PRIMARY KEY,
+            experiment_id TEXT NOT NULL,
+            document_type TEXT NOT NULL,
+            markdown_content TEXT NOT NULL,
+            metadata TEXT,
             generated_at TEXT NOT NULL,
-            model TEXT DEFAULT 'gpt-5-mini',
-            validation_status TEXT DEFAULT 'valid',
-            confidence_score REAL,
-            headline TEXT,
-            one_liner TEXT,
-            faq_count INTEGER DEFAULT 0,
-            markdown_path TEXT,
-            json_path TEXT
+            model TEXT DEFAULT 'gpt-4o-mini',
+            status TEXT NOT NULL DEFAULT 'completed',
+            error_message TEXT,
+            UNIQUE(experiment_id, document_type)
         );
 
         CREATE TABLE IF NOT EXISTS schema_migrations (

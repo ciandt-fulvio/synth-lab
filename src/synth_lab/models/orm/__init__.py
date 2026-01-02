@@ -35,7 +35,7 @@ from synth_lab.models.orm.document import ExperimentDocument
 from synth_lab.models.orm.experiment import Experiment, InterviewGuide
 from synth_lab.models.orm.exploration import Exploration, ScenarioNode
 from synth_lab.models.orm.insight import ChartInsight, RegionAnalysis, SensitivityResult
-from synth_lab.models.orm.legacy import FeatureScorecard, PRFAQMetadata, SimulationRun
+from synth_lab.models.orm.legacy import FeatureScorecard, SimulationRun
 from synth_lab.models.orm.research import ResearchExecution, Transcript
 from synth_lab.models.orm.synth import Synth, SynthGroup
 
@@ -72,6 +72,5 @@ __all__ = [
     "ExperimentDocument",
     # Legacy
     "FeatureScorecard",
-    "PRFAQMetadata",
     "SimulationRun",
 ]

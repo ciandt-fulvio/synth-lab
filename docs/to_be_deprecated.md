@@ -117,7 +117,7 @@ Este documento lista componentes legados do sistema de simulação original (fea
 | `synth_groups` | 1+ | Agrupamento de synths |
 | `research_executions` | 0+ | Sistema de entrevistas |
 | `transcripts` | 0+ | Transcrições de entrevistas |
-| `prfaq_metadata` | 0+ | Metadados PRFAQ |
+| `experiment_documents` | 0+ | Documentos (PRFAQ, Summary, Executive Summary) |
 | `interview_guide` | 7+ | Guias de entrevista |
 | `chart_insights` | 18+ | Cache de insights LLM |
 

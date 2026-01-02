@@ -31,15 +31,17 @@ PRAGMA temp_store=MEMORY;       -- Usa memória para tabelas temporárias
 └─────────────┘
 
 ┌────────────────────────┐
-│ research_executions    │◄──────┐
-└────────────────────────┘       │
-       ▲                         │
-       │                         │
-       ├─────────────────────────┤
-       │                         │
-┌──────┴────┐          ┌─────────┴────────┐
-│transcripts│          │ prfaq_metadata   │
-└───────────┘          └──────────────────┘
+│ research_executions    │
+└────────────────────────┘
+       ▲
+       │
+┌──────┴────┐
+│transcripts│
+└───────────┘
+
+┌─────────────────────┐
+│ experiment_documents│  (stores PRFAQ, Summary, Executive Summary)
+└─────────────────────┘
 
 ┌───────────────────┐
 │ topic_guides_cache│
@@ -239,36 +241,7 @@ CREATE INDEX idx_transcripts_synth ON transcripts(synth_id);
 
 ---
 
-### 4. prfaq_metadata
-
-Metadados de PR-FAQ gerados.
-
-```sql
-CREATE TABLE prfaq_metadata (
-    exec_id TEXT PRIMARY KEY,          -- FK para research_executions
-    generated_at TEXT,                 -- ISO 8601 timestamp
-    model TEXT DEFAULT 'gpt-5-mini',   -- Modelo LLM usado
-    validation_status TEXT DEFAULT 'valid',
-    confidence_score REAL,             -- 0.0 - 1.0
-    headline TEXT,                     -- Manchete do Press Release
-    one_liner TEXT,                    -- Resumo de uma linha
-    faq_count INTEGER DEFAULT 0,       -- Número de perguntas no FAQ
-    markdown_content TEXT,             -- Conteúdo em markdown
-    json_content TEXT CHECK(json_valid(json_content) OR json_content IS NULL),
-    status TEXT DEFAULT 'completed',
-    error_message TEXT,
-    started_at TEXT,
-    CHECK(validation_status IN ('valid', 'invalid', 'pending')),
-    CHECK(status IN ('generating', 'completed', 'failed'))
-);
-
-CREATE INDEX idx_prfaq_generated ON prfaq_metadata(generated_at DESC);
-CREATE INDEX idx_prfaq_status ON prfaq_metadata(status);
-```
-
----
-
-### 5. topic_guides_cache
+### 4. topic_guides_cache
 
 Cache de metadados de topic guides.
 

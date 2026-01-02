@@ -1,4 +1,4 @@
-.PHONY: help install setup-hooks serve serve-front gensynth phoenix db db-stop db-reset db-migrate validate-ui test test-fast test-full test-unit test-integration test-contract lint-format clean
+.PHONY: help install setup-hooks serve serve-front gensynth phoenix kill db db-stop db-reset db-migrate validate-ui test test-fast test-full test-unit test-integration test-contract lint-format clean
 
 # =============================================================================
 # Configuration
@@ -53,6 +53,7 @@ help:
 	@echo "  make serve        Start API server (port 8000)"
 	@echo "  make serve-front  Start frontend (port 8080)"
 	@echo "  make phoenix      Start Phoenix tracing (port 6006)"
+	@echo "  make kill         Kill all dev servers (ports 8000, 8080, 6006)"
 	@echo "  make gensynth     Generate synths: make gensynth ARGS='-n 3'"
 	@echo ""
 	@echo "Testing:"
@@ -122,19 +123,26 @@ endif
 # =============================================================================
 serve:
 	@echo "API: http://127.0.0.1:$(or $(PORT),8000)/docs"
-	DATABASE_URL="$(DATABASE_URL)" PHOENIX_ENABLED=$(PHOENIX_ENABLED) LOG_LEVEL=$(LOG_LEVEL) \
+	@exec env DATABASE_URL="$(DATABASE_URL)" PHOENIX_ENABLED=$(PHOENIX_ENABLED) LOG_LEVEL=$(LOG_LEVEL) \
 		uv run uvicorn synth_lab.api.main:app --host 127.0.0.1 --port $(or $(PORT),8000) $(UVICORN_RELOAD) $(TEE_BACKEND)
 
 serve-front:
 	@echo "Frontend: http://localhost:$(or $(FRONT_PORT),8080)"
-	@cd frontend && VITE_PORT=$(or $(FRONT_PORT),8080) VITE_API_PORT=$(or $(PORT),8000) pnpm dev $(TEE_FRONTEND)
+	@cd frontend && exec env VITE_PORT=$(or $(FRONT_PORT),8080) VITE_API_PORT=$(or $(PORT),8000) pnpm dev $(TEE_FRONTEND)
 
 gensynth:
 	DATABASE_URL="$(DATABASE_URL)" PHOENIX_ENABLED=$(PHOENIX_ENABLED) LOG_LEVEL=$(LOG_LEVEL) uv run synthlab gensynth $(ARGS)
 
 phoenix:
 	@echo "Phoenix: http://127.0.0.1:6006"
-	uv run python -m phoenix.server.main serve
+	@exec uv run python -m phoenix.server.main serve
+
+kill:
+	@echo "Killing dev servers..."
+	@-lsof -ti:8000 | xargs kill -9 2>/dev/null || true
+	@-lsof -ti:8080 | xargs kill -9 2>/dev/null || true
+	@-lsof -ti:6006 | xargs kill -9 2>/dev/null || true
+	@echo "✅ Done"
 
 # =============================================================================
 # Testing
