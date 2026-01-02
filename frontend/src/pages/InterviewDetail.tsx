@@ -445,6 +445,8 @@ export default function InterviewDetail() {
         documentType="summary"
         markdownContent={summaryMarkdown}
         titleSuffix={displayTitle}
+        status={documentAvailability?.summary.status === 'generating' ? 'generating' : summaryAvailable ? 'completed' : 'pending'}
+        isLoading={generateSummaryMutation.isPending}
       />
 
       <DocumentViewer
@@ -453,6 +455,8 @@ export default function InterviewDetail() {
         documentType="prfaq"
         markdownContent={prfaqMarkdown}
         titleSuffix={displayTitle}
+        status={documentAvailability?.prfaq.status === 'generating' ? 'generating' : prfaqAvailable ? 'completed' : 'pending'}
+        isLoading={generatePrfaqMutation.isPending}
       />
 
       <TranscriptDialog

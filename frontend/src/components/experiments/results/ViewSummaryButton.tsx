@@ -1,24 +1,25 @@
 /**
  * ViewSummaryButton Component
  *
- * Button to open the executive summary modal.
+ * Button to open the executive summary viewer.
  *
  * References:
  *   - Spec: specs/023-quantitative-ai-insights/spec.md (User Story 2)
- *   - Modal: ExecutiveSummaryModal.tsx
+ *   - Viewer: DocumentViewer.tsx (shared component with PDF download)
  *
  * Features:
  *   - Disabled if no summary available
  *   - Loading indicator while generating
  *   - "Novo" badge for recently generated summaries
+ *   - PDF download functionality via DocumentViewer
  */
 
 import { useState } from 'react';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useDocumentAvailability, useGenerateDocument } from '@/hooks/use-documents';
-import { ExecutiveSummaryModal } from './ExecutiveSummaryModal';
+import { useDocumentAvailability, useGenerateDocument, useDocumentMarkdown } from '@/hooks/use-documents';
+import { DocumentViewer } from '@/components/shared/DocumentViewer';
 import { toast } from 'sonner';
 
 interface ViewSummaryButtonProps {
@@ -29,6 +30,7 @@ export function ViewSummaryButton({ experimentId }: ViewSummaryButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { data: availability, isLoading } = useDocumentAvailability(experimentId);
   const generateMutation = useGenerateDocument(experimentId, 'executive_summary');
+  const { data: markdown } = useDocumentMarkdown(experimentId, 'executive_summary', { enabled: isModalOpen });
 
   const summary = availability?.executive_summary;
 
@@ -90,10 +92,13 @@ export function ViewSummaryButton({ experimentId }: ViewSummaryButtonProps) {
         )}
       </Button>
 
-      <ExecutiveSummaryModal
-        experimentId={experimentId}
+      <DocumentViewer
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        documentType="executive_summary"
+        markdownContent={markdown}
+        status={summary?.status === 'generating' ? 'generating' : isAvailable ? 'completed' : 'pending'}
+        isLoading={generateMutation.isPending}
       />
     </>
   );
