@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from synth_lab.models.orm.base import Base, MutableJSON
+from synth_lab.models.orm.base import Base, MutableJSONList
 
 if TYPE_CHECKING:
     from synth_lab.models.orm.experiment import Experiment
@@ -119,7 +119,7 @@ class Transcript(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     turn_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     timestamp: Mapped[str] = mapped_column(String(50), nullable=False)
-    messages: Mapped[list[dict[str, Any]] | None] = mapped_column(MutableJSON, nullable=True)
+    messages: Mapped[list[dict[str, Any]] | None] = mapped_column(MutableJSONList, nullable=True)
 
     # Relationships
     research_execution: Mapped["ResearchExecution"] = relationship(

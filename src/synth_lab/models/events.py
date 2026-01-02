@@ -22,6 +22,7 @@ class InterviewMessageEvent(BaseModel):
         "interview_completed",
         "transcription_completed",
         "execution_completed",
+        "avatar_generation_completed",
         "error",
     ] = Field(..., description="Type of event")
     exec_id: str = Field(..., description="Execution ID")
