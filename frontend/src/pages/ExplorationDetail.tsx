@@ -64,7 +64,7 @@ export default function ExplorationDetail() {
       <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
         <SynthLabHeader
           subtitle="Carregando exploração..."
-          backTo={`/experiments/${experimentId}`}
+          backTo={`/experiments/${experimentId}?tab=explorations`}
         />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Skeleton className="h-24 w-full mb-6" />
@@ -80,7 +80,7 @@ export default function ExplorationDetail() {
       <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
         <SynthLabHeader
           subtitle="Exploração não encontrada"
-          backTo={`/experiments/${experimentId}`}
+          backTo={`/experiments/${experimentId}?tab=explorations`}
         />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <p className="text-muted-foreground">Exploração não encontrada.</p>
@@ -98,7 +98,7 @@ export default function ExplorationDetail() {
             Exploração de Cenários
           </span>
         }
-        backTo={`/experiments/${experimentId}`}
+        backTo={`/experiments/${experimentId}?tab=explorations`}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
