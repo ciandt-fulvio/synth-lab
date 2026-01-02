@@ -31,6 +31,7 @@ from synth_lab.domain.entities.experiment import Experiment
 from synth_lab.domain.entities.scenario_node import ScenarioNode
 from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
+from synth_lab.repositories.exploration_repository import ExplorationRepository
 from synth_lab.services.exploration.action_catalog import (
     ActionCatalogService,
     get_action_catalog_service)
@@ -61,23 +62,26 @@ class ActionProposalService:
     def __init__(
         self,
         llm_client: LLMClient | None = None,
-        catalog_service: ActionCatalogService | None = None):
+        catalog_service: ActionCatalogService | None = None,
+        repository: ExplorationRepository | None = None):
         """
         Initialize the action proposal service.
 
         Args:
             llm_client: LLM client instance. If None, uses global client.
             catalog_service: Action catalog service. If None, uses global service.
+            repository: Exploration repository. If None, creates new instance.
         """
         self.llm = llm_client or get_llm_client()
         self.catalog = catalog_service or get_action_catalog_service()
+        self.repository = repository or ExplorationRepository()
         self.logger = logger.bind(component="action_proposal_service")
 
     def generate_proposals(
         self,
         node: ScenarioNode,
         experiment: Experiment,
-        max_proposals: int = 2) -> list[ActionProposal]:
+        max_proposals: int = 5) -> list[ActionProposal]:
         """
         Generate improvement proposals for a scenario node.
 
@@ -87,20 +91,42 @@ class ActionProposalService:
         Args:
             node: The scenario node to generate proposals for.
             experiment: The experiment context (name, hypothesis, scorecard).
-            max_proposals: Maximum number of proposals to generate (1-2).
+            max_proposals: Maximum number of proposals to generate (1-5).
 
         Returns:
-            List of ActionProposal objects (0-2 items).
+            List of ActionProposal objects (0-5 items).
 
         Raises:
             ProposalGenerationError: If LLM call fails repeatedly.
         """
+        # Build path context for span name with parent info
+        path = self.repository.get_path_to_node(node.id)
+        if len(path) > 1:
+            # Get current and parent actions
+            current_action = node.short_action or node.action_applied or "?"
+            parent_node = path[-2]  # Second to last is parent
+            parent_action = parent_node.short_action or parent_node.action_applied or "ROOT"
+
+            # Truncate if too long
+            if len(parent_action) > 20:
+                parent_action = parent_action[:17] + "..."
+            if len(current_action) > 20:
+                current_action = current_action[:17] + "..."
+
+            span_name = f"ActionProposal d{node.depth} | {parent_action} → {current_action}"
+        else:
+            # Root node
+            span_name = f"ActionProposal d{node.depth} | ROOT"
+
         with _tracer.start_as_current_span(
-            "ActionProposalService: generate_proposals",
+            span_name,
             attributes={
                 "node_id": node.id,
                 "experiment_id": experiment.id,
                 "node_depth": node.depth,
+                "path_length": len(path),
+                "current_action": node.action_applied or "root",
+                "parent_action": path[-2].action_applied if len(path) > 1 else None,
             }):
             prompt = self._build_prompt(node, experiment, max_proposals)
 
@@ -140,13 +166,14 @@ class ActionProposalService:
 Sua tarefa e propor acoes concretas e incrementais para melhorar os resultados de um experimento.
 
 REGRAS IMPORTANTES:
-1. Proponha EXATAMENTE 1 ou 2 acoes por resposta
+1. Proponha entre 1 e 5 acoes por resposta
 2. Cada acao deve ser CONCRETA e ESPECIFICA (nao generica)
 3. Cada acao deve ter uma CATEGORIA do catalogo fornecido
 4. Os IMPACTOS devem ser pequenos e realistas (entre -0.10 e +0.10)
 5. Foque em reduzir complexity, perceived_risk e time_to_value para aumentar success_rate
 6. O rationale deve explicar POR QUE essa acao ajudaria
 7. O short_action deve ser um RESUMO em 3 palavras (maximo 30 caracteres)
+8. NUNCA repita acoes que ja foram aplicadas no caminho atual (veja secao "Historico")
 
 FORMATO DE RESPOSTA (JSON):
 {
@@ -187,6 +214,9 @@ EXEMPLOS de short_action:
         params = node.scorecard_params
         results = node.simulation_results
 
+        # Get path from root to current node (for action history)
+        path = self.repository.get_path_to_node(node.id)
+
         # Build prompt
         prompt_parts = [
             "## Contexto do Experimento",
@@ -198,6 +228,22 @@ EXEMPLOS de short_action:
 
         if description:
             prompt_parts.append(f"**Descricao**: {description}")
+
+        # Add action history (if not root node)
+        if len(path) > 1:
+            prompt_parts.extend([
+                "",
+                "## Historico de Acoes Aplicadas",
+                "",
+                "**IMPORTANTE**: NAO repita acoes que ja foram aplicadas abaixo.",
+                "",
+            ])
+            for i, path_node in enumerate(path[1:], 1):  # Skip root node
+                action_text = path_node.action_applied or "N/A"
+                category_text = path_node.action_category or "N/A"
+                prompt_parts.append(
+                    f"{i}. [{category_text}] {action_text}"
+                )
 
         prompt_parts.extend([
             "",
@@ -229,6 +275,7 @@ EXEMPLOS de short_action:
             "",
             f"Proponha ate {max_proposals} acoes concretas para melhorar o success_rate.",
             "Cada acao deve ter categoria valida do catalogo e impactos estimados.",
+            "EVITE repeticoes das acoes ja aplicadas no historico acima.",
             "Retorne APENAS o JSON, sem explicacoes adicionais.",
         ])
 
@@ -305,7 +352,7 @@ EXEMPLOS de short_action:
                 self.logger.warning(f"Failed to validate proposal {i}: {e}")
                 continue
 
-        return valid[:2]  # Limit to 2 proposals max
+        return valid[:5]  # Limit to 5 proposals max
 
 
 if __name__ == "__main__":
@@ -433,6 +480,8 @@ if __name__ == "__main__":
     # Test 7: Build prompt generates valid content
     total_tests += 1
     try:
+        from unittest.mock import MagicMock
+
         from synth_lab.domain.entities.experiment import (
             Experiment,
             ScorecardData,
@@ -466,8 +515,12 @@ if __name__ == "__main__":
                 fail_rate=0.45,
                 did_not_try_rate=0.30))
 
-        service = ActionProposalService()
-        prompt = service._build_prompt(node, experiment, 2)
+        # Mock repository to avoid database dependency
+        mock_repo = MagicMock()
+        mock_repo.get_path_to_node.return_value = [node]  # Return just root node
+
+        service = ActionProposalService(repository=mock_repo)
+        prompt = service._build_prompt(node, experiment, 5)
 
         if "Test Experiment" not in prompt:
             all_validation_failures.append("Prompt should contain experiment name")
@@ -477,6 +530,9 @@ if __name__ == "__main__":
             all_validation_failures.append("Prompt should contain success rate")
         if "Catalogo de Acoes" not in prompt:
             all_validation_failures.append("Prompt should contain catalog context")
+        # Root node (path length = 1) should NOT have action history
+        if "Historico de Acoes" in prompt:
+            all_validation_failures.append("Root node should not have action history")
     except Exception as e:
         all_validation_failures.append(f"Build prompt test failed: {e}")
 
@@ -493,6 +549,10 @@ if __name__ == "__main__":
             all_validation_failures.append("System prompt should mention impact limits")
         if "short_action" not in system_prompt:
             all_validation_failures.append("System prompt should mention short_action")
+        if "1 e 5 acoes" not in system_prompt:
+            all_validation_failures.append("System prompt should mention 1-5 actions")
+        if "Historico" not in system_prompt:
+            all_validation_failures.append("System prompt should mention history warning")
     except Exception as e:
         all_validation_failures.append(f"System prompt test failed: {e}")
 
