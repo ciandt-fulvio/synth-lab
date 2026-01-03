@@ -24,3 +24,6 @@ fi
 echo ""
 echo "✅ Pre-commit tests passed!"
 echo ""
+
+# Verifica se mudanças precisam de novos testes
+.githooks/check-test-coverage.sh

@@ -63,9 +63,10 @@ help:
 	@echo "  make gensynth     Generate synths: make gensynth ARGS='-n 3'"
 	@echo ""
 	@echo "Testing:"
-	@echo "  make test         Run all tests"
-	@echo "  make test-fast    Run unit tests only"
-	@echo "  make test-full    Run all tests verbose"
+	@echo "  make test                    Run all tests"
+	@echo "  make test-fast               Run fast anti-regression tests (~30s: smoke+contract+schema)"
+	@echo "  make test-full               Run all tests verbose"
+	@echo "  make test-coverage-analysis  Analyze test coverage gaps (suggests Claude prompts)"
 	@echo ""
 	@echo "Other:"
 	@echo "  make lint-format  Run ruff linter and formatter"
@@ -183,7 +184,9 @@ test:
 	POSTGRES_URL="$(DATABASE_TEST_URL)" uv run pytest
 
 test-fast:
-	uv run pytest tests/unit/ -q --tb=short
+	@echo "🚀 Running fast anti-regression tests..."
+	@echo ""
+	DATABASE_URL_TEST="$(DATABASE_TEST_URL)" uv run pytest -m "smoke or contract or schema" --maxfail=5 -q --tb=short
 
 test-full:
 	POSTGRES_URL="$(DATABASE_TEST_URL)" uv run pytest tests/ -v --tb=short
@@ -196,6 +199,11 @@ test-integration:
 
 test-contract:
 	uv run pytest tests/contract/ -v
+
+test-coverage-analysis:
+	@echo "📊 Analisando gaps de cobertura de testes..."
+	@echo ""
+	@uv run python scripts/analyze_test_coverage.py --suggest-claude-prompts
 
 # =============================================================================
 # Other
