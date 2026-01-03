@@ -16,7 +16,7 @@ export default defineConfig({
   reporter: 'html',
 
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: process.env.VITE_PORT ? `http://localhost:${process.env.VITE_PORT}` : 'http://localhost:8089',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -29,8 +29,8 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
+    command: 'npm run dev:test',
+    url: process.env.VITE_PORT ? `http://localhost:${process.env.VITE_PORT}` : 'http://localhost:8089',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },

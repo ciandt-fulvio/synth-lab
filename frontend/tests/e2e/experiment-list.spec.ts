@@ -13,13 +13,13 @@ test.describe('Experiment List Page', () => {
     // Navega para a página inicial
     await page.goto('/');
 
-    // Verifica que a página carregou
-    await expect(page).toHaveTitle(/Synth Lab/i);
+    // Verifica que a página carregou (título correto: "SynthLab" sem espaço)
+    await expect(page).toHaveTitle('SynthLab');
 
     // Verifica que há algum conteúdo de experimentos
     // (pode ser lista vazia ou com experimentos)
     await expect(
-      page.locator('h1, h2').filter({ hasText: /experimento/i }).first()
+      page.locator('h2').filter({ hasText: /experimentos/i }).first()
     ).toBeVisible({ timeout: 10000 });
   });
 
@@ -30,10 +30,11 @@ test.describe('Experiment List Page', () => {
     await page.waitForLoadState('networkidle');
 
     // Deve ter ou cards de experimento OU mensagem de lista vazia
-    const hasExperiments = await page.locator('[data-testid="experiment-card"]').count();
-    const hasEmptyState = await page.locator('text=/nenhum experimento/i').count();
+    // ExperimentCard usa Card component do shadcn
+    const hasExperiments = await page.locator('.cursor-pointer').count() > 0;
+    const hasEmptyState = await page.locator('text=/nenhum experimento ainda/i').count() > 0;
 
-    expect(hasExperiments > 0 || hasEmptyState > 0).toBeTruthy();
+    expect(hasExperiments || hasEmptyState).toBeTruthy();
   });
 
   test('should navigate to experiment detail when clicked', async ({ page }) => {
@@ -42,8 +43,10 @@ test.describe('Experiment List Page', () => {
     // Aguarda lista carregar
     await page.waitForLoadState('networkidle');
 
-    // Se houver experimentos, testa navegação
-    const experimentCards = page.locator('[data-testid="experiment-card"]');
+    // Se houver experimentos (cards clicáveis), testa navegação
+    const experimentCards = page.locator('.cursor-pointer').filter({
+      has: page.locator('h3, [class*="CardTitle"]')
+    });
     const count = await experimentCards.count();
 
     if (count > 0) {
@@ -53,8 +56,8 @@ test.describe('Experiment List Page', () => {
       // Verifica que navegou para página de detalhe
       await expect(page).toHaveURL(/\/experiments\/exp_/);
 
-      // Verifica que página de detalhe carregou
-      await expect(page.locator('h1, h2')).toBeVisible();
+      // Verifica que página de detalhe carregou (título do experimento)
+      await expect(page.locator('h2').filter({ hasText: /.+/ }).first()).toBeVisible();
     } else {
       test.skip('Nenhum experimento disponível para testar navegação');
     }

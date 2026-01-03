@@ -1,4 +1,4 @@
-.PHONY: help install setup-hooks serve serve-front gensynth phoenix kill kill-server db db-stop db-reset db-migrate db-test db-test-reset validate-ui test test-fast test-full test-unit test-integration test-contract lint-format clean clean-server
+.PHONY: help install setup-hooks serve serve-front serve-test serve-front-test gensynth phoenix kill kill-server kill-test-servers db db-stop db-reset db-migrate db-test db-test-reset validate-ui test test-fast test-full test-unit test-integration test-contract test-e2e test-e2e-ui lint-format clean clean-server
 
 # =============================================================================
 # Configuration
@@ -16,6 +16,10 @@ DATABASE_URL := postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:$(P
 # Test database (ISOLATED - never use production/dev DB for tests!)
 POSTGRES_TEST_DB := synthlab_test
 DATABASE_TEST_URL := postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:$(POSTGRES_PORT)/$(POSTGRES_TEST_DB)
+
+# Test server ports (to avoid conflicts with dev servers)
+TEST_BACKEND_PORT := 8009
+TEST_FRONTEND_PORT := 8089
 
 # Alembic
 ALEMBIC_CONFIG := src/synth_lab/alembic/alembic.ini
@@ -56,16 +60,21 @@ help:
 	@echo "  make db-test-reset Reset test database"
 	@echo ""
 	@echo "Development:"
-	@echo "  make serve        Start API server (port 8000)"
-	@echo "  make serve-front  Start frontend (port 8080)"
-	@echo "  make phoenix      Start Phoenix tracing (port 6006)"
-	@echo "  make kill         Kill all dev servers (ports 8000, 8080, 6006)"
-	@echo "  make gensynth     Generate synths: make gensynth ARGS='-n 3'"
+	@echo "  make serve             Start API server (port 8000)"
+	@echo "  make serve-front       Start frontend (port 8080)"
+	@echo "  make serve-test        Start API server for tests (port 8009)"
+	@echo "  make serve-front-test  Start frontend for tests (port 8089)"
+	@echo "  make phoenix           Start Phoenix tracing (port 6006)"
+	@echo "  make kill              Kill all dev servers (ports 8000, 8080, 6006)"
+	@echo "  make kill-test-servers Kill test servers (ports 8009, 8089)"
+	@echo "  make gensynth          Generate synths: make gensynth ARGS='-n 3'"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test                    Run all tests"
 	@echo "  make test-fast               Run fast anti-regression tests (~30s: smoke+contract+schema)"
 	@echo "  make test-full               Run all tests verbose"
+	@echo "  make test-e2e                Run E2E tests (requires servers running on ports 8009/8089)"
+	@echo "  make test-e2e-ui             Run E2E tests in UI mode"
 	@echo "  make test-coverage-analysis  Analyze test coverage gaps (suggests Claude prompts)"
 	@echo ""
 	@echo "Other:"
@@ -158,6 +167,15 @@ serve-front:
 	@echo "Frontend: http://localhost:$(or $(FRONT_PORT),8080)"
 	@cd frontend && exec env VITE_PORT=$(or $(FRONT_PORT),8080) VITE_API_PORT=$(or $(PORT),8000) pnpm dev $(TEE_FRONTEND)
 
+serve-test:
+	@echo "Test API: http://127.0.0.1:$(TEST_BACKEND_PORT)/docs"
+	@exec env DATABASE_URL="$(DATABASE_TEST_URL)" PHOENIX_ENABLED=false LOG_LEVEL=INFO \
+		uv run uvicorn synth_lab.api.main:app --host 127.0.0.1 --port $(TEST_BACKEND_PORT)
+
+serve-front-test:
+	@echo "Test Frontend: http://localhost:$(TEST_FRONTEND_PORT)"
+	@cd frontend && exec env VITE_PORT=$(TEST_FRONTEND_PORT) VITE_API_PORT=$(TEST_BACKEND_PORT) npm run dev:test
+
 gensynth:
 	DATABASE_URL="$(DATABASE_URL)" PHOENIX_ENABLED=$(PHOENIX_ENABLED) LOG_LEVEL=$(LOG_LEVEL) uv run synthlab gensynth $(ARGS)
 
@@ -175,6 +193,12 @@ kill:
 kill-server:
 	@echo "Killing backend server..."
 	@-lsof -ti:8000 | xargs kill -9 2>/dev/null || true
+	@echo "✅ Done"
+
+kill-test-servers:
+	@echo "Killing test servers..."
+	@-lsof -ti:$(TEST_BACKEND_PORT) | xargs kill -9 2>/dev/null || true
+	@-lsof -ti:$(TEST_FRONTEND_PORT) | xargs kill -9 2>/dev/null || true
 	@echo "✅ Done"
 
 # =============================================================================
@@ -199,6 +223,18 @@ test-integration:
 
 test-contract:
 	uv run pytest tests/contract/ -v
+
+test-e2e:
+	@echo "🎭 Running E2E tests..."
+	@echo "⚠️  Make sure test servers are running:"
+	@echo "   Terminal 1: make serve-test"
+	@echo "   Terminal 2: make serve-front-test"
+	@echo ""
+	@cd frontend && VITE_PORT=$(TEST_FRONTEND_PORT) npm run test:e2e
+
+test-e2e-ui:
+	@echo "🎭 Running E2E tests in UI mode..."
+	@cd frontend && VITE_PORT=$(TEST_FRONTEND_PORT) npm run test:e2e:ui
 
 test-coverage-analysis:
 	@echo "📊 Analisando gaps de cobertura de testes..."
