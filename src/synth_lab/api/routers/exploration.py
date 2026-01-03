@@ -12,6 +12,11 @@ References:
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 from loguru import logger
 
+from synth_lab.api.schemas.documents import (
+    DocumentDetailResponse,
+    DocumentStatusEnum,
+    DocumentTypeEnum,
+)
 from synth_lab.api.schemas.exploration import (
     ActionCatalogResponse,
     ActionCategoryResponse,
@@ -23,8 +28,8 @@ from synth_lab.api.schemas.exploration import (
     PathStepResponse,
     WinningPathResponse,
     exploration_to_response,
-    node_to_response)
-from synth_lab.infrastructure.database_v2 import get_session
+    node_to_response,
+)
 from synth_lab.repositories.synth_repository import SynthRepository
 from synth_lab.services.exploration.action_catalog import get_action_catalog_service
 from synth_lab.services.exploration.exploration_service import (
@@ -32,7 +37,22 @@ from synth_lab.services.exploration.exploration_service import (
     ExplorationNotFoundError,
     ExplorationService,
     NoBaselineAnalysisError,
-    NoScorecardError)
+    NoScorecardError,
+)
+from synth_lab.services.exploration_prfaq_generator_service import (
+    ExplorationNotCompletedError as PRFAQNotCompletedError,
+)
+from synth_lab.services.exploration_prfaq_generator_service import (
+    ExplorationPRFAQGeneratorService,
+    PRFAQGenerationInProgressError,
+)
+from synth_lab.services.exploration_summary_generator_service import (
+    ExplorationNotCompletedError as SummaryNotCompletedError,
+)
+from synth_lab.services.exploration_summary_generator_service import (
+    ExplorationSummaryGeneratorService,
+    SummaryGenerationInProgressError,
+)
 
 router = APIRouter()
 
@@ -45,6 +65,32 @@ router = APIRouter()
 def get_exploration_service() -> ExplorationService:
     """Get exploration service instance."""
     return ExplorationService()
+
+
+def get_summary_generator_service() -> ExplorationSummaryGeneratorService:
+    """Get summary generator service instance."""
+    return ExplorationSummaryGeneratorService()
+
+
+def get_prfaq_generator_service() -> ExplorationPRFAQGeneratorService:
+    """Get PRFAQ generator service instance."""
+    return ExplorationPRFAQGeneratorService()
+
+
+def _document_to_response(doc) -> DocumentDetailResponse:
+    """Convert ExperimentDocument to DocumentDetailResponse."""
+    return DocumentDetailResponse(
+        id=doc.id,
+        experiment_id=doc.experiment_id,
+        document_type=DocumentTypeEnum(doc.document_type.value),
+        source_id=doc.source_id,
+        markdown_content=doc.markdown_content or "",
+        metadata=doc.metadata,
+        generated_at=doc.generated_at,
+        model=doc.model,
+        status=DocumentStatusEnum(doc.status.value),
+        error_message=doc.error_message,
+    )
 
 
 # =============================================================================
@@ -79,28 +125,32 @@ async def create_exploration(data: ExplorationCreate) -> ExplorationResponse:
             max_depth=data.max_depth,
             max_llm_calls=data.max_llm_calls,
             n_executions=data.n_executions,
-            seed=data.seed)
+            seed=data.seed,
+        )
         logger.info(f"Created exploration {exploration.id} for experiment {data.experiment_id}")
         return exploration_to_response(exploration)
 
     except ExperimentNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {data.experiment_id} not found")
+            detail=f"Experiment {data.experiment_id} not found",
+        )
     except NoScorecardError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Experiment {data.experiment_id} has no scorecard data")
+            detail=f"Experiment {data.experiment_id} has no scorecard data",
+        )
     except NoBaselineAnalysisError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Experiment {data.experiment_id} has no completed baseline analysis")
+            detail=f"Experiment {data.experiment_id} has no completed baseline analysis",
+        )
 
 
 @router.post("/{exploration_id}/run", response_model=ExplorationResponse)
 async def run_exploration(
-    exploration_id: str,
-    background_tasks: BackgroundTasks) -> ExplorationResponse:
+    exploration_id: str, background_tasks: BackgroundTasks
+) -> ExplorationResponse:
     """
     Run an exploration in the background.
 
@@ -123,13 +173,14 @@ async def run_exploration(
         # Get synths for simulation (derives simulation_attributes from observables)
         synth_repo = SynthRepository()
         synth_dicts = synth_repo.get_synths_for_simulation(
-            experiment_id=exploration.experiment_id,
-            limit=200)
+            experiment_id=exploration.experiment_id, limit=200
+        )
 
         if not synth_dicts:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="No synths found for this experiment's analysis")
+                detail="No synths found for this experiment's analysis",
+            )
 
         # Run exploration in background
         async def run_exploration_task():
@@ -145,8 +196,8 @@ async def run_exploration(
 
     except ExplorationNotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Exploration {exploration_id} not found")
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Exploration {exploration_id} not found"
+        )
 
 
 @router.get("/{exploration_id}", response_model=ExplorationResponse)
@@ -169,8 +220,8 @@ async def get_exploration(exploration_id: str) -> ExplorationResponse:
         return exploration_to_response(exploration)
     except ExplorationNotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Exploration {exploration_id} not found")
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Exploration {exploration_id} not found"
+        )
 
 
 @router.get("/{exploration_id}/tree", response_model=ExplorationTreeResponse)
@@ -195,11 +246,12 @@ async def get_exploration_tree(exploration_id: str) -> ExplorationTreeResponse:
         return ExplorationTreeResponse(
             exploration=exploration_to_response(tree_data["exploration"]),
             nodes=[node_to_response(node) for node in tree_data["nodes"]],
-            node_count_by_status=tree_data["node_count_by_status"])
+            node_count_by_status=tree_data["node_count_by_status"],
+        )
     except ExplorationNotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Exploration {exploration_id} not found")
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Exploration {exploration_id} not found"
+        )
 
 
 @router.get("/{exploration_id}/winning-path", response_model=WinningPathResponse | None)
@@ -234,14 +286,180 @@ async def get_winning_path(exploration_id: str) -> WinningPathResponse | None:
                     category=step["category"],
                     rationale=step["rationale"],
                     success_rate=step["success_rate"],
-                    delta_success_rate=step["delta_success_rate"])
+                    delta_success_rate=step["delta_success_rate"],
+                )
                 for step in path_data["path"]
             ],
-            total_improvement=path_data["total_improvement"])
+            total_improvement=path_data["total_improvement"],
+        )
     except ExplorationNotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Exploration {exploration_id} not found")
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Exploration {exploration_id} not found"
+        )
+
+
+# =============================================================================
+# Document Endpoints - Summary
+# =============================================================================
+
+
+@router.post(
+    "/{exploration_id}/documents/summary/generate",
+    response_model=DocumentDetailResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def generate_exploration_summary(exploration_id: str) -> DocumentDetailResponse:
+    """
+    Generate a summary document for the exploration.
+
+    Generates a narrative summary describing the optimized state after
+    applying winning path actions.
+
+    Args:
+        exploration_id: The exploration ID.
+
+    Returns:
+        DocumentDetailResponse: The generated summary document.
+
+    Raises:
+        404: Exploration not found.
+        409: Summary generation already in progress.
+        422: Exploration is not in a completed state.
+    """
+    service = get_summary_generator_service()
+    try:
+        doc = service.generate_for_exploration(exploration_id)
+        logger.info(f"Generated summary for exploration {exploration_id}")
+        return _document_to_response(doc)
+    except ValueError as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+    except SummaryNotCompletedError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+    except SummaryGenerationInProgressError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+
+
+@router.get(
+    "/{exploration_id}/documents/summary",
+    response_model=DocumentDetailResponse | None,
+)
+async def get_exploration_summary(exploration_id: str) -> DocumentDetailResponse | None:
+    """
+    Get the summary document for an exploration.
+
+    Args:
+        exploration_id: The exploration ID.
+
+    Returns:
+        DocumentDetailResponse or None: The summary document if exists.
+
+    Raises:
+        404: Exploration not found.
+    """
+    service = get_summary_generator_service()
+    doc = service.get_summary(exploration_id)
+    if doc is None:
+        return None
+    return _document_to_response(doc)
+
+
+@router.delete(
+    "/{exploration_id}/documents/summary",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_exploration_summary(exploration_id: str) -> None:
+    """
+    Delete the summary document for an exploration.
+
+    Args:
+        exploration_id: The exploration ID.
+    """
+    service = get_summary_generator_service()
+    service.delete_summary(exploration_id)
+
+
+# =============================================================================
+# Document Endpoints - PRFAQ
+# =============================================================================
+
+
+@router.post(
+    "/{exploration_id}/documents/prfaq/generate",
+    response_model=DocumentDetailResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def generate_exploration_prfaq(exploration_id: str) -> DocumentDetailResponse:
+    """
+    Generate a PRFAQ document for the exploration.
+
+    Generates a formal Amazon PRFAQ document with Press Release,
+    FAQ, and Recommendations sections.
+
+    Args:
+        exploration_id: The exploration ID.
+
+    Returns:
+        DocumentDetailResponse: The generated PRFAQ document.
+
+    Raises:
+        404: Exploration not found.
+        409: PRFAQ generation already in progress.
+        422: Exploration is not in a completed state.
+    """
+    service = get_prfaq_generator_service()
+    try:
+        doc = service.generate_for_exploration(exploration_id)
+        logger.info(f"Generated PRFAQ for exploration {exploration_id}")
+        return _document_to_response(doc)
+    except ValueError as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+    except PRFAQNotCompletedError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+    except PRFAQGenerationInProgressError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+
+
+@router.get(
+    "/{exploration_id}/documents/prfaq",
+    response_model=DocumentDetailResponse | None,
+)
+async def get_exploration_prfaq(exploration_id: str) -> DocumentDetailResponse | None:
+    """
+    Get the PRFAQ document for an exploration.
+
+    Args:
+        exploration_id: The exploration ID.
+
+    Returns:
+        DocumentDetailResponse or None: The PRFAQ document if exists.
+
+    Raises:
+        404: Exploration not found.
+    """
+    service = get_prfaq_generator_service()
+    doc = service.get_prfaq(exploration_id)
+    if doc is None:
+        return None
+    return _document_to_response(doc)
+
+
+@router.delete(
+    "/{exploration_id}/documents/prfaq",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_exploration_prfaq(exploration_id: str) -> None:
+    """
+    Delete the PRFAQ document for an exploration.
+
+    Args:
+        exploration_id: The exploration ID.
+    """
+    service = get_prfaq_generator_service()
+    service.delete_prfaq(exploration_id)
 
 
 # =============================================================================
@@ -275,11 +493,14 @@ async def get_action_catalog() -> ActionCatalogResponse:
                         typical_impacts={
                             k: ImpactRangeResponse(min=v.min, max=v.max)
                             for k, v in example.typical_impacts.items()
-                        })
+                        },
+                    )
                     for example in cat.examples
-                ])
+                ],
+            )
             for cat in catalog.categories
-        ])
+        ],
+    )
 
 
 if __name__ == "__main__":
@@ -288,10 +509,7 @@ if __name__ == "__main__":
     from pathlib import Path
 
     from synth_lab.domain.entities.analysis_run import AggregatedOutcomes, AnalysisRun
-    from synth_lab.domain.entities.experiment import (
-        Experiment,
-        ScorecardData,
-        ScorecardDimension)
+    from synth_lab.domain.entities.experiment import Experiment, ScorecardData, ScorecardDimension
     from synth_lab.repositories.analysis_repository import AnalysisRepository
     from synth_lab.repositories.experiment_repository import ExperimentRepository
     from synth_lab.repositories.exploration_repository import ExplorationRepository
@@ -315,7 +533,8 @@ if __name__ == "__main__":
             exploration_repo=exploration_repo,
             experiment_repo=experiment_repo,
             analysis_repo=analysis_repo,
-            tree_manager=tree_manager)
+            tree_manager=tree_manager,
+        )
 
         # Create test experiment with scorecard
         experiment = Experiment(
@@ -327,7 +546,9 @@ if __name__ == "__main__":
                 complexity=ScorecardDimension(score=0.45),
                 initial_effort=ScorecardDimension(score=0.30),
                 perceived_risk=ScorecardDimension(score=0.25),
-                time_to_value=ScorecardDimension(score=0.40)))
+                time_to_value=ScorecardDimension(score=0.40),
+            ),
+        )
         experiment_repo.create(experiment)
 
         # Create analysis
@@ -335,17 +556,15 @@ if __name__ == "__main__":
             experiment_id=experiment.id,
             status="completed",
             aggregated_outcomes=AggregatedOutcomes(
-                success_rate=0.25,
-                failed_rate=0.45,
-                did_not_try_rate=0.30))
+                success_rate=0.25, failed_rate=0.45, did_not_try_rate=0.30
+            ),
+        )
         analysis_repo.create(analysis)
 
         # Test 1: exploration_to_response conversion
         total_tests += 1
         try:
-            exploration = service.start_exploration(
-                experiment_id=experiment.id,
-                goal_value=0.40)
+            exploration = service.start_exploration(experiment_id=experiment.id, goal_value=0.40)
             response = exploration_to_response(exploration)
             if response.id != exploration.id:
                 all_validation_failures.append(f"ID mismatch: {response.id}")
@@ -377,7 +596,9 @@ if __name__ == "__main__":
             catalog_service = get_action_catalog_service()
             catalog = catalog_service.get_catalog()
             if len(catalog.categories) != 5:
-                all_validation_failures.append(f"Should have 5 categories: {len(catalog.categories)}")
+                all_validation_failures.append(
+                    f"Should have 5 categories: {len(catalog.categories)}"
+                )
         except Exception as e:
             all_validation_failures.append(f"Action catalog failed: {e}")
 

@@ -10,11 +10,11 @@ References:
     - ORM model: synth_lab.models.orm.document
 """
 
-import json
 from datetime import datetime
 
 from loguru import logger
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from synth_lab.domain.entities.experiment_document import (
@@ -22,7 +22,8 @@ from synth_lab.domain.entities.experiment_document import (
     DocumentType,
     ExperimentDocument,
     ExperimentDocumentSummary,
-    generate_document_id)
+    generate_document_id,
+)
 from synth_lab.models.orm.document import ExperimentDocument as ExperimentDocumentORM
 from synth_lab.repositories.base import BaseRepository
 
@@ -76,13 +77,16 @@ session: Session | None = None):
     def get_by_experiment(
         self,
         experiment_id: str,
-        document_type: DocumentType) -> ExperimentDocument | None:
+        document_type: DocumentType,
+        source_id: str | None = None) -> ExperimentDocument | None:
         """
         Get a specific document for an experiment.
 
         Args:
             experiment_id: Experiment ID.
             document_type: Type of document to retrieve.
+            source_id: Source ID (exploration_id or exec_id). Required for
+                       exploration/research documents, None for executive_summary.
 
         Returns:
             ExperimentDocument or None if not found.
@@ -90,6 +94,13 @@ session: Session | None = None):
         stmt = select(ExperimentDocumentORM).where(
             ExperimentDocumentORM.experiment_id == experiment_id,
             ExperimentDocumentORM.document_type == document_type.value)
+
+        # Filter by source_id (including NULL for executive_summary)
+        if source_id is not None:
+            stmt = stmt.where(ExperimentDocumentORM.source_id == source_id)
+        else:
+            stmt = stmt.where(ExperimentDocumentORM.source_id.is_(None))
+
         orm_doc = self.session.execute(stmt).scalar_one_or_none()
         if orm_doc is None:
             return None
@@ -114,6 +125,7 @@ session: Session | None = None):
             ExperimentDocumentSummary(
                 id=orm_doc.id,
                 document_type=DocumentType(orm_doc.document_type),
+                source_id=orm_doc.source_id,
                 status=DocumentStatus(orm_doc.status),
                 generated_at=datetime.fromisoformat(orm_doc.generated_at)
                 if isinstance(orm_doc.generated_at, str)
@@ -124,13 +136,15 @@ session: Session | None = None):
     def get_markdown(
         self,
         experiment_id: str,
-        document_type: DocumentType) -> str | None:
+        document_type: DocumentType,
+        source_id: str | None = None) -> str | None:
         """
         Get only the markdown content for a document.
 
         Args:
             experiment_id: Experiment ID.
             document_type: Type of document.
+            source_id: Source ID (exploration_id or exec_id).
 
         Returns:
             Markdown content or None if not found.
@@ -139,13 +153,19 @@ session: Session | None = None):
             ExperimentDocumentORM.experiment_id == experiment_id,
             ExperimentDocumentORM.document_type == document_type.value,
             ExperimentDocumentORM.status == "completed")
+
+        if source_id is not None:
+            stmt = stmt.where(ExperimentDocumentORM.source_id == source_id)
+        else:
+            stmt = stmt.where(ExperimentDocumentORM.source_id.is_(None))
+
         result = self.session.execute(stmt).scalar_one_or_none()
         return result
     def save(self, document: ExperimentDocument) -> ExperimentDocument:
         """
         Save or update a document.
 
-        Uses INSERT OR REPLACE based on unique(experiment_id, document_type) constraint.
+        Uses INSERT OR REPLACE based on unique(experiment_id, document_type, source_id) constraint.
 
         Args:
             document: Document to save.
@@ -153,10 +173,16 @@ session: Session | None = None):
         Returns:
             Saved document.
         """
-        # Check if document exists
+        # Check if document exists (using source_id for lookup)
         stmt = select(ExperimentDocumentORM).where(
             ExperimentDocumentORM.experiment_id == document.experiment_id,
             ExperimentDocumentORM.document_type == document.document_type.value)
+
+        if document.source_id is not None:
+            stmt = stmt.where(ExperimentDocumentORM.source_id == document.source_id)
+        else:
+            stmt = stmt.where(ExperimentDocumentORM.source_id.is_(None))
+
         existing = self.session.execute(stmt).scalar_one_or_none()
 
         metadata_dict = document.metadata if document.metadata else None
@@ -176,6 +202,7 @@ session: Session | None = None):
                 id=document.id,
                 experiment_id=document.experiment_id,
                 document_type=document.document_type.value,
+                source_id=document.source_id,
                 markdown_content=document.markdown_content,
                 doc_metadata=metadata_dict,
                 generated_at=document.generated_at.isoformat(),
@@ -189,7 +216,7 @@ session: Session | None = None):
 
         self.logger.info(
             f"Saved document {document.id} ({document.document_type.value}) "
-            f"for experiment {document.experiment_id}"
+            f"for experiment {document.experiment_id} (source: {document.source_id})"
         )
 
         return document
@@ -197,6 +224,7 @@ session: Session | None = None):
         self,
         experiment_id: str,
         document_type: DocumentType,
+        source_id: str | None = None,
         model: str = "gpt-4o-mini") -> ExperimentDocument | None:
         """
         Create a pending document record to track generation state.
@@ -206,6 +234,7 @@ session: Session | None = None):
         Args:
             experiment_id: Experiment ID.
             document_type: Type of document to generate.
+            source_id: Source ID (exploration_id or exec_id).
             model: LLM model to use.
 
         Returns:
@@ -215,11 +244,17 @@ session: Session | None = None):
         stmt = select(ExperimentDocumentORM).where(
             ExperimentDocumentORM.experiment_id == experiment_id,
             ExperimentDocumentORM.document_type == document_type.value)
+
+        if source_id is not None:
+            stmt = stmt.where(ExperimentDocumentORM.source_id == source_id)
+        else:
+            stmt = stmt.where(ExperimentDocumentORM.source_id.is_(None))
+
         existing = self.session.execute(stmt).scalar_one_or_none()
 
         if existing and existing.status == DocumentStatus.GENERATING.value:
             self.logger.warning(
-                f"Document {document_type.value} for {experiment_id} "
+                f"Document {document_type.value} for {experiment_id} (source: {source_id}) "
                 "already generating, skipping"
             )
             return None
@@ -227,36 +262,46 @@ session: Session | None = None):
         doc_id = existing.id if existing else generate_document_id()
         generated_at = datetime.now().isoformat()
 
-        if existing:
-            # Update existing to generating status
-            previous_status = existing.status
-            existing.id = doc_id
-            existing.markdown_content = ""
-            existing.doc_metadata = None
-            existing.generated_at = generated_at
-            existing.model = model
-            existing.status = DocumentStatus.GENERATING.value
-            existing.error_message = None
-        else:
-            # Create new pending document
-            previous_status = "none"
-            orm_doc = ExperimentDocumentORM(
-                id=doc_id,
-                experiment_id=experiment_id,
-                document_type=document_type.value,
-                markdown_content="",
-                doc_metadata=None,
-                generated_at=generated_at,
-                model=model,
-                status=DocumentStatus.GENERATING.value,
-                error_message=None)
-            self._add(orm_doc)
+        try:
+            if existing:
+                # Update existing to generating status
+                previous_status = existing.status
+                existing.id = doc_id
+                existing.markdown_content = ""
+                existing.doc_metadata = None
+                existing.generated_at = generated_at
+                existing.model = model
+                existing.status = DocumentStatus.GENERATING.value
+                existing.error_message = None
+            else:
+                # Create new pending document
+                previous_status = "none"
+                orm_doc = ExperimentDocumentORM(
+                    id=doc_id,
+                    experiment_id=experiment_id,
+                    document_type=document_type.value,
+                    source_id=source_id,
+                    markdown_content="",
+                    doc_metadata=None,
+                    generated_at=generated_at,
+                    model=model,
+                    status=DocumentStatus.GENERATING.value,
+                    error_message=None)
+                self._add(orm_doc)
 
-        self._flush()
-        self._commit()
+            self._flush()
+            self._commit()
+        except IntegrityError:
+            # Race condition: another request already created a generating document
+            self.session.rollback()
+            self.logger.warning(
+                f"Document {document_type.value} for {experiment_id} (source: {source_id}) "
+                "race condition detected - another request is generating"
+            )
+            return None
 
         self.logger.info(
-            f"Document {document_type.value} for {experiment_id}: "
+            f"Document {document_type.value} for {experiment_id} (source: {source_id}): "
             f"{previous_status} -> generating"
         )
 
@@ -264,6 +309,7 @@ session: Session | None = None):
             id=doc_id,
             experiment_id=experiment_id,
             document_type=document_type,
+            source_id=source_id,
             markdown_content="",
             status=DocumentStatus.GENERATING,
             model=model)
@@ -272,6 +318,7 @@ session: Session | None = None):
         experiment_id: str,
         document_type: DocumentType,
         status: DocumentStatus,
+        source_id: str | None = None,
         markdown_content: str | None = None,
         metadata: dict | None = None,
         error_message: str | None = None) -> None:
@@ -282,6 +329,7 @@ session: Session | None = None):
             experiment_id: Experiment ID.
             document_type: Type of document.
             status: New status.
+            source_id: Source ID (exploration_id or exec_id).
             markdown_content: Content if status is completed.
             metadata: Optional metadata to update.
             error_message: Error message if status is failed.
@@ -296,6 +344,12 @@ session: Session | None = None):
         stmt = select(ExperimentDocumentORM).where(
             ExperimentDocumentORM.experiment_id == experiment_id,
             ExperimentDocumentORM.document_type == document_type.value)
+
+        if source_id is not None:
+            stmt = stmt.where(ExperimentDocumentORM.source_id == source_id)
+        else:
+            stmt = stmt.where(ExperimentDocumentORM.source_id.is_(None))
+
         orm_doc = self.session.execute(stmt).scalar_one_or_none()
         if orm_doc is None:
             return
@@ -321,17 +375,22 @@ session: Session | None = None):
 
         content_size = len(markdown_content) if markdown_content else 0
         self.logger.info(
-            f"Document {document_type.value} for {experiment_id}: "
+            f"Document {document_type.value} for {experiment_id} (source: {source_id}): "
             f"-> {status.value} (content: {content_size} chars)"
         )
         return
-    def delete(self, experiment_id: str, document_type: DocumentType) -> bool:
+    def delete(
+        self,
+        experiment_id: str,
+        document_type: DocumentType,
+        source_id: str | None = None) -> bool:
         """
         Delete a specific document.
 
         Args:
             experiment_id: Experiment ID.
             document_type: Type of document to delete.
+            source_id: Source ID (exploration_id or exec_id).
 
         Returns:
             True if document was deleted, False if not found.
@@ -339,6 +398,12 @@ session: Session | None = None):
         stmt = select(ExperimentDocumentORM).where(
             ExperimentDocumentORM.experiment_id == experiment_id,
             ExperimentDocumentORM.document_type == document_type.value)
+
+        if source_id is not None:
+            stmt = stmt.where(ExperimentDocumentORM.source_id == source_id)
+        else:
+            stmt = stmt.where(ExperimentDocumentORM.source_id.is_(None))
+
         orm_doc = self.session.execute(stmt).scalar_one_or_none()
         if orm_doc is None:
             return False
@@ -347,17 +412,20 @@ session: Session | None = None):
         self._flush()
         self._commit()
         self.logger.info(
-            f"Deleted document {document_type.value} for experiment {experiment_id}"
+            f"Deleted document {document_type.value} for experiment {experiment_id} "
+            f"(source: {source_id})"
         )
         return True
     def check_documents_exist(
         self,
-        experiment_id: str) -> dict[DocumentType, bool]:
+        experiment_id: str,
+        source_id: str | None = None) -> dict[DocumentType, bool]:
         """
         Check which document types exist for an experiment.
 
         Args:
             experiment_id: Experiment ID.
+            source_id: Optional source ID to filter by.
 
         Returns:
             Dict mapping DocumentType to existence (True if completed).
@@ -365,19 +433,25 @@ session: Session | None = None):
         stmt = select(ExperimentDocumentORM.document_type).where(
             ExperimentDocumentORM.experiment_id == experiment_id,
             ExperimentDocumentORM.status == "completed")
+
+        if source_id is not None:
+            stmt = stmt.where(ExperimentDocumentORM.source_id == source_id)
+
         result = self.session.execute(stmt).scalars().all()
         existing = {DocumentType(doc_type) for doc_type in result}
         return {dt: dt in existing for dt in DocumentType}
     def get_status(
         self,
         experiment_id: str,
-        document_type: DocumentType) -> DocumentStatus | None:
+        document_type: DocumentType,
+        source_id: str | None = None) -> DocumentStatus | None:
         """
         Get the current status of a document.
 
         Args:
             experiment_id: Experiment ID.
             document_type: Type of document.
+            source_id: Source ID (exploration_id or exec_id).
 
         Returns:
             DocumentStatus or None if document doesn't exist.
@@ -385,6 +459,12 @@ session: Session | None = None):
         stmt = select(ExperimentDocumentORM.status).where(
             ExperimentDocumentORM.experiment_id == experiment_id,
             ExperimentDocumentORM.document_type == document_type.value)
+
+        if source_id is not None:
+            stmt = stmt.where(ExperimentDocumentORM.source_id == source_id)
+        else:
+            stmt = stmt.where(ExperimentDocumentORM.source_id.is_(None))
+
         result = self.session.execute(stmt).scalar_one_or_none()
         if result is None:
             return None
@@ -399,6 +479,7 @@ session: Session | None = None):
             id=orm_doc.id,
             experiment_id=orm_doc.experiment_id,
             document_type=DocumentType(orm_doc.document_type),
+            source_id=orm_doc.source_id,
             markdown_content=orm_doc.markdown_content,
             metadata=orm_doc.doc_metadata,
             generated_at=generated_at,
@@ -464,7 +545,7 @@ if __name__ == "__main__":
         # Test 1: Create pending document
         total_tests += 1
         try:
-            doc = repo.create_pending("exp_12345678", DocumentType.SUMMARY)
+            doc = repo.create_pending("exp_12345678", DocumentType.RESEARCH_SUMMARY)
             if doc is None:
                 all_validation_failures.append("create_pending returned None")
             elif doc.status != DocumentStatus.GENERATING:
@@ -475,7 +556,7 @@ if __name__ == "__main__":
         # Test 2: Prevent concurrent generation
         total_tests += 1
         try:
-            doc2 = repo.create_pending("exp_12345678", DocumentType.SUMMARY)
+            doc2 = repo.create_pending("exp_12345678", DocumentType.RESEARCH_SUMMARY)
             if doc2 is not None:
                 all_validation_failures.append("Should return None for concurrent generation")
         except Exception as e:
@@ -486,11 +567,11 @@ if __name__ == "__main__":
         try:
             repo.update_status(
                 "exp_12345678",
-                DocumentType.SUMMARY,
+                DocumentType.RESEARCH_SUMMARY,
                 DocumentStatus.COMPLETED,
                 markdown_content="# Summary\n\nTest content",
                 metadata={"synth_count": 50})
-            status = repo.get_status("exp_12345678", DocumentType.SUMMARY)
+            status = repo.get_status("exp_12345678", DocumentType.RESEARCH_SUMMARY)
             if status != DocumentStatus.COMPLETED:
                 all_validation_failures.append(f"Expected COMPLETED: {status}")
         except Exception as e:
@@ -499,7 +580,7 @@ if __name__ == "__main__":
         # Test 4: Get document
         total_tests += 1
         try:
-            doc = repo.get_by_experiment("exp_12345678", DocumentType.SUMMARY)
+            doc = repo.get_by_experiment("exp_12345678", DocumentType.RESEARCH_SUMMARY)
             if doc is None:
                 all_validation_failures.append("get_by_experiment returned None")
             elif doc.markdown_content != "# Summary\n\nTest content":
@@ -510,7 +591,7 @@ if __name__ == "__main__":
         # Test 5: Get markdown only
         total_tests += 1
         try:
-            markdown = repo.get_markdown("exp_12345678", DocumentType.SUMMARY)
+            markdown = repo.get_markdown("exp_12345678", DocumentType.RESEARCH_SUMMARY)
             if markdown != "# Summary\n\nTest content":
                 all_validation_failures.append(f"get_markdown mismatch: {markdown}")
         except Exception as e:
@@ -522,7 +603,7 @@ if __name__ == "__main__":
             new_doc = ExperimentDocument(
                 id=generate_document_id(),
                 experiment_id="exp_12345678",
-                document_type=DocumentType.PRFAQ,
+                document_type=DocumentType.RESEARCH_PRFAQ,
                 markdown_content="# PR-FAQ\n\nTest PRFAQ",
                 metadata={"headline": "Test Headline"})
             saved = repo.save(new_doc)
@@ -544,10 +625,10 @@ if __name__ == "__main__":
         total_tests += 1
         try:
             exists = repo.check_documents_exist("exp_12345678")
-            if not exists[DocumentType.SUMMARY]:
-                all_validation_failures.append("SUMMARY should exist")
-            if not exists[DocumentType.PRFAQ]:
-                all_validation_failures.append("PRFAQ should exist")
+            if not exists[DocumentType.RESEARCH_SUMMARY]:
+                all_validation_failures.append("RESEARCH_SUMMARY should exist")
+            if not exists[DocumentType.RESEARCH_PRFAQ]:
+                all_validation_failures.append("RESEARCH_PRFAQ should exist")
             if exists[DocumentType.EXECUTIVE_SUMMARY]:
                 all_validation_failures.append("EXECUTIVE_SUMMARY should not exist")
         except Exception as e:
@@ -556,7 +637,7 @@ if __name__ == "__main__":
         # Test 9: Delete document
         total_tests += 1
         try:
-            deleted = repo.delete("exp_12345678", DocumentType.PRFAQ)
+            deleted = repo.delete("exp_12345678", DocumentType.RESEARCH_PRFAQ)
             if not deleted:
                 all_validation_failures.append("delete should return True")
             docs = repo.list_by_experiment("exp_12345678")
