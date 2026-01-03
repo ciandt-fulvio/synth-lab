@@ -1,124 +1,70 @@
-# E2E Tests - Playwright
+# Testes E2E - Playwright
 
-## Portas Configuradas
-
-Para evitar conflitos com servidores de desenvolvimento:
-
-- **Backend de teste**: `http://localhost:8009`
-- **Frontend de teste**: `http://localhost:8089`
-
-## Como Executar
-
-### Opção 1: Usando Makefile (Recomendado)
+## Rodar Testes
 
 ```bash
-# Terminal 1 - Backend de teste
-make serve-test
-
-# Terminal 2 - Frontend de teste
-make serve-front-test
-
-# Terminal 3 - Rodar testes E2E
-make test-e2e
-
-# OU em modo UI (interativo)
-make test-e2e-ui
-```
-
-### Opção 2: Manualmente
-
-```bash
-# Terminal 1 - Backend (porta 8009)
-DATABASE_URL="postgresql://synthlab:synthlab@localhost:5432/synthlab_test" \
-  uv run uvicorn synth_lab.api.main:app --host 127.0.0.1 --port 8009
-
-# Terminal 2 - Frontend (porta 8089)
-cd frontend
-VITE_PORT=8089 VITE_API_PORT=8009 npm run dev:test
-
-# Terminal 3 - Testes
-cd frontend
+# Automático (Playwright inicia servidores)
 npm run test:e2e
+
+# Modo UI (visual, recomendado para debug)
+npm run test:e2e:ui
+
+# Manual (mais controle)
+# Terminal 1: make serve-test        (backend porta 8009)
+# Terminal 2: make serve-front-test  (frontend porta 8089)
+# Terminal 3: make test-e2e
 ```
 
-### Opção 3: Deixar Playwright iniciar os servidores (automático)
+## Criar Novo Teste
 
-```bash
-cd frontend
-npm run test:e2e
+```typescript
+// tests/e2e/novo-fluxo.spec.ts
+import { test, expect } from '@playwright/test';
+
+test('fluxo de exemplo', async ({ page }) => {
+  // 1. Navega
+  await page.goto('/');
+
+  // 2. Interage
+  await page.click('text=Botão');
+  await page.fill('input[name="campo"]', 'valor');
+
+  // 3. Valida
+  await expect(page).toHaveURL(/\/sucesso/);
+  await expect(page.locator('text=Sucesso')).toBeVisible();
+});
 ```
-
-O Playwright vai automaticamente:
-1. Iniciar o frontend na porta 8089 (via `npm run dev:test`)
-2. Aguardar o servidor estar pronto
-3. Executar os testes
-4. Parar o servidor ao final
 
 ## Scripts Disponíveis
 
 ```bash
-npm run test:e2e          # Rodar testes headless
-npm run test:e2e:ui       # Modo UI (visualizar testes)
-npm run test:e2e:debug    # Debug mode (step-by-step)
-npm run test:e2e:headed   # Ver browser durante execução
-npm run test:e2e:report   # Ver relatório HTML dos testes
+npm run test:e2e          # Headless (CI)
+npm run test:e2e:ui       # Modo UI (visual)
+npm run test:e2e:debug    # Debug step-by-step
+npm run test:e2e:headed   # Ver browser
+npm run test:e2e:report   # Ver relatório HTML
 ```
 
-## Estrutura
+## Portas
 
-```
-tests/e2e/
-├── experiment-list.spec.ts    # Exemplo: lista de experimentos
-└── README.md                  # Este arquivo
-```
+- Backend de teste: **8009**
+- Frontend de teste: **8089**
 
-## Adicionando Novos Testes
-
-1. Crie arquivo `*.spec.ts` em `tests/e2e/`
-2. Use os exemplos em `experiment-list.spec.ts` como referência
-3. Use `data-testid` nos componentes para seletores estáveis
-
-Exemplo:
-
-```typescript
-import { test, expect } from '@playwright/test';
-
-test.describe('Feature Name', () => {
-  test('should do something', async ({ page }) => {
-    await page.goto('/path');
-    await expect(page.locator('[data-testid="element"]')).toBeVisible();
-  });
-});
-```
+(Evita conflito com dev: 8000/8080)
 
 ## Troubleshooting
 
-### Porta já em uso
-
 ```bash
-# Matar servidores de teste
-make kill-test-servers
-
-# OU manualmente
-lsof -ti:8009 | xargs kill -9
+# Timeout ao iniciar
 lsof -ti:8089 | xargs kill -9
-```
 
-### Timeout ao iniciar servidor
+# Ver screenshots de erros
+ls test-results/
 
-- Verifique se o backend está rodando (`make serve-test`)
-- Verifique se a porta 8089 está livre
-- Aumente timeout em `playwright.config.ts` se necessário
-
-### Testes falhando
-
-```bash
-# Ver screenshots dos erros
-ls playwright-report/
-
-# Rodar em modo debug
+# Debug interativo
 npm run test:e2e:debug
-
-# Rodar em modo headed (ver o browser)
-npm run test:e2e:headed
 ```
+
+## Guia Completo
+
+Ver [docs/TESTING.md](../../docs/TESTING.md) para guia detalhado com exemplos e boas práticas.
