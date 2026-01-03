@@ -83,11 +83,14 @@ detect_router_changes() {
 
     # Extrai endpoints (novos e existentes)
     local endpoints=$(grep -E '@router\.(get|post|put|delete|patch)\(' "$router_file" | \
-                     sed -E 's/.*@router\.(get|post|put|delete|patch)\(["\']([^"\']+).*/\U\1\E \2/' | \
+                     sed -E 's/.*@router\.([a-z]+)\(["'\'']([^"'\'']+).*/\1 \2/' | \
+                     awk '{print toupper($1) " " $2}' | \
                      head -10)
 
     if [ -n "$endpoints" ]; then
-        local prompt="Atualizar docs/api.md para refletir mudanças no router '$router_name' ($router_file).
+        local prompt
+        prompt=$(cat <<EOF
+Atualizar docs/api.md para refletir mudanças no router '$router_name' ($router_file).
 
 Endpoints encontrados:
 $(echo "$endpoints" | sed 's/^/- /')
@@ -105,7 +108,9 @@ IMPORTANTE:
 - Apenas adicione/atualize seção do router '$router_name'
 - Use exemplos reais baseados nos schemas Pydantic do router
 - Se router tem novos endpoints, adicione na seção apropriada
-- Se endpoint foi removido do código, remova da doc também"
+- Se endpoint foi removido do código, remova da doc também
+EOF
+)
 
         PROMPTS+=("$prompt")
         PROMPT_TYPES+=("api")
@@ -122,7 +127,9 @@ detect_service_changes() {
     local service_class=$(grep -E "^class \w+Service" "$service_file" | head -1 | sed 's/class \(\w\+\)(.*/\1/' || true)
 
     if [ -n "$service_class" ]; then
-        local prompt="Atualizar docs/arquitetura.md para refletir mudanças no service '$service_class' ($service_file).
+        local prompt
+        prompt=$(cat <<EOF
+Atualizar docs/arquitetura.md para refletir mudanças no service '$service_class' ($service_file).
 
 Verifique e atualize:
 1. O service está listado na seção 'Service Layer'?
@@ -139,7 +146,9 @@ IMPORTANTE:
 - Preserve estrutura e conteúdo existente
 - Apenas adicione/atualize seção relacionada a '$service_class'
 - Mantenha consistência com outros services documentados
-- NÃO documente métodos privados (com _)"
+- NÃO documente métodos privados (com _)
+EOF
+)
 
         PROMPTS+=("$prompt")
         PROMPT_TYPES+=("architecture")
@@ -156,7 +165,9 @@ detect_model_changes() {
     local classes=$(grep -E "^class \w+\(Base" "$model_file" | sed 's/class \(\w\+\)(.*/\1/' || true)
 
     if [ -n "$classes" ]; then
-        local prompt="Atualizar docs/database_model.md para refletir mudanças no model ORM ($model_file).
+        local prompt
+        prompt=$(cat <<EOF
+Atualizar docs/database_model.md para refletir mudanças no model ORM ($model_file).
 
 Classes detectadas: $(echo "$classes" | tr '\n' ', ')
 
@@ -171,7 +182,9 @@ IMPORTANTE:
 - Mantenha formato de tabela markdown existente
 - NÃO remova outras tabelas já documentadas
 - Se campos foram removidos do código, remova da doc também
-- Documente tipos Python E tipos PostgreSQL (ex: str -> VARCHAR)"
+- Documente tipos Python E tipos PostgreSQL (ex: str -> VARCHAR)
+EOF
+)
 
         PROMPTS+=("$prompt")
         PROMPT_TYPES+=("database")
@@ -187,7 +200,9 @@ detect_page_changes() {
     # Extrai rota (procura por path no arquivo ou infere do nome)
     local route=$(echo "$page_name" | sed 's/Page$//' | sed 's/\([A-Z]\)/-\L\1/g' | sed 's/^-//')
 
-    local prompt="Atualizar docs/arquitetura_front.md para refletir mudanças na página '$page_name' ($page_file).
+    local prompt
+    prompt=$(cat <<EOF
+Atualizar docs/arquitetura_front.md para refletir mudanças na página '$page_name' ($page_file).
 
 Página: $page_name
 Rota inferida: /$route (verifique no código se está correta)
@@ -202,12 +217,13 @@ IMPORTANTE:
 - Mantenha formato existente
 - NÃO remova outras páginas
 - Se for nova página, adicione descrição clara do propósito
-- Liste integrações com backend (endpoints chamados)"
+- Liste integrações com backend (endpoints chamados)
+EOF
+)
 
     PROMPTS+=("$prompt")
     PROMPT_TYPES+=("frontend")
     DOC_FILES+=("docs/arquitetura_front.md")
-fi
 }
 
 # Função: detecta mudanças em hooks do frontend
@@ -215,7 +231,9 @@ detect_hook_changes() {
     local hook_file=$1
     local hook_name=$(basename "$hook_file" .ts)
 
-    local prompt="Atualizar docs/arquitetura_front.md para refletir mudanças no hook '$hook_name' ($hook_file).
+    local prompt
+    prompt=$(cat <<EOF
+Atualizar docs/arquitetura_front.md para refletir mudanças no hook '$hook_name' ($hook_file).
 
 Hook: $hook_name
 
@@ -229,7 +247,9 @@ Adicione/atualize na seção 'Custom Hooks':
 IMPORTANTE:
 - Mantenha lista de hooks organizada (por categoria ou alfabética)
 - Use formato consistente com hooks existentes
-- Se hook foi removido do código, remova da doc"
+- Se hook foi removido do código, remova da doc
+EOF
+)
 
     PROMPTS+=("$prompt")
     PROMPT_TYPES+=("frontend")
