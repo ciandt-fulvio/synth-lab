@@ -83,8 +83,7 @@ detect_router_changes() {
 
     # Extrai endpoints (novos e existentes)
     local endpoints=$(grep -E '@router\.(get|post|put|delete|patch)\(' "$router_file" | \
-                     sed -E 's/.*@router\.([a-z]+)\(["'\'']([^"'\'']+).*/\1 \2/' | \
-                     awk '{print toupper($1) " " $2}' | \
+                     sed -E 's/.*@router\.(get|post|put|delete|patch)\(["'\'']([^"'\'']+).*/\U\1\E \2/' | \
                      head -10)
 
     if [ -n "$endpoints" ]; then
@@ -359,17 +358,11 @@ for i in "${!PROMPTS[@]}"; do
     # Executa Claude Code
     echo -e "${BLUE}🤖 Executando Claude Code...${NC}"
 
-    # Salva prompt em arquivo temporário
-    PROMPT_FILE=$(mktemp)
-    echo "$prompt" > "$PROMPT_FILE"
-
-    # Chama Claude Code
-    if claude code --prompt-file "$PROMPT_FILE"; then
+    # Chama Claude Code passando prompt via stdin
+    if echo "$prompt" | claude -p; then
         echo -e "${GREEN}✅ Claude Code executado com sucesso${NC}"
-        rm "$PROMPT_FILE"
     else
         echo -e "${RED}❌ Claude Code falhou${NC}"
-        rm "$PROMPT_FILE"
         continue
     fi
 
