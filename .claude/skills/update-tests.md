@@ -1,169 +1,80 @@
 # Update Tests Skill
 
-**Trigger:** `/update-tests` ou quando arquivos críticos mudarem
+**Trigger:** Mudanças em routers, models ou services
 
-**Objetivo:** Manter testes sincronizados com mudanças no código.
+**Objetivo:** Manter testes sincronizados com código.
+
+## Uso
+
+```bash
+# Automático (via git hook)
+git commit -m "Add endpoint"
+# Hook pergunta se quer gerar teste
+
+# Manual
+./scripts/auto-update-tests.sh --last-commit
+```
 
 ## O que faz
 
-1. **Detecta mudanças** em routers, models, services
-2. **Analisa gaps** de cobertura de testes
-3. **Gera/atualiza** testes correspondentes
-4. **Valida** que testes passam
+**Router mudou** → Atualiza contract tests
+**Model mudou** → Alerta para criar migration
+**Service mudou** → Cria/atualiza integration test
 
-## Workflow
+## Templates
 
-### Quando Router Muda
+### Contract Test
+```python
+def test_endpoint_contract(client):
+    """Valida schema da resposta."""
+    response = client.get("/endpoint")
 
-```bash
-# Usuário mudou: src/synth_lab/api/routers/experiments.py
-# Skill detecta e:
+    assert response.status_code == 200
+    body = response.json()
 
-1. Lê o router modificado
-2. Identifica novos endpoints ou mudanças em schemas
-3. Atualiza tests/contract/test_api_contracts.py
-4. Roda pytest -m contract para validar
+    # Campos obrigatórios
+    assert "id" in body
+    assert "name" in body
+    assert isinstance(body["status"], str)
 ```
 
-### Quando ORM Model Muda
+### Integration Test
+```python
+def test_service_flow(client, db_session):
+    """Testa fluxo completo."""
+    # 1. Chama API
+    response = client.post("/endpoint", json={"data": "value"})
+    resource_id = response.json()["id"]
 
-```bash
-# Usuário mudou: src/synth_lab/models/orm/experiment.py
-# Skill detecta e:
-
-1. Alerta que schema test vai falhar
-2. Sugere: alembic revision --autogenerate
-3. Atualiza tests/schema/test_db_schema_validation.py se necessário
+    # 2. Valida no DB
+    resource = db_session.query(Model).get(resource_id)
+    assert resource is not None
+    assert resource.status == "expected"
 ```
 
-### Quando Service Muda
+### E2E Test
+```typescript
+test('user flow', async ({ page }) => {
+  // 1. Navega
+  await page.goto('/');
 
-```bash
-# Usuário mudou: src/synth_lab/services/experiment_service.py
-# Skill detecta e:
+  // 2. Interage
+  await page.click('text=Button');
+  await page.fill('input[name="field"]', 'value');
+  await page.click('button[type="submit"]');
 
-1. Verifica se já existe integration test
-2. Se não existe, cria novo teste em tests/integration/
-3. Se existe, analisa se precisa atualizar
-```
-
-## Como Usar
-
-### Modo Automático (Recomendado)
-
-Configure Claude Code para rodar após commit:
-
-```bash
-# Em .claude/hooks/post-commit (a criar)
-claude code --skill update-tests
-```
-
-### Modo Manual
-
-```bash
-# Atualizar todos os testes
-claude code --skill update-tests
-
-# Atualizar apenas contract tests
-claude code --skill update-tests --type contract
-
-# Atualizar para arquivos específicos
-claude code --skill update-tests --files "src/synth_lab/api/routers/experiments.py"
-```
-
-## Exemplos de Prompts
-
-Use esses prompts com Claude Code:
-
-### Contract Tests
-```
-Analise os routers modificados em src/synth_lab/api/routers/
-e atualize tests/contract/test_api_contracts.py para cobrir:
-- Novos endpoints
-- Mudanças em schemas de resposta
-- Campos adicionados/removidos
-```
-
-### Schema Tests
-```
-Analise mudanças nos ORM models em src/synth_lab/models/orm/
-e atualize tests/schema/test_db_schema_validation.py para validar:
-- Novos campos
-- Mudanças de tipo
-- Constraints (nullable, FK)
-```
-
-### Integration Tests
-```
-Crie integration test para o service X que valide:
-- Fluxo completo de [descrever fluxo]
-- Interação com DB
-- Tratamento de erros
-```
-
-## Checklist de Manutenção
-
-Execute periodicamente (ex: semanalmente):
-
-```bash
-# 1. Identifica endpoints sem contract tests
-claude code --prompt "Liste endpoints em routers/ sem contract tests correspondentes"
-
-# 2. Identifica services sem integration tests
-claude code --prompt "Liste services/ sem integration tests correspondentes"
-
-# 3. Analisa cobertura de E2E
-claude code --prompt "Liste fluxos críticos sem E2E tests"
-
-# 4. Atualiza testes desatualizados
-claude code --prompt "Analise e atualize testes que podem estar desatualizados baseado em mudanças recentes no código"
+  // 3. Valida
+  await expect(page).toHaveURL(/\/success/);
+});
 ```
 
 ## Regras
 
-- **SEMPRE** rode os testes após gerar/atualizar
-- **NUNCA** delete testes existentes sem confirmar
-- **SEMPRE** mantenha o padrão atual de testes
-- **SEMPRE** use os markers corretos (@pytest.mark.contract, etc)
+- Rode testes após gerar: `make test-fast`
+- Use markers: `@pytest.mark.contract`
+- Siga padrão existente
+- Valide schemas, não implementação
 
-## Templates
+## Guia Completo
 
-### Contract Test Template
-```python
-def test_new_endpoint_returns_valid_schema(self, client: TestClient):
-    """GET /api/new-endpoint retorna schema esperado."""
-    response = client.get("/api/new-endpoint")
-
-    assert response.status_code == 200
-    data = response.json()
-
-    # Validar campos obrigatórios
-    required_fields = ["id", "name", "created_at"]
-    for field in required_fields:
-        assert field in data
-```
-
-### Schema Validation Template
-```python
-def test_new_table_schema(self, db_inspector):
-    """Valida schema da tabela 'new_table'."""
-    columns = {col["name"]: col for col in db_inspector.get_columns("new_table")}
-
-    # Validar colunas essenciais
-    assert "id" in columns
-    assert isinstance(columns["id"]["type"], String)
-```
-
-### Integration Test Template
-```python
-def test_new_service_flow(self, db_session):
-    """Testa fluxo completo do NewService."""
-    service = NewService(db_session)
-
-    # Ação
-    result = service.execute_flow(input_data)
-
-    # Validação
-    assert result is not None
-    assert result.status == "completed"
-```
+Ver [docs/TESTING.md](../../docs/TESTING.md)
