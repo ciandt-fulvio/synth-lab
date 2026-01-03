@@ -63,3 +63,16 @@ PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
 ## Architecture Docs
 - Backend: `docs/arquitetura.md`
 - Frontend: `docs/arquitetura_front.md`
+
+## Active Technologies
+- Python 3.13+ + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, Arize Phoenix (028-exploration-summary)
+- PostgreSQL 14+ (existing tables: explorations, scenario_nodes, experiments) (028-exploration-summary)
+
+## Recent Changes
+- 028-exploration-summary: Added Python 3.13+ + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, Arize Phoenix
+
+## Design and mechanics
+  - Document Storage: Uses existing experiment_documents table with exploration.experiment_id as FK
+  - Phoenix Tracing: All LLM calls wrapped with _tracer.start_as_current_span()
+
+Database migration must be alway done via Alembic. and applyed to DATABASE_URL and DATABASE_TEST_URL as well.

@@ -5,20 +5,25 @@
  *
  * References:
  *   - Spec: specs/018-experiment-hub/spec.md
+ *   - Pattern from: pages/ExplorationDetail.tsx
  */
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useResearchDetail, useResearchTranscripts } from '@/hooks/use-research';
-import { usePrfaqGenerate } from '@/hooks/use-prfaq-generate';
-import { useSummaryGenerate } from '@/hooks/use-summary-generate';
+import { toast } from 'sonner';
+import {
+  useResearchDetail,
+  useResearchTranscripts,
+  useResearchSummary,
+  useResearchPRFAQ,
+  useGenerateResearchSummary,
+  useGenerateResearchPRFAQ,
+} from '@/hooks/use-research';
 import { useExperiment } from '@/hooks/use-experiments';
-import { useDocumentMarkdown, useDocumentAvailability } from '@/hooks/use-documents';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { getSynthAvatarUrl } from '@/services/synths-api';
 import { queryKeys } from '@/lib/query-keys';
-import { ArtifactButton } from '@/components/shared/ArtifactButton';
-import { DocumentViewer } from '@/components/shared/DocumentViewer';
+import { ResearchDocumentCard } from '@/components/interviews/ResearchDocumentCard';
 import { TranscriptDialog } from '@/components/shared/TranscriptDialog';
 import { LiveInterviewGrid } from '@/components/interviews/LiveInterviewGrid';
 import SynthLabHeader from '@/components/shared/SynthLabHeader';
@@ -34,7 +39,7 @@ import {
   Clock,
   Calendar,
   MessageSquare,
-  Sparkles,
+  FileText,
   Radio,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -77,13 +82,10 @@ export default function InterviewDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [summaryOpen, setSummaryOpen] = useState(false);
-  const [prfaqOpen, setPrfaqOpen] = useState(false);
   const [selectedSynthId, setSelectedSynthId] = useState<string | null>(null);
-  const [aggressivePolling, setAggressivePolling] = useState(false);
-  const aggressivePollingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hasRedirectedRef = useRef(false);
 
+  // Data fetching
   const { data: execution, isLoading, error } = useResearchDetail(execId!);
   const { data: transcripts } = useResearchTranscripts(execId!);
 
@@ -92,37 +94,54 @@ export default function InterviewDetail() {
   const { data: experiment } = useExperiment(experimentId || '');
   const displayTitle = experiment?.name || execution?.topic_name || 'Entrevista';
 
-  // Fetch document availability from unified API (instead of legacy artifact states)
-  const { data: documentAvailability } = useDocumentAvailability(
-    experimentId || '',
-    { enabled: !!experimentId }
+  // Completed statuses that allow document generation
+  const COMPLETED_STATUSES = ['completed', 'failed'];
+  const canGenerateDocuments = execution
+    ? COMPLETED_STATUSES.includes(execution.status)
+    : false;
+
+  // Document hooks (same pattern as ExplorationDetail)
+  const { data: summary, isLoading: isLoadingSummary } = useResearchSummary(
+    execId ?? '',
+    canGenerateDocuments || !!execId
+  );
+  const { data: prfaq, isLoading: isLoadingPRFAQ } = useResearchPRFAQ(
+    execId ?? '',
+    canGenerateDocuments || !!execId
   );
 
-  // Map document availability to artifact states format for compatibility with existing components
-  const getArtifactState = (doc: { available: boolean; status: string | null }) => {
-    if (doc.available) return 'available';
-    if (doc.status === 'generating') return 'generating';
-    return 'unavailable';
+  // Document generation mutations
+  const generateSummary = useGenerateResearchSummary();
+  const generatePRFAQ = useGenerateResearchPRFAQ();
+
+  // Handler functions
+  const handleGenerateSummary = () => {
+    if (!execId) return;
+    generateSummary.mutate(execId, {
+      onSuccess: () => {
+        toast.success('Iniciando geração do resumo...');
+      },
+      onError: (error) => {
+        toast.error('Erro ao gerar resumo', {
+          description: error.message,
+        });
+      },
+    });
   };
 
-  const artifactStates = documentAvailability
-    ? {
-        summary: {
-          state: getArtifactState(documentAvailability.summary),
-          prerequisite_met: execution?.status === 'completed',
-          prerequisite_message: execution?.status !== 'completed' ? 'Execution must be completed' : null,
-          error_message: null,
-          completed_at: null,
-        },
-        prfaq: {
-          state: getArtifactState(documentAvailability.prfaq),
-          prerequisite_met: documentAvailability.summary.available,
-          prerequisite_message: !documentAvailability.summary.available ? 'Summary must be generated first' : null,
-          error_message: null,
-          completed_at: null,
-        },
-      }
-    : null;
+  const handleGeneratePRFAQ = () => {
+    if (!execId) return;
+    generatePRFAQ.mutate(execId, {
+      onSuccess: () => {
+        toast.success('Iniciando geração do PR-FAQ...');
+      },
+      onError: (error) => {
+        toast.error('Erro ao gerar PR-FAQ', {
+          description: error.message,
+        });
+      },
+    });
+  };
 
   // T061: Auto-redirect legacy URLs to experiment-scoped URLs (only once)
   useEffect(() => {
@@ -135,71 +154,20 @@ export default function InterviewDetail() {
   // Additional context comes from request (if any was provided)
   const additionalContext: string | null = null;  // TODO: Include in execution response if needed
 
-  // Handle transcription completion
-  const handleTranscriptionCompleted = (data: import('@/types/sse-events').TranscriptionCompletedEvent) => {
-    console.log('[InterviewDetail] Transcription completed', data);
-    queryClient.invalidateQueries({ queryKey: queryKeys.artifactStates(execId!) });
-    setAggressivePolling(true);
-
-    if (aggressivePollingTimerRef.current) {
-      clearTimeout(aggressivePollingTimerRef.current);
-    }
-
-    aggressivePollingTimerRef.current = setTimeout(() => {
-      setAggressivePolling(false);
-    }, 60000);
-  };
-
   // Handle execution completion
   const handleExecutionCompleted = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.researchDetail(execId!) });
     queryClient.invalidateQueries({ queryKey: queryKeys.researchTranscripts(execId!) });
-    // Invalidate document availability and markdown for this experiment
-    if (experimentId) {
-      queryClient.invalidateQueries({ queryKey: queryKeys.documents.availability(experimentId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.documents.markdown(experimentId, 'summary') });
-      queryClient.invalidateQueries({ queryKey: queryKeys.documents.markdown(experimentId, 'prfaq') });
-    }
+    // Invalidate document queries
+    queryClient.invalidateQueries({ queryKey: queryKeys.researchDocuments.summary(execId!) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.researchDocuments.prfaq(execId!) });
   };
 
-  // Aggressive polling effect
-  useEffect(() => {
-    if (!aggressivePolling || !execId || !experimentId) return;
-
-    const interval = setInterval(() => {
-      // Poll document availability instead of artifact states
-      queryClient.invalidateQueries({ queryKey: queryKeys.documents.availability(experimentId) });
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [aggressivePolling, execId, experimentId, queryClient]);
-
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (aggressivePollingTimerRef.current) {
-        clearTimeout(aggressivePollingTimerRef.current);
-      }
-    };
-  }, []);
-
-  // Fetch content based on artifact states (using unified documents API)
-  const summaryAvailable = artifactStates?.summary.state === 'available';
-  const prfaqAvailable = artifactStates?.prfaq.state === 'available';
-
-  const { data: summaryMarkdown } = useDocumentMarkdown(
-    experimentId || '',
-    'summary',
-    { enabled: summaryAvailable && !!experimentId }
-  );
-  const { data: prfaqMarkdown } = useDocumentMarkdown(
-    experimentId || '',
-    'prfaq',
-    { enabled: prfaqAvailable && !!experimentId }
-  );
-
-  const generatePrfaqMutation = usePrfaqGenerate(execId!, experimentId);
-  const generateSummaryMutation = useSummaryGenerate(execId!, experimentId);
+  // Handle transcription completion
+  const handleTranscriptionCompleted = () => {
+    // Refresh transcripts
+    queryClient.invalidateQueries({ queryKey: queryKeys.researchTranscripts(execId!) });
+  };
 
   if (isLoading) {
     return (
@@ -243,111 +211,66 @@ export default function InterviewDetail() {
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Interview Hero Card - Topic Guide + Artefatos */}
+        {/* Interview Hero Card */}
         <AnimatedSection delay={0}>
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-            <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-              {/* LEFT: Interview Info */}
-              <div className="flex-1">
-                {/* Header com icon box */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl text-white shadow-lg shadow-purple-200">
-                    <MessageSquare className="h-5 w-5" />
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-2xl font-bold text-slate-900">{displayTitle}</h2>
-                    {execution.status === 'running' && (
-                      <Badge className="bg-green-100 text-green-700 border-green-200 animate-pulse">
-                        <Radio className="h-3 w-3 mr-1" />
-                        Ao Vivo
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                {/* Interview description with date */}
-                <div className="mb-4">
-                  <p className="text-slate-600 leading-relaxed">
-                    Entrevista realizada em {formattedStart}.
-                  </p>
-                </div>
-
-                {/* Contexto adicional (se existir) */}
-                {additionalContext && (
-                  <div className="p-3 bg-purple-50 border border-purple-100 rounded-lg mb-4">
-                    <p className="text-xs font-medium text-purple-700 mb-1">Contexto adicional</p>
-                    <p className="text-sm text-purple-800">{additionalContext}</p>
-                  </div>
+            {/* Header com icon box */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl text-white shadow-lg shadow-purple-200">
+                <MessageSquare className="h-5 w-5" />
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-2xl font-bold text-slate-900">{displayTitle}</h2>
+                {execution.status === 'running' && (
+                  <Badge className="bg-green-100 text-green-700 border-green-200 animate-pulse">
+                    <Radio className="h-3 w-3 mr-1" />
+                    Ao Vivo
+                  </Badge>
                 )}
-
-                {/* Execution stats inline */}
-                <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
-                  <span className="flex items-center gap-1.5">
-                    <Users className="h-4 w-4" />
-                    {execution.synth_count} synths
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    {execution.successful_count} concluídos
-                  </span>
-                  {execution.failed_count > 0 && (
-                    <span className="flex items-center gap-1.5">
-                      <XCircle className="h-4 w-4 text-red-500" />
-                      {execution.failed_count} falhas
-                    </span>
-                  )}
-                  {durationMinutes !== null && (
-                    <span className="flex items-center gap-1.5">
-                      <Clock className="h-4 w-4 text-amber-500" />
-                      {durationMinutes} min
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1.5">
-                    <Calendar className="h-4 w-4" />
-                    {formattedStart}
-                  </span>
-                </div>
               </div>
+            </div>
 
-              {/* RIGHT: Artefatos */}
-              <div className="lg:w-64 lg:border-l lg:pl-6 lg:border-slate-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <Sparkles className="h-4 w-4 text-purple-500" />
-                  <h3 className="font-semibold text-slate-900">Artefatos</h3>
-                </div>
-                <div className="space-y-3">
-                  {artifactStates ? (
-                    <>
-                      <ArtifactButton
-                        state={artifactStates.summary.state}
-                        artifactType="summary"
-                        prerequisiteMessage={artifactStates.summary.prerequisite_message ?? undefined}
-                        errorMessage={artifactStates.summary.error_message ?? undefined}
-                        onGenerate={() => generateSummaryMutation.mutate()}
-                        onView={() => setSummaryOpen(true)}
-                        onRetry={() => generateSummaryMutation.mutate()}
-                        isPending={generateSummaryMutation.isPending}
-                        className="w-full"
-                      />
-                      <ArtifactButton
-                        state={artifactStates.prfaq.state}
-                        artifactType="prfaq"
-                        prerequisiteMessage={artifactStates.prfaq.prerequisite_message ?? undefined}
-                        errorMessage={artifactStates.prfaq.error_message ?? undefined}
-                        onGenerate={() => generatePrfaqMutation.mutate()}
-                        onView={() => setPrfaqOpen(true)}
-                        onRetry={() => generatePrfaqMutation.mutate()}
-                        isPending={generatePrfaqMutation.isPending}
-                        className="w-full"
-                      />
-                    </>
-                  ) : (
-                    <div className="flex items-center justify-center py-6">
-                      <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
-                    </div>
-                  )}
-                </div>
+            {/* Interview description with date */}
+            <div className="mb-4">
+              <p className="text-slate-600 leading-relaxed">
+                Entrevista realizada em {formattedStart}.
+              </p>
+            </div>
+
+            {/* Contexto adicional (se existir) */}
+            {additionalContext && (
+              <div className="p-3 bg-purple-50 border border-purple-100 rounded-lg mb-4">
+                <p className="text-xs font-medium text-purple-700 mb-1">Contexto adicional</p>
+                <p className="text-sm text-purple-800">{additionalContext}</p>
               </div>
+            )}
+
+            {/* Execution stats inline */}
+            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
+              <span className="flex items-center gap-1.5">
+                <Users className="h-4 w-4" />
+                {execution.synth_count} synths
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                {execution.successful_count} concluídos
+              </span>
+              {execution.failed_count > 0 && (
+                <span className="flex items-center gap-1.5">
+                  <XCircle className="h-4 w-4 text-red-500" />
+                  {execution.failed_count} falhas
+                </span>
+              )}
+              {durationMinutes !== null && (
+                <span className="flex items-center gap-1.5">
+                  <Clock className="h-4 w-4 text-amber-500" />
+                  {durationMinutes} min
+                </span>
+              )}
+              <span className="flex items-center gap-1.5">
+                <Calendar className="h-4 w-4" />
+                {formattedStart}
+              </span>
             </div>
           </div>
         </AnimatedSection>
@@ -377,6 +300,42 @@ export default function InterviewDetail() {
             </div>
           </AnimatedSection>
         )}
+
+        {/* Document generation section (same pattern as ExplorationDetail) */}
+        <AnimatedSection delay={150}>
+          <div className="card p-6">
+            <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <FileText className="h-5 w-5 text-indigo-600" />
+              Documentos da Pesquisa
+            </h2>
+            <p className="text-sm text-slate-500 mb-6">
+              Gere documentos com resumo e recomendações baseados nas entrevistas realizadas.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ResearchDocumentCard
+                documentType="research_summary"
+                document={summary}
+                isLoading={isLoadingSummary}
+                isGenerating={generateSummary.isPending}
+                canGenerate={canGenerateDocuments}
+                onGenerate={handleGenerateSummary}
+              />
+              <ResearchDocumentCard
+                documentType="research_prfaq"
+                document={prfaq}
+                isLoading={isLoadingPRFAQ}
+                isGenerating={generatePRFAQ.isPending}
+                canGenerate={canGenerateDocuments && summary?.status === 'completed'}
+                onGenerate={handleGeneratePRFAQ}
+                disabledReason={
+                  canGenerateDocuments && summary?.status !== 'completed'
+                    ? 'Gere o resumo primeiro para liberar o PR-FAQ'
+                    : undefined
+                }
+              />
+            </div>
+          </div>
+        </AnimatedSection>
 
         {/* Transcripts Grid */}
         {transcripts && transcripts.data.length > 0 && (
@@ -418,7 +377,7 @@ export default function InterviewDetail() {
                           </div>
                           <div className="flex items-center gap-2 text-xs text-slate-500">
                             <span>{transcript.turn_count} turnos</span>
-                            <span className="text-slate-300">•</span>
+                            <span className="text-slate-300">-</span>
                             <span className={
                               transcript.status === 'completed' ? 'text-green-600' :
                               transcript.status === 'failed' ? 'text-red-500' :
@@ -438,27 +397,7 @@ export default function InterviewDetail() {
         )}
       </main>
 
-      {/* Modals */}
-      <DocumentViewer
-        isOpen={summaryOpen}
-        onClose={() => setSummaryOpen(false)}
-        documentType="summary"
-        markdownContent={summaryMarkdown}
-        titleSuffix={displayTitle}
-        status={documentAvailability?.summary.status === 'generating' ? 'generating' : summaryAvailable ? 'completed' : 'pending'}
-        isLoading={generateSummaryMutation.isPending}
-      />
-
-      <DocumentViewer
-        isOpen={prfaqOpen}
-        onClose={() => setPrfaqOpen(false)}
-        documentType="prfaq"
-        markdownContent={prfaqMarkdown}
-        titleSuffix={displayTitle}
-        status={documentAvailability?.prfaq.status === 'generating' ? 'generating' : prfaqAvailable ? 'completed' : 'pending'}
-        isLoading={generatePrfaqMutation.isPending}
-      />
-
+      {/* Transcript Dialog */}
       <TranscriptDialog
         execId={execId!}
         synthId={selectedSynthId}

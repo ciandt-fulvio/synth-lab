@@ -12,6 +12,10 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime, timedelta, timezone
 
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
+
+from synth_lab.domain.entities.experiment_document import ExperimentDocument
+from synth_lab.infrastructure.phoenix_tracing import get_tracer
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.research import (
     ExecutionStatus,
@@ -21,19 +25,25 @@ from synth_lab.models.research import (
     ResearchExecutionDetail,
     ResearchExecutionSummary,
     TranscriptDetail,
-    TranscriptSummary)
+    TranscriptSummary,
+)
 from synth_lab.repositories.interview_guide_repository import (
     InterviewGuide,
-    InterviewGuideRepository)
+    InterviewGuideRepository,
+)
 from synth_lab.repositories.research_repository import ResearchRepository
 from synth_lab.services.message_broker import BrokerMessage, MessageBroker
 from synth_lab.services.research_agentic.runner import (
     ConversationMessage,
     InterviewGuideData,
-    InterviewResult)
+    InterviewResult,
+)
 
 # GMT-3 timezone (São Paulo)
 TZ_GMT_MINUS_3 = timezone(timedelta(hours=-3))
+
+# Phoenix/OpenTelemetry tracer for observability
+_tracer = get_tracer("research-service")
 
 
 class ResearchService:
@@ -126,7 +136,9 @@ class ResearchService:
         """
         return self.research_repo.get_transcript(exec_id, synth_id)
 
-    async def generate_summary(self, exec_id: str, model: str = "gpt-4.1-mini") -> str:
+    async def generate_summary(
+        self, exec_id: str, model: str = "gpt-4.1-mini"
+    ) -> ExperimentDocument:
         """
         Generate a summary for a completed execution.
 
@@ -138,7 +150,7 @@ class ResearchService:
             model: LLM model to use for summarization.
 
         Returns:
-            Generated summary markdown content.
+            ExperimentDocument with generated summary.
 
         Raises:
             ExecutionNotFoundError: If execution not found.
@@ -163,74 +175,94 @@ class ResearchService:
         if not transcripts.data:
             raise ValueError(f"Execution {exec_id} has no transcripts")
 
-        logger.info(f"Generating summary for {exec_id} with {len(transcripts.data)} transcripts")
+        transcript_count = len(transcripts.data)
+        logger.info(f"Generating summary for {exec_id} with {transcript_count} transcripts")
 
-        # Verify experiment_id is set (required for saving document)
-        if not execution.experiment_id:
-            raise ValueError(f"Execution {exec_id} must be linked to an experiment")
+        with _tracer.start_as_current_span(
+            f"Generate Research Summary: {execution.topic_name}",
+            attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "exec_id": exec_id,
+                "topic_name": execution.topic_name,
+                "transcript_count": transcript_count,
+                "model": model,
+            },
+        ) as span:
+            # Verify experiment_id is set (required for saving document)
+            if not execution.experiment_id:
+                raise ValueError(f"Execution {exec_id} must be linked to an experiment")
 
-        from synth_lab.domain.entities.experiment_document import DocumentType
-        from synth_lab.services.document_service import DocumentService
+            from synth_lab.domain.entities.experiment_document import DocumentType
+            from synth_lab.services.document_service import DocumentService
 
-        doc_service = DocumentService()
-        # Note: start_generation is now called in the router before the background task
-        # to prevent race conditions. Here we only complete the generation.
+            doc_service = DocumentService()
+            # Note: start_generation is now called in the router before the background task
+            # to prevent race conditions. Here we only complete the generation.
 
-        # Load synths for enrichment
-        all_synths = load_synths()
-        synths_by_id = {s["id"]: s for s in all_synths}
+            # Load synths for enrichment
+            all_synths = load_synths()
+            synths_by_id = {s["id"]: s for s in all_synths}
 
-        # Convert transcripts to InterviewResult format
-        interview_results: list[tuple[InterviewResult, dict]] = []
-        for transcript_summary in transcripts.data:
-            transcript = self.research_repo.get_transcript(exec_id, transcript_summary.synth_id)
+            # Convert transcripts to InterviewResult format
+            interview_results: list[tuple[InterviewResult, dict]] = []
+            for transcript_summary in transcripts.data:
+                transcript = self.research_repo.get_transcript(exec_id, transcript_summary.synth_id)
 
-            # Convert messages to ConversationMessage
-            messages = [
-                ConversationMessage(
-                    speaker=msg.speaker,
-                    text=msg.text,
-                    internal_notes=msg.internal_notes)
-                for msg in transcript.messages
-            ]
+                # Convert messages to ConversationMessage
+                messages = [
+                    ConversationMessage(
+                        speaker=msg.speaker,
+                        text=msg.text,
+                        internal_notes=msg.internal_notes)
+                    for msg in transcript.messages
+                ]
 
-            interview_result = InterviewResult(
-                messages=messages,
-                synth_id=transcript.synth_id,
-                synth_name=transcript.synth_name or transcript.synth_id,
-                topic_guide_name=execution.topic_name,
-                trace_path=None,
-                total_turns=transcript.turn_count)
+                interview_result = InterviewResult(
+                    messages=messages,
+                    synth_id=transcript.synth_id,
+                    synth_name=transcript.synth_name or transcript.synth_id,
+                    topic_guide_name=execution.topic_name,
+                    trace_path=None,
+                    total_turns=transcript.turn_count)
 
-            # Get synth data for enrichment
-            synth_data = synths_by_id.get(
-                transcript.synth_id, {"id": transcript.synth_id, "nome": transcript.synth_name}
-            )
+                # Get synth data for enrichment
+                synth_data = synths_by_id.get(
+                    transcript.synth_id, {"id": transcript.synth_id, "nome": transcript.synth_name}
+                )
 
-            interview_results.append((interview_result, synth_data))
+                interview_results.append((interview_result, synth_data))
 
-        # Get experiment name for summary title (if linked to an experiment)
-        summary_title = execution.topic_name
-        if execution.experiment_id:
-            experiment_repo = ExperimentRepository()
-            experiment = experiment_repo.get_by_id(execution.experiment_id)
-            if experiment:
-                summary_title = experiment.name
+            # Get experiment name for summary title (if linked to an experiment)
+            summary_title = execution.topic_name
+            if execution.experiment_id:
+                experiment_repo = ExperimentRepository()
+                experiment = experiment_repo.get_by_id(execution.experiment_id)
+                if experiment:
+                    summary_title = experiment.name
 
-        # Generate summary
-        summary = await summarize_interviews(
-            interview_results=interview_results,
-            topic_guide_name=summary_title,
-            model=model)
+            # Generate summary
+            summary = await summarize_interviews(
+                interview_results=interview_results,
+                topic_guide_name=summary_title,
+                model=model)
 
-        # Complete generation (update status from "generating" to "completed")
-        doc_service.complete_generation(
-            experiment_id=execution.experiment_id,
-            document_type=DocumentType.SUMMARY,
-            markdown_content=summary,
-            metadata={"exec_id": exec_id, "transcript_count": len(transcripts.data)})
+            if span:
+                span.set_attribute("summary_length", len(summary))
 
-        return summary
+            # Complete generation (update status from "generating" to "completed")
+            doc_service.complete_generation(
+                experiment_id=execution.experiment_id,
+                document_type=DocumentType.RESEARCH_SUMMARY,
+                markdown_content=summary,
+                source_id=exec_id,
+                metadata={"exec_id": exec_id, "transcript_count": transcript_count})
+
+            # Return the document using the same service instance (same session)
+            doc = doc_service.get_document(
+                execution.experiment_id,
+                DocumentType.RESEARCH_SUMMARY,
+                source_id=exec_id)
+            return doc
 
     async def execute_research(self, request: ResearchExecuteRequest) -> ResearchExecuteResponse:
         """
@@ -498,8 +530,7 @@ class ResearchService:
 
                 from synth_lab.domain.entities.experiment_document import DocumentType
                 from synth_lab.services.document_service import DocumentService
-                from synth_lab.services.research_agentic.summarizer import (
-                    summarize_interviews)
+                from synth_lab.services.research_agentic.summarizer import summarize_interviews
 
                 logger.info(
                     f"Generating summary for {len(result.successful_interviews)} interviews"
@@ -516,15 +547,27 @@ class ResearchService:
                     if execution.experiment_id:
                         # Save to experiment_documents
                         doc_service = DocumentService()
+                        interview_count = len(result.successful_interviews)
                         doc_service.save_document(
                             experiment_id=execution.experiment_id,
-                            document_type=DocumentType.SUMMARY,
+                            document_type=DocumentType.RESEARCH_SUMMARY,
                             markdown_content=summary_content,
+                            source_id=exec_id,
                             model="gpt-4.1-mini",
-                            metadata={"exec_id": exec_id, "interview_count": len(result.successful_interviews)})
-                        logger.info(f"Summary saved to experiment_documents for {execution.experiment_id}")
+                            metadata={
+                                "exec_id": exec_id,
+                                "interview_count": interview_count,
+                            },
+                        )
+                        logger.info(
+                            f"Summary saved to experiment_documents for "
+                            f"{execution.experiment_id}"
+                        )
                     else:
-                        logger.warning(f"Execution {exec_id} not linked to experiment, summary not saved")
+                        logger.warning(
+                            f"Execution {exec_id} not linked to experiment, "
+                            "summary not saved"
+                        )
                 except Exception as e:
                     logger.error(f"Failed to generate summary: {e}")
 
@@ -551,20 +594,22 @@ class ResearchService:
 
 
 if __name__ == "__main__":
+    import os
     import sys
 
-    from synth_lab.infrastructure.config import DB_PATH
+    from synth_lab.infrastructure.database_v2 import init_database_v2
     from synth_lab.services.errors import ExecutionNotFoundError
 
     # Validation with real database
     all_validation_failures = []
     total_tests = 0
 
-    if not DB_PATH.exists():
-        print(f"Database not found at {DB_PATH}. Run migration first.")
+    if not os.getenv("DATABASE_URL"):
+        print("DATABASE_URL environment variable is required.")
+        print("Set it to: postgresql://user:pass@localhost:5432/synthlab")
         sys.exit(1)
 
-    db = DatabaseManager(DB_PATH)
+    init_database_v2()
     repo = ResearchRepository()
     service = ResearchService(repo)
 

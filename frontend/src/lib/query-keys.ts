@@ -24,6 +24,12 @@ export const queryKeys = {
   researchTranscript: (execId: string, synthId: string) => ['research', execId, 'transcripts', synthId] as const,
   autoInterview: (experimentId: string) => ['auto-interview', experimentId] as const,
 
+  // Research Documents
+  researchDocuments: {
+    summary: (execId: string) => ['research', execId, 'documents', 'summary'] as const,
+    prfaq: (execId: string) => ['research', execId, 'documents', 'prfaq'] as const,
+  },
+
   // Analysis (experiment-based)
   analysis: {
     tryVsSuccess: (experimentId: string) => ['analysis', experimentId, 'try-vs-success'] as const,
@@ -72,6 +78,12 @@ export const queryKeys = {
   explorationTree: (id: string) => ['explorations', 'tree', id] as const,
   explorationWinningPath: (id: string) => ['explorations', 'winning-path', id] as const,
   actionCatalog: ['explorations', 'catalog'] as const,
+
+  // Exploration Documents
+  explorationDocuments: {
+    summary: (explorationId: string) => ['explorations', explorationId, 'documents', 'summary'] as const,
+    prfaq: (explorationId: string) => ['explorations', explorationId, 'documents', 'prfaq'] as const,
+  },
 
   // Documents
   documents: {

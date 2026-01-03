@@ -47,7 +47,7 @@ export function useSummaryGenerate(execId: string, experimentId?: string) {
           old
             ? {
                 ...old,
-                summary: { available: false, status: 'generating' },
+                research_summary: { available: false, status: 'generating' },
               }
             : undefined
       );

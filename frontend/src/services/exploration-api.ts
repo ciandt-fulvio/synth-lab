@@ -90,3 +90,77 @@ export async function getActionCatalog(): Promise<ActionCatalog> {
 export async function listExplorations(experimentId: string): Promise<ExplorationSummary[]> {
   return fetchAPI<ExplorationSummary[]>(`/experiments/${experimentId}/explorations`);
 }
+
+// =============================================================================
+// Exploration Document API Functions
+// =============================================================================
+
+import type { ExperimentDocument } from '@/types/document';
+
+/**
+ * Generate summary document for an exploration.
+ *
+ * @param explorationId - Exploration ID
+ * @returns Generated summary document
+ * @throws APIError if exploration not found or not completed
+ */
+export async function generateExplorationSummary(explorationId: string): Promise<ExperimentDocument> {
+  return fetchAPI<ExperimentDocument>(`/explorations/${explorationId}/documents/summary/generate`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * Get summary document for an exploration.
+ *
+ * @param explorationId - Exploration ID
+ * @returns Summary document or null if not exists
+ */
+export async function getExplorationSummary(explorationId: string): Promise<ExperimentDocument | null> {
+  return fetchAPI<ExperimentDocument | null>(`/explorations/${explorationId}/documents/summary`);
+}
+
+/**
+ * Delete summary document for an exploration.
+ *
+ * @param explorationId - Exploration ID
+ */
+export async function deleteExplorationSummary(explorationId: string): Promise<void> {
+  await fetchAPI(`/explorations/${explorationId}/documents/summary`, {
+    method: 'DELETE',
+  });
+}
+
+/**
+ * Generate PRFAQ document for an exploration.
+ *
+ * @param explorationId - Exploration ID
+ * @returns Generated PRFAQ document
+ * @throws APIError if exploration not found or not completed
+ */
+export async function generateExplorationPRFAQ(explorationId: string): Promise<ExperimentDocument> {
+  return fetchAPI<ExperimentDocument>(`/explorations/${explorationId}/documents/prfaq/generate`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * Get PRFAQ document for an exploration.
+ *
+ * @param explorationId - Exploration ID
+ * @returns PRFAQ document or null if not exists
+ */
+export async function getExplorationPRFAQ(explorationId: string): Promise<ExperimentDocument | null> {
+  return fetchAPI<ExperimentDocument | null>(`/explorations/${explorationId}/documents/prfaq`);
+}
+
+/**
+ * Delete PRFAQ document for an exploration.
+ *
+ * @param explorationId - Exploration ID
+ */
+export async function deleteExplorationPRFAQ(explorationId: string): Promise<void> {
+  await fetchAPI(`/explorations/${explorationId}/documents/prfaq`, {
+    method: 'DELETE',
+  });
+}

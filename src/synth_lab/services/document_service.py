@@ -38,13 +38,15 @@ class DocumentService:
     def get_document(
         self,
         experiment_id: str,
-        document_type: DocumentType) -> ExperimentDocument:
+        document_type: DocumentType,
+        source_id: str | None = None) -> ExperimentDocument:
         """
         Get a specific document for an experiment.
 
         Args:
             experiment_id: Experiment ID.
             document_type: Type of document to retrieve.
+            source_id: Source ID (exploration_id or exec_id).
 
         Returns:
             ExperimentDocument.
@@ -52,7 +54,7 @@ class DocumentService:
         Raises:
             DocumentNotFoundError: If document doesn't exist.
         """
-        doc = self.repository.get_by_experiment(experiment_id, document_type)
+        doc = self.repository.get_by_experiment(experiment_id, document_type, source_id)
         if doc is None:
             raise DocumentNotFoundError(experiment_id, document_type)
         return doc
@@ -60,13 +62,15 @@ class DocumentService:
     def get_markdown(
         self,
         experiment_id: str,
-        document_type: DocumentType) -> str:
+        document_type: DocumentType,
+        source_id: str | None = None) -> str:
         """
         Get markdown content for a document.
 
         Args:
             experiment_id: Experiment ID.
             document_type: Type of document.
+            source_id: Source ID (exploration_id or exec_id).
 
         Returns:
             Markdown content string.
@@ -74,7 +78,7 @@ class DocumentService:
         Raises:
             DocumentNotFoundError: If document doesn't exist or not completed.
         """
-        markdown = self.repository.get_markdown(experiment_id, document_type)
+        markdown = self.repository.get_markdown(experiment_id, document_type, source_id)
         if markdown is None:
             raise DocumentNotFoundError(experiment_id, document_type)
         return markdown
@@ -96,18 +100,20 @@ class DocumentService:
     def get_document_status(
         self,
         experiment_id: str,
-        document_type: DocumentType) -> DocumentStatus | None:
+        document_type: DocumentType,
+        source_id: str | None = None) -> DocumentStatus | None:
         """
         Get the current status of a document.
 
         Args:
             experiment_id: Experiment ID.
             document_type: Type of document.
+            source_id: Source ID (exploration_id or exec_id).
 
         Returns:
             DocumentStatus or None if document doesn't exist.
         """
-        return self.repository.get_status(experiment_id, document_type)
+        return self.repository.get_status(experiment_id, document_type, source_id)
 
     def check_availability(
         self,
@@ -121,12 +127,12 @@ class DocumentService:
         Returns:
             Dict mapping DocumentType to status info:
             {
-                DocumentType.SUMMARY: {
+                DocumentType.RESEARCH_SUMMARY: {
                     "available": True,
                     "status": "completed",
                     "generated_at": "2024-01-15T10:30:00"
                 },
-                DocumentType.PRFAQ: {
+                DocumentType.RESEARCH_PRFAQ: {
                     "available": False,
                     "status": None,
                     "generated_at": None
@@ -157,6 +163,7 @@ class DocumentService:
         experiment_id: str,
         document_type: DocumentType,
         markdown_content: str,
+        source_id: str | None = None,
         model: str = "gpt-4o-mini",
         metadata: dict | None = None) -> ExperimentDocument:
         """
@@ -166,6 +173,7 @@ class DocumentService:
             experiment_id: Experiment ID.
             document_type: Type of document.
             markdown_content: Full markdown content.
+            source_id: Source ID (exploration_id or exec_id).
             model: LLM model used.
             metadata: Optional metadata.
 
@@ -175,13 +183,14 @@ class DocumentService:
         from synth_lab.domain.entities.experiment_document import generate_document_id
 
         # Check if document already exists
-        existing = self.repository.get_by_experiment(experiment_id, document_type)
+        existing = self.repository.get_by_experiment(experiment_id, document_type, source_id)
         doc_id = existing.id if existing else generate_document_id()
 
         doc = ExperimentDocument(
             id=doc_id,
             experiment_id=experiment_id,
             document_type=document_type,
+            source_id=source_id,
             markdown_content=markdown_content,
             metadata=metadata,
             model=model,
@@ -189,7 +198,7 @@ class DocumentService:
 
         self.repository.save(doc)
         self.logger.info(
-            f"Saved {document_type.value} for {experiment_id} "
+            f"Saved {document_type.value} for {experiment_id} (source: {source_id}) "
             f"({len(markdown_content)} chars)"
         )
         return doc
@@ -198,6 +207,7 @@ class DocumentService:
         self,
         experiment_id: str,
         document_type: DocumentType,
+        source_id: str | None = None,
         model: str = "gpt-4o-mini") -> ExperimentDocument | None:
         """
         Mark a document as generating (to prevent concurrent generation).
@@ -205,18 +215,20 @@ class DocumentService:
         Args:
             experiment_id: Experiment ID.
             document_type: Type of document.
+            source_id: Source ID (exploration_id or exec_id).
             model: LLM model to use.
 
         Returns:
             Pending document, or None if already generating.
         """
-        return self.repository.create_pending(experiment_id, document_type, model)
+        return self.repository.create_pending(experiment_id, document_type, source_id, model)
 
     def complete_generation(
         self,
         experiment_id: str,
         document_type: DocumentType,
         markdown_content: str,
+        source_id: str | None = None,
         metadata: dict | None = None) -> None:
         """
         Mark a document generation as completed with content.
@@ -225,16 +237,18 @@ class DocumentService:
             experiment_id: Experiment ID.
             document_type: Type of document.
             markdown_content: Generated content.
+            source_id: Source ID (exploration_id or exec_id).
             metadata: Optional metadata.
         """
         self.repository.update_status(
             experiment_id,
             document_type,
             DocumentStatus.COMPLETED,
+            source_id=source_id,
             markdown_content=markdown_content,
             metadata=metadata)
         self.logger.info(
-            f"Completed {document_type.value} for {experiment_id} "
+            f"Completed {document_type.value} for {experiment_id} (source: {source_id}) "
             f"({len(markdown_content)} chars)"
         )
 
@@ -242,7 +256,8 @@ class DocumentService:
         self,
         experiment_id: str,
         document_type: DocumentType,
-        error_message: str) -> None:
+        error_message: str,
+        source_id: str | None = None) -> None:
         """
         Mark a document generation as failed.
 
@@ -250,31 +265,35 @@ class DocumentService:
             experiment_id: Experiment ID.
             document_type: Type of document.
             error_message: Error details.
+            source_id: Source ID (exploration_id or exec_id).
         """
         self.repository.update_status(
             experiment_id,
             document_type,
             DocumentStatus.FAILED,
+            source_id=source_id,
             error_message=error_message)
         self.logger.error(
-            f"Failed {document_type.value} for {experiment_id}: {error_message}"
+            f"Failed {document_type.value} for {experiment_id} (source: {source_id}): {error_message}"
         )
 
     def delete_document(
         self,
         experiment_id: str,
-        document_type: DocumentType) -> bool:
+        document_type: DocumentType,
+        source_id: str | None = None) -> bool:
         """
         Delete a document.
 
         Args:
             experiment_id: Experiment ID.
             document_type: Type of document.
+            source_id: Source ID (exploration_id or exec_id).
 
         Returns:
             True if deleted, False if not found.
         """
-        return self.repository.delete(experiment_id, document_type)
+        return self.repository.delete(experiment_id, document_type, source_id)
 
 
 if __name__ == "__main__":
@@ -337,7 +356,7 @@ if __name__ == "__main__":
         try:
             doc = service.save_document(
                 "exp_12345678",
-                DocumentType.SUMMARY,
+                DocumentType.RESEARCH_SUMMARY,
                 "# Summary\n\nTest content",
                 metadata={"synth_count": 50})
             if doc.status != DocumentStatus.COMPLETED:
@@ -348,7 +367,7 @@ if __name__ == "__main__":
         # Test 2: Get document
         total_tests += 1
         try:
-            doc = service.get_document("exp_12345678", DocumentType.SUMMARY)
+            doc = service.get_document("exp_12345678", DocumentType.RESEARCH_SUMMARY)
             if doc.markdown_content != "# Summary\n\nTest content":
                 all_validation_failures.append(f"Content mismatch: {doc.markdown_content}")
         except Exception as e:
@@ -357,7 +376,7 @@ if __name__ == "__main__":
         # Test 3: Get markdown
         total_tests += 1
         try:
-            markdown = service.get_markdown("exp_12345678", DocumentType.SUMMARY)
+            markdown = service.get_markdown("exp_12345678", DocumentType.RESEARCH_SUMMARY)
             if markdown != "# Summary\n\nTest content":
                 all_validation_failures.append(f"Markdown mismatch: {markdown}")
         except Exception as e:
@@ -376,10 +395,10 @@ if __name__ == "__main__":
         total_tests += 1
         try:
             avail = service.check_availability("exp_12345678")
-            if not avail[DocumentType.SUMMARY]["available"]:
-                all_validation_failures.append("SUMMARY should be available")
-            if avail[DocumentType.PRFAQ]["available"]:
-                all_validation_failures.append("PRFAQ should not be available")
+            if not avail[DocumentType.RESEARCH_SUMMARY]["available"]:
+                all_validation_failures.append("RESEARCH_SUMMARY should be available")
+            if avail[DocumentType.RESEARCH_PRFAQ]["available"]:
+                all_validation_failures.append("RESEARCH_PRFAQ should not be available")
         except Exception as e:
             all_validation_failures.append(f"check_availability failed: {e}")
 
@@ -387,7 +406,7 @@ if __name__ == "__main__":
         total_tests += 1
         try:
             # Start generation
-            pending = service.start_generation("exp_12345678", DocumentType.PRFAQ)
+            pending = service.start_generation("exp_12345678", DocumentType.RESEARCH_PRFAQ)
             if pending is None:
                 all_validation_failures.append("start_generation returned None")
             elif pending.status != DocumentStatus.GENERATING:
@@ -396,12 +415,12 @@ if __name__ == "__main__":
             # Complete generation
             service.complete_generation(
                 "exp_12345678",
-                DocumentType.PRFAQ,
+                DocumentType.RESEARCH_PRFAQ,
                 "# PR-FAQ\n\nGenerated content",
                 metadata={"headline": "Test"})
 
             # Verify
-            doc = service.get_document("exp_12345678", DocumentType.PRFAQ)
+            doc = service.get_document("exp_12345678", DocumentType.RESEARCH_PRFAQ)
             if doc.status != DocumentStatus.COMPLETED:
                 all_validation_failures.append(f"Expected COMPLETED: {doc.status}")
         except Exception as e:
@@ -426,7 +445,7 @@ if __name__ == "__main__":
         # Test 8: Document not found
         total_tests += 1
         try:
-            service.get_document("exp_nonexistent", DocumentType.SUMMARY)
+            service.get_document("exp_nonexistent", DocumentType.RESEARCH_SUMMARY)
             all_validation_failures.append("Should raise DocumentNotFoundError")
         except DocumentNotFoundError:
             pass  # Expected

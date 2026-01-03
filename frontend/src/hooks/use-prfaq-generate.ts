@@ -49,7 +49,7 @@ export function usePrfaqGenerate(execId: string, experimentId?: string) {
           old
             ? {
                 ...old,
-                prfaq: { available: false, status: 'generating' },
+                research_prfaq: { available: false, status: 'generating' },
               }
             : undefined
       );
