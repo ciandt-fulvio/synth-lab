@@ -234,6 +234,51 @@ pytest -m contract -v
 git push  # Pre-push hook roda testes automaticamente
 ```
 
+## Servidores de Teste
+
+Alguns testes fazem HTTP requests e **precisam dos servidores rodando**:
+
+- **Contract Tests (OpenAPI)**: `tests/contract/test_openapi_typescript_sync.py`
+- **E2E Tests**: `frontend/tests/e2e/`
+
+### Setup (3 Terminais)
+
+**Terminal 1 - Backend de Teste:**
+```bash
+make serve-test
+# API rodando em http://localhost:8009
+```
+
+**Terminal 2 - Frontend de Teste (apenas para E2E):**
+```bash
+make serve-front-test
+# Frontend rodando em http://localhost:8089
+```
+
+**Terminal 3 - Rodar Testes:**
+```bash
+# E2E tests (precisa backend + frontend)
+make test-e2e
+
+# Contract OpenAPI tests (precisa só backend)
+pytest tests/contract/test_openapi_typescript_sync.py -v
+```
+
+### Por que Portas Diferentes?
+
+- **Dev:** 8000 (backend), 8080 (frontend)
+- **Teste:** 8009 (backend), 8089 (frontend)
+
+**Benefício:** Rodar testes enquanto dev servers estão rodando sem conflito.
+
+### Matar Servidores de Teste
+
+```bash
+make kill-test-servers
+```
+
+---
+
 ## Troubleshooting
 
 ### "DB não acessível"
