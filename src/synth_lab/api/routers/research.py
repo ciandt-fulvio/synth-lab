@@ -36,23 +36,6 @@ def get_research_service() -> ResearchService:
     return ResearchService()
 
 
-@router.get("/hello")
-async def hello_world():
-    """Test endpoint to demonstrate auto-update-docs system.
-
-    Returns a simple hello world message to test documentation automation.
-
-    Returns:
-        dict: Welcome message with timestamp
-    """
-    from datetime import datetime
-    return {
-        "message": "Hello from synth-lab research API!",
-        "timestamp": datetime.now().isoformat(),
-        "docs_updated": "automatically via Claude Code"
-    }
-
-
 @router.get("/list", response_model=PaginatedResponse[ResearchExecutionSummary])
 async def list_executions(
     limit: int = Query(default=50, ge=1, le=200, description="Maximum items per page"),
