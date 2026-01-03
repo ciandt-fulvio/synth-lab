@@ -1,0 +1,407 @@
+openapi: 3.0.3
+info:
+  title: Exploration Summary and PRFAQ API
+  description: |
+    API endpoints para gerar e gerenciar summaries e PRFAQs de explorations.
+
+    **IMPORTANTE**: Esta API é um WRAPPER sobre `experiment_documents`.
+    Documentos gerados por explorations são armazenados em `experiment_documents`
+    usando o `experiment_id` da exploration, com metadata identificando a origem.
+  version: 2.0.0
+
+servers:
+  - url: http://localhost:8000/api
+    description: Local development server
+
+tags:
+  - name: Exploration Documents
+    description: |
+      Endpoints wrapper para geração de documentos de exploration.
+      Internamente usam `experiment_documents` via `exploration.experiment_id`.
+
+paths:
+  /explorations/{exploration_id}/documents/summary/generate:
+    post:
+      tags:
+        - Exploration Documents
+      summary: Gerar summary para exploration
+      description: |
+        Gera um summary narrativo para uma exploration completa.
+
+        **Internamente**:
+        1. Busca `exploration.experiment_id`
+        2. Gera conteúdo via LLM (winning path → narrative)
+        3. Salva em `experiment_documents` com metadata `source: "exploration"`
+
+        **Comportamento**:
+        - Se summary já existe com status=completed, regenera (sobrescreve)
+        - Se status=generating, retorna 409 Conflict
+        - Se exploration não completada, retorna 422 Unprocessable Entity
+      operationId: generateExplorationSummary
+      parameters:
+        - name: exploration_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^expl_[a-f0-9]{8}$'
+          description: ID da exploration
+      responses:
+        '200':
+          description: Geração de summary iniciada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentDocumentResponse'
+              example:
+                id: doc_a1b2c3d4
+                experiment_id: exp_12345678
+                document_type: summary
+                markdown_content: ""
+                metadata:
+                  source: exploration
+                  exploration_id: expl_a1b2c3d4
+                  winning_path_nodes: []
+                  path_length: 0
+                generated_at: "2026-01-02T10:30:00Z"
+                model: gpt-4o-mini
+                status: generating
+                error_message: null
+        '404':
+          description: Exploration não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Geração já em progresso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: |
+            Exploration não completada (status deve ser GOAL_ACHIEVED,
+            DEPTH_LIMIT_REACHED, ou COST_LIMIT_REACHED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /explorations/{exploration_id}/documents/summary:
+    get:
+      tags:
+        - Exploration Documents
+      summary: Buscar summary de exploration
+      description: |
+        Busca o summary de uma exploration (se existir).
+
+        **Internamente**: Busca em `experiment_documents` via `exploration.experiment_id`
+        com `document_type=summary` e verifica metadata `source=exploration`.
+      operationId: getExplorationSummary
+      parameters:
+        - name: exploration_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^expl_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: Summary encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentDocumentResponse'
+              example:
+                id: doc_a1b2c3d4
+                experiment_id: exp_12345678
+                document_type: summary
+                markdown_content: |
+                  ## Visão Geral
+
+                  O experimento otimizado apresenta um tutorial interativo...
+                metadata:
+                  source: exploration
+                  exploration_id: expl_a1b2c3d4
+                  winning_path_nodes:
+                    - node_00000001
+                    - node_00000005
+                    - node_0000000a
+                  path_length: 3
+                  baseline_success_rate: 0.48
+                  final_success_rate: 0.55
+                  improvement_percentage: 14.6
+                generated_at: "2026-01-02T10:32:15Z"
+                model: gpt-4o-mini
+                status: completed
+                error_message: null
+        '404':
+          description: Summary não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Exploration Documents
+      summary: Deletar summary de exploration
+      description: |
+        Deleta o summary de uma exploration (permite regeneração limpa).
+
+        **Internamente**: Deleta de `experiment_documents` via `exploration.experiment_id`.
+      operationId: deleteExplorationSummary
+      parameters:
+        - name: exploration_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^expl_[a-f0-9]{8}$'
+      responses:
+        '204':
+          description: Summary deletado com sucesso
+        '404':
+          description: Summary não encontrado
+
+  /explorations/{exploration_id}/documents/prfaq/generate:
+    post:
+      tags:
+        - Exploration Documents
+      summary: Gerar PRFAQ para exploration
+      description: |
+        Gera um documento PRFAQ para uma exploration completa.
+
+        **Internamente**:
+        1. Busca `exploration.experiment_id`
+        2. Gera conteúdo via LLM (winning path → PRFAQ)
+        3. Salva em `experiment_documents` com metadata `source: "exploration"`
+      operationId: generateExplorationPRFAQ
+      parameters:
+        - name: exploration_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^expl_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: Geração de PRFAQ iniciada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentDocumentResponse'
+              example:
+                id: doc_b2c3d4e5
+                experiment_id: exp_12345678
+                document_type: prfaq
+                markdown_content: ""
+                metadata:
+                  source: exploration
+                  exploration_id: expl_a1b2c3d4
+                  winning_path_nodes: []
+                generated_at: "2026-01-02T10:30:00Z"
+                model: gpt-4o-mini
+                status: generating
+                error_message: null
+        '404':
+          description: Exploration não encontrada
+        '409':
+          description: Geração já em progresso
+        '422':
+          description: Exploration não completada
+
+  /explorations/{exploration_id}/documents/prfaq:
+    get:
+      tags:
+        - Exploration Documents
+      summary: Buscar PRFAQ de exploration
+      description: Busca o PRFAQ de uma exploration (se existir).
+      operationId: getExplorationPRFAQ
+      parameters:
+        - name: exploration_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^expl_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: PRFAQ encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentDocumentResponse'
+              example:
+                id: doc_b2c3d4e5
+                experiment_id: exp_12345678
+                document_type: prfaq
+                markdown_content: |
+                  # Press Release: Tutorial Interativo - Versão Otimizada
+
+                  ## FAQ
+                  ...
+                metadata:
+                  source: exploration
+                  exploration_id: expl_a1b2c3d4
+                  winning_path_nodes:
+                    - node_00000001
+                    - node_00000005
+                    - node_0000000a
+                  path_length: 3
+                  final_success_rate: 0.55
+                generated_at: "2026-01-02T10:35:20Z"
+                model: gpt-4o-mini
+                status: completed
+                error_message: null
+        '404':
+          description: PRFAQ não encontrado
+
+    delete:
+      tags:
+        - Exploration Documents
+      summary: Deletar PRFAQ de exploration
+      description: Deleta o PRFAQ de uma exploration.
+      operationId: deleteExplorationPRFAQ
+      parameters:
+        - name: exploration_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^expl_[a-f0-9]{8}$'
+      responses:
+        '204':
+          description: PRFAQ deletado com sucesso
+        '404':
+          description: PRFAQ não encontrado
+
+components:
+  schemas:
+    ExperimentDocumentResponse:
+      type: object
+      description: |
+        Response schema que REUTILIZA ExperimentDocument existente.
+        Para documentos gerados por exploration, o campo `metadata` contém
+        informações sobre a origem e o winning path.
+      required:
+        - id
+        - experiment_id
+        - document_type
+        - markdown_content
+        - generated_at
+        - model
+        - status
+      properties:
+        id:
+          type: string
+          pattern: '^doc_[a-f0-9]{8}$'
+          description: ID do documento
+          example: doc_a1b2c3d4
+        experiment_id:
+          type: string
+          pattern: '^exp_[a-f0-9]{8}$'
+          description: ID do experiment pai (via exploration.experiment_id)
+          example: exp_12345678
+        document_type:
+          type: string
+          enum:
+            - summary
+            - prfaq
+            - executive_summary
+          description: Tipo do documento (enum DocumentType existente)
+          example: summary
+        markdown_content:
+          type: string
+          description: Conteúdo markdown do documento
+          example: |
+            ## Visão Geral
+
+            O experimento otimizado apresenta...
+        metadata:
+          type: object
+          description: |
+            Metadata JSON com informações específicas da origem.
+            Para documentos de exploration, inclui:
+            - source: "exploration"
+            - exploration_id: ID da exploration que gerou
+            - winning_path_nodes: Lista ordenada de node IDs
+            - path_length: Tamanho do caminho
+            - baseline_success_rate: Taxa inicial
+            - final_success_rate: Taxa final
+            - improvement_percentage: Melhoria em %
+          properties:
+            source:
+              type: string
+              enum: [exploration, experiment, interview]
+              description: Origem do documento
+              example: exploration
+            exploration_id:
+              type: string
+              pattern: '^expl_[a-f0-9]{8}$'
+              description: ID da exploration que gerou (quando source=exploration)
+              example: expl_a1b2c3d4
+            winning_path_nodes:
+              type: array
+              items:
+                type: string
+                pattern: '^node_[a-f0-9]{8}$'
+              description: Lista ordenada de node IDs (root→leaf)
+              example:
+                - node_00000001
+                - node_00000005
+                - node_0000000a
+            path_length:
+              type: integer
+              description: Número de nós no caminho
+              example: 3
+            baseline_success_rate:
+              type: number
+              format: float
+              description: Taxa de sucesso do nó raiz
+              example: 0.48
+            final_success_rate:
+              type: number
+              format: float
+              description: Taxa de sucesso do nó final
+              example: 0.55
+            improvement_percentage:
+              type: number
+              format: float
+              description: Melhoria percentual
+              example: 14.6
+        generated_at:
+          type: string
+          format: date-time
+          description: Timestamp de geração
+          example: "2026-01-02T10:32:15Z"
+        model:
+          type: string
+          description: Modelo LLM usado
+          example: gpt-4o-mini
+        status:
+          type: string
+          enum:
+            - pending
+            - generating
+            - completed
+            - failed
+            - partial
+          description: Status de geração (enum DocumentStatus existente)
+          example: completed
+        error_message:
+          type: string
+          nullable: true
+          description: Mensagem de erro se falhou
+          example: null
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Mensagem de erro
+          example: Exploration must be completed before generating summary

@@ -10,9 +10,15 @@ References:
 
 from collections.abc import AsyncGenerator
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
+from loguru import logger
 
+from synth_lab.api.schemas.documents import (
+    DocumentDetailResponse,
+    DocumentStatusEnum,
+    DocumentTypeEnum,
+)
 from synth_lab.models.events import InterviewMessageEvent
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.research import (
@@ -23,12 +29,33 @@ from synth_lab.models.research import (
     SummaryGenerateRequest,
     SummaryGenerateResponse,
     TranscriptDetail,
-    TranscriptSummary)
+    TranscriptSummary,
+)
+from synth_lab.services.document_service import DocumentService
 from synth_lab.services.errors import ExecutionNotFoundError
 from synth_lab.services.message_broker import MessageBroker
+from synth_lab.services.research_prfaq_generator_service import (
+    PRFAQGenerationInProgressError,
+    ResearchPRFAQGeneratorService,
+)
+from synth_lab.services.research_prfaq_generator_service import (
+    SummaryNotFoundError as PRFAQSummaryNotFoundError,
+)
 from synth_lab.services.research_service import ResearchService
+from synth_lab.services.research_summary_generator_service import (
+    ExecutionNotCompletedError,
+    NotLinkedToExperimentError,
+    NoTranscriptsError,
+    ResearchSummaryGeneratorService,
+    SummaryGenerationInProgressError,
+)
 
 router = APIRouter()
+
+
+# =============================================================================
+# Helper Functions
+# =============================================================================
 
 
 def get_research_service() -> ResearchService:
@@ -36,12 +63,49 @@ def get_research_service() -> ResearchService:
     return ResearchService()
 
 
+def get_document_service() -> DocumentService:
+    """Get document service instance."""
+    return DocumentService()
+
+
+def get_summary_generator_service() -> ResearchSummaryGeneratorService:
+    """Get summary generator service instance."""
+    return ResearchSummaryGeneratorService()
+
+
+def get_prfaq_generator_service() -> ResearchPRFAQGeneratorService:
+    """Get PRFAQ generator service instance."""
+    return ResearchPRFAQGeneratorService()
+
+
+def _document_to_response(doc) -> DocumentDetailResponse:
+    """Convert ExperimentDocument to DocumentDetailResponse."""
+    return DocumentDetailResponse(
+        id=doc.id,
+        experiment_id=doc.experiment_id,
+        document_type=DocumentTypeEnum(doc.document_type.value),
+        source_id=doc.source_id,
+        markdown_content=doc.markdown_content or "",
+        metadata=doc.metadata,
+        generated_at=doc.generated_at,
+        model=doc.model,
+        status=DocumentStatusEnum(doc.status.value),
+        error_message=doc.error_message,
+    )
+
+
+# =============================================================================
+# Execution Endpoints
+# =============================================================================
+
+
 @router.get("/list", response_model=PaginatedResponse[ResearchExecutionSummary])
 async def list_executions(
-    limit: int = Query(default=50, ge=1, le=200, description="Maximum items per page"),
-    offset: int = Query(default=0, ge=0, description="Number of items to skip"),
-    sort_by: str | None = Query(default="started_at", description="Field to sort by"),
-    sort_order: str = Query(default="desc", pattern="^(asc|desc)$", description="Sort order")) -> PaginatedResponse[ResearchExecutionSummary]:
+    limit: int = Query(default=50, ge=1, le=200, description="Items per page"),
+    offset: int = Query(default=0, ge=0, description="Items to skip"),
+    sort_by: str | None = Query(default="started_at", description="Sort field"),
+    sort_order: str = Query(default="desc", pattern="^(asc|desc)$"),
+) -> PaginatedResponse[ResearchExecutionSummary]:
     """
     List all research executions with pagination.
 
@@ -70,8 +134,9 @@ async def get_execution(exec_id: str) -> ResearchExecutionDetail:
 @router.get("/{exec_id}/transcripts", response_model=PaginatedResponse[TranscriptSummary])
 async def get_transcripts(
     exec_id: str,
-    limit: int = Query(default=50, ge=1, le=200, description="Maximum items per page"),
-    offset: int = Query(default=0, ge=0, description="Number of items to skip")) -> PaginatedResponse[TranscriptSummary]:
+    limit: int = Query(default=50, ge=1, le=200, description="Items per page"),
+    offset: int = Query(default=0, ge=0, description="Items to skip"),
+) -> PaginatedResponse[TranscriptSummary]:
     """
     Get transcripts for a research execution.
 
@@ -93,97 +158,260 @@ async def get_transcript(exec_id: str, synth_id: str) -> TranscriptDetail:
     return service.get_transcript(exec_id, synth_id)
 
 
-async def _generate_summary_background(exec_id: str, model: str) -> None:
-    """Background task for summary generation."""
-    from loguru import logger
-
-    service = get_research_service()
-    try:
-        await service.generate_summary(exec_id, model=model)
-        logger.info(f"Summary generation completed for {exec_id}")
-    except Exception as e:
-        logger.error(f"Summary generation failed for {exec_id}: {e}")
-        # Note: errors are handled in the service (status updated to "failed")
+# =============================================================================
+# Document Endpoints - Summary
+# =============================================================================
 
 
-@router.post("/{exec_id}/summary/generate", response_model=SummaryGenerateResponse)
-async def generate_summary(
+@router.post(
+    "/{exec_id}/documents/summary/generate",
+    response_model=DocumentDetailResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def generate_research_summary(
     exec_id: str,
-    background_tasks: BackgroundTasks,
-    request: SummaryGenerateRequest | None = None) -> SummaryGenerateResponse:
+    request: SummaryGenerateRequest | None = None,
+) -> DocumentDetailResponse:
     """
-    Start generation of a summary for a completed research execution.
+    Generate a summary document for the research execution.
 
-    This endpoint starts generation and returns immediately.
-    The actual generation runs in a background task.
+    Generates a narrative summary from interview transcripts.
 
     Args:
-        exec_id: Execution ID.
-        background_tasks: FastAPI background tasks.
-        request: Optional generation parameters.
+        exec_id: The execution ID.
 
     Returns:
-        Generation status (generating).
+        DocumentDetailResponse: The generated summary document.
 
     Raises:
-        404: If execution not found.
-        400: If execution is not completed or has no transcripts.
+        404: Execution not found.
+        409: Summary generation already in progress.
+        422: Execution is not completed or has no transcripts.
     """
-    from datetime import datetime
-
-    from synth_lab.domain.entities.experiment_document import DocumentType
-    from synth_lab.services.document_service import DocumentService
-
-    service = get_research_service()
+    service = get_summary_generator_service()
 
     # Use default request if none provided
     if request is None:
         request = SummaryGenerateRequest()
 
-    # Verify execution exists and is valid (quick check before background task)
     try:
-        execution = service.research_repo.get_execution(exec_id)
-        if execution.status.value not in ("completed", "failed"):
-            raise ValueError(
-                f"Execution {exec_id} is not completed (status: {execution.status.value})"
-            )
-        transcripts = service.research_repo.get_transcripts(exec_id)
-        if not transcripts.data:
-            raise ValueError(f"Execution {exec_id} has no transcripts")
-        if not execution.experiment_id:
-            raise ValueError(f"Execution {exec_id} must be linked to an experiment")
+        doc = await service.generate_for_execution_async(exec_id, model=request.model)
+        logger.info(f"Generated summary for execution {exec_id}")
+        return _document_to_response(doc)
     except ExecutionNotFoundError:
-        raise HTTPException(status_code=404, detail="Execution not found")
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Execution not found",
+        )
+    except ExecutionNotCompletedError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
+    except NoTranscriptsError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
+    except NotLinkedToExperimentError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
+    except SummaryGenerationInProgressError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(e),
+        )
+    except Exception as e:
+        logger.error(f"Summary generation failed for {exec_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Summary generation failed: {e}",
+        )
 
-    # Create "generating" status record BEFORE starting background task
-    # This prevents race condition where frontend polls before record exists
-    doc_service = DocumentService()
-    pending = doc_service.start_generation(
-        experiment_id=execution.experiment_id,
-        document_type=DocumentType.SUMMARY,
-        model=request.model)
 
-    if pending is None:
-        # Already generating
+@router.get(
+    "/{exec_id}/documents/summary",
+    response_model=DocumentDetailResponse | None,
+)
+async def get_research_summary(exec_id: str) -> DocumentDetailResponse | None:
+    """
+    Get the summary document for a research execution.
+
+    Args:
+        exec_id: The execution ID.
+
+    Returns:
+        DocumentDetailResponse or None: The summary document if exists.
+
+    Raises:
+        404: Execution not found.
+    """
+    service = get_summary_generator_service()
+    doc = service.get_summary(exec_id)
+    if doc is None:
+        return None
+    return _document_to_response(doc)
+
+
+@router.delete(
+    "/{exec_id}/documents/summary",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_research_summary(exec_id: str) -> None:
+    """
+    Delete the summary document for a research execution.
+
+    Args:
+        exec_id: The execution ID.
+    """
+    service = get_summary_generator_service()
+    service.delete_summary(exec_id)
+
+
+# =============================================================================
+# Document Endpoints - PRFAQ
+# =============================================================================
+
+
+@router.post(
+    "/{exec_id}/documents/prfaq/generate",
+    response_model=DocumentDetailResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def generate_research_prfaq(exec_id: str) -> DocumentDetailResponse:
+    """
+    Generate a PRFAQ document for the research execution.
+
+    Generates a formal Amazon PRFAQ document from the research summary.
+
+    Args:
+        exec_id: The execution ID.
+
+    Returns:
+        DocumentDetailResponse: The generated PRFAQ document.
+
+    Raises:
+        404: Execution not found.
+        409: PRFAQ generation already in progress.
+        422: Execution doesn't have a summary yet.
+    """
+    service = get_prfaq_generator_service()
+
+    try:
+        doc = service.generate_for_execution(exec_id)
+        logger.info(f"Generated PRFAQ for execution {exec_id}")
+        return _document_to_response(doc)
+    except ExecutionNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Execution not found",
+        )
+    except PRFAQSummaryNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
+    except PRFAQGenerationInProgressError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(e),
+        )
+    except Exception as e:
+        logger.error(f"PRFAQ generation failed for {exec_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"PRFAQ generation failed: {e}",
+        )
+
+
+@router.get(
+    "/{exec_id}/documents/prfaq",
+    response_model=DocumentDetailResponse | None,
+)
+async def get_research_prfaq(exec_id: str) -> DocumentDetailResponse | None:
+    """
+    Get the PRFAQ document for a research execution.
+
+    Args:
+        exec_id: The execution ID.
+
+    Returns:
+        DocumentDetailResponse or None: The PRFAQ document if exists.
+
+    Raises:
+        404: Execution not found.
+    """
+    service = get_prfaq_generator_service()
+    doc = service.get_prfaq(exec_id)
+    if doc is None:
+        return None
+    return _document_to_response(doc)
+
+
+@router.delete(
+    "/{exec_id}/documents/prfaq",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_research_prfaq(exec_id: str) -> None:
+    """
+    Delete the PRFAQ document for a research execution.
+
+    Args:
+        exec_id: The execution ID.
+    """
+    service = get_prfaq_generator_service()
+    service.delete_prfaq(exec_id)
+
+
+# =============================================================================
+# Legacy Summary Endpoint (deprecated, use /documents/summary/generate)
+# =============================================================================
+
+
+@router.post(
+    "/{exec_id}/summary/generate",
+    response_model=SummaryGenerateResponse,
+    deprecated=True,
+)
+async def generate_summary_legacy(
+    exec_id: str,
+    request: SummaryGenerateRequest | None = None,
+) -> SummaryGenerateResponse:
+    """
+    [DEPRECATED] Use POST /{exec_id}/documents/summary/generate instead.
+
+    Generate a summary for a completed research execution.
+    """
+    from datetime import datetime
+
+    service = get_summary_generator_service()
+
+    if request is None:
+        request = SummaryGenerateRequest()
+
+    try:
+        await service.generate_for_execution_async(exec_id, model=request.model)
         return SummaryGenerateResponse(
             exec_id=exec_id,
-            status="generating",
-            message="Summary is already being generated",
-            generated_at=datetime.now())
+            status="completed",
+            message="Summary generated successfully",
+            generated_at=datetime.now(),
+        )
+    except ExecutionNotFoundError:
+        raise HTTPException(status_code=404, detail="Execution not found")
+    except (ExecutionNotCompletedError, NoTranscriptsError, NotLinkedToExperimentError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except SummaryGenerationInProgressError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Summary generation failed: {e}")
 
-    # Start background generation
-    background_tasks.add_task(
-        _generate_summary_background,
-        exec_id,
-        request.model)
 
-    return SummaryGenerateResponse(
-        exec_id=exec_id,
-        status="generating",
-        message="Started summary generation",
-        generated_at=datetime.now())
+# =============================================================================
+# Execution Endpoints
+# =============================================================================
 
 
 @router.post("/execute", response_model=ResearchExecuteResponse)
@@ -326,8 +554,8 @@ if __name__ == "__main__":
     # Test 1: Router has routes
     total_tests += 1
     try:
-        if len(router.routes) < 5:
-            all_validation_failures.append(f"Expected at least 5 routes, got {len(router.routes)}")
+        if len(router.routes) < 10:
+            all_validation_failures.append(f"Expected at least 10 routes, got {len(router.routes)}")
     except Exception as e:
         all_validation_failures.append(f"Router routes test failed: {e}")
 
@@ -340,9 +568,13 @@ if __name__ == "__main__":
             "/{exec_id}",
             "/{exec_id}/transcripts",
             "/{exec_id}/transcripts/{synth_id}",
-            "/{exec_id}/summary/generate",  # Summary generation endpoint
+            "/{exec_id}/documents/summary/generate",
+            "/{exec_id}/documents/summary",
+            "/{exec_id}/documents/prfaq/generate",
+            "/{exec_id}/documents/prfaq",
+            "/{exec_id}/summary/generate",  # Legacy endpoint
             "/execute",
-            "/{exec_id}/stream",  # SSE endpoint
+            "/{exec_id}/stream",
         ]
         for path in expected_paths:
             if path not in paths:
@@ -358,6 +590,15 @@ if __name__ == "__main__":
             all_validation_failures.append(f"Expected ResearchService, got {type(service)}")
     except Exception as e:
         all_validation_failures.append(f"Service instantiation failed: {e}")
+
+    # Test 4: Document service instantiation
+    total_tests += 1
+    try:
+        doc_service = get_document_service()
+        if not isinstance(doc_service, DocumentService):
+            all_validation_failures.append(f"Expected DocumentService, got {type(doc_service)}")
+    except Exception as e:
+        all_validation_failures.append(f"Document service instantiation failed: {e}")
 
     # Final validation result
     if all_validation_failures:

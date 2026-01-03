@@ -81,7 +81,7 @@ class ActionProposalService:
         self,
         node: ScenarioNode,
         experiment: Experiment,
-        max_proposals: int = 5) -> list[ActionProposal]:
+        max_proposals: int = 4) -> list[ActionProposal]:
         """
         Generate improvement proposals for a scenario node.
 
@@ -91,10 +91,10 @@ class ActionProposalService:
         Args:
             node: The scenario node to generate proposals for.
             experiment: The experiment context (name, hypothesis, scorecard).
-            max_proposals: Maximum number of proposals to generate (1-5).
+            max_proposals: Maximum number of proposals to generate (1-4).
 
         Returns:
-            List of ActionProposal objects (0-5 items).
+            List of ActionProposal objects (0-4 items).
 
         Raises:
             ProposalGenerationError: If LLM call fails repeatedly.
@@ -166,7 +166,7 @@ class ActionProposalService:
 Sua tarefa e propor acoes concretas e incrementais para melhorar os resultados de um experimento.
 
 REGRAS IMPORTANTES:
-1. Proponha entre 1 e 5 acoes por resposta
+1. Proponha entre 1 e 4 acoes por resposta
 2. Cada acao deve ser CONCRETA e ESPECIFICA (nao generica)
 3. Cada acao deve ter uma CATEGORIA do catalogo fornecido
 4. Os IMPACTOS devem ser pequenos e realistas (entre -0.10 e +0.10)
@@ -352,7 +352,7 @@ EXEMPLOS de short_action:
                 self.logger.warning(f"Failed to validate proposal {i}: {e}")
                 continue
 
-        return valid[:5]  # Limit to 5 proposals max
+        return valid[:4]  # Limit to 4 proposals max
 
 
 if __name__ == "__main__":
@@ -520,7 +520,7 @@ if __name__ == "__main__":
         mock_repo.get_path_to_node.return_value = [node]  # Return just root node
 
         service = ActionProposalService(repository=mock_repo)
-        prompt = service._build_prompt(node, experiment, 5)
+        prompt = service._build_prompt(node, experiment, 4)
 
         if "Test Experiment" not in prompt:
             all_validation_failures.append("Prompt should contain experiment name")
@@ -549,8 +549,8 @@ if __name__ == "__main__":
             all_validation_failures.append("System prompt should mention impact limits")
         if "short_action" not in system_prompt:
             all_validation_failures.append("System prompt should mention short_action")
-        if "1 e 5 acoes" not in system_prompt:
-            all_validation_failures.append("System prompt should mention 1-5 actions")
+        if "1 e 4 acoes" not in system_prompt:
+            all_validation_failures.append("System prompt should mention 1-4 actions")
         if "Historico" not in system_prompt:
             all_validation_failures.append("System prompt should mention history warning")
     except Exception as e:
