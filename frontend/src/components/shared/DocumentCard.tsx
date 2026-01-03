@@ -1,8 +1,10 @@
 /**
- * ExplorationDocumentCard component.
+ * DocumentCard component.
  *
- * Displays a card for exploration documents (summary or PRFAQ) with
- * generation, viewing, and regeneration capabilities.
+ * Generic card for documents (summary or PRFAQ) with generation,
+ * viewing, and regeneration capabilities.
+ *
+ * Used by both ExplorationDetail and InterviewDetail pages.
  *
  * References:
  *   - Spec: specs/028-exploration-summary/spec.md
@@ -27,30 +29,10 @@ import {
   Eye,
   Sparkles,
 } from 'lucide-react';
-import type { ExperimentDocument, DocumentType, DocumentStatus } from '@/types/document';
+import type { ExperimentDocument, DocumentStatus } from '@/types/document';
 
-interface ExplorationDocumentCardProps {
-  /** Document type: 'exploration_summary' or 'exploration_prfaq' */
-  documentType: 'exploration_summary' | 'exploration_prfaq';
-  /** Existing document, if any */
-  document?: ExperimentDocument | null;
-  /** Whether document is loading */
-  isLoading?: boolean;
-  /** Whether generation is in progress */
-  isGenerating?: boolean;
-  /** Whether exploration is in a completed state (enables generation) */
-  canGenerate?: boolean;
-  /** Callback to generate document */
-  onGenerate?: () => void;
-  /** Optional error message */
-  error?: string | null;
-  /** Custom message explaining why generation is disabled */
-  disabledReason?: string;
-  /** Additional CSS classes */
-  className?: string;
-}
-
-const DOCUMENT_CONFIG: Record<'exploration_summary' | 'exploration_prfaq', {
+/** Configuration for a document type */
+export interface DocumentTypeConfig {
   title: string;
   description: string;
   icon: typeof FileText;
@@ -58,7 +40,18 @@ const DOCUMENT_CONFIG: Record<'exploration_summary' | 'exploration_prfaq', {
   generateLabel: string;
   regenerateLabel: string;
   defaultDisabledReason: string;
-}> = {
+  viewerTitleSuffix: string;
+}
+
+/** All supported document types */
+export type SupportedDocumentType =
+  | 'exploration_summary'
+  | 'exploration_prfaq'
+  | 'research_summary'
+  | 'research_prfaq';
+
+/** Document configurations by type */
+export const DOCUMENT_CONFIGS: Record<SupportedDocumentType, DocumentTypeConfig> = {
   exploration_summary: {
     title: 'Resumo da Exploração',
     description: 'Narrativa descrevendo o estado otimizado após aplicar as melhorias',
@@ -67,6 +60,7 @@ const DOCUMENT_CONFIG: Record<'exploration_summary' | 'exploration_prfaq', {
     generateLabel: 'Gerar Resumo',
     regenerateLabel: 'Regenerar',
     defaultDisabledReason: 'Aguardando conclusão da exploração',
+    viewerTitleSuffix: 'Exploração',
   },
   exploration_prfaq: {
     title: 'PR-FAQ',
@@ -76,23 +70,62 @@ const DOCUMENT_CONFIG: Record<'exploration_summary' | 'exploration_prfaq', {
     generateLabel: 'Gerar PR-FAQ',
     regenerateLabel: 'Regenerar',
     defaultDisabledReason: 'Gere o resumo primeiro',
+    viewerTitleSuffix: 'Exploração',
+  },
+  research_summary: {
+    title: 'Resumo da Pesquisa',
+    description: 'Síntese das entrevistas com principais insights e descobertas',
+    icon: FileText,
+    iconColor: 'text-indigo-600',
+    generateLabel: 'Gerar Resumo',
+    regenerateLabel: 'Regenerar',
+    defaultDisabledReason: 'Aguardando conclusão das entrevistas',
+    viewerTitleSuffix: 'Pesquisa',
+  },
+  research_prfaq: {
+    title: 'PR-FAQ',
+    description: 'Documento formal com Press Release, FAQ e Recomendações',
+    icon: Newspaper,
+    iconColor: 'text-violet-600',
+    generateLabel: 'Gerar PR-FAQ',
+    regenerateLabel: 'Regenerar',
+    defaultDisabledReason: 'Gere o resumo primeiro',
+    viewerTitleSuffix: 'Pesquisa',
   },
 };
 
-export function ExplorationDocumentCard({
+interface DocumentCardProps {
+  /** Document type */
+  documentType: SupportedDocumentType;
+  /** Existing document, if any */
+  document?: ExperimentDocument | null;
+  /** Whether document is loading */
+  isLoading?: boolean;
+  /** Whether generation is in progress */
+  isGenerating?: boolean;
+  /** Whether source is in a completed state (enables generation) */
+  canGenerate?: boolean;
+  /** Callback to generate document */
+  onGenerate?: () => void;
+  /** Custom message explaining why generation is disabled */
+  disabledReason?: string;
+  /** Additional CSS classes */
+  className?: string;
+}
+
+export function DocumentCard({
   documentType,
   document,
   isLoading = false,
   isGenerating = false,
   canGenerate = false,
   onGenerate,
-  error,
   disabledReason,
   className = '',
-}: ExplorationDocumentCardProps) {
+}: DocumentCardProps) {
   const [isViewerOpen, setIsViewerOpen] = useState(false);
 
-  const config = DOCUMENT_CONFIG[documentType];
+  const config = DOCUMENT_CONFIGS[documentType];
   const Icon = config.icon;
 
   // Determine document state
@@ -104,7 +137,7 @@ export function ExplorationDocumentCard({
   // Show regenerate if document exists (completed or failed)
   const showRegenerate = hasDocument && (isCompleted || isFailed);
 
-  // Disabled if generating, loading, or exploration not completed
+  // Disabled if generating, loading, or source not completed
   const isDisabled = isGenerating || isLoading || isDocGenerating || !canGenerate;
 
   return (
@@ -252,10 +285,10 @@ export function ExplorationDocumentCard({
         isLoading={isLoading}
         status={document?.status as DocumentStatus}
         errorMessage={document?.error_message}
-        titleSuffix="Exploração"
+        titleSuffix={config.viewerTitleSuffix}
       />
     </>
   );
 }
 
-export default ExplorationDocumentCard;
+export default DocumentCard;

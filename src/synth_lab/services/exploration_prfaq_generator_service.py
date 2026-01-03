@@ -28,6 +28,7 @@ from synth_lab.repositories.experiment_document_repository import (
     ExperimentDocumentRepository,
 )
 from synth_lab.repositories.exploration_repository import ExplorationRepository
+from synth_lab.services.exploration_utils import get_winning_path
 
 # Phoenix/OpenTelemetry tracer for observability
 _tracer = get_tracer("exploration-prfaq-generator")
@@ -144,7 +145,7 @@ class ExplorationPRFAQGeneratorService:
                 raise PRFAQGenerationInProgressError(exploration_id)
 
             # 4. Get winning path
-            winning_path = self._get_winning_path(exploration_repo, exploration_id)
+            winning_path = get_winning_path(exploration_repo, exploration_id)
             span.set_attribute("path_length", len(winning_path))
 
             if not winning_path:
@@ -233,53 +234,6 @@ class ExplorationPRFAQGeneratorService:
                     metadata=metadata,
                 )
                 raise
-
-    def _get_winning_path(
-        self,
-        repo: ExplorationRepository,
-        exploration_id: str,
-    ) -> list[ScenarioNode]:
-        """
-        Find the winning path from root to best leaf node.
-
-        Tiebreaker: success_rate DESC -> depth ASC -> created_at ASC
-
-        Args:
-            repo: Exploration repository.
-            exploration_id: Exploration ID.
-
-        Returns:
-            List of nodes from root to best leaf.
-        """
-        # Get all nodes
-        all_nodes = repo.get_nodes_by_exploration(exploration_id)
-        if not all_nodes:
-            return []
-
-        # Find leaf nodes (nodes with no children)
-        node_ids = {n.id for n in all_nodes}
-        parent_ids = {n.parent_id for n in all_nodes if n.parent_id}
-        leaf_ids = node_ids - parent_ids
-
-        leaf_nodes = [n for n in all_nodes if n.id in leaf_ids]
-
-        if not leaf_nodes:
-            # No leaves found, return just root
-            root = next((n for n in all_nodes if n.depth == 0), None)
-            return [root] if root else []
-
-        # Sort by tiebreaker
-        leaf_nodes.sort(
-            key=lambda n: (
-                -(n.get_success_rate() or 0),  # DESC
-                n.depth,  # ASC
-                n.created_at,  # ASC
-            )
-        )
-
-        # Get path from winner to root
-        winner = leaf_nodes[0]
-        return repo.get_path_to_node(winner.id)
 
     def _build_prompt(
         self,

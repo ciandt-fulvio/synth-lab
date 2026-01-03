@@ -10,11 +10,11 @@ References:
     - ORM model: synth_lab.models.orm.document
 """
 
-import json
 from datetime import datetime
 
 from loguru import logger
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from synth_lab.domain.entities.experiment_document import (
@@ -22,7 +22,8 @@ from synth_lab.domain.entities.experiment_document import (
     DocumentType,
     ExperimentDocument,
     ExperimentDocumentSummary,
-    generate_document_id)
+    generate_document_id,
+)
 from synth_lab.models.orm.document import ExperimentDocument as ExperimentDocumentORM
 from synth_lab.repositories.base import BaseRepository
 
@@ -261,34 +262,43 @@ session: Session | None = None):
         doc_id = existing.id if existing else generate_document_id()
         generated_at = datetime.now().isoformat()
 
-        if existing:
-            # Update existing to generating status
-            previous_status = existing.status
-            existing.id = doc_id
-            existing.markdown_content = ""
-            existing.doc_metadata = None
-            existing.generated_at = generated_at
-            existing.model = model
-            existing.status = DocumentStatus.GENERATING.value
-            existing.error_message = None
-        else:
-            # Create new pending document
-            previous_status = "none"
-            orm_doc = ExperimentDocumentORM(
-                id=doc_id,
-                experiment_id=experiment_id,
-                document_type=document_type.value,
-                source_id=source_id,
-                markdown_content="",
-                doc_metadata=None,
-                generated_at=generated_at,
-                model=model,
-                status=DocumentStatus.GENERATING.value,
-                error_message=None)
-            self._add(orm_doc)
+        try:
+            if existing:
+                # Update existing to generating status
+                previous_status = existing.status
+                existing.id = doc_id
+                existing.markdown_content = ""
+                existing.doc_metadata = None
+                existing.generated_at = generated_at
+                existing.model = model
+                existing.status = DocumentStatus.GENERATING.value
+                existing.error_message = None
+            else:
+                # Create new pending document
+                previous_status = "none"
+                orm_doc = ExperimentDocumentORM(
+                    id=doc_id,
+                    experiment_id=experiment_id,
+                    document_type=document_type.value,
+                    source_id=source_id,
+                    markdown_content="",
+                    doc_metadata=None,
+                    generated_at=generated_at,
+                    model=model,
+                    status=DocumentStatus.GENERATING.value,
+                    error_message=None)
+                self._add(orm_doc)
 
-        self._flush()
-        self._commit()
+            self._flush()
+            self._commit()
+        except IntegrityError:
+            # Race condition: another request already created a generating document
+            self.session.rollback()
+            self.logger.warning(
+                f"Document {document_type.value} for {experiment_id} (source: {source_id}) "
+                "race condition detected - another request is generating"
+            )
+            return None
 
         self.logger.info(
             f"Document {document_type.value} for {experiment_id} (source: {source_id}): "

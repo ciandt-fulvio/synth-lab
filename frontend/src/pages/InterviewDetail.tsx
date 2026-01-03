@@ -23,7 +23,7 @@ import { useExperiment } from '@/hooks/use-experiments';
 import { useQueryClient } from '@tanstack/react-query';
 import { getSynthAvatarUrl } from '@/services/synths-api';
 import { queryKeys } from '@/lib/query-keys';
-import { ResearchDocumentCard } from '@/components/interviews/ResearchDocumentCard';
+import { DocumentCard } from '@/components/shared/DocumentCard';
 import { TranscriptDialog } from '@/components/shared/TranscriptDialog';
 import { LiveInterviewGrid } from '@/components/interviews/LiveInterviewGrid';
 import SynthLabHeader from '@/components/shared/SynthLabHeader';
@@ -312,7 +312,7 @@ export default function InterviewDetail() {
               Gere documentos com resumo e recomendações baseados nas entrevistas realizadas.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ResearchDocumentCard
+              <DocumentCard
                 documentType="research_summary"
                 document={summary}
                 isLoading={isLoadingSummary}
@@ -320,7 +320,7 @@ export default function InterviewDetail() {
                 canGenerate={canGenerateDocuments}
                 onGenerate={handleGenerateSummary}
               />
-              <ResearchDocumentCard
+              <DocumentCard
                 documentType="research_prfaq"
                 document={prfaq}
                 isLoading={isLoadingPRFAQ}

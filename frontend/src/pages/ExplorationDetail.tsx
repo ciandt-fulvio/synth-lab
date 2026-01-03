@@ -16,7 +16,7 @@ import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
 import { ExplorationTreeFlow } from '@/components/exploration/ExplorationTreeFlow';
 import { ExplorationProgress } from '@/components/exploration/ExplorationProgress';
 import { NodeDetailsPanel } from '@/components/exploration/NodeDetailsPanel';
-import { ExplorationDocumentCard } from '@/components/exploration/ExplorationDocumentCard';
+import { DocumentCard } from '@/components/shared/DocumentCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   useExploration,
@@ -179,7 +179,7 @@ export default function ExplorationDetail() {
             Gere documentos com resumo e recomendações baseados no caminho vencedor da exploração.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ExplorationDocumentCard
+            <DocumentCard
               documentType="exploration_summary"
               document={summary}
               isLoading={isLoadingSummary}
@@ -187,7 +187,7 @@ export default function ExplorationDetail() {
               canGenerate={canGenerateDocuments}
               onGenerate={handleGenerateSummary}
             />
-            <ExplorationDocumentCard
+            <DocumentCard
               documentType="exploration_prfaq"
               document={prfaq}
               isLoading={isLoadingPRFAQ}
