@@ -27,6 +27,7 @@ from synth_lab.infrastructure.phoenix_tracing import get_tracer
 from synth_lab.repositories.experiment_document_repository import (
     ExperimentDocumentRepository,
 )
+from synth_lab.repositories.experiment_repository import ExperimentRepository
 from synth_lab.repositories.exploration_repository import ExplorationRepository
 from synth_lab.services.exploration_utils import get_winning_path
 
@@ -68,6 +69,7 @@ class ExplorationSummaryGeneratorService:
         self,
         exploration_repo: ExplorationRepository | None = None,
         document_repo: ExperimentDocumentRepository | None = None,
+        experiment_repo: ExperimentRepository | None = None,
         llm_client: LLMClient | None = None,
     ):
         """
@@ -76,10 +78,12 @@ class ExplorationSummaryGeneratorService:
         Args:
             exploration_repo: Repository for exploration data.
             document_repo: Repository for document storage.
+            experiment_repo: Repository for experiment data.
             llm_client: LLM client for content generation.
         """
         self._exploration_repo = exploration_repo
         self._document_repo = document_repo
+        self._experiment_repo = experiment_repo
         self._llm_client = llm_client or get_llm_client()
         self._logger = logger.bind(component="exploration_summary_generator")
 
@@ -94,6 +98,12 @@ class ExplorationSummaryGeneratorService:
         if self._document_repo is None:
             self._document_repo = ExperimentDocumentRepository()
         return self._document_repo
+
+    def _get_experiment_repo(self) -> ExperimentRepository:
+        """Get or create experiment repository."""
+        if self._experiment_repo is None:
+            self._experiment_repo = ExperimentRepository()
+        return self._experiment_repo
 
     def generate_for_exploration(
         self,
@@ -115,11 +125,16 @@ class ExplorationSummaryGeneratorService:
         """
         exploration_repo = self._get_exploration_repo()
         document_repo = self._get_document_repo()
+        experiment_repo = self._get_experiment_repo()
 
         # 1. Get exploration
         exploration = exploration_repo.get_exploration_by_id(exploration_id)
         if exploration is None:
             raise ValueError(f"Exploration {exploration_id} not found")
+
+        # 2. Get experiment name
+        experiment = experiment_repo.get_by_id(exploration.experiment_id)
+        experiment_name = experiment.name if experiment else "Experimento"
 
         with _tracer.start_as_current_span(
             f"Generate Exploration Summary: {exploration.status.value}",
@@ -131,11 +146,11 @@ class ExplorationSummaryGeneratorService:
             },
         ) as span:
 
-            # 2. Validate status
+            # 3. Validate status
             if exploration.status not in self.COMPLETED_STATUSES:
                 raise ExplorationNotCompletedError(exploration_id, exploration.status.value)
 
-            # 3. Check for existing generation in progress
+            # 4. Check for existing generation in progress
             existing = document_repo.get_by_experiment(
                 exploration.experiment_id,
                 DocumentType.EXPLORATION_SUMMARY,
@@ -144,7 +159,7 @@ class ExplorationSummaryGeneratorService:
             if existing and existing.status == DocumentStatus.GENERATING:
                 raise SummaryGenerationInProgressError(exploration_id)
 
-            # 4. Get winning path
+            # 5. Get winning path
             winning_path = get_winning_path(exploration_repo, exploration_id)
             span.set_attribute("path_length", len(winning_path))
 
@@ -161,7 +176,7 @@ class ExplorationSummaryGeneratorService:
                 ((final_rate - baseline_rate) / baseline_rate * 100) if baseline_rate > 0 else 0
             )
 
-            # 5. Create pending document
+            # 6. Create pending document
             metadata = {
                 "source": "exploration",
                 "exploration_id": exploration_id,
@@ -183,8 +198,8 @@ class ExplorationSummaryGeneratorService:
                 raise SummaryGenerationInProgressError(exploration_id)
 
             try:
-                # 6. Generate content via LLM
-                prompt = self._build_prompt(exploration, winning_path)
+                # 7. Generate content via LLM
+                prompt = self._build_prompt(exploration, winning_path, experiment_name)
                 messages = [{"role": "user", "content": prompt}]
 
                 content = self._llm_client.complete(
@@ -198,7 +213,7 @@ class ExplorationSummaryGeneratorService:
                     span.set_attribute("summary_length", len(content))
                     span.set_attribute("improvement_percentage", round(improvement, 1))
 
-                # 7. Update document with content
+                # 8. Update document with content
                 document_repo.update_status(
                     experiment_id=exploration.experiment_id,
                     document_type=DocumentType.EXPLORATION_SUMMARY,
@@ -221,7 +236,7 @@ class ExplorationSummaryGeneratorService:
                 )
 
             except Exception as e:
-                # 8. Mark as failed
+                # 9. Mark as failed
                 self._logger.error(
                     f"Failed to generate summary for exploration {exploration_id}: {e}"
                 )
@@ -239,6 +254,7 @@ class ExplorationSummaryGeneratorService:
         self,
         exploration: Exploration,
         winning_path: list[ScenarioNode],
+        experiment_name: str,
     ) -> str:
         """
         Build LLM prompt for summary generation.
@@ -246,12 +262,20 @@ class ExplorationSummaryGeneratorService:
         Args:
             exploration: Exploration entity.
             winning_path: List of nodes from root to best leaf.
+            experiment_name: Name of the experiment.
 
         Returns:
             Prompt string for LLM.
         """
         root_node = winning_path[0]
         final_node = winning_path[-1]
+
+        # Calculate improvement metrics
+        baseline_rate = root_node.get_success_rate() or 0
+        final_rate = final_node.get_success_rate() or 0
+        improvement_pct = (
+            ((final_rate - baseline_rate) / baseline_rate * 100) if baseline_rate > 0 else 0
+        )
 
         # Format improvements (excluding root)
         improvements = []
@@ -276,30 +300,38 @@ class ExplorationSummaryGeneratorService:
         root_sc = root_node.scorecard_params
         final_sc = final_node.scorecard_params
 
+        # Calculate scorecard deltas
+        complexity_delta = final_sc.complexity - root_sc.complexity
+        effort_delta = final_sc.initial_effort - root_sc.initial_effort
+        risk_delta = final_sc.perceived_risk - root_sc.perceived_risk
+        ttv_delta = final_sc.time_to_value - root_sc.time_to_value
+
         scorecard_comparison = f"""
 **Baseline**:
 - Complexidade: {root_sc.complexity:.0%}
 - Esforço Inicial: {root_sc.initial_effort:.0%}
 - Risco Percebido: {root_sc.perceived_risk:.0%}
 - Tempo até Valor: {root_sc.time_to_value:.0%}
-- Taxa de Sucesso: {root_node.get_success_rate():.0%}
+- Taxa de Sucesso: {baseline_rate:.0%}
 
 **Resultado Final**:
-- Complexidade: {final_sc.complexity:.0%}
-- Esforço Inicial: {final_sc.initial_effort:.0%}
-- Risco Percebido: {final_sc.perceived_risk:.0%}
-- Tempo até Valor: {final_sc.time_to_value:.0%}
-- Taxa de Sucesso: {final_node.get_success_rate():.0%}
+- Complexidade: {final_sc.complexity:.0%} ({'+' if complexity_delta >= 0 else ''}{complexity_delta:.0%})
+- Esforço Inicial: {final_sc.initial_effort:.0%} ({'+' if effort_delta >= 0 else ''}{effort_delta:.0%})
+- Risco Percebido: {final_sc.perceived_risk:.0%} ({'+' if risk_delta >= 0 else ''}{risk_delta:.0%})
+- Tempo até Valor: {final_sc.time_to_value:.0%} ({'+' if ttv_delta >= 0 else ''}{ttv_delta:.0%})
+- Taxa de Sucesso: {final_rate:.0%} ({'+' if improvement_pct >= 0 else ''}{improvement_pct:.1f}%)
 """
 
         return f"""Você é um especialista em UX Research e Product Management.
 
 ## CONTEXTO DA EXPLORAÇÃO
 
-Meta: Alcançar taxa de sucesso >= {exploration.goal.value:.0%}
-Status: {exploration.status.value}
-Profundidade explorada: {len(winning_path)} níveis
-Total de nós explorados: {exploration.total_nodes}
+- **Experimento**: {experiment_name}
+- **Meta**: Alcançar taxa de sucesso >= {exploration.goal.value:.0%}
+- **Status Final**: {exploration.status.value}
+- **Melhoria Total**: {improvement_pct:.1f}% (de {baseline_rate:.0%} para {final_rate:.0%})
+- **Profundidade Explorada**: {len(winning_path)} níveis
+- **Total de Nós Explorados**: {exploration.total_nodes}
 
 ## COMPARAÇÃO DE SCORECARD
 {scorecard_comparison}
@@ -309,19 +341,41 @@ Total de nós explorados: {exploration.total_nodes}
 
 ## TAREFA
 
-Escreva um sumário narrativo descrevendo como o experimento ficaria APÓS a aplicação de todas essas melhorias.
+Escreva uma síntese profissional descrevendo como o experimento ficaria APÓS a aplicação de todas essas melhorias.
 
 **IMPORTANTE**: NÃO descreva as melhorias como passos sequenciais ("primeiro fazer X, depois Y"). Em vez disso, descreva o estado final integrado do experimento otimizado.
 
-Estruture sua resposta em:
+## DIRETRIZES DE ANÁLISE
 
-1. **Visão Geral** (2-3 frases): Como o experimento otimizado se apresenta ao usuário?
+1. **Foque no Estado Final**: Descreva a experiência otimizada como se já estivesse implementada
+2. **Use Dados Concretos**: Cite as métricas de scorecard e taxa de sucesso
+3. **Identifique Trade-offs**: Onde houve ganhos e onde houve custos (ex: menor complexidade vs maior esforço)
+4. **Seja Específico**: Use detalhes das ações aplicadas, não generalidades
 
-2. **Características Principais** (3-5 itens): Que aspectos definem esta versão melhorada?
+## FORMATO DE SAÍDA
 
-3. **Impacto Esperado**: Como essas mudanças afetam a experiência e os resultados?
+Estruture sua resposta em Markdown com EXATAMENTE estas seções:
 
-Responda em formato markdown, em português, com tom profissional mas acessível."""
+# Síntese de Exploração: {experiment_name}
+
+## Resumo Executivo
+(2-3 parágrafos descrevendo o estado final otimizado, destacando a melhoria de {improvement_pct:.1f}% na taxa de sucesso)
+
+## Características Principais
+(4-6 aspectos-chave que definem esta versão melhorada, com referências específicas às ações aplicadas)
+
+## Análise de Métricas
+(Discussão detalhada das mudanças no scorecard: o que melhorou, o que piorou, e por quê)
+
+## Trade-offs Identificados
+(Onde houve ganhos em uma dimensão mas custos em outra - ex: redução de complexidade aumentou esforço inicial)
+
+## Impacto Esperado
+(Como essas mudanças afetam a experiência do usuário e os resultados do negócio, com base nas evidências das melhorias)
+
+---
+
+Responda em português, com tom profissional mas acessível. Use os dados numéricos fornecidos para embasar suas afirmações."""
 
     def get_summary(self, exploration_id: str) -> ExperimentDocument | None:
         """

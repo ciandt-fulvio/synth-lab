@@ -27,6 +27,7 @@ from synth_lab.infrastructure.phoenix_tracing import get_tracer
 from synth_lab.repositories.experiment_document_repository import (
     ExperimentDocumentRepository,
 )
+from synth_lab.repositories.experiment_repository import ExperimentRepository
 from synth_lab.repositories.exploration_repository import ExplorationRepository
 from synth_lab.services.exploration_utils import get_winning_path
 
@@ -68,6 +69,7 @@ class ExplorationPRFAQGeneratorService:
         self,
         exploration_repo: ExplorationRepository | None = None,
         document_repo: ExperimentDocumentRepository | None = None,
+        experiment_repo: ExperimentRepository | None = None,
         llm_client: LLMClient | None = None,
     ):
         """
@@ -76,10 +78,12 @@ class ExplorationPRFAQGeneratorService:
         Args:
             exploration_repo: Repository for exploration data.
             document_repo: Repository for document storage.
+            experiment_repo: Repository for experiment data.
             llm_client: LLM client for content generation.
         """
         self._exploration_repo = exploration_repo
         self._document_repo = document_repo
+        self._experiment_repo = experiment_repo
         self._llm_client = llm_client or get_llm_client()
         self._logger = logger.bind(component="exploration_prfaq_generator")
 
@@ -94,6 +98,12 @@ class ExplorationPRFAQGeneratorService:
         if self._document_repo is None:
             self._document_repo = ExperimentDocumentRepository()
         return self._document_repo
+
+    def _get_experiment_repo(self) -> ExperimentRepository:
+        """Get or create experiment repository."""
+        if self._experiment_repo is None:
+            self._experiment_repo = ExperimentRepository()
+        return self._experiment_repo
 
     def generate_for_exploration(
         self,
@@ -115,11 +125,16 @@ class ExplorationPRFAQGeneratorService:
         """
         exploration_repo = self._get_exploration_repo()
         document_repo = self._get_document_repo()
+        experiment_repo = self._get_experiment_repo()
 
         # 1. Get exploration
         exploration = exploration_repo.get_exploration_by_id(exploration_id)
         if exploration is None:
             raise ValueError(f"Exploration {exploration_id} not found")
+
+        # 2. Get experiment name
+        experiment = experiment_repo.get_by_id(exploration.experiment_id)
+        experiment_name = experiment.name if experiment else "Experimento"
 
         with _tracer.start_as_current_span(
             f"Generate Exploration PR-FAQ: {exploration.status.value}",
@@ -131,11 +146,11 @@ class ExplorationPRFAQGeneratorService:
             },
         ) as span:
 
-            # 2. Validate status
+            # 3. Validate status
             if exploration.status not in self.COMPLETED_STATUSES:
                 raise ExplorationNotCompletedError(exploration_id, exploration.status.value)
 
-            # 3. Check for existing generation in progress
+            # 4. Check for existing generation in progress
             existing = document_repo.get_by_experiment(
                 exploration.experiment_id,
                 DocumentType.EXPLORATION_PRFAQ,
@@ -144,7 +159,7 @@ class ExplorationPRFAQGeneratorService:
             if existing and existing.status == DocumentStatus.GENERATING:
                 raise PRFAQGenerationInProgressError(exploration_id)
 
-            # 4. Get winning path
+            # 5. Get winning path
             winning_path = get_winning_path(exploration_repo, exploration_id)
             span.set_attribute("path_length", len(winning_path))
 
@@ -161,7 +176,7 @@ class ExplorationPRFAQGeneratorService:
                 ((final_rate - baseline_rate) / baseline_rate * 100) if baseline_rate > 0 else 0
             )
 
-            # 5. Create pending document
+            # 6. Create pending document
             metadata = {
                 "source": "exploration",
                 "exploration_id": exploration_id,
@@ -183,8 +198,8 @@ class ExplorationPRFAQGeneratorService:
                 raise PRFAQGenerationInProgressError(exploration_id)
 
             try:
-                # 6. Generate content via LLM
-                prompt = self._build_prompt(exploration, winning_path)
+                # 7. Generate content via LLM
+                prompt = self._build_prompt(exploration, winning_path, experiment_name)
                 messages = [{"role": "user", "content": prompt}]
 
                 content = self._llm_client.complete(
@@ -198,7 +213,7 @@ class ExplorationPRFAQGeneratorService:
                     span.set_attribute("prfaq_length", len(content))
                     span.set_attribute("improvement_percentage", round(improvement, 1))
 
-                # 7. Update document with content
+                # 8. Update document with content
                 document_repo.update_status(
                     experiment_id=exploration.experiment_id,
                     document_type=DocumentType.EXPLORATION_PRFAQ,
@@ -221,7 +236,7 @@ class ExplorationPRFAQGeneratorService:
                 )
 
             except Exception as e:
-                # 8. Mark as failed
+                # 9. Mark as failed
                 self._logger.error(
                     f"Failed to generate PRFAQ for exploration {exploration_id}: {e}"
                 )
@@ -239,6 +254,7 @@ class ExplorationPRFAQGeneratorService:
         self,
         exploration: Exploration,
         winning_path: list[ScenarioNode],
+        experiment_name: str,
     ) -> str:
         """
         Build LLM prompt for PRFAQ generation.
@@ -246,6 +262,7 @@ class ExplorationPRFAQGeneratorService:
         Args:
             exploration: Exploration entity.
             winning_path: List of nodes from root to best leaf.
+            experiment_name: Name of the experiment.
 
         Returns:
             Prompt string for LLM.
@@ -258,11 +275,13 @@ class ExplorationPRFAQGeneratorService:
         for i, node in enumerate(winning_path[1:], 1):
             prev_rate = winning_path[i - 1].get_success_rate() or 0
             curr_rate = node.get_success_rate() or 0
+            delta = curr_rate - prev_rate
 
             improvements.append(
                 f"- **{node.action_applied}** ({node.action_category or 'N/A'})\n"
                 f"  - Justificativa: {node.rationale or 'N/A'}\n"
-                f"  - Taxa de sucesso: {prev_rate:.0%} → {curr_rate:.0%}"
+                f"  - Impacto: {prev_rate:.0%} → {curr_rate:.0%} "
+                f"({'+' if delta >= 0 else ''}{delta:.0%})"
             )
 
         improvements_text = (
@@ -276,77 +295,122 @@ class ExplorationPRFAQGeneratorService:
             ((final_rate - baseline_rate) / baseline_rate * 100) if baseline_rate > 0 else 0
         )
 
-        # Format scorecard comparison
+        # Format scorecard comparison with deltas
         root_sc = root_node.scorecard_params
         final_sc = final_node.scorecard_params
 
-        return f"""Você é um Product Manager experiente escrevendo um documento PRFAQ (Press Release / FAQ).
+        complexity_delta = final_sc.complexity - root_sc.complexity
+        effort_delta = final_sc.initial_effort - root_sc.initial_effort
+        risk_delta = final_sc.perceived_risk - root_sc.perceived_risk
+        ttv_delta = final_sc.time_to_value - root_sc.time_to_value
 
-## CONTEXTO DA EXPLORAÇÃO
+        return f"""Você é um Product Manager da Amazon escrevendo um Press Release / FAQ (PRFAQ) no estilo Working Backwards.
 
-- **Meta**: Alcançar taxa de sucesso >= {exploration.goal.value:.0%}
-- **Status Final**: {exploration.status.value}
-- **Taxa de Sucesso Inicial**: {baseline_rate:.0%}
-- **Taxa de Sucesso Final**: {final_rate:.0%}
-- **Melhoria Total**: {improvement_pct:.1f}%
+## CONTEXTO
 
-## SCORECARD INICIAL
-- Complexidade: {root_sc.complexity:.0%}
-- Esforço Inicial: {root_sc.initial_effort:.0%}
-- Risco Percebido: {root_sc.perceived_risk:.0%}
-- Tempo até Valor: {root_sc.time_to_value:.0%}
+Você está anunciando uma **nova versão otimizada** de "{experiment_name}" como se fosse um produto/feature pronto para lançamento.
 
-## SCORECARD FINAL
-- Complexidade: {final_sc.complexity:.0%}
-- Esforço Inicial: {final_sc.initial_effort:.0%}
-- Risco Percebido: {final_sc.perceived_risk:.0%}
-- Tempo até Valor: {final_sc.time_to_value:.0%}
+**Cenário Original**: {experiment_name} tinha taxa de sucesso de {baseline_rate:.0%}
 
-## MELHORIAS APLICADAS
+**Melhorias Aplicadas**:
 {improvements_text}
+
+**Resultado**: Nova versão com taxa de sucesso de {final_rate:.0%} (melhoria de {improvement_pct:.1f}%)
+
+**Mudanças no Scorecard**:
+- Complexidade: {root_sc.complexity:.0%} → {final_sc.complexity:.0%}
+- Esforço Inicial: {root_sc.initial_effort:.0%} → {final_sc.initial_effort:.0%}
+- Risco Percebido: {root_sc.perceived_risk:.0%} → {final_sc.perceived_risk:.0%}
+- Tempo até Valor: {root_sc.time_to_value:.0%} → {final_sc.time_to_value:.0%}
 
 ## TAREFA
 
-Escreva um documento PRFAQ profissional que formalize as recomendações desta exploração. O documento DEVE ter exatamente 3 seções:
+Escreva um Press Release anunciando este produto otimizado. **NÃO mencione "exploration", "scorecard" ou termos técnicos**. Foque no produto, na experiência do usuário, nos benefícios concretos.
+
+Use o formato abaixo:
 
 ---
 
-# Press Release
+# [Nome Criativo do Produto]: [Subtítulo com Benefício Principal]
 
-Anuncie a versão otimizada do experimento como se já estivesse implementada. Use estilo jornalístico com:
-- **Título** chamativo
-- **Subtítulo** com a principal métrica de melhoria
-- **Corpo** (2-3 parágrafos) descrevendo o que mudou e os benefícios
-- **Citação** de um stakeholder fictício sobre o impacto
+**Invente um nome de produto profissional em português** (ex: "Checkout Expresso", "OnboardPro", "FluxoSimples").
+
+**Não use colchetes no output final.** Os colchetes abaixo são apenas instruções - substitua pelo conteúdo real.
+
+SÃO PAULO, SP, 15 de fevereiro de 2026 — Anunciamos hoje o lançamento do [Nome do Produto], uma solução inovadora que [benefício principal em uma frase]. Esta atualização foi projetada especificamente para [público-alvo] que [contexto/situação].
+
+O [Nome do Produto] oferece [característica 1], [característica 2] e [característica 3], proporcionando uma experiência significativamente melhorada. Com base em extensos testes, a nova versão alcançou {final_rate:.0%} de taxa de sucesso, representando um avanço importante para usuários que anteriormente enfrentavam [principais fricções].
+
+## O Problema
+
+[Descreva em 2-3 frases o problema que o produto resolve, focando nas dores do usuário, não em métricas técnicas]
+
+## A Solução
+
+[Descreva em 2-3 frases como o produto resolve o problema, destacando as funcionalidades e benefícios principais baseados nas melhorias aplicadas]
+
+## Citações
+
+"[Citação de executivo fictício sobre visão de produto e impacto no mercado]" — [Nome], [Cargo na empresa]
+
+"[Citação de usuário fictício sobre experiência melhorada e benefício concreto]" — [Nome], [Perfil/Ocupação]
+
+## Como Começar
+
+[2-3 frases sobre como usuários podem começar a usar o produto]
 
 ---
 
-# FAQ (Perguntas Frequentes)
+# Perguntas Frequentes
 
-Responda 5 perguntas-chave sobre as mudanças propostas:
+## FAQs Externas (Clientes/Usuários)
 
-1. **Por que essas mudanças específicas foram escolhidas?**
-2. **Qual foi o impacto nas métricas de scorecard?**
-3. **Que riscos ainda existem?**
-4. **Quanto esforço é necessário para implementar?**
-5. **Quando veremos resultados?**
+**P: Quais são as principais melhorias do [Nome do Produto]?**
+R: [Liste 3-4 benefícios concretos baseados nas ações aplicadas, focando em experiência do usuário]
+
+**P: Como o [Nome do Produto] é diferente da versão anterior?**
+R: [Explique as diferenças de forma clara, mencionando características específicas sem jargão técnico]
+
+**P: O [Nome do Produto] está disponível agora?**
+R: [Resposta sobre disponibilidade e rollout]
+
+## FAQs Internas (Equipe/Stakeholders)
+
+**P: Como vamos medir o sucesso do [Nome do Produto]?**
+R: [Mencione métricas de negócio e experiência - pode usar a taxa de sucesso como KPI principal]
+
+**P: Qual foi o investimento necessário para desenvolver estas melhorias?**
+R: [Responda baseado nas mudanças de esforço e complexidade do scorecard, mas em termos de recursos e tempo]
+
+**P: Quais são os riscos e como serão mitigados?**
+R: [Mencione trade-offs identificados - ex: se complexidade aumentou, como isso será gerenciado]
 
 ---
 
 # Recomendações para Implementação
 
 ## Próximos Passos
-Liste 3-5 ações concretas para implementar as melhorias.
+1. [Ação concreta para implementar primeira melhoria]
+2. [Ação concreta para implementar segunda melhoria]
+3. [Ação de validação com usuários]
 
 ## Métricas de Sucesso
-Liste 2-3 métricas para validar se as melhorias funcionaram.
+- Taxa de conclusão: >= {final_rate:.0%}
+- [Outra métrica relevante baseada no contexto]
 
 ## Considerações de Longo Prazo
-Insights sobre escalabilidade, manutenção e evolução futura.
+[Como manter e escalar as melhorias]
 
 ---
 
-Use formato markdown e mantenha tom executivo mas acessível. Responda em português."""
+**DIRETRIZES IMPORTANTES**:
+- **Foque no PRODUTO**, não no processo de otimização
+- Use linguagem de marketing/produto, não técnica
+- Seja específico sobre funcionalidades e benefícios
+- Invente nomes, citações e contextos realistas
+- **NUNCA deixe colchetes [] no texto final** - substitua tudo por conteúdo real
+- Tom: profissional, entusiasmado mas credível
+- Idioma: português do Brasil"""
 
     def get_prfaq(self, exploration_id: str) -> ExperimentDocument | None:
         """
