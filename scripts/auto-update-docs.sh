@@ -357,12 +357,19 @@ for i in "${!PROMPTS[@]}"; do
 
     # Executa Claude Code
     echo -e "${BLUE}🤖 Executando Claude Code...${NC}"
+    echo -e "${YELLOW}⏳ Isso pode levar 1-2 minutos. Aguarde...${NC}"
 
-    # Chama Claude Code passando prompt via stdin
-    if echo "$prompt" | claude -p; then
+    # Salva prompt em arquivo temporário e usa pipe
+    PROMPT_FILE=$(mktemp)
+    echo "$prompt" > "$PROMPT_FILE"
+
+    # Chama Claude Code via pipe (sem -p para ver output em tempo real)
+    if cat "$PROMPT_FILE" | claude; then
         echo -e "${GREEN}✅ Claude Code executado com sucesso${NC}"
+        rm "$PROMPT_FILE"
     else
         echo -e "${RED}❌ Claude Code falhou${NC}"
+        rm "$PROMPT_FILE"
         continue
     fi
 
