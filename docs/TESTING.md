@@ -276,29 +276,64 @@ pytest tests/contract/ -v
 
 ## Automação com Claude Code
 
-O projeto detecta mudanças e sugere testes automaticamente:
+### Git Hook Automático
+
+Após commit que modifica routers/models/services:
 
 ```bash
-# Após commit que modifica router
 git commit -m "Add new endpoint"
 
-# Hook post-commit pergunta:
+# Hook post-commit detecta:
 🤖 Arquivos modificados: src/synth_lab/api/routers/experiments.py
    Quer gerar contract tests automaticamente?
 
-   1) Sim, executar agora
-   2) Não
+   1) Sim, executar agora (interativo)    ← Recomendado
+   2) Sim, executar e auto-commit
+   3) Não
 
-# Escolha "1" e Claude Code cria o teste automaticamente
+Escolha (1/2/3): 1
+
+# Claude Code gera teste automaticamente
+🤖 Gerando contract test...
+✅ Teste criado
+✅ Validação passou (make test-fast)
+
+# Você revisa e commita
+git diff tests/contract/test_api_contracts.py
+git add tests/contract/
+git commit -m "test: add contract test"
 ```
 
-**Manual:**
+### Uso Manual
+
 ```bash
 # Analisa gaps de cobertura
 make test-coverage-analysis
 
-# Gera testes para arquivo específico
+# Gera teste para último commit
+./scripts/auto-update-tests.sh --last-commit
+
+# Gera teste para arquivo específico
 ./scripts/auto-update-tests.sh --file src/synth_lab/api/routers/experiments.py
+
+# Ver o que seria feito (dry-run)
+./scripts/auto-update-tests.sh --last-commit --dry-run
+```
+
+### Análise Semanal Automática
+
+GitHub Actions roda análise de gaps toda segunda/quarta/sexta às 9am:
+- Cria/atualiza issue com gaps de cobertura
+- Issue tem comandos Claude Code prontos
+
+### Desabilitar
+
+```bash
+# Temporariamente
+git commit --no-verify
+
+# Permanentemente
+rm .githooks/post-commit
 ```
 
 ## Estrutura de Arquivos
