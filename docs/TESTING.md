@@ -1,232 +1,416 @@
-# Testing Guide
+# Guia de Testes - Synth Lab
 
-## Test Database Setup
+**Objetivo:** Prevenir regressões em produção com feedback rápido.
 
-### 🚨 CRITICAL: Database Isolation
+## Rodando Testes
 
-**Integration tests use a SEPARATE test database** to prevent data loss. Tests that perform destructive operations (DROP, TRUNCATE) will **NEVER** touch your development or production database.
-
-### Quick Start
-
-1. **Create the test database:**
-   ```bash
-   make db-test
-   ```
-
-   This will:
-   - Create `synthlab_test` database in PostgreSQL
-   - Apply all migrations
-   - Display the test database URL
-
-2. **Run tests:**
-   ```bash
-   make test-full    # All tests with verbose output
-   make test         # All tests
-   make test-unit    # Unit tests only (no DB required)
-   make test-integration  # Integration tests only
-   ```
-
-3. **Reset test database** (if needed):
-   ```bash
-   make db-test-reset
-   ```
-
-### Configuration
-
-The test database is configured in:
-
-**`.env` file:**
 ```bash
-# Development database (NEVER used by tests)
-DATABASE_URL=postgresql://synthlab:synthlab_dev@localhost:5432/synthlab
+# Testes rápidos (~30s) - Rode antes de cada commit
+make test-fast
 
-# Test database (ISOLATED - for running tests safely)
-DATABASE_TEST_URL=postgresql://synthlab:synthlab_dev@localhost:5432/synthlab_test
+# Todos os testes backend
+pytest
+
+# Testes E2E (frontend)
+make test-e2e
 ```
 
-**`Makefile`:**
-```makefile
-POSTGRES_TEST_DB := synthlab_test
-DATABASE_TEST_URL := postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:$(POSTGRES_PORT)/$(POSTGRES_TEST_DB)
-```
+## Tipos de Testes
 
-### Safety Mechanisms
+### 1. Smoke Tests (5s) - Sistema está saudável?
 
-**1. Automatic database validation** (`tests/conftest.py`):
+**Quando usar:** Sempre, antes de qualquer outro teste.
+
+**O que valida:**
+- Database conecta
+- Variáveis de ambiente configuradas (OPENAI_API_KEY)
+- Imports críticos funcionam
+
+**Exemplo:**
 ```python
-@pytest.fixture(scope="session")
-def test_database_url() -> str:
-    """Ensures tests NEVER use development database."""
-    postgres_url = os.getenv("POSTGRES_URL")
-
-    # CRITICAL: Verify we're using test database
-    if "synthlab_test" not in postgres_url:
-        raise ValueError(
-            f"POSTGRES_URL must point to 'synthlab_test' database!\n"
-            f"Current: {postgres_url}"
-        )
-
-    return postgres_url
+# tests/smoke/test_critical_health.py
+def test_database_connection():
+    """Falha se DB não está acessível."""
+    engine = create_db_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text("SELECT 1"))
+        assert result.scalar() == 1
 ```
 
-**2. Test commands use test database:**
-```makefile
-test-full:
-    POSTGRES_URL="$(DATABASE_TEST_URL)" uv run pytest tests/ -v --tb=short
-```
+### 2. Contract Tests (10s) - API mantém promessas?
 
-**3. Pre-push hook protection:**
+**Quando usar:** Sempre que criar/modificar endpoint.
 
-The `.githooks/pre-push` hook runs `make test-full`, which automatically uses the test database.
+**O que valida:**
+- Response tem campos esperados pelo frontend
+- Tipos de dados corretos (string, number, array)
+- Valores válidos (enums, status codes)
 
-### Writing Integration Tests
-
-**✅ CORRECT - Use test_database_url fixture:**
+**Exemplo:**
 ```python
-def test_something(test_database_url: str):
-    """Test that uses the isolated test database."""
-    config = get_alembic_config(test_database_url)
-    # ... test code that may DROP/TRUNCATE tables
+# tests/contract/test_api_contracts.py
+def test_experiment_list_contract(client):
+    """Frontend espera { data: [...], meta: {...} }"""
+    response = client.get("/experiments/list")
+
+    assert response.status_code == 200
+    body = response.json()
+
+    # Estrutura esperada
+    assert "data" in body
+    assert "meta" in body
+
+    # Cada experimento tem campos obrigatórios
+    for exp in body["data"]:
+        assert "id" in exp
+        assert "name" in exp
+        assert "status" in exp
+        assert isinstance(exp["status"], str)  # Não mude para int!
 ```
 
-**❌ INCORRECT - Direct environment access:**
+**Quando criar:**
+- ✅ Novo endpoint público
+- ✅ Modificou response de endpoint existente
+- ❌ Endpoint interno/privado
+
+### 3. Schema Tests (15s) - DB sincronizado com código?
+
+**Quando usar:** Sempre que modificar models SQLAlchemy.
+
+**O que valida:**
+- Tabelas existem para todos os models
+- Tipos de colunas batem
+- Constraints batem (NOT NULL, FK)
+- Migration foi criada
+
+**Exemplo:**
 ```python
-def test_something():
-    """DANGEROUS: May use development database!"""
-    postgres_url = os.getenv("POSTGRES_URL")  # ⚠️ NO SAFETY CHECK!
-    # ... test code
+# tests/schema/test_db_schema_validation.py
+def test_experiments_table():
+    """Falha se mudou model sem criar migration."""
+    inspector = inspect(engine)
+    columns = {c["name"]: c for c in inspector.get_columns("experiments")}
+
+    # Valida colunas esperadas
+    assert "id" in columns
+    assert "name" in columns
+    assert columns["name"]["nullable"] == False
 ```
 
-### Test Structure
+**Quando criar:**
+- ✅ Sempre que adicionar novo model
+- ✅ Sempre que modificar campos de model existente
+- ❌ Não precisa criar manualmente - já existe validação genérica
 
+### 4. Integration Tests (2-5min) - Fluxos completos funcionam?
+
+**Quando usar:** Fluxos críticos de negócio.
+
+**O que valida:**
+- API → Service → Repository → DB
+- Dados salvos corretamente
+- Side effects funcionam (webhooks, emails, etc)
+
+**Exemplo:**
+```python
+# tests/integration/test_experiment_workflow.py
+def test_create_experiment_flow(client, db_session):
+    """Cria experimento e valida que salvou no DB."""
+
+    # 1. Cria via API
+    response = client.post("/experiments", json={
+        "name": "Test Exp",
+        "hypothesis": "Users will click more"
+    })
+    exp_id = response.json()["id"]
+
+    # 2. Valida que salvou no DB
+    exp = db_session.query(Experiment).filter_by(id=exp_id).first()
+    assert exp is not None
+    assert exp.name == "Test Exp"
+    assert exp.status == "draft"
 ```
-tests/
-├── conftest.py          # Shared fixtures (includes test_database_url)
-├── unit/                # Unit tests (no database)
-├── integration/         # Integration tests (use test_database_url)
-│   ├── test_alembic_migrations.py
-│   ├── test_postgres_connection.py
-│   └── repositories/
-└── contract/            # Contract tests
+
+**Quando criar:**
+- ✅ Fluxo crítico de negócio (criar experimento, rodar análise)
+- ✅ Operações com side effects
+- ❌ Lógica simples (use unit test)
+
+### 5. E2E Tests (10-20min) - UI funciona end-to-end?
+
+**Quando usar:** Fluxos de usuário críticos.
+
+**O que valida:**
+- Navegação funciona
+- Formulários salvam
+- Dados aparecem corretamente
+- Integrações funcionam
+
+**Exemplo:**
+```typescript
+// frontend/tests/e2e/create-experiment.spec.ts
+test('create experiment flow', async ({ page }) => {
+  // 1. Navega e clica em "Novo"
+  await page.goto('/');
+  await page.click('text=Novo Experimento');
+
+  // 2. Preenche form
+  await page.fill('input[name="name"]', 'E2E Test');
+  await page.fill('textarea[name="hypothesis"]', 'Test hypothesis');
+  await page.click('button[type="submit"]');
+
+  // 3. Valida redirecionamento
+  await expect(page).toHaveURL(/\/experiments\/exp_/);
+});
 ```
 
-### Common Tasks
+**Quando criar:**
+- ✅ Fluxo principal (criar experimento, rodar análise)
+- ✅ Fluxo que quebra frequentemente
+- ❌ Detalhes de UI (use component tests)
 
-**Run specific test file:**
+## Criando Novos Testes
+
+### Novo Endpoint
+
 ```bash
-POSTGRES_URL="postgresql://synthlab:synthlab_dev@localhost:5432/synthlab_test" \
-    uv run pytest tests/integration/test_alembic_migrations.py -v
+# 1. Crie contract test
+vim tests/contract/test_api_contracts.py
+
+# 2. Adicione função
+def test_new_endpoint_contract(client):
+    response = client.get("/novo-endpoint")
+    assert response.status_code == 200
+    # Valide schema da response
+
+# 3. Rode
+pytest tests/contract/test_api_contracts.py::test_new_endpoint_contract
 ```
 
-**Run with coverage:**
+### Novo Model
+
 ```bash
-make test-full --cov=synth_lab --cov-report=html
+# 1. Crie model
+vim src/synth_lab/models/orm/new_model.py
+
+# 2. Crie migration
+DATABASE_URL="$DATABASE_TEST_URL" alembic revision --autogenerate -m "Add NewModel"
+
+# 3. Aplique
+DATABASE_URL="$DATABASE_TEST_URL" alembic upgrade head
+
+# 4. Testes de schema detectam automaticamente
+pytest -m schema
 ```
 
-**Debug failing test:**
+### Novo Fluxo
+
 ```bash
-POSTGRES_URL="postgresql://synthlab:synthlab_dev@localhost:5432/synthlab_test" \
-    uv run pytest tests/integration/test_alembic_migrations.py::TestAlembicMigrationsPostgres::test_experiments_table_schema -vv
+# 1. Crie integration test
+vim tests/integration/test_new_workflow.py
+
+# 2. Adicione teste
+def test_new_workflow(client, db_session):
+    # Simule fluxo completo
+    pass
+
+# 3. Rode
+pytest tests/integration/test_new_workflow.py -v
 ```
 
-### Troubleshooting
+## Checklist Antes de Commitar
 
-**Error: "POSTGRES_URL not set"**
 ```bash
-# Run make db-test first
+# 1. Rode testes rápidos
+make test-fast
+
+# 2. Se mudou model: criou migration?
+ls src/synth_lab/alembic/versions/  # Deve ter arquivo novo
+
+# 3. Se mudou API: contract test valida?
+pytest -m contract -v
+
+# 4. Push
+git push  # Pre-push hook roda testes automaticamente
+```
+
+## Servidores de Teste
+
+Alguns testes fazem HTTP requests e **precisam dos servidores rodando**:
+
+- **Contract Tests (OpenAPI)**: `tests/contract/test_openapi_typescript_sync.py`
+- **E2E Tests**: `frontend/tests/e2e/`
+
+### Setup (3 Terminais)
+
+**Terminal 1 - Backend de Teste:**
+```bash
+make serve-test
+# API rodando em http://localhost:8009
+```
+
+**Terminal 2 - Frontend de Teste (apenas para E2E):**
+```bash
+make serve-front-test
+# Frontend rodando em http://localhost:8089
+```
+
+**Terminal 3 - Rodar Testes:**
+```bash
+# E2E tests (precisa backend + frontend)
+make test-e2e
+
+# Contract OpenAPI tests (precisa só backend)
+pytest tests/contract/test_openapi_typescript_sync.py -v
+```
+
+### Por que Portas Diferentes?
+
+- **Dev:** 8000 (backend), 8080 (frontend)
+- **Teste:** 8009 (backend), 8089 (frontend)
+
+**Benefício:** Rodar testes enquanto dev servers estão rodando sem conflito.
+
+### Matar Servidores de Teste
+
+```bash
+make kill-test-servers
+```
+
+---
+
+## Troubleshooting
+
+### "DB não acessível"
+```bash
+# Inicie PostgreSQL
+make db
+
+# Configure test DB
 make db-test
 ```
 
-**Error: "POSTGRES_URL must point to 'synthlab_test'"**
+### "Migration pending"
 ```bash
-# Check your test command - it should use DATABASE_TEST_URL
-# Correct:
-make test-full
-
-# Incorrect:
-POSTGRES_URL="$DATABASE_URL" pytest  # Uses dev DB!
+# Aplique migrations
+DATABASE_URL="$DATABASE_TEST_URL" alembic upgrade head
 ```
 
-**Test database has stale schema:**
+### "Schema diverge"
 ```bash
-make db-test-reset
+# Crie migration
+alembic revision --autogenerate -m "Descrição"
+
+# Aplique
+alembic upgrade head
+
+# Teste
+pytest -m schema
 ```
 
-**PostgreSQL container not running:**
+### "Contract test falhou"
 ```bash
-make db      # Start development database
-make db-test # Create test database
+# Veja o erro
+pytest tests/contract/ -v
+
+# Opções:
+# 1. Corrige o endpoint
+# 2. Atualiza o test se mudança foi intencional
+# 3. Atualiza frontend se quebrou contrato
 ```
 
-### CI/CD Integration
+## Automação com Claude Code
 
-In CI environments, you should:
+### Git Hook Automático
 
-1. Create a temporary test database
-2. Set `POSTGRES_URL` to point to it
-3. Run migrations
-4. Run tests
-5. Destroy the database
+Após commit que modifica routers/models/services:
 
-**Example GitHub Actions:**
-```yaml
-- name: Setup test database
-  run: |
-    make db
-    make db-test
-
-- name: Run tests
-  run: make test-full
-```
-
-### Best Practices
-
-1. **Always use `test_database_url` fixture** for integration tests
-2. **Never mock database operations** - use real test DB
-3. **Clean up test data** in teardown or use transactions
-4. **Run tests locally** before pushing (pre-push hook does this)
-5. **Keep test database isolated** - never point to dev/prod
-
-### Migration Testing
-
-When testing migrations:
-
-```python
-def test_migration(test_database_url: str):
-    """Test migration up/down cycle."""
-    config = get_alembic_config(test_database_url)
-
-    # Safe to drop - we're on test database!
-    command.downgrade(config, "base")
-    command.upgrade(config, "head")
-
-    # Verify schema
-    engine = create_engine(test_database_url)
-    # ... assertions
-```
-
-### What NOT to Do
-
-❌ **Don't bypass safety checks:**
-```python
-# NEVER do this:
-postgres_url = os.getenv("DATABASE_URL")  # Might be dev DB!
-```
-
-❌ **Don't use development database for tests:**
 ```bash
-# NEVER do this:
-POSTGRES_URL="postgresql://localhost/synthlab" pytest
+git commit -m "Add new endpoint"
+
+# Hook post-commit detecta:
+🤖 Arquivos modificados: src/synth_lab/api/routers/experiments.py
+   Quer gerar contract tests automaticamente?
+
+   1) Sim, executar agora (interativo)    ← Recomendado
+   2) Sim, executar e auto-commit
+   3) Não
+
+Escolha (1/2/3): 1
+
+# Claude Code gera teste automaticamente
+🤖 Gerando contract test...
+✅ Teste criado
+✅ Validação passou (make test-fast)
+
+# Você revisa e commita
+git diff tests/contract/test_api_contracts.py
+git add tests/contract/
+git commit -m "test: add contract test"
 ```
 
-❌ **Don't skip the pre-push hook:**
+### Uso Manual
+
 ```bash
-# Avoid using --no-verify unless absolutely necessary
-git push --no-verify  # Skips tests!
+# Analisa gaps de cobertura
+make test-coverage-analysis
+
+# Gera teste para último commit
+./scripts/auto-update-tests.sh --last-commit
+
+# Gera teste para arquivo específico
+./scripts/auto-update-tests.sh --file src/synth_lab/api/routers/experiments.py
+
+# Ver o que seria feito (dry-run)
+./scripts/auto-update-tests.sh --last-commit --dry-run
 ```
 
-### Resources
+### Análise Semanal Automática
 
-- [pytest documentation](https://docs.pytest.org/)
-- [SQLAlchemy testing](https://docs.sqlalchemy.org/en/20/core/connections.html#test-suite-connections)
-- [Alembic cookbook](https://alembic.sqlalchemy.org/en/latest/cookbook.html)
+GitHub Actions roda análise de gaps toda segunda/quarta/sexta às 9am:
+- Cria/atualiza issue com gaps de cobertura
+- Issue tem comandos Claude Code prontos
+
+### Desabilitar
+
+```bash
+# Temporariamente
+git commit --no-verify
+
+# Permanentemente
+rm .githooks/post-commit
+```
+
+## Estrutura de Arquivos
+
+```
+tests/
+├── smoke/          - Health checks (sempre rode primeiro)
+├── contract/       - API schemas (crie para cada endpoint público)
+├── schema/         - DB validation (automático, não edite)
+├── integration/    - Fluxos completos (crie para fluxos críticos)
+└── unit/           - Lógica isolada (crie para funções complexas)
+
+frontend/tests/
+└── e2e/            - Testes de navegador (crie para fluxos principais)
+```
+
+## Comandos Úteis
+
+```bash
+# Backend
+make test-fast              # Smoke + Contract + Schema (~30s)
+pytest -m unit              # Só unit tests
+pytest -m integration       # Só integration tests
+pytest -m smoke             # Só smoke tests
+pytest -k "experiment"      # Testes com "experiment" no nome
+pytest --lf                 # Só testes que falharam antes
+
+# Frontend
+make test-e2e               # E2E com Playwright
+make test-e2e-ui            # E2E em modo UI (visual)
+npm run test:e2e:debug      # E2E em modo debug
+
+# Cobertura
+make test-coverage-analysis # Vê gaps de cobertura
+```

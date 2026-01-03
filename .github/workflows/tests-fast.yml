@@ -1,0 +1,68 @@
+# Fast tests - Roda em todos os pushes (~2min)
+# Testes rápidos de sanidade: smoke + contract + schema validation
+name: Fast Tests
+
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+jobs:
+  fast-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: synthlab_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install dependencies
+        run: |
+          uv pip install --system -e .
+          uv pip install --system pytest
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/synthlab_test
+        run: |
+          cd src/synth_lab/alembic
+          alembic upgrade head
+
+      - name: Run smoke tests
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/synthlab_test
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: pytest -m smoke --maxfail=1 -v
+
+      - name: Run contract tests
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/synthlab_test
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: pytest -m contract --maxfail=3 -v
+
+      - name: Run schema validation tests
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/synthlab_test
+        run: pytest -m schema --maxfail=1 -v

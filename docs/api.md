@@ -582,138 +582,21 @@ curl "http://localhost:8000/topics/compra-amazon/research"
 
 ---
 
-### 3. Research Endpoints (6 endpoints)
+### 3. Research Endpoints (7 endpoints)
 
-#### 3.1 Executar Research (Streaming SSE)
-
-```http
-POST /research/execute
-```
-
-Executa research com múltiplos synths e transmite progresso via Server-Sent Events.
-
-**Request Body**:
-```json
-{
-  "topic_name": "compra-amazon",
-  "synth_ids": ["ynnasw", "abc123"],  // Opcional: IDs específicos
-  "synth_count": 10,                  // Ou quantidade aleatória
-  "max_turns": 6,
-  "max_concurrent": 5,
-  "model": "gpt-xxxx",
-  "generate_summary": true
-}
-```
-
-**Response**: Stream SSE (Content-Type: `text/event-stream`)
-
-**Eventos Enviados**:
-
-1. **started**
-```
-event: started
-data: {"exec_id": "batch_compra-amazon_20251219_110534", "topic_name": "compra-amazon", "synth_count": 10}
-```
-
-2. **interview_started**
-```
-event: interview_started
-data: {"synth_id": "ynnasw", "synth_name": "Ravy Lopes"}
-```
-
-3. **turn** (cada turno de conversa)
-```
-event: turn
-data: {"synth_id": "ynnasw", "turn": 1, "speaker": "Interviewer", "text": "Como você se sente ao fazer compras online?"}
-
-event: turn
-data: {"synth_id": "ynnasw", "turn": 1, "speaker": "Interviewee", "text": "Eu me sinto bem confortável..."}
-```
-
-4. **interview_completed**
-```
-event: interview_completed
-data: {"synth_id": "ynnasw", "status": "completed", "duration_ms": 45000}
-```
-
-5. **interview_failed**
-```
-event: interview_failed
-data: {"synth_id": "abc123", "error": "LLM timeout"}
-```
-
-6. **all_completed**
-```
-event: all_completed
-data: {"exec_id": "batch_...", "successful": 9, "failed": 1}
-```
-
-7. **job_queued**
-```
-event: job_queued
-data: {"job_type": "summary", "job_id": "uuid-1234"}
-
-event: job_queued
-data: {"job_type": "prfaq", "job_id": "uuid-5678"}
-```
-
-**Client JavaScript**:
-```javascript
-const eventSource = new EventSource('http://localhost:8000/research/execute');
-
-eventSource.addEventListener('turn', (e) => {
-  const data = JSON.parse(e.data);
-  console.log(`[${data.synth_id}] ${data.speaker}: ${data.text}`);
-});
-
-eventSource.addEventListener('all_completed', (e) => {
-  const data = JSON.parse(e.data);
-  console.log(`Done! ${data.successful} successful, ${data.failed} failed`);
-  eventSource.close();
-});
-
-eventSource.addEventListener('error', (e) => {
-  console.error('SSE error:', e);
-  eventSource.close();
-});
-```
-
-**Client Python**:
-```python
-import requests
-
-url = "http://localhost:8000/research/execute"
-payload = {
-    "topic_name": "compra-amazon",
-    "synth_count": 5,
-    "max_turns": 6,
-    "model": "gpt-xxxx",
-    "generate_summary": True
-}
-
-with requests.post(url, json=payload, stream=True) as response:
-    for line in response.iter_lines():
-        if line:
-            decoded = line.decode('utf-8')
-            if decoded.startswith('data: '):
-                data = json.loads(decoded[6:])
-                print(data)
-```
-
----
-
-#### 3.2 Listar Research Executions
+#### 3.1 Listar Research Executions
 
 ```http
 GET /research/list
 ```
 
-Lista research executions com filtros opcionais.
+Lista research executions com paginação e filtros opcionais.
 
 **Query Parameters**:
-- `limit`, `offset`, `sort_by`, `sort_order` (padrão paginação)
-- `status` (string, opcional): Filtrar por status (`running`, `completed`, `failed`)
-- `topic_name` (string, opcional): Filtrar por topic
+- `limit` (int, opcional): Padrão 50, máx 200
+- `offset` (int, opcional): Padrão 0
+- `sort_by` (string, opcional): Campo para ordenação (padrão: `started_at`)
+- `sort_order` (string, opcional): `asc` ou `desc` (padrão: `desc`)
 
 **Response 200**:
 ```json
@@ -721,12 +604,9 @@ Lista research executions com filtros opcionais.
   "data": [
     {
       "exec_id": "batch_compra-amazon_20251219_110534",
+      "experiment_id": "exp_12345",
       "topic_name": "compra-amazon",
       "synth_count": 10,
-      "successful_count": 9,
-      "failed_count": 1,
-      "model": "gpt-xxxx",
-      "max_turns": 6,
       "status": "completed",
       "started_at": "2025-12-19T11:05:34Z",
       "completed_at": "2025-12-19T11:12:45Z"
@@ -743,38 +623,47 @@ Lista research executions com filtros opcionais.
 
 **Exemplo**:
 ```bash
-curl "http://localhost:8000/research/list?status=completed"
+curl "http://localhost:8000/research/list?sort_by=started_at&sort_order=desc"
 ```
 
 ---
 
-#### 3.3 Obter Research Execution por ID
+#### 3.2 Obter Research Execution por ID
 
 ```http
 GET /research/{exec_id}
 ```
 
-Retorna detalhes de uma research execution.
+Retorna detalhes completos de uma research execution, incluindo contadores e flags de disponibilidade.
 
 **Path Parameters**:
-- `exec_id` (string, requerido): ID da execution
+- `exec_id` (string, requerido): ID da execution (ex: `batch_compra-amazon_20251219_110534`)
 
 **Response 200**:
 ```json
 {
   "exec_id": "batch_compra-amazon_20251219_110534",
+  "experiment_id": "exp_12345",
   "topic_name": "compra-amazon",
   "synth_count": 10,
   "successful_count": 9,
   "failed_count": 1,
-  "model": "gpt-xxxx",
+  "model": "gpt-4o-mini",
   "max_turns": 6,
   "status": "completed",
   "started_at": "2025-12-19T11:05:34Z",
   "completed_at": "2025-12-19T11:12:45Z",
-  "summary_path": "output/reports/batch_compra-amazon_20251219_110534_summary.md"
+  "summary_available": true,
+  "prfaq_available": false
 }
 ```
+
+**Status Possíveis**:
+- `pending` - Aguardando processamento
+- `running` - Em execução
+- `generating_summary` - Gerando sumário
+- `completed` - Completado com sucesso
+- `failed` - Falhou
 
 **Response 404**:
 ```json
@@ -793,19 +682,20 @@ curl "http://localhost:8000/research/batch_compra-amazon_20251219_110534"
 
 ---
 
-#### 3.4 Listar Transcrições de uma Execution
+#### 3.3 Listar Transcrições de uma Execution
 
 ```http
 GET /research/{exec_id}/transcripts
 ```
 
-Lista transcrições de uma research execution.
+Lista transcrições (resumos) de todas as entrevistas em uma research execution.
 
 **Path Parameters**:
 - `exec_id` (string, requerido): ID da execution
 
 **Query Parameters**:
-- `limit`, `offset` (padrão paginação)
+- `limit` (int, opcional): Padrão 50, máx 200
+- `offset` (int, opcional): Padrão 0
 
 **Response 200**:
 ```json
@@ -814,10 +704,16 @@ Lista transcrições de uma research execution.
     {
       "synth_id": "ynnasw",
       "synth_name": "Ravy Lopes",
-      "status": "completed",
       "turn_count": 6,
       "timestamp": "2025-12-19T11:08:23Z",
-      "file_path": "output/transcripts/batch_.../ynnasw_20251219_110823.json"
+      "status": "completed"
+    },
+    {
+      "synth_id": "abc123",
+      "synth_name": "Maria Silva",
+      "turn_count": 5,
+      "timestamp": "2025-12-19T11:09:15Z",
+      "status": "completed"
     }
   ],
   "pagination": {
@@ -836,17 +732,17 @@ curl "http://localhost:8000/research/batch_compra-amazon_20251219_110534/transcr
 
 ---
 
-#### 3.5 Obter Transcrição Específica
+#### 3.4 Obter Transcrição Específica
 
 ```http
 GET /research/{exec_id}/transcripts/{synth_id}
 ```
 
-Retorna transcrição completa de uma entrevista.
+Retorna transcrição completa de uma entrevista, incluindo todas as mensagens (perguntas e respostas).
 
 **Path Parameters**:
 - `exec_id` (string, requerido): ID da execution
-- `synth_id` (string, requerido): ID do synth
+- `synth_id` (string, requerido): ID do synth entrevistado
 
 **Response 200**:
 ```json
@@ -854,27 +750,24 @@ Retorna transcrição completa de uma entrevista.
   "exec_id": "batch_compra-amazon_20251219_110534",
   "synth_id": "ynnasw",
   "synth_name": "Ravy Lopes",
-  "status": "completed",
   "turn_count": 6,
   "timestamp": "2025-12-19T11:08:23Z",
+  "status": "completed",
   "messages": [
     {
-      "turn_number": 1,
       "speaker": "Interviewer",
       "text": "Como você se sente ao fazer compras online?",
       "internal_notes": null
     },
     {
-      "turn_number": 1,
-      "speaker": "Interviewee",
-      "text": "Eu me sinto bem confortável. Uso bastante e-commerce...",
+      "speaker": "Ravy Lopes",
+      "text": "Eu me sinto bem confortável. Uso bastante e-commerce para comprar eletrônicos e livros.",
       "internal_notes": "Demonstra confiança (abertura: 82)"
     },
     {
-      "turn_number": 2,
       "speaker": "Interviewer",
       "text": "O que você mais valoriza em um e-commerce?",
-      "internal_notes": null
+      "internal_notes": "Explorar valores principais"
     }
   ]
 }
@@ -897,38 +790,248 @@ curl "http://localhost:8000/research/batch_compra-amazon_20251219_110534/transcr
 
 ---
 
-#### 3.6 Download de Summary
+#### 3.5 Gerar Summary
 
 ```http
-GET /research/{exec_id}/summary
+POST /research/{exec_id}/summary/generate
 ```
 
-Faz download do summary da research execution em Markdown.
+Inicia a geração de um summary para uma research execution completada. A geração acontece em background, e o endpoint retorna imediatamente.
 
 **Path Parameters**:
 - `exec_id` (string, requerido): ID da execution
 
+**Request Body** (opcional):
+```json
+{
+  "model": "gpt-5-mini"
+}
+```
+
+**Body Parameters**:
+- `model` (string, opcional): Modelo LLM para geração (padrão: `gpt-5-mini`)
+
 **Response 200**:
-- Content-Type: `text/plain; charset=utf-8`
-- Body: Arquivo Markdown
+```json
+{
+  "exec_id": "batch_compra-amazon_20251219_110534",
+  "status": "generating",
+  "message": "Started summary generation",
+  "generated_at": "2025-12-19T11:15:00Z"
+}
+```
+
+**Status Possíveis**:
+- `generating` - Geração em andamento
+- `completed` - Geração completada
+- `failed` - Geração falhou
 
 **Response 404**:
 ```json
 {
   "error": {
-    "code": "SUMMARY_NOT_FOUND",
-    "message": "Summary não encontrado para execution 'batch_...'"
+    "code": "EXECUTION_NOT_FOUND",
+    "message": "Execution not found"
+  }
+}
+```
+
+**Response 400**:
+```json
+{
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "Execution batch_... is not completed (status: running)"
   }
 }
 ```
 
 **Exemplo**:
 ```bash
-# Download
-curl "http://localhost:8000/research/batch_compra-amazon_20251219_110534/summary" -o summary.md
+# Com modelo padrão
+curl -X POST "http://localhost:8000/research/batch_compra-amazon_20251219_110534/summary/generate"
 
-# Visualizar
-curl "http://localhost:8000/research/batch_compra-amazon_20251219_110534/summary"
+# Com modelo específico
+curl -X POST "http://localhost:8000/research/batch_compra-amazon_20251219_110534/summary/generate" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "gpt-4o"}'
+```
+
+---
+
+#### 3.6 Executar Research
+
+```http
+POST /research/execute
+```
+
+Inicia uma nova research execution (batch de entrevistas). A execução roda de forma assíncrona - use `GET /research/{exec_id}` para verificar o status.
+
+**Request Body**:
+```json
+{
+  "topic_name": "compra-amazon",
+  "experiment_id": "exp_12345",
+  "additional_context": "Foco em experiência mobile",
+  "synth_ids": ["ynnasw", "abc123"],
+  "synth_count": null,
+  "max_turns": 6,
+  "max_concurrent": 12,
+  "model": "gpt-4o-mini",
+  "skip_interviewee_review": true
+}
+```
+
+**Body Parameters**:
+- `topic_name` (string, requerido): Nome do topic guide
+- `experiment_id` (string, opcional): ID do experimento pai (para linkagem)
+- `additional_context` (string, opcional): Contexto adicional para complementar o cenário
+- `synth_ids` (list[string], opcional): IDs específicos de synths para entrevistar
+- `synth_count` (int, opcional): Número de synths aleatórios (se `synth_ids` não fornecido)
+- `max_turns` (int, opcional): Máximo de turnos por entrevista (padrão: 6, min: 1, max: 20)
+- `max_concurrent` (int, opcional): Máximo de entrevistas simultâneas (padrão: 12, min: 1, max: 50)
+- `model` (string, opcional): Modelo LLM para usar (padrão: `gpt-4o-mini`)
+- `skip_interviewee_review` (bool, opcional): Pular revisão de respostas para execução mais rápida (padrão: true)
+
+**Response 200**:
+```json
+{
+  "exec_id": "batch_compra-amazon_20251219_110534",
+  "status": "running",
+  "topic_name": "compra-amazon",
+  "synth_count": 2,
+  "started_at": "2025-12-19T11:05:34Z"
+}
+```
+
+**Exemplo**:
+```bash
+# Executar com synth_ids específicos
+curl -X POST "http://localhost:8000/research/execute" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic_name": "compra-amazon",
+    "synth_ids": ["ynnasw", "abc123"],
+    "max_turns": 8,
+    "model": "gpt-4o-mini"
+  }'
+
+# Executar com synth_count aleatório
+curl -X POST "http://localhost:8000/research/execute" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "topic_name": "compra-amazon",
+    "synth_count": 5,
+    "max_turns": 6
+  }'
+```
+
+---
+
+#### 3.7 Stream de Mensagens (SSE)
+
+```http
+GET /research/{exec_id}/stream
+```
+
+Conecta via Server-Sent Events (SSE) para receber atualizações em tempo real de todas as entrevistas em uma execution. Primeiro envia mensagens históricas (replay), depois transmite mensagens ao vivo.
+
+**Path Parameters**:
+- `exec_id` (string, requerido): ID da execution
+
+**Response 200**:
+- Content-Type: `text/event-stream`
+- Headers:
+  - `Cache-Control: no-cache`
+  - `Connection: keep-alive`
+  - `X-Accel-Buffering: no`
+
+**Eventos SSE**:
+
+1. **message** - Mensagem de entrevista (pergunta ou resposta)
+```
+event: message
+data: {
+  "event_type": "message",
+  "exec_id": "batch_compra-amazon_20251219_110534",
+  "synth_id": "ynnasw",
+  "turn_number": 1,
+  "speaker": "Interviewer",
+  "text": "Como você se sente ao fazer compras online?",
+  "timestamp": "2025-12-19T11:08:23Z",
+  "is_replay": false
+}
+```
+
+2. **interview_completed** - Uma entrevista individual foi concluída
+```
+event: interview_completed
+data: {
+  "synth_id": "ynnasw",
+  "total_turns": 6
+}
+```
+
+3. **transcription_completed** - Todas as entrevistas finalizadas, geração de summary iniciando
+```
+event: transcription_completed
+data: {
+  "successful_count": 9,
+  "failed_count": 1
+}
+```
+
+4. **execution_completed** - Todo o processamento finalizado (incluindo summary)
+```
+event: execution_completed
+data: {}
+```
+
+**Response 404**:
+```json
+{
+  "error": {
+    "code": "EXECUTION_NOT_FOUND",
+    "message": "Execution not found"
+  }
+}
+```
+
+**Exemplo (JavaScript)**:
+```javascript
+const eventSource = new EventSource(
+  'http://localhost:8000/research/batch_compra-amazon_20251219_110534/stream'
+);
+
+// Mensagem de entrevista
+eventSource.addEventListener('message', (e) => {
+  const event = JSON.parse(e.data);
+  console.log(`[${event.synth_id}] ${event.speaker}: ${event.text}`);
+});
+
+// Entrevista individual concluída
+eventSource.addEventListener('interview_completed', (e) => {
+  const data = JSON.parse(e.data);
+  console.log(`Interview ${data.synth_id} completed: ${data.total_turns} turns`);
+});
+
+// Todas as transcrições concluídas
+eventSource.addEventListener('transcription_completed', (e) => {
+  const data = JSON.parse(e.data);
+  console.log(`All done! ${data.successful_count} success, ${data.failed_count} failed`);
+});
+
+// Execution completada
+eventSource.addEventListener('execution_completed', () => {
+  console.log('Execution fully completed!');
+  eventSource.close();
+});
+```
+
+**Exemplo (cURL)**:
+```bash
+# Streaming via cURL
+curl -N "http://localhost:8000/research/batch_compra-amazon_20251219_110534/stream"
 ```
 
 ---

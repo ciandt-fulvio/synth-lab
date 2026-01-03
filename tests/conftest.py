@@ -13,6 +13,10 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from dotenv import load_dotenv
+
+# Load .env file automatically for all tests
+load_dotenv()
 
 
 @pytest.fixture

@@ -1,0 +1,182 @@
+name: Docs Validation
+
+on:
+  pull_request:
+    paths:
+      - 'src/**/*.py'
+      - 'frontend/src/**/*.{ts,tsx}'
+      - 'docs/**/*.md'
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**/*.md'
+
+jobs:
+  check-docs-sync:
+    name: Check if docs need update
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Precisa de 2 commits para diff
+
+      - name: Check if docs need update
+        run: |
+          echo "Verificando se mudanças em código requerem atualização de docs..."
+
+          # Detecta mudanças em código que devem ter docs atualizadas
+          CHANGED_CODE=$(git diff origin/main --name-only 2>/dev/null | grep -E "src/synth_lab/(api|services|models)/" || true)
+
+          if [ -n "$CHANGED_CODE" ]; then
+            echo "✅ Código mudou:"
+            echo "$CHANGED_CODE" | sed 's/^/  - /'
+
+            CHANGED_DOCS=$(git diff origin/main --name-only 2>/dev/null | grep "docs/" || true)
+
+            if [ -z "$CHANGED_DOCS" ]; then
+              echo ""
+              echo "::warning::⚠️  Código mudou mas docs não foram atualizadas"
+              echo "::warning::Arquivos modificados que podem afetar docs:"
+              echo "$CHANGED_CODE" | sed 's/^/::warning::  - /'
+              echo "::warning::Considere rodar: ./scripts/auto-update-docs.sh"
+              echo ""
+              # Não falha, apenas avisa
+            else
+              echo ""
+              echo "✅ Docs foram atualizadas junto com código:"
+              echo "$CHANGED_DOCS" | sed 's/^/  - /'
+            fi
+          else
+            echo "✅ Nenhuma mudança em código crítico que requer atualização de docs"
+          fi
+
+  validate-markdown:
+    name: Validate markdown syntax
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install markdownlint
+        run: npm install -g markdownlint-cli
+
+      - name: Validate markdown files
+        run: |
+          if [ -f .markdownlint.json ]; then
+            echo "Usando config .markdownlint.json"
+            markdownlint 'docs/**/*.md' --config .markdownlint.json || {
+              echo "::error::Problemas de formatação encontrados em arquivos markdown"
+              exit 1
+            }
+          else
+            echo "⚠️  Config .markdownlint.json não encontrada, usando defaults"
+            markdownlint 'docs/**/*.md' || {
+              echo "::error::Problemas de formatação encontrados em arquivos markdown"
+              exit 1
+            }
+          fi
+
+          echo "✅ Todos os arquivos markdown estão válidos"
+
+  check-broken-links:
+    name: Check for broken internal links
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check internal links
+        run: |
+          echo "Verificando links internos quebrados em arquivos markdown..."
+
+          BROKEN_LINKS_FOUND=false
+
+          # Procura por links markdown internos em docs/
+          while IFS= read -r file; do
+            echo "Verificando: $file"
+
+            # Extrai links para .md files
+            grep -o '\[.*\](\.\.*/.*\.md)' "$file" 2>/dev/null | while IFS= read -r link; do
+              # Extrai path do link
+              link_path=$(echo "$link" | sed -E 's/.*\((.*)\).*/\1/')
+
+              # Resolve path relativo
+              dir=$(dirname "$file")
+
+              # Normaliza path (remove ../)
+              full_path=$(cd "$dir" && realpath "$link_path" 2>/dev/null || echo "INVALID")
+
+              if [ "$full_path" = "INVALID" ] || [ ! -f "$full_path" ]; then
+                echo "::warning::Link quebrado em $file: $link_path"
+                BROKEN_LINKS_FOUND=true
+              fi
+            done
+          done < <(find docs -name "*.md")
+
+          if [ "$BROKEN_LINKS_FOUND" = true ]; then
+            echo "⚠️  Links quebrados encontrados (veja warnings acima)"
+          else
+            echo "✅ Nenhum link quebrado encontrado"
+          fi
+
+  check-api-docs-coverage:
+    name: Check API docs coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check API endpoints documentation
+        run: |
+          echo "📊 Verificando cobertura de documentação de API endpoints..."
+          echo ""
+
+          # Extrai endpoints dos routers
+          ENDPOINTS=$(find src/synth_lab/api/routers -name "*.py" 2>/dev/null | \
+                      xargs grep -h "@router\." 2>/dev/null | \
+                      grep -E "@router\.(get|post|put|delete|patch)" | \
+                      sed -E 's/.*@router\.(get|post|put|delete|patch)\(["\']([^"\']+).*/\2/' | \
+                      sort -u || true)
+
+          if [ -z "$ENDPOINTS" ]; then
+            echo "⚠️  Nenhum endpoint encontrado nos routers"
+            exit 0
+          fi
+
+          # Conta total
+          TOTAL=$(echo "$ENDPOINTS" | wc -l | tr -d ' ')
+
+          # Verifica quantos estão em docs/api.md
+          DOCUMENTED=0
+          NOT_DOCUMENTED=""
+
+          while IFS= read -r endpoint; do
+            if grep -q "$endpoint" docs/api.md 2>/dev/null; then
+              DOCUMENTED=$((DOCUMENTED + 1))
+            else
+              echo "::warning::Endpoint não documentado: $endpoint"
+              NOT_DOCUMENTED="${NOT_DOCUMENTED}\n  - $endpoint"
+            fi
+          done <<< "$ENDPOINTS"
+
+          COVERAGE=$((DOCUMENTED * 100 / TOTAL))
+
+          echo ""
+          echo "📊 API Docs Coverage: $DOCUMENTED/$TOTAL endpoints ($COVERAGE%)"
+          echo ""
+
+          if [ $COVERAGE -lt 80 ]; then
+            echo "::warning::⚠️  Cobertura de docs de API abaixo de 80%"
+            echo "::warning::Endpoints não documentados:"
+            echo -e "$NOT_DOCUMENTED" | while IFS= read -r line; do
+              [ -n "$line" ] && echo "::warning::$line"
+            done
+          else
+            echo "✅ Cobertura de docs de API OK (>= 80%)"
+          fi
