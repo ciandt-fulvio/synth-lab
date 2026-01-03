@@ -78,7 +78,7 @@ class ResearchExecution(Base):
     __table_args__ = (
         Index("idx_executions_topic", "topic_name"),
         Index("idx_executions_status", "status"),
-        Index("idx_executions_started", "started_at", postgresql_ops={"started_at": "DESC"}),
+        Index("idx_executions_started", "started_at"),
         Index("idx_executions_experiment", "experiment_id"),
     )
 
