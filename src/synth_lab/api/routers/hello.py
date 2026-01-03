@@ -37,9 +37,10 @@ def hello_name(name: str):
         name: Name to greet
 
     Returns:
-        dict: Personalized greeting message
+        dict: Personalized greeting message with status
     """
     return {
         "message": f"Hello, {name}!",
-        "timestamp": datetime.now(UTC).isoformat()
+        "timestamp": datetime.now(UTC).isoformat(),
+        "status": "personalized"
     }
