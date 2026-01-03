@@ -1,26 +1,32 @@
 #!/bin/bash
 #
-# Git pre-push hook: runs comprehensive tests before pushing
-# All tests must pass before pushing to remote (typically before PR)
+# Git pre-push hook: runs fast anti-regression tests before pushing
+# Runs: smoke + contract + schema validation (~30s)
 #
 
 set -e
 
-echo "Running comprehensive tests before push..."
+echo "🧪 Running fast anti-regression tests before push..."
 echo ""
 
-# Run full test suite
-if ! make test-full; then
+# Run fast test suite (smoke + contract + schema)
+if ! make test-fast; then
     echo ""
     echo "❌ Pre-push tests failed!"
     echo "   Fix all failing tests before pushing."
     echo ""
-    echo "   To bypass this check (not recommended):"
-    echo "   git push --no-verify"
+    echo "   What failed:"
+    echo "   - Smoke tests: Health checks (DB, configs, imports)"
+    echo "   - Contract tests: API schemas that frontend expects"
+    echo "   - Schema tests: DB schema vs SQLAlchemy models"
+    echo ""
+    echo "   To run full test suite: make test-full"
+    echo "   To bypass this check (not recommended): git push --no-verify"
     echo ""
     exit 1
 fi
 
 echo ""
-echo "✅ All tests passed! Safe to push."
+echo "✅ All fast tests passed! Safe to push."
+echo "   (Full test suite will run in CI)"
 echo ""
