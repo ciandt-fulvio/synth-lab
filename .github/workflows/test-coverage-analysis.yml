@@ -1,0 +1,88 @@
+# Análise de gaps de testes - Roda automaticamente
+# - Toda segunda-feira às 9am
+# - Após merge em main
+# - Manualmente quando necessário
+
+name: Test Coverage Analysis
+
+on:
+  schedule:
+    - cron: '0 9 * * 1,3,5'  # Segunda-feira 9am UTC
+  push:
+    branches: [main]
+  workflow_dispatch:  # Botão manual
+
+jobs:
+  analyze-coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Analyze test coverage gaps
+        id: analyze
+        run: |
+          python scripts/analyze_test_coverage.py --suggest-claude-prompts > coverage-report.txt
+          cat coverage-report.txt
+
+          # Salva output para issue
+          echo "COVERAGE_REPORT<<EOF" >> $GITHUB_ENV
+          cat coverage-report.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Create/Update Issue with gaps
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const report = process.env.COVERAGE_REPORT;
+
+            // Procura issue existente
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['test-coverage'],
+              state: 'open'
+            });
+
+            const title = '📊 Test Coverage Gaps - Weekly Report';
+            const body = '## Análise Automática de Gaps de Testes\n\n' +
+              'Executado em: ' + new Date().toISOString() + '\n\n' +
+              '```\n' + report + '\n```\n\n' +
+              '### 🎯 Próximos Passos\n\n' +
+              'Use os comandos sugeridos acima com Claude Code para preencher os gaps.\n\n' +
+              '---\n' +
+              '*Issue atualizada automaticamente toda segunda-feira*';
+
+            if (issues.data.length > 0) {
+              // Atualiza issue existente
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues.data[0].number,
+                body: body
+              });
+
+              console.log('Issue #' + issues.data[0].number + ' atualizada');
+            } else {
+              // Cria nova issue
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['test-coverage', 'maintenance']
+              });
+
+              console.log('Nova issue criada');
+            }
+
+      - name: Upload report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage-report.txt
