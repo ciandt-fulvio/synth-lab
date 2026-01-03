@@ -1,4 +1,4 @@
-.PHONY: help install setup-hooks serve serve-front serve-test serve-front-test gensynth phoenix kill kill-server kill-test-servers db db-stop db-reset db-migrate db-test db-test-reset validate-ui test test-fast test-full test-unit test-integration test-contract test-e2e test-e2e-ui lint-format clean clean-server
+.PHONY: help install setup-hooks serve serve-front serve-test serve-front-test gensynth phoenix kill kill-server kill-test-servers db db-stop db-reset db-migrate db-test db-test-reset validate-ui test test-fast test-full test-unit test-integration test-contract test-e2e test-e2e-ui lint-format update-docs clean clean-server
 
 # =============================================================================
 # Configuration
@@ -76,6 +76,9 @@ help:
 	@echo "  make test-e2e                Run E2E tests (requires servers running on ports 8009/8089)"
 	@echo "  make test-e2e-ui             Run E2E tests in UI mode"
 	@echo "  make test-coverage-analysis  Analyze test coverage gaps (suggests Claude prompts)"
+	@echo ""
+	@echo "Documentation:"
+	@echo "  make update-docs  Update docs using Claude Code (auto-detect changes)"
 	@echo ""
 	@echo "Other:"
 	@echo "  make lint-format  Run ruff linter and formatter"
@@ -250,6 +253,12 @@ lint-format:
 
 validate-ui:
 	uv run python scripts/validate_ui.py
+
+# =============================================================================
+# Documentation
+# =============================================================================
+update-docs:
+	@./scripts/auto-update-docs.sh --last-commit
 
 clean:
 	rm -rf .pytest_cache .ruff_cache .mypy_cache __pycache__ htmlcov dist build *.egg-info
