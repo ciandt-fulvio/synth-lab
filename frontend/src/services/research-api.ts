@@ -12,6 +12,7 @@ import type {
   ResearchExecuteResponse,
 } from '@/types';
 import type { ArtifactStatesResponse } from '@/types/artifact-state';
+import type { ExperimentDocument } from '@/types/document';
 
 export async function listExecutions(
   params?: PaginationParams
@@ -85,6 +86,9 @@ export interface SummaryGenerateResponse {
   generated_at?: string;
 }
 
+/**
+ * @deprecated Use generateResearchSummary instead
+ */
 export async function generateSummary(
   execId: string,
   request?: SummaryGenerateRequest
@@ -92,5 +96,81 @@ export async function generateSummary(
   return fetchAPI<SummaryGenerateResponse>(`/research/${execId}/summary/generate`, {
     method: 'POST',
     body: JSON.stringify(request ?? {}),
+  });
+}
+
+// =============================================================================
+// Document Endpoints - Summary
+// =============================================================================
+
+/**
+ * Generate summary document for a research execution.
+ *
+ * @param execId - Execution ID
+ * @returns Generated summary document (with 'generating' status)
+ * @throws APIError if execution not found or not completed
+ */
+export async function generateResearchSummary(execId: string): Promise<ExperimentDocument> {
+  return fetchAPI<ExperimentDocument>(`/research/${execId}/documents/summary/generate`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * Get summary document for a research execution.
+ *
+ * @param execId - Execution ID
+ * @returns Summary document or null if not exists
+ */
+export async function getResearchSummary(execId: string): Promise<ExperimentDocument | null> {
+  return fetchAPI<ExperimentDocument | null>(`/research/${execId}/documents/summary`);
+}
+
+/**
+ * Delete summary document for a research execution.
+ *
+ * @param execId - Execution ID
+ */
+export async function deleteResearchSummary(execId: string): Promise<void> {
+  await fetchAPI(`/research/${execId}/documents/summary`, {
+    method: 'DELETE',
+  });
+}
+
+// =============================================================================
+// Document Endpoints - PRFAQ
+// =============================================================================
+
+/**
+ * Generate PRFAQ document for a research execution.
+ *
+ * @param execId - Execution ID
+ * @returns Generated PRFAQ document (with 'generating' status)
+ * @throws APIError if execution not found or summary not completed
+ */
+export async function generateResearchPRFAQ(execId: string): Promise<ExperimentDocument> {
+  return fetchAPI<ExperimentDocument>(`/research/${execId}/documents/prfaq/generate`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * Get PRFAQ document for a research execution.
+ *
+ * @param execId - Execution ID
+ * @returns PRFAQ document or null if not exists
+ */
+export async function getResearchPRFAQ(execId: string): Promise<ExperimentDocument | null> {
+  return fetchAPI<ExperimentDocument | null>(`/research/${execId}/documents/prfaq`);
+}
+
+/**
+ * Delete PRFAQ document for a research execution.
+ *
+ * @param execId - Execution ID
+ */
+export async function deleteResearchPRFAQ(execId: string): Promise<void> {
+  await fetchAPI(`/research/${execId}/documents/prfaq`, {
+    method: 'DELETE',
   });
 }

@@ -9,16 +9,22 @@
 
 import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Network } from 'lucide-react';
+import { Network, FileText } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
 import { ExplorationTreeFlow } from '@/components/exploration/ExplorationTreeFlow';
 import { ExplorationProgress } from '@/components/exploration/ExplorationProgress';
 import { NodeDetailsPanel } from '@/components/exploration/NodeDetailsPanel';
+import { DocumentCard } from '@/components/shared/DocumentCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   useExploration,
   useExplorationTree,
+  useExplorationSummary,
+  useExplorationPRFAQ,
+  useGenerateExplorationSummary,
+  useGenerateExplorationPRFAQ,
 } from '@/hooks/use-exploration';
 import type { ScenarioNode } from '@/types/exploration';
 
@@ -35,6 +41,26 @@ export default function ExplorationDetail() {
   const { data: treeData, isLoading: isLoadingTree } = useExplorationTree(
     explorationId ?? ''
   );
+
+  // Completed statuses that allow document generation
+  const COMPLETED_STATUSES = ['goal_achieved', 'depth_limit_reached', 'cost_limit_reached'];
+  const canGenerateDocuments = exploration
+    ? COMPLETED_STATUSES.includes(exploration.status)
+    : false;
+
+  // Document hooks
+  const { data: summary, isLoading: isLoadingSummary } = useExplorationSummary(
+    explorationId ?? '',
+    canGenerateDocuments || !!explorationId
+  );
+  const { data: prfaq, isLoading: isLoadingPRFAQ } = useExplorationPRFAQ(
+    explorationId ?? '',
+    canGenerateDocuments || !!explorationId
+  );
+
+  // Document generation mutations
+  const generateSummary = useGenerateExplorationSummary();
+  const generatePRFAQ = useGenerateExplorationPRFAQ();
 
   // Local state
   const [selectedNode, setSelectedNode] = useState<ScenarioNode | null>(null);
@@ -56,6 +82,30 @@ export default function ExplorationDetail() {
   const handleNodeClick = (node: ScenarioNode) => {
     setSelectedNode(node);
     setIsDetailsPanelOpen(true);
+  };
+
+  const handleGenerateSummary = async () => {
+    if (!explorationId) return;
+    try {
+      await generateSummary.mutateAsync(explorationId);
+      toast.success('Resumo gerado com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao gerar resumo', {
+        description: error instanceof Error ? error.message : 'Tente novamente',
+      });
+    }
+  };
+
+  const handleGeneratePRFAQ = async () => {
+    if (!explorationId) return;
+    try {
+      await generatePRFAQ.mutateAsync(explorationId);
+      toast.success('PR-FAQ gerado com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao gerar PR-FAQ', {
+        description: error instanceof Error ? error.message : 'Tente novamente',
+      });
+    }
   };
 
   // Loading state
@@ -117,6 +167,40 @@ export default function ExplorationDetail() {
             selectedNodeId={selectedNode?.id}
             winnerNodeId={winnerNodeId}
           />
+        </div>
+
+        {/* Document generation section */}
+        <div className="card p-6">
+          <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <FileText className="h-5 w-5 text-indigo-600" />
+            Documentos da Exploração
+          </h2>
+          <p className="text-sm text-slate-500 mb-6">
+            Gere documentos com resumo e recomendações baseados no caminho vencedor da exploração.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <DocumentCard
+              documentType="exploration_summary"
+              document={summary}
+              isLoading={isLoadingSummary}
+              isGenerating={generateSummary.isPending}
+              canGenerate={canGenerateDocuments}
+              onGenerate={handleGenerateSummary}
+            />
+            <DocumentCard
+              documentType="exploration_prfaq"
+              document={prfaq}
+              isLoading={isLoadingPRFAQ}
+              isGenerating={generatePRFAQ.isPending}
+              canGenerate={canGenerateDocuments && summary?.status === 'completed'}
+              onGenerate={handleGeneratePRFAQ}
+              disabledReason={
+                canGenerateDocuments && summary?.status !== 'completed'
+                  ? 'Gere o resumo primeiro para liberar o PR-FAQ'
+                  : undefined
+              }
+            />
+          </div>
         </div>
       </main>
 

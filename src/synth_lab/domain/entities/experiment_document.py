@@ -17,10 +17,23 @@ from pydantic import BaseModel, Field
 
 
 class DocumentType(str, Enum):
-    """Types of documents that can be attached to an experiment."""
+    """Types of documents that can be attached to an experiment.
 
-    SUMMARY = "summary"
-    PRFAQ = "prfaq"
+    Document types are specific to their source:
+    - EXPLORATION_*: Generated from exploration winning path
+    - RESEARCH_*: Generated from interview research data
+    - EXECUTIVE_SUMMARY: Experiment-level summary combining all data
+    """
+
+    # Exploration documents (from exploration winning path)
+    EXPLORATION_SUMMARY = "exploration_summary"
+    EXPLORATION_PRFAQ = "exploration_prfaq"
+
+    # Research documents (from interview data)
+    RESEARCH_SUMMARY = "research_summary"
+    RESEARCH_PRFAQ = "research_prfaq"
+
+    # Experiment-level documents
     EXECUTIVE_SUMMARY = "executive_summary"
 
 
@@ -61,13 +74,20 @@ class ExperimentDocument(BaseModel):
     Attributes:
         id: Unique document ID (doc_XXXXXXXX format).
         experiment_id: Parent experiment ID.
-        document_type: Type of document (summary, prfaq, executive_summary).
+        document_type: Type of document (exploration_summary, etc.).
+        source_id: ID of the source (exploration_id or exec_id), NULL for executive_summary.
         markdown_content: Full markdown content of the document.
         metadata: Optional type-specific metadata (JSON).
         generated_at: Timestamp when document was generated.
         model: LLM model used for generation.
         status: Current generation status.
         error_message: Error details if status is failed.
+
+    Note:
+        source_id contains:
+        - exploration_id for exploration_summary, exploration_prfaq
+        - exec_id (research_execution_id) for research_summary, research_prfaq
+        - NULL for executive_summary (unique per experiment)
     """
 
     id: str = Field(
@@ -80,6 +100,10 @@ class ExperimentDocument(BaseModel):
     )
     document_type: DocumentType = Field(
         description="Type of document",
+    )
+    source_id: str | None = Field(
+        default=None,
+        description="ID of source (exploration_id or exec_id), NULL for executive_summary",
     )
     markdown_content: str = Field(
         description="Full markdown content of the document",
@@ -118,6 +142,7 @@ class ExperimentDocument(BaseModel):
             "id": self.id,
             "experiment_id": self.experiment_id,
             "document_type": self.document_type.value,
+            "source_id": self.source_id,
             "markdown_content": self.markdown_content,
             "metadata": json.dumps(self.metadata) if self.metadata else None,
             "generated_at": self.generated_at.isoformat(),
@@ -151,6 +176,7 @@ class ExperimentDocument(BaseModel):
             id=row["id"],
             experiment_id=row["experiment_id"],
             document_type=DocumentType(row["document_type"]),
+            source_id=row.get("source_id"),
             markdown_content=row["markdown_content"],
             metadata=metadata,
             generated_at=generated_at,
@@ -169,6 +195,7 @@ class ExperimentDocumentSummary(BaseModel):
 
     id: str = Field(description="Document ID")
     document_type: DocumentType = Field(description="Type of document")
+    source_id: str | None = Field(default=None, description="Source ID (exploration_id or exec_id)")
     status: DocumentStatus = Field(description="Current generation status")
     generated_at: datetime = Field(description="Timestamp when document was generated")
     model: str = Field(default="gpt-4o-mini", description="LLM model used")
@@ -179,6 +206,7 @@ class ExperimentDocumentSummary(BaseModel):
         return cls(
             id=doc.id,
             document_type=doc.document_type,
+            source_id=doc.source_id,
             status=doc.status,
             generated_at=doc.generated_at,
             model=doc.model,
@@ -187,8 +215,10 @@ class ExperimentDocumentSummary(BaseModel):
 
 # Document type display names (for UI)
 DOCUMENT_TYPE_LABELS = {
-    DocumentType.SUMMARY: "Resumo da Pesquisa",
-    DocumentType.PRFAQ: "PR-FAQ",
+    DocumentType.EXPLORATION_SUMMARY: "Resumo da Exploração",
+    DocumentType.EXPLORATION_PRFAQ: "PR-FAQ da Exploração",
+    DocumentType.RESEARCH_SUMMARY: "Resumo da Pesquisa",
+    DocumentType.RESEARCH_PRFAQ: "PR-FAQ da Pesquisa",
     DocumentType.EXECUTIVE_SUMMARY: "Resumo Executivo",
 }
 
@@ -216,7 +246,7 @@ if __name__ == "__main__":
         doc = ExperimentDocument(
             id="doc_12345678",
             experiment_id="exp_abcdef12",
-            document_type=DocumentType.SUMMARY,
+            document_type=DocumentType.RESEARCH_SUMMARY,
             markdown_content="# Summary\n\nTest content",
         )
         if doc.status != DocumentStatus.COMPLETED:
@@ -232,7 +262,7 @@ if __name__ == "__main__":
         doc = ExperimentDocument(
             id="doc_12345678",
             experiment_id="exp_abcdef12",
-            document_type=DocumentType.PRFAQ,
+            document_type=DocumentType.EXPLORATION_PRFAQ,
             markdown_content="# PR-FAQ\n\nTest",
             metadata={"headline": "Test Headline", "faq_count": 5},
         )
@@ -280,7 +310,13 @@ if __name__ == "__main__":
     # Test 6: DocumentType enum values
     total_tests += 1
     try:
-        expected_types = ["summary", "prfaq", "executive_summary"]
+        expected_types = [
+            "exploration_summary",
+            "exploration_prfaq",
+            "research_summary",
+            "research_prfaq",
+            "executive_summary",
+        ]
         actual_types = [t.value for t in DocumentType]
         if set(actual_types) != set(expected_types):
             all_validation_failures.append(
@@ -295,7 +331,7 @@ if __name__ == "__main__":
         doc = ExperimentDocument(
             id="doc_12345678",
             experiment_id="exp_abcdef12",
-            document_type=DocumentType.SUMMARY,
+            document_type=DocumentType.EXPLORATION_SUMMARY,
             markdown_content="# Summary\n\nLong content here...",
         )
         summary = ExperimentDocumentSummary.from_document(doc)
@@ -309,10 +345,10 @@ if __name__ == "__main__":
     # Test 8: DOCUMENT_TYPE_LABELS
     total_tests += 1
     try:
-        if DOCUMENT_TYPE_LABELS[DocumentType.SUMMARY] != "Resumo da Pesquisa":
-            all_validation_failures.append("SUMMARY label mismatch")
-        if DOCUMENT_TYPE_LABELS[DocumentType.PRFAQ] != "PR-FAQ":
-            all_validation_failures.append("PRFAQ label mismatch")
+        if DOCUMENT_TYPE_LABELS[DocumentType.EXPLORATION_SUMMARY] != "Resumo da Exploração":
+            all_validation_failures.append("EXPLORATION_SUMMARY label mismatch")
+        if DOCUMENT_TYPE_LABELS[DocumentType.RESEARCH_SUMMARY] != "Resumo da Pesquisa":
+            all_validation_failures.append("RESEARCH_SUMMARY label mismatch")
         if DOCUMENT_TYPE_LABELS[DocumentType.EXECUTIVE_SUMMARY] != "Resumo Executivo":
             all_validation_failures.append("EXECUTIVE_SUMMARY label mismatch")
     except Exception as e:

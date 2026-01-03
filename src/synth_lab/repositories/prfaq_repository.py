@@ -88,7 +88,7 @@ class PRFAQRepository(BaseRepository):
                 ResearchExecutionORM,
                 ExperimentDocumentORM.experiment_id == ResearchExecutionORM.experiment_id
             )
-            .where(ExperimentDocumentORM.document_type == DocumentType.PRFAQ.value)
+            .where(ExperimentDocumentORM.document_type == DocumentType.RESEARCH_PRFAQ.value)
             .where(ExperimentDocumentORM.status == DocumentStatus.COMPLETED.value)
             .order_by(ExperimentDocumentORM.generated_at.desc())
         )
@@ -97,7 +97,7 @@ class PRFAQRepository(BaseRepository):
         count_stmt = (
             select(sqlfunc.count())
             .select_from(ExperimentDocumentORM)
-            .where(ExperimentDocumentORM.document_type == DocumentType.PRFAQ.value)
+            .where(ExperimentDocumentORM.document_type == DocumentType.RESEARCH_PRFAQ.value)
             .where(ExperimentDocumentORM.status == DocumentStatus.COMPLETED.value)
         )
         total = self.session.execute(count_stmt).scalar() or 0
@@ -137,7 +137,7 @@ class PRFAQRepository(BaseRepository):
         stmt = (
             select(ExperimentDocumentORM)
             .where(ExperimentDocumentORM.experiment_id == experiment_id)
-            .where(ExperimentDocumentORM.document_type == DocumentType.PRFAQ.value)
+            .where(ExperimentDocumentORM.document_type == DocumentType.RESEARCH_PRFAQ.value)
         )
         doc_orm = self.session.execute(stmt).scalar_one_or_none()
 
@@ -163,10 +163,10 @@ class PRFAQRepository(BaseRepository):
         if not experiment_id:
             raise PRFAQNotFoundError(exec_id)
 
-        markdown = self._doc_repo.get_markdown(experiment_id, DocumentType.PRFAQ)
+        markdown = self._doc_repo.get_markdown(experiment_id, DocumentType.RESEARCH_PRFAQ)
         if markdown is None:
             # Check if document exists at all
-            doc = self._doc_repo.get_by_experiment(experiment_id, DocumentType.PRFAQ)
+            doc = self._doc_repo.get_by_experiment(experiment_id, DocumentType.RESEARCH_PRFAQ)
             if doc is None:
                 raise PRFAQNotFoundError(exec_id)
 
@@ -191,7 +191,7 @@ class PRFAQRepository(BaseRepository):
         if not experiment_id:
             raise PRFAQNotFoundError(exec_id)
 
-        doc = self._doc_repo.get_by_experiment(experiment_id, DocumentType.PRFAQ)
+        doc = self._doc_repo.get_by_experiment(experiment_id, DocumentType.RESEARCH_PRFAQ)
         if doc is None:
             raise PRFAQNotFoundError(exec_id)
 
@@ -221,7 +221,7 @@ class PRFAQRepository(BaseRepository):
             return False
 
         # Check current status
-        current_status = self._doc_repo.get_status(experiment_id, DocumentType.PRFAQ)
+        current_status = self._doc_repo.get_status(experiment_id, DocumentType.RESEARCH_PRFAQ)
         if current_status == DocumentStatus.GENERATING:
             self._logger.warning(
                 f"[{exec_id}] PR-FAQ already generating for experiment {experiment_id}"
@@ -229,7 +229,7 @@ class PRFAQRepository(BaseRepository):
             return False
 
         # Create pending document
-        doc = self._doc_repo.create_pending(experiment_id, DocumentType.PRFAQ, model)
+        doc = self._doc_repo.create_pending(experiment_id, DocumentType.RESEARCH_PRFAQ, model)
         if doc is None:
             return False
 
@@ -295,7 +295,7 @@ class PRFAQRepository(BaseRepository):
 
         self._doc_repo.update_status(
             experiment_id=experiment_id,
-            document_type=DocumentType.PRFAQ,
+            document_type=DocumentType.RESEARCH_PRFAQ,
             status=doc_status,
             markdown_content=markdown_content,
             metadata=metadata if metadata else None,
@@ -318,7 +318,7 @@ class PRFAQRepository(BaseRepository):
         if not experiment_id:
             return None
 
-        status = self._doc_repo.get_status(experiment_id, DocumentType.PRFAQ)
+        status = self._doc_repo.get_status(experiment_id, DocumentType.RESEARCH_PRFAQ)
         if status is None:
             return None
 
@@ -373,7 +373,7 @@ class PRFAQRepository(BaseRepository):
         doc = ExperimentDocument(
             id=generate_document_id(),
             experiment_id=experiment_id,
-            document_type=DocumentType.PRFAQ,
+            document_type=DocumentType.RESEARCH_PRFAQ,
             markdown_content=markdown_content,
             metadata=metadata,
             model=model,
@@ -455,15 +455,15 @@ if __name__ == "__main__":
     except ImportError as e:
         all_validation_failures.append(f"PRFAQSummary import error: {e}")
 
-    # Test 4: DocumentType.PRFAQ exists
+    # Test 4: DocumentType.RESEARCH_PRFAQ exists
     total_tests += 1
     try:
-        if DocumentType.PRFAQ.value != "prfaq":
+        if DocumentType.RESEARCH_PRFAQ.value != "prfaq":
             all_validation_failures.append(
-                f"DocumentType.PRFAQ value is {DocumentType.PRFAQ.value}, expected 'prfaq'"
+                f"DocumentType.RESEARCH_PRFAQ value is {DocumentType.RESEARCH_PRFAQ.value}, expected 'prfaq'"
             )
     except Exception as e:
-        all_validation_failures.append(f"DocumentType.PRFAQ check failed: {e}")
+        all_validation_failures.append(f"DocumentType.RESEARCH_PRFAQ check failed: {e}")
 
     # Final validation result
     if all_validation_failures:

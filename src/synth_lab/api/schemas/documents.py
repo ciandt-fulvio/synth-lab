@@ -15,10 +15,23 @@ from pydantic import BaseModel, Field
 
 
 class DocumentTypeEnum(str, Enum):
-    """Document types for API."""
+    """Document types for API.
 
-    SUMMARY = "summary"
-    PRFAQ = "prfaq"
+    Types are specific to their source:
+    - EXPLORATION_*: Generated from exploration winning path
+    - RESEARCH_*: Generated from interview research data
+    - EXECUTIVE_SUMMARY: Experiment-level summary combining all data
+    """
+
+    # Exploration documents
+    EXPLORATION_SUMMARY = "exploration_summary"
+    EXPLORATION_PRFAQ = "exploration_prfaq"
+
+    # Research documents (from interviews)
+    RESEARCH_SUMMARY = "research_summary"
+    RESEARCH_PRFAQ = "research_prfaq"
+
+    # Experiment-level documents
     EXECUTIVE_SUMMARY = "executive_summary"
 
 
@@ -37,6 +50,10 @@ class DocumentSummaryResponse(BaseModel):
 
     id: str = Field(description="Document ID")
     document_type: DocumentTypeEnum = Field(description="Type of document")
+    source_id: str | None = Field(
+        default=None,
+        description="Source ID (exploration_id or exec_id)"
+    )
     status: DocumentStatusEnum = Field(description="Current status")
     generated_at: datetime = Field(description="Generation timestamp")
     model: str = Field(description="LLM model used")
@@ -48,6 +65,10 @@ class DocumentDetailResponse(BaseModel):
     id: str = Field(description="Document ID")
     experiment_id: str = Field(description="Parent experiment ID")
     document_type: DocumentTypeEnum = Field(description="Type of document")
+    source_id: str | None = Field(
+        default=None,
+        description="Source ID (exploration_id or exec_id)"
+    )
     markdown_content: str = Field(description="Full markdown content")
     metadata: dict | None = Field(default=None, description="Type-specific metadata")
     generated_at: datetime = Field(description="Generation timestamp")
@@ -71,8 +92,23 @@ class DocumentAvailabilityStatus(BaseModel):
 class DocumentAvailabilityResponse(BaseModel):
     """Document availability status for all document types."""
 
-    summary: DocumentAvailabilityStatus = Field(description="Summary availability")
-    prfaq: DocumentAvailabilityStatus = Field(description="PRFAQ availability")
+    # Exploration documents
+    exploration_summary: DocumentAvailabilityStatus = Field(
+        description="Exploration Summary availability"
+    )
+    exploration_prfaq: DocumentAvailabilityStatus = Field(
+        description="Exploration PRFAQ availability"
+    )
+
+    # Research documents (from interviews)
+    research_summary: DocumentAvailabilityStatus = Field(
+        description="Research Summary availability"
+    )
+    research_prfaq: DocumentAvailabilityStatus = Field(
+        description="Research PRFAQ availability"
+    )
+
+    # Experiment-level documents
     executive_summary: DocumentAvailabilityStatus = Field(
         description="Executive Summary availability"
     )
@@ -82,6 +118,10 @@ class GenerateDocumentRequest(BaseModel):
     """Request to generate a document."""
 
     model: str = Field(default="gpt-4o-mini", description="LLM model to use")
+    source_id: str | None = Field(
+        default=None,
+        description="Source ID (exploration_id or exec_id)"
+    )
 
 
 class GenerateDocumentResponse(BaseModel):

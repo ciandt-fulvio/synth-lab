@@ -28,7 +28,8 @@ class ExperimentDocument(Base):
     Attributes:
         id: Document identifier
         experiment_id: Link to parent experiment
-        document_type: Type enum (summary, prfaq, executive_summary)
+        document_type: Type enum (exploration_summary, research_prfaq, etc.)
+        source_id: ID of the source (exploration_id or exec_id), NULL for executive_summary
         markdown_content: Document content in markdown
         doc_metadata: Generation metadata as JSON (column name: metadata)
         generated_at: ISO timestamp of generation
@@ -38,6 +39,12 @@ class ExperimentDocument(Base):
 
     Relationships:
         experiment: N:1 - Parent experiment
+
+    Note:
+        source_id contains:
+        - exploration_id for exploration_summary, exploration_prfaq
+        - exec_id (research_execution_id) for research_summary, research_prfaq
+        - NULL for executive_summary (unique per experiment)
     """
 
     __tablename__ = "experiment_documents"
@@ -49,6 +56,7 @@ class ExperimentDocument(Base):
         nullable=False,
     )
     document_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    source_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     markdown_content: Mapped[str] = mapped_column(Text, nullable=False)
     doc_metadata: Mapped[dict[str, Any] | None] = mapped_column("metadata", MutableJSON, nullable=True)
     generated_at: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -64,9 +72,13 @@ class ExperimentDocument(Base):
 
     # Indexes and constraints
     __table_args__ = (
-        UniqueConstraint("experiment_id", "document_type", name="uq_experiment_documents_exp_type"),
+        UniqueConstraint(
+            "experiment_id", "document_type", "source_id",
+            name="uq_experiment_documents_exp_type_source"
+        ),
         Index("idx_experiment_documents_experiment", "experiment_id"),
         Index("idx_experiment_documents_type", "document_type"),
+        Index("idx_experiment_documents_source", "source_id"),
         Index("idx_experiment_documents_status", "status"),
     )
 

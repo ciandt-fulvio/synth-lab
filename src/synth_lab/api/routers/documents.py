@@ -19,7 +19,8 @@ from synth_lab.api.schemas.documents import (
     DocumentSummaryResponse,
     DocumentTypeEnum,
     GenerateDocumentRequest,
-    GenerateDocumentResponse)
+    GenerateDocumentResponse,
+)
 from synth_lab.domain.entities.experiment_document import DocumentStatus, DocumentType
 from synth_lab.repositories.analysis_repository import AnalysisRepository
 from synth_lab.repositories.experiment_document_repository import DocumentNotFoundError
@@ -67,6 +68,7 @@ async def list_documents(experiment_id: str) -> list[DocumentSummaryResponse]:
         DocumentSummaryResponse(
             id=doc.id,
             document_type=DocumentTypeEnum(doc.document_type.value),
+            source_id=doc.source_id,
             status=DocumentStatusEnum(doc.status.value),
             generated_at=doc.generated_at,
             model=doc.model)
@@ -88,8 +90,10 @@ async def check_availability(experiment_id: str) -> DocumentAvailabilityResponse
     avail = service.check_availability(experiment_id)
 
     return DocumentAvailabilityResponse(
-        summary=DocumentAvailabilityStatus(**avail[DocumentType.SUMMARY]),
-        prfaq=DocumentAvailabilityStatus(**avail[DocumentType.PRFAQ]),
+        exploration_summary=DocumentAvailabilityStatus(**avail[DocumentType.EXPLORATION_SUMMARY]),
+        exploration_prfaq=DocumentAvailabilityStatus(**avail[DocumentType.EXPLORATION_PRFAQ]),
+        research_summary=DocumentAvailabilityStatus(**avail[DocumentType.RESEARCH_SUMMARY]),
+        research_prfaq=DocumentAvailabilityStatus(**avail[DocumentType.RESEARCH_PRFAQ]),
         executive_summary=DocumentAvailabilityStatus(**avail[DocumentType.EXECUTIVE_SUMMARY]),
     )
 
@@ -100,17 +104,21 @@ async def check_availability(experiment_id: str) -> DocumentAvailabilityResponse
     summary="Get a specific document")
 async def get_document(
     experiment_id: str,
-    document_type: DocumentTypeEnum) -> DocumentDetailResponse:
+    document_type: DocumentTypeEnum,
+    source_id: str | None = None) -> DocumentDetailResponse:
     """
     Get full details of a specific document.
 
     Includes markdown content and metadata.
+
+    For exploration/research documents, source_id is required.
+    For executive_summary, source_id should be None.
     """
     service = _get_service()
     domain_type = _map_type(document_type)
 
     try:
-        doc = service.get_document(experiment_id, domain_type)
+        doc = service.get_document(experiment_id, domain_type, source_id)
     except DocumentNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
@@ -118,6 +126,7 @@ async def get_document(
         id=doc.id,
         experiment_id=doc.experiment_id,
         document_type=DocumentTypeEnum(doc.document_type.value),
+        source_id=doc.source_id,
         markdown_content=doc.markdown_content,
         metadata=doc.metadata,
         generated_at=doc.generated_at,
@@ -132,17 +141,21 @@ async def get_document(
     summary="Get document markdown content")
 async def get_document_markdown(
     experiment_id: str,
-    document_type: DocumentTypeEnum) -> Response:
+    document_type: DocumentTypeEnum,
+    source_id: str | None = None) -> Response:
     """
     Get only the markdown content of a document.
 
     Returns plain text markdown.
+
+    For exploration/research documents, source_id is required.
+    For executive_summary, source_id should be None.
     """
     service = _get_service()
     domain_type = _map_type(document_type)
 
     try:
-        markdown = service.get_markdown(experiment_id, domain_type)
+        markdown = service.get_markdown(experiment_id, domain_type, source_id)
     except DocumentNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
@@ -164,9 +177,11 @@ async def generate_document(
     This endpoint starts generation and returns immediately.
     The actual generation runs in a background task.
 
+    For exploration/research documents, source_id is required in the request.
     For executive_summary: requires completed analysis with chart insights.
     """
     domain_type = _map_type(document_type)
+    source_id = request.source_id if request else None
 
     # Handle executive_summary specifically
     if domain_type == DocumentType.EXECUTIVE_SUMMARY:
@@ -194,7 +209,7 @@ async def generate_document(
     service = _get_service()
     model = request.model if request else "gpt-4o-mini"
 
-    pending = service.start_generation(experiment_id, domain_type, model)
+    pending = service.start_generation(experiment_id, domain_type, source_id, model)
 
     if pending is None:
         # Already generating
@@ -214,16 +229,20 @@ async def generate_document(
     summary="Delete a document")
 async def delete_document(
     experiment_id: str,
-    document_type: DocumentTypeEnum) -> dict:
+    document_type: DocumentTypeEnum,
+    source_id: str | None = None) -> dict:
     """
     Delete a specific document.
+
+    For exploration/research documents, source_id is required.
+    For executive_summary, source_id should be None.
 
     Returns success status.
     """
     service = _get_service()
     domain_type = _map_type(document_type)
 
-    deleted = service.delete_document(experiment_id, domain_type)
+    deleted = service.delete_document(experiment_id, domain_type, source_id)
 
     if not deleted:
         raise HTTPException(

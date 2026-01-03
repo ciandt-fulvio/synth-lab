@@ -34,23 +34,31 @@ export async function checkAvailability(
 
 /**
  * Get a specific document by type.
+ *
+ * @param sourceId - Required for exploration/research documents (exploration_id or exec_id)
  */
 export async function getDocument(
   experimentId: string,
-  documentType: DocumentType
+  documentType: DocumentType,
+  sourceId?: string
 ): Promise<ExperimentDocument> {
-  return fetchAPI(`/experiments/${experimentId}/documents/${documentType}`);
+  const queryParams = sourceId ? `?source_id=${sourceId}` : '';
+  return fetchAPI(`/experiments/${experimentId}/documents/${documentType}${queryParams}`);
 }
 
 /**
  * Get document markdown content only.
+ *
+ * @param sourceId - Required for exploration/research documents (exploration_id or exec_id)
  */
 export async function getDocumentMarkdown(
   experimentId: string,
-  documentType: DocumentType
+  documentType: DocumentType,
+  sourceId?: string
 ): Promise<string> {
+  const queryParams = sourceId ? `?source_id=${sourceId}` : '';
   const response = await fetch(
-    `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/experiments/${experimentId}/documents/${documentType}/markdown`
+    `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/experiments/${experimentId}/documents/${documentType}/markdown${queryParams}`
   );
   if (!response.ok) {
     throw new Error(`Failed to fetch document: ${response.statusText}`);
@@ -60,6 +68,8 @@ export async function getDocumentMarkdown(
 
 /**
  * Start document generation.
+ *
+ * @param sourceId - Required for exploration/research documents (exploration_id or exec_id)
  */
 export async function generateDocument(
   experimentId: string,
@@ -74,12 +84,16 @@ export async function generateDocument(
 
 /**
  * Delete a document.
+ *
+ * @param sourceId - Required for exploration/research documents (exploration_id or exec_id)
  */
 export async function deleteDocument(
   experimentId: string,
-  documentType: DocumentType
+  documentType: DocumentType,
+  sourceId?: string
 ): Promise<{ deleted: boolean; document_type: string }> {
-  return fetchAPI(`/experiments/${experimentId}/documents/${documentType}`, {
+  const queryParams = sourceId ? `?source_id=${sourceId}` : '';
+  return fetchAPI(`/experiments/${experimentId}/documents/${documentType}${queryParams}`, {
     method: 'DELETE',
   });
 }

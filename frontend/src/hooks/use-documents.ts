@@ -46,13 +46,19 @@ export function useDocumentAvailability(experimentId: string) {
 /**
  * Hook to get a specific document.
  * Returns undefined (not error) when document doesn't exist (404).
+ *
+ * @param sourceId - Required for exploration/research documents (exploration_id or exec_id)
  */
-export function useDocument(experimentId: string, documentType: DocumentType) {
+export function useDocument(
+  experimentId: string,
+  documentType: DocumentType,
+  sourceId?: string
+) {
   return useQuery({
-    queryKey: queryKeys.documents.detail(experimentId, documentType),
+    queryKey: [...queryKeys.documents.detail(experimentId, documentType), sourceId],
     queryFn: async () => {
       try {
-        return await documentsApi.getDocument(experimentId, documentType);
+        return await documentsApi.getDocument(experimentId, documentType, sourceId);
       } catch (error) {
         // Treat 404 as "no document" instead of error
         if (error instanceof Error && error.message.includes('404')) {
@@ -67,15 +73,17 @@ export function useDocument(experimentId: string, documentType: DocumentType) {
 
 /**
  * Hook to get document markdown content.
+ *
+ * @param sourceId - Required for exploration/research documents (exploration_id or exec_id)
  */
 export function useDocumentMarkdown(
   experimentId: string,
   documentType: DocumentType,
-  options?: { enabled?: boolean }
+  options?: { enabled?: boolean; sourceId?: string }
 ) {
   return useQuery({
-    queryKey: queryKeys.documents.markdown(experimentId, documentType),
-    queryFn: () => documentsApi.getDocumentMarkdown(experimentId, documentType),
+    queryKey: [...queryKeys.documents.markdown(experimentId, documentType), options?.sourceId],
+    queryFn: () => documentsApi.getDocumentMarkdown(experimentId, documentType, options?.sourceId),
     enabled: options?.enabled !== false && !!experimentId && !!documentType,
   });
 }

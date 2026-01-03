@@ -117,7 +117,10 @@ async def generate_prfaq(
 
     # Check if summary exists (prerequisite for prfaq)
     try:
-        doc_service.get_markdown(execution.experiment_id, DocumentType.SUMMARY)
+        doc_service.get_markdown(
+            execution.experiment_id,
+            DocumentType.RESEARCH_SUMMARY,
+            source_id=request.exec_id)
     except Exception:
         raise HTTPException(
             status_code=400,
@@ -125,7 +128,8 @@ async def generate_prfaq(
 
     pending = doc_service.start_generation(
         experiment_id=execution.experiment_id,
-        document_type=DocumentType.PRFAQ,
+        document_type=DocumentType.RESEARCH_PRFAQ,
+        source_id=request.exec_id,
         model=request.model)
 
     if pending is None:
