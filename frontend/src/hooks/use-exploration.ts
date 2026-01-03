@@ -16,8 +16,15 @@ import {
   getWinningPath,
   getActionCatalog,
   listExplorations,
+  generateExplorationSummary,
+  getExplorationSummary,
+  deleteExplorationSummary,
+  generateExplorationPRFAQ,
+  getExplorationPRFAQ,
+  deleteExplorationPRFAQ,
 } from '@/services/exploration-api';
 import type { ExplorationCreate } from '@/types/exploration';
+import type { ExperimentDocument } from '@/types/document';
 
 // =============================================================================
 // Query Hooks
@@ -183,4 +190,106 @@ export function useStartExploration() {
     isError: createMutation.isError || runMutation.isError,
     error: createMutation.error || runMutation.error,
   };
+}
+
+// =============================================================================
+// Document Hooks
+// =============================================================================
+
+/**
+ * Get exploration summary document.
+ * Returns null if not generated yet.
+ */
+export function useExplorationSummary(explorationId: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.explorationDocuments.summary(explorationId),
+    queryFn: () => getExplorationSummary(explorationId),
+    enabled: enabled && !!explorationId,
+    retry: false, // 404 expected for new explorations
+  });
+}
+
+/**
+ * Generate exploration summary document.
+ */
+export function useGenerateExplorationSummary() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (explorationId: string) => generateExplorationSummary(explorationId),
+    onSuccess: (document: ExperimentDocument, explorationId: string) => {
+      // Update cache with new document
+      queryClient.setQueryData(
+        queryKeys.explorationDocuments.summary(explorationId),
+        document
+      );
+    },
+  });
+}
+
+/**
+ * Delete exploration summary document.
+ */
+export function useDeleteExplorationSummary() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (explorationId: string) => deleteExplorationSummary(explorationId),
+    onSuccess: (_: void, explorationId: string) => {
+      // Clear cache
+      queryClient.setQueryData(
+        queryKeys.explorationDocuments.summary(explorationId),
+        null
+      );
+    },
+  });
+}
+
+/**
+ * Get exploration PRFAQ document.
+ * Returns null if not generated yet.
+ */
+export function useExplorationPRFAQ(explorationId: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.explorationDocuments.prfaq(explorationId),
+    queryFn: () => getExplorationPRFAQ(explorationId),
+    enabled: enabled && !!explorationId,
+    retry: false, // 404 expected for new explorations
+  });
+}
+
+/**
+ * Generate exploration PRFAQ document.
+ */
+export function useGenerateExplorationPRFAQ() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (explorationId: string) => generateExplorationPRFAQ(explorationId),
+    onSuccess: (document: ExperimentDocument, explorationId: string) => {
+      // Update cache with new document
+      queryClient.setQueryData(
+        queryKeys.explorationDocuments.prfaq(explorationId),
+        document
+      );
+    },
+  });
+}
+
+/**
+ * Delete exploration PRFAQ document.
+ */
+export function useDeleteExplorationPRFAQ() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (explorationId: string) => deleteExplorationPRFAQ(explorationId),
+    onSuccess: (_: void, explorationId: string) => {
+      // Clear cache
+      queryClient.setQueryData(
+        queryKeys.explorationDocuments.prfaq(explorationId),
+        null
+      );
+    },
+  });
 }

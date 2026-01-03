@@ -149,7 +149,7 @@ class IterationRunner:
             proposals = self.proposal_service.generate_proposals(
                 node=node,
                 experiment=experiment,
-                max_proposals=2)
+                max_proposals=4)
             llm_calls += 1
 
             # Create child nodes for each proposal

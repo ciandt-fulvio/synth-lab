@@ -19,6 +19,7 @@ import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
+from synth_lab.models.orm import Base
 from synth_lab.models.orm.research import ResearchExecution, Transcript
 from synth_lab.repositories.research_repository import (
     ExecutionStatus,
@@ -28,23 +29,57 @@ from synth_lab.repositories.research_repository import (
 
 
 @pytest.fixture(scope="module")
-def research_db_session(test_database_url: str):
+def research_db_engine(test_database_url: str):
+    """
+    Create database engine and tables for research repository tests.
+
+    Scope is module so tables are created once for all tests in this module.
+    """
+    engine = create_engine(test_database_url)
+
+    # Create all tables from ORM models
+    Base.metadata.create_all(engine)
+
+    yield engine
+
+    # Cleanup
+    Base.metadata.drop_all(engine)
+    engine.dispose()
+
+
+@pytest.fixture(scope="function")
+def research_db_session(research_db_engine):
     """
     Create isolated database session for research repository tests.
 
-    Uses test_database_url fixture from conftest.py which ensures
-    we're using the isolated test database (synthlab_test).
+    Changed to scope="function" to ensure each test gets a fresh session
+    and proper transaction isolation.
     """
-    engine = create_engine(test_database_url)
-    SessionLocal = sessionmaker(bind=engine)
+    SessionLocal = sessionmaker(bind=research_db_engine)
     session = SessionLocal()
+
+    # Clean up test data from previous runs
+    try:
+        with research_db_engine.connect() as conn:
+            conn.execute(text("DELETE FROM transcripts WHERE exec_id LIKE 'test_%'"))
+            conn.execute(text("DELETE FROM research_executions WHERE exec_id LIKE 'test_%'"))
+            conn.commit()
+    except Exception:
+        # Ignore cleanup errors
+        pass
+
+    # Start transaction
+    session.begin()
 
     yield session
 
-    # Cleanup
-    session.rollback()
-    session.close()
-    engine.dispose()
+    # Cleanup - rollback any uncommitted changes
+    try:
+        session.rollback()
+    except Exception:
+        pass
+    finally:
+        session.close()
 
 
 @pytest.fixture
@@ -152,7 +187,7 @@ class TestResearchRepositoryTranscripts:
         research_db_session.flush()
 
         # Retrieve using repository method
-        transcript_detail = research_repository.get_transcript_detail(
+        transcript_detail = research_repository.get_transcript(
             exec_id=exec_id,
             synth_id="synth_002"
         )

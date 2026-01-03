@@ -7,16 +7,20 @@ References:
     - API spec: specs/010-rest-api/contracts/openapi.yaml
 """
 
-from datetime import datetime
 
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
+
+from synth_lab.domain.entities.experiment_document import ExperimentDocument
+from synth_lab.infrastructure.phoenix_tracing import get_tracer
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
-from synth_lab.models.prfaq import PRFAQGenerateRequest, PRFAQGenerateResponse, PRFAQSummary
+from synth_lab.models.prfaq import PRFAQGenerateRequest, PRFAQSummary
 from synth_lab.repositories.prfaq_repository import PRFAQRepository
 from synth_lab.repositories.research_repository import ResearchRepository
 from synth_lab.services.errors import (
     ExecutionNotFoundError,
     PRFAQNotFoundError,
-    SummaryNotFoundError)
+    SummaryNotFoundError,
+)
 
 
 class PRFAQAlreadyGeneratingError(Exception):
@@ -35,6 +39,10 @@ class MarkdownNotFoundError(Exception):
         self.exec_id = exec_id
         message = f"Markdown content not found for PR-FAQ: {exec_id}"
         super().__init__(message)
+
+
+# Phoenix/OpenTelemetry tracer for observability
+_tracer = get_tracer("prfaq-service")
 
 
 class PRFAQService:
@@ -100,7 +108,7 @@ class PRFAQService:
 
         return markdown_content
 
-    def generate_prfaq(self, request: PRFAQGenerateRequest) -> PRFAQGenerateResponse:
+    def generate_prfaq(self, request: PRFAQGenerateRequest) -> "ExperimentDocument":
         """
         Generate a PR-FAQ from a research execution.
 
@@ -111,7 +119,7 @@ class PRFAQService:
             request: Generation request with exec_id and model.
 
         Returns:
-            Generation response with status and metadata.
+            ExperimentDocument with generated PRFAQ.
 
         Raises:
             ExecutionNotFoundError: If execution doesn't exist.
@@ -130,68 +138,90 @@ class PRFAQService:
         except ExecutionNotFoundError:
             raise
 
-        doc_service = DocumentService()
-
-        try:
-            # Verify experiment_id is set (required for saving document)
-            if not execution.experiment_id:
-                doc_service.fail_generation(
-                    execution.experiment_id or "",
-                    DocumentType.PRFAQ,
-                    "Execution not linked to an experiment")
-                raise SummaryNotFoundError(request.exec_id)
+        with _tracer.start_as_current_span(
+            f"Generate Research PR-FAQ: {execution.topic_name}",
+            attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "exec_id": request.exec_id,
+                "topic_name": execution.topic_name,
+                "model": request.model,
+            },
+        ) as span:
+            doc_service = DocumentService()
 
             try:
-                summary_content = doc_service.get_markdown(
-                    execution.experiment_id, DocumentType.SUMMARY
-                )
-            except Exception:
-                # Summary not found in experiment_documents
-                doc_service.fail_generation(
+                # Verify experiment_id is set (required for saving document)
+                if not execution.experiment_id:
+                    doc_service.fail_generation(
+                        execution.experiment_id or "",
+                        DocumentType.RESEARCH_PRFAQ,
+                        "Execution not linked to an experiment",
+                        source_id=request.exec_id)
+                    raise SummaryNotFoundError(request.exec_id)
+
+                try:
+                    summary_content = doc_service.get_markdown(
+                        execution.experiment_id,
+                        DocumentType.RESEARCH_SUMMARY,
+                        source_id=request.exec_id,
+                    )
+                except Exception:
+                    # Summary not found in experiment_documents
+                    doc_service.fail_generation(
+                        execution.experiment_id,
+                        DocumentType.RESEARCH_PRFAQ,
+                        "Summary content not found in experiment_documents",
+                        source_id=request.exec_id)
+                    raise SummaryNotFoundError(request.exec_id)
+
+                if span:
+                    span.set_attribute("summary_length", len(summary_content))
+
+                # Generate PR-FAQ markdown from summary content
+                logger.info(f"Generating PR-FAQ for execution {request.exec_id}")
+                prfaq_markdown = generate_prfaq_from_content(
+                    summary_content=summary_content,
+                    batch_id=request.exec_id,
+                    model=request.model)
+
+                if span:
+                    span.set_attribute("prfaq_length", len(prfaq_markdown))
+
+                # Extract headline from markdown (first # line)
+                headline = None
+                for line in prfaq_markdown.split("\n"):
+                    if line.startswith("# "):
+                        headline = line[2:].strip()
+                        break
+
+                # Complete generation (update status from "generating" to "completed")
+                doc_service.complete_generation(
+                    experiment_id=execution.experiment_id,
+                    document_type=DocumentType.RESEARCH_PRFAQ,
+                    markdown_content=prfaq_markdown,
+                    source_id=request.exec_id,
+                    metadata={"exec_id": request.exec_id, "headline": headline})
+
+                # Return the document using the same service instance (same session)
+                doc = doc_service.get_document(
                     execution.experiment_id,
-                    DocumentType.PRFAQ,
-                    "Summary content not found in experiment_documents")
-                raise SummaryNotFoundError(request.exec_id)
+                    DocumentType.RESEARCH_PRFAQ,
+                    source_id=request.exec_id)
+                return doc
 
-            # Generate PR-FAQ markdown from summary content
-            logger.info(f"Generating PR-FAQ for execution {request.exec_id}")
-            prfaq_markdown = generate_prfaq_from_content(
-                summary_content=summary_content,
-                batch_id=request.exec_id,
-                model=request.model)
-
-            # Extract headline from markdown (first # line)
-            headline = None
-            for line in prfaq_markdown.split("\n"):
-                if line.startswith("# "):
-                    headline = line[2:].strip()
-                    break
-
-            # Complete generation (update status from "generating" to "completed")
-            doc_service.complete_generation(
-                experiment_id=execution.experiment_id,
-                document_type=DocumentType.PRFAQ,
-                markdown_content=prfaq_markdown,
-                metadata={"exec_id": request.exec_id, "headline": headline})
-
-            return PRFAQGenerateResponse(
-                exec_id=request.exec_id,
-                status="generated",
-                generated_at=datetime.now(),
-                validation_status="valid")
-
-        except SummaryNotFoundError:
-            raise
-        except Exception as e:
-            # Update with error status
-            error_msg = str(e)[:500]  # Limit error message length
-            logger.error(f"PR-FAQ generation failed for {request.exec_id}: {error_msg}")
-            if execution.experiment_id:
-                doc_service.fail_generation(
-                    execution.experiment_id,
-                    DocumentType.PRFAQ,
-                    error_msg)
-            raise
+            except SummaryNotFoundError:
+                raise
+            except Exception as e:
+                # Update with error status
+                error_msg = str(e)[:500]  # Limit error message length
+                logger.error(f"PR-FAQ generation failed for {request.exec_id}: {error_msg}")
+                if execution.experiment_id:
+                    doc_service.fail_generation(
+                        execution.experiment_id,
+                        DocumentType.RESEARCH_PRFAQ,
+                        error_msg,
+                        source_id=request.exec_id)
+                raise
 
     async def generate_prfaq_background(self, request: PRFAQGenerateRequest) -> None:
         """
