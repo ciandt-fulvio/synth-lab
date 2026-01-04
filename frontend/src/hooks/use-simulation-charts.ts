@@ -1,45 +1,44 @@
 // frontend/src/hooks/use-simulation-charts.ts
-// React Query hooks for simulation chart data
+// React Query hooks for experiment analysis chart data
 
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import {
-  getTryVsSuccessChart,
-  getDistributionChart,
-  getFailureHeatmap,
-  getBoxPlotChart,
-  getScatterCorrelation,
-} from '@/services/simulation-api';
+  getAnalysisTryVsSuccessChart,
+  getAnalysisDistributionChart,
+  getAnalysisFailureHeatmap,
+  getAnalysisScatterCorrelation,
+} from '@/services/experiments-api';
 
 // =============================================================================
 // Phase 1: Overview Charts
 // =============================================================================
 
 export function useTryVsSuccessChart(
-  simulationId: string,
+  experimentId: string,
   attemptRateThreshold = 0.5,
   successRateThreshold = 0.5,
   enabled = true
 ) {
   return useQuery({
-    queryKey: [...queryKeys.simulation.tryVsSuccess(simulationId), attemptRateThreshold, successRateThreshold],
-    queryFn: () => getTryVsSuccessChart(simulationId, attemptRateThreshold, successRateThreshold),
-    enabled: !!simulationId && enabled,
+    queryKey: [...queryKeys.analysis.tryVsSuccess(experimentId), attemptRateThreshold, successRateThreshold],
+    queryFn: () => getAnalysisTryVsSuccessChart(experimentId, attemptRateThreshold, successRateThreshold),
+    enabled: !!experimentId && enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
 export function useDistributionChart(
-  simulationId: string,
+  experimentId: string,
   sortBy = 'success_rate',
   order = 'desc',
   limit = 50,
   enabled = true
 ) {
   return useQuery({
-    queryKey: [...queryKeys.simulation.distribution(simulationId), sortBy, order, limit],
-    queryFn: () => getDistributionChart(simulationId, sortBy, order, limit),
-    enabled: !!simulationId && enabled,
+    queryKey: [...queryKeys.analysis.distribution(experimentId), sortBy, order, limit],
+    queryFn: () => getAnalysisDistributionChart(experimentId, sortBy, order, limit),
+    enabled: !!experimentId && enabled,
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -49,7 +48,7 @@ export function useDistributionChart(
 // =============================================================================
 
 export function useFailureHeatmap(
-  simulationId: string,
+  experimentId: string,
   xAxis = 'capability_mean',
   yAxis = 'trust_mean',
   bins = 5,
@@ -57,37 +56,24 @@ export function useFailureHeatmap(
   enabled = true
 ) {
   return useQuery({
-    queryKey: [...queryKeys.simulation.failureHeatmap(simulationId), xAxis, yAxis, bins, metric],
-    queryFn: () => getFailureHeatmap(simulationId, xAxis, yAxis, bins, metric),
-    enabled: !!simulationId && enabled,
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useBoxPlotChart(
-  simulationId: string,
-  attribute = 'trust_mean',
-  enabled = true
-) {
-  return useQuery({
-    queryKey: [...queryKeys.simulation.boxPlot(simulationId), attribute],
-    queryFn: () => getBoxPlotChart(simulationId, attribute),
-    enabled: !!simulationId && enabled,
+    queryKey: [...queryKeys.analysis.failureHeatmap(experimentId), xAxis, yAxis, bins, metric],
+    queryFn: () => getAnalysisFailureHeatmap(experimentId, xAxis, yAxis, bins, metric),
+    enabled: !!experimentId && enabled,
     staleTime: 5 * 60 * 1000,
   });
 }
 
 export function useScatterCorrelation(
-  simulationId: string,
+  experimentId: string,
   xAxis = 'trust_mean',
   yAxis = 'success_rate',
   showTrendline = true,
   enabled = true
 ) {
   return useQuery({
-    queryKey: [...queryKeys.simulation.scatter(simulationId), xAxis, yAxis, showTrendline],
-    queryFn: () => getScatterCorrelation(simulationId, xAxis, yAxis, showTrendline),
-    enabled: !!simulationId && enabled,
+    queryKey: [...queryKeys.analysis.scatter(experimentId), xAxis, yAxis, showTrendline],
+    queryFn: () => getAnalysisScatterCorrelation(experimentId, xAxis, yAxis, showTrendline),
+    enabled: !!experimentId && enabled,
     staleTime: 5 * 60 * 1000,
   });
 }

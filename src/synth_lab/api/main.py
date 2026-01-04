@@ -98,7 +98,6 @@ from synth_lab.api.routers import (
     insights,
     prfaq,
     research,
-    simulation,
     synth_groups,
     synths)
 
@@ -107,7 +106,6 @@ app.include_router(synths.router, prefix="/synths", tags=["synths"])
 app.include_router(chat.router, prefix="/synths", tags=["chat"])
 app.include_router(research.router, prefix="/research", tags=["research"])
 app.include_router(prfaq.router, prefix="/prfaq", tags=["prfaq"])
-app.include_router(simulation.router, prefix="/simulation", tags=["simulation"])
 app.include_router(experiments.router, prefix="/experiments", tags=["experiments"])
 app.include_router(analysis.router, prefix="/experiments", tags=["analysis"])
 app.include_router(insights.router, prefix="/experiments", tags=["insights"])
