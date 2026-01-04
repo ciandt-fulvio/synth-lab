@@ -29,11 +29,22 @@ _tracer = get_tracer("chat-service")
 class ChatService:
     """Service for generating synth chat responses."""
 
-    def __init__(self):
-        """Initialize chat service with dependencies."""
-        self.llm_client = get_llm_client()
-        self.research_repo = ResearchRepository()
-        self.synths_repo = SynthRepository()
+    def __init__(
+        self,
+        research_repo: ResearchRepository | None = None,
+        synths_repo: SynthRepository | None = None,
+        llm_client = None
+    ):
+        """Initialize chat service with dependencies.
+
+        Args:
+            research_repo: Repository for research data (optional, defaults to new instance)
+            synths_repo: Repository for synth data (optional, defaults to new instance)
+            llm_client: LLM client (optional, defaults to global singleton)
+        """
+        self.llm_client = llm_client or get_llm_client()
+        self.research_repo = research_repo or ResearchRepository()
+        self.synths_repo = synths_repo or SynthRepository()
         self.logger = logger.bind(component="chat_service")
 
     def _build_messages(self, synth_id: str, request: ChatRequest) -> tuple[list[dict], str]:

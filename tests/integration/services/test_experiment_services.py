@@ -49,13 +49,13 @@ class TestExperimentServiceIntegration:
 
     def test_list_experiments_returns_sorted_results(self, isolated_db_session):
         """Test that list_experiments returns properly sorted paginated results."""
-        # Setup: Create multiple experiments
+        # Setup: Create multiple experiments (all active - service filters by status='active')
         for i in range(15):
             exp = Experiment(
                 id=f"exp_list_{i:03d}",
                 name=f"Experiment {i}",
                 hypothesis=f"Hypothesis {i}",
-                status="active" if i % 2 == 0 else "completed",
+                status="active",
                 created_at=datetime.now().isoformat(),
             )
             isolated_db_session.add(exp)
@@ -78,9 +78,9 @@ class TestExperimentServiceIntegration:
 
     def test_update_experiment_modifies_database_record(self, isolated_db_session):
         """Test that updating an experiment persists changes to database."""
-        # Setup: Create experiment
+        # Setup: Create experiment with valid ID format (exp_[8 hex chars])
         experiment = Experiment(
-            id="exp_update_001",
+            id="exp_12345678",
             name="Original Name",
             hypothesis="Original Hypothesis",
             status="active",
@@ -94,7 +94,7 @@ class TestExperimentServiceIntegration:
         service = ExperimentService(repository=repo)
 
         updated = service.update_experiment(
-            experiment_id="exp_update_001",
+            experiment_id="exp_12345678",
             name="Updated Name",
             description="New description added"
         )
@@ -105,15 +105,15 @@ class TestExperimentServiceIntegration:
         assert updated.hypothesis == "Original Hypothesis", "Hypothesis should remain unchanged"
 
         # Verify in database
-        db_experiment = isolated_db_session.query(Experiment).filter_by(id="exp_update_001").first()
+        db_experiment = isolated_db_session.query(Experiment).filter_by(id="exp_12345678").first()
         assert db_experiment.name == "Updated Name"
         assert db_experiment.updated_at is not None, "updated_at should be set"
 
     def test_delete_experiment_removes_from_database(self, isolated_db_session):
-        """Test that deleting an experiment removes it from database."""
-        # Setup
+        """Test that deleting an experiment soft-deletes it (sets status='deleted')."""
+        # Setup with valid ID format
         experiment = Experiment(
-            id="exp_delete_001",
+            id="exp_abcdef12",
             name="To Be Deleted",
             hypothesis="Will be removed",
             status="active",
@@ -125,11 +125,12 @@ class TestExperimentServiceIntegration:
         # Execute
         repo = ExperimentRepository(session=isolated_db_session)
         service = ExperimentService(repository=repo)
-        service.delete_experiment("exp_delete_001")
+        service.delete_experiment("exp_abcdef12")
 
-        # Verify: Experiment should be gone
-        db_experiment = isolated_db_session.query(Experiment).filter_by(id="exp_delete_001").first()
-        assert db_experiment is None, "Experiment should be deleted from database"
+        # Verify: Experiment should be soft-deleted (status='deleted')
+        db_experiment = isolated_db_session.query(Experiment).filter_by(id="exp_abcdef12").first()
+        assert db_experiment is not None, "Experiment should still exist in database"
+        assert db_experiment.status == "deleted", "Experiment should have status='deleted'"
 
 
 @pytest.mark.integration
