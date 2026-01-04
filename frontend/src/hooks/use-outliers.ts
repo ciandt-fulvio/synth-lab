@@ -3,30 +3,30 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
-import { getExtremeCases, getOutliers } from '@/services/simulation-api';
+import { getAnalysisExtremeCases, getAnalysisOutliers } from '@/services/experiments-api';
 
 export function useExtremeCases(
-  simulationId: string,
+  experimentId: string,
   nPerCategory = 10,
   enabled = true
 ) {
   return useQuery({
-    queryKey: [...queryKeys.simulation.extremeCases(simulationId), nPerCategory],
-    queryFn: () => getExtremeCases(simulationId, nPerCategory),
-    enabled: !!simulationId && enabled,
+    queryKey: [...queryKeys.analysis.extremeCases(experimentId), nPerCategory],
+    queryFn: () => getAnalysisExtremeCases(experimentId, nPerCategory),
+    enabled: !!experimentId && enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
 export function useOutliers(
-  simulationId: string,
+  experimentId: string,
   contamination = 0.1,
   enabled = true
 ) {
   return useQuery({
-    queryKey: [...queryKeys.simulation.outliers(simulationId), contamination],
-    queryFn: () => getOutliers(simulationId, contamination),
-    enabled: !!simulationId && enabled,
+    queryKey: [...queryKeys.analysis.outliers(experimentId), contamination],
+    queryFn: () => getAnalysisOutliers(experimentId, contamination),
+    enabled: !!experimentId && enabled,
     staleTime: 5 * 60 * 1000,
   });
 }

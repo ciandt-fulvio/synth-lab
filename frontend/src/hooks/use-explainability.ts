@@ -4,34 +4,34 @@
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import {
-  getShapSummary,
-  getShapExplanation,
-  getPDP,
-  getPDPComparison,
-} from '@/services/simulation-api';
+  getAnalysisShapSummary,
+  getAnalysisShapExplanation,
+  getAnalysisPDP,
+  getAnalysisPDPComparison,
+} from '@/services/experiments-api';
 
 // =============================================================================
 // SHAP Hooks
 // =============================================================================
 
-export function useShapSummary(simulationId: string, enabled = true) {
+export function useShapSummary(experimentId: string, enabled = true) {
   return useQuery({
-    queryKey: queryKeys.simulation.shapSummary(simulationId),
-    queryFn: () => getShapSummary(simulationId),
-    enabled: !!simulationId && enabled,
+    queryKey: queryKeys.analysis.shapSummary(experimentId),
+    queryFn: () => getAnalysisShapSummary(experimentId),
+    enabled: !!experimentId && enabled,
     staleTime: 10 * 60 * 1000, // 10 minutes (SHAP is expensive)
   });
 }
 
 export function useShapExplanation(
-  simulationId: string,
+  experimentId: string,
   synthId: string,
   enabled = true
 ) {
   return useQuery({
-    queryKey: queryKeys.simulation.shapExplanation(simulationId, synthId),
-    queryFn: () => getShapExplanation(simulationId, synthId),
-    enabled: !!simulationId && !!synthId && enabled,
+    queryKey: queryKeys.analysis.shapExplanation(experimentId, synthId),
+    queryFn: () => getAnalysisShapExplanation(experimentId, synthId),
+    enabled: !!experimentId && !!synthId && enabled,
     staleTime: 10 * 60 * 1000,
   });
 }
@@ -41,29 +41,29 @@ export function useShapExplanation(
 // =============================================================================
 
 export function usePDP(
-  simulationId: string,
+  experimentId: string,
   feature: string,
   gridResolution = 20,
   enabled = true
 ) {
   return useQuery({
-    queryKey: [...queryKeys.simulation.pdp(simulationId, feature), gridResolution],
-    queryFn: () => getPDP(simulationId, feature, gridResolution),
-    enabled: !!simulationId && !!feature && enabled,
+    queryKey: [...queryKeys.analysis.pdp(experimentId, feature), gridResolution],
+    queryFn: () => getAnalysisPDP(experimentId, feature, gridResolution),
+    enabled: !!experimentId && !!feature && enabled,
     staleTime: 10 * 60 * 1000,
   });
 }
 
 export function usePDPComparison(
-  simulationId: string,
+  experimentId: string,
   features: string[],
   gridResolution = 20,
   enabled = true
 ) {
   return useQuery({
-    queryKey: [...queryKeys.simulation.pdpComparison(simulationId), features, gridResolution],
-    queryFn: () => getPDPComparison(simulationId, features, gridResolution),
-    enabled: !!simulationId && features.length > 0 && enabled,
+    queryKey: [...queryKeys.analysis.pdpComparison(experimentId), features, gridResolution],
+    queryFn: () => getAnalysisPDPComparison(experimentId, features, gridResolution),
+    enabled: !!experimentId && features.length > 0 && enabled,
     staleTime: 10 * 60 * 1000,
   });
 }

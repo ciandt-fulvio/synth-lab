@@ -1,91 +1,77 @@
 // frontend/src/hooks/use-clustering.ts
-// React Query hooks for clustering operations
+// React Query hooks for experiment analysis clustering operations
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import {
-  getClustering,
-  createClustering,
-  getElbowData,
-  getDendrogram,
-  getClusterRadar,
-  getRadarComparison,
-  cutDendrogram,
-} from '@/services/simulation-api';
+  getAnalysisClustering,
+  createAnalysisClustering,
+  getAnalysisElbow,
+  getAnalysisDendrogram,
+  getAnalysisRadarComparison,
+  cutAnalysisDendrogram,
+} from '@/services/experiments-api';
 import type { ClusterRequest, CutDendrogramRequest } from '@/types/simulation';
 
-export function useClustering(simulationId: string, enabled = true) {
+export function useClustering(experimentId: string, enabled = true) {
   return useQuery({
-    queryKey: queryKeys.simulation.clusters(simulationId),
-    queryFn: () => getClustering(simulationId),
-    enabled: !!simulationId && enabled,
+    queryKey: queryKeys.analysis.clusters(experimentId),
+    queryFn: () => getAnalysisClustering(experimentId),
+    enabled: !!experimentId && enabled,
     staleTime: 10 * 60 * 1000, // 10 minutes (clustering is expensive)
   });
 }
 
-export function useCreateClustering(simulationId: string) {
+export function useCreateClustering(experimentId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (request: ClusterRequest) => createClustering(simulationId, request),
+    mutationFn: (request: ClusterRequest) => createAnalysisClustering(experimentId, request),
     onSuccess: () => {
       // Invalidate clustering-related queries
-      queryClient.invalidateQueries({ queryKey: queryKeys.simulation.clusters(simulationId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.simulation.elbow(simulationId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.simulation.radarComparison(simulationId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.clusters(experimentId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.elbow(experimentId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.radarComparison(experimentId) });
     },
   });
 }
 
-export function useElbowData(simulationId: string, enabled = true) {
+export function useElbowData(experimentId: string, enabled = true) {
   return useQuery({
-    queryKey: queryKeys.simulation.elbow(simulationId),
-    queryFn: () => getElbowData(simulationId),
-    enabled: !!simulationId && enabled,
+    queryKey: queryKeys.analysis.elbow(experimentId),
+    queryFn: () => getAnalysisElbow(experimentId),
+    enabled: !!experimentId && enabled,
     staleTime: 10 * 60 * 1000,
   });
 }
 
-export function useDendrogram(simulationId: string, enabled = true) {
+export function useDendrogram(experimentId: string, enabled = true) {
   return useQuery({
-    queryKey: queryKeys.simulation.dendrogram(simulationId),
-    queryFn: () => getDendrogram(simulationId),
-    enabled: !!simulationId && enabled,
+    queryKey: queryKeys.analysis.dendrogram(experimentId),
+    queryFn: () => getAnalysisDendrogram(experimentId),
+    enabled: !!experimentId && enabled,
     staleTime: 10 * 60 * 1000,
   });
 }
 
-export function useClusterRadar(
-  simulationId: string,
-  clusterId: number,
-  enabled = true
-) {
+export function useRadarComparison(experimentId: string, enabled = true) {
   return useQuery({
-    queryKey: queryKeys.simulation.clusterRadar(simulationId, clusterId),
-    queryFn: () => getClusterRadar(simulationId, clusterId),
-    enabled: !!simulationId && clusterId >= 0 && enabled,
+    queryKey: queryKeys.analysis.radarComparison(experimentId),
+    queryFn: () => getAnalysisRadarComparison(experimentId),
+    enabled: !!experimentId && enabled,
     staleTime: 10 * 60 * 1000,
   });
 }
 
-export function useRadarComparison(simulationId: string, enabled = true) {
-  return useQuery({
-    queryKey: queryKeys.simulation.radarComparison(simulationId),
-    queryFn: () => getRadarComparison(simulationId),
-    enabled: !!simulationId && enabled,
-    staleTime: 10 * 60 * 1000,
-  });
-}
-
-export function useCutDendrogram(simulationId: string) {
+export function useCutDendrogram(experimentId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (request: CutDendrogramRequest) => cutDendrogram(simulationId, request),
+    mutationFn: (request: CutDendrogramRequest) => cutAnalysisDendrogram(experimentId, request),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.simulation.clusters(simulationId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.simulation.dendrogram(simulationId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.simulation.radarComparison(simulationId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.clusters(experimentId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.dendrogram(experimentId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.radarComparison(experimentId) });
     },
   });
 }
