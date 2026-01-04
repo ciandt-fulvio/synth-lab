@@ -4,7 +4,7 @@ Integration tests for clustering API endpoints.
 Tests the full clustering flow from API request to response.
 
 References:
-    - Clustering Router: src/synth_lab/api/routers/simulation.py
+    - Clustering Router: src/synth_lab/api/routers/analysis.py
     - Clustering Service: src/synth_lab/services/simulation/clustering_service.py
 """
 
@@ -19,7 +19,6 @@ from synth_lab.domain.entities import (
     SimulationAttributes,
     SimulationLatentTraits,
     SimulationObservables,
-    SimulationRun,
     SynthOutcome,
 )
 
@@ -31,17 +30,15 @@ def client():
 
 
 @pytest.fixture
-def sample_simulation():
-    """Create a mock simulation run."""
-    return SimulationRun(
-        id="sim_12345678",
-        scorecard_id="scorecard_001",
-        scenario_id="baseline",
-        num_synths=100,
-        simulations_per_synth=50,
-        status="completed",
-        seed=42,
-    )
+def experiment_id():
+    """Sample experiment ID."""
+    return "exp_12345678"
+
+
+@pytest.fixture
+def analysis_id():
+    """Sample analysis ID."""
+    return "ana_12345678"
 
 
 @pytest.fixture
@@ -103,39 +100,24 @@ def sample_outcomes():
     return outcomes
 
 
-@pytest.fixture
-def mock_get_simulation_outcomes(sample_outcomes):
-    """Mock get_simulation_outcomes_as_entities function."""
-
-    def mock_func(service, simulation_id):
-        return sample_outcomes
-
-    return mock_func
-
-
 class TestClusteringEndpoints:
     """Integration tests for clustering endpoints."""
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_create_kmeans_clustering(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test creating K-Means clustering."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
         response = client.post(
-            "/simulation/simulations/sim_12345678/clusters",
+            f"/experiments/{experiment_id}/analysis/clustering",
             json={"method": "kmeans", "n_clusters": 3},
         )
 
@@ -143,7 +125,7 @@ class TestClusteringEndpoints:
         assert response.status_code == 200
         data = response.json()
 
-        assert data["simulation_id"] == "sim_12345678"
+        assert data["experiment_id"] == experiment_id
         assert data["n_clusters"] == 3
         assert data["method"] == "kmeans"
         assert len(data["clusters"]) == 3
@@ -152,26 +134,21 @@ class TestClusteringEndpoints:
         assert "elbow_data" in data
         assert data["silhouette_score"] > 0
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_create_hierarchical_clustering(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test creating Hierarchical clustering."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
         response = client.post(
-            "/simulation/simulations/sim_12345678/clusters",
+            f"/experiments/{experiment_id}/analysis/clustering",
             json={"method": "hierarchical", "linkage": "ward"},
         )
 
@@ -179,7 +156,7 @@ class TestClusteringEndpoints:
         assert response.status_code == 200
         data = response.json()
 
-        assert data["simulation_id"] == "sim_12345678"
+        assert data["experiment_id"] == experiment_id
         assert data["method"] == "hierarchical"
         assert data["linkage_method"] == "ward"
         assert "nodes" in data
@@ -187,78 +164,68 @@ class TestClusteringEndpoints:
         assert "suggested_cuts" in data
         assert len(data["nodes"]) > 0
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_get_clustering_after_creation(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test getting clustering after creation."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Create clustering first
         create_response = client.post(
-            "/simulation/simulations/sim_12345678/clusters",
+            f"/experiments/{experiment_id}/analysis/clustering",
             json={"method": "kmeans", "n_clusters": 3},
         )
         assert create_response.status_code == 200
 
         # Get clustering
-        get_response = client.get("/simulation/simulations/sim_12345678/clusters")
+        get_response = client.get(f"/experiments/{experiment_id}/analysis/clustering")
 
         # Assertions
         assert get_response.status_code == 200
         data = get_response.json()
-        assert data["simulation_id"] == "sim_12345678"
+        assert data["experiment_id"] == experiment_id
         assert data["method"] == "kmeans"
 
     def test_get_clustering_without_creation(self, client):
         """Test getting clustering without creating it first."""
         # Clear cache
-        from synth_lab.api.routers.simulation import _clustering_cache
+        from synth_lab.api.routers.analysis import _clustering_cache
 
         _clustering_cache.clear()
 
         # Try to get non-existent clustering
-        response = client.get("/simulation/simulations/sim_nonexistent/clusters")
+        response = client.get("/experiments/exp_nonexistent/analysis/clustering")
 
         # Should return 404
         assert response.status_code == 404
         assert "No clustering found" in response.json()["detail"]
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_get_elbow_data(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test getting elbow method data."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Create K-Means clustering first
         client.post(
-            "/simulation/simulations/sim_12345678/clusters",
+            f"/experiments/{experiment_id}/analysis/clustering",
             json={"method": "kmeans", "n_clusters": 3},
         )
 
         # Get elbow data
-        response = client.get("/simulation/simulations/sim_12345678/clusters/elbow")
+        response = client.get(f"/experiments/{experiment_id}/analysis/clustering/elbow")
 
         # Assertions
         assert response.status_code == 200
@@ -267,66 +234,56 @@ class TestClusteringEndpoints:
         assert len(data) > 0
         assert all("k" in point and "inertia" in point for point in data)
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_get_radar_comparison(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test getting radar chart comparison."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Create K-Means clustering first
         client.post(
-            "/simulation/simulations/sim_12345678/clusters",
+            f"/experiments/{experiment_id}/analysis/clustering",
             json={"method": "kmeans", "n_clusters": 3},
         )
 
         # Get radar comparison
-        response = client.get("/simulation/simulations/sim_12345678/clusters/radar-comparison")
+        response = client.get(f"/experiments/{experiment_id}/analysis/clustering/radar-comparison")
 
         # Assertions
         assert response.status_code == 200
         data = response.json()
-        assert data["simulation_id"] == "sim_12345678"
+        assert data["experiment_id"] == experiment_id
         assert "clusters" in data
         assert len(data["clusters"]) == 3
         assert "axis_labels" in data
         assert "baseline" in data
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_get_cluster_radar(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test getting radar chart for specific cluster."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Create K-Means clustering first
         client.post(
-            "/simulation/simulations/sim_12345678/clusters",
+            f"/experiments/{experiment_id}/analysis/clustering",
             json={"method": "kmeans", "n_clusters": 3},
         )
 
         # Get radar for cluster 0
-        response = client.get("/simulation/simulations/sim_12345678/clusters/0/radar")
+        response = client.get(f"/experiments/{experiment_id}/analysis/clustering/clusters/0/radar")
 
         # Assertions
         assert response.status_code == 200
@@ -334,32 +291,27 @@ class TestClusteringEndpoints:
         assert len(data["clusters"]) == 1
         assert data["clusters"][0]["cluster_id"] == 0
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_cut_dendrogram(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test cutting hierarchical dendrogram."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Create hierarchical clustering first
         client.post(
-            "/simulation/simulations/sim_12345678/clusters",
+            f"/experiments/{experiment_id}/analysis/clustering",
             json={"method": "hierarchical"},
         )
 
         # Cut dendrogram
         response = client.post(
-            "/simulation/simulations/sim_12345678/clusters/cut",
+            f"/experiments/{experiment_id}/analysis/clustering/cut",
             json={"n_clusters": 4},
         )
 
@@ -370,38 +322,25 @@ class TestClusteringEndpoints:
         assert data["cluster_assignments"] is not None
         assert len(data["cluster_assignments"]) == 100
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    def test_clustering_requires_completed_simulation(self, mock_get_service, client):
-        """Test that clustering requires completed simulation."""
-        # Setup mock with non-completed simulation
-        incomplete_sim = SimulationRun(
-            id="sim_abcd1234",
-            scorecard_id="scorecard_001",
-            scenario_id="baseline",
-            num_synths=100,
-            simulations_per_synth=50,
-            status="running",  # Not completed
-            seed=42,
-        )
-
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = incomplete_sim
-        mock_get_service.return_value = mock_service
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
+    def test_clustering_requires_completed_simulation(self, mock_get_outcomes, client, experiment_id):
+        """Test that clustering requires completed analysis."""
+        # Mock should raise if analysis not completed - returning empty outcomes
+        mock_get_outcomes.return_value = []
 
         # Try to create clustering
         response = client.post(
-            "/simulation/simulations/sim_abcd1234/clusters",
+            f"/experiments/{experiment_id}/analysis/clustering",
             json={"method": "kmeans", "n_clusters": 3},
         )
 
         # Should return 400
         assert response.status_code == 400
-        assert "not completed" in response.json()["detail"]
+        assert "at least 10 synths" in response.json()["detail"]
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_clustering_requires_minimum_synths(
-        self, mock_get_outcomes, mock_get_service, client, sample_simulation
+        self, mock_get_outcomes, client, experiment_id
     ):
         """Test that clustering requires at least 10 synths."""
         # Setup mocks with only 5 synths
@@ -431,14 +370,11 @@ class TestClusteringEndpoints:
             for i in range(5)
         ]
 
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = few_outcomes
 
         # Try to create clustering
         response = client.post(
-            "/simulation/simulations/sim_12345678/clusters",
+            f"/experiments/{experiment_id}/analysis/clustering",
             json={"method": "kmeans", "n_clusters": 3},
         )
 
