@@ -4,7 +4,7 @@ Integration tests for explainability API endpoints.
 Tests the full SHAP and PDP flow from API request to response.
 
 References:
-    - Simulation Router: src/synth_lab/api/routers/simulation.py
+    - Analysis Router: src/synth_lab/api/routers/analysis.py
     - Explainability Service: src/synth_lab/services/simulation/explainability_service.py
 """
 
@@ -19,7 +19,6 @@ from synth_lab.domain.entities import (
     SimulationAttributes,
     SimulationLatentTraits,
     SimulationObservables,
-    SimulationRun,
     SynthOutcome,
 )
 
@@ -31,17 +30,9 @@ def client():
 
 
 @pytest.fixture
-def sample_simulation():
-    """Create a mock simulation run."""
-    return SimulationRun(
-        id="sim_12345678",
-        scorecard_id="scorecard_001",
-        scenario_id="baseline",
-        num_synths=100,
-        simulations_per_synth=50,
-        status="completed",
-        seed=42,
-    )
+def experiment_id():
+    """Sample experiment ID."""
+    return "exp_12345678"
 
 
 @pytest.fixture
@@ -105,31 +96,26 @@ def sample_outcomes():
 class TestShapEndpoints:
     """Integration tests for SHAP endpoints."""
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_get_shap_explanation_basic(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test getting SHAP explanation for a specific synth."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
-        response = client.get("/simulation/simulations/sim_12345678/shap/synth_010")
+        response = client.get(f"/experiments/{experiment_id}/analysis/explainability/shap/synth_010")
 
         # Assertions
         assert response.status_code == 200
         data = response.json()
 
-        assert data["simulation_id"] == "sim_12345678"
+        assert data["experiment_id"] == experiment_id
         assert data["synth_id"] == "synth_010"
         assert "predicted_success_rate" in data
         assert "actual_success_rate" in data
@@ -138,25 +124,20 @@ class TestShapEndpoints:
         assert "explanation_text" in data
         assert len(data["contributions"]) > 0
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_shap_explanation_contributions_sorted(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test that SHAP contributions are sorted by absolute value."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
-        response = client.get("/simulation/simulations/sim_12345678/shap/synth_025")
+        response = client.get(f"/experiments/{experiment_id}/analysis/explainability/shap/synth_025")
 
         assert response.status_code == 200
         data = response.json()
@@ -165,31 +146,26 @@ class TestShapEndpoints:
         shap_values = [abs(c["shap_value"]) for c in data["contributions"]]
         assert shap_values == sorted(shap_values, reverse=True)
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_get_shap_summary_basic(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test getting global SHAP summary."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
-        response = client.get("/simulation/simulations/sim_12345678/shap/summary")
+        response = client.get(f"/experiments/{experiment_id}/analysis/explainability/shap-summary")
 
         # Assertions
         assert response.status_code == 200
         data = response.json()
 
-        assert data["simulation_id"] == "sim_12345678"
+        assert data["experiment_id"] == experiment_id
         assert "feature_importances" in data
         assert "top_features" in data
         assert "total_synths" in data
@@ -199,25 +175,20 @@ class TestShapEndpoints:
         assert data["total_synths"] == len(sample_outcomes)
         assert 0 <= data["model_score"] <= 1.0
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_shap_summary_importances_positive(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test that feature importances are positive."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
-        response = client.get("/simulation/simulations/sim_12345678/shap/summary")
+        response = client.get(f"/experiments/{experiment_id}/analysis/explainability/shap-summary")
 
         assert response.status_code == 200
         data = response.json()
@@ -225,25 +196,20 @@ class TestShapEndpoints:
         for importance in data["feature_importances"].values():
             assert importance >= 0
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_shap_explanation_synth_not_found(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test error when synth not found."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request with non-existent synth
-        response = client.get("/simulation/simulations/sim_12345678/shap/nonexistent_synth")
+        response = client.get(f"/experiments/{experiment_id}/analysis/explainability/shap/nonexistent_synth")
 
         # Should return 404
         assert response.status_code == 404
@@ -253,31 +219,26 @@ class TestShapEndpoints:
 class TestPDPEndpoints:
     """Integration tests for PDP endpoints."""
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_get_pdp_basic(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test getting PDP for a feature."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
-        response = client.get("/simulation/simulations/sim_12345678/pdp?feature=trust_mean")
+        response = client.get(f"/experiments/{experiment_id}/analysis/explainability/pdp?feature=trust_mean")
 
         # Assertions
         assert response.status_code == 200
         data = response.json()
 
-        assert data["simulation_id"] == "sim_12345678"
+        assert data["experiment_id"] == experiment_id
         assert data["feature_name"] == "trust_mean"
         assert "feature_display_name" in data
         assert "pdp_values" in data
@@ -285,25 +246,20 @@ class TestPDPEndpoints:
         assert "effect_strength" in data
         assert len(data["pdp_values"]) > 0
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_pdp_values_sorted(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test that PDP values are sorted by feature value."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
-        response = client.get("/simulation/simulations/sim_12345678/pdp?feature=capability_mean")
+        response = client.get(f"/experiments/{experiment_id}/analysis/explainability/pdp?feature=capability_mean")
 
         assert response.status_code == 200
         data = response.json()
@@ -311,26 +267,21 @@ class TestPDPEndpoints:
         feature_values = [p["feature_value"] for p in data["pdp_values"]]
         assert feature_values == sorted(feature_values)
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_pdp_grid_resolution(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test PDP with custom grid resolution."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request with custom resolution
         response = client.get(
-            "/simulation/simulations/sim_12345678/pdp?feature=trust_mean&grid_resolution=10"
+            f"/experiments/{experiment_id}/analysis/explainability/pdp?feature=trust_mean&grid_resolution=10"
         )
 
         assert response.status_code == 200
@@ -338,25 +289,20 @@ class TestPDPEndpoints:
 
         assert len(data["pdp_values"]) == 10
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_pdp_effect_type_valid(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test that PDP effect type is valid."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
-        response = client.get("/simulation/simulations/sim_12345678/pdp?feature=trust_mean")
+        response = client.get(f"/experiments/{experiment_id}/analysis/explainability/pdp?feature=trust_mean")
 
         assert response.status_code == 200
         data = response.json()
@@ -369,25 +315,20 @@ class TestPDPEndpoints:
         ]
         assert data["effect_type"] in valid_effect_types
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_pdp_invalid_feature(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test error for invalid feature."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request with invalid feature
-        response = client.get("/simulation/simulations/sim_12345678/pdp?feature=invalid_feature")
+        response = client.get(f"/experiments/{experiment_id}/analysis/explainability/pdp?feature=invalid_feature")
 
         # Should return 400
         assert response.status_code == 400
@@ -397,57 +338,47 @@ class TestPDPEndpoints:
 class TestPDPComparisonEndpoint:
     """Integration tests for PDP comparison endpoint."""
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_pdp_comparison_basic(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test basic PDP comparison."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
         response = client.get(
-            "/simulation/simulations/sim_12345678/pdp/comparison?features=trust_mean,capability_mean"
+            f"/experiments/{experiment_id}/analysis/explainability/pdp-comparison?features=trust_mean,capability_mean"
         )
 
         # Assertions
         assert response.status_code == 200
         data = response.json()
 
-        assert data["simulation_id"] == "sim_12345678"
+        assert data["experiment_id"] == experiment_id
         assert len(data["pdp_results"]) == 2
         assert len(data["feature_ranking"]) == 2
         assert data["total_synths"] == len(sample_outcomes)
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_pdp_comparison_ranking(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test that features are ranked by effect strength."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request
         response = client.get(
-            "/simulation/simulations/sim_12345678/pdp/comparison?features=trust_mean,capability_mean,friction_tolerance_mean"
+            f"/experiments/{experiment_id}/analysis/explainability/pdp-comparison?features=trust_mean,capability_mean,friction_tolerance_mean"
         )
 
         assert response.status_code == 200
@@ -458,26 +389,21 @@ class TestPDPComparisonEndpoint:
         ranked_strengths = [pdp_map[f] for f in data["feature_ranking"]]
         assert ranked_strengths == sorted(ranked_strengths, reverse=True)
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
     def test_pdp_comparison_requires_two_features(
         self,
         mock_get_outcomes,
-        mock_get_service,
         client,
-        sample_simulation,
+        experiment_id,
         sample_outcomes,
     ):
         """Test that comparison requires at least 2 features."""
         # Setup mocks
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_simulation
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = sample_outcomes
 
         # Make request with only 1 feature
         response = client.get(
-            "/simulation/simulations/sim_12345678/pdp/comparison?features=trust_mean"
+            f"/experiments/{experiment_id}/analysis/explainability/pdp-comparison?features=trust_mean"
         )
 
         # Should return 400
@@ -488,49 +414,34 @@ class TestPDPComparisonEndpoint:
 class TestExplainabilityEdgeCases:
     """Test edge cases and error handling."""
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    def test_shap_simulation_not_found(self, mock_get_service, client):
-        """Test error when simulation not found."""
-        # Setup mock with no simulation
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = None
-        mock_get_service.return_value = mock_service
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
+    def test_shap_simulation_not_found(self, mock_get_outcomes, client, experiment_id):
+        """Test error when experiment has no analysis data."""
+        # Setup mock with empty outcomes
+        mock_get_outcomes.return_value = []
 
         # Try to get SHAP
-        response = client.get("/simulation/simulations/sim_nonexistent/shap/synth_000")
-
-        # Should return 404
-        assert response.status_code == 404
-        assert "not found" in response.json()["detail"]
-
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    def test_shap_requires_completed_simulation(self, mock_get_service, client):
-        """Test that SHAP requires completed simulation."""
-        # Setup mock with non-completed simulation
-        incomplete_sim = SimulationRun(
-            id="sim_abcd1234",
-            scorecard_id="scorecard_001",
-            scenario_id="baseline",
-            num_synths=100,
-            simulations_per_synth=50,
-            status="running",  # Not completed
-            seed=42,
-        )
-
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = incomplete_sim
-        mock_get_service.return_value = mock_service
-
-        # Try to get SHAP
-        response = client.get("/simulation/simulations/sim_abcd1234/shap/synth_000")
+        response = client.get(f"/experiments/{experiment_id}/analysis/explainability/shap/synth_000")
 
         # Should return 400
         assert response.status_code == 400
-        assert "not completed" in response.json()["detail"]
+        assert "at least 20 synths" in response.json()["detail"]
 
-    @patch("synth_lab.api.routers.simulation.get_simulation_service")
-    @patch("synth_lab.api.routers.simulation.get_simulation_outcomes_as_entities")
-    def test_shap_requires_minimum_synths(self, mock_get_outcomes, mock_get_service, client):
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
+    def test_shap_requires_completed_simulation(self, mock_get_outcomes, client, experiment_id):
+        """Test that SHAP requires completed analysis."""
+        # Mock should raise if analysis not completed - returning empty outcomes
+        mock_get_outcomes.return_value = []
+
+        # Try to get SHAP
+        response = client.get(f"/experiments/{experiment_id}/analysis/explainability/shap/synth_000")
+
+        # Should return 400
+        assert response.status_code == 400
+        assert "at least 20 synths" in response.json()["detail"]
+
+    @patch("synth_lab.api.routers.analysis.get_synth_outcomes_for_analysis")
+    def test_shap_requires_minimum_synths(self, mock_get_outcomes, client, experiment_id):
         """Test that SHAP requires at least 20 synths."""
         # Setup mocks with only 10 synths
         few_outcomes = [
@@ -559,23 +470,10 @@ class TestExplainabilityEdgeCases:
             for i in range(10)
         ]
 
-        sample_sim = SimulationRun(
-            id="sim_12345678",
-            scorecard_id="scorecard_001",
-            scenario_id="baseline",
-            num_synths=10,
-            simulations_per_synth=50,
-            status="completed",
-            seed=42,
-        )
-
-        mock_service = MagicMock()
-        mock_service.get_simulation.return_value = sample_sim
-        mock_get_service.return_value = mock_service
         mock_get_outcomes.return_value = few_outcomes
 
         # Try to get SHAP
-        response = client.get("/simulation/simulations/sim_12345678/shap/synth_000")
+        response = client.get(f"/experiments/{experiment_id}/analysis/explainability/shap/synth_000")
 
         # Should return 400
         assert response.status_code == 400
