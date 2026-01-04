@@ -30,7 +30,6 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Output directories (execution data, not versioned)
 SYNTHS_DIR = OUTPUT_DIR / "synths"
-SYNTHS_JSON_PATH = SYNTHS_DIR / "synths.json"
 AVATARS_DIR = SYNTHS_DIR / "avatar"
 TOPIC_GUIDES_DIR = OUTPUT_DIR / "topic_guides"
 TRACES_DIR = OUTPUT_DIR / "traces"
