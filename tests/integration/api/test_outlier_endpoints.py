@@ -239,7 +239,7 @@ class TestExtremeCasesEndpoint:
             assert response.status_code == 200
             data = response.json()
 
-            assert data["experiment_id"] == experiment_id
+            assert data["simulation_id"] == mock_completed_analysis.id
             assert data["total_synths"] == 50
             assert len(data["worst_failures"]) == 10
             assert len(data["best_successes"]) == 10
@@ -342,7 +342,7 @@ class TestOutlierDetectionEndpoint:
             assert response.status_code == 200
             data = response.json()
 
-            assert data["experiment_id"] == experiment_id
+            assert data["simulation_id"] == mock_completed_analysis.id
             assert data["method"] == "isolation_forest"
             assert data["contamination"] == 0.1
             assert data["total_synths"] == 50

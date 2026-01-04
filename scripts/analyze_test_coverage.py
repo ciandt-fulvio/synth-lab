@@ -12,12 +12,21 @@ Usage:
     python scripts/analyze_test_coverage.py
     python scripts/analyze_test_coverage.py --verbose
     python scripts/analyze_test_coverage.py --suggest-claude-prompts
+    python scripts/analyze_test_coverage.py --check-goals  # Exit 0 if goals met, 1 otherwise
 """
 
 import argparse
 import re
+import sys
 from pathlib import Path
 from typing import List, Set
+
+# Metas de cobertura de testes
+COVERAGE_TARGETS = {
+    "contract_tests": 0.80,  # 80% dos endpoints
+    "schema_tests": 0.80,    # 80% dos models
+    "integration_tests": 0.60  # 60% dos services
+}
 
 
 def find_routers() -> Set[str]:
@@ -214,7 +223,58 @@ def analyze_coverage(verbose: bool = False) -> dict:
     return results
 
 
-def print_results(results: dict, suggest_prompts: bool = False):
+def check_coverage_goals(results: dict) -> tuple[bool, list[str], list[str]]:
+    """
+    Verifica se as metas de cobertura foram atingidas.
+
+    Returns:
+        Tuple de (goals_met: bool, goals_achieved: list[str], goals_missing: list[str])
+    """
+    endpoint_coverage = (
+        (results["endpoints"]["tested"] / results["endpoints"]["total"])
+        if results["endpoints"]["total"] > 0
+        else 0
+    )
+
+    model_coverage = (
+        (results["orm_models"]["tested"] / results["orm_models"]["total"])
+        if results["orm_models"]["total"] > 0
+        else 0
+    )
+
+    service_coverage = (
+        (results["services"]["tested"] / results["services"]["total"])
+        if results["services"]["total"] > 0
+        else 0
+    )
+
+    current = {
+        "contract_tests": endpoint_coverage,
+        "schema_tests": model_coverage,
+        "integration_tests": service_coverage
+    }
+
+    goals_achieved = []
+    goals_missing = []
+
+    for category, target in COVERAGE_TARGETS.items():
+        actual = current[category]
+        if actual >= target:
+            goals_achieved.append(
+                f"✅ {category}: {actual:.1%} (meta: {target:.1%})"
+            )
+        else:
+            gap = target - actual
+            goals_missing.append(
+                f"⚠️  {category}: {actual:.1%} (faltam {gap:.1%} para atingir meta de {target:.1%})"
+            )
+
+    all_goals_met = len(goals_missing) == 0
+
+    return all_goals_met, goals_achieved, goals_missing
+
+
+def print_results(results: dict, suggest_prompts: bool = False, check_goals: bool = False):
     """Imprime resultados da análise."""
     print("=" * 60)
     print("📊 ANÁLISE DE COBERTURA DE TESTES")
@@ -304,6 +364,35 @@ def print_results(results: dict, suggest_prompts: bool = False):
             )
             print()
 
+    # Verificação de metas
+    if check_goals:
+        print("=" * 60)
+        print("🎯 VERIFICAÇÃO DE METAS DE COBERTURA")
+        print("=" * 60)
+        print()
+
+        all_goals_met, goals_achieved, goals_missing = check_coverage_goals(results)
+
+        if goals_achieved:
+            print("Metas atingidas:")
+            for goal in goals_achieved:
+                print(f"   {goal}")
+            print()
+
+        if goals_missing:
+            print("Metas pendentes:")
+            for goal in goals_missing:
+                print(f"   {goal}")
+            print()
+
+        if all_goals_met:
+            print("🎉 TODAS AS METAS DE COBERTURA FORAM ATINGIDAS!")
+            print()
+        else:
+            print("⚠️  Algumas metas ainda não foram atingidas.")
+            print(f"   Progresso: {len(goals_achieved)}/{len(COVERAGE_TARGETS)} categorias concluídas")
+            print()
+
     print("=" * 60)
 
 
@@ -316,8 +405,18 @@ if __name__ == "__main__":
         action="store_true",
         help="Sugere prompts para Claude Code",
     )
+    parser.add_argument(
+        "--check-goals",
+        action="store_true",
+        help="Verifica se metas de cobertura foram atingidas (exit 0 se sim, 1 se não)",
+    )
 
     args = parser.parse_args()
 
     results = analyze_coverage(verbose=args.verbose)
-    print_results(results, suggest_prompts=args.suggest_claude_prompts)
+    print_results(results, suggest_prompts=args.suggest_claude_prompts, check_goals=args.check_goals)
+
+    # Exit code based on goals check
+    if args.check_goals:
+        all_goals_met, _, _ = check_coverage_goals(results)
+        sys.exit(0 if all_goals_met else 1)
