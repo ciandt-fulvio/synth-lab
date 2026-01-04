@@ -6,11 +6,6 @@ from synth_lab.domain.entities.analysis_run import (
     AnalysisRun,
     generate_analysis_id,
 )
-from synth_lab.domain.entities.assumption_log import (
-    AssumptionLog,
-    LogEntry,
-    generate_log_id,
-)
 from synth_lab.domain.entities.chart_data import (
     AttributeCorrelation,
     AttributeCorrelationChart,
@@ -121,10 +116,6 @@ __all__ = [
     "AnalysisConfig",
     "AnalysisRun",
     "generate_analysis_id",
-    # Assumption log
-    "AssumptionLog",
-    "LogEntry",
-    "generate_log_id",
     # AI-Generated Insights (new in 023-quantitative-ai-insights)
     "ChartInsight",
     "ExecutiveSummary",
