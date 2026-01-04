@@ -1,6 +1,6 @@
 [project]
 name = "synth-lab"
-version = "1.0.0"
+version = "0.1.0"
 description = "Gerador de personas sintéticas (Synths) brasileiras com atributos demográficos, psicográficos e comportamentais realistas"
 readme = "README.md"
 requires-python = ">=3.13"
