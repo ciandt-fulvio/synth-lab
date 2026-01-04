@@ -11,7 +11,6 @@ import type {
   ResearchExecuteRequest,
   ResearchExecuteResponse,
 } from '@/types';
-import type { ArtifactStatesResponse } from '@/types/artifact-state';
 import type { ExperimentDocument } from '@/types/document';
 
 export async function listExecutions(
