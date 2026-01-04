@@ -345,7 +345,7 @@ class TestChatServiceIntegration:
         transcript = Transcript(
             id="transcript_chat_001",
             exec_id="exec_chat_001",
-            synth_id="synth_chat_001",
+            synth_id="chat01",
             synth_name="João Silva",
             status="completed",
             turn_count=1,
@@ -361,7 +361,13 @@ class TestChatServiceIntegration:
         isolated_db_session.commit()
 
         # Execute: Generate chat response
-        service = ChatService()
+        from synth_lab.repositories.research_repository import ResearchRepository
+        from synth_lab.repositories.synth_repository import SynthRepository
+
+        research_repo = ResearchRepository(session=isolated_db_session)
+        synths_repo = SynthRepository(session=isolated_db_session)
+        service = ChatService(research_repo=research_repo, synths_repo=synths_repo)
+
         request = ChatRequest(
             exec_id="exec_chat_001",
             message="E o que você mais gostou?",
@@ -370,17 +376,15 @@ class TestChatServiceIntegration:
 
         # Mock LLM response
         with patch.object(
-            service.llm_client, "chat_completion", new_callable=AsyncMock
+            service.llm_client, "complete"
         ) as mock_llm:
-            mock_llm.return_value = {
-                "choices": [{"message": {"content": "Gostei da simplicidade."}}]
-            }
+            mock_llm.return_value = "Gostei da simplicidade."
 
-            response = service.generate_response("synth_chat_001", request)
+            response = service.generate_response("chat01", request)
 
             # Verify: Response generated
-            assert response.reply is not None
-            assert len(response.reply) > 0
+            assert response.message is not None
+            assert len(response.message) > 0
 
             # Verify LLM was called with context
             mock_llm.assert_called_once()
@@ -416,11 +420,9 @@ class TestChatServiceIntegration:
             created_at=datetime.now().isoformat(),
         )
         synth = Synth(
-            id="synth_tracing_chat",
-            experiment_id="exp_tracing_chat",
-            group_id="group_tracing_chat",
+            id="chat02",
             nome="Test Synth",
-            data={"id": "synth_tracing_chat", "nome": "Test Synth", "version": "2.3.0"},
+            data={"id": "chat02", "nome": "Test Synth", "version": "2.3.0"},
             version="2.3.0",
             created_at=datetime.now().isoformat(),
         )
@@ -435,7 +437,7 @@ class TestChatServiceIntegration:
         transcript = Transcript(
             id="transcript_tracing_chat",
             exec_id="exec_tracing_chat",
-            synth_id="synth_tracing_chat",
+            synth_id="chat02",
             synth_name="Test Synth",
             status="completed",
             turn_count=0,
@@ -445,20 +447,25 @@ class TestChatServiceIntegration:
         isolated_db_session.add_all([experiment, group, synth, execution, transcript])
         isolated_db_session.commit()
 
-        service = ChatService()
+        # Execute: Generate chat response with tracing
+        from synth_lab.repositories.research_repository import ResearchRepository
+        from synth_lab.repositories.synth_repository import SynthRepository
+
+        research_repo = ResearchRepository(session=isolated_db_session)
+        synths_repo = SynthRepository(session=isolated_db_session)
+        service = ChatService(research_repo=research_repo, synths_repo=synths_repo)
+
         request = ChatRequest(
             exec_id="exec_tracing_chat", message="Test message", history=[]
         )
 
         # Mock LLM
         with patch.object(
-            service.llm_client, "chat_completion", new_callable=AsyncMock
+            service.llm_client, "complete"
         ) as mock_llm:
-            mock_llm.return_value = {
-                "choices": [{"message": {"content": "Test response"}}]
-            }
+            mock_llm.return_value = "Test response"
 
-            service.generate_response("synth_tracing_chat", request)
+            service.generate_response("chat02", request)
 
             # Verify: Tracer was called
             mock_tracer.start_as_current_span.assert_called()

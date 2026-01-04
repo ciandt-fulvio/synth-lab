@@ -135,9 +135,10 @@ def isolated_db_session(test_database_url: str):
 
     This fixture:
     1. Verifies we're using the test database (not dev/prod)
-    2. Cleans all tables before and after each test
-    3. Creates a fresh session for each test
-    4. Uses transactions with rollback for isolation
+    2. Creates all ORM tables if they don't exist
+    3. Cleans all tables before and after each test
+    4. Creates a fresh session for each test
+    5. Uses transactions with rollback for isolation
 
     IMPORTANT: Tests should create Services by passing repositories with this session.
     Example:
@@ -157,7 +158,15 @@ def isolated_db_session(test_database_url: str):
     from sqlalchemy import create_engine, text, event
     from sqlalchemy.orm import sessionmaker
 
+    # Import all ORM models to register them with Base.metadata
+    import synth_lab.models.orm  # noqa: F401
+    from synth_lab.models.orm.base import Base
+
     engine = create_engine(test_database_url)
+
+    # Create all tables if they don't exist
+    Base.metadata.create_all(engine)
+
     connection = engine.connect()
     transaction = connection.begin()
 
