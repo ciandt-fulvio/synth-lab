@@ -129,31 +129,33 @@ def test_database_url() -> str:
 
 
 @pytest.fixture(scope="function")
-def isolated_db_session(test_database_url: str, monkeypatch):
+def isolated_db_session(test_database_url: str):
     """
     Provide an isolated database session for integration tests.
 
     This fixture:
     1. Verifies we're using the test database (not dev/prod)
-    2. Creates a fresh session for each test
-    3. Uses nested transactions (SAVEPOINT) to rollback ALL changes after test
-       - Even if test calls commit(), changes are rolled back
-    4. Ensures complete isolation between tests
-    5. Patches get_session_v2() to use test database for Services
+    2. Cleans all tables before and after each test
+    3. Creates a fresh session for each test
+    4. Uses transactions with rollback for isolation
 
-    Usage:
+    IMPORTANT: Tests should create Services by passing repositories with this session.
+    Example:
         def test_something(isolated_db_session):
-            # Use isolated_db_session instead of creating your own connection
-            # Services will automatically use this test session
-            result = isolated_db_session.execute(text("SELECT 1"))
-            assert result.scalar() == 1
+            # Setup test data
+            isolated_db_session.add(Experiment(...))
+            isolated_db_session.commit()
 
-    References:
-        - SQLAlchemy testing patterns: https://docs.sqlalchemy.org/en/20/orm/session_transaction.html#joining-a-session-into-an-external-transaction-such-as-for-test-suites
+            # Create service with test session
+            repo = ResearchRepository(session=isolated_db_session)
+            service = ResearchService(research_repo=repo)
+
+            # Run test
+            result = service.list_executions(params)
+            assert result.pagination.total == expected
     """
-    from sqlalchemy import create_engine, event
+    from sqlalchemy import create_engine, text, event
     from sqlalchemy.orm import sessionmaker
-    from unittest.mock import MagicMock
 
     engine = create_engine(test_database_url)
     connection = engine.connect()
@@ -162,47 +164,22 @@ def isolated_db_session(test_database_url: str, monkeypatch):
     SessionLocal = sessionmaker(bind=connection)
     session = SessionLocal(bind=connection)
 
-    # Start a nested transaction (SAVEPOINT)
+    # Start a nested transaction (SAVEPOINT) for test isolation
     nested = connection.begin_nested()
 
-    # Each time the SAVEPOINT ends (commit or rollback), start a new one
+    # Restart SAVEPOINT after each commit/rollback
     @event.listens_for(session, "after_transaction_end")
     def restart_savepoint(session, transaction):
         nonlocal nested
         if not nested.is_active:
             nested = connection.begin_nested()
 
-    # CRITICAL: Clear global caches and patch database functions
-    # This ensures Services use the test database instead of dev database
-    import synth_lab.infrastructure.database_v2 as db_module
-
-    # Clear any cached session factories/engines from previous tests
-    db_module._global_engine = None
-    db_module._global_session_factory = None
-
-    # Patch get_engine() to return our test engine
-    monkeypatch.setattr("synth_lab.infrastructure.database_v2.get_engine", lambda: engine)
-
-    # Patch get_session_factory() to return session factory bound to test engine
-    monkeypatch.setattr("synth_lab.infrastructure.database_v2.get_session_factory", lambda: SessionLocal)
-
-    # Patch get_session() to return a NEW session on the SAME connection
-    # This allows Services to see data committed in the test's SAVEPOINT
-    def mock_get_session():
-        """Mock context manager that yields a new session on test connection."""
-        # Create a new session bound to the same connection as the test
-        service_session = SessionLocal(bind=connection)
-        try:
-            yield service_session
-        finally:
-            service_session.close()
-
-    monkeypatch.setattr("synth_lab.infrastructure.database_v2.get_session", mock_get_session)
-
     yield session
 
-    # Cleanup: rollback ALL changes (including committed ones in nested transaction)
+    # Rollback everything (including commits via SAVEPOINT)
     session.close()
+    if nested.is_active:
+        nested.rollback()
     transaction.rollback()
     connection.close()
     engine.dispose()
