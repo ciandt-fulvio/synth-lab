@@ -21,8 +21,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { ChartErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { BoxPlotChart } from './charts/BoxPlotChart';
-import { useBoxPlotChart } from '@/hooks/use-simulation-charts';
-import { useGenerateChartInsight } from '@/hooks/use-insights';
+// import { useBoxPlotChart } from '@/hooks/use-simulation-charts'; // TODO: Box plot endpoint not yet migrated
+import { useGenerateAnalysisChartInsight } from '@/hooks/use-insights';
 
 interface BoxPlotSectionProps {
   simulationId: string;
@@ -41,8 +41,10 @@ export function BoxPlotSection({ simulationId }: BoxPlotSectionProps) {
   const [showExplanation, setShowExplanation] = useState(false);
   const [attribute, setAttribute] = useState('trust_mean');
 
-  const boxPlot = useBoxPlotChart(simulationId, attribute);
-  const generateInsight = useGenerateChartInsight(simulationId);
+  // TODO: Box plot endpoint not yet migrated to new analysis API
+  // const boxPlot = useBoxPlotChart(simulationId, attribute);
+  const boxPlot = { data: null, isLoading: false, isError: false, refetch: () => {} };
+  const generateInsight = useGenerateAnalysisChartInsight(simulationId);
 
   const handleGenerateInsight = () => {
     if (!boxPlot.data) return;
