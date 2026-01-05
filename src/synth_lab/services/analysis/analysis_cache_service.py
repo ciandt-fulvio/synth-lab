@@ -197,6 +197,19 @@ class AnalysisCacheService:
             self.logger.warning(f"Failed to auto-cluster: {e}")
 
         if kmeans_result:
+            # Save KMeans clustering result to cache
+            try:
+                cache_key_clustering = CacheKeys.clustering(kmeans_result.n_clusters)
+                cache_entries[cache_key_clustering] = kmeans_result.model_dump()
+                results[cache_key_clustering] = True
+                self.logger.info(
+                    f"Cached K-Means result with k={kmeans_result.n_clusters} "
+                    f"({len(kmeans_result.profiles)} profiles with LLM-generated labels)"
+                )
+            except Exception as e:
+                self.logger.error(f"Failed to cache clustering result: {e}")
+                results[CacheKeys.clustering(kmeans_result.n_clusters)] = False
+
             # PCA Scatter
             try:
                 chart = self.clustering_service.get_pca_scatter(

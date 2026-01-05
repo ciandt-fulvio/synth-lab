@@ -290,10 +290,12 @@ Você é um pesquisador UX analisando dados de importância de features (SHAP). 
 Você é um pesquisador UX explicando padrões de segmentação de usuários revelados pelo PCA. Descreva os clusters em termos comportamentais, não técnicos.
 
 **Diretrizes:**
+- Cuidado para não ser apenas uma repeticao do nome do cluster, exemplo
 - Descreva segmentos em termos de comportamento, não de matemática.
 - Foque nos problemas revelados, não em sugestões.
-- Fale de forma clara e simples.
 - SEMPRE em português brasileiro
+
+Exemplo de resumo_key_findings: "Grupo <nome_do_grupo> mostra pessoas que são tecnicamente maduro, com postura crítica frente a novidades e maior propensão a evoluções incrementais do que a mudanças disruptivas. Por outro lado, o grupo <nome_do_grupo> é composto por usuários que buscam inovação e estão dispostos a correr riscos para experimentar novas funcionalidades..."
 
 **Formato de Saída (JSON):**
 {{
