@@ -213,7 +213,7 @@ test:
 test-fast:
 	@echo "🚀 Running fast anti-regression tests..."
 	@echo ""
-	DATABASE_URL_TEST="$(DATABASE_TEST_URL)" uv run pytest -m "smoke or contract or schema" --maxfail=5 -q --tb=short
+	DATABASE_TEST_URL="$(DATABASE_TEST_URL)" uv run pytest -m "smoke or contract or schema" --maxfail=5 -q --tb=short
 
 test-full:
 	POSTGRES_URL="$(DATABASE_TEST_URL)" uv run pytest tests/ -v --tb=short
