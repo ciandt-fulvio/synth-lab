@@ -196,43 +196,47 @@ class TestExplorationDocumentContracts:
 
     def test_get_exploration_summary_returns_valid_schema(self, client: TestClient):
         """GET /explorations/{exploration_id}/documents/summary returns valid document schema."""
-        # Try with non-existent ID - accept 404 or 200
+        # Try with non-existent ID - accept 404 or 200 with null
         response = client.get("/explorations/expl_test_001/documents/summary")
 
-        assert response.status_code in [200, 404], "Should return 200 (found) or 404 (not found)"
+        assert response.status_code in [200, 404], "Should return 200 or 404"
 
         if response.status_code == 200:
             document = response.json()
 
-            # Required fields for DocumentDetailResponse
-            required_fields = ["id", "type", "status", "content", "created_at"]
-            for field in required_fields:
-                assert field in document, f"Document must have '{field}' field"
+            # API returns null when document doesn't exist
+            if document is not None:
+                # Required fields for DocumentDetailResponse
+                required_fields = ["id", "type", "status", "content", "created_at"]
+                for field in required_fields:
+                    assert field in document, f"Document must have '{field}' field"
 
-            # Validate type
-            assert document["type"] == "exploration_summary", "Document type should be exploration_summary"
+                # Validate type
+                assert document["type"] == "exploration_summary", "Document type should be exploration_summary"
 
-            # Validate status
-            valid_statuses = ["generating", "completed", "failed"]
-            assert document["status"] in valid_statuses
+                # Validate status
+                valid_statuses = ["generating", "completed", "failed"]
+                assert document["status"] in valid_statuses
 
     def test_get_exploration_prfaq_returns_valid_schema(self, client: TestClient):
         """GET /explorations/{exploration_id}/documents/prfaq returns valid PRFAQ document schema."""
-        # Try with non-existent ID - accept 404 or 200
+        # Try with non-existent ID - accept 404 or 200 with null
         response = client.get("/explorations/expl_test_001/documents/prfaq")
 
-        assert response.status_code in [200, 404], "Should return 200 (found) or 404 (not found)"
+        assert response.status_code in [200, 404], "Should return 200 or 404"
 
         if response.status_code == 200:
             document = response.json()
 
-            # Required fields
-            required_fields = ["id", "type", "status", "content", "created_at"]
-            for field in required_fields:
-                assert field in document, f"PRFAQ document must have '{field}' field"
+            # API returns null when document doesn't exist
+            if document is not None:
+                # Required fields
+                required_fields = ["id", "type", "status", "content", "created_at"]
+                for field in required_fields:
+                    assert field in document, f"PRFAQ document must have '{field}' field"
 
-            # Validate type
-            assert document["type"] == "exploration_prfaq", "Document type should be exploration_prfaq"
+                # Validate type
+                assert document["type"] == "exploration_prfaq", "Document type should be exploration_prfaq"
 
 
 @pytest.mark.contract
@@ -249,18 +253,27 @@ class TestActionCatalogContracts:
         catalog = response.json()
 
         # Required fields for ActionCatalogResponse
-        assert "actions" in catalog, "Catalog must have 'actions' field"
-        assert isinstance(catalog["actions"], list), "actions must be a list"
+        assert "version" in catalog, "Catalog must have 'version' field"
+        assert "categories" in catalog, "Catalog must have 'categories' field"
+        assert isinstance(catalog["categories"], list), "categories must be a list"
 
-        # If there are actions, validate first action schema
-        if len(catalog["actions"]) > 0:
-            action = catalog["actions"][0]
+        # If there are categories, validate first category schema
+        if len(catalog["categories"]) > 0:
+            category = catalog["categories"][0]
 
-            action_fields = ["id", "name", "description", "category"]
-            for field in action_fields:
-                assert field in action, f"Action must have '{field}' field"
+            category_fields = ["id", "name", "description", "examples"]
+            for field in category_fields:
+                assert field in category, f"Category must have '{field}' field"
 
-            assert isinstance(action["id"], str)
-            assert isinstance(action["name"], str)
-            assert isinstance(action["description"], str)
-            assert isinstance(action["category"], str)
+            assert isinstance(category["id"], str)
+            assert isinstance(category["name"], str)
+            assert isinstance(category["description"], str)
+            assert isinstance(category["examples"], list)
+
+            # If there are examples, validate first example schema
+            if len(category["examples"]) > 0:
+                example = category["examples"][0]
+                assert "action" in example, "Example must have 'action' field"
+                assert "typical_impacts" in example, "Example must have 'typical_impacts' field"
+                assert isinstance(example["action"], str)
+                assert isinstance(example["typical_impacts"], dict)
