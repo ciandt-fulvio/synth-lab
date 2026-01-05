@@ -1,113 +1,142 @@
 #!/bin/bash
 #
-# Git post-commit hook: Sugere atualizar testes com Claude Code
-# Não bloqueia - apenas oferece ajuda
+# Git post-commit hook: Auto-atualização de testes e documentação
+# Detecta mudanças críticas e oferece executar Claude Code automaticamente
 #
 
-# Verifica se mudou arquivos críticos
+set -e
+
+# Cores
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+# Arquivos modificados no último commit
 CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
 
+# Flags de detecção
 NEEDS_TEST_UPDATE=false
-
-if echo "$CHANGED_FILES" | grep -q "src/synth_lab/api/routers/.*\.py"; then
-    NEEDS_TEST_UPDATE=true
-fi
-
-if echo "$CHANGED_FILES" | grep -q "src/synth_lab/models/orm/.*\.py"; then
-    NEEDS_TEST_UPDATE=true
-fi
-
-if echo "$CHANGED_FILES" | grep -q "src/synth_lab/services/.*service\.py"; then
-    NEEDS_TEST_UPDATE=true
-fi
-
-if [ "$NEEDS_TEST_UPDATE" = true ]; then
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "🤖 SUGESTÃO: Atualizar testes automaticamente"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo ""
-    echo "Você modificou arquivos críticos (routers/models/services)."
-    echo "Quer que Claude Code gere/atualize testes automaticamente?"
-    echo ""
-    echo "Opções:"
-    echo "  1) Sim, executar agora (interativo)"
-    echo "  2) Sim, executar e auto-commit"
-    echo "  3) Não, farei manualmente"
-    echo ""
-    read -p "Escolha (1/2/3): " -n 1 -r
-    echo ""
-
-    case $REPLY in
-        1)
-            echo "Executando auto-update (interativo)..."
-            ./scripts/auto-update-tests.sh --last-commit
-            ;;
-        2)
-            echo "Executando auto-update (auto-commit)..."
-            ./scripts/auto-update-tests.sh --last-commit --auto-commit
-            ;;
-        3)
-            echo "OK. Para rodar depois: ./scripts/auto-update-tests.sh --last-commit"
-            ;;
-        *)
-            echo "Opção inválida. Pulando."
-            ;;
-    esac
-
-    echo ""
-fi
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# DOCUMENTAÇÃO
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 NEEDS_DOCS_UPDATE=false
 
-# Detecta mudanças que afetam docs
-if echo "$CHANGED_FILES" | grep -qE "src/synth_lab/(api|services|models)/"; then
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# DETECÇÃO DE MUDANÇAS
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Mudanças que exigem atualização de TESTES
+if echo "$CHANGED_FILES" | grep -qE "src/synth_lab/(api/routers|models/orm|services)/.*\.py"; then
+    NEEDS_TEST_UPDATE=true
+fi
+
+# Mudanças que exigem atualização de DOCS
+if echo "$CHANGED_FILES" | grep -qE "src/synth_lab/(api|services|models|domain|repositories|infrastructure)/.*\.py"; then
     NEEDS_DOCS_UPDATE=true
 fi
 
-if echo "$CHANGED_FILES" | grep -qE "frontend/src/(pages|hooks)/"; then
+if echo "$CHANGED_FILES" | grep -qE "frontend/src/(pages|hooks|components|services)/.*\.(tsx?|jsx?)"; then
     NEEDS_DOCS_UPDATE=true
+fi
+
+# Se nenhuma mudança crítica, sai silenciosamente
+if [ "$NEEDS_TEST_UPDATE" = false ] && [ "$NEEDS_DOCS_UPDATE" = false ]; then
+    exit 0
+fi
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# OFERECE AUTO-UPDATE
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+echo ""
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${BLUE}🤖 Auto-Update: Testes e Documentação${NC}"
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+echo "Você modificou arquivos críticos. Claude Code pode ajudar:"
+echo ""
+
+# Lista o que precisa atualizar
+if [ "$NEEDS_TEST_UPDATE" = true ]; then
+    echo -e "  ${YELLOW}🧪 TESTES${NC} - Routers/Models/Services modificados"
+    echo "     → Contract tests, Schema tests, Integration tests"
+    echo ""
 fi
 
 if [ "$NEEDS_DOCS_UPDATE" = true ]; then
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "📚 SUGESTÃO: Atualizar documentação"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo ""
-    echo "Você modificou arquivos que podem afetar a documentação."
-    echo "Quer que Claude Code atualize as docs automaticamente?"
-    echo ""
-    echo "Opções:"
-    echo "  1) Sim, executar agora (interativo)"
-    echo "  2) Sim, executar e auto-commit"
-    echo "  3) Não, farei manualmente"
-    echo ""
-    read -p "Escolha (1/2/3): " -n 1 -r
-    echo ""
-
-    case $REPLY in
-        1)
-            echo "Executando auto-update docs (interativo)..."
-            ./scripts/auto-update-docs.sh --last-commit
-            ;;
-        2)
-            echo "Executando auto-update docs (auto-commit)..."
-            ./scripts/auto-update-docs.sh --last-commit --auto-commit
-            ;;
-        3)
-            echo "OK. Para rodar depois: ./scripts/auto-update-docs.sh --last-commit"
-            ;;
-        *)
-            echo "Opção inválida. Pulando."
-            ;;
-    esac
-
+    echo -e "  ${YELLOW}📚 DOCS${NC} - Backend/Frontend modificados"
+    echo "     → arquitetura.md, api.md, database_model.md, arquitetura_front.md"
     echo ""
 fi
 
+echo "Opções:"
+echo "  [T] Atualizar apenas TESTES (interativo)"
+echo "  [D] Atualizar apenas DOCS (interativo)"
+echo "  [A] Atualizar AMBOS (interativo)"
+echo "  [X] Atualizar AMBOS e auto-commit"
+echo "  [N] Não, farei manualmente"
+echo ""
+read -p "Escolha [T/D/A/X/N]: " -n 1 -r
+echo ""
+echo ""
+
+case $REPLY in
+    [Tt])
+        if [ "$NEEDS_TEST_UPDATE" = true ]; then
+            echo -e "${GREEN}Executando auto-update de TESTES (interativo)...${NC}"
+            ./scripts/auto-update-tests.sh --last-commit
+        else
+            echo "Nenhuma mudança detectada que exija atualização de testes."
+        fi
+        ;;
+
+    [Dd])
+        if [ "$NEEDS_DOCS_UPDATE" = true ]; then
+            echo -e "${GREEN}Executando auto-update de DOCS (interativo)...${NC}"
+            ./scripts/auto-update-docs.sh --last-commit
+        else
+            echo "Nenhuma mudança detectada que exija atualização de docs."
+        fi
+        ;;
+
+    [Aa])
+        if [ "$NEEDS_TEST_UPDATE" = true ]; then
+            echo -e "${GREEN}Executando auto-update de TESTES (interativo)...${NC}"
+            ./scripts/auto-update-tests.sh --last-commit
+            echo ""
+        fi
+
+        if [ "$NEEDS_DOCS_UPDATE" = true ]; then
+            echo -e "${GREEN}Executando auto-update de DOCS (interativo)...${NC}"
+            ./scripts/auto-update-docs.sh --last-commit
+        fi
+        ;;
+
+    [Xx])
+        if [ "$NEEDS_TEST_UPDATE" = true ]; then
+            echo -e "${GREEN}Executando auto-update de TESTES (auto-commit)...${NC}"
+            ./scripts/auto-update-tests.sh --last-commit --auto-commit
+            echo ""
+        fi
+
+        if [ "$NEEDS_DOCS_UPDATE" = true ]; then
+            echo -e "${GREEN}Executando auto-update de DOCS (auto-commit)...${NC}"
+            ./scripts/auto-update-docs.sh --last-commit --auto-commit
+        fi
+        ;;
+
+    [Nn])
+        echo "OK. Para rodar depois:"
+        if [ "$NEEDS_TEST_UPDATE" = true ]; then
+            echo "  ./scripts/auto-update-tests.sh --last-commit"
+        fi
+        if [ "$NEEDS_DOCS_UPDATE" = true ]; then
+            echo "  ./scripts/auto-update-docs.sh --last-commit"
+        fi
+        ;;
+
+    *)
+        echo "Opção inválida. Pulando."
+        ;;
+esac
+
+echo ""
 exit 0
