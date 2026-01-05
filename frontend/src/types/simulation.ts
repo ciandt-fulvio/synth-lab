@@ -198,29 +198,11 @@ export interface KMeansResult {
   features_used: string[];
 }
 
-/** Node in dendrogram tree (hierarchical structure for rendering) */
-export interface DendrogramTreeNode {
-  id: string;
-  height: number;
-  count: number;
-  children?: DendrogramTreeNode[] | null;
-}
-
 /** Suggested cut point for hierarchical clustering */
 export interface SuggestedCut {
   n_clusters: number;
   distance: number;
   silhouette_estimate: number;
-}
-
-/** Flat node structure from backend */
-export interface DendrogramNode {
-  id: number;
-  synth_id?: string;
-  left_child?: number;
-  right_child?: number;
-  distance: number;
-  count: number;
 }
 
 /** Hierarchical clustering result */
@@ -229,13 +211,10 @@ export interface HierarchicalResult {
   method: 'hierarchical';
   linkage_method: 'ward' | 'complete' | 'average' | 'single';
   features_used: string[];
-  nodes: DendrogramNode[];
   suggested_cuts: SuggestedCut[];
   cluster_assignments?: Record<string, number>;
   n_clusters?: number;
   cut_height?: number;
-  // Computed properties from backend
-  dendrogram_tree: DendrogramTreeNode;
   total_synths: number;
   max_height: number;
 }
@@ -414,7 +393,6 @@ export type ChartType =
   | 'scatter'
   | 'elbow'
   | 'radar'
-  | 'dendrogram'
   | 'pca_scatter'
   | 'extreme_cases'
   | 'outliers'
@@ -501,11 +479,6 @@ export interface ClusterRequest {
   n_clusters?: number;
   features?: string[];
   linkage?: 'ward' | 'complete' | 'average' | 'single';
-}
-
-/** Request to cut dendrogram */
-export interface CutDendrogramRequest {
-  n_clusters: number;
 }
 
 /** Request to generate chart insight */

@@ -225,7 +225,6 @@ import type {
   ClusterRequest,
   KMeansResult,
   HierarchicalResult,
-  CutDendrogramRequest,
   RadarComparisonChart,
   PCAScatterChart,
   ElbowPoint,
@@ -362,15 +361,6 @@ export async function getAnalysisElbow(
 }
 
 /**
- * Get dendrogram data for experiment analysis.
- */
-export async function getAnalysisDendrogram(
-  experimentId: string
-): Promise<HierarchicalResult> {
-  return fetchAPI(`/experiments/${experimentId}/analysis/clusters/dendrogram`);
-}
-
-/**
  * Get radar comparison chart for experiment analysis.
  */
 export async function getAnalysisRadarComparison(
@@ -386,19 +376,6 @@ export async function getAnalysisPCAScatter(
   experimentId: string
 ): Promise<PCAScatterChart> {
   return fetchAPI(`/experiments/${experimentId}/analysis/clusters/pca-scatter`);
-}
-
-/**
- * Cut dendrogram at specified height.
- */
-export async function cutAnalysisDendrogram(
-  experimentId: string,
-  request: CutDendrogramRequest
-): Promise<HierarchicalResult> {
-  return fetchAPI(`/experiments/${experimentId}/analysis/clusters/cut`, {
-    method: 'POST',
-    body: JSON.stringify(request),
-  });
 }
 
 // =============================================================================

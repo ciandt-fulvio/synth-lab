@@ -7,11 +7,9 @@ import {
   getAnalysisClustering,
   createAnalysisClustering,
   getAnalysisElbow,
-  getAnalysisDendrogram,
   getAnalysisRadarComparison,
-  cutAnalysisDendrogram,
 } from '@/services/experiments-api';
-import type { ClusterRequest, CutDendrogramRequest } from '@/types/simulation';
+import type { ClusterRequest } from '@/types/simulation';
 
 export function useClustering(experimentId: string, enabled = true) {
   return useQuery({
@@ -45,33 +43,11 @@ export function useElbowData(experimentId: string, enabled = true) {
   });
 }
 
-export function useDendrogram(experimentId: string, enabled = true) {
-  return useQuery({
-    queryKey: queryKeys.analysis.dendrogram(experimentId),
-    queryFn: () => getAnalysisDendrogram(experimentId),
-    enabled: !!experimentId && enabled,
-    staleTime: 10 * 60 * 1000,
-  });
-}
-
 export function useRadarComparison(experimentId: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.analysis.radarComparison(experimentId),
     queryFn: () => getAnalysisRadarComparison(experimentId),
     enabled: !!experimentId && enabled,
     staleTime: 10 * 60 * 1000,
-  });
-}
-
-export function useCutDendrogram(experimentId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (request: CutDendrogramRequest) => cutAnalysisDendrogram(experimentId, request),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.clusters(experimentId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.dendrogram(experimentId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.radarComparison(experimentId) });
-    },
   });
 }
