@@ -1,6 +1,8 @@
 // src/services/api.ts - Base API configuration
 
-const API_BASE_URL = '/api';
+// In production, VITE_API_URL should point to the backend service URL
+// In development, /api is proxied to localhost:8000
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export class APIError extends Error {
   constructor(
