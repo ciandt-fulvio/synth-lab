@@ -18,7 +18,12 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:staging": "TEST_ENV=staging playwright test",
+    "test:e2e:staging:ui": "TEST_ENV=staging playwright test --ui",
+    "test:e2e:staging:headed": "TEST_ENV=staging playwright test --headed",
+    "test:e2e:production": "TEST_ENV=production playwright test",
+    "test:e2e:production:ui": "TEST_ENV=production playwright test --ui"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
