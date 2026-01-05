@@ -30,6 +30,10 @@ from synth_lab.repositories.experiment_repository import ExperimentRepository
 from synth_lab.repositories.research_repository import ResearchRepository
 from synth_lab.services.research_agentic.runner import ConversationMessage, InterviewResult
 from synth_lab.services.research_agentic.summarizer import summarize_interviews
+from synth_lab.services.summary_image_service import (
+    SummaryImageService,
+    get_summary_image_service,
+)
 
 # Phoenix/OpenTelemetry tracer for observability
 _tracer = get_tracer("research-summary-generator")
@@ -82,6 +86,7 @@ class ResearchSummaryGeneratorService:
         research_repo: ResearchRepository | None = None,
         document_repo: ExperimentDocumentRepository | None = None,
         experiment_repo: ExperimentRepository | None = None,
+        image_service: SummaryImageService | None = None,
     ):
         """
         Initialize summary generator service.
@@ -90,11 +95,19 @@ class ResearchSummaryGeneratorService:
             research_repo: Repository for research execution data.
             document_repo: Repository for document storage.
             experiment_repo: Repository for experiment data.
+            image_service: Service for generating summary images.
         """
         self._research_repo = research_repo
         self._document_repo = document_repo
         self._experiment_repo = experiment_repo
+        self._image_service = image_service
         self._logger = logger.bind(component="research_summary_generator")
+
+    def _get_image_service(self) -> SummaryImageService:
+        """Get or create image service."""
+        if self._image_service is None:
+            self._image_service = get_summary_image_service()
+        return self._image_service
 
     def _get_research_repo(self) -> ResearchRepository:
         """Get or create research repository."""
@@ -259,7 +272,15 @@ class ResearchSummaryGeneratorService:
                 if span:
                     span.set_attribute("summary_length", len(content))
 
-                # 11. Update document with content
+                # 11. Generate summary image and append to content
+                image_service = self._get_image_service()
+                content = image_service.generate_and_append_image(
+                    markdown_content=content,
+                    experiment_id=execution.experiment_id,
+                    doc_id=pending_doc.id,
+                )
+
+                # 12. Update document with content
                 document_repo.update_status(
                     experiment_id=execution.experiment_id,
                     document_type=DocumentType.RESEARCH_SUMMARY,
@@ -428,7 +449,15 @@ class ResearchSummaryGeneratorService:
                 if span:
                     span.set_attribute("summary_length", len(content))
 
-                # 11. Update document with content
+                # 11. Generate summary image and append to content
+                image_service = self._get_image_service()
+                content = image_service.generate_and_append_image(
+                    markdown_content=content,
+                    experiment_id=execution.experiment_id,
+                    doc_id=pending_doc.id,
+                )
+
+                # 12. Update document with content
                 document_repo.update_status(
                     experiment_id=execution.experiment_id,
                     document_type=DocumentType.RESEARCH_SUMMARY,

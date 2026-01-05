@@ -30,6 +30,10 @@ from synth_lab.repositories.experiment_document_repository import (
 from synth_lab.repositories.experiment_repository import ExperimentRepository
 from synth_lab.repositories.exploration_repository import ExplorationRepository
 from synth_lab.services.exploration_utils import get_winning_path
+from synth_lab.services.summary_image_service import (
+    SummaryImageService,
+    get_summary_image_service,
+)
 
 # Phoenix/OpenTelemetry tracer for observability
 _tracer = get_tracer("exploration-summary-generator")
@@ -71,6 +75,7 @@ class ExplorationSummaryGeneratorService:
         document_repo: ExperimentDocumentRepository | None = None,
         experiment_repo: ExperimentRepository | None = None,
         llm_client: LLMClient | None = None,
+        image_service: SummaryImageService | None = None,
     ):
         """
         Initialize summary generator service.
@@ -80,12 +85,20 @@ class ExplorationSummaryGeneratorService:
             document_repo: Repository for document storage.
             experiment_repo: Repository for experiment data.
             llm_client: LLM client for content generation.
+            image_service: Service for generating summary images.
         """
         self._exploration_repo = exploration_repo
         self._document_repo = document_repo
         self._experiment_repo = experiment_repo
         self._llm_client = llm_client or get_llm_client()
+        self._image_service = image_service
         self._logger = logger.bind(component="exploration_summary_generator")
+
+    def _get_image_service(self) -> SummaryImageService:
+        """Get or create image service."""
+        if self._image_service is None:
+            self._image_service = get_summary_image_service()
+        return self._image_service
 
     def _get_exploration_repo(self) -> ExplorationRepository:
         """Get or create exploration repository."""
@@ -213,7 +226,15 @@ class ExplorationSummaryGeneratorService:
                     span.set_attribute("summary_length", len(content))
                     span.set_attribute("improvement_percentage", round(improvement, 1))
 
-                # 8. Update document with content
+                # 8. Generate summary image and append to content
+                image_service = self._get_image_service()
+                content = image_service.generate_and_append_image(
+                    markdown_content=content,
+                    experiment_id=exploration.experiment_id,
+                    doc_id=pending_doc.id,
+                )
+
+                # 9. Update document with content
                 document_repo.update_status(
                     experiment_id=exploration.experiment_id,
                     document_type=DocumentType.EXPLORATION_SUMMARY,
@@ -236,7 +257,7 @@ class ExplorationSummaryGeneratorService:
                 )
 
             except Exception as e:
-                # 9. Mark as failed
+                # 10. Mark as failed
                 self._logger.error(
                     f"Failed to generate summary for exploration {exploration_id}: {e}"
                 )
