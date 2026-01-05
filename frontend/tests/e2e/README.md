@@ -1,18 +1,54 @@
 # Testes E2E - Playwright
 
-## Rodar Testes
+## 📁 Estrutura
+
+```
+tests/e2e/
+├── README.md                    # Este arquivo
+├── TEST_SCENARIOS.md            # Catálogo completo de cenários
+├── smoke/                       # Smoke tests (Production)
+│   └── critical-flows.spec.ts
+├── experiments/                 # Testes de experimentos
+│   └── crud.spec.ts
+└── ... (outros módulos)
+```
+
+## 🚀 Rodar Testes
+
+### Local (Desenvolvimento)
 
 ```bash
-# Automático (Playwright inicia servidores)
+# Todos os testes localmente
 npm run test:e2e
 
 # Modo UI (visual, recomendado para debug)
 npm run test:e2e:ui
 
-# Manual (mais controle)
-# Terminal 1: make serve-test        (backend porta 8009)
-# Terminal 2: make serve-front-test  (frontend porta 8089)
-# Terminal 3: make test-e2e
+# Arquivo específico
+npx playwright test experiments/crud.spec.ts
+```
+
+### Staging
+
+```bash
+# Todos os testes em staging
+npm run test:e2e:staging
+
+# Smoke tests em staging
+npm run test:e2e:staging smoke/
+
+# Modo UI
+npm run test:e2e:staging:ui
+```
+
+### Production (Smoke Tests)
+
+```bash
+# Apenas smoke tests críticos
+npm run test:e2e:production smoke/
+
+# Com UI
+npm run test:e2e:production:ui
 ```
 
 ## Criar Novo Teste
@@ -35,14 +71,50 @@ test('fluxo de exemplo', async ({ page }) => {
 });
 ```
 
+## 🏷️ Filtrar por Tags
+
+```bash
+# Apenas smoke tests
+npx playwright test --grep @smoke
+
+# Testes críticos
+npx playwright test --grep @critical
+
+# Testes de experimentos
+npx playwright test --grep @experiments
+
+# Excluir testes lentos
+npx playwright test --grep-invert @slow
+```
+
+## 📋 Cenários Disponíveis
+
+Ver [TEST_SCENARIOS.md](./TEST_SCENARIOS.md) para lista completa de cenários organizados por:
+- **Smoke Tests (ST001-ST009)**: Production, < 2 min
+- **Testes Completos (E001-U003)**: Local/Staging, 5-10 min
+- Por módulo: Experiments, Simulations, Interviews, etc.
+- Por prioridade: P0 (Crítico), P1 (Alto), P2 (Médio)
+
 ## Scripts Disponíveis
 
 ```bash
-npm run test:e2e          # Headless (CI)
-npm run test:e2e:ui       # Modo UI (visual)
-npm run test:e2e:debug    # Debug step-by-step
-npm run test:e2e:headed   # Ver browser
-npm run test:e2e:report   # Ver relatório HTML
+# Local
+npm run test:e2e              # Todos os testes
+npm run test:e2e:ui           # Modo UI (visual)
+npm run test:e2e:debug        # Debug step-by-step
+npm run test:e2e:headed       # Ver browser
+
+# Staging
+npm run test:e2e:staging      # Todos os testes
+npm run test:e2e:staging:ui   # Modo UI
+npm run test:e2e:staging:headed
+
+# Production
+npm run test:e2e:production   # Smoke tests
+npm run test:e2e:production:ui
+
+# Relatório
+npm run test:e2e:report       # Ver relatório HTML
 ```
 
 ## Portas
