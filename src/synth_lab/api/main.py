@@ -12,18 +12,19 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from synth_lab.api.errors import register_exception_handlers
 from synth_lab.infrastructure.config import (
     API_HOST,
     API_PORT,
+    OUTPUT_DIR,
     configure_logging,
-    ensure_directories)
-from synth_lab.infrastructure.database_v2 import init_database_v2, get_database_url
-from synth_lab.infrastructure.phoenix_tracing import (
-    maybe_setup_tracing,
-    shutdown_tracing)
+    ensure_directories,
+)
+from synth_lab.infrastructure.database_v2 import get_database_url, init_database_v2
+from synth_lab.infrastructure.phoenix_tracing import maybe_setup_tracing, shutdown_tracing
 
 
 @asynccontextmanager
@@ -57,7 +58,8 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
     docs_url="/docs",
-    redoc_url="/redoc")
+    redoc_url="/redoc",
+)
 
 # Configure CORS
 app.add_middleware(
@@ -65,7 +67,8 @@ app.add_middleware(
     allow_origins=["*"],  # Allow all origins for development
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"])
+    allow_headers=["*"],
+)
 
 # Register exception handlers
 register_exception_handlers(app)
@@ -99,7 +102,8 @@ from synth_lab.api.routers import (
     prfaq,
     research,
     synth_groups,
-    synths)
+    synths,
+)
 
 # Register routers
 app.include_router(synths.router, prefix="/synths", tags=["synths"])
@@ -112,6 +116,12 @@ app.include_router(insights.router, prefix="/experiments", tags=["insights"])
 app.include_router(documents.router, prefix="/experiments", tags=["documents"])
 app.include_router(synth_groups.router, prefix="/synth-groups", tags=["synth-groups"])
 app.include_router(exploration.router, prefix="/explorations", tags=["explorations"])
+
+# Mount static files for generated images and documents
+# Images available at: /static/document/images/<filename>
+STATIC_DIR = OUTPUT_DIR / "document"
+STATIC_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/static/document", StaticFiles(directory=str(STATIC_DIR)), name="static_documents")
 
 
 if __name__ == "__main__":

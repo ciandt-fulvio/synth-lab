@@ -274,10 +274,11 @@ self.db.execute(f"SELECT * FROM synths WHERE id = '{synth_id}'")
 
 | Arquivo | Responsabilidade |
 |---------|------------------|
-| `config.py` | Variáveis de ambiente, constantes |
+| `config.py` | Variáveis de ambiente, constantes, paths |
 | `database_v2.py` | SQLAlchemy engine, session factory, PostgreSQL |
-| `llm_client.py` | `LLMClient` (OpenAI com retry, timeout, logging) |
-| `phoenix_tracing.py` | Setup Phoenix/OTEL, instrumentação |
+| `llm_client.py` | `LLMClient` (OpenAI chat/completions com retry, timeout, logging) |
+| `image_generator.py` | `ImageGenerator` (OpenAI gpt-image-1.5, geração de imagens) |
+| `phoenix_tracing.py` | Setup Phoenix/OTEL, instrumentação automática |
 
 #### Database Layer (SQLAlchemy + PostgreSQL)
 
@@ -338,14 +339,166 @@ make alembic-downgrade
 make alembic-revision MSG="add column"
 ```
 
-**Padrão de uso do LLMClient:**
+#### LLMClient (Chat/Completions)
+
+Cliente centralizado para operações de texto com OpenAI (chat completions).
+
+**Padrão de uso:**
 ```python
-from synth_lab.infrastructure.llm_client import get_llm_client
+from synth_lab.infrastructure.llm_client import get_llm_client, LLMClient
 
 class MyService:
     def __init__(self, llm_client: LLMClient | None = None):
         self.llm = llm_client or get_llm_client()  # ✅ Injeção de dependência
+
+    def generate_text(self, prompt: str) -> str:
+        messages = [{"role": "user", "content": prompt}]
+        return self.llm.complete(messages)
+
+    def generate_json(self, prompt: str) -> str:
+        messages = [{"role": "user", "content": prompt}]
+        return self.llm.complete_json(messages)  # ✅ Força response_format=json
+
+    def stream_response(self, prompt: str):
+        messages = [{"role": "user", "content": prompt}]
+        for chunk in self.llm.complete_stream(messages):
+            yield chunk
 ```
+
+**Características:**
+- Retry automático com backoff exponencial
+- Timeout configurável via `SYNTHLAB_LLM_TIMEOUT`
+- Tracking de tokens consumidos
+- Tracing automático no Phoenix
+
+---
+
+#### ImageGenerator (Geração de Imagens)
+
+Cliente para geração de imagens via OpenAI `gpt-image-1.5`.
+
+**Padrão de uso:**
+```python
+from synth_lab.infrastructure.image_generator import get_image_generator, ImageGenerator
+
+class AvatarService:
+    def __init__(self, image_generator: ImageGenerator | None = None):
+        self.img_gen = image_generator or get_image_generator()  # ✅ Singleton
+
+    def generate_avatar(self, description: str) -> str:
+        # Retorna base64 da imagem
+        return self.img_gen.generate(prompt=description)
+
+    def generate_avatar_bytes(self, description: str) -> bytes:
+        # Retorna bytes para salvar em arquivo
+        return self.img_gen.generate_bytes(prompt=description)
+```
+
+**Parâmetros disponíveis:**
+```python
+base64_img = generator.generate(
+    prompt="Descrição da imagem",        # Obrigatório
+    model="gpt-image-1.5",               # Default
+    n=1,                                 # Default (1-10)
+    size="1536x1024",                    # Default ("1024x1024", "1024x1536", "1536x1024", "auto")
+    quality="auto",                      # Default ("auto", "hd")
+    output_format="png",                 # Default ("png", "jpeg", "webp")
+)
+```
+
+**Características:**
+- Modelo padrão: `gpt-image-1.5`
+- Retorno sempre em **base64**
+- Retry automático com backoff exponencial
+- Tracing no Phoenix com atributos:
+  - `operation_type: "image_generation"`
+  - `prompt_preview`: primeiros 100 caracteres do prompt
+  - `llm.model_name`, `size`, `quality`, `output_format`
+
+---
+
+#### Config (Configuração Centralizada)
+
+Variáveis de ambiente e constantes do sistema.
+
+**Variáveis de ambiente principais:**
+```bash
+# Database (obrigatório)
+DATABASE_URL="postgresql://user:pass@localhost:5432/synthlab"
+
+# LLM
+OPENAI_API_KEY="sk-..."
+SYNTHLAB_DEFAULT_MODEL="gpt-4o-mini"    # Modelo padrão para completions
+SYNTHLAB_LLM_TIMEOUT="120.0"            # Timeout em segundos
+SYNTHLAB_LLM_MAX_RETRIES="3"            # Máximo de retries
+
+# Tracing
+PHOENIX_COLLECTOR_ENDPOINT="http://127.0.0.1:6006/v1/traces"
+PHOENIX_ENABLED="true"                  # Habilita tracing
+
+# Logging
+LOG_LEVEL="INFO"                        # DEBUG, INFO, WARNING, ERROR
+```
+
+**Padrão de uso:**
+```python
+from synth_lab.infrastructure.config import (
+    DATABASE_URL,
+    DEFAULT_MODEL,
+    OPENAI_API_KEY,
+    OUTPUT_DIR,
+    ensure_directories,
+)
+
+# Garantir que diretórios existem
+ensure_directories()
+```
+
+---
+
+#### Phoenix Tracing (Observabilidade)
+
+Instrumentação automática de chamadas OpenAI para observabilidade.
+
+**Setup (uma vez no startup):**
+```python
+from synth_lab.infrastructure.phoenix_tracing import setup_phoenix_tracing
+
+# No startup da aplicação (api/main.py)
+setup_phoenix_tracing(project_name="synth-lab")
+```
+
+**Spans customizados (para operações não-LLM):**
+```python
+from synth_lab.infrastructure.phoenix_tracing import get_tracer
+
+_tracer = get_tracer("my-service")
+
+class MyService:
+    def complex_operation(self, data: dict) -> Result:
+        with _tracer.start_as_current_span(
+            "MyService: complex_operation",
+            attributes={
+                "operation_type": "data_processing",
+                "input.value": str(data)[:100],
+                "data_size": len(data),
+            },
+        ) as span:
+            result = self._process(data)
+            span.set_attribute("success", True)
+            span.set_attribute("output.value", str(result)[:100])
+            return result
+```
+
+**Atributos recomendados para spans:**
+- `openinference.span.kind`: "LLM", "CHAIN", "TOOL", "RETRIEVER"
+- `operation_type`: Tipo da operação (ex: "image_generation", "text_completion")
+- `input.value`: Preview do input (primeiros 100 chars)
+- `output.value`: Preview do output (primeiros 100 chars)
+- `llm.model_name`: Nome do modelo usado
+- `success`: Boolean indicando sucesso
+
+**Dashboard:** http://localhost:6006
 
 ---
 

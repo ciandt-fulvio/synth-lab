@@ -12,6 +12,10 @@ export default defineConfig(() => ({
         target: `http://localhost:${process.env.VITE_API_PORT || "8000"}`,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
+      },
+      '/static': {
+        target: `http://localhost:${process.env.VITE_API_PORT || "8000"}`,
+        changeOrigin: true
       }
     }
   },
