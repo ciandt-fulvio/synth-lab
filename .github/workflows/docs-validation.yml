@@ -137,12 +137,23 @@ jobs:
           echo "📊 Verificando cobertura de documentação de API endpoints..."
           echo ""
 
-          # Extrai endpoints dos routers
-          ENDPOINTS=$(find src/synth_lab/api/routers -name "*.py" 2>/dev/null | \
-                      xargs grep -h "@router\." 2>/dev/null | \
-                      grep -E "@router\.(get|post|put|delete|patch)" | \
-                      sed -E 's/.*@router\.(get|post|put|delete|patch)\(["\']([^"\']+).*/\2/' | \
-                      sort -u || true)
+          # Usa Python para extrair endpoints de forma confiável
+          ENDPOINTS=$(python3 -c "
+          import re
+          import glob
+
+          endpoints = set()
+          for file in glob.glob('src/synth_lab/api/routers/*.py'):
+              with open(file) as f:
+                  content = f.read()
+                  # Procura por @router.METHOD('endpoint') ou @router.METHOD(\"endpoint\")
+                  matches = re.findall(r'@router\.(get|post|put|delete|patch)\([\"'\'']([^\"'\'']+)', content)
+                  for method, endpoint in matches:
+                      endpoints.add(endpoint)
+
+          for ep in sorted(endpoints):
+              print(ep)
+          " 2>/dev/null || echo "")
 
           if [ -z "$ENDPOINTS" ]; then
             echo "⚠️  Nenhum endpoint encontrado nos routers"
