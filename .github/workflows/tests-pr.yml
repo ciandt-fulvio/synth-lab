@@ -1,5 +1,5 @@
-# PR tests - Roda em Pull Requests (~5min)
-# Inclui todos os fast tests + integration tests
+# PR tests - Roda em Pull Requests (~10min)
+# Roda test-full: todos os testes com output verbose
 name: PR Tests
 
 on:
@@ -55,11 +55,10 @@ jobs:
           DATABASE_URL: postgresql://test:test@localhost:5432/synthlab_test
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          pytest -m "smoke or contract or schema or integration" \
+          pytest tests/ -v --tb=short \
             --cov=src/synth_lab \
             --cov-report=term \
-            --cov-report=html \
-            -v
+            --cov-report=html
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4

@@ -1,5 +1,5 @@
-# Nightly tests - Roda diariamente às 2am ou manualmente (~20min)
-# Inclui todos os testes + E2E com Playwright
+# Nightly tests - Roda diariamente às 2am ou manualmente (~30min)
+# Roda test-full + E2E: todos os testes com output verbose + Playwright
 name: Nightly Tests
 
 on:
@@ -80,7 +80,7 @@ jobs:
           DATABASE_URL: postgresql://test:test@localhost:5432/synthlab_test
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          pytest --cov=src/synth_lab --cov-report=term -v
+          pytest tests/ -v --tb=short --cov=src/synth_lab --cov-report=term
 
       - name: Run E2E tests
         run: |
