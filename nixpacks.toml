@@ -2,7 +2,7 @@
 # https://nixpacks.com/docs/configuration/file
 
 [phases.setup]
-nixPkgs = ["python313", "gcc"]
+nixPkgs = ["python313", "python313Packages.pip", "gcc"]
 
 [phases.install]
 cmds = [
