@@ -21,7 +21,6 @@ import type {
   ChartInsight,
   SimulationInsights,
   ClusterRequest,
-  CutDendrogramRequest,
   ChartType,
   ExecutiveSummaryResponse,
 } from '@/types/simulation';
@@ -126,12 +125,6 @@ export async function getElbowData(simulationId: string): Promise<ElbowDataPoint
   return fetchAPI(`/simulation/simulations/${simulationId}/clusters/elbow`);
 }
 
-export async function getDendrogram(
-  simulationId: string
-): Promise<HierarchicalResult> {
-  return fetchAPI(`/simulation/simulations/${simulationId}/clusters/dendrogram`);
-}
-
 export async function getClusterRadar(
   simulationId: string,
   clusterId: number
@@ -141,16 +134,6 @@ export async function getClusterRadar(
 
 export async function getRadarComparison(simulationId: string): Promise<RadarChart> {
   return fetchAPI(`/simulation/simulations/${simulationId}/clusters/radar-comparison`);
-}
-
-export async function cutDendrogram(
-  simulationId: string,
-  request: CutDendrogramRequest
-): Promise<HierarchicalResult> {
-  return fetchAPI(`/simulation/simulations/${simulationId}/clusters/cut`, {
-    method: 'POST',
-    body: JSON.stringify(request),
-  });
 }
 
 // =============================================================================
