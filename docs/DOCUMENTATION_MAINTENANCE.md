@@ -244,7 +244,7 @@ git diff docs/
 
 ## Guia Completo
 
-Ver [docs/DOCUMENTATION_MAINTENANCE.md](../../docs/DOCUMENTATION_MAINTENANCE.md)
+Este documento contém o guia completo do sistema de documentação auto-atualizada.
 ```
 
 ---
