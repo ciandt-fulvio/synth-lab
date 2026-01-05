@@ -14,7 +14,6 @@ export { ScatterCorrelationChart } from './ScatterCorrelationChart';
 // Phase 3: Segmentation
 export { ElbowChart } from './ElbowChart';
 export { RadarComparisonChart } from './RadarComparisonChart';
-export { DendrogramChart } from './DendrogramChart';
 
 // Phase 5: Explainability
 export { ShapSummaryChart } from './ShapSummaryChart';

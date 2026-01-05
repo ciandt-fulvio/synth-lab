@@ -17,7 +17,6 @@ export { BoxPlotSection } from './BoxPlotSection';
 
 // Section components (Phase 3: Segmentation)
 export { ElbowSection } from './ElbowSection';
-export { DendrogramSection } from './DendrogramSection';
 export { RadarSection } from './RadarSection';
 
 // Section components (Phase 4: Edge Cases)

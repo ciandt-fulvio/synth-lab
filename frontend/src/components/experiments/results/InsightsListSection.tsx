@@ -26,7 +26,6 @@ const CHART_TYPE_LABELS: Record<string, string> = {
   box_plot: 'Box Plot',
   scatter: 'Correlação',
   elbow: 'Método Elbow',
-  dendrogram: 'Dendrograma',
   radar: 'Perfis de Clusters',
   shap_summary: 'SHAP Summary',
   shap_waterfall: 'SHAP Waterfall',

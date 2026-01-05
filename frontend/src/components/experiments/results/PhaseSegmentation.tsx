@@ -1,5 +1,5 @@
 // frontend/src/components/experiments/results/PhaseSegmentation.tsx
-// Phase 3: Persona Segmentation - Automatic K-Means with PCA, Radar, Dendrogram
+// Phase 3: Persona Segmentation - Automatic K-Means with PCA and Radar
 
 import { useEffect } from 'react';
 import { Loader2, Users } from 'lucide-react';
@@ -7,7 +7,6 @@ import {
   useAnalysisClustering,
   useAutoAnalysisClustering,
 } from '@/hooks/use-analysis-charts';
-import { DendrogramSection } from './DendrogramSection';
 import { RadarSection } from './RadarSection';
 import { PCAScatterSection } from './PCAScatterSection';
 
@@ -70,9 +69,6 @@ export function PhaseSegmentation({ experimentId }: PhaseSegmentationProps) {
 
       {/* Radar Comparison (K-Means only) */}
       <RadarSection experimentId={experimentId} hasClustering={hasKMeansClustering} />
-
-      {/* Dendrogram (for validation) */}
-      <DendrogramSection experimentId={experimentId} />
     </div>
   );
 }

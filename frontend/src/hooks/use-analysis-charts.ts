@@ -13,10 +13,8 @@ import {
   createAutoAnalysisClustering,
   getAnalysisClustering,
   getAnalysisElbow,
-  getAnalysisDendrogram,
   getAnalysisRadarComparison,
   getAnalysisPCAScatter,
-  cutAnalysisDendrogram,
   // Phase 4: Edge Cases
   getAnalysisExtremeCases,
   getAnalysisOutliers,
@@ -26,7 +24,7 @@ import {
   getAnalysisPDP,
   getAnalysisPDPComparison,
 } from '@/services/experiments-api';
-import type { ClusterRequest, CutDendrogramRequest } from '@/types/simulation';
+import type { ClusterRequest } from '@/types/simulation';
 
 // =============================================================================
 // Phase 1: Overview Charts
@@ -145,7 +143,6 @@ export function useAutoAnalysisClustering(experimentId: string) {
       queryClient.invalidateQueries({ queryKey: queryKeys.analysis.clusters(experimentId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.analysis.radarComparison(experimentId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.analysis.pcaScatter(experimentId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.dendrogram(experimentId) });
     },
   });
 }
@@ -154,15 +151,6 @@ export function useAnalysisElbow(experimentId: string, maxK = 10, enabled = true
   return useQuery({
     queryKey: [...queryKeys.analysis.elbow(experimentId), maxK],
     queryFn: () => getAnalysisElbow(experimentId, maxK),
-    enabled: !!experimentId && enabled,
-    staleTime: 10 * 60 * 1000,
-  });
-}
-
-export function useAnalysisDendrogram(experimentId: string, enabled = true) {
-  return useQuery({
-    queryKey: queryKeys.analysis.dendrogram(experimentId),
-    queryFn: () => getAnalysisDendrogram(experimentId),
     enabled: !!experimentId && enabled,
     staleTime: 10 * 60 * 1000,
   });
@@ -192,19 +180,6 @@ export function useAnalysisPCAScatter(experimentId: string, enabled = true) {
     retry: (failureCount, error) => {
       if (error instanceof Error && error.message.includes('404')) return false;
       return failureCount < 3;
-    },
-  });
-}
-
-export function useCutAnalysisDendrogram(experimentId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (request: CutDendrogramRequest) => cutAnalysisDendrogram(experimentId, request),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.clusters(experimentId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.dendrogram(experimentId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.radarComparison(experimentId) });
     },
   });
 }
