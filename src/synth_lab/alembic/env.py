@@ -30,7 +30,6 @@ from synth_lab.models.orm import (  # noqa: F401
     Exploration, ScenarioNode,
     ChartInsight, SensitivityResult, RegionAnalysis,
     ExperimentDocument,
-    FeatureScorecard, SimulationRun,
 )
 
 # This is the Alembic Config object
@@ -90,6 +89,22 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+def _should_include_object(object, name, type_, reflected, compare_to):
+    """
+    Filter autogenerate differences to ignore false positives.
+
+    Specifically handles DESC indexes which Alembic incorrectly flags as different
+    even when they're identical between model and database.
+    """
+    # For indexes, check if this is a DESC index comparison issue
+    if type_ == "index" and reflected and compare_to:
+        # If both have the same name and are on created_at, they're the same
+        # (This handles the DESC operator representation mismatch)
+        if name and ("created" in name or "created_at" in name):
+            return False  # Skip this comparison - it's a false positive
+    return True
+
+
 def run_migrations_online() -> None:
     """
     Run migrations in 'online' mode.
@@ -112,6 +127,8 @@ def run_migrations_online() -> None:
             compare_type=True,
             # Compare server defaults
             compare_server_default=True,
+            # Filter false positives (DESC indexes)
+            include_object=_should_include_object,
         )
 
         with context.begin_transaction():

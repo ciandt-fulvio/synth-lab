@@ -308,8 +308,8 @@ class TestActionCatalogServiceIntegration:
         service = ActionCatalogService(catalog_path=catalog_path)
 
         # Verify
-        assert service.validate_category_id("valid_category") is True
-        assert service.validate_category_id("invalid_category") is False
+        assert service.validate_category("valid_category") is True
+        assert service.validate_category("invalid_category") is False
 
     def test_get_prompt_context_returns_formatted_string(self, tmp_path):
         """Test that get_prompt_context returns properly formatted catalog context."""

@@ -62,14 +62,14 @@ class TestResearchListContracts:
             execution = executions[0]
 
             # Required fields for ResearchExecutionSummary
-            required_fields = ["id", "experiment_id", "synth_group_id", "status", "started_at", "synth_count"]
+            required_fields = ["exec_id", "experiment_id", "topic_name", "status", "started_at", "synth_count"]
             for field in required_fields:
                 assert field in execution, f"Execution must have '{field}' field. Frontend breaks without it!"
 
             # Validate types
-            assert isinstance(execution["id"], str), "id must be string"
-            assert isinstance(execution["experiment_id"], str), "experiment_id must be string"
-            assert isinstance(execution["synth_group_id"], str), "synth_group_id must be string"
+            assert isinstance(execution["exec_id"], str), "exec_id must be string"
+            assert execution["experiment_id"] is None or isinstance(execution["experiment_id"], str), "experiment_id must be string or null"
+            assert isinstance(execution["topic_name"], str), "topic_name must be string"
             assert isinstance(execution["status"], str), "status must be string"
             assert isinstance(execution["synth_count"], int), "synth_count must be integer"
 
@@ -207,58 +207,62 @@ class TestResearchDocumentContracts:
 
     def test_get_research_summary_returns_valid_schema(self, client: TestClient):
         """GET /research/{exec_id}/documents/summary returns valid document schema."""
-        # Try with non-existent ID - accept 404 or 200
+        # Try with non-existent ID - accept 404 or 200 with null
         response = client.get("/research/exec_test_001/documents/summary")
 
-        assert response.status_code in [200, 404], "Should return 200 (found) or 404 (not found)"
+        assert response.status_code in [200, 404], "Should return 200 or 404"
 
         if response.status_code == 200:
             document = response.json()
 
-            # Required fields for DocumentDetailResponse
-            required_fields = ["id", "type", "status", "content", "created_at"]
-            for field in required_fields:
-                assert field in document, f"Document must have '{field}' field"
+            # API returns null when document doesn't exist
+            if document is not None:
+                # Required fields for DocumentDetailResponse
+                required_fields = ["id", "type", "status", "content", "created_at"]
+                for field in required_fields:
+                    assert field in document, f"Document must have '{field}' field"
 
-            # Validate types
-            assert isinstance(document["id"], str)
-            assert isinstance(document["type"], str)
-            assert isinstance(document["status"], str)
-            assert validate_timestamp(document["created_at"])
+                # Validate types
+                assert isinstance(document["id"], str)
+                assert isinstance(document["type"], str)
+                assert isinstance(document["status"], str)
+                assert validate_timestamp(document["created_at"])
 
-            # Validate type enum
-            assert document["type"] == "research_summary", "Document type should be research_summary"
+                # Validate type enum
+                assert document["type"] == "research_summary", "Document type should be research_summary"
 
-            # Validate status enum
-            valid_statuses = ["generating", "completed", "failed"]
-            assert document["status"] in valid_statuses, f"status must be one of {valid_statuses}"
+                # Validate status enum
+                valid_statuses = ["generating", "completed", "failed"]
+                assert document["status"] in valid_statuses, f"status must be one of {valid_statuses}"
 
-            # If completed, content should be present
-            if document["status"] == "completed":
-                assert document["content"] is not None, "Completed document must have content"
-                assert isinstance(document["content"], str), "content must be string"
+                # If completed, content should be present
+                if document["status"] == "completed":
+                    assert document["content"] is not None, "Completed document must have content"
+                    assert isinstance(document["content"], str), "content must be string"
 
     def test_get_research_prfaq_returns_valid_schema(self, client: TestClient):
         """GET /research/{exec_id}/documents/prfaq returns valid PRFAQ document schema."""
-        # Try with non-existent ID - accept 404 or 200
+        # Try with non-existent ID - accept 404 or 200 with null
         response = client.get("/research/exec_test_001/documents/prfaq")
 
-        assert response.status_code in [200, 404], "Should return 200 (found) or 404 (not found)"
+        assert response.status_code in [200, 404], "Should return 200 or 404"
 
         if response.status_code == 200:
             document = response.json()
 
-            # Required fields for DocumentDetailResponse
-            required_fields = ["id", "type", "status", "content", "created_at"]
-            for field in required_fields:
-                assert field in document, f"PRFAQ document must have '{field}' field"
+            # API returns null when document doesn't exist
+            if document is not None:
+                # Required fields for DocumentDetailResponse
+                required_fields = ["id", "type", "status", "content", "created_at"]
+                for field in required_fields:
+                    assert field in document, f"PRFAQ document must have '{field}' field"
 
-            # Validate type
-            assert document["type"] == "research_prfaq", "Document type should be research_prfaq"
+                # Validate type
+                assert document["type"] == "research_prfaq", "Document type should be research_prfaq"
 
-            # Validate status
-            valid_statuses = ["generating", "completed", "failed"]
-            assert document["status"] in valid_statuses
+                # Validate status
+                valid_statuses = ["generating", "completed", "failed"]
+                assert document["status"] in valid_statuses
 
     def test_get_interview_guide_returns_valid_schema(self, client: TestClient):
         """GET /research/{exec_id}/documents/interview-guide returns valid interview guide schema."""

@@ -34,51 +34,9 @@ from synth_lab.models.orm.experiment import Experiment
 
 
 @pytest.fixture(scope="module")
-def database_url():
-    """Get database URL - prefer PostgreSQL if available."""
-    postgres_url = os.getenv("POSTGRES_URL")
-    if postgres_url:
-        return postgres_url
-    # Fall back to in-memory PostgreSQL
-    return "sql" + "ite:///:memory:"
-
-
-@pytest.fixture(scope="module")
-def engine(database_url):
-    """Create database engine."""
-    if database_url.startswith("sql" + "ite:"):
-        from sqlalchemy.pool import StaticPool
-        # Use StaticPool for in-memory PostgreSQL to share connection across threads
-        engine = create_engine(
-            database_url,
-            connect_args={"check_same_thread": False},
-            poolclass=StaticPool,
-            pool_pre_ping=True,
-        )
-    else:
-        engine = create_engine(
-            database_url,
-            pool_size=5,
-            max_overflow=10,
-            pool_pre_ping=True,
-        )
-
-    # For PostgreSQL: drop existing tables first to avoid schema conflicts
-    # This is necessary because Alembic migration schema may differ from ORM models
-    if not database_url.startswith("sql" + "ite:"):
-        # Use CASCADE to handle foreign key dependencies
-        with engine.connect() as conn:
-            conn.execute(text("DROP SCHEMA public CASCADE"))
-            conn.execute(text("CREATE SCHEMA public"))
-            conn.commit()
-
-    # Create tables from ORM models
-    Base.metadata.create_all(engine)
-    yield engine
-
-    # Cleanup
-    Base.metadata.drop_all(engine)
-    engine.dispose()
+def engine(migrated_db_engine):
+    """Use migrated database engine from conftest."""
+    return migrated_db_engine
 
 
 @pytest.fixture(scope="module")
@@ -87,6 +45,7 @@ def session_factory(engine):
     return sessionmaker(bind=engine, expire_on_commit=False)
 
 
+@pytest.mark.requires_postgres
 class TestConcurrentReads:
     """Tests for concurrent read operations."""
 
@@ -138,6 +97,7 @@ class TestConcurrentReads:
         session.close()
 
 
+@pytest.mark.requires_postgres
 class TestConcurrentWrites:
     """Tests for concurrent write operations."""
 
@@ -236,6 +196,7 @@ class TestConcurrentWrites:
         session.close()
 
 
+@pytest.mark.requires_postgres
 class TestConnectionPoolBehavior:
     """Tests for connection pool behavior under load."""
 
@@ -271,11 +232,11 @@ class TestConnectionPoolBehavior:
         assert len(errors) == 0, f"Errors occurred: {errors}"
         assert len(results) == 50
 
-    def test_sessions_are_independent(self, engine, session_factory, database_url):
+    def test_sessions_are_independent(self, engine, session_factory, postgres_test_url):
         """Each session sees its own uncommitted changes only."""
-        # Skip for PostgreSQL with StaticPool - shares same connection
-        if database_url.startswith("sql" + "ite:"):
-            pytest.skip("PostgreSQL with StaticPool shares connection between sessions")
+        # PostgreSQL properly isolates sessions
+        # This test validates that uncommitted changes in one session
+        # are not visible to other sessions
 
         # Create base record
         session1 = session_factory()
@@ -315,6 +276,7 @@ class TestConnectionPoolBehavior:
         session.close()
 
 
+@pytest.mark.requires_postgres
 class TestCRUDConcurrency:
     """Tests for concurrent CRUD operations."""
 
