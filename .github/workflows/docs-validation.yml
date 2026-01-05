@@ -11,6 +11,8 @@ on:
       - main
     paths:
       - 'docs/**/*.md'
+      - '.github/workflows/docs-validation.yml'
+  workflow_dispatch:
 
 jobs:
   check-docs-sync:
