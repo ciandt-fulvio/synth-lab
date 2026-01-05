@@ -89,7 +89,7 @@ if [ -n "$ROUTERS" ]; then
                     head -5)
 
         if [ -n "$endpoints" ]; then
-            prompt="Atualizar tests/contract/test_api_contracts.py para cobrir o router '$router_name'.
+            prompt="Atualizar tests para cobrir o router '$router_name'.
 
 Endpoints encontrados:
 $(echo "$endpoints" | sed 's/^/- /')
