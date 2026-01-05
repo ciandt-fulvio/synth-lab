@@ -12,7 +12,7 @@ CRÍTICO: Se este teste falha com "Models divergem do DB", significa que:
 - Alguém mudou um model SEM criar migration
 - Ação: alembic revision --autogenerate -m "Descrição da mudança"
 
-Requer: DATABASE_URL_TEST environment variable.
+Requer: DATABASE_TEST_URL environment variable.
 """
 
 import os
@@ -30,10 +30,10 @@ from synth_lab.models.orm.base import Base
 
 @pytest.fixture(scope="module")
 def db_engine():
-    """Create database engine using DATABASE_URL_TEST."""
-    database_url = os.getenv("DATABASE_URL_TEST")
+    """Create database engine using DATABASE_TEST_URL."""
+    database_url = os.getenv("DATABASE_TEST_URL")
     if not database_url:
-        pytest.skip("DATABASE_URL_TEST not set")
+        pytest.skip("DATABASE_TEST_URL not set")
     return create_db_engine(database_url)
 
 

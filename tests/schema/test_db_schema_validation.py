@@ -11,7 +11,7 @@ Executar: pytest -m schema
 IMPORTÂNCIA: Estes testes detectam 90% dos problemas de "funcionou local mas quebrou em prod"
 relacionados a divergências de schema.
 
-Requer: DATABASE_URL_TEST environment variable.
+Requer: DATABASE_TEST_URL environment variable.
 """
 
 import os
@@ -27,10 +27,10 @@ from synth_lab.models.orm.base import Base
 
 @pytest.fixture(scope="module")
 def db_inspector():
-    """Create inspector for database schema introspection using DATABASE_URL_TEST."""
-    database_url = os.getenv("DATABASE_URL_TEST")
+    """Create inspector for database schema introspection using DATABASE_TEST_URL."""
+    database_url = os.getenv("DATABASE_TEST_URL")
     if not database_url:
-        pytest.skip("DATABASE_URL_TEST not set")
+        pytest.skip("DATABASE_TEST_URL not set")
     engine = create_db_engine(database_url)
     return inspect(engine)
 
@@ -48,7 +48,8 @@ class TestExperimentTableSchema:
 
     def test_experiments_has_required_columns(self, db_inspector):
         """Tabela deve ter todas as colunas definidas no model."""
-        columns = {col["name"]: col for col in db_inspector.get_columns("experiments")}
+        columns = {
+            col["name"]: col for col in db_inspector.get_columns("experiments")}
 
         # Campos do Experiment model
         required_columns = {
@@ -70,7 +71,8 @@ class TestExperimentTableSchema:
 
     def test_experiments_column_types_match(self, db_inspector):
         """Tipos de colunas devem bater com o model."""
-        columns = {col["name"]: col for col in db_inspector.get_columns("experiments")}
+        columns = {
+            col["name"]: col for col in db_inspector.get_columns("experiments")}
 
         # id deve ser String/VARCHAR
         id_col = columns["id"]
@@ -94,7 +96,8 @@ class TestExperimentTableSchema:
 
     def test_experiments_nullable_constraints_match(self, db_inspector):
         """Constraints de nullable devem bater com o model."""
-        columns = {col["name"]: col for col in db_inspector.get_columns("experiments")}
+        columns = {
+            col["name"]: col for col in db_inspector.get_columns("experiments")}
 
         # id, name, hypothesis, status, created_at são NOT NULL
         not_null_fields = ["id", "name", "hypothesis", "status", "created_at"]
@@ -149,7 +152,8 @@ class TestSynthTableSchema:
 
     def test_synths_has_required_columns(self, db_inspector):
         """Tabela deve ter colunas essenciais."""
-        columns = {col["name"]: col for col in db_inspector.get_columns("synths")}
+        columns = {col["name"]
+            : col for col in db_inspector.get_columns("synths")}
 
         required_columns = ["id", "nome", "data", "version", "created_at"]
 
@@ -160,7 +164,8 @@ class TestSynthTableSchema:
 
     def test_synths_has_foreign_key_to_experiments(self, db_inspector):
         """Deve ter FK para experiments (se existir coluna experiment_id)."""
-        columns = {col["name"]: col for col in db_inspector.get_columns("synths")}
+        columns = {col["name"]
+            : col for col in db_inspector.get_columns("synths")}
 
         if "experiment_id" in columns:
             fkeys = db_inspector.get_foreign_keys("synths")
@@ -233,7 +238,8 @@ class TestAllModelsHaveTables:
         db_tables = set(db_inspector.get_table_names())
 
         # Pega todos os models do Base
-        model_tables = {mapper.mapped_table.name for mapper in Base.registry.mappers}
+        model_tables = {
+            mapper.mapped_table.name for mapper in Base.registry.mappers}
 
         # Remove tabela do Alembic (não é um model)
         db_tables.discard("alembic_version")
@@ -250,7 +256,8 @@ class TestAllModelsHaveTables:
         db_tables = set(db_inspector.get_table_names())
         db_tables.discard("alembic_version")  # Tabela do Alembic é OK
 
-        model_tables = {mapper.mapped_table.name for mapper in Base.registry.mappers}
+        model_tables = {
+            mapper.mapped_table.name for mapper in Base.registry.mappers}
 
         orphan_tables = db_tables - model_tables
 
@@ -274,7 +281,8 @@ class TestCriticalColumnTypes:
             if table not in db_inspector.get_table_names():
                 continue  # Skip se tabela não existe
 
-            columns = {col["name"]: col for col in db_inspector.get_columns(table)}
+            columns = {col["name"]
+                : col for col in db_inspector.get_columns(table)}
 
             if "id" in columns:
                 id_col = columns["id"]
@@ -295,7 +303,8 @@ class TestCriticalColumnTypes:
             if table not in db_inspector.get_table_names():
                 continue
 
-            columns = {col["name"]: col for col in db_inspector.get_columns(table)}
+            columns = {col["name"]
+                : col for col in db_inspector.get_columns(table)}
 
             for json_col_name in json_columns:
                 if json_col_name in columns:
