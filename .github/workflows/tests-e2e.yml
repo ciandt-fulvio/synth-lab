@@ -81,7 +81,12 @@ jobs:
         run: |
           nohup uvicorn synth_lab.api.main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
           echo $! > backend.pid
-        working-directory: src
+          sleep 5  # Give the server time to start
+          if ! ps -p $(cat backend.pid) > /dev/null 2>&1; then
+            echo "Backend failed to start. Logs:"
+            cat backend.log
+            exit 1
+          fi
 
       # ========================================================================
       # 4. Setup Frontend (Node + Dependencies + Playwright)
@@ -154,7 +159,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: backend-logs
-          path: src/backend.log
+          path: backend.log
           retention-days: 7
 
       - name: Upload frontend logs
@@ -171,8 +176,8 @@ jobs:
       - name: Stop servers
         if: always()
         run: |
-          if [ -f src/backend.pid ]; then
-            kill $(cat src/backend.pid) || true
+          if [ -f backend.pid ]; then
+            kill $(cat backend.pid) || true
           fi
           if [ -f frontend/frontend.pid ]; then
             kill $(cat frontend/frontend.pid) || true

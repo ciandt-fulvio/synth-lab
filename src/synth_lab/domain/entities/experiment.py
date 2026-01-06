@@ -158,8 +158,8 @@ class Experiment(BaseModel):
 
     id: str = Field(
         default_factory=generate_experiment_id,
-        pattern=r"^exp_[a-f0-9]{8}$",
-        description="Unique experiment ID.",
+        pattern=r"^exp_[a-z0-9_]+$",
+        description="Unique experiment ID (exp_ prefix + alphanumeric/underscore suffix).",
     )
 
     name: str = Field(
