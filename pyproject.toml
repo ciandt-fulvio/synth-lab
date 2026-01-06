@@ -43,6 +43,7 @@ dependencies = [
     # Media processing for thumbnails and descriptions
     "pdf2image>=1.17.0",
     "moviepy>=1.0.3",
+    "pytesseract>=0.3.10",  # OCR for PDF text extraction
 ]
 
 [project.optional-dependencies]

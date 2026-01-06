@@ -134,13 +134,10 @@ function MaterialCard({ material, onView, onDelete }: MaterialCardProps) {
         </p>
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Badge variant="outline" className="text-xs">
-            {material.material_type}
-          </Badge>
           <span>{formatFileSize(material.file_size)}</span>
         </div>
 
-        {/* Description status */}
+        {/* AI Description */}
         {material.description && (
           <p className="text-xs text-muted-foreground line-clamp-2">
             {material.description}
@@ -230,28 +227,28 @@ function MaterialViewerModal({
             </>
           )}
 
-          {/* Metadata */}
-          <div className="mt-4 p-4 bg-muted rounded-lg space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Tipo:</span>
-              <span className="font-medium">{material.file_type}</span>
+          {/* AI Description - Prominent */}
+          {material.description && (
+            <div className="mt-4 p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg border border-indigo-100">
+              <p className="text-sm font-medium text-indigo-900 mb-2">
+                Descrição AI
+              </p>
+              <p className="text-sm text-slate-700 leading-relaxed">
+                {material.description}
+              </p>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Tamanho:</span>
-              <span className="font-medium">
-                {formatFileSize(material.file_size)}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Categoria:</span>
-              <Badge variant="outline">{material.material_type}</Badge>
-            </div>
-            {material.description && (
-              <div className="pt-2 border-t">
-                <p className="text-sm text-muted-foreground">Descrição:</p>
-                <p className="text-sm mt-1">{material.description}</p>
-              </div>
-            )}
+          )}
+
+          {/* Compact Metadata */}
+          <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <span className="font-medium">Tipo:</span>
+              <span>{material.file_type}</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="font-medium">Tamanho:</span>
+              <span>{formatFileSize(material.file_size)}</span>
+            </span>
           </div>
         </div>
       </DialogContent>

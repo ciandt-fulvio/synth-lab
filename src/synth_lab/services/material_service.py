@@ -222,8 +222,13 @@ class MaterialService:
             self.logger.warning(f"Thumbnail generation failed for {material_id}: {e}")
             # Don't fail the upload if thumbnail generation fails
 
-        # TODO: Queue description generation (Phase 5)
-        # This will be implemented in T058
+        # Generate AI description
+        # This runs synchronously for now; can be made async in Phase 7
+        try:
+            self.generate_description(material_id)
+        except Exception as e:
+            self.logger.warning(f"Description generation failed for {material_id}: {e}")
+            # Don't fail the upload if description generation fails
 
         return updated_material
 
@@ -652,6 +657,293 @@ class MaterialService:
 
         except Exception as e:
             self.logger.error(f"Failed to render PDF {object_key}: {e}")
+            return None
+
+    # -------------------------------------------------------------------------
+    # AI Description Generation
+    # -------------------------------------------------------------------------
+
+    def generate_description(self, material_id: str) -> str | None:
+        """
+        Generate AI description for a material using vision-capable LLM.
+
+        Dispatches to appropriate method based on file type:
+        - Image: Vision API with full image
+        - Video: Vision API with first frame
+        - Document: Text extraction + standard LLM
+
+        Args:
+            material_id: Material ID.
+
+        Returns:
+            Generated description (max 30 words) if successful, None if failed.
+        """
+        material = self.repository.get_by_id(material_id)
+        if material is None:
+            self.logger.error(f"Material {material_id} not found for description")
+            return None
+
+        if not material.file_url:
+            self.logger.error(f"Material {material_id} has no file URL")
+            return None
+
+        # Extract object key from file_url
+        url_parts = material.file_url.split("/")
+        object_key = "/".join(url_parts[4:])
+
+        try:
+            if material.file_type == FileType.IMAGE:
+                description = self._generate_image_description(object_key)
+            elif material.file_type == FileType.VIDEO:
+                description = self._generate_video_description(object_key)
+            elif material.file_type == FileType.DOCUMENT:
+                description = self._generate_document_description(object_key)
+            else:
+                self.logger.warning(f"No description generator for type {material.file_type}")
+                return None
+
+            if description is None:
+                return None
+
+            # Update material with description
+            from synth_lab.domain.entities.experiment_material import DescriptionStatus
+            self.repository.update_description(
+                material_id=material_id,
+                description=description,
+                status=DescriptionStatus.COMPLETED,
+            )
+
+            self.logger.info(f"Generated description for material {material_id}")
+            return description
+
+        except Exception as e:
+            self.logger.error(f"Failed to generate description for {material_id}: {e}")
+            # Mark as failed
+            from synth_lab.domain.entities.experiment_material import DescriptionStatus
+            self.repository.update_description(
+                material_id=material_id,
+                description=None,
+                status=DescriptionStatus.FAILED,
+            )
+            return None
+
+    def _generate_image_description(self, object_key: str) -> str | None:
+        """
+        Generate description from image using vision API.
+
+        Args:
+            object_key: S3 object key for the image.
+
+        Returns:
+            Description text, or None if failed.
+        """
+        import base64
+        from synth_lab.infrastructure.llm_client import get_llm_client
+        from synth_lab.infrastructure.phoenix_tracing import get_tracer
+
+        _tracer = get_tracer("material-description")
+
+        image_bytes = get_object_bytes(object_key)
+        if image_bytes is None:
+            self.logger.error(f"Could not download image {object_key}")
+            return None
+
+        try:
+            # Encode image to base64
+            image_base64 = base64.b64encode(image_bytes).decode("utf-8")
+
+            # Prepare messages for vision API
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Describe this material in exactly 30 words. Focus on what it shows, its purpose, and key visible elements. Be concise and specific.",
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{image_base64}",
+                                "detail": "high",
+                            },
+                        },
+                    ],
+                }
+            ]
+
+            with _tracer.start_as_current_span(
+                "Generate Material Description (Image)",
+                attributes={
+                    "operation_type": "material_description",
+                    "file_type": "image",
+                    "object_key": object_key,
+                },
+            ):
+                llm_client = get_llm_client()
+                description = llm_client.complete(
+                    messages=messages,
+                    model="gpt-4o-mini",
+                    temperature=0.7,
+                    max_tokens=100,
+                )
+
+                return description.strip()
+
+        except Exception as e:
+            self.logger.error(f"Failed to generate image description for {object_key}: {e}")
+            return None
+
+    def _generate_video_description(self, object_key: str) -> str | None:
+        """
+        Generate description from video by analyzing first frame.
+
+        Args:
+            object_key: S3 object key for the video.
+
+        Returns:
+            Description text, or None if failed.
+        """
+        import base64
+        import tempfile
+        from moviepy.editor import VideoFileClip
+        from synth_lab.infrastructure.llm_client import get_llm_client
+        from synth_lab.infrastructure.phoenix_tracing import get_tracer
+
+        _tracer = get_tracer("material-description")
+
+        video_bytes = get_object_bytes(object_key)
+        if video_bytes is None:
+            self.logger.error(f"Could not download video {object_key}")
+            return None
+
+        try:
+            # Extract first frame
+            with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as tmp:
+                tmp.write(video_bytes)
+                tmp.flush()
+
+                with VideoFileClip(tmp.name) as clip:
+                    frame = clip.get_frame(0)
+                    img = Image.fromarray(frame)
+
+                    # Convert frame to base64
+                    output = BytesIO()
+                    img.save(output, format="PNG")
+                    frame_base64 = base64.b64encode(output.getvalue()).decode("utf-8")
+
+            # Prepare messages for vision API
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Describe this video material in exactly 30 words based on this frame. Focus on what it shows, its purpose, and key visible elements. Be concise and specific.",
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{frame_base64}",
+                                "detail": "high",
+                            },
+                        },
+                    ],
+                }
+            ]
+
+            with _tracer.start_as_current_span(
+                "Generate Material Description (Video)",
+                attributes={
+                    "operation_type": "material_description",
+                    "file_type": "video",
+                    "object_key": object_key,
+                },
+            ):
+                llm_client = get_llm_client()
+                description = llm_client.complete(
+                    messages=messages,
+                    model="gpt-4o-mini",
+                    temperature=0.7,
+                    max_tokens=100,
+                )
+
+                return description.strip()
+
+        except Exception as e:
+            self.logger.error(f"Failed to generate video description for {object_key}: {e}")
+            return None
+
+    def _generate_document_description(self, object_key: str) -> str | None:
+        """
+        Generate description from document by extracting text.
+
+        Args:
+            object_key: S3 object key for the document.
+
+        Returns:
+            Description text, or None if failed.
+        """
+        from synth_lab.infrastructure.llm_client import get_llm_client
+        from synth_lab.infrastructure.phoenix_tracing import get_tracer
+
+        _tracer = get_tracer("material-description")
+
+        doc_bytes = get_object_bytes(object_key)
+        if doc_bytes is None:
+            self.logger.error(f"Could not download document {object_key}")
+            return None
+
+        try:
+            # Extract text from PDF
+            from pdf2image import convert_from_bytes
+            import pytesseract
+
+            # Convert first page to image
+            images = convert_from_bytes(
+                doc_bytes,
+                first_page=1,
+                last_page=1,
+                dpi=150,
+            )
+
+            if not images:
+                self.logger.error(f"No pages extracted from {object_key}")
+                return None
+
+            # OCR the first page
+            text = pytesseract.image_to_string(images[0])
+            text_preview = text[:1000]  # First 1000 chars
+
+            # Generate description
+            messages = [
+                {
+                    "role": "user",
+                    "content": f"Based on this document excerpt, create a 30-word description focusing on its purpose and key content:\n\n{text_preview}",
+                }
+            ]
+
+            with _tracer.start_as_current_span(
+                "Generate Material Description (Document)",
+                attributes={
+                    "operation_type": "material_description",
+                    "file_type": "document",
+                    "object_key": object_key,
+                    "text_length": len(text),
+                },
+            ):
+                llm_client = get_llm_client()
+                description = llm_client.complete(
+                    messages=messages,
+                    model="gpt-4o-mini",
+                    temperature=0.7,
+                    max_tokens=100,
+                )
+
+                return description.strip()
+
+        except Exception as e:
+            self.logger.error(f"Failed to generate document description for {object_key}: {e}")
             return None
 
 
