@@ -13,7 +13,7 @@
 
 import { useState } from 'react';
 import { FileIcon, FileText, Film, Image as ImageIcon, X } from 'lucide-react';
-import { Material } from '@/types/material';
+import { ExperimentMaterialSummary } from '@/types/material';
 import { useMaterials, useDeleteMaterial } from '@/hooks/use-materials';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,9 +30,9 @@ interface MaterialGalleryProps {
 }
 
 export function MaterialGallery({ experimentId }: MaterialGalleryProps) {
-  const { data: materials, isLoading } = useMaterials(experimentId);
+  const { data: response, isLoading } = useMaterials(experimentId);
   const deleteMutation = useDeleteMaterial(experimentId);
-  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
+  const [selectedMaterial, setSelectedMaterial] = useState<ExperimentMaterialSummary | null>(null);
 
   if (isLoading) {
     return (
@@ -42,7 +42,9 @@ export function MaterialGallery({ experimentId }: MaterialGalleryProps) {
     );
   }
 
-  if (!materials || materials.length === 0) {
+  const materials = response?.materials || [];
+
+  if (materials.length === 0) {
     return (
       <div className="flex items-center justify-center p-8 border-2 border-dashed rounded-lg">
         <p className="text-muted-foreground">Nenhum material anexado ainda</p>
@@ -75,7 +77,7 @@ export function MaterialGallery({ experimentId }: MaterialGalleryProps) {
 }
 
 interface MaterialCardProps {
-  material: Material;
+  material: ExperimentMaterialSummary;
   onView: () => void;
   onDelete: () => void;
 }
@@ -148,7 +150,7 @@ function MaterialCard({ material, onView, onDelete }: MaterialCardProps) {
 }
 
 interface MaterialViewerModalProps {
-  material: Material;
+  material: ExperimentMaterialSummary;
   onClose: () => void;
 }
 
