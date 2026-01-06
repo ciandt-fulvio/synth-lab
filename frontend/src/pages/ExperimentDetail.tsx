@@ -65,6 +65,7 @@ import {
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
+import { TagSelector } from '@/components/experiments/TagSelector';
 
 // =============================================================================
 // Scorecard Slider Component (Read-only)
@@ -317,6 +318,14 @@ export default function ExperimentDetail() {
                   {truncatedDescription}
                 </p>
               )}
+
+              {/* Tags */}
+              <div className="mt-4">
+                <TagSelector
+                  experimentId={experiment.id}
+                  currentTags={experiment.tags || []}
+                />
+              </div>
             </div>
 
             {/* Right: Scorecard Sliders */}

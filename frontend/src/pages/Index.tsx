@@ -16,6 +16,7 @@ import { ExperimentCard } from '@/components/experiments/ExperimentCard';
 import { EmptyState } from '@/components/experiments/EmptyState';
 import { ExperimentForm } from '@/components/experiments/ExperimentForm';
 import { ExperimentsFilter, type SortOption } from '@/components/experiments/ExperimentsFilter';
+import { PopularTags } from '@/components/experiments/PopularTags';
 import { useExperiments, useCreateExperiment } from '@/hooks/use-experiments';
 import {
   Dialog,
@@ -66,16 +67,18 @@ export default function Index() {
   const { toast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  // Search and sort state
+  // Search, tag filter, and sort state
   const [search, setSearch] = useState('');
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>('recent');
 
   // Convert UI state to API params
   const listParams = useMemo<ExperimentsListParams>(() => ({
     search: search || undefined, // Don't send empty string
+    tag: selectedTag || undefined,
     sort_by: sortOption === 'name' ? 'name' : 'created_at',
     sort_order: sortOption === 'name' ? 'asc' : 'desc',
-  }), [search, sortOption]);
+  }), [search, selectedTag, sortOption]);
 
   // Fetch experiments with params
   const { data, isLoading, isError, error, isFetching } = useExperiments(listParams);
@@ -111,6 +114,10 @@ export default function Index() {
 
   const handleSynthsClick = () => {
     navigate('/synths');
+  };
+
+  const handleTagClick = (tag: string | null) => {
+    setSelectedTag(tag);
   };
 
   return (
@@ -156,14 +163,26 @@ export default function Index() {
           </div>
         </AnimatedSection>
 
+        {/* Popular Tags Quick Filters */}
+        {!isLoading && !isError && experiments.length > 0 && (
+          <AnimatedSection delay={50}>
+            <PopularTags
+              selectedTag={selectedTag}
+              onTagClick={handleTagClick}
+            />
+          </AnimatedSection>
+        )}
+
         {/* Search and Sort Controls */}
         {!isLoading && !isError && (
-          <AnimatedSection delay={50}>
+          <AnimatedSection delay={100}>
             <ExperimentsFilter
               search={search}
               sortOption={sortOption}
+              selectedTag={selectedTag}
               onSearchChange={setSearch}
               onSortChange={setSortOption}
+              onTagChange={setSelectedTag}
             />
           </AnimatedSection>
         )}
@@ -175,50 +194,6 @@ export default function Index() {
           </div>
         )}
 
-        {/* Stats Summary - only show when not searching */}
-        {!isLoading && !isError && experiments.length > 0 && !search && (
-          <AnimatedSection delay={100}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <FlaskConical className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-slate-900">{experiments.length}</p>
-                    <p className="text-xs text-slate-500 uppercase tracking-wide">Experimentos</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Sparkles className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-slate-900">
-                      {experiments.filter((e) => (e.interview_count ?? 0) > 0).length}
-                    </p>
-                    <p className="text-xs text-slate-500 uppercase tracking-wide">Com Entrevistas</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Users className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-slate-900">
-                      {experiments.reduce((acc, e) => acc + (e.interview_count ?? 0), 0)}
-                    </p>
-                    <p className="text-xs text-slate-500 uppercase tracking-wide">Total Entrevistas</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </AnimatedSection>
-        )}
 
         {/* Loading state */}
         {isLoading && (

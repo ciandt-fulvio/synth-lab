@@ -5,7 +5,11 @@
  */
 
 export const queryKeys = {
+  // Tags
+  tags: () => ['tags'] as const,
+
   // Experiments
+  experiments: () => ['experiments'] as const,
   experimentsList: ['experiments'] as const,
   experimentDetail: (id: string) => ['experiments', id] as const,
 
