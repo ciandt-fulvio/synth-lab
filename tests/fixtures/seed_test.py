@@ -112,7 +112,7 @@ def _seed_primary_experiment(session: Session) -> Experiment:
     base_time = datetime.now()
 
     experiment = Experiment(
-        id="exp_delivery_scheduling",
+        id="exp_a1b2c3d4",  # Valid format: exp_[a-f0-9]{8}
         name="App de Delivery - Feature de Agendamento de Pedidos",
         hypothesis="Permitir agendamento de pedidos aumentará retenção em 25% e ticket médio em 15%",
         description=(

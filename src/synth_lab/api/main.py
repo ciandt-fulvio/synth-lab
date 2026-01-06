@@ -74,9 +74,9 @@ app.add_middleware(
 register_exception_handlers(app)
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health_check() -> dict:
-    """Health check endpoint."""
+    """Health check endpoint. Supports both GET and HEAD for wait-on compatibility."""
     return {"status": "healthy", "service": "synth-lab-api"}
 
 
