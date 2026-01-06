@@ -1,0 +1,532 @@
+"""
+Material service for synth-lab.
+
+Manages experiment materials (images, videos, documents) including
+presigned URL generation, upload confirmation, and limit validation.
+
+References:
+    - Repository: synth_lab.repositories.experiment_material_repository
+    - Entity: synth_lab.domain.entities.experiment_material
+    - Storage: synth_lab.infrastructure.storage_client
+"""
+
+from datetime import datetime, timezone
+
+from loguru import logger
+
+from synth_lab.domain.entities.experiment_material import (
+    DescriptionStatus,
+    ExperimentMaterial,
+    ExperimentMaterialSummary,
+    FileType,
+    MaterialType,
+    generate_material_id,
+    get_file_type_from_mime,
+)
+from synth_lab.infrastructure import config
+from synth_lab.infrastructure.storage_client import (
+    check_object_exists,
+    delete_object,
+    generate_upload_url,
+    generate_view_url,
+)
+from synth_lab.repositories.experiment_material_repository import (
+    ExperimentMaterialRepository,
+    MaterialLimitExceededError,
+    MaterialNotFoundError,
+)
+
+
+class UnsupportedFileTypeError(Exception):
+    """Raised when file type is not supported."""
+
+    def __init__(self, mime_type: str):
+        self.mime_type = mime_type
+        super().__init__(f"Unsupported file type: {mime_type}")
+
+
+class FileSizeLimitError(Exception):
+    """Raised when file size exceeds limit."""
+
+    def __init__(self, file_size: int, max_size: int, file_type: str):
+        self.file_size = file_size
+        self.max_size = max_size
+        super().__init__(
+            f"File size {file_size} exceeds maximum {max_size} for {file_type}"
+        )
+
+
+class MaterialService:
+    """
+    Service for managing experiment materials.
+
+    Provides presigned URL generation, upload confirmation,
+    and material CRUD operations with limit validation.
+    """
+
+    def __init__(
+        self,
+        repository: ExperimentMaterialRepository | None = None,
+    ):
+        self.repository = repository or ExperimentMaterialRepository()
+        self.logger = logger.bind(component="material_service")
+
+    def request_upload_url(
+        self,
+        experiment_id: str,
+        file_name: str,
+        file_size: int,
+        mime_type: str,
+        material_type: MaterialType,
+    ) -> dict:
+        """
+        Request a presigned URL for uploading a file.
+
+        Creates a pending material record and returns presigned URL
+        for direct S3 upload.
+
+        Args:
+            experiment_id: Experiment ID.
+            file_name: Original filename.
+            file_size: File size in bytes.
+            mime_type: MIME type of the file.
+            material_type: Purpose/category of material.
+
+        Returns:
+            Dict with material_id, upload_url, object_key, expires_in.
+
+        Raises:
+            UnsupportedFileTypeError: If MIME type is not supported.
+            FileSizeLimitError: If file size exceeds limit for type.
+            MaterialLimitExceededError: If experiment limits exceeded.
+        """
+        # Validate file type
+        file_type = get_file_type_from_mime(mime_type)
+        if file_type is None:
+            raise UnsupportedFileTypeError(mime_type)
+
+        # Validate file size
+        self._validate_file_size(file_size, file_type)
+
+        # Validate experiment limits
+        self._validate_experiment_limits(experiment_id, file_size)
+
+        # Generate IDs and paths
+        material_id = generate_material_id()
+        extension = file_name.rsplit(".", 1)[-1] if "." in file_name else ""
+        object_key = f"materials/{experiment_id}/{material_id}.{extension}"
+
+        # Generate presigned upload URL
+        upload_url = generate_upload_url(
+            object_key=object_key,
+            content_type=mime_type,
+            expires_in=config.PRESIGNED_URL_EXPIRATION,
+        )
+
+        # Get next display order
+        display_order = self.repository.get_next_display_order(experiment_id)
+
+        # Create pending material record
+        material = ExperimentMaterial(
+            id=material_id,
+            experiment_id=experiment_id,
+            file_type=file_type,
+            file_url="",  # Will be set on confirmation
+            file_name=file_name,
+            file_size=file_size,
+            mime_type=mime_type,
+            material_type=material_type,
+            description_status=DescriptionStatus.PENDING,
+            display_order=display_order,
+            created_at=datetime.now(timezone.utc),
+        )
+        self.repository.create(material)
+
+        self.logger.info(
+            f"Created upload URL for material {material_id} "
+            f"({file_name}, {file_size} bytes) in experiment {experiment_id}"
+        )
+
+        return {
+            "material_id": material_id,
+            "upload_url": upload_url,
+            "object_key": object_key,
+            "expires_in": config.PRESIGNED_URL_EXPIRATION,
+        }
+
+    def confirm_upload(
+        self,
+        experiment_id: str,
+        material_id: str,
+        object_key: str,
+    ) -> ExperimentMaterial:
+        """
+        Confirm that upload has completed.
+
+        Verifies file exists in S3 and updates material record.
+        Queues description generation.
+
+        Args:
+            experiment_id: Experiment ID.
+            material_id: Material ID from request_upload_url.
+            object_key: S3 object key from request_upload_url.
+
+        Returns:
+            Updated material with file_url set.
+
+        Raises:
+            MaterialNotFoundError: If material doesn't exist.
+            ValueError: If object not found in S3.
+        """
+        # Get material
+        material = self.repository.get_by_id(material_id)
+        if material is None:
+            raise MaterialNotFoundError(material_id)
+
+        if material.experiment_id != experiment_id:
+            raise ValueError(
+                f"Material {material_id} does not belong to experiment {experiment_id}"
+            )
+
+        # Verify file exists in S3
+        if not check_object_exists(object_key):
+            raise ValueError(f"Object {object_key} not found in S3")
+
+        # Build file URL
+        endpoint = config.S3_ENDPOINT_URL.replace('https://', '')
+        file_url = f"https://{endpoint}/{config.BUCKET_NAME}/{object_key}"
+
+        # Update material with file URL
+        self.repository.update_file_url(material_id, file_url)
+
+        # Get updated material
+        updated_material = self.repository.get_by_id(material_id)
+
+        self.logger.info(
+            f"Confirmed upload for material {material_id} in experiment {experiment_id}"
+        )
+
+        # TODO: Queue description generation (Phase 5)
+        # This will be implemented in T058
+
+        return updated_material
+
+    def get_material(self, material_id: str) -> ExperimentMaterial:
+        """
+        Get a material by ID.
+
+        Args:
+            material_id: Material ID.
+
+        Returns:
+            ExperimentMaterial.
+
+        Raises:
+            MaterialNotFoundError: If material doesn't exist.
+        """
+        material = self.repository.get_by_id(material_id)
+        if material is None:
+            raise MaterialNotFoundError(material_id)
+        return material
+
+    def list_materials(
+        self,
+        experiment_id: str,
+    ) -> list[ExperimentMaterialSummary]:
+        """
+        List all materials for an experiment.
+
+        Args:
+            experiment_id: Experiment ID.
+
+        Returns:
+            List of material summaries ordered by display_order.
+        """
+        return self.repository.list_summaries_by_experiment(experiment_id)
+
+    def list_materials_full(
+        self,
+        experiment_id: str,
+    ) -> list[ExperimentMaterial]:
+        """
+        List all materials with full data.
+
+        Args:
+            experiment_id: Experiment ID.
+
+        Returns:
+            List of full materials ordered by display_order.
+        """
+        return self.repository.list_by_experiment(experiment_id)
+
+    def get_view_url(
+        self,
+        material_id: str,
+        expires_in: int = 3600,
+    ) -> dict:
+        """
+        Get presigned URL for viewing a material.
+
+        Args:
+            material_id: Material ID.
+            expires_in: URL expiration time in seconds.
+
+        Returns:
+            Dict with material_id, view_url, thumbnail_url, expires_in.
+
+        Raises:
+            MaterialNotFoundError: If material doesn't exist.
+        """
+        material = self.repository.get_by_id(material_id)
+        if material is None:
+            raise MaterialNotFoundError(material_id)
+
+        # Extract object key from file_url
+        if not material.file_url:
+            raise ValueError(f"Material {material_id} has no file URL")
+
+        # Parse object key from URL
+        # URL format: https://endpoint/bucket/key
+        url_parts = material.file_url.split("/")
+        object_key = "/".join(url_parts[4:])  # Skip https:, empty, endpoint, bucket
+
+        view_url = generate_view_url(object_key, expires_in=expires_in)
+
+        thumbnail_url = None
+        if material.thumbnail_url:
+            thumb_parts = material.thumbnail_url.split("/")
+            thumb_key = "/".join(thumb_parts[4:])
+            thumbnail_url = generate_view_url(thumb_key, expires_in=expires_in)
+
+        return {
+            "material_id": material_id,
+            "view_url": view_url,
+            "thumbnail_url": thumbnail_url,
+            "expires_in": expires_in,
+        }
+
+    def reorder_materials(
+        self,
+        experiment_id: str,
+        material_ids: list[str],
+    ) -> list[ExperimentMaterialSummary]:
+        """
+        Reorder materials for an experiment.
+
+        Args:
+            experiment_id: Experiment ID.
+            material_ids: Material IDs in new display order.
+
+        Returns:
+            Updated list of materials.
+        """
+        self.repository.reorder(experiment_id, material_ids)
+        return self.repository.list_summaries_by_experiment(experiment_id)
+
+    def delete_material(
+        self,
+        experiment_id: str,
+        material_id: str,
+    ) -> bool:
+        """
+        Delete a material.
+
+        Args:
+            experiment_id: Experiment ID.
+            material_id: Material ID.
+
+        Returns:
+            True if deleted.
+
+        Raises:
+            MaterialNotFoundError: If material doesn't exist.
+        """
+        material = self.repository.get_by_id(material_id)
+        if material is None:
+            raise MaterialNotFoundError(material_id)
+
+        if material.experiment_id != experiment_id:
+            raise ValueError(
+                f"Material {material_id} does not belong to experiment {experiment_id}"
+            )
+
+        # Delete from S3 if file exists
+        if material.file_url:
+            url_parts = material.file_url.split("/")
+            object_key = "/".join(url_parts[4:])
+            try:
+                delete_object(object_key)
+            except Exception as e:
+                self.logger.warning(f"Failed to delete S3 object {object_key}: {e}")
+
+        # Delete thumbnail if exists
+        if material.thumbnail_url:
+            thumb_parts = material.thumbnail_url.split("/")
+            thumb_key = "/".join(thumb_parts[4:])
+            try:
+                delete_object(thumb_key)
+            except Exception as e:
+                self.logger.warning(f"Failed to delete thumbnail {thumb_key}: {e}")
+
+        self.repository.delete(material_id)
+
+        self.logger.info(
+            f"Deleted material {material_id} from experiment {experiment_id}"
+        )
+
+        return True
+
+    def get_limits(self, experiment_id: str) -> dict:
+        """
+        Get current usage and limits for an experiment.
+
+        Args:
+            experiment_id: Experiment ID.
+
+        Returns:
+            Dict with current_count, max_count, current_size, max_size, can_upload.
+        """
+        current_count = self.repository.count_by_experiment(experiment_id)
+        current_size = self.repository.get_total_size_by_experiment(experiment_id)
+
+        return {
+            "current_count": current_count,
+            "max_count": config.MAX_MATERIALS_PER_EXPERIMENT,
+            "current_size": current_size,
+            "max_size": config.MAX_TOTAL_SIZE_PER_EXPERIMENT,
+            "can_upload": (
+                current_count < config.MAX_MATERIALS_PER_EXPERIMENT
+                and current_size < config.MAX_TOTAL_SIZE_PER_EXPERIMENT
+            ),
+        }
+
+    def _validate_file_size(self, file_size: int, file_type: FileType) -> None:
+        """Validate file size against type-specific limits."""
+        if file_type == FileType.IMAGE:
+            max_size = config.MAX_IMAGE_SIZE
+        elif file_type == FileType.VIDEO:
+            max_size = config.MAX_VIDEO_SIZE
+        else:
+            max_size = config.MAX_DOCUMENT_SIZE
+
+        if file_size > max_size:
+            raise FileSizeLimitError(file_size, max_size, file_type.value)
+
+    def _validate_experiment_limits(
+        self,
+        experiment_id: str,
+        new_file_size: int,
+    ) -> None:
+        """Validate experiment doesn't exceed material limits."""
+        current_count = self.repository.count_by_experiment(experiment_id)
+        if current_count >= config.MAX_MATERIALS_PER_EXPERIMENT:
+            raise MaterialLimitExceededError(
+                f"Experiment {experiment_id} has reached maximum of "
+                f"{config.MAX_MATERIALS_PER_EXPERIMENT} materials"
+            )
+
+        current_size = self.repository.get_total_size_by_experiment(experiment_id)
+        if current_size + new_file_size > config.MAX_TOTAL_SIZE_PER_EXPERIMENT:
+            raise MaterialLimitExceededError(
+                f"Adding {new_file_size} bytes would exceed maximum of "
+                f"{config.MAX_TOTAL_SIZE_PER_EXPERIMENT} bytes per experiment"
+            )
+
+
+if __name__ == "__main__":
+    import sys
+
+    # Validation
+    all_validation_failures = []
+    total_tests = 0
+
+    # Test 1: Service initialization
+    total_tests += 1
+    try:
+        service = MaterialService()
+        if not hasattr(service, "logger"):
+            all_validation_failures.append("Service should have logger")
+        if not hasattr(service, "repository"):
+            all_validation_failures.append("Service should have repository")
+    except Exception as e:
+        all_validation_failures.append(f"Service init failed: {e}")
+
+    # Test 2: Methods exist
+    total_tests += 1
+    try:
+        service = MaterialService()
+        methods = [
+            "request_upload_url",
+            "confirm_upload",
+            "get_material",
+            "list_materials",
+            "list_materials_full",
+            "get_view_url",
+            "reorder_materials",
+            "delete_material",
+            "get_limits",
+            "_validate_file_size",
+            "_validate_experiment_limits",
+        ]
+        for method in methods:
+            if not hasattr(service, method):
+                all_validation_failures.append(f"Missing method: {method}")
+    except Exception as e:
+        all_validation_failures.append(f"Method check failed: {e}")
+
+    # Test 3: Exception classes
+    total_tests += 1
+    try:
+        err = UnsupportedFileTypeError("application/octet-stream")
+        if "application/octet-stream" not in str(err):
+            all_validation_failures.append(
+                "UnsupportedFileTypeError should include MIME type"
+            )
+
+        size_err = FileSizeLimitError(50_000_000, 25_000_000, "image")
+        if "50000000" not in str(size_err) or "25000000" not in str(size_err):
+            all_validation_failures.append(
+                "FileSizeLimitError should include sizes"
+            )
+    except Exception as e:
+        all_validation_failures.append(f"Exception class test failed: {e}")
+
+    # Test 4: File size validation logic
+    total_tests += 1
+    try:
+        service = MaterialService()
+
+        # Test valid image size
+        try:
+            service._validate_file_size(10_000_000, FileType.IMAGE)  # 10MB
+        except FileSizeLimitError:
+            all_validation_failures.append("10MB image should be valid")
+
+        # Test invalid image size
+        try:
+            service._validate_file_size(30_000_000, FileType.IMAGE)  # 30MB
+            all_validation_failures.append("30MB image should raise FileSizeLimitError")
+        except FileSizeLimitError:
+            pass  # Expected
+
+        # Test valid video size
+        try:
+            service._validate_file_size(50_000_000, FileType.VIDEO)  # 50MB
+        except FileSizeLimitError:
+            all_validation_failures.append("50MB video should be valid")
+
+    except Exception as e:
+        all_validation_failures.append(f"File size validation test failed: {e}")
+
+    # Final validation result
+    if all_validation_failures:
+        print(
+            f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:"
+        )
+        for failure in all_validation_failures:
+            print(f"  - {failure}")
+        sys.exit(1)
+    else:
+        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print("MaterialService is validated and ready for use")
+        sys.exit(0)

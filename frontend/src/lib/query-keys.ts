@@ -90,4 +90,12 @@ export const queryKeys = {
     detail: (experimentId: string, documentType: string) => ['documents', experimentId, documentType] as const,
     markdown: (experimentId: string, documentType: string) => ['documents', experimentId, documentType, 'markdown'] as const,
   },
+
+  // Materials
+  materials: {
+    list: (experimentId: string) => ['materials', experimentId, 'list'] as const,
+    limits: (experimentId: string) => ['materials', experimentId, 'limits'] as const,
+    detail: (experimentId: string, materialId: string) => ['materials', experimentId, materialId] as const,
+    viewUrl: (experimentId: string, materialId: string) => ['materials', experimentId, materialId, 'view-url'] as const,
+  },
 };
