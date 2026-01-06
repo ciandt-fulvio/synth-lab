@@ -107,7 +107,7 @@ test.describe('Experiments - CRUD Operations @critical @experiments', () => {
 
     // Verifica seções principais (tabs: Analysis, Interviews, Explorations)
     await expect(
-      page.locator('text=/análise|analysis|entrevistas|interviews|explorações|explorations/i')
+      page.locator('text=/análise|analysis|entrevistas|interviews|explorações|explorations/i').first()
     ).toBeVisible({ timeout: 10000 });
 
     // Verifica que há algum conteúdo
