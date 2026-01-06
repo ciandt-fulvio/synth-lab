@@ -178,6 +178,7 @@ async def create_experiment(data: ExperimentCreateSchema) -> ExperimentResponse:
             scorecard_data=scorecard_schema,
             has_scorecard=experiment.has_scorecard(),
             has_interview_guide=has_interview_guide,
+            tags=experiment.tags,
             created_at=experiment.created_at,
             updated_at=experiment.updated_at)
     except ValueError as e:
@@ -254,13 +255,15 @@ async def list_experiments(
     limit: int = Query(default=50, ge=1, le=200, description="Maximum items per page"),
     offset: int = Query(default=0, ge=0, description="Number of items to skip"),
     search: str | None = Query(default=None, max_length=200, description="Search by name or hypothesis"),
+    tag: str | None = Query(default=None, max_length=50, description="Filter by tag name"),
     sort_by: str = Query(default="created_at", pattern="^(created_at|name)$", description="Sort field"),
     sort_order: str = Query(default="desc", pattern="^(asc|desc)$", description="Sort order")
 ) -> PaginatedExperimentSummary:
     """
-    List all experiments with pagination, search, and sorting.
+    List all experiments with pagination, search, sorting, and tag filter.
 
     - **search**: Filters experiments by name OR hypothesis (case-insensitive)
+    - **tag**: Filters experiments by tag name (exact match)
     - **sort_by**: created_at (default) or name
     - **sort_order**: desc (default) or asc
 
@@ -271,6 +274,7 @@ async def list_experiments(
         limit=limit,
         offset=offset,
         search=search,
+        tag=tag,
         sort_by=sort_by,
         sort_order=sort_order)
     result = service.list_experiments(params)
@@ -286,6 +290,7 @@ async def list_experiments(
             has_analysis=exp.has_analysis,
             has_interview_guide=exp.has_interview_guide,
             interview_count=exp.interview_count,
+            tags=exp.tags,
             created_at=exp.created_at,
             updated_at=exp.updated_at)
         for exp in result.data
@@ -380,6 +385,7 @@ async def get_experiment(experiment_id: str) -> ExperimentDetail:
         scorecard_data=scorecard_schema,
         has_scorecard=experiment.has_scorecard(),
         has_interview_guide=has_interview_guide,
+        tags=experiment.tags,
         created_at=experiment.created_at,
         updated_at=experiment.updated_at,
         analysis=analysis_summary,
@@ -425,6 +431,7 @@ async def update_experiment(
             scorecard_data=scorecard_schema,
             has_scorecard=updated.has_scorecard(),
             has_interview_guide=has_interview_guide,
+            tags=updated.tags,
             created_at=updated.created_at,
             updated_at=updated.updated_at)
     except ValueError as e:
@@ -491,6 +498,7 @@ async def update_scorecard(
             scorecard_data=scorecard_schema,
             has_scorecard=updated.has_scorecard(),
             has_interview_guide=has_interview_guide,
+            tags=updated.tags,
             created_at=updated.created_at,
             updated_at=updated.updated_at)
     except ValueError as e:
