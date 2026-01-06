@@ -1,6 +1,6 @@
 # Deploy Workflow - Triggered on new tags
 #
-# Flow: Tag → Deploy Staging → Smoke Tests → Deploy Production → Verify
+# Flow: Tag → Deploy Staging → Full Tests (Backend + E2E) → Deploy Production → Smoke Tests
 #
 # Usage:
 #   git tag -a v1.0.0 -m "Release 1.0.0"
@@ -41,17 +41,82 @@ jobs:
         run: sleep 60  # Aguarda 60s para os serviços estabilizarem
 
   # ============================================================================
-  # Stage 2: Smoke Tests on Staging
+  # Stage 2: Full Tests on Staging (Backend + E2E)
   # ============================================================================
   test-staging:
-    name: Smoke Tests (Staging)
+    name: Full Tests (Staging)
     runs-on: ubuntu-latest
     needs: deploy-staging
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: synthlab_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # ========================================================================
+      # Backend Tests
+      # ========================================================================
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install backend dependencies
+        run: |
+          uv pip install --system -e .
+          uv pip install --system pytest pytest-cov
+
+      - name: Run database migrations
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/synthlab_test
+        run: |
+          cd src/synth_lab/alembic
+          alembic upgrade head
+
+      - name: Seed test database
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/synthlab_test
+        run: |
+          python tests/fixtures/seed_test.py
+
+      - name: Run full backend test suite
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/synthlab_test
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          pytest tests/ -v --tb=short \
+            --cov=src/synth_lab \
+            --cov-report=term \
+            --cov-report=html
+
+      - name: Upload backend coverage report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-backend-coverage
+          path: htmlcov/
+          retention-days: 7
+
+      # ========================================================================
+      # E2E Tests
+      # ========================================================================
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -59,7 +124,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
 
@@ -67,18 +132,26 @@ jobs:
         working-directory: frontend
         run: npx playwright install --with-deps chromium
 
-      - name: Run smoke tests on Staging
+      - name: Run full E2E test suite on Staging
         working-directory: frontend
-        run: npm run test:e2e:staging -- smoke/
+        run: npm run test:e2e:staging
         env:
           TEST_ENV: staging
 
-      - name: Upload test results
+      - name: Upload E2E test results
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: staging-test-results
+          name: staging-e2e-results
           path: frontend/test-results/
+          retention-days: 7
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-playwright-report
+          path: frontend/playwright-report/
           retention-days: 7
 
   # ============================================================================
@@ -106,10 +179,10 @@ jobs:
         run: sleep 60  # Aguarda 60s para os serviços estabilizarem
 
   # ============================================================================
-  # Stage 4: Verify Production
+  # Stage 4: Smoke Tests on Production
   # ============================================================================
   verify-production:
-    name: Verify Production
+    name: Smoke Tests (Production)
     runs-on: ubuntu-latest
     needs: deploy-production
 
@@ -146,6 +219,14 @@ jobs:
           path: frontend/test-results/
           retention-days: 7
 
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
+
   # ============================================================================
   # Notify on completion
   # ============================================================================
@@ -166,6 +247,12 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Tag**: ${{ steps.tag.outputs.TAG }}" >> $GITHUB_STEP_SUMMARY
           echo "**Status**: ${{ needs.verify-production.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployment Flow" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Deploy to Staging" >> $GITHUB_STEP_SUMMARY
+          echo "2. ✅ Full Tests on Staging (Backend + E2E)" >> $GITHUB_STEP_SUMMARY
+          echo "3. ✅ Deploy to Production" >> $GITHUB_STEP_SUMMARY
+          echo "4. ✅ Smoke Tests on Production" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Environments" >> $GITHUB_STEP_SUMMARY
           echo "- **Staging**: https://synth-lab-frontend-staging.up.railway.app" >> $GITHUB_STEP_SUMMARY
