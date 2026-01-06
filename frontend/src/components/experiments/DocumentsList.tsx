@@ -23,13 +23,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useDocuments } from '@/hooks/use-documents';
+import { useDocuments, useDocument } from '@/hooks/use-documents';
+import { DocumentViewer } from '@/components/shared/DocumentViewer';
 import { DOCUMENT_TYPE_LABELS } from '@/types/document';
 import type { DocumentType, ExperimentDocumentSummary } from '@/types/document';
 
 interface DocumentsListProps {
   experimentId: string;
-  onDocumentClick?: (document: ExperimentDocumentSummary) => void;
 }
 
 // Document type badge colors
@@ -43,10 +43,18 @@ const DOCUMENT_TYPE_COLORS: Record<DocumentType, string> = {
 
 type SortOption = 'type' | 'date';
 
-export function DocumentsList({ experimentId, onDocumentClick }: DocumentsListProps) {
+export function DocumentsList({ experimentId }: DocumentsListProps) {
   const { data: documents, isLoading } = useDocuments(experimentId);
   const [sortBy, setSortBy] = useState<SortOption>('date');
   const [filterType, setFilterType] = useState<DocumentType | 'all'>('all');
+  const [selectedDocument, setSelectedDocument] = useState<ExperimentDocumentSummary | null>(null);
+
+  // Fetch full document when selected
+  const { data: fullDocument, isLoading: isLoadingDocument } = useDocument(
+    experimentId,
+    selectedDocument?.document_type ?? 'executive_summary',
+    selectedDocument?.source_id ?? undefined
+  );
 
   // Filtered and sorted documents
   const processedDocuments = useMemo(() => {
@@ -178,7 +186,7 @@ export function DocumentsList({ experimentId, onDocumentClick }: DocumentsListPr
           {processedDocuments.map((doc) => (
             <button
               key={doc.id}
-              onClick={() => onDocumentClick?.(doc)}
+              onClick={() => setSelectedDocument(doc)}
               className="w-full flex items-center gap-4 p-4 rounded-lg border bg-white transition-all hover:shadow-md hover:border-slate-300 text-left"
             >
               {/* Icon */}
@@ -236,6 +244,19 @@ export function DocumentsList({ experimentId, onDocumentClick }: DocumentsListPr
             </button>
           ))}
         </div>
+      )}
+
+      {/* Document Viewer Dialog */}
+      {selectedDocument && (
+        <DocumentViewer
+          isOpen={!!selectedDocument}
+          onClose={() => setSelectedDocument(null)}
+          documentType={selectedDocument.document_type}
+          markdownContent={fullDocument?.markdown_content}
+          isLoading={isLoadingDocument}
+          status={fullDocument?.status ?? selectedDocument.status}
+          errorMessage={fullDocument?.error_message}
+        />
       )}
     </div>
   );

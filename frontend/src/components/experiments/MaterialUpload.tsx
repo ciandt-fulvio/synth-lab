@@ -265,39 +265,6 @@ export function MaterialUpload({
 
   return (
     <div className={cn('space-y-4', className)}>
-      {/* Upload limits info */}
-      {limits && (
-        <div className="text-sm text-slate-500 flex items-center gap-4">
-          <span>
-            {limits.current_count}/{limits.max_count} arquivos
-          </span>
-          <span>
-            {formatFileSize(limits.current_size)}/{formatFileSize(limits.max_size)}
-          </span>
-        </div>
-      )}
-
-      {/* Default material type selector */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-slate-600">Tipo padrão:</span>
-        <Select
-          value={defaultMaterialType}
-          onValueChange={(v) => setDefaultMaterialType(v as MaterialType)}
-          disabled={isUploading}
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(MATERIAL_TYPE_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* Dropzone */}
       <div
         {...getRootProps()}

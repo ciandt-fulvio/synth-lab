@@ -809,9 +809,6 @@ export default function ExperimentDetail() {
 
                 {/* Upload - Add new materials */}
                 <div className="pt-6 border-t border-slate-100">
-                  <h4 className="text-sm font-medium text-slate-700 mb-4">
-                    Adicionar novos materiais
-                  </h4>
                   <MaterialUpload
                     experimentId={id ?? ''}
                     onUploadComplete={() => refetchMaterials()}
