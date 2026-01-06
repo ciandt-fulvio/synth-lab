@@ -479,6 +479,65 @@ export function cn(...inputs: ClassValue[]) {
 
 ## Páginas Principais
 
+### Index (`pages/Index.tsx`)
+
+**Rota:** `/`
+
+**Descrição:** Página principal (home) que exibe a lista de experimentos em grid. Oferece busca por texto, filtro por tags, e ordenação. Estilo "Research Observatory" com animações suaves de entrada.
+
+**Estrutura:**
+- **Header**: SynthLabHeader com botão de navegação para Synths
+- **Filtros**: PopularTags (filtros rápidos), ExperimentsFilter (busca + ordenação)
+- **Grid**: Cards de experimentos com informações resumidas
+- **Modal**: Dialog para criação de novo experimento
+
+**Componentes utilizados:**
+
+| Componente | Diretório | Uso |
+|------------|-----------|-----|
+| `SynthLabHeader` | `shared/` | Header global com título e ações |
+| `PopularTags` | `experiments/` | Filtros rápidos por tags populares |
+| `ExperimentsFilter` | `experiments/` | Campo de busca e seletor de ordenação |
+| `ExperimentCard` | `experiments/` | Card individual de experimento |
+| `EmptyState` | `experiments/` | Estado vazio quando não há experimentos |
+| `ExperimentForm` | `experiments/` | Formulário de criação de experimento |
+| `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle` | `ui/` | Modal de criação |
+| `Button`, `Skeleton` | `ui/` | Componentes base |
+
+**Hooks utilizados:**
+
+| Hook | Arquivo | Propósito |
+|------|---------|-----------|
+| `useExperiments` | `use-experiments.ts` | Lista paginada de experimentos com filtros |
+| `useCreateExperiment` | `use-experiments.ts` | Mutation para criar experimento (com optimistic update) |
+| `useToast` | `use-toast.ts` | Notificações de sucesso/erro |
+| `useNavigate` | `react-router-dom` | Navegação para detalhes e Synths |
+
+**Endpoints do Backend:**
+
+| Método | Endpoint | Ação |
+|--------|----------|------|
+| `GET` | `/experiments/list?search=&tag=&sort_by=&sort_order=` | Listar experimentos com filtros |
+| `POST` | `/experiments` | Criar novo experimento |
+| `GET` | `/tags` | Listar tags disponíveis (via PopularTags) |
+
+**Fluxo de Dados:**
+1. Ao montar, carrega lista de experimentos via `useExperiments(params)`
+2. Estado local gerencia: busca (`search`), tag selecionada (`selectedTag`), ordenação (`sortOption`)
+3. Parâmetros são convertidos para `ExperimentsListParams` via `useMemo`
+4. React Query mantém cache com `placeholderData` para UX suave durante re-fetches
+5. Criação usa optimistic update: card aparece imediatamente, rollback em caso de erro
+6. Navegação para `/experiments/:id` ao clicar em um card
+
+**Estados da UI:**
+- **Loading**: Grid de skeletons (3 cards)
+- **Error**: Mensagem de erro em destaque vermelho
+- **Empty (sem busca)**: EmptyState com CTA para criar experimento
+- **Empty (com busca)**: Mensagem "Nenhum resultado para [termo]"
+- **Com dados**: Grid responsivo de ExperimentCards
+
+---
+
 ### ExperimentDetail (`pages/ExperimentDetail.tsx`)
 
 **Rota:** `/experiments/:id`
@@ -545,7 +604,7 @@ export function cn(...inputs: ClassValue[]) {
 
 | Path | Componente | Descrição |
 |------|------------|-----------|
-| `/` | `Index` | Lista de experimentos (home) |
+| `/` | `Index` | Lista de experimentos (home) com busca, filtro por tags e ordenação |
 | `/experiments/:id` | `ExperimentDetail` | Detalhes de um experimento com abas: Análise, Entrevistas, Explorações, Materiais, Relatórios |
 | `/experiments/:id/simulations/:simId` | `SimulationDetail` | Detalhes de uma simulação |
 | `/experiments/:id/explorations/:explorationId` | `ExplorationDetail` | Detalhes de uma exploração |
