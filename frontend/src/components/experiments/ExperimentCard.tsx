@@ -52,10 +52,6 @@ export function ExperimentCard({ experiment, onClick }: ExperimentCardProps) {
               <Loader2 className="h-3 w-3 mr-1 animate-spin" />
               Criando...
             </Badge>
-          ) : experiment.has_scorecard ? (
-            <Badge variant="outline" className="text-purple-600 border-purple-300 text-xs">
-              Scorecard
-            </Badge>
           ) : null}
         </div>
         <CardDescription className="text-sm text-gray-600 line-clamp-2 min-h-[2.5rem]">
@@ -63,6 +59,24 @@ export function ExperimentCard({ experiment, onClick }: ExperimentCardProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">
+        {/* Tags */}
+        {experiment.tags && experiment.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {experiment.tags.slice(0, 3).map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200"
+              >
+                {tag}
+              </span>
+            ))}
+            {experiment.tags.length > 3 && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                +{experiment.tags.length - 3}
+              </span>
+            )}
+          </div>
+        )}
         <div className="flex items-center justify-between text-sm text-muted-foreground mt-2">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1" title="Análise Quantitativa">

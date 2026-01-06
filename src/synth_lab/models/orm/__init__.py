@@ -12,6 +12,7 @@ Models are organized by domain:
 - exploration: Exploration, ScenarioNode
 - insight: ChartInsight, SensitivityResult, RegionAnalysis
 - document: ExperimentDocument
+- material: ExperimentMaterial
 
 Usage:
     from synth_lab.models.orm import Experiment, Synth, AnalysisRun
@@ -32,10 +33,12 @@ from synth_lab.models.orm.base import (
 )
 from synth_lab.models.orm.document import ExperimentDocument
 from synth_lab.models.orm.experiment import Experiment, InterviewGuide
+from synth_lab.models.orm.material import ExperimentMaterial
 from synth_lab.models.orm.exploration import Exploration, ScenarioNode
 from synth_lab.models.orm.insight import ChartInsight, RegionAnalysis, SensitivityResult
 from synth_lab.models.orm.research import ResearchExecution, Transcript
 from synth_lab.models.orm.synth import Synth, SynthGroup
+from synth_lab.models.orm.tag import ExperimentTag, Tag
 
 __all__ = [
     # Base
@@ -68,4 +71,9 @@ __all__ = [
     "RegionAnalysis",
     # Document
     "ExperimentDocument",
+    # Material
+    "ExperimentMaterial",
+    # Tag
+    "Tag",
+    "ExperimentTag",
 ]

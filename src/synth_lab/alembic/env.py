@@ -30,6 +30,7 @@ from synth_lab.models.orm import (  # noqa: F401
     Exploration, ScenarioNode,
     ChartInsight, SensitivityResult, RegionAnalysis,
     ExperimentDocument,
+    ExperimentMaterial,
 )
 
 # This is the Alembic Config object

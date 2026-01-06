@@ -1,0 +1,423 @@
+openapi: 3.1.0
+info:
+  title: Experiment Materials API
+  version: 1.0.0
+  description: API para upload e gerenciamento de materiais de experimentos
+
+servers:
+  - url: /api
+    description: API base path
+
+paths:
+  /experiments/{experiment_id}/materials:
+    get:
+      summary: Listar materiais do experimento
+      operationId: listMaterials
+      tags:
+        - Materials
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de materiais
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Material'
+        '404':
+          description: Experimento não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /experiments/{experiment_id}/materials/upload-url:
+    post:
+      summary: Solicitar URL de upload
+      description: Gera presigned URL para upload direto ao S3
+      operationId: requestUploadUrl
+      tags:
+        - Materials
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadRequest'
+      responses:
+        '200':
+          description: URL de upload gerada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadUrlResponse'
+        '400':
+          description: Limite excedido ou tipo inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Experimento não encontrado
+
+  /experiments/{experiment_id}/materials/confirm:
+    post:
+      summary: Confirmar upload
+      description: Confirma que o upload foi concluído e inicia processamento
+      operationId: confirmUpload
+      tags:
+        - Materials
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmRequest'
+      responses:
+        '200':
+          description: Upload confirmado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Material'
+        '400':
+          description: Arquivo não encontrado no S3
+        '404':
+          description: Material não encontrado
+
+  /experiments/{experiment_id}/materials/reorder:
+    put:
+      summary: Reordenar materiais
+      description: Atualiza a ordem de exibição dos materiais
+      operationId: reorderMaterials
+      tags:
+        - Materials
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderRequest'
+      responses:
+        '200':
+          description: Ordem atualizada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Material'
+        '400':
+          description: IDs inválidos ou incompletos
+        '404':
+          description: Experimento não encontrado
+
+  /experiments/{experiment_id}/materials/{material_id}:
+    get:
+      summary: Obter material por ID
+      operationId: getMaterial
+      tags:
+        - Materials
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: material_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Material encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Material'
+        '404':
+          description: Material não encontrado
+
+    delete:
+      summary: Remover material
+      description: Remove material do experimento e do S3
+      operationId: deleteMaterial
+      tags:
+        - Materials
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: material_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Material removido
+        '404':
+          description: Material não encontrado
+
+  /experiments/{experiment_id}/materials/{material_id}/view-url:
+    get:
+      summary: Obter URL de visualização
+      description: Gera presigned URL para visualização/download do arquivo
+      operationId: getViewUrl
+      tags:
+        - Materials
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: material_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: expires_in
+          in: query
+          schema:
+            type: integer
+            default: 3600
+            minimum: 60
+            maximum: 604800
+          description: Tempo de expiração em segundos (1h a 7 dias)
+      responses:
+        '200':
+          description: URL de visualização
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                  expires_at:
+                    type: string
+                    format: date-time
+        '404':
+          description: Material não encontrado
+
+  /experiments/{experiment_id}/materials/{material_id}/retry-description:
+    post:
+      summary: Reprocessar descrição
+      description: Re-executa geração de descrição para materiais com falha
+      operationId: retryDescription
+      tags:
+        - Materials
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: material_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Reprocessamento iniciado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Material'
+        '400':
+          description: Material não está em estado de falha
+        '404':
+          description: Material não encontrado
+
+components:
+  schemas:
+    Material:
+      type: object
+      required:
+        - id
+        - experiment_id
+        - file_type
+        - file_url
+        - file_name
+        - file_size
+        - mime_type
+        - material_type
+        - description_status
+        - display_order
+        - created_at
+      properties:
+        id:
+          type: string
+          example: "mat_abc123def456"
+        experiment_id:
+          type: string
+          example: "exp_xyz789"
+        file_type:
+          type: string
+          enum: [image, video, document]
+        file_url:
+          type: string
+          format: uri
+        thumbnail_url:
+          type: string
+          format: uri
+          nullable: true
+        file_name:
+          type: string
+          maxLength: 255
+          example: "checkout-wireframe.png"
+        file_size:
+          type: integer
+          minimum: 1
+          example: 1048576
+        mime_type:
+          type: string
+          example: "image/png"
+        material_type:
+          type: string
+          enum: [design, prototype, competitor, spec, other]
+        description:
+          type: string
+          nullable: true
+          example: "Wireframe mostrando fluxo de checkout com 3 etapas: carrinho, pagamento e confirmação."
+        description_status:
+          type: string
+          enum: [pending, generating, completed, failed]
+        display_order:
+          type: integer
+          minimum: 0
+        created_at:
+          type: string
+          format: date-time
+
+    UploadRequest:
+      type: object
+      required:
+        - file_name
+        - file_size
+        - mime_type
+        - material_type
+      properties:
+        file_name:
+          type: string
+          maxLength: 255
+          example: "checkout-wireframe.png"
+        file_size:
+          type: integer
+          minimum: 1
+          maximum: 104857600
+          description: Tamanho em bytes (max 100MB)
+        mime_type:
+          type: string
+          example: "image/png"
+        material_type:
+          type: string
+          enum: [design, prototype, competitor, spec, other]
+
+    UploadUrlResponse:
+      type: object
+      required:
+        - material_id
+        - upload_url
+        - object_key
+        - expires_in
+      properties:
+        material_id:
+          type: string
+          example: "mat_abc123def456"
+        upload_url:
+          type: string
+          format: uri
+          description: Presigned URL para upload PUT
+        object_key:
+          type: string
+          description: Chave do objeto no S3
+          example: "experiments/exp_xyz789/materials/mat_abc123def456.png"
+        expires_in:
+          type: integer
+          description: Segundos até expiração (default 900)
+          example: 900
+
+    ConfirmRequest:
+      type: object
+      required:
+        - material_id
+        - object_key
+      properties:
+        material_id:
+          type: string
+        object_key:
+          type: string
+
+    ReorderRequest:
+      type: object
+      required:
+        - material_ids
+      properties:
+        material_ids:
+          type: array
+          items:
+            type: string
+          description: IDs dos materiais na nova ordem
+          minItems: 1
+          maxItems: 10
+
+    Error:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          example: "Material não encontrado"
+        code:
+          type: string
+          example: "NOT_FOUND"
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Materials
+    description: Operações de materiais de experimentos

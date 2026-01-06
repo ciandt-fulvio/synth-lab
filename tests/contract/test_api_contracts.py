@@ -90,6 +90,37 @@ class TestExperimentContracts:
             assert field in pagination, f"pagination.{field} esperado pelo frontend"
             assert isinstance(pagination[field], int), f"pagination.{field} deve ser int"
 
+    def test_list_experiments_with_search_parameter(self, client: TestClient):
+        """GET /experiments/list?search=query aceita parametro de busca."""
+        # Testa que parametro search é aceito (mesmo sem resultados)
+        response = client.get("/experiments/list?search=test")
+        assert response.status_code == 200, "Endpoint deve aceitar parametro search"
+
+        data = response.json()
+        assert "data" in data, "Resposta deve ter campo 'data'"
+        assert "pagination" in data, "Resposta deve ter campo 'pagination'"
+
+    def test_list_experiments_with_sort_parameters(self, client: TestClient):
+        """GET /experiments/list?sort_by=name&sort_order=asc aceita parametros de sort."""
+        # Testa sort by name ascending
+        response = client.get("/experiments/list?sort_by=name&sort_order=asc")
+        assert response.status_code == 200, "Endpoint deve aceitar sort_by=name"
+
+        # Testa sort by created_at descending (default)
+        response = client.get("/experiments/list?sort_by=created_at&sort_order=desc")
+        assert response.status_code == 200, "Endpoint deve aceitar sort_by=created_at"
+
+        # Verifica que schema permanece o mesmo
+        data = response.json()
+        assert "data" in data
+        assert "pagination" in data
+
+    def test_list_experiments_rejects_invalid_sort_field(self, client: TestClient):
+        """GET /experiments/list?sort_by=invalid deve rejeitar campo invalido."""
+        response = client.get("/experiments/list?sort_by=invalid_field")
+        # FastAPI valida via regex pattern, deve retornar 422
+        assert response.status_code == 422, "Deve rejeitar sort_by invalido"
+
     def test_get_experiment_detail_returns_valid_schema(self, client: TestClient):
         """GET /experiments/:id retorna schema detalhado esperado."""
         # Tenta pegar um experimento existente

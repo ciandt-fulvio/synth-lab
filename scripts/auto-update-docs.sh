@@ -344,18 +344,7 @@ for i in "${!PROMPTS[@]}"; do
         continue
     fi
 
-    # Pergunta se deve executar (se não for auto)
-    if [ "$AUTO_COMMIT" = false ]; then
-        read -p "Executar este prompt com Claude Code? (y/n) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo "Pulado."
-            echo ""
-            continue
-        fi
-    fi
-
-    # Executa Claude Code
+    # Executa Claude Code automaticamente
     echo -e "${BLUE}🤖 Executando Claude Code...${NC}"
     echo -e "${YELLOW}⏳ Isso pode levar 1-2 minutos. Aguarde...${NC}"
 

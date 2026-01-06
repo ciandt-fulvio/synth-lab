@@ -6,4 +6,5 @@ Contains FastAPI routers for each domain area:
 - research: Research execution and transcripts
 - experiments: Experiment management with embedded scorecards
 - prfaq: PR-FAQ document access
+- materials: Experiment materials (images, videos, documents)
 """

@@ -8,13 +8,15 @@
  *   - Spec: specs/018-experiment-hub/spec.md (US1)
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExperimentCard } from '@/components/experiments/ExperimentCard';
 import { EmptyState } from '@/components/experiments/EmptyState';
 import { ExperimentForm } from '@/components/experiments/ExperimentForm';
+import { ExperimentsFilter, type SortOption } from '@/components/experiments/ExperimentsFilter';
+import { PopularTags } from '@/components/experiments/PopularTags';
 import { useExperiments, useCreateExperiment } from '@/hooks/use-experiments';
 import {
   Dialog,
@@ -22,10 +24,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Users, FlaskConical, Sparkles } from 'lucide-react';
+import { Plus, Users, FlaskConical, Sparkles, Search, Loader2 } from 'lucide-react';
 import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
 import { useToast } from '@/hooks/use-toast';
 import type { ExperimentCreate } from '@/types/experiment';
+import type { ExperimentsListParams } from '@/services/experiments-api';
 
 // =============================================================================
 // Animated Section Component
@@ -64,8 +67,21 @@ export default function Index() {
   const { toast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  // Fetch experiments
-  const { data, isLoading, isError, error } = useExperiments();
+  // Search, tag filter, and sort state
+  const [search, setSearch] = useState('');
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [sortOption, setSortOption] = useState<SortOption>('recent');
+
+  // Convert UI state to API params
+  const listParams = useMemo<ExperimentsListParams>(() => ({
+    search: search || undefined, // Don't send empty string
+    tag: selectedTag || undefined,
+    sort_by: sortOption === 'name' ? 'name' : 'created_at',
+    sort_order: sortOption === 'name' ? 'asc' : 'desc',
+  }), [search, selectedTag, sortOption]);
+
+  // Fetch experiments with params
+  const { data, isLoading, isError, error, isFetching } = useExperiments(listParams);
   const experiments = data?.data ?? [];
 
   // Create mutation
@@ -98,6 +114,10 @@ export default function Index() {
 
   const handleSynthsClick = () => {
     navigate('/synths');
+  };
+
+  const handleTagClick = (tag: string | null) => {
+    setSelectedTag(tag);
   };
 
   return (
@@ -143,50 +163,37 @@ export default function Index() {
           </div>
         </AnimatedSection>
 
-        {/* Stats Summary */}
+        {/* Popular Tags Quick Filters */}
         {!isLoading && !isError && experiments.length > 0 && (
-          <AnimatedSection delay={100}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <FlaskConical className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-slate-900">{experiments.length}</p>
-                    <p className="text-xs text-slate-500 uppercase tracking-wide">Experimentos</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Sparkles className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-slate-900">
-                      {experiments.filter((e) => (e.interview_count ?? 0) > 0).length}
-                    </p>
-                    <p className="text-xs text-slate-500 uppercase tracking-wide">Com Entrevistas</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Users className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-slate-900">
-                      {experiments.reduce((acc, e) => acc + (e.interview_count ?? 0), 0)}
-                    </p>
-                    <p className="text-xs text-slate-500 uppercase tracking-wide">Total Entrevistas</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <AnimatedSection delay={50}>
+            <PopularTags
+              selectedTag={selectedTag}
+              onTagClick={handleTagClick}
+            />
           </AnimatedSection>
         )}
+
+        {/* Search and Sort Controls */}
+        {!isLoading && !isError && (
+          <AnimatedSection delay={100}>
+            <ExperimentsFilter
+              search={search}
+              sortOption={sortOption}
+              selectedTag={selectedTag}
+              onSearchChange={setSearch}
+              onSortChange={setSortOption}
+              onTagChange={setSelectedTag}
+            />
+          </AnimatedSection>
+        )}
+
+        {/* Loading indicator during fetch (not initial load) */}
+        {isFetching && !isLoading && (
+          <div className="flex justify-center py-2 mb-4">
+            <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+          </div>
+        )}
+
 
         {/* Loading state */}
         {isLoading && (
@@ -216,10 +223,22 @@ export default function Index() {
           </AnimatedSection>
         )}
 
-        {/* Empty state */}
+        {/* Empty state - different message when searching */}
         {!isLoading && !isError && experiments.length === 0 && (
           <AnimatedSection delay={0}>
-            <EmptyState onCreateClick={handleCreateClick} />
+            {search ? (
+              <div className="text-center py-12">
+                <Search className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                  Nenhum experimento encontrado
+                </h3>
+                <p className="text-slate-500">
+                  Nenhum resultado para "{search}"
+                </p>
+              </div>
+            ) : (
+              <EmptyState onCreateClick={handleCreateClick} />
+            )}
           </AnimatedSection>
         )}
 

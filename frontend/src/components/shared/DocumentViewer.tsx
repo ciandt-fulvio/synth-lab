@@ -64,12 +64,16 @@ interface DocumentViewerProps {
 /** Get icon component for document type */
 function getDocumentIcon(documentType: DocumentType) {
   switch (documentType) {
-    case 'summary':
+    case 'exploration_summary':
+    case 'research_summary':
       return <FileText className="h-5 w-5 text-indigo-600" />;
-    case 'prfaq':
+    case 'exploration_prfaq':
+    case 'research_prfaq':
       return <Newspaper className="h-5 w-5 text-violet-600" />;
     case 'executive_summary':
       return <Sparkles className="h-5 w-5 text-amber-600" />;
+    default:
+      return <FileText className="h-5 w-5 text-slate-600" />;
   }
 }
 

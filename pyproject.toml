@@ -38,6 +38,12 @@ dependencies = [
     "sqlalchemy>=2.0.0",
     "alembic>=1.12.0",
     "psycopg2-binary>=2.9.0",
+    # S3 Storage (Railway Buckets / AWS compatible)
+    "boto3>=1.34.0",
+    # Media processing for thumbnails and descriptions
+    "pdf2image>=1.17.0",
+    "moviepy>=1.0.3",
+    "pytesseract>=0.3.10",  # OCR for PDF text extraction
 ]
 
 [project.optional-dependencies]

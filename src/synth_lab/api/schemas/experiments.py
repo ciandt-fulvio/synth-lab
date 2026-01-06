@@ -237,6 +237,7 @@ class ExperimentResponse(BaseModel):
     has_interview_guide: bool = Field(
         default=False, description="Whether interview guide is configured."
     )
+    tags: list[str] = Field(default_factory=list, description="Tag names associated with this experiment.")
     created_at: datetime = Field(description="Creation timestamp.")
     updated_at: datetime | None = Field(default=None, description="Last update timestamp.")
 
@@ -254,6 +255,7 @@ class ExperimentSummary(BaseModel):
         default=False, description="Whether interview guide is configured."
     )
     interview_count: int = Field(default=0, description="Number of linked interviews.")
+    tags: list[str] = Field(default_factory=list, description="Tag names associated with this experiment.")
     created_at: datetime = Field(description="Creation timestamp.")
     updated_at: datetime | None = Field(default=None, description="Last update timestamp.")
 

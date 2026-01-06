@@ -203,6 +203,8 @@ export interface ExperimentSummary {
   has_interview_guide: boolean;
   /** Number of linked interviews */
   interview_count: number;
+  /** Tag names associated with this experiment */
+  tags: string[];
   /** Creation timestamp */
   created_at: string;
   /** Last update timestamp */
@@ -227,6 +229,8 @@ export interface ExperimentDetail {
   has_scorecard: boolean;
   /** Whether interview guide is configured */
   has_interview_guide: boolean;
+  /** Tag names associated with this experiment */
+  tags: string[];
   /** Creation timestamp */
   created_at: string;
   /** Last update timestamp */

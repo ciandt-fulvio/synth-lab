@@ -184,6 +184,12 @@ class Experiment(BaseModel):
         description="Embedded scorecard data.",
     )
 
+    # Tags for categorization
+    tags: list[str] = Field(
+        default_factory=list,
+        description="Tag names associated with this experiment.",
+    )
+
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         description="Creation timestamp.",

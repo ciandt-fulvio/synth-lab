@@ -50,6 +50,12 @@ jobs:
           cd src/synth_lab/alembic
           alembic upgrade head
 
+      - name: Seed test database
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/synthlab_test
+        run: |
+          python tests/fixtures/seed_test.py
+
       - name: Run smoke tests
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/synthlab_test

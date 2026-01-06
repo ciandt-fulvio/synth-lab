@@ -191,7 +191,7 @@ class TestExperimentRepositoryList:
         assert result.data[0].name == "Active"
 
     def test_list_experiments_sorted_by_created_at_desc(self, repo: ExperimentRepository, session: Session):
-        """Experiments are sorted by created_at descending."""
+        """Experiments are sorted by created_at descending (default)."""
         from time import sleep
 
         exp1 = Experiment(name="First", hypothesis="Test")
@@ -204,11 +204,106 @@ class TestExperimentRepositoryList:
         repo.create(exp2)
         session.commit()
 
-        params = PaginationParams(limit=10, offset=0)
+        params = PaginationParams(limit=10, offset=0, sort_by="created_at", sort_order="desc")
         result = repo.list_experiments(params)
 
         assert result.data[0].name == "Second"
         assert result.data[1].name == "First"
+
+    def test_list_experiments_sorted_by_name_asc(self, repo: ExperimentRepository, session: Session):
+        """Experiments can be sorted by name A-Z."""
+        exp1 = Experiment(name="Zebra Experiment", hypothesis="Test")
+        exp2 = Experiment(name="Apple Experiment", hypothesis="Test")
+        exp3 = Experiment(name="Mango Experiment", hypothesis="Test")
+
+        repo.create(exp1)
+        repo.create(exp2)
+        repo.create(exp3)
+        session.commit()
+
+        params = PaginationParams(limit=10, offset=0, sort_by="name", sort_order="asc")
+        result = repo.list_experiments(params)
+
+        assert len(result.data) == 3
+        assert result.data[0].name == "Apple Experiment"
+        assert result.data[1].name == "Mango Experiment"
+        assert result.data[2].name == "Zebra Experiment"
+
+    def test_list_experiments_search_by_name(self, repo: ExperimentRepository, session: Session):
+        """Search filters experiments by name (case-insensitive)."""
+        exp1 = Experiment(name="PIX Payment Feature", hypothesis="Users will adopt")
+        exp2 = Experiment(name="Credit Card Integration", hypothesis="Users will adopt")
+        exp3 = Experiment(name="Pix via WhatsApp", hypothesis="Convenience matters")
+
+        repo.create(exp1)
+        repo.create(exp2)
+        repo.create(exp3)
+        session.commit()
+
+        params = PaginationParams(limit=10, offset=0, search="pix")
+        result = repo.list_experiments(params)
+
+        assert result.pagination.total == 2
+        names = [exp.name for exp in result.data]
+        assert "PIX Payment Feature" in names
+        assert "Pix via WhatsApp" in names
+        assert "Credit Card Integration" not in names
+
+    def test_list_experiments_search_by_hypothesis(self, repo: ExperimentRepository, session: Session):
+        """Search filters experiments by hypothesis (case-insensitive)."""
+        exp1 = Experiment(name="Feature A", hypothesis="Users complete checkout faster")
+        exp2 = Experiment(name="Feature B", hypothesis="Users abandon less")
+        exp3 = Experiment(name="Feature C", hypothesis="Checkout flow is simpler")
+
+        repo.create(exp1)
+        repo.create(exp2)
+        repo.create(exp3)
+        session.commit()
+
+        params = PaginationParams(limit=10, offset=0, search="checkout")
+        result = repo.list_experiments(params)
+
+        assert result.pagination.total == 2
+        names = [exp.name for exp in result.data]
+        assert "Feature A" in names
+        assert "Feature C" in names
+        assert "Feature B" not in names
+
+    def test_list_experiments_search_and_sort(self, repo: ExperimentRepository, session: Session):
+        """Search and sort can be combined."""
+        exp1 = Experiment(name="Zebra PIX", hypothesis="Fast payments")
+        exp2 = Experiment(name="Apple PIX", hypothesis="Easy payments")
+        exp3 = Experiment(name="Credit Card", hypothesis="Traditional")
+
+        repo.create(exp1)
+        repo.create(exp2)
+        repo.create(exp3)
+        session.commit()
+
+        params = PaginationParams(
+            limit=10,
+            offset=0,
+            search="pix",
+            sort_by="name",
+            sort_order="asc"
+        )
+        result = repo.list_experiments(params)
+
+        assert result.pagination.total == 2
+        assert result.data[0].name == "Apple PIX"
+        assert result.data[1].name == "Zebra PIX"
+
+    def test_list_experiments_search_no_results(self, repo: ExperimentRepository, session: Session):
+        """Search with no matches returns empty list."""
+        exp1 = Experiment(name="Test Experiment", hypothesis="Test hypothesis")
+        repo.create(exp1)
+        session.commit()
+
+        params = PaginationParams(limit=10, offset=0, search="nonexistent")
+        result = repo.list_experiments(params)
+
+        assert len(result.data) == 0
+        assert result.pagination.total == 0
 
 
 class TestExperimentRepositoryUpdate:

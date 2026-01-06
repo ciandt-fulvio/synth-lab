@@ -67,76 +67,20 @@ if [ "$NEEDS_DOCS_UPDATE" = true ]; then
     echo ""
 fi
 
-echo "Opções:"
-echo "  [T] Atualizar apenas TESTES (interativo)"
-echo "  [D] Atualizar apenas DOCS (interativo)"
-echo "  [A] Atualizar AMBOS (interativo)"
-echo "  [X] Atualizar AMBOS e auto-commit"
-echo "  [N] Não, farei manualmente"
-echo ""
-read -p "Escolha [T/D/A/X/N]: " -n 1 -r
-echo ""
+echo "Executando auto-update automático..."
 echo ""
 
-case $REPLY in
-    [Tt])
-        if [ "$NEEDS_TEST_UPDATE" = true ]; then
-            echo -e "${GREEN}Executando auto-update de TESTES (interativo)...${NC}"
-            ./scripts/auto-update-tests.sh --last-commit
-        else
-            echo "Nenhuma mudança detectada que exija atualização de testes."
-        fi
-        ;;
+# Sempre executa ambos com auto-commit
+if [ "$NEEDS_TEST_UPDATE" = true ]; then
+    echo -e "${GREEN}Executando auto-update de TESTES (auto-commit)...${NC}"
+    ./scripts/auto-update-tests.sh --last-commit --auto-commit
+    echo ""
+fi
 
-    [Dd])
-        if [ "$NEEDS_DOCS_UPDATE" = true ]; then
-            echo -e "${GREEN}Executando auto-update de DOCS (interativo)...${NC}"
-            ./scripts/auto-update-docs.sh --last-commit
-        else
-            echo "Nenhuma mudança detectada que exija atualização de docs."
-        fi
-        ;;
-
-    [Aa])
-        if [ "$NEEDS_TEST_UPDATE" = true ]; then
-            echo -e "${GREEN}Executando auto-update de TESTES (interativo)...${NC}"
-            ./scripts/auto-update-tests.sh --last-commit
-            echo ""
-        fi
-
-        if [ "$NEEDS_DOCS_UPDATE" = true ]; then
-            echo -e "${GREEN}Executando auto-update de DOCS (interativo)...${NC}"
-            ./scripts/auto-update-docs.sh --last-commit
-        fi
-        ;;
-
-    [Xx])
-        if [ "$NEEDS_TEST_UPDATE" = true ]; then
-            echo -e "${GREEN}Executando auto-update de TESTES (auto-commit)...${NC}"
-            ./scripts/auto-update-tests.sh --last-commit --auto-commit
-            echo ""
-        fi
-
-        if [ "$NEEDS_DOCS_UPDATE" = true ]; then
-            echo -e "${GREEN}Executando auto-update de DOCS (auto-commit)...${NC}"
-            ./scripts/auto-update-docs.sh --last-commit --auto-commit
-        fi
-        ;;
-
-    [Nn])
-        echo "OK. Para rodar depois:"
-        if [ "$NEEDS_TEST_UPDATE" = true ]; then
-            echo "  ./scripts/auto-update-tests.sh --last-commit"
-        fi
-        if [ "$NEEDS_DOCS_UPDATE" = true ]; then
-            echo "  ./scripts/auto-update-docs.sh --last-commit"
-        fi
-        ;;
-
-    *)
-        echo "Opção inválida. Pulando."
-        ;;
-esac
+if [ "$NEEDS_DOCS_UPDATE" = true ]; then
+    echo -e "${GREEN}Executando auto-update de DOCS (auto-commit)...${NC}"
+    ./scripts/auto-update-docs.sh --last-commit --auto-commit
+fi
 
 echo ""
 exit 0
