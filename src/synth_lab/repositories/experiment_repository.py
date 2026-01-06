@@ -38,6 +38,7 @@ class ExperimentSummary(BaseModel):
         default=False, description="Whether interview guide is configured."
     )
     interview_count: int = Field(default=0, description="Number of linked interviews.")
+    tags: list[str] = Field(default_factory=list, description="Tag names associated with this experiment.")
     created_at: datetime = Field(description="Creation timestamp.")
     updated_at: datetime | None = Field(default=None, description="Last update timestamp.")
 
@@ -133,10 +134,17 @@ session: Session | None = None):
     def _list_experiments_orm(self, params: PaginationParams) -> PaginatedResponse[ExperimentSummary]:
         """List experiments using ORM with eager-loaded relationships."""
         from sqlalchemy import func as sqlfunc, or_
+        from synth_lab.models.orm.tag import ExperimentTag as ExperimentTagORM, Tag as TagORM
 
         # Base query for active experiments
         stmt = select(ExperimentORM).where(ExperimentORM.status == "active")
         count_where = [ExperimentORM.status == "active"]
+
+        # Apply tag filter
+        if params.tag:
+            # Join with experiment_tags and tags to filter by tag name
+            stmt = stmt.join(ExperimentTagORM).join(TagORM).where(TagORM.name == params.tag)
+            count_where.append(TagORM.name == params.tag)
 
         # Apply search filter (name OR hypothesis, case-insensitive)
         if params.search:
@@ -156,10 +164,12 @@ session: Session | None = None):
             order_col = ExperimentORM.created_at.asc() if params.sort_order == "asc" else ExperimentORM.created_at.desc()
         stmt = stmt.order_by(order_col)
 
-        # Get total count (with search filter applied)
-        count_stmt = select(sqlfunc.count()).select_from(
-            select(ExperimentORM).where(*count_where).subquery()
-        )
+        # Get total count (with search and tag filters applied)
+        # Need to rebuild JOINs for count query when tag filter is active
+        count_base = select(ExperimentORM).where(*count_where)
+        if params.tag:
+            count_base = count_base.join(ExperimentTagORM).join(TagORM)
+        count_stmt = select(sqlfunc.count()).select_from(count_base.subquery())
         total = self.session.execute(count_stmt).scalar() or 0
 
         # Apply pagination
@@ -355,12 +365,16 @@ session: Session | None = None):
         if orm_exp.scorecard_data:
             scorecard_data = ScorecardData(**orm_exp.scorecard_data)
 
+        # Get tag names from experiment_tags relationship
+        tags = [et.tag.name for et in orm_exp.experiment_tags] if orm_exp.experiment_tags else []
+
         return Experiment(
             id=orm_exp.id,
             name=orm_exp.name,
             hypothesis=orm_exp.hypothesis,
             description=orm_exp.description,
             scorecard_data=scorecard_data,
+            tags=tags,
             created_at=created_at,
             updated_at=updated_at)
 
@@ -380,6 +394,9 @@ session: Session | None = None):
         has_interview_guide = orm_exp.interview_guide is not None
         interview_count = len(orm_exp.research_executions) if orm_exp.research_executions else 0
 
+        # Get tag names from experiment_tags relationship
+        tags = [et.tag.name for et in orm_exp.experiment_tags] if orm_exp.experiment_tags else []
+
         return ExperimentSummary(
             id=orm_exp.id,
             name=orm_exp.name,
@@ -389,6 +406,7 @@ session: Session | None = None):
             has_analysis=has_analysis,
             has_interview_guide=has_interview_guide,
             interview_count=interview_count,
+            tags=tags,
             created_at=created_at,
             updated_at=updated_at)
 

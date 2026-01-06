@@ -28,6 +28,7 @@ export interface ExperimentsListParams {
   limit?: number;
   offset?: number;
   search?: string;
+  tag?: string;
   sort_by?: 'created_at' | 'name';
   sort_order?: 'asc' | 'desc';
 }
@@ -43,6 +44,7 @@ export async function listExperiments(
   if (params?.limit) queryParams.append('limit', params.limit.toString());
   if (params?.offset) queryParams.append('offset', params.offset.toString());
   if (params?.search) queryParams.append('search', params.search);
+  if (params?.tag) queryParams.append('tag', params.tag);
   if (params?.sort_by) queryParams.append('sort_by', params.sort_by);
   if (params?.sort_order) queryParams.append('sort_order', params.sort_order);
 
