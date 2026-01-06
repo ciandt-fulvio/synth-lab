@@ -67,6 +67,7 @@ frontend/src/
 ├── hooks/                     # Custom hooks
 │   ├── use-experiments.ts     # CRUD de experiments
 │   ├── use-synths.ts          # CRUD de synths
+│   ├── use-tags.ts            # CRUD de tags
 │   ├── use-sse.ts             # Server-Sent Events
 │   └── use-toast.ts           # Notificações
 │
@@ -302,6 +303,88 @@ export function useCreateExperiment() {
   };
 }
 ```
+
+#### Hooks de Tags (`use-tags.ts`)
+
+Hooks para gerenciamento de tags em experimentos.
+
+| Hook | Parâmetros | Retorno | Propósito |
+|------|------------|---------|-----------|
+| `useTags` | - | `UseQueryResult<Tag[], Error>` | Listar todas as tags disponíveis |
+| `useCreateTag` | - | `UseMutationResult<Tag, Error, TagCreateRequest>` | Criar nova tag |
+| `useAddTagToExperiment` | - | `UseMutationResult<void, Error, { experimentId: string; data: AddTagRequest }>` | Adicionar tag a um experimento |
+| `useRemoveTagFromExperiment` | - | `UseMutationResult<void, Error, { experimentId: string; tagName: string }>` | Remover tag de um experimento |
+
+**Types utilizados:**
+```tsx
+// types/tag.ts
+interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  created_at: string;
+}
+
+interface TagCreateRequest {
+  name: string;
+  color?: string;
+}
+
+interface AddTagRequest {
+  tag_name: string;
+}
+```
+
+**Dependências internas:**
+- `@tanstack/react-query`: `useQuery`, `useMutation`, `useQueryClient`
+- `@/lib/query-keys`: `queryKeys.tags()`, `queryKeys.experiments()`
+- `@/services/tags-api`: `listTags`, `createTag`, `addTagToExperiment`, `removeTagFromExperiment`
+
+**Exemplo de uso:**
+```tsx
+// components/experiments/TagSelector.tsx
+import { useTags, useAddTagToExperiment, useRemoveTagFromExperiment } from '@/hooks/use-tags';
+
+function TagSelector({ experimentId, currentTags }: Props) {
+  const { data: tags, isLoading } = useTags();
+  const addTag = useAddTagToExperiment();
+  const removeTag = useRemoveTagFromExperiment();
+
+  const handleAddTag = (tagName: string) => {
+    addTag.mutate(
+      { experimentId, data: { tag_name: tagName } },
+      { onSuccess: () => toast.success('Tag adicionada') }
+    );
+  };
+
+  const handleRemoveTag = (tagName: string) => {
+    removeTag.mutate(
+      { experimentId, tagName },
+      { onSuccess: () => toast.success('Tag removida') }
+    );
+  };
+
+  return (
+    <div>
+      {currentTags.map(tag => (
+        <Badge key={tag.name} onClick={() => handleRemoveTag(tag.name)}>
+          {tag.name} ×
+        </Badge>
+      ))}
+      <Select onValueChange={handleAddTag}>
+        {tags?.map(tag => (
+          <SelectItem key={tag.id} value={tag.name}>{tag.name}</SelectItem>
+        ))}
+      </Select>
+    </div>
+  );
+}
+```
+
+**Invalidação de cache:**
+- `useCreateTag`: invalida `queryKeys.tags()`
+- `useAddTagToExperiment`: invalida `queryKeys.experiments()`
+- `useRemoveTagFromExperiment`: invalida `queryKeys.experiments()`
 
 ---
 
@@ -574,6 +657,9 @@ export function cn(...inputs: ClassValue[]) {
 | `useExplorations` | `use-exploration.ts` | Lista de explorações |
 | `useMaterials` | `use-materials.ts` | Lista de materiais anexados |
 | `useDocuments` | `use-documents.ts` | Lista de documentos/relatórios |
+| `useTags` | `use-tags.ts` | Lista de tags disponíveis |
+| `useAddTagToExperiment` | `use-tags.ts` | Adicionar tag ao experimento |
+| `useRemoveTagFromExperiment` | `use-tags.ts` | Remover tag do experimento |
 
 **Endpoints do Backend:**
 
@@ -586,7 +672,9 @@ export function cn(...inputs: ClassValue[]) {
 | `GET` | `/experiments/{id}/materials` | Listar materiais |
 | `POST` | `/experiments/{id}/materials` | Upload de material |
 | `GET` | `/experiments/{id}/documents` | Listar documentos |
-| `POST/PUT` | `/experiments/{id}/tags` | Gerenciar tags |
+| `GET` | `/tags` | Listar tags disponíveis |
+| `POST` | `/experiments/{id}/tags` | Adicionar tag ao experimento |
+| `DELETE` | `/experiments/{id}/tags/{tag_name}` | Remover tag do experimento |
 
 **Fluxo de Dados:**
 1. Ao montar, carrega dados do experimento via `useExperiment(id)`
