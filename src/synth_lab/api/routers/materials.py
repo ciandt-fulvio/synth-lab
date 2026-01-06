@@ -56,13 +56,27 @@ def _map_material_type(api_type: MaterialTypeEnum) -> MaterialType:
 
 
 def _summary_to_response(summary: ExperimentMaterialSummary) -> MaterialSummaryResponse:
-    """Convert domain summary to API response."""
+    """Convert domain summary to API response with presigned thumbnail URL."""
+    from synth_lab.infrastructure.storage_client import generate_view_url
+
+    # Generate presigned URL for thumbnail if it exists
+    thumbnail_view_url = None
+    if summary.thumbnail_url:
+        try:
+            # Extract object key from thumbnail URL
+            url_parts = summary.thumbnail_url.split("/")
+            object_key = "/".join(url_parts[4:])  # Skip https:, empty, endpoint, bucket
+            thumbnail_view_url = generate_view_url(object_key, expires_in=3600)
+        except Exception:
+            # If presigned URL generation fails, use None (placeholder icon will show)
+            thumbnail_view_url = None
+
     return MaterialSummaryResponse(
         id=summary.id,
         file_type=FileTypeEnum(summary.file_type.value),
         file_name=summary.file_name,
         file_size=summary.file_size,
-        thumbnail_url=summary.thumbnail_url,
+        thumbnail_url=thumbnail_view_url,
         material_type=MaterialTypeEnum(summary.material_type.value),
         description=summary.description,
         description_status=DescriptionStatusEnum(summary.description_status.value),
@@ -71,13 +85,25 @@ def _summary_to_response(summary: ExperimentMaterialSummary) -> MaterialSummaryR
 
 
 def _material_to_response(material: ExperimentMaterial) -> MaterialResponse:
-    """Convert domain entity to API response."""
+    """Convert domain entity to API response with presigned thumbnail URL."""
+    from synth_lab.infrastructure.storage_client import generate_view_url
+
+    # Generate presigned URL for thumbnail if it exists
+    thumbnail_view_url = None
+    if material.thumbnail_url:
+        try:
+            url_parts = material.thumbnail_url.split("/")
+            object_key = "/".join(url_parts[4:])
+            thumbnail_view_url = generate_view_url(object_key, expires_in=3600)
+        except Exception:
+            thumbnail_view_url = None
+
     return MaterialResponse(
         id=material.id,
         experiment_id=material.experiment_id,
         file_type=FileTypeEnum(material.file_type.value),
         file_url=material.file_url,
-        thumbnail_url=material.thumbnail_url,
+        thumbnail_url=thumbnail_view_url,
         file_name=material.file_name,
         file_size=material.file_size,
         mime_type=material.mime_type,
