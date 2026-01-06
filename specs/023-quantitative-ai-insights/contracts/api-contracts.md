@@ -314,7 +314,7 @@ Content-Type: application/json
 All responses include:
 ```
 Content-Type: application/json
-Access-Control-Allow-Origin: http://localhost:5173  # Frontend dev server
+Access-Control-Allow-Origin: http://localhost:8080  # Frontend dev server
 ```
 
 ## Rate Limiting

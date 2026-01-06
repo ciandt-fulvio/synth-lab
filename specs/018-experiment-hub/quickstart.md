@@ -256,7 +256,7 @@ curl http://localhost:8000/experiments/list
 
 ### Testar Frontend
 
-1. Acesse `http://localhost:5173/`
+1. Acesse `http://localhost:8080/`
 2. Verifique que a home mostra a lista de experimentos
 3. Clique em **"+ Novo Experimento"** e crie um
 4. Clique no card do experimento para ver o detalhe

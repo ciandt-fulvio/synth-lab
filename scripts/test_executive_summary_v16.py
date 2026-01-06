@@ -48,7 +48,8 @@ def main():
 
     # Step 2: Check document availability
     print("\n2️⃣ Checking document availability...")
-    resp = requests.get(f"{BASE_URL}/experiments/{experiment_id}/documents/availability")
+    resp = requests.get(
+        f"{BASE_URL}/experiments/{experiment_id}/documents/availability")
     avail = resp.json()
     print(f"   Summary: {avail['summary']}")
     print(f"   PRFAQ: {avail['prfaq']}")
@@ -60,7 +61,8 @@ def main():
     docs = resp.json()
     if docs:
         for doc in docs:
-            print(f"   - {doc['document_type']}: {doc['status']} ({doc['generated_at']})")
+            print(
+                f"   - {doc['document_type']}: {doc['status']} ({doc['generated_at']})")
     else:
         print("   No documents yet.")
 
@@ -129,7 +131,8 @@ def main():
         print(f"   ❌ Error fetching markdown: {resp.status_code}")
 
     print("\n✅ Test completed!")
-    print(f"\n📌 View in browser: http://localhost:5173/experiments/{experiment_id}")
+    print(
+        f"\n📌 View in browser: http://localhost:8080/experiments/{experiment_id}")
 
 
 if __name__ == "__main__":

@@ -16,7 +16,28 @@
       "Bash(src/synth_lab/services/research_agentic/summarizer.py )",
       "Bash(src/synth_lab/services/research_prfaq/generator.py )",
       "Bash(src/synth_lab/gen_synth/avatar_generator.py)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Bash(src/synth_lab/alembic/versions/20260106_1103_09d318020a17_add_tags_and_experiment_tags_tables.py )",
+      "Bash(src/synth_lab/domain/entities/tag.py )",
+      "Bash(src/synth_lab/models/orm/tag.py )",
+      "Bash(src/synth_lab/models/orm/experiment.py )",
+      "Bash(src/synth_lab/domain/entities/experiment.py )",
+      "Bash(src/synth_lab/repositories/tag_repository.py )",
+      "Bash(src/synth_lab/api/routers/tags.py )",
+      "Bash(src/synth_lab/api/schemas/experiments.py )",
+      "Bash(src/synth_lab/models/pagination.py)",
+      "Bash(frontend/src/types/tag.ts )",
+      "Bash(frontend/src/services/tags-api.ts )",
+      "Bash(frontend/src/hooks/use-tags.ts )",
+      "Bash(frontend/src/lib/query-keys.ts )",
+      "Bash(frontend/src/types/experiment.ts )",
+      "Bash(frontend/src/components/experiments/TagSelector.tsx )",
+      "Bash(frontend/src/components/experiments/PopularTags.tsx )",
+      "Bash(frontend/src/components/experiments/ExperimentCard.tsx )",
+      "Bash(frontend/src/components/experiments/ExperimentsFilter.tsx )",
+      "Bash(frontend/src/pages/ExperimentDetail.tsx )",
+      "Bash(frontend/src/pages/Index.tsx)",
+      "Bash(timeout 5 uv run python:*)"
     ]
   }
 }

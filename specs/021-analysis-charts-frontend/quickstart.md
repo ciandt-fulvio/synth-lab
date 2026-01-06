@@ -329,7 +329,7 @@ cd frontend
 npm run dev
 
 # Navigate to experiment with analysis
-# http://localhost:5173/experiments/{id}
+# http://localhost:8080/experiments/{id}
 # Select "Aprofundamento" tab
 ```
 
