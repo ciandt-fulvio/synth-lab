@@ -372,6 +372,74 @@ CREATE TABLE topic_guides_cache (
 
 ---
 
+### 7. tags
+
+Armazena tags para categorização de experimentos.
+
+```sql
+CREATE TABLE tags (
+    id VARCHAR(50) PRIMARY KEY,        -- UUID-style identifier (ex: "tag_12345678")
+    name VARCHAR(50) NOT NULL UNIQUE,  -- Nome da tag (max 50 chars, único)
+    created_at VARCHAR(50) NOT NULL,   -- ISO 8601 timestamp
+    updated_at VARCHAR(50)             -- ISO 8601 timestamp (nullable)
+);
+
+-- Índices
+CREATE INDEX idx_tags_name ON tags(name);
+```
+
+| Coluna | Tipo Python | Tipo PostgreSQL | NOT NULL | Default | Descrição |
+|--------|-------------|-----------------|----------|---------|-----------|
+| id | str | VARCHAR(50) | ✅ | - | Chave primária UUID-style |
+| name | str | VARCHAR(50) | ✅ | - | Nome da tag (único) |
+| created_at | str | VARCHAR(50) | ✅ | - | Timestamp ISO 8601 |
+| updated_at | str \| None | VARCHAR(50) | ❌ | NULL | Timestamp ISO 8601 |
+
+#### Relacionamentos
+
+| Relação | Tipo | Tabela Relacionada | FK | Descrição |
+|---------|------|-------------------|-----|-----------|
+| experiment_tags | 1:N | experiment_tags | tag_id | Links para experimentos via junction table |
+
+---
+
+### 8. experiment_tags
+
+Tabela junction para relacionamento many-to-many entre experiments e tags.
+
+```sql
+CREATE TABLE experiment_tags (
+    experiment_id VARCHAR(50) NOT NULL REFERENCES experiments(id) ON DELETE CASCADE,
+    tag_id VARCHAR(50) NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+    created_at VARCHAR(50) NOT NULL,   -- ISO 8601 timestamp quando tag foi adicionada
+    PRIMARY KEY (experiment_id, tag_id)
+);
+
+-- Índices
+CREATE INDEX idx_experiment_tags_experiment ON experiment_tags(experiment_id);
+CREATE INDEX idx_experiment_tags_tag ON experiment_tags(tag_id);
+```
+
+| Coluna | Tipo Python | Tipo PostgreSQL | NOT NULL | Default | Descrição |
+|--------|-------------|-----------------|----------|---------|-----------|
+| experiment_id | str | VARCHAR(50) | ✅ | - | FK para experiments (PK composta) |
+| tag_id | str | VARCHAR(50) | ✅ | - | FK para tags (PK composta) |
+| created_at | str | VARCHAR(50) | ✅ | - | Timestamp ISO 8601 |
+
+#### Relacionamentos
+
+| Relação | Tipo | Tabela Relacionada | FK | Descrição |
+|---------|------|-------------------|-----|-----------|
+| experiment | N:1 | experiments | experiment_id | Experimento pai |
+| tag | N:1 | tags | tag_id | Tag associada |
+
+#### Constraints
+
+- **ON DELETE CASCADE**: Quando um experimento ou tag é deletado, os registros relacionados são removidos automaticamente
+- **Chave primária composta**: (experiment_id, tag_id) garante unicidade do relacionamento
+
+---
+
 ## Inicialização do Banco
 
 ### Criar Novo Banco
@@ -466,7 +534,7 @@ ORDER BY num_executions DESC;
 
 ### Índices
 
-Total: **10 índices** em 5 tabelas principais
+Total: **13 índices** em 7 tabelas principais
 
 **Synths**:
 - `idx_synths_arquetipo` - Filtragem por arquétipo
@@ -486,6 +554,13 @@ Total: **10 índices** em 5 tabelas principais
 **Transcripts**:
 - `idx_transcripts_exec` - JOIN com executions
 - `idx_transcripts_synth` - JOIN com synths
+
+**Tags**:
+- `idx_tags_name` - Busca por nome de tag
+
+**Experiment Tags**:
+- `idx_experiment_tags_experiment` - JOIN com experiments
+- `idx_experiment_tags_tag` - JOIN com tags
 
 ### Otimizações JSON
 
