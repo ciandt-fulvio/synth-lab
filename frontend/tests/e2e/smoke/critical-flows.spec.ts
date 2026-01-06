@@ -23,7 +23,7 @@ test.describe('Smoke Tests - Critical Flows @smoke @critical', () => {
     await page.waitForLoadState('domcontentloaded');
   });
 
-  test('ST002 - Experiments list page loads', async ({ page }) => {
+  test('ST002 - Experiments list page loads with seeded data', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -36,6 +36,11 @@ test.describe('Smoke Tests - Critical Flows @smoke @critical', () => {
     await expect(
       page.getByRole('button', { name: /novo experimento/i })
     ).toBeVisible();
+
+    // Experimento do seed deve estar visível
+    await expect(
+      page.locator('h3').filter({ hasText: /App de Delivery.*Agendamento de Pedidos/i })
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test('ST003 - API is responding', async ({ page }) => {
@@ -72,29 +77,31 @@ test.describe('Smoke Tests - Critical Flows @smoke @critical', () => {
     }
   });
 
-  test('ST005 - Experiment detail loads', async ({ page }) => {
+  test('ST005 - Experiment detail loads (seeded experiment)', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // Procura por cards de experimento
-    const experimentCards = page.locator('.cursor-pointer').filter({
-      has: page.locator('h3, [class*="CardTitle"]')
+    // Procura pelo experimento do seed
+    const deliveryExperiment = page.locator('h3').filter({
+      hasText: /App de Delivery.*Agendamento de Pedidos/i
     });
 
-    const count = await experimentCards.count();
+    // Clica no card do experimento (parent do h3)
+    const cardParent = deliveryExperiment.locator('..').locator('..');
+    await cardParent.click();
 
-    if (count > 0) {
-      // Clica no primeiro experimento
-      await experimentCards.first().click();
+    // Verifica que navegou para detalhe
+    await expect(page).toHaveURL(/\/experiments\/exp_delivery_scheduling/);
 
-      // Verifica que navegou para detalhe
-      await expect(page).toHaveURL(/\/experiments\/exp_/);
+    // Verifica que nome do experimento aparece
+    await expect(
+      page.locator('text=/App de Delivery.*Agendamento de Pedidos/i')
+    ).toBeVisible({ timeout: 10000 });
 
-      // Verifica que página carregou
-      await expect(page.locator('h2').first()).toBeVisible({ timeout: 10000 });
-    } else {
-      test.skip('Nenhum experimento disponível para teste');
-    }
+    // Verifica que scorecard foi carregado
+    await expect(
+      page.locator('text=/scorecard|agendamento/i')
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test('ST006 - No visible error states', async ({ page }) => {
