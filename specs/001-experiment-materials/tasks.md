@@ -98,16 +98,16 @@
 
 ### Implementation for User Story 2
 
-- [ ] T039 [US2] Add generate_thumbnail method for images (Pillow resize 200x200) to MaterialService
-- [ ] T040 [US2] Add generate_thumbnail method for videos (extract frame 0 with moviepy) to MaterialService
-- [ ] T041 [US2] Add generate_thumbnail method for PDFs (first page with pdf2image) to MaterialService
+- [x] T039 [US2] Add generate_thumbnail method for images (Pillow resize 200x200) to MaterialService
+- [x] T040 [US2] Add generate_thumbnail method for videos (extract frame 0 with moviepy) to MaterialService
+- [x] T041 [US2] Add generate_thumbnail method for PDFs (first page with pdf2image) to MaterialService
 - [x] T042 [US2] Add GET /{material_id}/view-url endpoint (presigned URL for viewing) to materials router
-- [ ] T043 [US2] Trigger thumbnail generation after upload confirmation in MaterialService.confirm_upload
+- [x] T043 [US2] Trigger thumbnail generation after upload confirmation in MaterialService.confirm_upload
 - [x] T044 [P] [US2] Add getMaterialViewUrl function to frontend/src/services/materials-api.ts
-- [ ] T045 [US2] Create MaterialGallery component displaying thumbnails with metadata in frontend/src/components/experiments/MaterialGallery.tsx
-- [ ] T046 [US2] Add full-size modal viewer to MaterialGallery (click thumbnail to expand)
-- [ ] T047 [US2] Add video player modal for video materials in MaterialGallery
-- [ ] T048 [US2] Integrate MaterialGallery into experiment detail page
+- [x] T045 [US2] Create MaterialGallery component displaying thumbnails with metadata in frontend/src/components/experiments/MaterialGallery.tsx
+- [x] T046 [US2] Add full-size modal viewer to MaterialGallery (click thumbnail to expand)
+- [x] T047 [US2] Add video player modal for video materials in MaterialGallery
+- [x] T048 [US2] Integrate MaterialGallery into experiment detail page
 
 **Checkpoint**: User Story 2 complete - can view material previews and full-size files on experiment page
 
@@ -267,17 +267,17 @@ T067 Retry button
 |-------|------------|-------|-----------|-----------|
 | 1 | Setup | 6 | 6 ✅ | 0 |
 | 2 | Foundational | 6 | 6 ✅ | 0 |
-| 3 | US1 - Upload | 23 | 18 ✅ | 5 tests) |
-| 4 | US2 - Preview | 13 | 2 | 11 |
+| 3 | US1 - Upload | 23 | 18 ✅ | 5 (tests) |
+| 4 | US2 - Preview | 13 | 10 ✅ | 3 (tests) |
 | 5 | US3 - Interview | 19 | 1 | 18 |
 | 6 | US4 - PR-FAQ | 5 | 0 | 5 |
 | 7 | Polish | 7 | 0 | 7 |
-| **Total** | | **79** | **33** | **46** |
+| **Total** | | **79** | **41** | **38** |
 
 **MVP Scope**: Phases 1-3 (35 tasks) - Upload materials to experiments
 **Full Feature**: All phases (79 tasks) - Complete materials integration
 
-**Current Status**: Phase 3 (US1 - Upload) implementation complete! All backend + frontend implementation tasks done. Onlytests remain.
+**Current Status**: Phase 4 (US2 - Preview) implementation complete! Thumbnail generation + MaterialGallery working. Tests remain.
 
 ---
 
