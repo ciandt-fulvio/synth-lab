@@ -161,19 +161,19 @@ def _seed_synth_groups(session: Session) -> list[SynthGroup]:
 
     groups = [
         SynthGroup(
-            id="grp_frequent_users",
+            id="grp_a1b2c3d4",  # Valid format: grp_[a-f0-9]{8}
             name="Usuários Frequentes",
             description="Usuários que pedem 3+ vezes por semana, alta familiaridade com app",
             created_at=(base_time - timedelta(days=60)).isoformat(),
         ),
         SynthGroup(
-            id="grp_busy_professionals",
+            id="grp_b2c3d4e5",  # Valid format: grp_[a-f0-9]{8}
             name="Profissionais Ocupados",
             description="Executivos e profissionais com rotina intensa, valorizam praticidade",
             created_at=(base_time - timedelta(days=60)).isoformat(),
         ),
         SynthGroup(
-            id="grp_family_users",
+            id="grp_c3d4e5f6",  # Valid format: grp_[a-f0-9]{8}
             name="Famílias",
             description="Usuários que pedem para família, planejam refeições com antecedência",
             created_at=(base_time - timedelta(days=60)).isoformat(),
@@ -287,7 +287,7 @@ def _seed_analysis_run(session: Session, experiment: Experiment, synth_count: in
     base_time = datetime.now()
 
     analysis = AnalysisRun(
-        id="anlz_delivery_baseline",
+        id="ana_d4e5f6a7",  # Valid format: ana_[a-f0-9]{8}
         experiment_id=experiment.id,
         scenario_id="baseline",
         config={
@@ -442,7 +442,7 @@ def _seed_exploration(session: Session, experiment: Experiment, baseline_analysi
     base_time = datetime.now()
 
     exploration = Exploration(
-        id="expl_delivery_optimization",
+        id="expl_e5f6a7b8",  # Valid format: expl_[a-f0-9]{8}
         experiment_id=experiment.id,
         baseline_analysis_id=baseline_analysis.id,
         goal={
@@ -470,7 +470,7 @@ def _seed_exploration(session: Session, experiment: Experiment, baseline_analysi
 
     # Scenario 1: Baseline (starting point)
     node1 = ScenarioNode(
-        id="node_baseline",
+        id="node_f6a7b8c9",  # Valid format: node_[a-f0-9]{8}
         exploration_id=exploration.id,
         parent_id=None,
         depth=0,
@@ -496,9 +496,9 @@ def _seed_exploration(session: Session, experiment: Experiment, baseline_analysi
 
     # Scenario 2: Simplified flow (iteration 1)
     node2 = ScenarioNode(
-        id="node_simplified_flow",
+        id="node_a7b8c9d0",  # Valid format: node_[a-f0-9]{8}
         exploration_id=exploration.id,
-        parent_id="node_baseline",
+        parent_id="node_f6a7b8c9",  # Reference to node1
         depth=1,
         action_applied="Reduzir passos de configuração de 5 para 3",
         action_category="simplification",
@@ -522,9 +522,9 @@ def _seed_exploration(session: Session, experiment: Experiment, baseline_analysi
 
     # Scenario 3: Tutorial + simplified flow (iteration 2 - goal achieved)
     node3 = ScenarioNode(
-        id="node_tutorial_added",
+        id="node_b8c9d0e1",  # Valid format: node_[a-f0-9]{8}
         exploration_id=exploration.id,
-        parent_id="node_simplified_flow",
+        parent_id="node_a7b8c9d0",  # Reference to node2
         depth=2,
         action_applied="Adicionar tutorial interativo no primeiro uso e sugerir horários com base em histórico",
         action_category="onboarding",
@@ -560,7 +560,7 @@ def _seed_documents(session: Session, experiment: Experiment) -> None:
 
     documents = [
         ExperimentDocument(
-            id="doc_research_summary",
+            id="doc_c9d0e1f2",  # Valid format: doc_[a-f0-9]{8}
             experiment_id=experiment.id,
             document_type="research_summary",
             source_id=None,  # Research summary não tem source específico
@@ -594,7 +594,7 @@ def _seed_documents(session: Session, experiment: Experiment) -> None:
         ),
 
         ExperimentDocument(
-            id="doc_executive_summary",
+            id="doc_d0e1f2a3",  # Valid format: doc_[a-f0-9]{8}
             experiment_id=experiment.id,
             document_type="executive_summary",
             source_id=None,  # Executive summary é único por experimento
@@ -625,7 +625,7 @@ def _seed_documents(session: Session, experiment: Experiment) -> None:
         ),
 
         ExperimentDocument(
-            id="doc_prfaq",
+            id="doc_e1f2a3b4",  # Valid format: doc_[a-f0-9]{8}
             experiment_id=experiment.id,
             document_type="prfaq",
             source_id=None,
