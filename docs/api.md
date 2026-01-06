@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-A API REST do synth-lab é construída com **FastAPI** e oferece acesso programático a todas as funcionalidades do sistema através de **21 endpoints HTTP**.
+A API REST do synth-lab é construída com **FastAPI** e oferece acesso programático a todas as funcionalidades do sistema através de **37 endpoints HTTP**.
 
 ### Características
 
@@ -1214,9 +1214,727 @@ curl "http://localhost:8000/jobs/f47ac10b-58cc-4372-a567-0e02b2c3d479"
 
 ---
 
-### 6. Tags Endpoints (4 endpoints)
+### 6. Experiments Endpoints (12 endpoints)
 
-#### 6.1 Listar Tags
+#### 6.1 Criar Experimento
+
+```http
+POST /experiments
+```
+
+Cria um novo experimento, opcionalmente com scorecard embutido.
+
+**Request Body**:
+```json
+{
+  "name": "Novo Fluxo de Checkout",
+  "hypothesis": "Reduzir etapas do checkout aumentará conversão em 15%",
+  "description": "Baseado em feedback de usuários e análise de abandono",
+  "scorecard_data": null
+}
+```
+
+**Body Parameters**:
+- `name` (string, requerido): Nome curto da feature (máx 100 caracteres)
+- `hypothesis` (string, requerido): Descrição da hipótese a testar (máx 500 caracteres)
+- `description` (string, opcional): Contexto adicional (máx 2000 caracteres)
+- `scorecard_data` (object, opcional): Dados do scorecard embutido
+
+**Response 201**:
+```json
+{
+  "id": "exp_a1b2c3d4",
+  "name": "Novo Fluxo de Checkout",
+  "hypothesis": "Reduzir etapas do checkout aumentará conversão em 15%",
+  "description": "Baseado em feedback de usuários e análise de abandono",
+  "scorecard_data": null,
+  "has_scorecard": false,
+  "has_interview_guide": false,
+  "tags": [],
+  "created_at": "2025-12-19T10:30:00Z",
+  "updated_at": null
+}
+```
+
+**Response 422** (Validação falhou):
+```json
+{
+  "detail": "Name must not exceed 100 characters"
+}
+```
+
+**Exemplo**:
+```bash
+curl -X POST "http://localhost:8000/experiments" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Novo Fluxo de Checkout",
+    "hypothesis": "Reduzir etapas do checkout aumentará conversão em 15%"
+  }'
+```
+
+---
+
+#### 6.2 Estimar Scorecard via IA (sem experimento)
+
+```http
+POST /experiments/estimate-scorecard
+```
+
+Usa IA para estimar dimensões do scorecard a partir de texto, antes de criar o experimento.
+
+**Request Body**:
+```json
+{
+  "name": "Novo Fluxo de Checkout",
+  "hypothesis": "Reduzir etapas do checkout aumentará conversão em 15%",
+  "description": "Sistema de checkout simplificado com menos etapas"
+}
+```
+
+**Body Parameters**:
+- `name` (string, requerido): Nome curto da feature (máx 100 caracteres)
+- `hypothesis` (string, requerido): Descrição da hipótese (máx 500 caracteres)
+- `description` (string, opcional): Contexto adicional (máx 2000 caracteres)
+
+**Response 200**:
+```json
+{
+  "complexity": {
+    "score": 0.4,
+    "rules_applied": [],
+    "lower_bound": 0.3,
+    "upper_bound": 0.5
+  },
+  "initial_effort": {
+    "score": 0.3,
+    "rules_applied": [],
+    "lower_bound": 0.2,
+    "upper_bound": 0.4
+  },
+  "perceived_risk": {
+    "score": 0.2,
+    "rules_applied": [],
+    "lower_bound": 0.1,
+    "upper_bound": 0.3
+  },
+  "time_to_value": {
+    "score": 0.6,
+    "rules_applied": [],
+    "lower_bound": 0.5,
+    "upper_bound": 0.7
+  },
+  "justification": "Based on feature complexity and similar implementations...",
+  "impact_hypotheses": ["Users may struggle initially with the new flow"]
+}
+```
+
+**Response 500** (Erro na estimativa):
+```json
+{
+  "detail": "Scorecard estimation failed: LLM error"
+}
+```
+
+**Exemplo**:
+```bash
+curl -X POST "http://localhost:8000/experiments/estimate-scorecard" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Novo Fluxo de Checkout",
+    "hypothesis": "Reduzir etapas do checkout aumentará conversão em 15%"
+  }'
+```
+
+---
+
+#### 6.3 Listar Experimentos
+
+```http
+GET /experiments/list
+```
+
+Lista experimentos com paginação, busca, ordenação e filtro por tags.
+
+**Query Parameters**:
+- `limit` (int, opcional): Padrão 50, máx 200
+- `offset` (int, opcional): Padrão 0
+- `search` (string, opcional): Filtra por nome OU hipótese (case-insensitive, máx 200 caracteres)
+- `tag` (string, opcional): Filtra por nome de tag (exact match, máx 50 caracteres)
+- `sort_by` (string, opcional): `created_at` (padrão) ou `name`
+- `sort_order` (string, opcional): `desc` (padrão) ou `asc`
+
+**Response 200**:
+```json
+{
+  "data": [
+    {
+      "id": "exp_a1b2c3d4",
+      "name": "Novo Fluxo de Checkout",
+      "hypothesis": "Reduzir etapas do checkout aumentará conversão em 15%",
+      "description": "Baseado em feedback de usuários",
+      "has_scorecard": true,
+      "has_analysis": true,
+      "has_interview_guide": true,
+      "interview_count": 3,
+      "tags": ["ux-research", "checkout"],
+      "created_at": "2025-12-19T10:30:00Z",
+      "updated_at": "2025-12-20T14:00:00Z"
+    }
+  ],
+  "pagination": {
+    "total": 25,
+    "limit": 50,
+    "offset": 0,
+    "has_next": false
+  }
+}
+```
+
+**Exemplo**:
+```bash
+# Listar com paginação
+curl "http://localhost:8000/experiments/list?limit=10&offset=0"
+
+# Buscar por termo
+curl "http://localhost:8000/experiments/list?search=checkout"
+
+# Filtrar por tag
+curl "http://localhost:8000/experiments/list?tag=ux-research"
+
+# Ordenar por nome
+curl "http://localhost:8000/experiments/list?sort_by=name&sort_order=asc"
+```
+
+---
+
+#### 6.4 Obter Experimento por ID
+
+```http
+GET /experiments/{experiment_id}
+```
+
+Retorna detalhes completos de um experimento, incluindo análise e entrevistas vinculadas.
+
+**Path Parameters**:
+- `experiment_id` (string, requerido): ID do experimento
+
+**Response 200**:
+```json
+{
+  "id": "exp_a1b2c3d4",
+  "name": "Novo Fluxo de Checkout",
+  "hypothesis": "Reduzir etapas do checkout aumentará conversão em 15%",
+  "description": "Baseado em feedback de usuários",
+  "scorecard_data": {
+    "feature_name": "Novo Fluxo de Checkout",
+    "scenario": "baseline",
+    "description_text": "Sistema de checkout simplificado",
+    "description_media_urls": [],
+    "complexity": {"score": 0.4, "rules_applied": [], "lower_bound": 0.3, "upper_bound": 0.5},
+    "initial_effort": {"score": 0.3, "rules_applied": [], "lower_bound": null, "upper_bound": null},
+    "perceived_risk": {"score": 0.2, "rules_applied": [], "lower_bound": null, "upper_bound": null},
+    "time_to_value": {"score": 0.6, "rules_applied": [], "lower_bound": null, "upper_bound": null},
+    "justification": "Based on feature complexity...",
+    "impact_hypotheses": []
+  },
+  "has_scorecard": true,
+  "has_interview_guide": true,
+  "tags": ["ux-research", "checkout"],
+  "created_at": "2025-12-19T10:30:00Z",
+  "updated_at": "2025-12-20T14:00:00Z",
+  "analysis": {
+    "id": "ana_12345678",
+    "simulation_id": "ana_12345678",
+    "status": "completed",
+    "started_at": "2025-12-19T11:00:00Z",
+    "completed_at": "2025-12-19T11:05:00Z",
+    "total_synths": 100,
+    "n_executions": 100,
+    "execution_time_seconds": 300.5,
+    "aggregated_outcomes": {
+      "did_not_try_rate": 0.2,
+      "failed_rate": 0.3,
+      "success_rate": 0.5
+    }
+  },
+  "interviews": [
+    {
+      "exec_id": "batch_exp_a1b2c3d4_20251219_120000",
+      "topic_name": "exp_a1b2c3d4",
+      "status": "completed",
+      "synth_count": 10,
+      "total_turns": 60,
+      "has_summary": true,
+      "has_prfaq": false,
+      "additional_context": "Foco em usuários mobile",
+      "started_at": "2025-12-19T12:00:00Z",
+      "completed_at": "2025-12-19T12:15:00Z"
+    }
+  ],
+  "interview_count": 1
+}
+```
+
+**Response 404**:
+```json
+{
+  "detail": "Experiment exp_invalid not found"
+}
+```
+
+**Exemplo**:
+```bash
+curl "http://localhost:8000/experiments/exp_a1b2c3d4"
+```
+
+---
+
+#### 6.5 Atualizar Experimento
+
+```http
+PUT /experiments/{experiment_id}
+```
+
+Atualiza nome, hipótese ou descrição de um experimento. Para atualizar o scorecard, use `PUT /experiments/{id}/scorecard`.
+
+**Path Parameters**:
+- `experiment_id` (string, requerido): ID do experimento
+
+**Request Body**:
+```json
+{
+  "name": "Novo Fluxo de Checkout v2",
+  "hypothesis": "Reduzir etapas do checkout aumentará conversão em 20%",
+  "description": "Baseado em nova análise de dados"
+}
+```
+
+**Body Parameters** (todos opcionais):
+- `name` (string): Nome curto da feature (máx 100 caracteres)
+- `hypothesis` (string): Descrição da hipótese (máx 500 caracteres)
+- `description` (string): Contexto adicional (máx 2000 caracteres)
+
+**Response 200**:
+```json
+{
+  "id": "exp_a1b2c3d4",
+  "name": "Novo Fluxo de Checkout v2",
+  "hypothesis": "Reduzir etapas do checkout aumentará conversão em 20%",
+  "description": "Baseado em nova análise de dados",
+  "scorecard_data": null,
+  "has_scorecard": false,
+  "has_interview_guide": true,
+  "tags": ["ux-research"],
+  "created_at": "2025-12-19T10:30:00Z",
+  "updated_at": "2025-12-20T15:00:00Z"
+}
+```
+
+**Response 404**:
+```json
+{
+  "detail": "Experiment exp_invalid not found"
+}
+```
+
+**Exemplo**:
+```bash
+curl -X PUT "http://localhost:8000/experiments/exp_a1b2c3d4" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Novo Fluxo de Checkout v2"}'
+```
+
+---
+
+#### 6.6 Deletar Experimento
+
+```http
+DELETE /experiments/{experiment_id}
+```
+
+Deleta um experimento.
+
+**Path Parameters**:
+- `experiment_id` (string, requerido): ID do experimento
+
+**Response 204**: Sem conteúdo (sucesso)
+
+**Response 404**:
+```json
+{
+  "detail": "Experiment exp_invalid not found"
+}
+```
+
+**Exemplo**:
+```bash
+curl -X DELETE "http://localhost:8000/experiments/exp_a1b2c3d4"
+```
+
+---
+
+#### 6.7 Atualizar Scorecard do Experimento
+
+```http
+PUT /experiments/{experiment_id}/scorecard
+```
+
+Atualiza ou cria o scorecard embutido de um experimento.
+
+**Path Parameters**:
+- `experiment_id` (string, requerido): ID do experimento
+
+**Request Body**:
+```json
+{
+  "feature_name": "Novo Fluxo de Checkout",
+  "scenario": "baseline",
+  "description_text": "Sistema de checkout simplificado com menos etapas",
+  "description_media_urls": [],
+  "complexity": {
+    "score": 0.4,
+    "rules_applied": ["Menos etapas", "Interface familiar"],
+    "lower_bound": 0.3,
+    "upper_bound": 0.5
+  },
+  "initial_effort": {
+    "score": 0.3,
+    "rules_applied": [],
+    "lower_bound": null,
+    "upper_bound": null
+  },
+  "perceived_risk": {
+    "score": 0.2,
+    "rules_applied": [],
+    "lower_bound": null,
+    "upper_bound": null
+  },
+  "time_to_value": {
+    "score": 0.6,
+    "rules_applied": [],
+    "lower_bound": null,
+    "upper_bound": null
+  },
+  "justification": "Based on feature complexity and similar implementations",
+  "impact_hypotheses": ["Users may struggle initially with the new flow"]
+}
+```
+
+**Response 200**:
+```json
+{
+  "id": "exp_a1b2c3d4",
+  "name": "Novo Fluxo de Checkout",
+  "hypothesis": "Reduzir etapas do checkout aumentará conversão em 15%",
+  "description": "Baseado em feedback de usuários",
+  "scorecard_data": {
+    "feature_name": "Novo Fluxo de Checkout",
+    "scenario": "baseline",
+    "description_text": "Sistema de checkout simplificado com menos etapas",
+    "description_media_urls": [],
+    "complexity": {"score": 0.4, "rules_applied": ["Menos etapas", "Interface familiar"], "lower_bound": 0.3, "upper_bound": 0.5},
+    "initial_effort": {"score": 0.3, "rules_applied": [], "lower_bound": null, "upper_bound": null},
+    "perceived_risk": {"score": 0.2, "rules_applied": [], "lower_bound": null, "upper_bound": null},
+    "time_to_value": {"score": 0.6, "rules_applied": [], "lower_bound": null, "upper_bound": null},
+    "justification": "Based on feature complexity and similar implementations",
+    "impact_hypotheses": ["Users may struggle initially with the new flow"]
+  },
+  "has_scorecard": true,
+  "has_interview_guide": true,
+  "tags": [],
+  "created_at": "2025-12-19T10:30:00Z",
+  "updated_at": "2025-12-20T16:00:00Z"
+}
+```
+
+**Response 404**:
+```json
+{
+  "detail": "Experiment exp_invalid not found"
+}
+```
+
+**Exemplo**:
+```bash
+curl -X PUT "http://localhost:8000/experiments/exp_a1b2c3d4/scorecard" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "feature_name": "Novo Fluxo de Checkout",
+    "scenario": "baseline",
+    "description_text": "Sistema simplificado",
+    "complexity": {"score": 0.4, "rules_applied": []},
+    "initial_effort": {"score": 0.3, "rules_applied": []},
+    "perceived_risk": {"score": 0.2, "rules_applied": []},
+    "time_to_value": {"score": 0.6, "rules_applied": []}
+  }'
+```
+
+---
+
+#### 6.8 Criar Entrevista para Experimento
+
+```http
+POST /experiments/{experiment_id}/interviews
+```
+
+Cria uma nova entrevista vinculada ao experimento. Usa o interview guide do experimento.
+
+**Path Parameters**:
+- `experiment_id` (string, requerido): ID do experimento
+
+**Request Body**:
+```json
+{
+  "additional_context": "Foco em experiência mobile",
+  "synth_ids": ["synth_001", "synth_002"],
+  "synth_count": null,
+  "max_turns": 6,
+  "generate_summary": true
+}
+```
+
+**Body Parameters**:
+- `additional_context` (string, opcional): Contexto adicional para complementar o cenário
+- `synth_ids` (list[string], opcional): IDs específicos de synths para entrevistar
+- `synth_count` (int, opcional): Número de synths aleatórios se `synth_ids` não fornecido (padrão: 5, min: 1, max: 50)
+- `max_turns` (int, opcional): Máximo de turnos por entrevista (padrão: 6, min: 1, max: 20)
+- `generate_summary` (bool, opcional): Gerar summary após conclusão (padrão: true)
+
+**Response 201**:
+```json
+{
+  "exec_id": "batch_exp_a1b2c3d4_20251219_120000",
+  "status": "running",
+  "topic_name": "exp_a1b2c3d4",
+  "synth_count": 2,
+  "started_at": "2025-12-19T12:00:00Z"
+}
+```
+
+**Response 404**:
+```json
+{
+  "detail": "Experiment exp_invalid not found"
+}
+```
+
+**Response 422**:
+```json
+{
+  "detail": "Experiment does not have an interview guide configured"
+}
+```
+
+**Exemplo**:
+```bash
+curl -X POST "http://localhost:8000/experiments/exp_a1b2c3d4/interviews" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "synth_count": 5,
+    "max_turns": 8,
+    "additional_context": "Foco em usuários mobile"
+  }'
+```
+
+---
+
+#### 6.9 Obter Auto-Entrevista do Experimento
+
+```http
+GET /experiments/{experiment_id}/interviews/auto
+```
+
+Retorna a auto-entrevista (casos extremos) do experimento, se existir.
+
+**Path Parameters**:
+- `experiment_id` (string, requerido): ID do experimento
+
+**Response 200** (se existir):
+```json
+{
+  "exec_id": "batch_exp_a1b2c3d4_auto_20251219_130000",
+  "status": "completed",
+  "topic_name": "exp_a1b2c3d4_auto",
+  "synth_count": 10,
+  "started_at": "2025-12-19T13:00:00Z"
+}
+```
+
+**Response 200** (se não existir):
+```json
+null
+```
+
+**Exemplo**:
+```bash
+curl "http://localhost:8000/experiments/exp_a1b2c3d4/interviews/auto"
+```
+
+---
+
+#### 6.10 Criar Auto-Entrevista para Experimento
+
+```http
+POST /experiments/{experiment_id}/interviews/auto
+```
+
+Cria uma entrevista automática com casos extremos (5 melhores + 5 piores) dos resultados da simulação.
+
+**Path Parameters**:
+- `experiment_id` (string, requerido): ID do experimento
+
+**Requisitos**:
+- Experimento deve existir
+- Experimento deve ter interview guide configurado
+- Simulação deve ter pelo menos 10 synths
+
+**Response 201**:
+```json
+{
+  "exec_id": "batch_exp_a1b2c3d4_auto_20251219_130000",
+  "status": "running",
+  "topic_name": "exp_a1b2c3d4_auto",
+  "synth_count": 10,
+  "started_at": "2025-12-19T13:00:00Z"
+}
+```
+
+**Response 404**:
+```json
+{
+  "detail": "Experiment exp_invalid not found"
+}
+```
+
+**Response 400**:
+```json
+{
+  "detail": "Not enough synths for auto-interview. Found 8, need 10 (5 best + 5 worst)."
+}
+```
+
+**Response 422**:
+```json
+{
+  "detail": "Experiment does not have an interview guide configured"
+}
+```
+
+**Exemplo**:
+```bash
+curl -X POST "http://localhost:8000/experiments/exp_a1b2c3d4/interviews/auto"
+```
+
+---
+
+#### 6.11 Listar Explorações do Experimento
+
+```http
+GET /experiments/{experiment_id}/explorations
+```
+
+Lista todas as explorações de um experimento, ordenadas por data (mais recente primeiro).
+
+**Path Parameters**:
+- `experiment_id` (string, requerido): ID do experimento
+
+**Response 200**:
+```json
+[
+  {
+    "id": "expl_12345678",
+    "status": "completed",
+    "goal_value": "maximize_success",
+    "best_success_rate": 0.75,
+    "total_nodes": 15,
+    "started_at": "2025-12-19T14:00:00Z",
+    "completed_at": "2025-12-19T14:30:00Z"
+  }
+]
+```
+
+**Response 404**:
+```json
+{
+  "detail": "Experiment exp_invalid not found"
+}
+```
+
+**Exemplo**:
+```bash
+curl "http://localhost:8000/experiments/exp_a1b2c3d4/explorations"
+```
+
+---
+
+#### 6.12 Estimar Scorecard para Experimento
+
+```http
+POST /experiments/{experiment_id}/estimate-scorecard
+```
+
+Usa IA para estimar dimensões do scorecard baseado nos dados do experimento existente.
+
+**Path Parameters**:
+- `experiment_id` (string, requerido): ID do experimento
+
+**Response 200**:
+```json
+{
+  "complexity": {
+    "score": 0.4,
+    "rules_applied": [],
+    "lower_bound": 0.3,
+    "upper_bound": 0.5
+  },
+  "initial_effort": {
+    "score": 0.3,
+    "rules_applied": [],
+    "lower_bound": 0.2,
+    "upper_bound": 0.4
+  },
+  "perceived_risk": {
+    "score": 0.2,
+    "rules_applied": [],
+    "lower_bound": 0.1,
+    "upper_bound": 0.3
+  },
+  "time_to_value": {
+    "score": 0.6,
+    "rules_applied": [],
+    "lower_bound": 0.5,
+    "upper_bound": 0.7
+  },
+  "justification": "Based on experiment details and similar implementations...",
+  "impact_hypotheses": ["Users may need time to adapt to the new workflow"]
+}
+```
+
+**Response 404**:
+```json
+{
+  "detail": "Experiment exp_invalid not found"
+}
+```
+
+**Response 500**:
+```json
+{
+  "detail": "Scorecard estimation failed: LLM error"
+}
+```
+
+**Exemplo**:
+```bash
+curl -X POST "http://localhost:8000/experiments/exp_a1b2c3d4/estimate-scorecard"
+```
+
+---
+
+### 7. Tags Endpoints (4 endpoints)
+
+#### 7.1 Listar Tags
 
 ```http
 GET /tags
@@ -1245,7 +1963,7 @@ curl "http://localhost:8000/tags"
 
 ---
 
-#### 6.2 Criar Tag
+#### 7.2 Criar Tag
 
 ```http
 POST /tags
@@ -1288,7 +2006,7 @@ curl -X POST "http://localhost:8000/tags" \
 
 ---
 
-#### 6.3 Adicionar Tag a Experimento
+#### 7.3 Adicionar Tag a Experimento
 
 ```http
 POST /tags/experiments/{experiment_id}/tags
@@ -1327,7 +2045,7 @@ curl -X POST "http://localhost:8000/tags/experiments/exp_12345/tags" \
 
 ---
 
-#### 6.4 Remover Tag de Experimento
+#### 7.4 Remover Tag de Experimento
 
 ```http
 DELETE /tags/experiments/{experiment_id}/tags/{tag_name}
@@ -1369,9 +2087,9 @@ curl -X DELETE "http://localhost:8000/tags/experiments/exp_12345/tags/ux-researc
 
 ---
 
-### 7. Health Check Endpoints (2 endpoints)
+### 8. Health Check Endpoints (2 endpoints)
 
-#### 7.1 Health Check
+#### 8.1 Health Check
 
 ```http
 GET /health
@@ -1395,7 +2113,7 @@ curl "http://localhost:8000/health"
 
 ---
 
-#### 7.2 Root Endpoint
+#### 8.2 Root Endpoint
 
 ```http
 GET /
@@ -1428,6 +2146,9 @@ curl "http://localhost:8000/"
 | Código | Significado | Quando Usar |
 |--------|-------------|-------------|
 | 200 | OK | Sucesso |
+| 201 | Created | Recurso criado com sucesso |
+| 204 | No Content | Sucesso sem conteúdo (ex: DELETE) |
+| 400 | Bad Request | Requisição inválida (ex: dados insuficientes) |
 | 404 | Not Found | Recurso não encontrado |
 | 422 | Unprocessable Entity | Validação de entrada falhou |
 | 500 | Internal Server Error | Erro interno do servidor |
@@ -1447,6 +2168,9 @@ curl "http://localhost:8000/"
 | `JOB_NOT_FOUND` | Job não encontrado | 404 |
 | `TAG_NOT_FOUND` | Tag não encontrada | 404 |
 | `EXPERIMENT_NOT_FOUND` | Experimento não encontrado | 404 |
+| `INTERVIEW_GUIDE_NOT_FOUND` | Interview guide não configurado | 422 |
+| `SCORECARD_ESTIMATION_FAILED` | Estimativa de scorecard falhou | 500 |
+| `NOT_ENOUGH_SYNTHS` | Synths insuficientes para auto-entrevista | 400 |
 | `INVALID_QUERY` | Query SQL inválida | 422 |
 | `INVALID_REQUEST` | Request inválido | 422 |
 | `GENERATION_FAILED` | Geração falhou | 422 |
@@ -1800,7 +2524,7 @@ app.add_middleware(
 
 A API REST do synth-lab oferece acesso completo e eficiente a todas as funcionalidades do sistema, com:
 
-- **21 endpoints** bem documentados
+- **37 endpoints** bem documentados
 - **Streaming SSE** para operações longas
 - **Paginação** consistente
 - **Validação automática** com Pydantic
