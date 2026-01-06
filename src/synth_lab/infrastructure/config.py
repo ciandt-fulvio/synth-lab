@@ -16,11 +16,16 @@ Environment Variables:
 import os
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Base paths
 # __file__ is src/synth_lab/infrastructure/config.py
 # parent chain: infrastructure -> synth_lab -> src -> project_root
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+
+# Load .env file from project root
+# This ensures Railway Storage and other env vars are available
+load_dotenv(PROJECT_ROOT / ".env")
 OUTPUT_DIR = PROJECT_ROOT / "output"
 DATA_DIR = PROJECT_ROOT / "data"
 
