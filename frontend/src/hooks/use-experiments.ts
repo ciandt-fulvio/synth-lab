@@ -23,20 +23,21 @@ import {
   estimateScorecardForExperiment,
   estimateScorecardFromText,
   runAnalysis,
+  type ExperimentsListParams,
   type ScorecardEstimateRequest,
   type RunAnalysisRequest,
 } from '@/services/experiments-api';
-import type { PaginationParams } from '@/types';
 import type { ExperimentCreate, ExperimentUpdate, ScorecardCreate } from '@/types/experiment';
 import type { InterviewCreateRequest } from '@/types/research';
 
 /**
- * Hook to fetch paginated list of experiments.
+ * Hook to fetch paginated list of experiments with search and sort.
  */
-export function useExperiments(params?: PaginationParams) {
+export function useExperiments(params?: ExperimentsListParams) {
   return useQuery({
     queryKey: [...queryKeys.experimentsList, params],
     queryFn: () => listExperiments(params),
+    placeholderData: (previousData) => previousData,
   });
 }
 

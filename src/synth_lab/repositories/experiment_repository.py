@@ -132,18 +132,33 @@ session: Session | None = None):
 
     def _list_experiments_orm(self, params: PaginationParams) -> PaginatedResponse[ExperimentSummary]:
         """List experiments using ORM with eager-loaded relationships."""
-        from sqlalchemy import func as sqlfunc
+        from sqlalchemy import func as sqlfunc, or_
 
         # Base query for active experiments
-        stmt = (
-            select(ExperimentORM)
-            .where(ExperimentORM.status == "active")
-            .order_by(ExperimentORM.created_at.desc())
-        )
+        stmt = select(ExperimentORM).where(ExperimentORM.status == "active")
+        count_where = [ExperimentORM.status == "active"]
 
-        # Get total count
+        # Apply search filter (name OR hypothesis, case-insensitive)
+        if params.search:
+            search_pattern = f"%{params.search}%"
+            search_filter = or_(
+                ExperimentORM.name.ilike(search_pattern),
+                ExperimentORM.hypothesis.ilike(search_pattern)
+            )
+            stmt = stmt.where(search_filter)
+            count_where.append(search_filter)
+
+        # Apply sorting
+        if params.sort_by == "name":
+            order_col = ExperimentORM.name.asc() if params.sort_order == "asc" else ExperimentORM.name.desc()
+        else:
+            # Default: created_at DESC
+            order_col = ExperimentORM.created_at.asc() if params.sort_order == "asc" else ExperimentORM.created_at.desc()
+        stmt = stmt.order_by(order_col)
+
+        # Get total count (with search filter applied)
         count_stmt = select(sqlfunc.count()).select_from(
-            select(ExperimentORM).where(ExperimentORM.status == "active").subquery()
+            select(ExperimentORM).where(*count_where).subquery()
         )
         total = self.session.execute(count_stmt).scalar() or 0
 

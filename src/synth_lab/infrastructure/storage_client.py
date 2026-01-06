@@ -59,7 +59,7 @@ def get_s3_client():
     if _s3_client is None:
         config = Config(
             signature_version="s3v4",
-            s3={"addressing_style": "virtual"},
+            s3={"addressing_style": "path"},
         )
 
         _s3_client = boto3.client(

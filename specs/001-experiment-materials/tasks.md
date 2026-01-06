@@ -119,13 +119,9 @@
 
 **Independent Test**: Run interview with materials attached, verify synth responses reference specific visual elements
 
-### Tests for User Story 3 
-
 - [ ] T049 [P] [US3] Unit test for MaterialDescriptionService in tests/unit/services/test_material_description_service.py
 - [ ] T050 [P] [US3] Unit test for ver_material tool in tests/unit/services/research_agentic/test_tools.py
 - [ ] T051 [P] [US3] Integration test for interview with materials in tests/integration/test_interview_with_materials.py
-
-### Implementation for User Story 3
 
 - [ ] T052 [US3] Create MaterialDescriptionService in src/synth_lab/services/material_description_service.py
 - [ ] T053 [US3] Implement generate_description method using gpt-4o-mini with vision in MaterialDescriptionService

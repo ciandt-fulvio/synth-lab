@@ -2,17 +2,23 @@
 Material service for synth-lab.
 
 Manages experiment materials (images, videos, documents) including
-presigned URL generation, upload confirmation, and limit validation.
+presigned URL generation, upload confirmation, thumbnail generation,
+and limit validation.
 
 References:
     - Repository: synth_lab.repositories.experiment_material_repository
     - Entity: synth_lab.domain.entities.experiment_material
     - Storage: synth_lab.infrastructure.storage_client
+    - Pillow: https://pillow.readthedocs.io/en/stable/
+    - pdf2image: https://pdf2image.readthedocs.io/en/latest/
+    - moviepy: https://zulko.github.io/moviepy/
 """
 
 from datetime import datetime, timezone
+from io import BytesIO
 
 from loguru import logger
+from PIL import Image
 
 from synth_lab.domain.entities.experiment_material import (
     DescriptionStatus,
@@ -29,6 +35,8 @@ from synth_lab.infrastructure.storage_client import (
     delete_object,
     generate_upload_url,
     generate_view_url,
+    get_object_bytes,
+    upload_object,
 )
 from synth_lab.repositories.experiment_material_repository import (
     ExperimentMaterialRepository,
@@ -205,6 +213,14 @@ class MaterialService:
         self.logger.info(
             f"Confirmed upload for material {material_id} in experiment {experiment_id}"
         )
+
+        # Generate thumbnail (T043)
+        # This runs synchronously for now; can be made async in Phase 7
+        try:
+            self.generate_thumbnail(material_id)
+        except Exception as e:
+            self.logger.warning(f"Thumbnail generation failed for {material_id}: {e}")
+            # Don't fail the upload if thumbnail generation fails
 
         # TODO: Queue description generation (Phase 5)
         # This will be implemented in T058
@@ -432,6 +448,212 @@ class MaterialService:
                 f"{config.MAX_TOTAL_SIZE_PER_EXPERIMENT} bytes per experiment"
             )
 
+    # -------------------------------------------------------------------------
+    # Thumbnail Generation (T039-T043)
+    # -------------------------------------------------------------------------
+
+    def generate_thumbnail(
+        self,
+        material_id: str,
+        thumbnail_size: tuple[int, int] = (200, 200),
+    ) -> str | None:
+        """
+        Generate thumbnail for a material and upload to S3.
+
+        Dispatches to appropriate method based on file type:
+        - Image: Resize with Pillow
+        - Video: Extract first frame with moviepy
+        - Document: Extract first page with pdf2image
+
+        Args:
+            material_id: Material ID.
+            thumbnail_size: Target thumbnail dimensions (width, height).
+
+        Returns:
+            Thumbnail URL if successful, None if generation failed.
+        """
+        material = self.repository.get_by_id(material_id)
+        if material is None:
+            self.logger.error(f"Material {material_id} not found for thumbnail")
+            return None
+
+        if not material.file_url:
+            self.logger.error(f"Material {material_id} has no file URL")
+            return None
+
+        # Extract object key from file_url
+        url_parts = material.file_url.split("/")
+        object_key = "/".join(url_parts[4:])
+
+        try:
+            if material.file_type == FileType.IMAGE:
+                thumbnail_bytes = self._generate_image_thumbnail(object_key, thumbnail_size)
+            elif material.file_type == FileType.VIDEO:
+                thumbnail_bytes = self._generate_video_thumbnail(object_key, thumbnail_size)
+            elif material.file_type == FileType.DOCUMENT:
+                thumbnail_bytes = self._generate_document_thumbnail(object_key, thumbnail_size)
+            else:
+                self.logger.warning(f"No thumbnail generator for type {material.file_type}")
+                return None
+
+            if thumbnail_bytes is None:
+                return None
+
+            # Upload thumbnail
+            thumb_key = f"thumbnails/{material.experiment_id}/{material_id}.png"
+            success = upload_object(thumb_key, thumbnail_bytes, "image/png")
+
+            if not success:
+                self.logger.error(f"Failed to upload thumbnail for {material_id}")
+                return None
+
+            # Build thumbnail URL
+            endpoint = config.S3_ENDPOINT_URL.replace('https://', '')
+            thumbnail_url = f"https://{endpoint}/{config.BUCKET_NAME}/{thumb_key}"
+
+            # Update material with thumbnail URL
+            self.repository.update_thumbnail(material_id, thumbnail_url)
+
+            self.logger.info(f"Generated thumbnail for material {material_id}")
+            return thumbnail_url
+
+        except Exception as e:
+            self.logger.error(f"Failed to generate thumbnail for {material_id}: {e}")
+            return None
+
+    def _generate_image_thumbnail(
+        self,
+        object_key: str,
+        size: tuple[int, int],
+    ) -> bytes | None:
+        """
+        Generate thumbnail from image using Pillow.
+
+        Args:
+            object_key: S3 object key for the image.
+            size: Target thumbnail dimensions.
+
+        Returns:
+            PNG bytes of thumbnail, or None if failed.
+        """
+        image_bytes = get_object_bytes(object_key)
+        if image_bytes is None:
+            self.logger.error(f"Could not download image {object_key}")
+            return None
+
+        try:
+            with Image.open(BytesIO(image_bytes)) as img:
+                # Convert to RGB if necessary (for PNG with transparency)
+                if img.mode in ("RGBA", "P"):
+                    img = img.convert("RGB")
+
+                # Use thumbnail() to maintain aspect ratio
+                img.thumbnail(size, Image.Resampling.LANCZOS)
+
+                # Save to bytes
+                output = BytesIO()
+                img.save(output, format="PNG", optimize=True)
+                return output.getvalue()
+
+        except Exception as e:
+            self.logger.error(f"Failed to process image {object_key}: {e}")
+            return None
+
+    def _generate_video_thumbnail(
+        self,
+        object_key: str,
+        size: tuple[int, int],
+    ) -> bytes | None:
+        """
+        Generate thumbnail from video by extracting first frame.
+
+        Uses moviepy to extract frame at t=0.
+
+        Args:
+            object_key: S3 object key for the video.
+            size: Target thumbnail dimensions.
+
+        Returns:
+            PNG bytes of thumbnail, or None if failed.
+        """
+        video_bytes = get_object_bytes(object_key)
+        if video_bytes is None:
+            self.logger.error(f"Could not download video {object_key}")
+            return None
+
+        try:
+            # moviepy requires a file, so we use a temp file
+            import tempfile
+            from moviepy.editor import VideoFileClip
+
+            with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as tmp:
+                tmp.write(video_bytes)
+                tmp.flush()
+
+                with VideoFileClip(tmp.name) as clip:
+                    # Extract frame at t=0
+                    frame = clip.get_frame(0)
+
+                    # Convert numpy array to PIL Image
+                    img = Image.fromarray(frame)
+                    img.thumbnail(size, Image.Resampling.LANCZOS)
+
+                    output = BytesIO()
+                    img.save(output, format="PNG", optimize=True)
+                    return output.getvalue()
+
+        except Exception as e:
+            self.logger.error(f"Failed to extract video frame from {object_key}: {e}")
+            return None
+
+    def _generate_document_thumbnail(
+        self,
+        object_key: str,
+        size: tuple[int, int],
+    ) -> bytes | None:
+        """
+        Generate thumbnail from PDF by rendering first page.
+
+        Uses pdf2image to convert first page to image.
+
+        Args:
+            object_key: S3 object key for the PDF.
+            size: Target thumbnail dimensions.
+
+        Returns:
+            PNG bytes of thumbnail, or None if failed.
+        """
+        doc_bytes = get_object_bytes(object_key)
+        if doc_bytes is None:
+            self.logger.error(f"Could not download document {object_key}")
+            return None
+
+        try:
+            from pdf2image import convert_from_bytes
+
+            # Convert only first page
+            images = convert_from_bytes(
+                doc_bytes,
+                first_page=1,
+                last_page=1,
+                dpi=72,  # Low DPI for thumbnail
+            )
+
+            if not images:
+                self.logger.error(f"No pages extracted from {object_key}")
+                return None
+
+            img = images[0]
+            img.thumbnail(size, Image.Resampling.LANCZOS)
+
+            output = BytesIO()
+            img.save(output, format="PNG", optimize=True)
+            return output.getvalue()
+
+        except Exception as e:
+            self.logger.error(f"Failed to render PDF {object_key}: {e}")
+            return None
+
 
 if __name__ == "__main__":
     import sys
@@ -467,6 +689,10 @@ if __name__ == "__main__":
             "get_limits",
             "_validate_file_size",
             "_validate_experiment_limits",
+            "generate_thumbnail",
+            "_generate_image_thumbnail",
+            "_generate_video_thumbnail",
+            "_generate_document_thumbnail",
         ]
         for method in methods:
             if not hasattr(service, method):
