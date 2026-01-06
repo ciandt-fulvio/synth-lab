@@ -17,7 +17,7 @@ Esta feature permite conversar diretamente com um synth após visualizar sua ent
 
 ### 1. Acessar Entrevista Concluída
 
-1. Acesse a página de detalhes de uma pesquisa: `http://localhost:5173/interviews/{batch_id}`
+1. Acesse a página de detalhes de uma pesquisa: `http://localhost:8080/interviews/{batch_id}`
 2. Clique em um card de synth que tenha entrevista concluída
 3. O popup de transcrição abrirá mostrando a conversa da entrevista
 

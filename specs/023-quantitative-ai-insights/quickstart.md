@@ -329,7 +329,7 @@ This guide shows how to use AI-generated insights for interpreting quantitative 
    ```
 
 3. **Create Test Experiment**
-   - Navigate to `http://localhost:5173`
+   - Navigate to `http://localhost:8080`
    - Create new experiment with:
      - Hypothesis: "Novo fluxo de checkout reduz fricção"
      - n_synths: 100 (fast for testing)
