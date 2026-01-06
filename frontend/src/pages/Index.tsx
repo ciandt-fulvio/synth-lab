@@ -226,14 +226,14 @@ export default function Index() {
         {/* Empty state - different message when searching */}
         {!isLoading && !isError && experiments.length === 0 && (
           <AnimatedSection delay={0}>
-            {search ? (
+            {search || selectedTag ? (
               <div className="text-center py-12">
                 <Search className="h-12 w-12 text-slate-300 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-slate-900 mb-2">
                   Nenhum experimento encontrado
                 </h3>
                 <p className="text-slate-500">
-                  Nenhum resultado para "{search}"
+                  Nenhum resultado para {search && `"${search}"`}{search && selectedTag && ' e '}{selectedTag && `"${selectedTag}"`}
                 </p>
               </div>
             ) : (
