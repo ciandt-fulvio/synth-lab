@@ -8,13 +8,14 @@
  *   - Spec: specs/018-experiment-hub/spec.md (US1)
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExperimentCard } from '@/components/experiments/ExperimentCard';
 import { EmptyState } from '@/components/experiments/EmptyState';
 import { ExperimentForm } from '@/components/experiments/ExperimentForm';
+import { ExperimentsFilter, type SortOption } from '@/components/experiments/ExperimentsFilter';
 import { useExperiments, useCreateExperiment } from '@/hooks/use-experiments';
 import {
   Dialog,
@@ -22,10 +23,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Users, FlaskConical, Sparkles } from 'lucide-react';
+import { Plus, Users, FlaskConical, Sparkles, Search, Loader2 } from 'lucide-react';
 import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
 import { useToast } from '@/hooks/use-toast';
 import type { ExperimentCreate } from '@/types/experiment';
+import type { ExperimentsListParams } from '@/services/experiments-api';
 
 // =============================================================================
 // Animated Section Component
@@ -64,8 +66,19 @@ export default function Index() {
   const { toast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  // Fetch experiments
-  const { data, isLoading, isError, error } = useExperiments();
+  // Search and sort state
+  const [search, setSearch] = useState('');
+  const [sortOption, setSortOption] = useState<SortOption>('recent');
+
+  // Convert UI state to API params
+  const listParams = useMemo<ExperimentsListParams>(() => ({
+    search: search || undefined, // Don't send empty string
+    sort_by: sortOption === 'name' ? 'name' : 'created_at',
+    sort_order: sortOption === 'name' ? 'asc' : 'desc',
+  }), [search, sortOption]);
+
+  // Fetch experiments with params
+  const { data, isLoading, isError, error, isFetching } = useExperiments(listParams);
   const experiments = data?.data ?? [];
 
   // Create mutation
@@ -143,8 +156,27 @@ export default function Index() {
           </div>
         </AnimatedSection>
 
-        {/* Stats Summary */}
-        {!isLoading && !isError && experiments.length > 0 && (
+        {/* Search and Sort Controls */}
+        {!isLoading && !isError && (
+          <AnimatedSection delay={50}>
+            <ExperimentsFilter
+              search={search}
+              sortOption={sortOption}
+              onSearchChange={setSearch}
+              onSortChange={setSortOption}
+            />
+          </AnimatedSection>
+        )}
+
+        {/* Loading indicator during fetch (not initial load) */}
+        {isFetching && !isLoading && (
+          <div className="flex justify-center py-2 mb-4">
+            <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+          </div>
+        )}
+
+        {/* Stats Summary - only show when not searching */}
+        {!isLoading && !isError && experiments.length > 0 && !search && (
           <AnimatedSection delay={100}>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
@@ -216,10 +248,22 @@ export default function Index() {
           </AnimatedSection>
         )}
 
-        {/* Empty state */}
+        {/* Empty state - different message when searching */}
         {!isLoading && !isError && experiments.length === 0 && (
           <AnimatedSection delay={0}>
-            <EmptyState onCreateClick={handleCreateClick} />
+            {search ? (
+              <div className="text-center py-12">
+                <Search className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                  Nenhum experimento encontrado
+                </h3>
+                <p className="text-slate-500">
+                  Nenhum resultado para "{search}"
+                </p>
+              </div>
+            ) : (
+              <EmptyState onCreateClick={handleCreateClick} />
+            )}
           </AnimatedSection>
         )}
 
