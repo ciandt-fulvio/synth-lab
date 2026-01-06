@@ -38,6 +38,7 @@ from synth_lab.models.orm.exploration import Exploration, ScenarioNode
 from synth_lab.models.orm.insight import ChartInsight, RegionAnalysis, SensitivityResult
 from synth_lab.models.orm.research import ResearchExecution, Transcript
 from synth_lab.models.orm.synth import Synth, SynthGroup
+from synth_lab.models.orm.tag import ExperimentTag, Tag
 
 __all__ = [
     # Base
@@ -72,4 +73,7 @@ __all__ = [
     "ExperimentDocument",
     # Material
     "ExperimentMaterial",
+    # Tag
+    "Tag",
+    "ExperimentTag",
 ]
