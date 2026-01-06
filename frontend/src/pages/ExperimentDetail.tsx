@@ -40,6 +40,7 @@ import { ViewSummaryButton } from '@/components/experiments/results/ViewSummaryB
 import { ExplorationList } from '@/components/exploration/ExplorationList';
 import { NewExplorationDialog } from '@/components/exploration/NewExplorationDialog';
 import { MaterialUpload } from '@/components/experiments/MaterialUpload';
+import { MaterialGallery } from '@/components/experiments/MaterialGallery';
 import { useMaterials } from '@/hooks/use-materials';
 import {
   ChevronLeft,
@@ -778,11 +779,20 @@ export default function ExperimentDetail() {
               </div>
 
               {/* Content */}
-              <div className="p-6">
-                <MaterialUpload
-                  experimentId={id ?? ''}
-                  onUploadComplete={() => refetchMaterials()}
-                />
+              <div className="p-6 space-y-6">
+                {/* Gallery - Show existing materials */}
+                <MaterialGallery experimentId={id ?? ''} />
+
+                {/* Upload - Add new materials */}
+                <div className="pt-6 border-t border-slate-100">
+                  <h4 className="text-sm font-medium text-slate-700 mb-4">
+                    Adicionar novos materiais
+                  </h4>
+                  <MaterialUpload
+                    experimentId={id ?? ''}
+                    onUploadComplete={() => refetchMaterials()}
+                  />
+                </div>
               </div>
             </div>
           </TabsContent>
