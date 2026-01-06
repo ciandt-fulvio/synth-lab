@@ -90,8 +90,8 @@ test.describe('Smoke Tests - Critical Flows @smoke @critical', () => {
     const cardParent = deliveryExperiment.locator('..').locator('..');
     await cardParent.click();
 
-    // Verifica que navegou para detalhe
-    await expect(page).toHaveURL(/\/experiments\/exp_delivery_scheduling/);
+    // Verifica que navegou para detalhe (exp_a1b2c3d4 é o ID do experimento seedado)
+    await expect(page).toHaveURL(/\/experiments\/exp_a1b2c3d4/);
 
     // Verifica que nome do experimento aparece
     await expect(
