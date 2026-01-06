@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-A API REST do synth-lab é construída com **FastAPI** e oferece acesso programático a todas as funcionalidades do sistema através de **17 endpoints HTTP**.
+A API REST do synth-lab é construída com **FastAPI** e oferece acesso programático a todas as funcionalidades do sistema através de **21 endpoints HTTP**.
 
 ### Características
 
@@ -1214,9 +1214,164 @@ curl "http://localhost:8000/jobs/f47ac10b-58cc-4372-a567-0e02b2c3d479"
 
 ---
 
-### 6. Health Check Endpoints (2 endpoints)
+### 6. Tags Endpoints (4 endpoints)
 
-#### 6.1 Health Check
+#### 6.1 Listar Tags
+
+```http
+GET /tags
+```
+
+Lista todas as tags disponíveis no sistema, ordenadas por nome.
+
+**Response 200**:
+```json
+[
+  {
+    "id": "tag_abc123",
+    "name": "pesquisa-mercado"
+  },
+  {
+    "id": "tag_def456",
+    "name": "ux-research"
+  }
+]
+```
+
+**Exemplo**:
+```bash
+curl "http://localhost:8000/tags"
+```
+
+---
+
+#### 6.2 Criar Tag
+
+```http
+POST /tags
+```
+
+Cria uma nova tag. Se uma tag com o mesmo nome já existir, retorna a tag existente.
+
+**Request Body**:
+```json
+{
+  "name": "nova-tag"
+}
+```
+
+**Body Parameters**:
+- `name` (string, requerido): Nome da tag (máx 50 caracteres)
+
+**Response 201**:
+```json
+{
+  "id": "tag_xyz789",
+  "name": "nova-tag"
+}
+```
+
+**Response 200** (tag já existe):
+```json
+{
+  "id": "tag_abc123",
+  "name": "nova-tag"
+}
+```
+
+**Exemplo**:
+```bash
+curl -X POST "http://localhost:8000/tags" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "pesquisa-qualitativa"}'
+```
+
+---
+
+#### 6.3 Adicionar Tag a Experimento
+
+```http
+POST /tags/experiments/{experiment_id}/tags
+```
+
+Adiciona uma tag a um experimento. Cria a tag se não existir. Operação idempotente (adicionar tag já associada não causa erro).
+
+**Path Parameters**:
+- `experiment_id` (string, requerido): ID do experimento
+
+**Request Body**:
+```json
+{
+  "tag_name": "ux-research"
+}
+```
+
+**Body Parameters**:
+- `tag_name` (string, requerido): Nome da tag a adicionar
+
+**Response 204**: Sem conteúdo (sucesso)
+
+**Response 404**:
+```json
+{
+  "detail": "Experiment exp_12345 not found"
+}
+```
+
+**Exemplo**:
+```bash
+curl -X POST "http://localhost:8000/tags/experiments/exp_12345/tags" \
+  -H "Content-Type: application/json" \
+  -d '{"tag_name": "ux-research"}'
+```
+
+---
+
+#### 6.4 Remover Tag de Experimento
+
+```http
+DELETE /tags/experiments/{experiment_id}/tags/{tag_name}
+```
+
+Remove a associação de uma tag com um experimento. A tag em si não é deletada do sistema.
+
+**Path Parameters**:
+- `experiment_id` (string, requerido): ID do experimento
+- `tag_name` (string, requerido): Nome da tag a remover
+
+**Response 204**: Sem conteúdo (sucesso)
+
+**Response 404**:
+```json
+{
+  "detail": "Experiment exp_12345 not found"
+}
+```
+
+Ou:
+```json
+{
+  "detail": "Tag 'ux-research' not found"
+}
+```
+
+Ou:
+```json
+{
+  "detail": "Tag 'ux-research' not associated with experiment exp_12345"
+}
+```
+
+**Exemplo**:
+```bash
+curl -X DELETE "http://localhost:8000/tags/experiments/exp_12345/tags/ux-research"
+```
+
+---
+
+### 7. Health Check Endpoints (2 endpoints)
+
+#### 7.1 Health Check
 
 ```http
 GET /health
@@ -1240,7 +1395,7 @@ curl "http://localhost:8000/health"
 
 ---
 
-#### 6.2 Root Endpoint
+#### 7.2 Root Endpoint
 
 ```http
 GET /
@@ -1290,6 +1445,8 @@ curl "http://localhost:8000/"
 | `AVATAR_NOT_FOUND` | Avatar não encontrado | 404 |
 | `SUMMARY_NOT_FOUND` | Summary não encontrado | 404 |
 | `JOB_NOT_FOUND` | Job não encontrado | 404 |
+| `TAG_NOT_FOUND` | Tag não encontrada | 404 |
+| `EXPERIMENT_NOT_FOUND` | Experimento não encontrado | 404 |
 | `INVALID_QUERY` | Query SQL inválida | 422 |
 | `INVALID_REQUEST` | Request inválido | 422 |
 | `GENERATION_FAILED` | Geração falhou | 422 |
@@ -1643,7 +1800,7 @@ app.add_middleware(
 
 A API REST do synth-lab oferece acesso completo e eficiente a todas as funcionalidades do sistema, com:
 
-- **17 endpoints** bem documentados
+- **21 endpoints** bem documentados
 - **Streaming SSE** para operações longas
 - **Paginação** consistente
 - **Validação automática** com Pydantic
