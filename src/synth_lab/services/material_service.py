@@ -17,6 +17,7 @@ References:
 from datetime import datetime, timezone
 from io import BytesIO
 
+from botocore.exceptions import ClientError, BotoCoreError
 from loguru import logger
 from PIL import Image
 
@@ -36,6 +37,7 @@ from synth_lab.infrastructure.storage_client import (
     generate_upload_url,
     generate_view_url,
     get_object_bytes,
+    get_s3_client,
     upload_object,
 )
 from synth_lab.repositories.experiment_material_repository import (
@@ -62,6 +64,18 @@ class FileSizeLimitError(Exception):
         super().__init__(
             f"File size {file_size} exceeds maximum {max_size} for {file_type}"
         )
+
+
+class S3StorageError(Exception):
+    """Raised when S3 storage operation fails."""
+
+    def __init__(self, operation: str, details: str | None = None):
+        self.operation = operation
+        self.details = details
+        message = f"S3 storage {operation} failed"
+        if details:
+            message += f": {details}"
+        super().__init__(message)
 
 
 class MaterialService:
@@ -125,11 +139,18 @@ class MaterialService:
         object_key = f"materials/{experiment_id}/{material_id}.{extension}"
 
         # Generate presigned upload URL
-        upload_url = generate_upload_url(
-            object_key=object_key,
-            content_type=mime_type,
-            expires_in=config.PRESIGNED_URL_EXPIRATION,
-        )
+        try:
+            upload_url = generate_upload_url(
+                object_key=object_key,
+                content_type=mime_type,
+                expires_in=config.PRESIGNED_URL_EXPIRATION,
+            )
+        except (ClientError, BotoCoreError) as e:
+            self.logger.error(f"Failed to generate upload URL for {material_id}: {e}")
+            raise S3StorageError("upload URL generation", str(e)) from e
+        except Exception as e:
+            self.logger.error(f"Unexpected error generating upload URL for {material_id}: {e}")
+            raise S3StorageError("upload URL generation", "unexpected error") from e
 
         # Get next display order
         display_order = self.repository.get_next_display_order(experiment_id)
@@ -197,8 +218,19 @@ class MaterialService:
             )
 
         # Verify file exists in S3
-        if not check_object_exists(object_key):
-            raise ValueError(f"Object {object_key} not found in S3")
+        try:
+            exists = check_object_exists(object_key)
+            if not exists:
+                raise ValueError(f"Object {object_key} not found in S3")
+        except (ClientError, BotoCoreError) as e:
+            self.logger.error(f"Failed to check S3 object existence for {object_key}: {e}")
+            raise S3StorageError("object existence check", str(e)) from e
+        except ValueError:
+            # Re-raise ValueError (object not found) as-is
+            raise
+        except Exception as e:
+            self.logger.error(f"Unexpected error checking S3 object {object_key}: {e}")
+            raise S3StorageError("object existence check", "unexpected error") from e
 
         # Build file URL
         endpoint = config.S3_ENDPOINT_URL.replace('https://', '')
@@ -219,7 +251,8 @@ class MaterialService:
         try:
             self.generate_thumbnail(material_id)
         except Exception as e:
-            self.logger.warning(f"Thumbnail generation failed for {material_id}: {e}")
+            self.logger.warning(
+                f"Thumbnail generation failed for {material_id}: {e}")
             # Don't fail the upload if thumbnail generation fails
 
         # Generate AI description
@@ -227,7 +260,8 @@ class MaterialService:
         try:
             self.generate_description(material_id)
         except Exception as e:
-            self.logger.warning(f"Description generation failed for {material_id}: {e}")
+            self.logger.warning(
+                f"Description generation failed for {material_id}: {e}")
             # Don't fail the upload if description generation fails
 
         return updated_material
@@ -309,15 +343,31 @@ class MaterialService:
         # Parse object key from URL
         # URL format: https://endpoint/bucket/key
         url_parts = material.file_url.split("/")
-        object_key = "/".join(url_parts[4:])  # Skip https:, empty, endpoint, bucket
+        # Skip https:, empty, endpoint, bucket
+        object_key = "/".join(url_parts[4:])
 
-        view_url = generate_view_url(object_key, expires_in=expires_in)
+        try:
+            view_url = generate_view_url(object_key, expires_in=expires_in)
+        except (ClientError, BotoCoreError) as e:
+            self.logger.error(f"Failed to generate view URL for {object_key}: {e}")
+            raise S3StorageError("view URL generation", str(e)) from e
+        except Exception as e:
+            self.logger.error(f"Unexpected error generating view URL for {object_key}: {e}")
+            raise S3StorageError("view URL generation", "unexpected error") from e
 
         thumbnail_url = None
         if material.thumbnail_url:
             thumb_parts = material.thumbnail_url.split("/")
             thumb_key = "/".join(thumb_parts[4:])
-            thumbnail_url = generate_view_url(thumb_key, expires_in=expires_in)
+            try:
+                thumbnail_url = generate_view_url(thumb_key, expires_in=expires_in)
+            except (ClientError, BotoCoreError) as e:
+                self.logger.warning(f"Failed to generate thumbnail view URL for {thumb_key}: {e}")
+                # Don't fail the whole request if thumbnail URL generation fails
+                thumbnail_url = None
+            except Exception as e:
+                self.logger.warning(f"Unexpected error generating thumbnail view URL: {e}")
+                thumbnail_url = None
 
         return {
             "material_id": material_id,
@@ -378,7 +428,8 @@ class MaterialService:
             try:
                 delete_object(object_key)
             except Exception as e:
-                self.logger.warning(f"Failed to delete S3 object {object_key}: {e}")
+                self.logger.warning(
+                    f"Failed to delete S3 object {object_key}: {e}")
 
         # Delete thumbnail if exists
         if material.thumbnail_url:
@@ -387,7 +438,8 @@ class MaterialService:
             try:
                 delete_object(thumb_key)
             except Exception as e:
-                self.logger.warning(f"Failed to delete thumbnail {thumb_key}: {e}")
+                self.logger.warning(
+                    f"Failed to delete thumbnail {thumb_key}: {e}")
 
         self.repository.delete(material_id)
 
@@ -408,7 +460,8 @@ class MaterialService:
             Dict with current_count, max_count, current_size, max_size, can_upload.
         """
         current_count = self.repository.count_by_experiment(experiment_id)
-        current_size = self.repository.get_total_size_by_experiment(experiment_id)
+        current_size = self.repository.get_total_size_by_experiment(
+            experiment_id)
 
         return {
             "current_count": current_count,
@@ -446,7 +499,8 @@ class MaterialService:
                 f"{config.MAX_MATERIALS_PER_EXPERIMENT} materials"
             )
 
-        current_size = self.repository.get_total_size_by_experiment(experiment_id)
+        current_size = self.repository.get_total_size_by_experiment(
+            experiment_id)
         if current_size + new_file_size > config.MAX_TOTAL_SIZE_PER_EXPERIMENT:
             raise MaterialLimitExceededError(
                 f"Adding {new_file_size} bytes would exceed maximum of "
@@ -479,7 +533,8 @@ class MaterialService:
         """
         material = self.repository.get_by_id(material_id)
         if material is None:
-            self.logger.error(f"Material {material_id} not found for thumbnail")
+            self.logger.error(
+                f"Material {material_id} not found for thumbnail")
             return None
 
         if not material.file_url:
@@ -492,13 +547,17 @@ class MaterialService:
 
         try:
             if material.file_type == FileType.IMAGE:
-                thumbnail_bytes = self._generate_image_thumbnail(object_key, thumbnail_size)
+                thumbnail_bytes = self._generate_image_thumbnail(
+                    object_key, thumbnail_size)
             elif material.file_type == FileType.VIDEO:
-                thumbnail_bytes = self._generate_video_thumbnail(object_key, thumbnail_size)
+                thumbnail_bytes = self._generate_video_thumbnail(
+                    object_key, thumbnail_size)
             elif material.file_type == FileType.DOCUMENT:
-                thumbnail_bytes = self._generate_document_thumbnail(object_key, thumbnail_size)
+                thumbnail_bytes = self._generate_document_thumbnail(
+                    object_key, thumbnail_size)
             else:
-                self.logger.warning(f"No thumbnail generator for type {material.file_type}")
+                self.logger.warning(
+                    f"No thumbnail generator for type {material.file_type}")
                 return None
 
             if thumbnail_bytes is None:
@@ -509,7 +568,8 @@ class MaterialService:
             success = upload_object(thumb_key, thumbnail_bytes, "image/png")
 
             if not success:
-                self.logger.error(f"Failed to upload thumbnail for {material_id}")
+                self.logger.error(
+                    f"Failed to upload thumbnail for {material_id}")
                 return None
 
             # Build thumbnail URL
@@ -523,7 +583,8 @@ class MaterialService:
             return thumbnail_url
 
         except Exception as e:
-            self.logger.error(f"Failed to generate thumbnail for {material_id}: {e}")
+            self.logger.error(
+                f"Failed to generate thumbnail for {material_id}: {e}")
             return None
 
     def _generate_image_thumbnail(
@@ -608,7 +669,8 @@ class MaterialService:
                     return output.getvalue()
 
         except Exception as e:
-            self.logger.error(f"Failed to extract video frame from {object_key}: {e}")
+            self.logger.error(
+                f"Failed to extract video frame from {object_key}: {e}")
             return None
 
     def _generate_document_thumbnail(
@@ -680,7 +742,8 @@ class MaterialService:
         """
         material = self.repository.get_by_id(material_id)
         if material is None:
-            self.logger.error(f"Material {material_id} not found for description")
+            self.logger.error(
+                f"Material {material_id} not found for description")
             return None
 
         if not material.file_url:
@@ -699,7 +762,8 @@ class MaterialService:
             elif material.file_type == FileType.DOCUMENT:
                 description = self._generate_document_description(object_key)
             else:
-                self.logger.warning(f"No description generator for type {material.file_type}")
+                self.logger.warning(
+                    f"No description generator for type {material.file_type}")
                 return None
 
             if description is None:
@@ -713,11 +777,13 @@ class MaterialService:
                 status=DescriptionStatus.COMPLETED,
             )
 
-            self.logger.info(f"Generated description for material {material_id}")
+            self.logger.info(
+                f"Generated description for material {material_id}")
             return description
 
         except Exception as e:
-            self.logger.error(f"Failed to generate description for {material_id}: {e}")
+            self.logger.error(
+                f"Failed to generate description for {material_id}: {e}")
             # Mark as failed
             from synth_lab.domain.entities.experiment_material import DescriptionStatus
             self.repository.update_description(
@@ -759,7 +825,7 @@ class MaterialService:
                     "content": [
                         {
                             "type": "text",
-                            "text": "Describe this material in exactly 30 words. Focus on what it shows, its purpose, and key visible elements. Be concise and specific.",
+                            "text": "Describe this material in up to 30 words. Focus on what its purpose, maybe where in some flow it could be usedand key visible elements. Be concise and specific. Answer in Brazilian Portuguese.",
                         },
                         {
                             "type": "image_url",
@@ -791,7 +857,8 @@ class MaterialService:
                 return description.strip()
 
         except Exception as e:
-            self.logger.error(f"Failed to generate image description for {object_key}: {e}")
+            self.logger.error(
+                f"Failed to generate image description for {object_key}: {e}")
             return None
 
     def _generate_video_description(self, object_key: str) -> str | None:
@@ -830,7 +897,8 @@ class MaterialService:
                     # Convert frame to base64
                     output = BytesIO()
                     img.save(output, format="PNG")
-                    frame_base64 = base64.b64encode(output.getvalue()).decode("utf-8")
+                    frame_base64 = base64.b64encode(
+                        output.getvalue()).decode("utf-8")
 
             # Prepare messages for vision API
             messages = [
@@ -871,7 +939,8 @@ class MaterialService:
                 return description.strip()
 
         except Exception as e:
-            self.logger.error(f"Failed to generate video description for {object_key}: {e}")
+            self.logger.error(
+                f"Failed to generate video description for {object_key}: {e}")
             return None
 
     def _generate_document_description(self, object_key: str) -> str | None:
@@ -919,7 +988,7 @@ class MaterialService:
             messages = [
                 {
                     "role": "user",
-                    "content": f"Based on this document excerpt, create a 30-word description focusing on its purpose and key content:\n\n{text_preview}",
+                    "content": f"Based on this document excerpt, create a 30-word description focusing on its purpose and key content:\n\n{text_preview}. Answer in Brazilian Portuguese.",
                 }
             ]
 
@@ -943,8 +1012,117 @@ class MaterialService:
                 return description.strip()
 
         except Exception as e:
-            self.logger.error(f"Failed to generate document description for {object_key}: {e}")
+            self.logger.error(
+                f"Failed to generate document description for {object_key}: {e}")
             return None
+
+    def cleanup_orphaned_files(self, dry_run: bool = True) -> dict:
+        """
+        Clean up S3 files that have no corresponding database records.
+
+        Finds files in materials/ and thumbnails/ directories that don't
+        have matching records in experiment_materials table and deletes them.
+
+        Args:
+            dry_run: If True, only list files without deleting (default).
+
+        Returns:
+            Dict with counts of orphaned_materials, orphaned_thumbnails, deleted_files.
+
+        Note:
+            This operation requires listing all S3 objects and querying the database.
+            Use with caution in production.
+        """
+        try:
+            from botocore.exceptions import ClientError
+            s3 = get_s3_client()
+
+            orphaned_materials = []
+            orphaned_thumbnails = []
+            deleted_count = 0
+
+            # List all materials in S3
+            try:
+                materials_response = s3.list_objects_v2(
+                    Bucket=config.BUCKET_NAME,
+                    Prefix="materials/"
+                )
+
+                if 'Contents' in materials_response:
+                    for obj in materials_response['Contents']:
+                        object_key = obj['Key']
+                        # Extract material_id from path: materials/exp_id/mat_id.ext
+                        parts = object_key.split('/')
+                        if len(parts) >= 3:
+                            filename = parts[2]
+                            # Extract material_id (before first dot)
+                            material_id = filename.split('.')[0]
+
+                            # Check if material exists in database
+                            material = self.repository.get_by_id(material_id)
+                            if material is None:
+                                orphaned_materials.append(object_key)
+                                if not dry_run:
+                                    try:
+                                        delete_object(object_key)
+                                        deleted_count += 1
+                                        self.logger.info(f"Deleted orphaned material: {object_key}")
+                                    except Exception as e:
+                                        self.logger.error(f"Failed to delete {object_key}: {e}")
+            except ClientError as e:
+                self.logger.error(f"Failed to list materials in S3: {e}")
+
+            # List all thumbnails in S3
+            try:
+                thumbnails_response = s3.list_objects_v2(
+                    Bucket=config.BUCKET_NAME,
+                    Prefix="thumbnails/"
+                )
+
+                if 'Contents' in thumbnails_response:
+                    for obj in thumbnails_response['Contents']:
+                        object_key = obj['Key']
+                        # Extract material_id from path: thumbnails/exp_id/mat_id.png
+                        parts = object_key.split('/')
+                        if len(parts) >= 3:
+                            filename = parts[2]
+                            # Extract material_id (before first dot)
+                            material_id = filename.split('.')[0]
+
+                            # Check if material exists in database
+                            material = self.repository.get_by_id(material_id)
+                            if material is None:
+                                orphaned_thumbnails.append(object_key)
+                                if not dry_run:
+                                    try:
+                                        delete_object(object_key)
+                                        deleted_count += 1
+                                        self.logger.info(f"Deleted orphaned thumbnail: {object_key}")
+                                    except Exception as e:
+                                        self.logger.error(f"Failed to delete {object_key}: {e}")
+            except ClientError as e:
+                self.logger.error(f"Failed to list thumbnails in S3: {e}")
+
+            result = {
+                "orphaned_materials": len(orphaned_materials),
+                "orphaned_thumbnails": len(orphaned_thumbnails),
+                "deleted_files": deleted_count,
+                "dry_run": dry_run,
+            }
+
+            if dry_run:
+                self.logger.info(
+                    f"Dry run: Found {len(orphaned_materials)} orphaned materials "
+                    f"and {len(orphaned_thumbnails)} orphaned thumbnails")
+            else:
+                self.logger.info(
+                    f"Cleaned up {deleted_count} orphaned files from S3")
+
+            return result
+
+        except Exception as e:
+            self.logger.error(f"Cleanup job failed: {e}")
+            raise
 
 
 if __name__ == "__main__":
@@ -1023,7 +1201,8 @@ if __name__ == "__main__":
         # Test invalid image size
         try:
             service._validate_file_size(30_000_000, FileType.IMAGE)  # 30MB
-            all_validation_failures.append("30MB image should raise FileSizeLimitError")
+            all_validation_failures.append(
+                "30MB image should raise FileSizeLimitError")
         except FileSizeLimitError:
             pass  # Expected
 
@@ -1034,7 +1213,8 @@ if __name__ == "__main__":
             all_validation_failures.append("50MB video should be valid")
 
     except Exception as e:
-        all_validation_failures.append(f"File size validation test failed: {e}")
+        all_validation_failures.append(
+            f"File size validation test failed: {e}")
 
     # Final validation result
     if all_validation_failures:
@@ -1045,6 +1225,7 @@ if __name__ == "__main__":
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(
+            f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         print("MaterialService is validated and ready for use")
         sys.exit(0)

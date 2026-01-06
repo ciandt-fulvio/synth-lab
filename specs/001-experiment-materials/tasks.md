@@ -169,11 +169,11 @@
 
 **Purpose**: Final validation, edge cases, and documentation
 
-- [ ] T073 [P] Add error handling for S3 upload failures in MaterialService
-- [ ] T074 [P] Add error handling for S3 unavailable during interview in tools.py (fallback to description only)
-- [ ] T075 [P] Add file cleanup job for orphaned S3 files (materials with no DB record)
-- [ ] T076 [P] Add size limit error messages to MaterialUpload component (25MB images/docs, 100MB videos)
-- [ ] T077 [P] Add max files error message to MaterialUpload component (10 files limit)
+- [x] T073 [P] Add error handling for S3 upload failures in MaterialService
+- [ ] T074 [P] Add error handling for S3 unavailable during interview in tools.py (fallback to description only) - BLOCKED: view_material tool not implemented yet (T060-T061)
+- [x] T075 [P] Add file cleanup job for orphaned S3 files (materials with no DB record)
+- [x] T076 [P] Add size limit error messages to MaterialUpload component (25MB images/docs, 100MB videos)
+- [x] T077 [P] Add max files error message to MaterialUpload component (10 files limit)
 - [ ] T078 Validate all acceptance scenarios from spec.md
 - [ ] T079 Run quickstart.md validation end-to-end
 
@@ -271,13 +271,13 @@ T067 Retry button
 | 4 | US2 - Preview | 13 | 12 ✅ | 1 (integration test needs session fix) |
 | 5 | US3 - Interview | 19 | 1 | 18 |
 | 6 | US4 - PR-FAQ | 5 | 0 | 5 |
-| 7 | Polish | 7 | 0 | 7 |
-| **Total** | | **79** | **46** | **33** |
+| 7 | Polish | 7 | 4 | 3 (T074 blocked, T078-T079 pending) |
+| **Total** | | **79** | **50** | **29** |
 
 **MVP Scope**: Phases 1-3 (35 tasks) - Upload materials to experiments
 **Full Feature**: All phases (79 tasks) - Complete materials integration
 
-**Current Status**: Phase 4 (US2 - Preview) complete! Thumbnail generation + MaterialGallery working + all tests created. Integration tests need FastAPI session dependency fix for full pass (3 failing tests due to db session isolation).
+**Current Status**: Phase 7 (Polish) in progress - T073, T075, T076, T077 complete! Added S3 error handling (S3StorageError exception, error handling in upload/confirm/view methods), orphaned file cleanup job (with dry-run support), and verified size limit + max files error messages are working. T074 blocked (needs view_material tool implementation).
 
 ---
 
