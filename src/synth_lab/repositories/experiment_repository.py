@@ -166,9 +166,11 @@ session: Session | None = None):
 
         # Get total count (with search and tag filters applied)
         # Need to rebuild JOINs for count query when tag filter is active
-        count_base = select(ExperimentORM).where(*count_where)
+        # IMPORTANT: JOINs must be applied BEFORE WHERE conditions
+        count_base = select(ExperimentORM)
         if params.tag:
             count_base = count_base.join(ExperimentTagORM).join(TagORM)
+        count_base = count_base.where(*count_where)
         count_stmt = select(sqlfunc.count()).select_from(count_base.subquery())
         total = self.session.execute(count_stmt).scalar() or 0
 
