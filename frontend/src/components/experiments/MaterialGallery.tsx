@@ -11,10 +11,11 @@
  * Tasks: T045-T047
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileIcon, FileText, Film, Image as ImageIcon, X } from 'lucide-react';
 import { ExperimentMaterialSummary } from '@/types/material';
 import { useMaterials, useDeleteMaterial } from '@/hooks/use-materials';
+import { getViewUrl } from '@/services/materials-api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -69,6 +70,7 @@ export function MaterialGallery({ experimentId }: MaterialGalleryProps) {
       {selectedMaterial && (
         <MaterialViewerModal
           material={selectedMaterial}
+          experimentId={experimentId}
           onClose={() => setSelectedMaterial(null)}
         />
       )}
@@ -151,10 +153,32 @@ function MaterialCard({ material, onView, onDelete }: MaterialCardProps) {
 
 interface MaterialViewerModalProps {
   material: ExperimentMaterialSummary;
+  experimentId: string;
   onClose: () => void;
 }
 
-function MaterialViewerModal({ material, onClose }: MaterialViewerModalProps) {
+function MaterialViewerModal({
+  material,
+  experimentId,
+  onClose,
+}: MaterialViewerModalProps) {
+  const [viewUrl, setViewUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchViewUrl() {
+      try {
+        const response = await getViewUrl(experimentId, material.id);
+        setViewUrl(response.view_url);
+      } catch (error) {
+        console.error('Failed to get view URL:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchViewUrl();
+  }, [experimentId, material.id]);
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh]">
@@ -163,39 +187,47 @@ function MaterialViewerModal({ material, onClose }: MaterialViewerModalProps) {
         </DialogHeader>
 
         <div className="overflow-auto">
-          {material.file_type === 'image' && (
-            <img
-              src={material.file_url}
-              alt={material.file_name}
-              className="w-full h-auto"
-            />
-          )}
-
-          {material.file_type === 'video' && (
-            <video
-              src={material.file_url}
-              controls
-              className="w-full h-auto"
-            />
-          )}
-
-          {material.file_type === 'document' && (
-            <div className="flex flex-col items-center gap-4 p-8">
-              <FileText className="h-16 w-16 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                Visualização de documentos em desenvolvimento
-              </p>
-              <Button asChild>
-                <a
-                  href={material.file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download
-                >
-                  Baixar documento
-                </a>
-              </Button>
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <p className="text-muted-foreground">Carregando...</p>
             </div>
+          ) : !viewUrl ? (
+            <div className="flex items-center justify-center p-8">
+              <p className="text-muted-foreground">Erro ao carregar arquivo</p>
+            </div>
+          ) : (
+            <>
+              {material.file_type === 'image' && (
+                <img
+                  src={viewUrl}
+                  alt={material.file_name}
+                  className="w-full h-auto"
+                />
+              )}
+
+              {material.file_type === 'video' && (
+                <video src={viewUrl} controls className="w-full h-auto" />
+              )}
+
+              {material.file_type === 'document' && (
+                <div className="flex flex-col items-center gap-4 p-8">
+                  <FileText className="h-16 w-16 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Visualização de documentos em desenvolvimento
+                  </p>
+                  <Button asChild>
+                    <a
+                      href={viewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download
+                    >
+                      Baixar documento
+                    </a>
+                  </Button>
+                </div>
+              )}
+            </>
           )}
 
           {/* Metadata */}
