@@ -477,11 +477,83 @@ export function cn(...inputs: ClassValue[]) {
 
 ---
 
+## Páginas Principais
+
+### ExperimentDetail (`pages/ExperimentDetail.tsx`)
+
+**Rota:** `/experiments/:id`
+
+**Descrição:** Página de detalhes de um experimento, estruturada como um "Research Observatory" com cabeçalho read-only e sistema de abas para navegação entre diferentes aspectos do experimento.
+
+**Estrutura:**
+- **Header**: Nome, hipótese, descrição (truncada), scorecard sliders (animados), TagSelector
+- **Tabs**: Análise | Entrevistas | Explorações | Materiais | Relatórios
+
+**Componentes utilizados:**
+
+| Componente | Diretório | Uso |
+|------------|-----------|-----|
+| `SynthLabHeader` | `shared/` | Header global com botão de voltar |
+| `TagSelector` | `experiments/` | Seletor/editor de tags do experimento |
+| `AnalysisPhaseTabs` | `experiments/` | Navegação entre fases da análise |
+| `PhaseOverview`, `PhaseLocation`, `PhaseSegmentation`, `PhaseEdgeCases` | `experiments/results/` | Conteúdo de cada fase da análise |
+| `ViewSummaryButton` | `experiments/results/` | Botão para visualizar resumo |
+| `ExplorationList` | `exploration/` | Lista de explorações do experimento |
+| `NewExplorationDialog` | `exploration/` | Modal para criar nova exploração |
+| `NewInterviewFromExperimentDialog` | `experiments/` | Modal para criar nova entrevista |
+| `MaterialUpload` | `experiments/` | Upload de materiais/arquivos |
+| `MaterialGallery` | `experiments/` | Galeria de materiais anexados |
+| `DocumentsList` | `experiments/` | Lista de relatórios/documentos gerados |
+
+**Hooks utilizados:**
+
+| Hook | Arquivo | Propósito |
+|------|---------|-----------|
+| `useExperiment` | `use-experiments.ts` | Dados do experimento |
+| `useRunAnalysis` | `use-experiments.ts` | Mutation para executar análise |
+| `useDeleteExperiment` | `use-experiments.ts` | Mutation para deletar experimento |
+| `useExplorations` | `use-exploration.ts` | Lista de explorações |
+| `useMaterials` | `use-materials.ts` | Lista de materiais anexados |
+| `useDocuments` | `use-documents.ts` | Lista de documentos/relatórios |
+
+**Endpoints do Backend:**
+
+| Método | Endpoint | Ação |
+|--------|----------|------|
+| `GET` | `/experiments/{id}` | Buscar detalhes do experimento |
+| `POST` | `/experiments/{id}/run-analysis` | Executar análise |
+| `DELETE` | `/experiments/{id}` | Deletar experimento |
+| `GET` | `/experiments/{id}/explorations` | Listar explorações |
+| `GET` | `/experiments/{id}/materials` | Listar materiais |
+| `POST` | `/experiments/{id}/materials` | Upload de material |
+| `GET` | `/experiments/{id}/documents` | Listar documentos |
+| `POST/PUT` | `/experiments/{id}/tags` | Gerenciar tags |
+
+**Fluxo de Dados:**
+1. Ao montar, carrega dados do experimento via `useExperiment(id)`
+2. Tab ativa é sincronizada com query param `?tab=`
+3. Cada tab carrega dados específicos via hooks dedicados
+4. Mutations invalidam cache apropriado após sucesso
+
+---
+
 ## Mecanismos Transversais
 
 ### 1. Roteamento (React Router)
 
 **Todas as rotas em `App.tsx`:**
+
+| Path | Componente | Descrição |
+|------|------------|-----------|
+| `/` | `Index` | Lista de experimentos (home) |
+| `/experiments/:id` | `ExperimentDetail` | Detalhes de um experimento com abas: Análise, Entrevistas, Explorações, Materiais, Relatórios |
+| `/experiments/:id/simulations/:simId` | `SimulationDetail` | Detalhes de uma simulação |
+| `/experiments/:id/explorations/:explorationId` | `ExplorationDetail` | Detalhes de uma exploração |
+| `/experiments/:expId/interviews/:execId` | `InterviewDetail` | Detalhes de entrevista (rota nova) |
+| `/interviews/:execId` | `InterviewDetail` | Detalhes de entrevista (rota legada) |
+| `/synths` | `Synths` | Catálogo de synths |
+| `*` | `NotFound` | Página 404 |
+
 ```tsx
 // App.tsx
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
@@ -491,9 +563,13 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/synths" element={<Synths />} />
-        <Route path="/experiments" element={<Experiments />} />
         <Route path="/experiments/:id" element={<ExperimentDetail />} />
+        <Route path="/experiments/:id/simulations/:simId" element={<SimulationDetail />} />
+        <Route path="/experiments/:id/explorations/:explorationId" element={<ExplorationDetail />} />
+        <Route path="/experiments/:expId/interviews/:execId" element={<InterviewDetail />} />
+        <Route path="/interviews/:execId" element={<InterviewDetail />} />
+        <Route path="/synths" element={<Synths />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
