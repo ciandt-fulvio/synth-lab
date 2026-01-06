@@ -301,11 +301,9 @@ def _seed_analysis_run(session: Session, experiment: Experiment, synth_count: in
         completed_at=(base_time - timedelta(hours=2, minutes=15)).isoformat(),
         total_synths=synth_count,
         aggregated_outcomes={
-            "total_synths": synth_count,
-            "avg_success_rate": 0.62,
-            "avg_failed_rate": 0.25,
-            "avg_did_not_try_rate": 0.13,
-            "success_rate_std": 0.18,
+            "success_rate": 0.62,
+            "failed_rate": 0.25,
+            "did_not_try_rate": 0.13,
         },
         execution_time_seconds=2700.0,
     )
