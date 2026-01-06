@@ -105,9 +105,9 @@ test.describe('Experiments - CRUD Operations @critical @experiments', () => {
       await expect(page.locator(`text=${experimentName}`)).toBeVisible({ timeout: 10000 });
     }
 
-    // Verifica seções principais
+    // Verifica seções principais (tabs: Analysis, Interviews, Explorations)
     await expect(
-      page.locator('text=/simulações|simulations/i')
+      page.locator('text=/análise|analysis|entrevistas|interviews|explorações|explorations/i')
     ).toBeVisible({ timeout: 10000 });
 
     // Verifica que há algum conteúdo
@@ -128,13 +128,13 @@ test.describe('Experiments - CRUD Operations @critical @experiments', () => {
     await expect(page.locator('h2').first()).toBeVisible({ timeout: 15000 });
 
     // Verifica que há conteúdo (pelo menos uma seção visível)
-    // Nota: Ajuste conforme as seções reais do seu experimento
-    const hasSimulations = await page.locator('text=/simulações|simulations/i').count() > 0;
-    const hasExploration = await page.locator('text=/exploration|exploração|árvore/i').count() > 0;
+    // Tabs: Analysis | Interviews | Explorations
+    const hasAnalysis = await page.locator('text=/análise|analysis/i').count() > 0;
+    const hasExploration = await page.locator('text=/exploration|exploração|explorações/i').count() > 0;
     const hasInterviews = await page.locator('text=/entrevistas|interviews/i').count() > 0;
 
     // Deve ter pelo menos uma seção
-    expect(hasSimulations || hasExploration || hasInterviews).toBeTruthy();
+    expect(hasAnalysis || hasExploration || hasInterviews).toBeTruthy();
   });
 
   test('E005 - Navigate back to experiments list', async ({ page }) => {
