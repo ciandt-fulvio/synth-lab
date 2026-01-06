@@ -39,9 +39,10 @@ import {
 import { ViewSummaryButton } from '@/components/experiments/results/ViewSummaryButton';
 import { ExplorationList } from '@/components/exploration/ExplorationList';
 import { NewExplorationDialog } from '@/components/exploration/NewExplorationDialog';
-import { MaterialUpload } from '@/components/experiments/MaterialUpload';
 import { MaterialGallery } from '@/components/experiments/MaterialGallery';
+import { DocumentsList } from '@/components/experiments/DocumentsList';
 import { useMaterials } from '@/hooks/use-materials';
+import { useDocuments } from '@/hooks/use-documents';
 import {
   ChevronLeft,
   ChevronRight,
@@ -58,6 +59,7 @@ import {
   Info,
   Users,
   Paperclip,
+  FileText,
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -141,7 +143,7 @@ export default function ExperimentDetail() {
   // Tab underline animation state
   // Initialize activeTab from query param 'tab' if present, otherwise default to 'analysis'
   const tabFromQuery = searchParams.get('tab');
-  const initialTab = ['analysis', 'interviews', 'explorations', 'materials'].includes(tabFromQuery ?? '')
+  const initialTab = ['analysis', 'interviews', 'explorations', 'materials', 'reports'].includes(tabFromQuery ?? '')
     ? tabFromQuery!
     : 'analysis';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -152,7 +154,7 @@ export default function ExperimentDetail() {
   // Sync activeTab with query param when it changes
   useEffect(() => {
     const newTab = searchParams.get('tab');
-    const validTab = ['analysis', 'interviews', 'explorations', 'materials'].includes(newTab ?? '')
+    const validTab = ['analysis', 'interviews', 'explorations', 'materials', 'reports'].includes(newTab ?? '')
       ? newTab!
       : 'analysis';
     setActiveTab(validTab);
@@ -181,7 +183,6 @@ export default function ExperimentDetail() {
   const runAnalysisMutation = useRunAnalysis();
   const deleteMutation = useDeleteExperiment();
   const { data: explorations, isLoading: isLoadingExplorations } = useExplorations(id ?? '');
-  const { data: materials, refetch: refetchMaterials } = useMaterials(id ?? '');
 
   const handleRunAnalysis = () => {
     if (!id) return;
@@ -426,16 +427,6 @@ export default function ExperimentDetail() {
               >
                 <Paperclip className="h-4 w-4" />
                 <span className="font-semibold">Materiais</span>
-                <Badge
-                  variant="secondary"
-                  className={`ml-1 text-[10px] px-2 py-0.5 rounded-full transition-colors ${
-                    activeTab === 'materials'
-                      ? 'bg-violet-100 text-violet-700'
-                      : 'bg-slate-100 text-slate-600'
-                  }`}
-                >
-                  {materials?.length ?? 0}
-                </Badge>
               </TabsTrigger>
 
               {/* Animated Underline */}
@@ -772,27 +763,16 @@ export default function ExperimentDetail() {
                   <div>
                     <h3 className="font-semibold text-slate-900">Materiais</h3>
                     <p className="text-sm text-slate-500">
-                      {materials?.length ?? 0} arquivo(s) anexado(s)
+                      Arquivos anexados ao experimento
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Content */}
-              <div className="p-6 space-y-6">
+              <div className="p-6">
                 {/* Gallery - Show existing materials */}
                 <MaterialGallery experimentId={id ?? ''} />
-
-                {/* Upload - Add new materials */}
-                <div className="pt-6 border-t border-slate-100">
-                  <h4 className="text-sm font-medium text-slate-700 mb-4">
-                    Adicionar novos materiais
-                  </h4>
-                  <MaterialUpload
-                    experimentId={id ?? ''}
-                    onUploadComplete={() => refetchMaterials()}
-                  />
-                </div>
               </div>
             </div>
           </TabsContent>
