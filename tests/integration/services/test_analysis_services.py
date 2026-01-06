@@ -244,18 +244,15 @@ class TestAnalysisCacheServiceIntegration:
         for i in range(10):
             outcome = SynthOutcome(
                 id=f"outcome_cache_{i:03d}",
-                analysis_run_id="analysis_cache_001",
+                analysis_id="analysis_cache_001",
                 synth_id=f"synth_cache_{i:03d}",
-                synth_name=f"Test Synth {i}",
-                inputs={
+                did_not_try_rate=0.2,
+                failed_rate=0.3,
+                success_rate=0.5 + (i * 0.05),
+                synth_attributes={
                     "digital_literacy": 50.0 + i,
                     "domain_expertise": 60.0 + i,
                 },
-                outputs={
-                    "success": i % 2 == 0,
-                    "success_rate": 0.5 + (i * 0.05),
-                },
-                created_at=datetime.now().isoformat(),
             )
             isolated_db_session.add(outcome)
 
@@ -268,7 +265,7 @@ class TestAnalysisCacheServiceIntegration:
         # Verify: Cache entries created
         cache_entries = (
             isolated_db_session.query(AnalysisCache)
-            .filter_by(analysis_run_id="analysis_cache_001")
+            .filter_by(analysis_id="analysis_cache_001")
             .all()
         )
 
@@ -300,14 +297,13 @@ class TestAnalysisCacheServiceIntegration:
             total_synths=100,
         )
         cache = AnalysisCache(
-            id="cache_get_001",
-            analysis_run_id="analysis_get_cache",
+            analysis_id="analysis_get_cache",
             cache_key="distribution",
             data={
                 "chart_data": [{"name": "Synth 1", "success_rate": 0.75}],
                 "metadata": {"total": 100},
             },
-            created_at=datetime.now().isoformat(),
+            computed_at=datetime.now().isoformat(),
         )
         isolated_db_session.add_all([experiment, analysis, cache])
         isolated_db_session.commit()
@@ -340,18 +336,16 @@ class TestAnalysisCacheServiceIntegration:
             total_synths=100,
         )
         cache1 = AnalysisCache(
-            id="cache_inv_001",
-            analysis_run_id="analysis_invalidate",
+            analysis_id="analysis_invalidate",
             cache_key="distribution",
             data={"test": "data1"},
-            created_at=datetime.now().isoformat(),
+            computed_at=datetime.now().isoformat(),
         )
         cache2 = AnalysisCache(
-            id="cache_inv_002",
-            analysis_run_id="analysis_invalidate",
+            analysis_id="analysis_invalidate",
             cache_key="correlations",
             data={"test": "data2"},
-            created_at=datetime.now().isoformat(),
+            computed_at=datetime.now().isoformat(),
         )
         isolated_db_session.add_all([experiment, analysis, cache1, cache2])
         isolated_db_session.commit()
@@ -359,7 +353,7 @@ class TestAnalysisCacheServiceIntegration:
         # Verify cache exists
         before = (
             isolated_db_session.query(AnalysisCache)
-            .filter_by(analysis_run_id="analysis_invalidate")
+            .filter_by(analysis_id="analysis_invalidate")
             .count()
         )
         assert before == 2
@@ -371,7 +365,7 @@ class TestAnalysisCacheServiceIntegration:
         # Verify: Cache removed
         after = (
             isolated_db_session.query(AnalysisCache)
-            .filter_by(analysis_run_id="analysis_invalidate")
+            .filter_by(analysis_id="analysis_invalidate")
             .count()
         )
         assert after == 0

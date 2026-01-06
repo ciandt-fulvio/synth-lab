@@ -8,7 +8,7 @@ Executar: pytest -m integration tests/integration/services/test_exploration_serv
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 from datetime import datetime
 
 from synth_lab.services.exploration.exploration_service import (
@@ -19,9 +19,6 @@ from synth_lab.services.exploration.exploration_service import (
     ExplorationNotFoundError,
 )
 from synth_lab.services.exploration.action_catalog import ActionCatalogService
-from synth_lab.services.exploration_summary_generator_service import (
-    ExplorationSummaryGeneratorService,
-)
 from synth_lab.models.orm.experiment import Experiment
 from synth_lab.models.orm.exploration import Exploration, ScenarioNode
 from synth_lab.models.orm.analysis import AnalysisRun
@@ -53,12 +50,12 @@ class TestExplorationServiceIntegration:
         analysis = AnalysisRun(
             id="analysis_baseline_001",
             experiment_id="exp_expl_001",
+            config={"n_simulations": 100},
             status="completed",
             started_at=datetime.now().isoformat(),
             completed_at=datetime.now().isoformat(),
-            synth_count=100,
-            success_rate=0.65,
-            summary_stats={"feature1": {"mean": 50.0}, "feature2": {"mean": 30.0}},
+            total_synths=100,
+            aggregated_outcomes={"success_rate": 0.65, "summary_stats": {"feature1": {"mean": 50.0}, "feature2": {"mean": 30.0}}},
         )
         isolated_db_session.add(analysis)
         isolated_db_session.commit()
@@ -104,12 +101,12 @@ class TestExplorationServiceIntegration:
         analysis = AnalysisRun(
             id="analysis_root_001",
             experiment_id="exp_root_001",
+            config={"n_simulations": 100},
             status="completed",
             started_at=datetime.now().isoformat(),
             completed_at=datetime.now().isoformat(),
-            synth_count=100,
-            success_rate=0.60,
-            summary_stats={"feature1": {"mean": 50.0}},
+            total_synths=100,
+            aggregated_outcomes={"success_rate": 0.60, "summary_stats": {"feature1": {"mean": 50.0}}},
         )
         isolated_db_session.add_all([experiment, analysis])
         isolated_db_session.commit()
@@ -203,10 +200,11 @@ class TestExplorationServiceIntegration:
         analysis = AnalysisRun(
             id="analysis_get_001",
             experiment_id="exp_get_001",
+            config={"n_simulations": 100},
             status="completed",
             started_at=datetime.now().isoformat(),
-            synth_count=100,
-            success_rate=0.65,
+            total_synths=100,
+            aggregated_outcomes={"success_rate": 0.65},
         )
         exploration = Exploration(
             id="expl_get_001",
@@ -351,19 +349,8 @@ class TestActionCatalogServiceIntegration:
 class TestExplorationSummaryGeneratorIntegration:
     """Integration tests for exploration_summary_generator_service.py - Summary generation."""
 
-    @patch(
-        "synth_lab.services.exploration_summary_generator_service.generate_summary_with_llm"
-    )
-    def test_generate_summary_creates_document(
-        self, mock_llm, isolated_db_session
-    ):
-        """Test that generate_summary creates document in experiment_documents table."""
-        # Mock LLM response
-        mock_llm.return_value = {
-            "summary": "This is a test exploration summary.",
-            "key_findings": ["Finding 1", "Finding 2"],
-            "recommendations": ["Recommendation 1"],
-        }
+    def test_generate_summary_creates_document(self, isolated_db_session):
+        """Test that exploration summary generator can retrieve exploration data for summary generation."""
 
         # Setup: Create exploration with nodes
         experiment = Experiment(
@@ -376,10 +363,11 @@ class TestExplorationSummaryGeneratorIntegration:
         analysis = AnalysisRun(
             id="analysis_summary_001",
             experiment_id="exp_summary_001",
+            config={"n_simulations": 100},
             status="completed",
             started_at=datetime.now().isoformat(),
-            synth_count=100,
-            success_rate=0.60,
+            total_synths=100,
+            aggregated_outcomes={"success_rate": 0.60},
         )
         exploration = Exploration(
             id="expl_summary_001",
@@ -416,11 +404,8 @@ class TestExplorationSummaryGeneratorIntegration:
         isolated_db_session.add_all([experiment, analysis, exploration])
         isolated_db_session.commit()
 
-        # Execute: Generate summary
-        service = ExplorationSummaryGeneratorService()
-
         # Note: This test verifies the service can retrieve exploration data
-        # Full LLM call testing requires more complex async mocking
+        # Full LLM call testing requires more complex mocking of LLMClient
         from synth_lab.services.exploration.exploration_service import (
             ExplorationService,
         )
@@ -471,10 +456,11 @@ class TestExplorationServiceErrorHandling:
         analysis = AnalysisRun(
             id="analysis_invalid_goal",
             experiment_id="exp_invalid_goal",
+            config={"n_simulations": 100},
             status="completed",
             started_at=datetime.now().isoformat(),
-            synth_count=100,
-            success_rate=0.50,
+            total_synths=100,
+            aggregated_outcomes={"success_rate": 0.50},
         )
         isolated_db_session.add_all([experiment, analysis])
         isolated_db_session.commit()

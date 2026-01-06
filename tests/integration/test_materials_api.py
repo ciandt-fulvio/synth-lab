@@ -16,6 +16,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from synth_lab.api.main import app
+from synth_lab.api.routers import materials as materials_router
+from synth_lab.services.material_service import MaterialService
+from synth_lab.repositories.experiment_material_repository import ExperimentMaterialRepository
 
 # Import all ORM models to register them with SQLAlchemy
 import synth_lab.models.orm  # noqa: F401
@@ -23,9 +26,20 @@ from synth_lab.models.orm.experiment import Experiment
 
 
 @pytest.fixture
-def client():
-    """Create test client."""
-    return TestClient(app)
+def client(db_session):
+    """Create test client with shared database session."""
+    # Create repository and service with the test session
+    repository = ExperimentMaterialRepository(session=db_session)
+    service = MaterialService(repository=repository)
+
+    # Override _get_service to return our test service
+    original_get_service = materials_router._get_service
+    materials_router._get_service = lambda: service
+
+    yield TestClient(app)
+
+    # Restore original
+    materials_router._get_service = original_get_service
 
 
 def create_test_experiment(experiment_id: str, name: str = "Test Experiment"):
@@ -81,7 +95,7 @@ class TestUploadUrlEndpoint:
         mock_gen_url.return_value = "https://presigned-upload-url.com"
 
         response = client.post(
-            "/api/experiments/exp_abc12345/materials/upload-url",
+            "/experiments/exp_abc12345/materials/upload-url",
             json={
                 "file_name": "test.png",
                 "file_size": 1024000,
@@ -109,7 +123,7 @@ class TestUploadUrlEndpoint:
         db_session.commit()
 
         response = client.post(
-            "/api/experiments/exp_11223344/materials/upload-url",
+            "/experiments/exp_11223344/materials/upload-url",
             json={
                 "file_name": "malware.exe",
                 "file_size": 1000000,
@@ -133,7 +147,7 @@ class TestUploadUrlEndpoint:
         db_session.commit()
 
         response = client.post(
-            "/api/experiments/exp_22334455/materials/upload-url",
+            "/experiments/exp_22334455/materials/upload-url",
             json={
                 "file_name": "huge.png",
                 "file_size": 30_000_000,  # 30MB, exceeds 25MB limit
@@ -174,7 +188,7 @@ class TestUploadUrlEndpoint:
         mock_gen_url.return_value = "https://presigned.com"
 
         response = client.post(
-            "/api/experiments/exp_33445566/materials/upload-url",
+            "/experiments/exp_33445566/materials/upload-url",
             json={
                 "file_name": "test.png",
                 "file_size": 1000000,
@@ -225,7 +239,7 @@ class TestConfirmEndpoint:
         with patch("synth_lab.services.material_service.MaterialService.generate_thumbnail"):
             with patch("synth_lab.services.material_service.MaterialService.generate_description"):
                 response = client.post(
-                    "/api/experiments/exp_44556677/materials/confirm",
+                    "/experiments/exp_44556677/materials/confirm",
                     json={
                         "material_id": "mat_fedcba987654",
                         "object_key": "materials/exp_44556677/mat_fedcba987654.png",
@@ -250,7 +264,7 @@ class TestConfirmEndpoint:
         db_session.commit()
 
         response = client.post(
-            "/api/experiments/exp_55667788/materials/confirm",
+            "/experiments/exp_55667788/materials/confirm",
             json={
                 "material_id": "mat_000000000000",
                 "object_key": "materials/exp_55667788/mat_000000000000.png",
@@ -292,7 +306,7 @@ class TestConfirmEndpoint:
         mock_check_exists.return_value = False
 
         response = client.post(
-            "/api/experiments/exp_66778899/materials/confirm",
+            "/experiments/exp_66778899/materials/confirm",
             json={
                 "material_id": "mat_112233445566",
                 "object_key": "materials/exp_66778899/mat_112233445566.png",
@@ -334,7 +348,7 @@ class TestConfirmEndpoint:
 
         # Try to confirm with wrong experiment
         response = client.post(
-            "/api/experiments/exp_00998877/materials/confirm",
+            "/experiments/exp_00998877/materials/confirm",
             json={
                 "material_id": "mat_223344556677",
                 "object_key": "materials/exp_77889900/mat_223344556677.png",
@@ -355,7 +369,7 @@ class TestListMaterialsEndpoint:
         db_session.add(experiment)
         db_session.commit()
 
-        response = client.get("/api/experiments/exp_aabbccdd/materials")
+        response = client.get("/experiments/exp_aabbccdd/materials")
 
         assert response.status_code == 200
         data = response.json()
@@ -396,7 +410,7 @@ class TestListMaterialsEndpoint:
             db_session.add(material)
         db_session.commit()
 
-        response = client.get("/api/experiments/exp_ddeeffaa/materials")
+        response = client.get("/experiments/exp_ddeeffaa/materials")
 
         assert response.status_code == 200
         data = response.json()
@@ -418,17 +432,17 @@ class TestGetViewUrlEndpoint:
         """Should return presigned URLs for viewing material and thumbnail."""
         from synth_lab.models.orm.material import ExperimentMaterial
 
-        # Create test experiment
-        experiment = create_test_experiment("exp_view1234")
+        # Create test experiment (ID must match ^exp_[a-f0-9]{8}$)
+        experiment = create_test_experiment("exp_a1b2c3d4")
         db_session.add(experiment)
 
-        # Create material with file and thumbnail
+        # Create material with file and thumbnail (ID must match ^mat_[a-f0-9]{12}$)
         material = ExperimentMaterial(
-            id="mat_view12345678",
-            experiment_id="exp_view1234",
+            id="mat_a1b2c3d4e5f6",
+            experiment_id="exp_a1b2c3d4",
             file_type="image",
-            file_url="https://s3.com/bucket/materials/exp_view1234/mat_view12345678.png",
-            thumbnail_url="https://s3.com/bucket/thumbnails/exp_view1234/mat_view12345678.png",
+            file_url="https://s3.com/bucket/materials/exp_a1b2c3d4/mat_a1b2c3d4e5f6.png",
+            thumbnail_url="https://s3.com/bucket/thumbnails/exp_a1b2c3d4/mat_a1b2c3d4e5f6.png",
             file_name="test.png",
             file_size=1024000,
             mime_type="image/png",
@@ -447,12 +461,12 @@ class TestGetViewUrlEndpoint:
         ]
 
         response = client.get(
-            "/api/experiments/exp_view1234/materials/mat_view12345678/view-url"
+            "/experiments/exp_a1b2c3d4/materials/mat_a1b2c3d4e5f6/view-url"
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 200, f"Got {response.status_code}: {response.json()}"
         data = response.json()
-        assert data["material_id"] == "mat_view12345678"
+        assert data["material_id"] == "mat_a1b2c3d4e5f6"
         assert data["view_url"] == "https://presigned-view-url.com"
         assert data["thumbnail_url"] == "https://presigned-thumb-url.com"
         assert "expires_in" in data
@@ -467,7 +481,7 @@ class TestGetViewUrlEndpoint:
         db_session.commit()
 
         response = client.get(
-            "/api/experiments/exp_view5678/materials/mat_000000000000/view-url"
+            "/experiments/exp_view5678/materials/mat_000000000000/view-url"
         )
 
         assert response.status_code == 404
@@ -479,16 +493,16 @@ class TestGetViewUrlEndpoint:
         """Should work even if material doesn't have thumbnail."""
         from synth_lab.models.orm.material import ExperimentMaterial
 
-        # Create test experiment
-        experiment = create_test_experiment("exp_view9abc")
+        # Create test experiment (ID must match ^exp_[a-f0-9]{8}$)
+        experiment = create_test_experiment("exp_9abcdef0")
         db_session.add(experiment)
 
-        # Create material WITHOUT thumbnail
+        # Create material WITHOUT thumbnail (ID must match ^mat_[a-f0-9]{12}$)
         material = ExperimentMaterial(
-            id="mat_view9abcdef0",
-            experiment_id="exp_view9abc",
+            id="mat_9abcdef01234",
+            experiment_id="exp_9abcdef0",
             file_type="document",
-            file_url="https://s3.com/bucket/materials/exp_view9abc/mat_view9abcdef0.pdf",
+            file_url="https://s3.com/bucket/materials/exp_9abcdef0/mat_9abcdef01234.pdf",
             thumbnail_url=None,  # No thumbnail
             file_name="test.pdf",
             file_size=500000,
@@ -505,10 +519,10 @@ class TestGetViewUrlEndpoint:
         mock_gen_view_url.return_value = "https://presigned-view-url.com"
 
         response = client.get(
-            "/api/experiments/exp_view9abc/materials/mat_view9abcdef0/view-url"
+            "/experiments/exp_9abcdef0/materials/mat_9abcdef01234/view-url"
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 200, f"Got {response.status_code}: {response.json()}"
         data = response.json()
         assert data["view_url"] == "https://presigned-view-url.com"
         assert data["thumbnail_url"] is None  # Should be None
@@ -546,7 +560,7 @@ class TestDeleteMaterialEndpoint:
         db_session.commit()
 
         response = client.delete(
-            "/api/experiments/exp_eeaabbcc/materials/mat_445566778899"
+            "/experiments/exp_eeaabbcc/materials/mat_445566778899"
         )
 
         assert response.status_code == 204
@@ -567,7 +581,7 @@ class TestDeleteMaterialEndpoint:
         db_session.commit()
 
         response = client.delete(
-            "/api/experiments/exp_ffeeddcc/materials/mat_000000000000"
+            "/experiments/exp_ffeeddcc/materials/mat_000000000000"
         )
 
         assert response.status_code == 404

@@ -25,7 +25,7 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, inspect, text
 
-# Expected tables from 001_initial_schema.py
+# Expected tables from 001_initial_schema.py + later migrations
 EXPECTED_TABLES = {
     "synth_groups",
     "synths",
@@ -42,9 +42,11 @@ EXPECTED_TABLES = {
     "sensitivity_results",
     "region_analyses",
     "experiment_documents",
-    "feature_scorecards",
     "simulation_runs",
     "prfaq_metadata",
+    "experiment_materials",  # Added in 20260106_0218
+    "tags",  # Added in 20260106_1103
+    "experiment_tags",  # Added in 20260106_1103
 }
 
 
@@ -234,7 +236,7 @@ class TestAlembicMigrationsPostgres:
             result = conn.execute(text("SELECT version_num FROM alembic_version"))
             version = result.scalar()
 
-        assert version == "add_source_id", f"Expected version 'add_source_id', got '{version}'"
+        assert version == "09d318020a17", f"Expected version '09d318020a17', got '{version}'"
 
         engine.dispose()
 
