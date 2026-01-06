@@ -51,13 +51,13 @@
 
 **Independent Test**: Create experiment, drag-drop files, save experiment, verify files stored in S3 and metadata in database
 
-### Tests for User Story 1 
+### Tests for User Story 1
 
-- [ ] T013 [P] [US1] Unit test for MaterialService.request_upload_url in tests/unit/services/test_material_service.py
-- [ ] T014 [P] [US1] Unit test for MaterialService.confirm_upload in tests/unit/services/test_material_service.py
-- [ ] T015 [P] [US1] Unit test for size/count limit validation in tests/unit/services/test_material_service.py
-- [ ] T016 [P] [US1] Integration test for upload-url endpoint in tests/integration/test_materials_api.py
-- [ ] T017 [P] [US1] Integration test for confirm endpoint in tests/integration/test_materials_api.py
+- [x] T013 [P] [US1] Unit test for MaterialService.request_upload_url in tests/unit/services/test_material_service.py
+- [x] T014 [P] [US1] Unit test for MaterialService.confirm_upload in tests/unit/services/test_material_service.py
+- [x] T015 [P] [US1] Unit test for size/count limit validation in tests/unit/services/test_material_service.py
+- [~] T016 [P] [US1] Integration test for upload-url endpoint in tests/integration/test_materials_api.py (created, needs session fix)
+- [~] T017 [P] [US1] Integration test for confirm endpoint in tests/integration/test_materials_api.py (created, needs session fix)
 
 ### Implementation for User Story 1
 
@@ -90,11 +90,11 @@
 
 **Independent Test**: Navigate to experiment with materials, verify thumbnails render with filename/type/size, click to view full-size
 
-### Tests for User Story 2 
+### Tests for User Story 2
 
-- [ ] T036 [P] [US2] Unit test for thumbnail generation in tests/unit/services/test_material_service.py
-- [ ] T037 [P] [US2] Integration test for GET /view-url endpoint in tests/integration/test_materials_api.py
-- [ ] T038 [P] [US2] Frontend test for MaterialGallery component in frontend/src/__tests__/MaterialGallery.test.tsx
+- [x] T036 [P] [US2] Unit test for thumbnail generation in tests/unit/services/test_material_service.py
+- [~] T037 [P] [US2] Integration test for GET /view-url endpoint in tests/integration/test_materials_api.py (created, needs session fix)
+- [x] T038 [P] [US2] Frontend test for MaterialGallery component in frontend/src/__tests__/MaterialGallery.test.tsx
 
 ### Implementation for User Story 2
 
@@ -267,17 +267,17 @@ T067 Retry button
 |-------|------------|-------|-----------|-----------|
 | 1 | Setup | 6 | 6 ✅ | 0 |
 | 2 | Foundational | 6 | 6 ✅ | 0 |
-| 3 | US1 - Upload | 23 | 18 ✅ | 5 (tests) |
-| 4 | US2 - Preview | 13 | 10 ✅ | 3 (tests) |
+| 3 | US1 - Upload | 23 | 21 ✅ | 2 (integration tests need session fix) |
+| 4 | US2 - Preview | 13 | 12 ✅ | 1 (integration test needs session fix) |
 | 5 | US3 - Interview | 19 | 1 | 18 |
 | 6 | US4 - PR-FAQ | 5 | 0 | 5 |
 | 7 | Polish | 7 | 0 | 7 |
-| **Total** | | **79** | **41** | **38** |
+| **Total** | | **79** | **46** | **33** |
 
 **MVP Scope**: Phases 1-3 (35 tasks) - Upload materials to experiments
 **Full Feature**: All phases (79 tasks) - Complete materials integration
 
-**Current Status**: Phase 4 (US2 - Preview) implementation complete! Thumbnail generation + MaterialGallery working. Tests remain.
+**Current Status**: Phase 4 (US2 - Preview) complete! Thumbnail generation + MaterialGallery working + all tests created. Integration tests need FastAPI session dependency fix for full pass (3 failing tests due to db session isolation).
 
 ---
 
