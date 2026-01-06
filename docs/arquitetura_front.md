@@ -67,6 +67,7 @@ frontend/src/
 ├── hooks/                     # Custom hooks
 │   ├── use-experiments.ts     # CRUD de experiments
 │   ├── use-synths.ts          # CRUD de synths
+│   ├── use-tags.ts            # CRUD de tags
 │   ├── use-sse.ts             # Server-Sent Events
 │   └── use-toast.ts           # Notificações
 │
@@ -303,6 +304,88 @@ export function useCreateExperiment() {
 }
 ```
 
+#### Hooks de Tags (`use-tags.ts`)
+
+Hooks para gerenciamento de tags em experimentos.
+
+| Hook | Parâmetros | Retorno | Propósito |
+|------|------------|---------|-----------|
+| `useTags` | - | `UseQueryResult<Tag[], Error>` | Listar todas as tags disponíveis |
+| `useCreateTag` | - | `UseMutationResult<Tag, Error, TagCreateRequest>` | Criar nova tag |
+| `useAddTagToExperiment` | - | `UseMutationResult<void, Error, { experimentId: string; data: AddTagRequest }>` | Adicionar tag a um experimento |
+| `useRemoveTagFromExperiment` | - | `UseMutationResult<void, Error, { experimentId: string; tagName: string }>` | Remover tag de um experimento |
+
+**Types utilizados:**
+```tsx
+// types/tag.ts
+interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  created_at: string;
+}
+
+interface TagCreateRequest {
+  name: string;
+  color?: string;
+}
+
+interface AddTagRequest {
+  tag_name: string;
+}
+```
+
+**Dependências internas:**
+- `@tanstack/react-query`: `useQuery`, `useMutation`, `useQueryClient`
+- `@/lib/query-keys`: `queryKeys.tags()`, `queryKeys.experiments()`
+- `@/services/tags-api`: `listTags`, `createTag`, `addTagToExperiment`, `removeTagFromExperiment`
+
+**Exemplo de uso:**
+```tsx
+// components/experiments/TagSelector.tsx
+import { useTags, useAddTagToExperiment, useRemoveTagFromExperiment } from '@/hooks/use-tags';
+
+function TagSelector({ experimentId, currentTags }: Props) {
+  const { data: tags, isLoading } = useTags();
+  const addTag = useAddTagToExperiment();
+  const removeTag = useRemoveTagFromExperiment();
+
+  const handleAddTag = (tagName: string) => {
+    addTag.mutate(
+      { experimentId, data: { tag_name: tagName } },
+      { onSuccess: () => toast.success('Tag adicionada') }
+    );
+  };
+
+  const handleRemoveTag = (tagName: string) => {
+    removeTag.mutate(
+      { experimentId, tagName },
+      { onSuccess: () => toast.success('Tag removida') }
+    );
+  };
+
+  return (
+    <div>
+      {currentTags.map(tag => (
+        <Badge key={tag.name} onClick={() => handleRemoveTag(tag.name)}>
+          {tag.name} ×
+        </Badge>
+      ))}
+      <Select onValueChange={handleAddTag}>
+        {tags?.map(tag => (
+          <SelectItem key={tag.id} value={tag.name}>{tag.name}</SelectItem>
+        ))}
+      </Select>
+    </div>
+  );
+}
+```
+
+**Invalidação de cache:**
+- `useCreateTag`: invalida `queryKeys.tags()`
+- `useAddTagToExperiment`: invalida `queryKeys.experiments()`
+- `useRemoveTagFromExperiment`: invalida `queryKeys.experiments()`
+
 ---
 
 ### 4. Services (`services/`)
@@ -477,11 +560,147 @@ export function cn(...inputs: ClassValue[]) {
 
 ---
 
+## Páginas Principais
+
+### Index (`pages/Index.tsx`)
+
+**Rota:** `/`
+
+**Descrição:** Página principal (home) que exibe a lista de experimentos em grid. Oferece busca por texto, filtro por tags, e ordenação. Estilo "Research Observatory" com animações suaves de entrada.
+
+**Estrutura:**
+- **Header**: SynthLabHeader com botão de navegação para Synths
+- **Filtros**: PopularTags (filtros rápidos), ExperimentsFilter (busca + ordenação)
+- **Grid**: Cards de experimentos com informações resumidas
+- **Modal**: Dialog para criação de novo experimento
+
+**Componentes utilizados:**
+
+| Componente | Diretório | Uso |
+|------------|-----------|-----|
+| `SynthLabHeader` | `shared/` | Header global com título e ações |
+| `PopularTags` | `experiments/` | Filtros rápidos por tags populares |
+| `ExperimentsFilter` | `experiments/` | Campo de busca e seletor de ordenação |
+| `ExperimentCard` | `experiments/` | Card individual de experimento |
+| `EmptyState` | `experiments/` | Estado vazio quando não há experimentos |
+| `ExperimentForm` | `experiments/` | Formulário de criação de experimento |
+| `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle` | `ui/` | Modal de criação |
+| `Button`, `Skeleton` | `ui/` | Componentes base |
+
+**Hooks utilizados:**
+
+| Hook | Arquivo | Propósito |
+|------|---------|-----------|
+| `useExperiments` | `use-experiments.ts` | Lista paginada de experimentos com filtros |
+| `useCreateExperiment` | `use-experiments.ts` | Mutation para criar experimento (com optimistic update) |
+| `useToast` | `use-toast.ts` | Notificações de sucesso/erro |
+| `useNavigate` | `react-router-dom` | Navegação para detalhes e Synths |
+
+**Endpoints do Backend:**
+
+| Método | Endpoint | Ação |
+|--------|----------|------|
+| `GET` | `/experiments/list?search=&tag=&sort_by=&sort_order=` | Listar experimentos com filtros |
+| `POST` | `/experiments` | Criar novo experimento |
+| `GET` | `/tags` | Listar tags disponíveis (via PopularTags) |
+
+**Fluxo de Dados:**
+1. Ao montar, carrega lista de experimentos via `useExperiments(params)`
+2. Estado local gerencia: busca (`search`), tag selecionada (`selectedTag`), ordenação (`sortOption`)
+3. Parâmetros são convertidos para `ExperimentsListParams` via `useMemo`
+4. React Query mantém cache com `placeholderData` para UX suave durante re-fetches
+5. Criação usa optimistic update: card aparece imediatamente, rollback em caso de erro
+6. Navegação para `/experiments/:id` ao clicar em um card
+
+**Estados da UI:**
+- **Loading**: Grid de skeletons (3 cards)
+- **Error**: Mensagem de erro em destaque vermelho
+- **Empty (sem busca)**: EmptyState com CTA para criar experimento
+- **Empty (com busca)**: Mensagem "Nenhum resultado para [termo]"
+- **Com dados**: Grid responsivo de ExperimentCards
+
+---
+
+### ExperimentDetail (`pages/ExperimentDetail.tsx`)
+
+**Rota:** `/experiments/:id`
+
+**Descrição:** Página de detalhes de um experimento, estruturada como um "Research Observatory" com cabeçalho read-only e sistema de abas para navegação entre diferentes aspectos do experimento.
+
+**Estrutura:**
+- **Header**: Nome, hipótese, descrição (truncada), scorecard sliders (animados), TagSelector
+- **Tabs**: Análise | Entrevistas | Explorações | Materiais | Relatórios
+
+**Componentes utilizados:**
+
+| Componente | Diretório | Uso |
+|------------|-----------|-----|
+| `SynthLabHeader` | `shared/` | Header global com botão de voltar |
+| `TagSelector` | `experiments/` | Seletor/editor de tags do experimento |
+| `AnalysisPhaseTabs` | `experiments/` | Navegação entre fases da análise |
+| `PhaseOverview`, `PhaseLocation`, `PhaseSegmentation`, `PhaseEdgeCases` | `experiments/results/` | Conteúdo de cada fase da análise |
+| `ViewSummaryButton` | `experiments/results/` | Botão para visualizar resumo |
+| `ExplorationList` | `exploration/` | Lista de explorações do experimento |
+| `NewExplorationDialog` | `exploration/` | Modal para criar nova exploração |
+| `NewInterviewFromExperimentDialog` | `experiments/` | Modal para criar nova entrevista |
+| `MaterialUpload` | `experiments/` | Upload de materiais/arquivos |
+| `MaterialGallery` | `experiments/` | Galeria de materiais anexados |
+| `DocumentsList` | `experiments/` | Lista de relatórios/documentos gerados |
+
+**Hooks utilizados:**
+
+| Hook | Arquivo | Propósito |
+|------|---------|-----------|
+| `useExperiment` | `use-experiments.ts` | Dados do experimento |
+| `useRunAnalysis` | `use-experiments.ts` | Mutation para executar análise |
+| `useDeleteExperiment` | `use-experiments.ts` | Mutation para deletar experimento |
+| `useExplorations` | `use-exploration.ts` | Lista de explorações |
+| `useMaterials` | `use-materials.ts` | Lista de materiais anexados |
+| `useDocuments` | `use-documents.ts` | Lista de documentos/relatórios |
+| `useTags` | `use-tags.ts` | Lista de tags disponíveis |
+| `useAddTagToExperiment` | `use-tags.ts` | Adicionar tag ao experimento |
+| `useRemoveTagFromExperiment` | `use-tags.ts` | Remover tag do experimento |
+
+**Endpoints do Backend:**
+
+| Método | Endpoint | Ação |
+|--------|----------|------|
+| `GET` | `/experiments/{id}` | Buscar detalhes do experimento |
+| `POST` | `/experiments/{id}/run-analysis` | Executar análise |
+| `DELETE` | `/experiments/{id}` | Deletar experimento |
+| `GET` | `/experiments/{id}/explorations` | Listar explorações |
+| `GET` | `/experiments/{id}/materials` | Listar materiais |
+| `POST` | `/experiments/{id}/materials` | Upload de material |
+| `GET` | `/experiments/{id}/documents` | Listar documentos |
+| `GET` | `/tags` | Listar tags disponíveis |
+| `POST` | `/experiments/{id}/tags` | Adicionar tag ao experimento |
+| `DELETE` | `/experiments/{id}/tags/{tag_name}` | Remover tag do experimento |
+
+**Fluxo de Dados:**
+1. Ao montar, carrega dados do experimento via `useExperiment(id)`
+2. Tab ativa é sincronizada com query param `?tab=`
+3. Cada tab carrega dados específicos via hooks dedicados
+4. Mutations invalidam cache apropriado após sucesso
+
+---
+
 ## Mecanismos Transversais
 
 ### 1. Roteamento (React Router)
 
 **Todas as rotas em `App.tsx`:**
+
+| Path | Componente | Descrição |
+|------|------------|-----------|
+| `/` | `Index` | Lista de experimentos (home) com busca, filtro por tags e ordenação |
+| `/experiments/:id` | `ExperimentDetail` | Detalhes de um experimento com abas: Análise, Entrevistas, Explorações, Materiais, Relatórios |
+| `/experiments/:id/simulations/:simId` | `SimulationDetail` | Detalhes de uma simulação |
+| `/experiments/:id/explorations/:explorationId` | `ExplorationDetail` | Detalhes de uma exploração |
+| `/experiments/:expId/interviews/:execId` | `InterviewDetail` | Detalhes de entrevista (rota nova) |
+| `/interviews/:execId` | `InterviewDetail` | Detalhes de entrevista (rota legada) |
+| `/synths` | `Synths` | Catálogo de synths |
+| `*` | `NotFound` | Página 404 |
+
 ```tsx
 // App.tsx
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
@@ -491,9 +710,13 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/synths" element={<Synths />} />
-        <Route path="/experiments" element={<Experiments />} />
         <Route path="/experiments/:id" element={<ExperimentDetail />} />
+        <Route path="/experiments/:id/simulations/:simId" element={<SimulationDetail />} />
+        <Route path="/experiments/:id/explorations/:explorationId" element={<ExplorationDetail />} />
+        <Route path="/experiments/:expId/interviews/:execId" element={<InterviewDetail />} />
+        <Route path="/interviews/:execId" element={<InterviewDetail />} />
+        <Route path="/synths" element={<Synths />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

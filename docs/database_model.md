@@ -33,22 +33,33 @@ echo = SQL_ECHO          # Log SQL queries (debug only)
 │   synths    │
 └─────────────┘
 
-┌────────────────────────┐
-│ research_executions    │
-└────────────────────────┘
-       ▲
-       │
-┌──────┴────┐
-│transcripts│
-└───────────┘
+┌─────────────────┐       ┌────────────────────────┐
+│   experiments   │◄──────│ research_executions    │
+└─────────────────┘       └────────────────────────┘
+       │                           ▲
+       │                           │
+       ├──────────────────┐        │
+       │                  │  ┌─────┴─────┐
+       │                  │  │transcripts│
+       ▼                  │  └───────────┘
+┌─────────────────┐       │
+│ interview_guide │       │
+└─────────────────┘       │
+                          │
+       ├──────────────────┤
+       ▼                  ▼
+┌─────────────────────┐  ┌──────────────────────┐
+│ experiment_documents│  │ experiment_materials │
+└─────────────────────┘  └──────────────────────┘
 
-┌─────────────────────┐
-│ experiment_documents│  (stores PRFAQ, Summary, Executive Summary)
-└─────────────────────┘
-
-┌───────────────────┐
-│ topic_guides_cache│
-└───────────────────┘
+┌───────────────────┐    ┌──────────────────────┐
+│ topic_guides_cache│    │    experiment_tags   │ (M:N junction)
+└───────────────────┘    └──────────────────────┘
+                                  │
+                                  ▼
+                         ┌───────────────┐
+                         │     tags      │
+                         └───────────────┘
 ```
 
 ## Tabelas
@@ -164,9 +175,107 @@ WHERE json_extract(data, '$.demografia.localizacao.regiao') = 'Nordeste';
 
 ---
 
-### 2. research_executions
+### 2. experiments
 
-Registra execuções de pesquisas (batch de entrevistas).
+Armazena experimentos de pesquisa com hipóteses e configuração de scorecard.
+
+```sql
+CREATE TABLE experiments (
+    id VARCHAR(50) PRIMARY KEY,           -- UUID-style identifier (ex: "exp_12345678")
+    name VARCHAR(100) NOT NULL,           -- Nome do experimento (max 100 chars)
+    hypothesis VARCHAR(500) NOT NULL,     -- Hipótese de pesquisa (max 500 chars)
+    description TEXT,                     -- Descrição detalhada opcional (max 2000 chars)
+    scorecard_data JSONB,                 -- Configuração do scorecard como JSON
+    status VARCHAR(20) NOT NULL DEFAULT 'active',  -- 'active' ou 'deleted' (soft delete)
+    created_at VARCHAR(50) NOT NULL,      -- ISO 8601 timestamp
+    updated_at VARCHAR(50)                -- ISO 8601 timestamp (nullable)
+);
+
+-- Índices
+CREATE INDEX idx_experiments_created ON experiments(created_at DESC);
+CREATE INDEX idx_experiments_name ON experiments(name);
+CREATE INDEX idx_experiments_status ON experiments(status);
+```
+
+| Coluna | Tipo Python | Tipo PostgreSQL | NOT NULL | Default | Descrição |
+|--------|-------------|-----------------|----------|---------|-----------|
+| id | str | VARCHAR(50) | ✅ | - | Chave primária UUID-style |
+| name | str | VARCHAR(100) | ✅ | - | Nome do experimento |
+| hypothesis | str | VARCHAR(500) | ✅ | - | Hipótese de pesquisa |
+| description | str \| None | TEXT | ❌ | NULL | Descrição detalhada |
+| scorecard_data | dict[str, Any] \| None | JSONB | ❌ | NULL | Configuração do scorecard |
+| status | str | VARCHAR(20) | ✅ | 'active' | Status: 'active' ou 'deleted' |
+| created_at | str | VARCHAR(50) | ✅ | - | Timestamp ISO 8601 |
+| updated_at | str \| None | VARCHAR(50) | ❌ | NULL | Timestamp ISO 8601 |
+
+#### Relacionamentos
+
+| Relação | Tipo | Tabela Relacionada | FK | Descrição |
+|---------|------|-------------------|-----|-----------|
+| analysis_run | 1:1 | analysis_runs | experiment_id | Run de análise associada |
+| interview_guide | 1:1 | interview_guide | experiment_id | Guia de entrevista opcional |
+| research_executions | 1:N | research_executions | experiment_id | Execuções de pesquisa |
+| explorations | 1:N | explorations | experiment_id | Explorações de cenários |
+| documents | 1:N | experiment_documents | experiment_id | Documentos (PRFAQ, Summary, etc.) |
+| materials | 1:N | experiment_materials | experiment_id | Materiais (imagens, vídeos, docs) |
+| experiment_tags | M:N | experiment_tags | experiment_id | Tags via tabela junction |
+
+#### Campo scorecard_data (JSONB)
+
+```json
+{
+  "dimensions": [
+    {
+      "name": "Relevância",
+      "weight": 0.3,
+      "criteria": ["Alinhamento com objetivo", "Clareza da proposta"]
+    },
+    {
+      "name": "Viabilidade",
+      "weight": 0.7,
+      "criteria": ["Recursos necessários", "Complexidade técnica"]
+    }
+  ]
+}
+```
+
+---
+
+### 3. interview_guide
+
+Armazena guias de entrevista para experimentos (relacionamento 1:1 com experiments).
+
+```sql
+CREATE TABLE interview_guide (
+    experiment_id VARCHAR(50) PRIMARY KEY REFERENCES experiments(id) ON DELETE CASCADE,
+    context_definition TEXT,              -- Definição do contexto da entrevista
+    questions TEXT,                       -- Perguntas da entrevista
+    context_examples TEXT,                -- Exemplos de contexto para referência
+    created_at VARCHAR(50) NOT NULL,      -- ISO 8601 timestamp
+    updated_at VARCHAR(50)                -- ISO 8601 timestamp (nullable)
+);
+```
+
+| Coluna | Tipo Python | Tipo PostgreSQL | NOT NULL | Default | Descrição |
+|--------|-------------|-----------------|----------|---------|-----------|
+| experiment_id | str | VARCHAR(50) | ✅ | - | PK e FK para experiments |
+| context_definition | str \| None | TEXT | ❌ | NULL | Definição do contexto |
+| questions | str \| None | TEXT | ❌ | NULL | Perguntas da entrevista |
+| context_examples | str \| None | TEXT | ❌ | NULL | Exemplos de contexto |
+| created_at | str | VARCHAR(50) | ✅ | - | Timestamp ISO 8601 |
+| updated_at | str \| None | VARCHAR(50) | ❌ | NULL | Timestamp ISO 8601 |
+
+#### Relacionamentos
+
+| Relação | Tipo | Tabela Relacionada | FK | Descrição |
+|---------|------|-------------------|-----|-----------|
+| experiment | N:1 | experiments | experiment_id | Experimento pai |
+
+---
+
+### 4. research_executions
+
+Registra execuções de pesquisas (batch de entrevistas). Relaciona-se com `experiments` via `experiment_id` (FK opcional).
 
 ```sql
 CREATE TABLE research_executions (
@@ -199,7 +308,7 @@ CREATE INDEX idx_executions_started ON research_executions(started_at DESC);
 
 ---
 
-### 3. transcripts
+### 5. transcripts
 
 Armazena transcrições individuais de entrevistas.
 
@@ -244,7 +353,7 @@ CREATE INDEX idx_transcripts_synth ON transcripts(synth_id);
 
 ---
 
-### 4. topic_guides_cache
+### 6. topic_guides_cache
 
 Cache de metadados de topic guides.
 
@@ -260,6 +369,74 @@ CREATE TABLE topic_guides_cache (
     updated_at TEXT                    -- ISO 8601 timestamp
 );
 ```
+
+---
+
+### 7. tags
+
+Armazena tags para categorização de experimentos.
+
+```sql
+CREATE TABLE tags (
+    id VARCHAR(50) PRIMARY KEY,        -- UUID-style identifier (ex: "tag_12345678")
+    name VARCHAR(50) NOT NULL UNIQUE,  -- Nome da tag (max 50 chars, único)
+    created_at VARCHAR(50) NOT NULL,   -- ISO 8601 timestamp
+    updated_at VARCHAR(50)             -- ISO 8601 timestamp (nullable)
+);
+
+-- Índices
+CREATE INDEX idx_tags_name ON tags(name);
+```
+
+| Coluna | Tipo Python | Tipo PostgreSQL | NOT NULL | Default | Descrição |
+|--------|-------------|-----------------|----------|---------|-----------|
+| id | str | VARCHAR(50) | ✅ | - | Chave primária UUID-style |
+| name | str | VARCHAR(50) | ✅ | - | Nome da tag (único) |
+| created_at | str | VARCHAR(50) | ✅ | - | Timestamp ISO 8601 |
+| updated_at | str \| None | VARCHAR(50) | ❌ | NULL | Timestamp ISO 8601 |
+
+#### Relacionamentos
+
+| Relação | Tipo | Tabela Relacionada | FK | Descrição |
+|---------|------|-------------------|-----|-----------|
+| experiment_tags | 1:N | experiment_tags | tag_id | Links para experimentos via junction table |
+
+---
+
+### 8. experiment_tags
+
+Tabela junction para relacionamento many-to-many entre experiments e tags.
+
+```sql
+CREATE TABLE experiment_tags (
+    experiment_id VARCHAR(50) NOT NULL REFERENCES experiments(id) ON DELETE CASCADE,
+    tag_id VARCHAR(50) NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+    created_at VARCHAR(50) NOT NULL,   -- ISO 8601 timestamp quando tag foi adicionada
+    PRIMARY KEY (experiment_id, tag_id)
+);
+
+-- Índices
+CREATE INDEX idx_experiment_tags_experiment ON experiment_tags(experiment_id);
+CREATE INDEX idx_experiment_tags_tag ON experiment_tags(tag_id);
+```
+
+| Coluna | Tipo Python | Tipo PostgreSQL | NOT NULL | Default | Descrição |
+|--------|-------------|-----------------|----------|---------|-----------|
+| experiment_id | str | VARCHAR(50) | ✅ | - | FK para experiments (PK composta) |
+| tag_id | str | VARCHAR(50) | ✅ | - | FK para tags (PK composta) |
+| created_at | str | VARCHAR(50) | ✅ | - | Timestamp ISO 8601 |
+
+#### Relacionamentos
+
+| Relação | Tipo | Tabela Relacionada | FK | Descrição |
+|---------|------|-------------------|-----|-----------|
+| experiment | N:1 | experiments | experiment_id | Experimento pai |
+| tag | N:1 | tags | tag_id | Tag associada |
+
+#### Constraints
+
+- **ON DELETE CASCADE**: Quando um experimento ou tag é deletado, os registros relacionados são removidos automaticamente
+- **Chave primária composta**: (experiment_id, tag_id) garante unicidade do relacionamento
 
 ---
 
@@ -357,12 +534,17 @@ ORDER BY num_executions DESC;
 
 ### Índices
 
-Total: **7 índices** em 4 tabelas principais
+Total: **13 índices** em 7 tabelas principais
 
 **Synths**:
 - `idx_synths_arquetipo` - Filtragem por arquétipo
 - `idx_synths_created_at` - Ordenação por data
 - `idx_synths_nome` - Busca por nome
+
+**Experiments**:
+- `idx_experiments_created` - Ordenação por data (DESC)
+- `idx_experiments_name` - Busca por nome
+- `idx_experiments_status` - Filtragem por status (soft delete)
 
 **Executions**:
 - `idx_executions_topic` - Filtragem por topic
@@ -372,6 +554,13 @@ Total: **7 índices** em 4 tabelas principais
 **Transcripts**:
 - `idx_transcripts_exec` - JOIN com executions
 - `idx_transcripts_synth` - JOIN com synths
+
+**Tags**:
+- `idx_tags_name` - Busca por nome de tag
+
+**Experiment Tags**:
+- `idx_experiment_tags_experiment` - JOIN com experiments
+- `idx_experiment_tags_tag` - JOIN com tags
 
 ### Otimizações JSON
 

@@ -19,7 +19,9 @@ if TYPE_CHECKING:
     from synth_lab.models.orm.analysis import AnalysisRun
     from synth_lab.models.orm.document import ExperimentDocument
     from synth_lab.models.orm.exploration import Exploration
+    from synth_lab.models.orm.material import ExperimentMaterial
     from synth_lab.models.orm.research import ResearchExecution
+    from synth_lab.models.orm.tag import ExperimentTag
 
 
 class Experiment(Base, TimestampMixin, SoftDeleteMixin):
@@ -45,6 +47,8 @@ class Experiment(Base, TimestampMixin, SoftDeleteMixin):
         research_executions: 1:N - Multiple research executions
         explorations: 1:N - Multiple scenario explorations
         documents: 1:N - Multiple documents (summary, prfaq, etc.)
+        materials: 1:N - Multiple uploaded materials (images, videos, documents)
+        experiment_tags: M:N - Tags for categorization (via junction table)
     """
 
     __tablename__ = "experiments"
@@ -80,6 +84,17 @@ class Experiment(Base, TimestampMixin, SoftDeleteMixin):
     )
     documents: Mapped[list["ExperimentDocument"]] = relationship(
         "ExperimentDocument",
+        back_populates="experiment",
+        cascade="all, delete-orphan",
+    )
+    materials: Mapped[list["ExperimentMaterial"]] = relationship(
+        "ExperimentMaterial",
+        back_populates="experiment",
+        order_by="ExperimentMaterial.display_order",
+        cascade="all, delete-orphan",
+    )
+    experiment_tags: Mapped[list["ExperimentTag"]] = relationship(
+        "ExperimentTag",
         back_populates="experiment",
         cascade="all, delete-orphan",
     )

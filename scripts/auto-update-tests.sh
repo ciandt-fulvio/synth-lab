@@ -85,7 +85,7 @@ if [ -n "$ROUTERS" ]; then
 
         # Extrai endpoints do router
         endpoints=$(grep -E '@router\.(get|post|put|delete|patch)\(' "$router_file" | \
-                    sed -E 's/.*@router\.(get|post|put|delete|patch)\(["\']([^"\']+).*/\2/' | \
+                    sed -E 's/.*@router\.(get|post|put|delete|patch)\(["'\'']([^"'\'']+).*/\2/' | \
                     head -5)
 
         if [ -n "$endpoints" ]; then
@@ -204,18 +204,7 @@ for i in "${!PROMPTS[@]}"; do
         continue
     fi
 
-    # Pergunta se deve executar (se não for auto)
-    if [ "$AUTO_COMMIT" = false ]; then
-        read -p "Executar este prompt com Claude Code? (y/n) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo "Pulado."
-            echo ""
-            continue
-        fi
-    fi
-
-    # Executa Claude Code
+    # Executa Claude Code automaticamente
     echo -e "${BLUE}🤖 Executando Claude Code...${NC}"
 
     # Salva prompt em arquivo temporário
@@ -293,11 +282,12 @@ echo -e "${GREEN}🎉 Auto-update concluído!${NC}"
 echo ""
 
 # Resumo
-echo "Próximos passos:"
+echo "Proximos passos:"
 if [ "$AUTO_COMMIT" = false ]; then
-    echo "  1. Revise as mudanças em tests/"
+    echo "  1. Revise as mudancas em tests/"
     echo "  2. Rode: make test-fast"
     echo "  3. Commit: git commit -m 'test: update tests'"
 else
-    echo "  ✅ Testes já foram commitados automaticamente"
+    echo "  OK Testes ja foram commitados automaticamente"
 fi
+echo ""

@@ -67,6 +67,7 @@ src/synth_lab/
 │   ├── experiment_service.py     # Serviço de experiments
 │   ├── synth_service.py          # Serviço de synths
 │   ├── research_service.py       # Serviço de research
+│   ├── material_service.py       # Serviço de materiais (S3, thumbnails, IA)
 │   ├── simulation/               # Subdomínio: simulação
 │   │   ├── scorecard_llm.py      # Operações LLM para scorecard
 │   │   ├── simulation_service.py
@@ -207,6 +208,211 @@ class ScorecardEstimator:
         return f"""Você é um especialista..."""
 ```
 
+---
+
+#### Services Disponíveis
+
+##### MaterialService
+
+Gerencia materiais de experimentos (imagens, vídeos, documentos) com suporte a upload S3, thumbnails e descrições via IA.
+
+**Localização:** `services/material_service.py`
+
+**Responsabilidades:**
+- Gera presigned URLs para upload direto ao S3
+- Confirma uploads e valida existência no S3
+- Gera thumbnails automáticos (imagens, vídeos, PDFs)
+- Gera descrições via LLM com visão (GPT-4o-mini)
+- Valida limites de arquivo (tamanho, tipo, quantidade)
+- Gerencia ordenação e exclusão de materiais
+- Job de limpeza de arquivos órfãos no S3
+
+**Dependências:**
+```python
+from synth_lab.repositories.experiment_material_repository import ExperimentMaterialRepository
+from synth_lab.infrastructure.storage_client import (
+    generate_upload_url,
+    generate_view_url,
+    check_object_exists,
+    get_object_bytes,
+    upload_object,
+    delete_object,
+)
+from synth_lab.infrastructure.llm_client import get_llm_client
+from synth_lab.infrastructure.phoenix_tracing import get_tracer
+```
+
+**Métodos públicos principais:**
+
+| Método | Descrição |
+|--------|-----------|
+| `request_upload_url()` | Gera presigned URL para upload de material |
+| `confirm_upload()` | Confirma upload e dispara thumbnail + descrição |
+| `get_material()` | Busca material por ID |
+| `list_materials()` | Lista summaries de materiais do experimento |
+| `list_materials_full()` | Lista materiais completos do experimento |
+| `get_view_url()` | Gera presigned URL para visualização |
+| `reorder_materials()` | Reordena materiais do experimento |
+| `delete_material()` | Remove material (DB + S3) |
+| `get_limits()` | Retorna limites e uso atual do experimento |
+| `generate_thumbnail()` | Gera thumbnail (imagem/vídeo/PDF) |
+| `generate_description()` | Gera descrição via LLM vision |
+| `cleanup_orphaned_files()` | Remove arquivos S3 sem registro no DB |
+
+**Exceções customizadas:**
+- `UnsupportedFileTypeError`: MIME type não suportado
+- `FileSizeLimitError`: Arquivo excede limite por tipo
+- `S3StorageError`: Falha em operação S3 (wraps ClientError)
+- `MaterialLimitExceededError`: Experimento excedeu limites
+- `MaterialNotFoundError`: Material não encontrado
+
+**Fluxo de upload:**
+```
+1. Cliente chama request_upload_url()
+   → valida tipo e tamanho
+   → valida limites do experimento
+   → gera presigned URL
+   → cria registro PENDING no DB
+
+2. Cliente faz PUT direto ao S3 via presigned URL
+
+3. Cliente chama confirm_upload()
+   → verifica arquivo existe no S3
+   → atualiza file_url no DB
+   → dispara generate_thumbnail() síncrono
+   → dispara generate_description() síncrono
+```
+
+**Geração de thumbnails:**
+- **Imagens**: Redimensiona com Pillow (LANCZOS)
+- **Vídeos**: Extrai frame t=0 com moviepy
+- **PDFs**: Renderiza página 1 com pdf2image (dpi=72)
+- Todas thumbnails: PNG 200x200px, upload em `thumbnails/{exp_id}/{mat_id}.png`
+
+**Geração de descrições:**
+- **Imagens**: Vision API (GPT-4o-mini) com imagem base64
+- **Vídeos**: Vision API com primeiro frame
+- **PDFs**: OCR com pytesseract + LLM text-only
+- Todas descrições: máximo 30 palavras, em português
+- Usa tracing Phoenix com span `Generate Material Description`
+
+**Limites configuráveis (via config.py):**
+```python
+MAX_IMAGE_SIZE = 25_000_000           # 25MB
+MAX_VIDEO_SIZE = 100_000_000          # 100MB
+MAX_DOCUMENT_SIZE = 10_000_000        # 10MB
+MAX_MATERIALS_PER_EXPERIMENT = 50
+MAX_TOTAL_SIZE_PER_EXPERIMENT = 500_000_000  # 500MB
+PRESIGNED_URL_EXPIRATION = 3600       # 1 hora
+```
+
+**Padrão de uso:**
+```python
+from synth_lab.services.material_service import MaterialService
+
+service = MaterialService()  # Usa injeção de dependência
+
+# 1. Request upload URL
+result = service.request_upload_url(
+    experiment_id="exp_abc123",
+    file_name="screenshot.png",
+    file_size=5_000_000,
+    mime_type="image/png",
+    material_type=MaterialType.SCREENSHOT,
+)
+# Retorna: {material_id, upload_url, object_key, expires_in}
+
+# 2. Cliente faz PUT no upload_url (frontend)
+
+# 3. Confirm upload
+material = service.confirm_upload(
+    experiment_id="exp_abc123",
+    material_id=result["material_id"],
+    object_key=result["object_key"],
+)
+# Thumbnail e descrição gerados automaticamente
+```
+
+**Fluxo de dados (diagrama):**
+```
+┌──────────────┐
+│   Frontend   │
+└──────┬───────┘
+       │ 1. POST /api/experiments/{id}/materials/request-upload
+       │    {file_name, file_size, mime_type, material_type}
+       ▼
+┌────────────────────────────────────────────────────────────┐
+│ API Router (materials.py)                                  │
+│  ✓ Valida schema                                           │
+│  ✓ Chama MaterialService.request_upload_url()             │
+└────────┬───────────────────────────────────────────────────┘
+         │
+         ▼
+┌────────────────────────────────────────────────────────────┐
+│ MaterialService.request_upload_url()                       │
+│  ✓ Valida tipo de arquivo (get_file_type_from_mime)       │
+│  ✓ Valida tamanho (MAX_IMAGE/VIDEO/DOCUMENT_SIZE)         │
+│  ✓ Valida limites experimento (count, total_size)         │
+│  ✓ Gera material_id e object_key                          │
+│  ✓ Chama storage_client.generate_upload_url()             │
+│  ✓ Cria registro PENDING no DB via repository             │
+└────────┬───────────────────────────────────────────────────┘
+         │
+         ▼
+┌────────────────────────────────────────────────────────────┐
+│ storage_client (infrastructure)                            │
+│  ✓ Gera presigned URL (PUT) com S3 client                 │
+│  ✓ Retorna URL com expiração                              │
+└────────┬───────────────────────────────────────────────────┘
+         │
+         ▼
+┌────────────────────────────────────────────────────────────┐
+│ ExperimentMaterialRepository                               │
+│  ✓ INSERT INTO experiment_materials                       │
+│  ✓ Status: PENDING, description_status: PENDING           │
+└────────────────────────────────────────────────────────────┘
+         │
+         │ Retorna: {material_id, upload_url, object_key, expires_in}
+         ▼
+┌──────────────┐
+│   Frontend   │─────► 2. PUT upload_url (direto ao S3)
+└──────┬───────┘      {binary file data}
+       │
+       │ 3. POST /api/experiments/{id}/materials/{mat_id}/confirm
+       │    {object_key}
+       ▼
+┌────────────────────────────────────────────────────────────┐
+│ API Router (materials.py)                                  │
+│  ✓ Chama MaterialService.confirm_upload()                 │
+└────────┬───────────────────────────────────────────────────┘
+         │
+         ▼
+┌────────────────────────────────────────────────────────────┐
+│ MaterialService.confirm_upload()                           │
+│  ✓ Busca material no DB                                   │
+│  ✓ Verifica se arquivo existe no S3 (check_object_exists) │
+│  ✓ Atualiza file_url no DB                                │
+│  ✓ Chama generate_thumbnail() síncrono                    │
+│  ✓ Chama generate_description() síncrono                  │
+└────────┬───────────────────────────────────────────────────┘
+         │
+         ├─────► generate_thumbnail()
+         │         ├─ IMAGE: Pillow resize + LANCZOS
+         │         ├─ VIDEO: moviepy extract frame t=0
+         │         └─ PDF: pdf2image page 1 (dpi=72)
+         │         → upload_object(thumb_key, bytes, "image/png")
+         │         → repository.update_thumbnail(mat_id, thumb_url)
+         │
+         └─────► generate_description()
+                   ├─ IMAGE: Vision API (base64 → GPT-4o-mini)
+                   ├─ VIDEO: Vision API (first frame → GPT-4o-mini)
+                   └─ PDF: OCR (pytesseract) → LLM text-only
+                   → repository.update_description(mat_id, desc, COMPLETED)
+                   → Phoenix span: "Generate Material Description"
+```
+
+---
+
 **PROIBIDO:**
 ```python
 # ❌ SQL direto no service
@@ -278,6 +484,7 @@ self.db.execute(f"SELECT * FROM synths WHERE id = '{synth_id}'")
 | `database_v2.py` | SQLAlchemy engine, session factory, PostgreSQL |
 | `llm_client.py` | `LLMClient` (OpenAI chat/completions com retry, timeout, logging) |
 | `image_generator.py` | `ImageGenerator` (OpenAI gpt-image-1.5, geração de imagens) |
+| `storage_client.py` | Cliente S3-compatible (presigned URLs, upload/download, delete) |
 | `phoenix_tracing.py` | Setup Phoenix/OTEL, instrumentação automática |
 
 #### Database Layer (SQLAlchemy + PostgreSQL)
@@ -414,6 +621,39 @@ base64_img = generator.generate(
   - `operation_type: "image_generation"`
   - `prompt_preview`: primeiros 100 caracteres do prompt
   - `llm.model_name`, `size`, `quality`, `output_format`
+
+---
+
+#### StorageClient (S3-Compatible Storage)
+
+Cliente para operações com S3-compatible storage (upload, download, presigned URLs).
+
+**Componentes principais:**
+```python
+from synth_lab.infrastructure.storage_client import (
+    generate_upload_url,    # Gera presigned URL para upload
+    generate_view_url,      # Gera presigned URL para visualização
+    check_object_exists,    # Verifica se objeto existe
+    get_object_bytes,       # Download de objeto (bytes)
+    upload_object,          # Upload direto de bytes
+    delete_object,          # Deleta objeto
+)
+```
+
+**Configuração via ambiente:**
+```bash
+S3_ENDPOINT_URL="https://s3.us-west-1.amazonaws.com"
+BUCKET_NAME="synthlab-materials"
+AWS_ACCESS_KEY_ID="..."
+AWS_SECRET_ACCESS_KEY="..."
+AWS_REGION="us-west-1"
+```
+
+**Características:**
+- Suporte a AWS S3 e S3-compatible (MinIO, R2, etc.)
+- Presigned URLs com expiração configurável
+- Tratamento de erros via `ClientError` e `BotoCoreError`
+- Usado por `MaterialService` para gerenciar arquivos de experimentos
 
 ---
 
@@ -671,6 +911,13 @@ async def create_experiment(data: ExperimentCreate):
 - [ ] Repository correspondente?
 - [ ] Service correspondente?
 - [ ] Schemas de request/response em `api/schemas/`?
+
+### Para operações com arquivos (S3/storage):
+- [ ] Usa `storage_client` (não boto3 direto)?
+- [ ] Trata erros `ClientError` e `BotoCoreError`?
+- [ ] Valida limites de tamanho e quantidade?
+- [ ] Usa queries parametrizadas para object_key?
+- [ ] Limpa arquivos órfãos (S3) quando deleta registro (DB)?
 
 ---
 

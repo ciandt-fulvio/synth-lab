@@ -20,18 +20,33 @@ import type {
   AnalysisSummary,
 } from '@/types/experiment';
 import type { InterviewCreateRequest, ResearchExecuteResponse } from '@/types/research';
-import type { PaginationParams } from '@/types';
 
 /**
- * List experiments with pagination.
+ * Pagination parameters for experiments list.
+ */
+export interface ExperimentsListParams {
+  limit?: number;
+  offset?: number;
+  search?: string;
+  tag?: string;
+  sort_by?: 'created_at' | 'name';
+  sort_order?: 'asc' | 'desc';
+}
+
+/**
+ * List experiments with pagination, search, and sorting.
  */
 export async function listExperiments(
-  params?: PaginationParams
+  params?: ExperimentsListParams
 ): Promise<PaginatedExperimentSummary> {
   const queryParams = new URLSearchParams();
 
   if (params?.limit) queryParams.append('limit', params.limit.toString());
   if (params?.offset) queryParams.append('offset', params.offset.toString());
+  if (params?.search) queryParams.append('search', params.search);
+  if (params?.tag) queryParams.append('tag', params.tag);
+  if (params?.sort_by) queryParams.append('sort_by', params.sort_by);
+  if (params?.sort_order) queryParams.append('sort_order', params.sort_order);
 
   const query = queryParams.toString();
   const endpoint = query ? `/experiments/list?${query}` : '/experiments/list';

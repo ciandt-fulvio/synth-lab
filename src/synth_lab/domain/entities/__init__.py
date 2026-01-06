@@ -50,6 +50,17 @@ from synth_lab.domain.entities.experiment import (
     ScorecardData,
     generate_experiment_id,
 )
+from synth_lab.domain.entities.experiment_material import (
+    DescriptionStatus,
+    ExperimentMaterial,
+    ExperimentMaterialSummary,
+    FileType,
+    MaterialType,
+    MATERIAL_TYPE_LABELS,
+    MIME_TYPE_MAP,
+    generate_material_id,
+    get_file_type_from_mime,
+)
 from synth_lab.domain.entities.experiment import (
     ScorecardDimension as ExperimentScorecardDimension,
 )
@@ -159,6 +170,16 @@ __all__ = [
     "ExperimentScorecardDimension",
     "ScorecardData",
     "generate_experiment_id",
+    # Experiment Material (new in 001-experiment-materials)
+    "DescriptionStatus",
+    "ExperimentMaterial",
+    "ExperimentMaterialSummary",
+    "FileType",
+    "MaterialType",
+    "MATERIAL_TYPE_LABELS",
+    "MIME_TYPE_MAP",
+    "generate_material_id",
+    "get_file_type_from_mime",
     # Explainability
     "PDPComparison",
     "PDPPoint",

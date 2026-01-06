@@ -99,10 +99,12 @@ from synth_lab.api.routers import (
     experiments,
     exploration,
     insights,
+    materials,
     prfaq,
     research,
     synth_groups,
     synths,
+    tags,
 )
 
 # Register routers
@@ -114,6 +116,8 @@ app.include_router(experiments.router, prefix="/experiments", tags=["experiments
 app.include_router(analysis.router, prefix="/experiments", tags=["analysis"])
 app.include_router(insights.router, prefix="/experiments", tags=["insights"])
 app.include_router(documents.router, prefix="/experiments", tags=["documents"])
+app.include_router(materials.router, prefix="/experiments", tags=["materials"])
+app.include_router(tags.router, prefix="/tags", tags=["tags"])
 app.include_router(synth_groups.router, prefix="/synth-groups", tags=["synth-groups"])
 app.include_router(exploration.router, prefix="/explorations", tags=["explorations"])
 

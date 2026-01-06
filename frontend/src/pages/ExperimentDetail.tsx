@@ -39,6 +39,11 @@ import {
 import { ViewSummaryButton } from '@/components/experiments/results/ViewSummaryButton';
 import { ExplorationList } from '@/components/exploration/ExplorationList';
 import { NewExplorationDialog } from '@/components/exploration/NewExplorationDialog';
+import { MaterialUpload } from '@/components/experiments/MaterialUpload';
+import { MaterialGallery } from '@/components/experiments/MaterialGallery';
+import { useMaterials } from '@/hooks/use-materials';
+import { DocumentsList } from '@/components/experiments/DocumentsList';
+import { useDocuments } from '@/hooks/use-documents';
 import {
   ChevronLeft,
   ChevronRight,
@@ -54,10 +59,13 @@ import {
   Network,
   Info,
   Users,
+  Paperclip,
+  FileText,
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
+import { TagSelector } from '@/components/experiments/TagSelector';
 
 // =============================================================================
 // Scorecard Slider Component (Read-only)
@@ -137,7 +145,7 @@ export default function ExperimentDetail() {
   // Tab underline animation state
   // Initialize activeTab from query param 'tab' if present, otherwise default to 'analysis'
   const tabFromQuery = searchParams.get('tab');
-  const initialTab = ['analysis', 'interviews', 'explorations'].includes(tabFromQuery ?? '')
+  const initialTab = ['analysis', 'interviews', 'explorations', 'materials', 'reports'].includes(tabFromQuery ?? '')
     ? tabFromQuery!
     : 'analysis';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -148,7 +156,7 @@ export default function ExperimentDetail() {
   // Sync activeTab with query param when it changes
   useEffect(() => {
     const newTab = searchParams.get('tab');
-    const validTab = ['analysis', 'interviews', 'explorations'].includes(newTab ?? '')
+    const validTab = ['analysis', 'interviews', 'explorations', 'materials', 'reports'].includes(newTab ?? '')
       ? newTab!
       : 'analysis';
     setActiveTab(validTab);
@@ -177,6 +185,8 @@ export default function ExperimentDetail() {
   const runAnalysisMutation = useRunAnalysis();
   const deleteMutation = useDeleteExperiment();
   const { data: explorations, isLoading: isLoadingExplorations } = useExplorations(id ?? '');
+  const { data: materials, refetch: refetchMaterials } = useMaterials(id ?? '');
+  const { data: documents } = useDocuments(id ?? '');
 
   const handleRunAnalysis = () => {
     if (!id) return;
@@ -308,6 +318,14 @@ export default function ExperimentDetail() {
                   {truncatedDescription}
                 </p>
               )}
+
+              {/* Tags */}
+              <div className="mt-4">
+                <TagSelector
+                  experimentId={experiment.id}
+                  currentTags={experiment.tags || []}
+                />
+              </div>
             </div>
 
             {/* Right: Scorecard Sliders */}
@@ -348,7 +366,7 @@ export default function ExperimentDetail() {
           <div className="relative mb-6">
             <TabsList
               ref={tabsListRef}
-              className="relative w-full h-auto p-0 bg-transparent rounded-none border-b border-slate-200 grid grid-cols-3"
+              className="relative w-full h-auto p-0 bg-transparent rounded-none border-b border-slate-200 grid grid-cols-5"
             >
               {/* Analysis Tab */}
               <TabsTrigger
@@ -410,6 +428,46 @@ export default function ExperimentDetail() {
                   }`}
                 >
                   {hasScorecard && hasAnalysis ? (explorations?.length ?? 0) : '—'}
+                </Badge>
+              </TabsTrigger>
+
+              {/* Materials Tab */}
+              <TabsTrigger
+                ref={(el) => el && tabRefs.current.set('materials', el)}
+                value="materials"
+                className="relative flex items-center justify-center gap-2.5 px-4 py-4 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-violet-700 text-slate-500 hover:text-slate-700 transition-colors duration-200"
+              >
+                <Paperclip className="h-4 w-4" />
+                <span className="font-semibold">Materiais</span>
+                <Badge
+                  variant="secondary"
+                  className={`ml-1 text-[10px] px-2 py-0.5 rounded-full transition-colors ${
+                    activeTab === 'materials'
+                      ? 'bg-violet-100 text-violet-700'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {materials?.materials?.length ?? 0}
+                </Badge>
+              </TabsTrigger>
+
+              {/* Reports Tab */}
+              <TabsTrigger
+                ref={(el) => el && tabRefs.current.set('reports', el)}
+                value="reports"
+                className="relative flex items-center justify-center gap-2.5 px-4 py-4 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-violet-700 text-slate-500 hover:text-slate-700 transition-colors duration-200"
+              >
+                <FileText className="h-4 w-4" />
+                <span className="font-semibold">Relatórios</span>
+                <Badge
+                  variant="secondary"
+                  className={`ml-1 text-[10px] px-2 py-0.5 rounded-full transition-colors ${
+                    activeTab === 'reports'
+                      ? 'bg-violet-100 text-violet-700'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {documents?.length ?? 0}
                 </Badge>
               </TabsTrigger>
 
@@ -731,6 +789,65 @@ export default function ExperimentDetail() {
                   experimentId={id ?? ''}
                   isLoading={isLoadingExplorations}
                 />
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Materials Content */}
+          <TabsContent value="materials" className="mt-0">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-slate-100 rounded-lg">
+                    <Paperclip className="w-5 h-5 text-slate-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Materiais</h3>
+                    <p className="text-sm text-slate-500">
+                      {materials?.materials?.length ?? 0} arquivo(s) anexado(s)
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-6">
+                {/* Gallery - Show existing materials */}
+                <MaterialGallery experimentId={id ?? ''} />
+
+                {/* Upload - Add new materials */}
+                <div className="pt-6 border-t border-slate-100">
+                  <MaterialUpload
+                    experimentId={id ?? ''}
+                    onUploadComplete={() => refetchMaterials()}
+                  />
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Reports Content */}
+          <TabsContent value="reports" className="mt-0">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-slate-100 rounded-lg">
+                    <FileText className="w-5 h-5 text-slate-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Relatórios</h3>
+                    <p className="text-sm text-slate-500">
+                      Documentos gerados a partir de análises e explorações
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                <DocumentsList experimentId={id ?? ''} />
               </div>
             </div>
           </TabsContent>

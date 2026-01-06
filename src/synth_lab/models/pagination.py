@@ -25,6 +25,8 @@ class PaginationParams(BaseModel):
         pattern="^(asc|desc)$",
         description="Sort order: asc or desc",
     )
+    search: str | None = Field(default=None, max_length=200, description="Search query")
+    tag: str | None = Field(default=None, max_length=50, description="Filter by tag name")
 
 
 class PaginationMeta(BaseModel):
