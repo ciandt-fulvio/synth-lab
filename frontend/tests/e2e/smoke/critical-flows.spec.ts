@@ -98,9 +98,9 @@ test.describe('Smoke Tests - Critical Flows @smoke @critical', () => {
       page.locator('text=/App de Delivery.*Agendamento de Pedidos/i')
     ).toBeVisible({ timeout: 10000 });
 
-    // Verifica que scorecard foi carregado
+    // Verifica que scorecard foi carregado (use .first() to avoid strict mode violation)
     await expect(
-      page.locator('text=/scorecard|agendamento/i')
+      page.locator('text=/scorecard|agendamento/i').first()
     ).toBeVisible({ timeout: 10000 });
   });
 
