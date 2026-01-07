@@ -53,7 +53,7 @@ export function ViewSummaryButton({ experimentId }: ViewSummaryButtonProps) {
       // Start generation
       generateMutation.mutate(undefined, {
         onSuccess: () => {
-          toast.success('Resumo executivo em geração', {
+          toast.success('Resumo em geração', {
             description: 'O documento estará disponível em alguns segundos.',
           });
         },
@@ -84,7 +84,7 @@ export function ViewSummaryButton({ experimentId }: ViewSummaryButtonProps) {
         ) : (
           <>
             <Sparkles className="h-4 w-4 mr-2" />
-            {canGenerate ? 'Gerar Resumo Executivo' : 'Ver Resumo Executivo'}
+            {canGenerate ? 'Gerar Resumo' : 'Ver Resumo'}
           </>
         )}
         {isNew && summary?.status === 'completed' && (

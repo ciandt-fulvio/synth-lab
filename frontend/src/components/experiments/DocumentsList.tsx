@@ -158,13 +158,13 @@ export function DocumentsList({ experimentId }: DocumentsListProps) {
                 PR-FAQ da Exploração
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="research_summary">
-                Resumo da Pesquisa
+                Resumo de Entrevista
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="research_prfaq">
-                PR-FAQ da Pesquisa
+                PR-FAQ de Entrevista
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="executive_summary">
-                Resumo Executivo
+                Análise Quantitativa
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
           </DropdownMenuContent>

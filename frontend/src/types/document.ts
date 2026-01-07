@@ -81,9 +81,9 @@ export interface GenerateDocumentResponse {
 export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   exploration_summary: 'Resumo da Exploração',
   exploration_prfaq: 'PR-FAQ da Exploração',
-  research_summary: 'Resumo da Pesquisa',
-  research_prfaq: 'PR-FAQ da Pesquisa',
-  executive_summary: 'Resumo Executivo',
+  research_summary: 'Resumo de Entrevista',
+  research_prfaq: 'PR-FAQ de Entrevista',
+  executive_summary: 'Análise Quantitativa',
 };
 
 /**
