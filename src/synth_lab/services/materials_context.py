@@ -10,8 +10,9 @@ References:
     - research.md: Formatting decisions and patterns
 """
 
-from typing import Literal
 import re
+from typing import Literal
+
 from loguru import logger
 from pydantic import BaseModel
 
@@ -204,7 +205,21 @@ def _format_for_interview(
     contexts: list[MaterialContext],
     include_tool: bool
 ) -> str:
-    """Format materials for interview context."""
+    """
+    Format materials for interview context with tool usage instructions.
+
+    Creates a markdown section that includes:
+    - List of all materials with IDs and metadata
+    - Instructions for using ver_material() tool (if enabled)
+    - Examples of how to reference visual elements in responses
+
+    Args:
+        contexts: List of MaterialContext objects to format
+        include_tool: If True, includes ver_material() tool usage instructions
+
+    Returns:
+        Markdown-formatted string with materials section for interview prompts
+    """
     lines = ["## Materiais Anexados", ""]
 
     if include_tool:
@@ -246,7 +261,20 @@ def _format_for_interview(
 
 
 def _format_for_prfaq(contexts: list[MaterialContext]) -> str:
-    """Format materials for PR-FAQ context."""
+    """
+    Format materials for PR-FAQ generation context with citation guidelines.
+
+    Creates a markdown section that includes:
+    - List of all materials used during research
+    - Citation format instructions for referencing in generated content
+    - Examples of proper material reference syntax
+
+    Args:
+        contexts: List of MaterialContext objects to format
+
+    Returns:
+        Markdown-formatted string with materials section for PR-FAQ prompts
+    """
     lines = ["## Materiais de Referência", ""]
     lines.append("Os seguintes materiais foram usados durante a pesquisa:")
     lines.append("")
@@ -274,7 +302,19 @@ def _format_for_prfaq(contexts: list[MaterialContext]) -> str:
 
 
 def _format_for_exploration(contexts: list[MaterialContext]) -> str:
-    """Format materials for exploration context (metadata only)."""
+    """
+    Format materials for exploration scenario generation (metadata only).
+
+    Creates a minimal markdown section with material metadata for context.
+    Unlike interview/prfaq contexts, exploration does not include tool
+    instructions as scenarios are generated without interactive material viewing.
+
+    Args:
+        contexts: List of MaterialContext objects to format
+
+    Returns:
+        Markdown-formatted string with materials metadata for exploration prompts
+    """
     lines = ["## Materiais do Experimento", ""]
     lines.append("Os seguintes materiais estão anexados ao experimento:")
     lines.append("")

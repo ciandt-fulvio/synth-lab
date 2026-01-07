@@ -183,7 +183,41 @@ def get_available_images(topic_guide_name: str) -> list[str]:
 # ============================================================================
 
 class MaterialToolResponse(BaseModel):
-    """Response format from material retrieval tool."""
+    """
+    Structured response from material retrieval tool.
+
+    Provides a consistent response format for material loading operations,
+    whether successful or failed. The response includes either the loaded
+    content (as data URI) or an error message.
+
+    Attributes:
+        status: 'success' if material was loaded, 'error' otherwise
+        material_id: ID of the requested material
+        data_uri: Base64-encoded content with MIME prefix (e.g., "data:image/png;base64,...")
+        error_message: Human-readable error description (None on success)
+        mime_type: MIME type of the loaded file (None on error)
+        file_name: Original filename (None on error)
+
+    Example success response:
+        MaterialToolResponse(
+            status="success",
+            material_id="mat_abc123",
+            data_uri="data:image/png;base64,iVBORw0...",
+            error_message=None,
+            mime_type="image/png",
+            file_name="wireframe.png"
+        )
+
+    Example error response:
+        MaterialToolResponse(
+            status="error",
+            material_id="mat_xyz789",
+            data_uri=None,
+            error_message="Material not found",
+            mime_type=None,
+            file_name=None
+        )
+    """
 
     status: Literal["success", "error"]
     material_id: str
@@ -194,7 +228,18 @@ class MaterialToolResponse(BaseModel):
 
     @classmethod
     def success(cls, material_id: str, data_uri: str, mime_type: str, file_name: str):
-        """Create success response."""
+        """
+        Create success response with loaded material content.
+
+        Args:
+            material_id: ID of the loaded material
+            data_uri: Base64-encoded content with MIME type prefix
+            mime_type: MIME type of the file
+            file_name: Original filename
+
+        Returns:
+            MaterialToolResponse with status='success'
+        """
         return cls(
             status="success",
             material_id=material_id,
@@ -206,7 +251,16 @@ class MaterialToolResponse(BaseModel):
 
     @classmethod
     def error(cls, material_id: str, error_message: str):
-        """Create error response."""
+        """
+        Create error response when material loading fails.
+
+        Args:
+            material_id: ID of the requested material
+            error_message: Human-readable error description
+
+        Returns:
+            MaterialToolResponse with status='error' and None for content fields
+        """
         return cls(
             status="error",
             material_id=material_id,
@@ -275,11 +329,17 @@ def _load_material_content(
             try:
                 file_content = s3_client.download_from_s3(material.file_url)
             except TimeoutError as e:
-                error_msg = "Timeout ao carregar material. Tente novamente ou escolha outro material."
+                error_msg = (
+                    "Timeout ao carregar material. "
+                    "Tente novamente ou escolha outro material."
+                )
                 logger.error(f"Timeout downloading material {material_id}: {e}")
                 return error_msg
             except Exception as e:
-                error_msg = "Material não encontrado. Arquivo pode ter sido removido do armazenamento."
+                error_msg = (
+                    "Material não encontrado. "
+                    "Arquivo pode ter sido removido do armazenamento."
+                )
                 logger.error(f"S3 download failed for {material_id}: {e}")
                 return error_msg
 
