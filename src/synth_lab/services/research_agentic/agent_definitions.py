@@ -32,7 +32,9 @@ from .instructions import (
     format_interviewee_reviewer_instructions,
     format_interviewer_instructions,
     format_interviewer_reviewer_instructions,
-    format_orchestrator_instructions)
+    format_orchestrator_instructions,
+)
+from .tools import create_materials_tool
 
 
 def _get_model_settings(model: str, reasoning_effort: str = "low") -> ModelSettings | None:
@@ -87,11 +89,36 @@ def create_interviewer(
         additional_context=additional_context,
         materials=materials)
 
+    # Build tools list - include materials tool if materials provided
+    agent_tools: list[Any] = []
+
+    if materials and len(materials) > 0:
+        # Get experiment_id from first material
+        experiment_id = materials[0].experiment_id
+
+        # Import repository and service for materials tool
+        from synth_lab.repositories.experiment_material_repository import (
+            ExperimentMaterialRepository,
+        )
+        from synth_lab.services.material_service import MaterialService
+
+        material_repo = ExperimentMaterialRepository()
+        material_service = MaterialService()
+
+        # Create and add materials tool
+        materials_tool = create_materials_tool(
+            experiment_id=experiment_id,
+            material_repository=material_repo,
+            s3_client=material_service,
+        )
+        agent_tools.append(materials_tool)
+
     # Build agent kwargs - only include model_settings if model supports it
     agent_kwargs = {
         "name": "Interviewer",
         "instructions": instructions,
         "mcp_servers": mcp_servers or [],
+        "tools": agent_tools,
         "model": model,
     }
     model_settings = _get_model_settings(model, reasoning_effort)
@@ -136,12 +163,36 @@ def create_interviewee(
     )
     synth_name = synth.get("nome", "Participante")
 
+    # Build tools list - include materials tool if materials provided
+    agent_tools = list(tools) if tools else []
+
+    if materials and len(materials) > 0:
+        # Get experiment_id from first material
+        experiment_id = materials[0].experiment_id
+
+        # Import repository and service for materials tool
+        from synth_lab.repositories.experiment_material_repository import (
+            ExperimentMaterialRepository,
+        )
+        from synth_lab.services.material_service import MaterialService
+
+        material_repo = ExperimentMaterialRepository()
+        material_service = MaterialService()
+
+        # Create and add materials tool
+        materials_tool = create_materials_tool(
+            experiment_id=experiment_id,
+            material_repository=material_repo,
+            s3_client=material_service,
+        )
+        agent_tools.append(materials_tool)
+
     # Build agent kwargs - only include model_settings if model supports it
     agent_kwargs = {
         "name": f"Interviewee ({synth_name})",
         "instructions": instructions,
         "mcp_servers": mcp_servers or [],
-        "tools": tools or [],
+        "tools": agent_tools,
         "model": model,
     }
     model_settings = _get_model_settings(model, reasoning_effort)
