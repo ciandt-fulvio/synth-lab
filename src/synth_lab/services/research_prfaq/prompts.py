@@ -23,11 +23,12 @@ Saída esperada:
 from synth_lab.services.materials_context import format_materials_for_prompt
 
 
-def get_system_prompt(materials: list | None = None) -> str:
+def get_system_prompt(materials: list | None = None, materials_urls: dict | None = None) -> str:
     """Retorna o system prompt para geração de PR-FAQ no framework Working Backwards da Amazon.
 
     Args:
         materials: Optional list of ExperimentMaterial objects to include in prompt
+        materials_urls: Optional dict mapping material_id -> presigned URL
 
     Returns:
         String do system prompt com instruções e materiais (se fornecidos)
@@ -42,7 +43,8 @@ def get_system_prompt(materials: list | None = None) -> str:
         materials_formatted = format_materials_for_prompt(
             materials=materials,
             context="prfaq",
-            include_tool_instructions=False  # PR-FAQ doesn't use tools, just references
+            include_tool_instructions=False,  # PR-FAQ doesn't use tools, just references
+            presigned_urls=materials_urls  # Pass presigned URLs for image viewing
         )
         if materials_formatted:
             materials_section = "\n" + materials_formatted + "\n"

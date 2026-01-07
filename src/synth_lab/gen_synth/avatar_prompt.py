@@ -176,7 +176,7 @@ def build_prompt(synths: list[dict[str, Any]]) -> str:
         raise ValueError(f"Esperado exatamente 9 synths, recebido {len(synths)}")
 
     # Atribuir filtros aleatórios
-    filters = assign_random_filters(9)
+    filters = assign_random_filters(8)
 
     framing = assign_random_framing(6)
 

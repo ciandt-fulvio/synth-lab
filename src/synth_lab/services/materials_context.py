@@ -148,7 +148,8 @@ def format_materials_for_prompt(
     materials: list | None,
     context: Literal["interview", "prfaq", "exploration"],
     include_tool_instructions: bool = True,
-    role: Literal["interviewer", "interviewee"] = "interviewee"
+    role: Literal["interviewer", "interviewee"] = "interviewee",
+    presigned_urls: dict | None = None
 ) -> str:
     """
     Format experiment materials as markdown section for LLM system prompts.
@@ -160,10 +161,11 @@ def format_materials_for_prompt(
         materials: List of ExperimentMaterial ORM instances (or None)
         context: Context type determines formatting style
             - interview: Includes tool usage instructions
-            - prfaq: Includes reference format guidelines
+            - prfaq: Includes reference format guidelines with presigned URLs
             - exploration: Metadata only (no tool)
         include_tool_instructions: Whether to include ver_material() tool usage
         role: Role of the agent (interviewer or interviewee) - affects instructions
+        presigned_urls: Optional dict mapping material_id -> presigned URL (for prfaq context)
 
     Returns:
         Markdown-formatted materials section (empty string if no materials)
@@ -198,7 +200,7 @@ def format_materials_for_prompt(
     if context == "interview":
         return _format_for_interview(contexts, include_tool_instructions, role) + truncation_note
     elif context == "prfaq":
-        return _format_for_prfaq(contexts) + truncation_note
+        return _format_for_prfaq(contexts, presigned_urls) + truncation_note
     elif context == "exploration":
         return _format_for_exploration(contexts) + truncation_note
 
@@ -295,17 +297,19 @@ def _format_for_interview(
     return "\n".join(lines)
 
 
-def _format_for_prfaq(contexts: list[MaterialContext]) -> str:
+def _format_for_prfaq(contexts: list[MaterialContext], presigned_urls: dict | None = None) -> str:
     """
     Format materials for PR-FAQ generation context with citation guidelines.
 
     Creates a markdown section that includes:
     - List of all materials used during research
+    - Presigned URLs for LLM to view images (if provided)
     - Citation format instructions for referencing in generated content
     - Examples of proper material reference syntax
 
     Args:
         contexts: List of MaterialContext objects to format
+        presigned_urls: Optional dict mapping material_id -> presigned URL
 
     Returns:
         Markdown-formatted string with materials section for PR-FAQ prompts
@@ -319,6 +323,11 @@ def _format_for_prfaq(contexts: list[MaterialContext]) -> str:
         lines.append(f"- **{ctx.material_id}** - {ctx.display_label}")
         if ctx.description:
             lines.append(f"  Descrição: {ctx.description}")
+
+        # Include presigned URL if available (allows LLM to view image)
+        if presigned_urls and ctx.material_id in presigned_urls:
+            lines.append(f"  URL: {presigned_urls[ctx.material_id]}")
+
         lines.append("")
 
     # Add reference format guidelines

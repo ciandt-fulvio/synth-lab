@@ -65,11 +65,26 @@ def generate_prfaq_from_content(
 
     # Fetch materials if experiment_id is provided
     materials = None
+    materials_urls = {}
     if experiment_id:
         logger.debug(f"Fetching materials for experiment {experiment_id}")
         material_repo = ExperimentMaterialRepository()
         materials = material_repo.list_by_experiment(experiment_id)
         logger.info(f"Loaded {len(materials)} materials for experiment {experiment_id}")
+
+        # Generate presigned URLs for materials (valid for 2 hours)
+        from synth_lab.infrastructure.storage_client import generate_view_url
+        for mat in materials:
+            if mat.file_url:
+                url_parts = mat.file_url.split("/")
+                object_key = "/".join(url_parts[4:])
+                try:
+                    materials_urls[mat.id] = generate_view_url(object_key, expires_in=7200)
+                    logger.debug(f"Generated presigned URL for {mat.id}")
+                except Exception as e:
+                    logger.warning(f"Failed to generate URL for {mat.id}: {e}")
+
+        logger.info(f"Generated {len(materials_urls)} presigned URLs for materials")
 
     with _tracer.start_as_current_span(
         f"Generate PR-FAQ: {batch_id}",
@@ -85,8 +100,8 @@ def generate_prfaq_from_content(
         client = OpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"))
 
         # Build prompt with system prompt + few-shot examples + user content
-        # Pass materials to system prompt for context
-        system_prompt = get_system_prompt(materials=materials)
+        # Pass materials and presigned URLs to system prompt for context
+        system_prompt = get_system_prompt(materials=materials, materials_urls=materials_urls)
         few_shot_examples = get_few_shot_examples()
 
         # Format few-shot examples as conversation
