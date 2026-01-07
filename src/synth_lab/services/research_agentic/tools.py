@@ -2,29 +2,49 @@
 Function tools for agentic interview system.
 
 This module provides tools that agents can use during interviews,
-such as loading images from topic guides for visual analysis.
+such as loading images from topic guides for visual analysis and
+loading experiment materials (images, PDFs, videos) for reference.
 
 References:
 - OpenAI Agents SDK Tools: https://openai.github.io/openai-agents-python/tools/
 - Vision API: https://platform.openai.com/docs/guides/vision
+- contracts/materials_tool.yaml: Materials tool contract
 
 Sample usage:
 ```python
-from .tools import create_image_loader_tool
+from .tools import create_image_loader_tool, create_materials_tool
 
+# Topic guide images
 tool = create_image_loader_tool(
     topic_guide_name="compra-amazon",
     available_images=["01_homepage.PNG", "02_cart.PNG"]
 )
-agent = Agent(name="Interviewee", tools=[tool])
+
+# Experiment materials
+materials_tool = create_materials_tool(
+    experiment_id="exp_123",
+    material_repository=repo,
+    s3_client=s3
+)
+
+agent = Agent(name="Interviewee", tools=[tool, materials_tool])
 ```
 """
 
 import base64
 from pathlib import Path
+from typing import Literal
 
 from agents import FunctionTool, function_tool
 from loguru import logger
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
+from pydantic import BaseModel
+
+from synth_lab.infrastructure.phoenix_tracing import get_tracer
+from synth_lab.infrastructure.storage_client import generate_view_url
+
+# Phoenix tracer for observability
+_tracer = get_tracer("materials-tool")
 
 
 def load_image_base64(filename: str, topic_guide_name: str) -> str:
@@ -109,20 +129,30 @@ def create_image_loader_tool(
         Returns:
             Base64-encoded image data with data URI prefix
         """
-        image_data = load_image_base64(filename, topic_guide_name)
+        with _tracer.start_as_current_span(
+            "Tool: ver_imagem",
+            attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.TOOL.value,
+                SpanAttributes.TOOL_NAME: "ver_imagem",
+                SpanAttributes.TOOL_PARAMETERS: f'{{"filename": "{filename}"}}',
+                "filename": filename,
+                "topic_guide_name": topic_guide_name,
+            }
+        ):
+            image_data = load_image_base64(filename, topic_guide_name)
 
-        # Determine MIME type from extension
-        ext = Path(filename).suffix.lower()
-        mime_types = {
-            ".png": "image/png",
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".gif": "image/gif",
-            ".webp": "image/webp",
-        }
-        mime_type = mime_types.get(ext, "image/png")
+            # Determine MIME type from extension
+            ext = Path(filename).suffix.lower()
+            mime_types = {
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".gif": "image/gif",
+                ".webp": "image/webp",
+            }
+            mime_type = mime_types.get(ext, "image/png")
 
-        return f"data:{mime_type};base64,{image_data}"
+            return f"data:{mime_type};base64,{image_data}"
 
     return load_image
 
@@ -158,6 +188,246 @@ def get_available_images(topic_guide_name: str) -> list[str]:
 
     logger.info(f"Found {len(images)} images in topic guide '{topic_guide_name}'")
     return sorted(images)
+
+
+#  ============================================================================
+# Materials Tool (for Experiment Materials)
+# ============================================================================
+
+class MaterialToolResponse(BaseModel):
+    """
+    Structured response from material retrieval tool.
+
+    Provides a consistent response format for material loading operations,
+    whether successful or failed. The response includes either the loaded
+    content (as data URI) or an error message.
+
+    Attributes:
+        status: 'success' if material was loaded, 'error' otherwise
+        material_id: ID of the requested material
+        data_uri: Base64-encoded content with MIME prefix (e.g., "data:image/png;base64,...")
+        error_message: Human-readable error description (None on success)
+        mime_type: MIME type of the loaded file (None on error)
+        file_name: Original filename (None on error)
+
+    Example success response:
+        MaterialToolResponse(
+            status="success",
+            material_id="mat_abc123",
+            data_uri="data:image/png;base64,iVBORw0...",
+            error_message=None,
+            mime_type="image/png",
+            file_name="wireframe.png"
+        )
+
+    Example error response:
+        MaterialToolResponse(
+            status="error",
+            material_id="mat_xyz789",
+            data_uri=None,
+            error_message="Material not found",
+            mime_type=None,
+            file_name=None
+        )
+    """
+
+    status: Literal["success", "error"]
+    material_id: str
+    data_uri: str | None  # "data:image/png;base64,..." or None if error
+    error_message: str | None
+    mime_type: str | None
+    file_name: str | None
+
+    @classmethod
+    def success(cls, material_id: str, data_uri: str, mime_type: str, file_name: str):
+        """
+        Create success response with loaded material content.
+
+        Args:
+            material_id: ID of the loaded material
+            data_uri: Base64-encoded content with MIME type prefix
+            mime_type: MIME type of the file
+            file_name: Original filename
+
+        Returns:
+            MaterialToolResponse with status='success'
+        """
+        return cls(
+            status="success",
+            material_id=material_id,
+            data_uri=data_uri,
+            error_message=None,
+            mime_type=mime_type,
+            file_name=file_name
+        )
+
+    @classmethod
+    def error(cls, material_id: str, error_message: str):
+        """
+        Create error response when material loading fails.
+
+        Args:
+            material_id: ID of the requested material
+            error_message: Human-readable error description
+
+        Returns:
+            MaterialToolResponse with status='error' and None for content fields
+        """
+        return cls(
+            status="error",
+            material_id=material_id,
+            data_uri=None,
+            error_message=error_message,
+            mime_type=None,
+            file_name=None
+        )
+
+
+def _load_material_content(
+    material_id: str,
+    experiment_id: str,
+    material_repository,
+) -> str:
+    """
+    Core business logic for loading material content.
+
+    This function is separated from the tool wrapper for testability.
+    Uses get_object_bytes from storage_client directly for S3 access.
+
+    Args:
+        material_id: ID of the material to load
+        experiment_id: ID of the experiment (for validation)
+        material_repository: Repository for fetching material metadata
+
+    Returns:
+        Data URI with base64-encoded content or error message
+    """
+    with _tracer.start_as_current_span(
+        "Tool: ver_material",
+        attributes={
+            SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.TOOL.value,
+            SpanAttributes.TOOL_NAME: "ver_material",
+            SpanAttributes.TOOL_PARAMETERS: f'{{"material_id": "{material_id}"}}',
+            "material_id": material_id,
+            "experiment_id": experiment_id,
+        }
+    ):
+        try:
+            # Fetch material metadata
+            material = material_repository.get_by_id(material_id)
+
+            if material is None:
+                error_msg = f"Material {material_id} não encontrado neste experimento."
+                logger.warning(error_msg)
+                return error_msg
+
+            # Validate material belongs to this experiment
+            if material.experiment_id != experiment_id:
+                error_msg = f"Material {material_id} não encontrado neste experimento."
+                logger.warning(
+                    f"Material {material_id} belongs to {material.experiment_id}, "
+                    f"not {experiment_id}"
+                )
+                return error_msg
+
+            # Check file size (50MB limit)
+            if material.file_size > 50_000_000:
+                error_msg = (
+                    f"Material muito grande (>50MB). "
+                    f"Use a descrição do material como referência: {material.description}"
+                )
+                logger.warning(f"Material {material_id} too large: {material.file_size} bytes")
+                return error_msg
+
+            # Extract object_key from file_url
+            # URL format: https://endpoint/bucket/materials/exp_id/mat_id.ext
+            if not material.file_url:
+                error_msg = f"Material {material_id} não tem arquivo associado."
+                logger.warning(f"Material {material_id} has no file_url")
+                return error_msg
+
+            url_parts = material.file_url.split("/")
+            # Skip https:, empty, endpoint, bucket -> get the key
+            object_key = "/".join(url_parts[4:])
+
+            # Generate presigned URL for the material (expires in 1 hour)
+            try:
+                view_url = generate_view_url(object_key, expires_in=3600)
+
+                logger.info(
+                    f"Generated view URL for material {material_id}: {material.file_name} "
+                    f"(expires in 3600s) - URL: {view_url[:100]}..."
+                )
+
+                return view_url
+
+            except Exception as e:
+                error_msg = (
+                    "Erro ao gerar URL de visualização. "
+                    "Tente novamente em alguns segundos."
+                )
+                logger.error(f"Failed to generate view URL for {material_id} ({object_key}): {e}")
+                return error_msg
+
+        except Exception as e:
+            error_msg = f"Erro ao carregar material: {str(e)}"
+            logger.error(f"Unexpected error loading material {material_id}: {e}")
+            return error_msg
+
+
+def create_materials_tool(
+    experiment_id: str,
+    material_repository,
+) -> FunctionTool:
+    """
+    Create a function tool for loading experiment materials.
+
+    The tool allows agents to request specific materials (images, PDFs, videos)
+    from the experiment for visual analysis during interviews.
+
+    Args:
+        experiment_id: ID of the current experiment
+        material_repository: Repository for fetching material metadata
+
+    Returns:
+        FunctionTool configured to load materials from S3
+
+    Sample usage:
+    ```python
+    from synth_lab.repositories.experiment_material_repository import ExperimentMaterialRepository
+
+    tool = create_materials_tool(
+        experiment_id="exp_123",
+        material_repository=ExperimentMaterialRepository(),
+    )
+    ```
+    """
+
+    @function_tool(
+        name_override="ver_material",
+        description_override=(
+            "Visualiza um material anexado ao experimento. "
+            "Use o material_id da lista de materiais disponíveis "
+            "no contexto do experimento para carregar e visualizar "
+            "imagens, documentos ou vídeos."
+        ))
+    def view_material(material_id: str) -> str:
+        """
+        Load material from experiment for visual analysis.
+
+        Args:
+            material_id: ID do material (e.g., 'mat_abc123def456')
+
+        Returns:
+            Data URI with base64-encoded content or error message
+        """
+        return _load_material_content(
+            material_id=material_id,
+            experiment_id=experiment_id,
+            material_repository=material_repository,
+        )
+
+    return view_material
 
 
 if __name__ == "__main__":

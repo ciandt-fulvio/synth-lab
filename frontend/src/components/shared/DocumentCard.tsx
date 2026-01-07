@@ -73,24 +73,24 @@ export const DOCUMENT_CONFIGS: Record<SupportedDocumentType, DocumentTypeConfig>
     viewerTitleSuffix: 'Exploração',
   },
   research_summary: {
-    title: 'Resumo da Pesquisa',
+    title: 'Resumo de Entrevista',
     description: 'Síntese das entrevistas com principais insights e descobertas',
     icon: FileText,
     iconColor: 'text-indigo-600',
     generateLabel: 'Gerar Resumo',
     regenerateLabel: 'Regenerar',
     defaultDisabledReason: 'Aguardando conclusão das entrevistas',
-    viewerTitleSuffix: 'Pesquisa',
+    viewerTitleSuffix: 'Entrevista',
   },
   research_prfaq: {
-    title: 'PR-FAQ',
+    title: 'PR-FAQ de Entrevista',
     description: 'Documento formal com Press Release, FAQ e Recomendações',
     icon: Newspaper,
     iconColor: 'text-violet-600',
     generateLabel: 'Gerar PR-FAQ',
     regenerateLabel: 'Regenerar',
     defaultDisabledReason: 'Gere o resumo primeiro',
-    viewerTitleSuffix: 'Pesquisa',
+    viewerTitleSuffix: 'Entrevista',
   },
 };
 

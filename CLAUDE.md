@@ -69,6 +69,8 @@ PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
 - PostgreSQL 14+ (existing tables: explorations, scenario_nodes, experiments) (028-exploration-summary)
 - Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, boto3 (S3), React 18, TanStack Query, shadcn/ui (001-experiment-materials)
 - PostgreSQL 14+ (metadata), S3-compatible storage (files) (001-experiment-materials)
+- Python 3.13+ + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, OpenAI Agents SDK, boto3 (S3), Arize Phoenix (tracing) (029-synth-material-integration)
+- PostgreSQL 14+ (metadata via `experiment_materials` table), S3-compatible storage (file content) (029-synth-material-integration)
 
 ## Recent Changes
 - 028-exploration-summary: Added Python 3.13+ + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, Arize Phoenix

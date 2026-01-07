@@ -339,7 +339,8 @@ class ResearchService:
                 model=request.model,
                 skip_interviewee_review=request.skip_interviewee_review,
                 analysis_id=analysis_id,
-                summary_title=experiment_name)
+                summary_title=experiment_name,
+                experiment_id=request.experiment_id)
         )
 
         return ResearchExecuteResponse(
@@ -362,7 +363,8 @@ class ResearchService:
         model: str = "gpt-4o-mini",
         skip_interviewee_review: bool = True,
         analysis_id: str | None = None,
-        summary_title: str | None = None) -> None:
+        summary_title: str | None = None,
+        experiment_id: str | None = None) -> None:
         """
         Run batch interviews and save results to database.
 
@@ -379,6 +381,7 @@ class ResearchService:
             max_turns: Max turns per interview.
             skip_interviewee_review: Whether to skip interviewee response reviewer.
             model: LLM model to use.
+            experiment_id: Optional experiment ID to fetch materials from.
             summary_title: Title for the research summary (defaults to guide_name).
 
         Note:
@@ -485,6 +488,20 @@ class ResearchService:
             logger.debug(f"Published interview_completed for {synth_id}")
 
         try:
+            # Fetch materials from experiment if experiment_id is provided
+            materials = None
+            if experiment_id:
+                from synth_lab.repositories.experiment_material_repository import (
+                    ExperimentMaterialRepository,
+                )
+
+                material_repo = ExperimentMaterialRepository()
+                materials = material_repo.list_by_experiment(experiment_id)
+                if materials:
+                    logger.info(
+                        f"Loaded {len(materials)} materials for experiment {experiment_id}"
+                    )
+
             # Callback to save transcripts immediately when interviews complete
             # This ensures transcripts are available during summary generation
             async def on_transcription_complete_with_save(
@@ -514,7 +531,8 @@ class ResearchService:
                 skip_interviewee_review=skip_interviewee_review,
                 additional_context=additional_context,
                 guide_name=guide_name,
-                analysis_id=analysis_id)
+                analysis_id=analysis_id,
+                materials=materials)
 
             # Transcripts are now saved immediately in on_interview_complete callback
             # This ensures they're available as soon as the user clicks on a completed card

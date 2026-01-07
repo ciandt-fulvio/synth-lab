@@ -180,6 +180,7 @@ class ResearchPRFAQGeneratorService:
                     summary_content=summary_content,
                     batch_id=exec_id,
                     model=model,
+                    experiment_id=execution.experiment_id,
                 )
 
                 if span:

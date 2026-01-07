@@ -328,7 +328,7 @@ async def generate_exploration_summary(exploration_id: str) -> DocumentDetailRes
     """
     service = get_summary_generator_service()
     try:
-        doc = service.generate_for_exploration(exploration_id)
+        doc = await service.generate_for_exploration_async(exploration_id)
         logger.info(f"Generated summary for exploration {exploration_id}")
         return _document_to_response(doc)
     except ValueError as e:

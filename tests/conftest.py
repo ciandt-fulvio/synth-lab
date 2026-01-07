@@ -1,13 +1,18 @@
 """
 Pytest configuration and shared fixtures for SynthLab tests.
 
-CRITICAL: Integration tests use a SEPARATE test database (synthlab_test).
+Test Database Flow:
+1. Session start: DROP ALL → Alembic migrations → Verify schema → Seed data
+2. Each test: BEGIN TRANSACTION → SAVEPOINT → test runs → ROLLBACK (seed preserved)
+
+CRITICAL: Integration tests use POSTGRES_URL pointing to 'synthlab_test' database.
 This prevents destructive tests from affecting development data.
 """
 
 import json
 import os
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -17,6 +22,11 @@ from dotenv import load_dotenv
 
 # Load .env file automatically for all tests
 load_dotenv()
+
+
+# ==============================================================================
+# Utility Fixtures (no database)
+# ==============================================================================
 
 
 @pytest.fixture
@@ -98,235 +108,9 @@ def temp_output_dir():
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-@pytest.fixture(scope="session")
-def test_database_url() -> str:
-    """
-    Provide isolated test database URL.
-
-    CRITICAL: This fixture ensures tests NEVER use the development database.
-    Integration tests will DROP and recreate tables - only safe on test DB!
-
-    Returns:
-        str: PostgreSQL test database URL from POSTGRES_URL environment variable
-
-    Raises:
-        pytest.skip: If POSTGRES_URL is not set (test database not configured)
-    """
-    postgres_url = os.getenv("POSTGRES_URL")
-
-    if not postgres_url:
-        pytest.skip("POSTGRES_URL environment variable not set - test database not configured")
-
-    # Safety check: ensure we're NOT using the development database
-    if "synthlab_test" not in postgres_url:
-        raise ValueError(
-            f"CRITICAL: POSTGRES_URL must point to 'synthlab_test' database, not production/dev DB!\n"
-            f"Current URL: {postgres_url}\n"
-            f"Expected: postgresql://user:pass@localhost:5432/synthlab_test"
-        )
-
-    return postgres_url
-
-
-@pytest.fixture(scope="function")
-def isolated_db_session(test_database_url: str):
-    """
-    Provide an isolated database session for integration tests.
-
-    This fixture:
-    1. Verifies we're using the test database (not dev/prod)
-    2. Creates all ORM tables if they don't exist
-    3. Cleans all tables before and after each test
-    4. Creates a fresh session for each test
-    5. Uses transactions with rollback for isolation
-
-    IMPORTANT: Tests should create Services by passing repositories with this session.
-    Example:
-        def test_something(isolated_db_session):
-            # Setup test data
-            isolated_db_session.add(Experiment(...))
-            isolated_db_session.commit()
-
-            # Create service with test session
-            repo = ResearchRepository(session=isolated_db_session)
-            service = ResearchService(research_repo=repo)
-
-            # Run test
-            result = service.list_executions(params)
-            assert result.pagination.total == expected
-    """
-    from sqlalchemy import create_engine, text, event
-    from sqlalchemy.orm import sessionmaker
-
-    # Import all ORM models to register them with Base.metadata
-    import synth_lab.models.orm  # noqa: F401
-    from synth_lab.models.orm.base import Base
-
-    engine = create_engine(test_database_url)
-
-    # Create all tables if they don't exist
-    Base.metadata.create_all(engine)
-
-    connection = engine.connect()
-    transaction = connection.begin()
-
-    SessionLocal = sessionmaker(bind=connection)
-    session = SessionLocal(bind=connection)
-
-    # Start a nested transaction (SAVEPOINT) for test isolation
-    nested = connection.begin_nested()
-
-    # Restart SAVEPOINT after each commit/rollback
-    @event.listens_for(session, "after_transaction_end")
-    def restart_savepoint(session, transaction):
-        nonlocal nested
-        if not nested.is_active:
-            nested = connection.begin_nested()
-
-    yield session
-
-    # Rollback everything (including commits via SAVEPOINT)
-    session.close()
-    if nested.is_active:
-        nested.rollback()
-    transaction.rollback()
-    connection.close()
-    engine.dispose()
-
-
 # ==============================================================================
-# PostgreSQL Test Database Auto-Setup
+# PostgreSQL Test Database Configuration
 # ==============================================================================
-
-
-def _ensure_test_database_ready(db_url: str) -> None:
-    """
-    Ensure PostgreSQL test database exists and is migrated.
-
-    This function:
-    1. Creates database if it doesn't exist
-    2. Applies all Alembic migrations if needed
-    3. Verifies migrations are at HEAD
-
-    Called automatically before any PostgreSQL test runs.
-    """
-    from sqlalchemy import create_engine, text
-    from alembic import command
-    from alembic.config import Config
-    from alembic.runtime.migration import MigrationContext
-    from alembic.script import ScriptDirectory
-    from pathlib import Path
-    import sys
-
-    # Extract database name from URL
-    db_name = db_url.rsplit("/", 1)[1].split("?")[0]
-    admin_url = db_url.rsplit("/", 1)[0] + "/postgres"
-
-    # Try to connect to test database
-    try:
-        test_engine = create_engine(db_url)
-        test_engine.connect().close()
-        test_engine.dispose()
-        database_exists = True
-    except Exception:
-        database_exists = False
-
-    # Create database if it doesn't exist
-    if not database_exists:
-        print(f"\n🔧 Creating test database '{db_name}'...")
-        try:
-            admin_engine = create_engine(admin_url, isolation_level="AUTOCOMMIT")
-            with admin_engine.connect() as conn:
-                conn.execute(text(f'CREATE DATABASE "{db_name}"'))
-            admin_engine.dispose()
-            print(f"✅ Database '{db_name}' created")
-        except Exception as e:
-            print(f"❌ Failed to create database: {e}")
-            print("💡 Make sure PostgreSQL is running: docker compose up -d postgres")
-            sys.exit(1)
-
-    # Check and apply migrations
-    test_engine = create_engine(db_url)
-
-    try:
-        with test_engine.connect() as conn:
-            context = MigrationContext.configure(conn)
-            current_rev = context.get_current_revision()
-
-            # Get HEAD revision
-            project_root = Path(__file__).parent.parent
-            alembic_ini = project_root / "src" / "synth_lab" / "alembic" / "alembic.ini"
-            config = Config(str(alembic_ini))
-            config.set_main_option(
-                "script_location", str(project_root / "src" / "synth_lab" / "alembic")
-            )
-            script = ScriptDirectory.from_config(config)
-            head_rev = script.get_current_head()
-
-            # Apply migrations if needed
-            if current_rev != head_rev:
-                print(f"\n🔧 Applying migrations to test database...")
-                print(f"   Current: {current_rev or 'None'}")
-                print(f"   Target:  {head_rev}")
-
-                # Set DATABASE_URL for env.py
-                os.environ["DATABASE_URL"] = db_url
-
-                command.upgrade(config, "head")
-                print("✅ Migrations applied successfully")
-
-    except Exception as e:
-        print(f"❌ Migration check/apply failed: {e}")
-        sys.exit(1)
-    finally:
-        test_engine.dispose()
-
-
-@pytest.fixture(scope="session", autouse=True)
-def _auto_setup_postgres_if_needed(request):
-    """
-    Automatically setup PostgreSQL test database if any test needs it.
-
-    This fixture runs once per test session and:
-    - Detects if any test uses PostgreSQL fixtures or has @pytest.mark.requires_postgres
-    - Creates database if needed
-    - Applies migrations automatically
-    - Does nothing if DATABASE_TEST_URL is not set
-
-    No manual setup required - just run pytest!
-    """
-    db_url = os.getenv("DATABASE_TEST_URL")
-
-    if not db_url:
-        # No PostgreSQL configured - tests will skip
-        return
-
-    # Check if any test in session uses postgres fixtures or marker
-    uses_postgres = False
-    for item in request.session.items:
-        # Check for requires_postgres marker
-        if item.get_closest_marker("requires_postgres"):
-            uses_postgres = True
-            break
-
-        # Check for postgres fixtures
-        fixture_names = getattr(item, "fixturenames", [])
-        postgres_fixtures = {
-            "postgres_test_url",
-            "migrated_db_engine",
-            "db_session",
-            "seeded_db_session",
-        }
-        if any(f in postgres_fixtures for f in fixture_names):
-            uses_postgres = True
-            break
-
-    if uses_postgres:
-        print("\n" + "=" * 70)
-        print("🐘 PostgreSQL Test Database Auto-Setup")
-        print("=" * 70)
-        _ensure_test_database_ready(db_url)
-        print("=" * 70)
 
 
 def pytest_configure(config):
@@ -335,33 +119,37 @@ def pytest_configure(config):
         "markers",
         "requires_postgres: mark test as requiring PostgreSQL (auto-setup enabled)"
     )
-
-
-# ==============================================================================
-# PostgreSQL Test Database Fixtures with Alembic Migrations
-# ==============================================================================
+    config.addinivalue_line(
+        "markers",
+        "integration: mark test as integration test requiring database"
+    )
 
 
 @pytest.fixture(scope="session")
 def postgres_test_url() -> str:
     """
-    Get PostgreSQL test database URL.
+    Get PostgreSQL test database URL from POSTGRES_URL.
 
-    Uses DATABASE_TEST_URL from environment.
-    Skips tests if not configured.
+    Safety checks:
+    - Must be set
+    - Must contain 'synthlab_test' or 'test' to prevent accidental use of prod DB
 
     Returns:
         str: PostgreSQL connection string for test database
+
+    Raises:
+        pytest.skip: If POSTGRES_URL is not set
+        ValueError: If URL doesn't point to test database
     """
-    db_url = os.getenv("DATABASE_TEST_URL")
+    db_url = os.getenv("POSTGRES_URL")
 
     if not db_url:
-        pytest.skip("DATABASE_TEST_URL not set - PostgreSQL test database required")
+        pytest.skip("POSTGRES_URL not set - PostgreSQL test database required")
 
-    # Safety check
+    # Safety check: ensure we're NOT using the development database
     if "synthlab_test" not in db_url and "test" not in db_url:
         raise ValueError(
-            f"CRITICAL: DATABASE_TEST_URL must point to test database!\n"
+            f"CRITICAL: POSTGRES_URL must point to 'synthlab_test' database!\n"
             f"Current: {db_url}\n"
             f"Expected: postgresql://user:pass@localhost:5432/synthlab_test"
         )
@@ -370,68 +158,245 @@ def postgres_test_url() -> str:
 
 
 @pytest.fixture(scope="session")
-def migrated_db_engine(postgres_test_url: str):
+def prod_database_url() -> str:
     """
-    Provide database engine with Alembic migrations applied.
+    Get production/development database URL from DATABASE_URL.
 
-    This fixture:
-    - Connects to PostgreSQL test database
-    - Verifies migrations are at HEAD (fails if not)
-    - Returns engine for test use
-    - Does NOT create/drop tables (migrations handle that)
+    Used for schema comparison to ensure test DB matches prod DB.
 
-    Use this for tests that need a clean database with proper schema.
+    Returns:
+        str: PostgreSQL connection string for prod/dev database
 
-    IMPORTANT: Run `uv run python scripts/setup_test_db.py --reset`
-    before running tests to ensure database is properly migrated.
+    Raises:
+        pytest.skip: If DATABASE_URL is not set
+    """
+    db_url = os.getenv("DATABASE_URL")
+
+    if not db_url:
+        pytest.skip("DATABASE_URL not set - cannot compare schemas")
+
+    return db_url
+
+
+# ==============================================================================
+# Database Setup: Clean → Migrate → Verify → Seed (Session-scoped)
+# ==============================================================================
+
+
+def _drop_all_tables(engine) -> None:
+    """Drop ALL tables from database (clean slate)."""
+    from sqlalchemy import text
+
+    print("   🗑️  Dropping all tables...")
+
+    with engine.connect() as conn:
+        # Drop all tables by dropping and recreating schema
+        conn.execute(text("DROP SCHEMA public CASCADE"))
+        conn.execute(text("CREATE SCHEMA public"))
+        conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
+        conn.commit()
+
+    print("   ✅ All tables dropped")
+
+
+def _run_alembic_migrations(db_url: str) -> str:
+    """
+    Run Alembic migrations to create schema from scratch.
+
+    Returns:
+        str: HEAD revision that was applied
+    """
+    from alembic import command
+    from alembic.config import Config
+
+    print("   🔧 Running Alembic migrations...")
+
+    project_root = Path(__file__).parent.parent
+    alembic_ini = project_root / "src" / "synth_lab" / "alembic" / "alembic.ini"
+
+    config = Config(str(alembic_ini))
+    config.set_main_option(
+        "script_location", str(project_root / "src" / "synth_lab" / "alembic")
+    )
+
+    # Set DATABASE_URL for env.py
+    os.environ["DATABASE_URL"] = db_url
+
+    command.upgrade(config, "head")
+
+    # Get HEAD revision
+    from alembic.script import ScriptDirectory
+    script = ScriptDirectory.from_config(config)
+    head_rev = script.get_current_head()
+
+    print(f"   ✅ Migrations applied (HEAD: {head_rev})")
+    return head_rev
+
+
+def _verify_schema_matches_prod(test_engine, prod_url: str) -> None:
+    """
+    Verify test database schema matches production database schema.
+
+    Compares:
+    - Table names
+    - Column names and types for each table
+    - Primary keys
+    - Foreign keys
+
+    Raises:
+        AssertionError: If schemas don't match
+    """
+    from sqlalchemy import create_engine, inspect
+
+    print("   🔍 Verifying schema matches production...")
+
+    prod_engine = create_engine(prod_url)
+
+    try:
+        test_inspector = inspect(test_engine)
+        prod_inspector = inspect(prod_engine)
+
+        # Compare table names
+        test_tables = set(test_inspector.get_table_names())
+        prod_tables = set(prod_inspector.get_table_names())
+
+        # Exclude alembic_version from comparison
+        test_tables.discard("alembic_version")
+        prod_tables.discard("alembic_version")
+
+        if test_tables != prod_tables:
+            missing_in_test = prod_tables - test_tables
+            extra_in_test = test_tables - prod_tables
+            raise AssertionError(
+                f"Table mismatch!\n"
+                f"Missing in test DB: {missing_in_test}\n"
+                f"Extra in test DB: {extra_in_test}"
+            )
+
+        # Compare columns for each table
+        for table in test_tables:
+            test_cols = {c["name"]: c for c in test_inspector.get_columns(table)}
+            prod_cols = {c["name"]: c for c in prod_inspector.get_columns(table)}
+
+            if test_cols.keys() != prod_cols.keys():
+                missing = set(prod_cols.keys()) - set(test_cols.keys())
+                extra = set(test_cols.keys()) - set(prod_cols.keys())
+                raise AssertionError(
+                    f"Column mismatch in table '{table}'!\n"
+                    f"Missing in test: {missing}\n"
+                    f"Extra in test: {extra}"
+                )
+
+        print("   ✅ Schema verified - matches production")
+
+    finally:
+        prod_engine.dispose()
+
+
+def _seed_test_data(engine) -> None:
+    """Seed database with test data from seed_test.py."""
+    from tests.fixtures.seed_test import seed_database
+
+    print("   🌱 Seeding test data...")
+    seed_database(engine)
+    print("   ✅ Test data seeded")
+
+
+@pytest.fixture(scope="session")
+def seeded_test_engine(postgres_test_url: str, prod_database_url: str):
+    """
+    Session-scoped fixture that prepares the test database.
+
+    Flow:
+    1. DROP ALL tables (clean slate)
+    2. Run Alembic migrations (create schema)
+    3. Verify schema matches production
+    4. Seed test data
+
+    This runs ONCE per test session. All tests share the seeded data.
+    Individual test isolation is handled by db_session using SAVEPOINT.
+
+    Yields:
+        Engine: SQLAlchemy engine connected to seeded test database
     """
     from sqlalchemy import create_engine
-    from alembic.runtime.migration import MigrationContext
-    from alembic.config import Config
-    from alembic.script import ScriptDirectory
-    from pathlib import Path
+
+    print("\n" + "=" * 70)
+    print("🐘 PostgreSQL Test Database Setup")
+    print("=" * 70)
 
     engine = create_engine(postgres_test_url)
 
-    # Verify migrations are at HEAD
-    with engine.connect() as conn:
-        context = MigrationContext.configure(conn)
-        current_rev = context.get_current_revision()
+    try:
+        # Step 1: Clean slate - drop everything
+        _drop_all_tables(engine)
 
-        # Get expected HEAD revision
-        project_root = Path(__file__).parent.parent
-        alembic_ini = project_root / "src" / "synth_lab" / "alembic" / "alembic.ini"
-        config = Config(str(alembic_ini))
-        config.set_main_option(
-            "script_location", str(project_root / "src" / "synth_lab" / "alembic")
-        )
-        script = ScriptDirectory.from_config(config)
-        head_rev = script.get_current_head()
+        # Step 2: Run Alembic migrations
+        _run_alembic_migrations(postgres_test_url)
 
-        if current_rev != head_rev:
-            pytest.fail(
-                f"Database migrations out of date!\n"
-                f"Current: {current_rev}\n"
-                f"Expected: {head_rev}\n"
-                f"Run: uv run python scripts/setup_test_db.py --reset"
-            )
+        # Recreate engine after schema changes
+        engine.dispose()
+        engine = create_engine(postgres_test_url)
 
-    yield engine
-    engine.dispose()
+        # Step 3: Verify schema matches production
+        _verify_schema_matches_prod(engine, prod_database_url)
+
+        # Step 4: Seed test data
+        _seed_test_data(engine)
+
+        print("=" * 70)
+        print("✅ Test database ready!")
+        print("=" * 70 + "\n")
+
+        yield engine
+
+    except Exception as e:
+        print(f"\n❌ Database setup failed: {e}")
+        raise
+    finally:
+        engine.dispose()
+
+
+# ==============================================================================
+# Test Session Fixtures (Function-scoped with SAVEPOINT isolation)
+# ==============================================================================
 
 
 @pytest.fixture(scope="function")
-def db_session(migrated_db_engine):
+def db_session(seeded_test_engine):
     """
-    Provide clean database session for each test.
+    Function-scoped database session with SAVEPOINT isolation.
 
-    Uses SAVEPOINT for isolation - each test gets rolled back.
-    Database schema comes from Alembic migrations (not create_all).
+    Each test:
+    - Sees the seeded data (from session setup)
+    - Can insert/update/delete data
+    - All changes are ROLLED BACK after the test
+    - Seed data remains intact for next test
+
+    Flow:
+        BEGIN TRANSACTION
+        └─ SAVEPOINT
+           └─ Test runs (sees seed data, can modify)
+           └─ ROLLBACK SAVEPOINT  ← changes gone
+        └─ ROLLBACK TRANSACTION
+
+    Usage:
+        def test_something(db_session):
+            # Seed data is available
+            experiments = db_session.query(Experiment).all()
+            assert len(experiments) == 1  # From seed
+
+            # You can add more data
+            db_session.add(Experiment(...))
+            db_session.commit()
+
+            # After test, your additions are rolled back
+            # but seed data remains for next test
     """
     from sqlalchemy.orm import sessionmaker
     from sqlalchemy import event
 
-    connection = migrated_db_engine.connect()
+    connection = seeded_test_engine.connect()
     transaction = connection.begin()
 
     SessionLocal = sessionmaker(bind=connection)
@@ -448,7 +413,7 @@ def db_session(migrated_db_engine):
 
     yield session
 
-    # Cleanup
+    # Cleanup - rollback all changes, preserving seed data
     session.close()
     if nested.is_active:
         nested.rollback()
@@ -456,17 +421,36 @@ def db_session(migrated_db_engine):
     connection.close()
 
 
+# ==============================================================================
+# Legacy Fixtures (for backward compatibility)
+# ==============================================================================
+
+
+@pytest.fixture(scope="session")
+def test_database_url(postgres_test_url) -> str:
+    """Alias for postgres_test_url (backward compatibility)."""
+    return postgres_test_url
+
+
+@pytest.fixture(scope="session")
+def migrated_db_engine(seeded_test_engine):
+    """Alias for seeded_test_engine (backward compatibility)."""
+    return seeded_test_engine
+
+
+@pytest.fixture(scope="function")
+def isolated_db_session(db_session):
+    """Alias for db_session (backward compatibility)."""
+    return db_session
+
+
 @pytest.fixture(scope="function")
 def seeded_db_session(db_session):
     """
-    Provide database session with test data seeded.
+    Alias for db_session (backward compatibility).
 
-    Seeds the database with realistic test data before each test.
-    Data is automatically rolled back after test completes.
+    Note: With the new setup, db_session already has seeded data.
+    This fixture exists for backward compatibility with tests that
+    explicitly requested seeded_db_session.
     """
-    from tests.fixtures.seed_test import seed_database
-
-    # Seed data using the session's engine
-    seed_database(db_session.get_bind())
-
-    yield db_session
+    return db_session

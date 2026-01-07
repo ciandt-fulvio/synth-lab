@@ -30,6 +30,9 @@ from openai import OpenAI
 from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
+from synth_lab.repositories.experiment_material_repository import (
+    ExperimentMaterialRepository,
+)
 
 from .prompts import get_few_shot_examples, get_system_prompt
 
@@ -41,7 +44,8 @@ def generate_prfaq_from_content(
     summary_content: str,
     batch_id: str,
     model: str = "gpt-4.1-mini",
-    api_key: Optional[str] = None) -> str:
+    api_key: Optional[str] = None,
+    experiment_id: Optional[str] = None) -> str:
     """Generate PR-FAQ Markdown from research summary content using OpenAI API.
 
     Args:
@@ -49,6 +53,7 @@ def generate_prfaq_from_content(
         batch_id: Research batch identifier for logging
         model: OpenAI model to use (default: gpt-4.1-mini)
         api_key: OpenAI API key (default: from OPENAI_API_KEY env var)
+        experiment_id: Optional experiment ID to fetch and include materials
 
     Returns:
         String containing Markdown-formatted PR-FAQ document
@@ -58,6 +63,29 @@ def generate_prfaq_from_content(
     """
     logger.info(f"Starting PR-FAQ Markdown generation for batch {batch_id}")
 
+    # Fetch materials if experiment_id is provided
+    materials = None
+    materials_urls = {}
+    if experiment_id:
+        logger.debug(f"Fetching materials for experiment {experiment_id}")
+        material_repo = ExperimentMaterialRepository()
+        materials = material_repo.list_by_experiment(experiment_id)
+        logger.info(f"Loaded {len(materials)} materials for experiment {experiment_id}")
+
+        # Generate presigned URLs for materials (valid for 2 hours)
+        from synth_lab.infrastructure.storage_client import generate_view_url
+        for mat in materials:
+            if mat.file_url:
+                url_parts = mat.file_url.split("/")
+                object_key = "/".join(url_parts[4:])
+                try:
+                    materials_urls[mat.id] = generate_view_url(object_key, expires_in=7200)
+                    logger.debug(f"Generated presigned URL for {mat.id}")
+                except Exception as e:
+                    logger.warning(f"Failed to generate URL for {mat.id}: {e}")
+
+        logger.info(f"Generated {len(materials_urls)} presigned URLs for materials")
+
     with _tracer.start_as_current_span(
         f"Generate PR-FAQ: {batch_id}",
         attributes={
@@ -65,12 +93,15 @@ def generate_prfaq_from_content(
             "batch_id": batch_id,
             "model": model,
             "summary_length": len(summary_content),
+            "experiment_id": experiment_id or "",
+            "materials_count": len(materials) if materials else 0,
         }) as span:
         # Initialize OpenAI client
         client = OpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"))
 
         # Build prompt with system prompt + few-shot examples + user content
-        system_prompt = get_system_prompt()
+        # Pass materials and presigned URLs to system prompt for context
+        system_prompt = get_system_prompt(materials=materials, materials_urls=materials_urls)
         few_shot_examples = get_few_shot_examples()
 
         # Format few-shot examples as conversation
@@ -88,7 +119,8 @@ def generate_prfaq_from_content(
 
 {summary_content}
 
-Based on this research batch summary, generate a complete PR-FAQ document in Markdown format following the Amazon Working Backwards framework.
+Based on this research batch summary, generate a complete PR-FAQ document in
+Markdown format following the Amazon Working Backwards framework.
 
 Batch ID: {batch_id}
 Generated: {datetime.now().strftime("%Y-%m-%d")}
@@ -98,7 +130,8 @@ Generate the PR-FAQ with:
 - External FAQs (8-12 customer/press questions)
 - Internal FAQs (8-12 stakeholder questions covering finance, operations, technical, risks)
 
-Extract insights from the "Recomendações" and "Padrões Recorrentes" sections. Use actual quotes when available.
+Extract insights from the "Recomendações" and "Padrões Recorrentes" sections.
+Use actual quotes when available.
 
 Return ONLY the Markdown-formatted PR-FAQ document."""
 
@@ -120,7 +153,8 @@ Return ONLY the Markdown-formatted PR-FAQ document."""
             prfaq_markdown = response.choices[0].message.content.strip()
 
             logger.info(
-                f"PR-FAQ Markdown generation successful for {batch_id} ({len(prfaq_markdown)} characters)"
+                f"PR-FAQ Markdown generation successful for {batch_id} "
+                f"({len(prfaq_markdown)} characters)"
             )
 
             if span:

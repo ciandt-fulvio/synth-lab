@@ -32,9 +32,13 @@ from synth_lab.domain.entities.scenario_node import ScenarioNode
 from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
 from synth_lab.repositories.exploration_repository import ExplorationRepository
+from synth_lab.repositories.experiment_material_repository import (
+    ExperimentMaterialRepository,
+)
 from synth_lab.services.exploration.action_catalog import (
     ActionCatalogService,
     get_action_catalog_service)
+from synth_lab.services.materials_context import format_materials_for_prompt
 
 # Phoenix/OpenTelemetry tracer for observability
 _tracer = get_tracer("action-proposal-service")
@@ -99,6 +103,17 @@ class ActionProposalService:
         Raises:
             ProposalGenerationError: If LLM call fails repeatedly.
         """
+        # Fetch materials if experiment has an ID
+        materials = None
+        if experiment.id:
+            self.logger.debug(f"Fetching materials for experiment {experiment.id}")
+            material_repo = ExperimentMaterialRepository()
+            materials = material_repo.list_by_experiment(experiment.id)
+            if materials:
+                self.logger.info(
+                    f"Loaded {len(materials)} materials for experiment {experiment.id}"
+                )
+
         # Build path context for span name with parent info
         path = self.repository.get_path_to_node(node.id)
         if len(path) > 1:
@@ -122,13 +137,14 @@ class ActionProposalService:
             span_name,
             attributes={
                 "node_id": node.id,
-                "experiment_id": experiment.id,
+                "experiment_id": experiment.id or "",
                 "node_depth": node.depth,
                 "path_length": len(path),
                 "current_action": node.action_applied or "root",
                 "parent_action": path[-2].action_applied if len(path) > 1 else None,
+                "materials_count": len(materials) if materials else 0,
             }):
-            prompt = self._build_prompt(node, experiment, max_proposals)
+            prompt = self._build_prompt(node, experiment, max_proposals, materials=materials)
 
             self.logger.info(
                 f"Generating proposals for node {node.id} "
@@ -200,8 +216,19 @@ EXEMPLOS de short_action:
         self,
         node: ScenarioNode,
         experiment: Experiment,
-        max_proposals: int) -> str:
-        """Build the user prompt for the LLM."""
+        max_proposals: int,
+        materials: list | None = None) -> str:
+        """Build the user prompt for the LLM.
+
+        Args:
+            node: The scenario node to generate proposals for
+            experiment: The experiment context
+            max_proposals: Maximum number of proposals to generate
+            materials: Optional list of ExperimentMaterial objects to include
+
+        Returns:
+            Formatted prompt string
+        """
         # Get catalog context
         catalog_context = self.catalog.get_prompt_context()
 
@@ -228,6 +255,16 @@ EXEMPLOS de short_action:
 
         if description:
             prompt_parts.append(f"**Descricao**: {description}")
+
+        # Add materials section if provided
+        if materials:
+            materials_formatted = format_materials_for_prompt(
+                materials=materials,
+                context="exploration",
+                include_tool_instructions=False  # Exploration uses metadata only
+            )
+            if materials_formatted:
+                prompt_parts.extend(["", materials_formatted])
 
         # Add action history (if not root node)
         if len(path) > 1:

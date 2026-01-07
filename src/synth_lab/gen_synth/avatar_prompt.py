@@ -20,11 +20,9 @@ VISUAL_FILTERS = [
     "usar filtro sépia",
     "usar filtro warm",
     "usar filtro cold",
-    "usar filtro dramatic/high contrast",
     "usar filtro soft/pastel",
     "usar filtro cinematic/teal & orange",
     "usar filtro vintage film grain",
-    "usar filtro noir/low-key",
 ]
 
 FRAMING_TYPE = [
@@ -40,7 +38,7 @@ FRAMING_TYPE = [
 ]
 
 
-def assign_random_filters(count: int = 9) -> list[str]:
+def assign_random_filters(count: int = 8) -> list[str]:
     """
     Atribui filtros visuais aleatórios para avatares.
 
@@ -143,7 +141,7 @@ def build_synth_description(synth: dict[str, Any]) -> str:
     return descricao.strip()
 
 
-def assign_random_framing(count: int = 9) -> list[str]:
+def assign_random_framing(count: int = 6) -> list[str]:
     return [random.choice(FRAMING_TYPE) for _ in range(count)]
 
 
@@ -178,9 +176,9 @@ def build_prompt(synths: list[dict[str, Any]]) -> str:
         raise ValueError(f"Esperado exatamente 9 synths, recebido {len(synths)}")
 
     # Atribuir filtros aleatórios
-    filters = assign_random_filters(9)
+    filters = assign_random_filters(8)
 
-    framing = assign_random_framing(9)
+    framing = assign_random_framing(6)
 
     # Construir descrições numeradas dos blocos
     descricoes_blocos = "\n".join(

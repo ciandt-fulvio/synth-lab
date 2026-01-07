@@ -20,6 +20,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useDocumentAvailability, useGenerateDocument, useDocumentMarkdown } from '@/hooks/use-documents';
 import { DocumentViewer } from '@/components/shared/DocumentViewer';
+import { useQuery } from '@tanstack/react-query';
+import { getAllChartInsights } from '@/services/insights-api';
 import { toast } from 'sonner';
 
 interface ViewSummaryButtonProps {
@@ -32,6 +34,13 @@ export function ViewSummaryButton({ experimentId }: ViewSummaryButtonProps) {
   const generateMutation = useGenerateDocument(experimentId, 'executive_summary');
   const { data: markdown } = useDocumentMarkdown(experimentId, 'executive_summary', { enabled: isModalOpen });
 
+  // Fetch insights to check if at least 4 are completed
+  const { data: insightsData } = useQuery({
+    queryKey: ['chart-insights', experimentId],
+    queryFn: () => getAllChartInsights(experimentId),
+    retry: false,
+  });
+
   const summary = availability?.executive_summary;
 
   // Check if summary is new (generated in last 5 minutes)
@@ -40,20 +49,24 @@ export function ViewSummaryButton({ experimentId }: ViewSummaryButtonProps) {
     summary?.generated_at &&
     Date.now() - new Date(summary.generated_at).getTime() < 5 * 60 * 1000;
 
+  // Count completed insights
+  const completedInsights = insightsData?.stats.completed_insights ?? 0;
+  const hasMinimumInsights = completedInsights >= 4;
+
   // Determine button state
   const isAvailable = summary?.available;
   const isGenerating = summary?.status === 'generating' || generateMutation.isPending;
   const canGenerate = !isAvailable && !isGenerating;
 
-  // Button should be disabled if: loading or failed
-  const isDisabled = isLoading || summary?.status === 'failed';
+  // Button should be disabled if: loading, failed, or less than 4 insights completed
+  const isDisabled = isLoading || summary?.status === 'failed' || (canGenerate && !hasMinimumInsights);
 
   const handleClick = () => {
     if (canGenerate) {
       // Start generation
       generateMutation.mutate(undefined, {
         onSuccess: () => {
-          toast.success('Resumo executivo em geração', {
+          toast.success('Resumo em geração', {
             description: 'O documento estará disponível em alguns segundos.',
           });
         },
@@ -75,6 +88,11 @@ export function ViewSummaryButton({ experimentId }: ViewSummaryButtonProps) {
         onClick={handleClick}
         disabled={isDisabled}
         className="btn-primary relative"
+        title={
+          canGenerate && !hasMinimumInsights
+            ? `Aguardando insights (${completedInsights}/4 prontos)`
+            : undefined
+        }
       >
         {isGenerating ? (
           <>
@@ -84,7 +102,7 @@ export function ViewSummaryButton({ experimentId }: ViewSummaryButtonProps) {
         ) : (
           <>
             <Sparkles className="h-4 w-4 mr-2" />
-            {canGenerate ? 'Gerar Resumo Executivo' : 'Ver Resumo Executivo'}
+            {canGenerate ? 'Gerar Resumo' : 'Ver Resumo'}
           </>
         )}
         {isNew && summary?.status === 'completed' && (
