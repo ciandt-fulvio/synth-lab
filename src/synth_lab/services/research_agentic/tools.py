@@ -41,7 +41,7 @@ from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttribu
 from pydantic import BaseModel
 
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
-from synth_lab.infrastructure.storage_client import get_object_bytes
+from synth_lab.infrastructure.storage_client import generate_view_url
 
 # Phoenix tracer for observability
 _tracer = get_tracer("materials-tool")
@@ -350,48 +350,24 @@ def _load_material_content(
             # Skip https:, empty, endpoint, bucket -> get the key
             object_key = "/".join(url_parts[4:])
 
-            # Download file from S3
+            # Generate presigned URL for the material (expires in 1 hour)
             try:
-                file_content = get_object_bytes(object_key)
-                if file_content is None:
-                    error_msg = (
-                        "Material não encontrado no armazenamento. "
-                        "Arquivo pode ter sido removido."
-                    )
-                    logger.error(f"S3 returned None for {object_key}")
-                    return error_msg
-            except TimeoutError as e:
-                error_msg = (
-                    "Timeout ao carregar material. "
-                    "Tente novamente ou escolha outro material."
+                view_url = generate_view_url(object_key, expires_in=3600)
+
+                logger.info(
+                    f"Generated view URL for material {material_id}: {material.file_name} "
+                    f"(expires in 3600s) - URL: {view_url[:100]}..."
                 )
-                logger.error(f"Timeout downloading material {material_id}: {e}")
-                return error_msg
+
+                return view_url
+
             except Exception as e:
                 error_msg = (
-                    "Erro ao acessar armazenamento. "
+                    "Erro ao gerar URL de visualização. "
                     "Tente novamente em alguns segundos."
                 )
-                logger.error(f"S3 download failed for {material_id} ({object_key}): {e}")
+                logger.error(f"Failed to generate view URL for {material_id} ({object_key}): {e}")
                 return error_msg
-
-            # Encode to base64
-            try:
-                encoded_content = base64.b64encode(file_content).decode("utf-8")
-            except Exception as e:
-                error_msg = "Erro ao processar material. Arquivo pode estar corrompido."
-                logger.error(f"Base64 encoding failed for {material_id}: {e}")
-                return error_msg
-
-            # Return data URI
-            data_uri = f"data:{material.mime_type};base64,{encoded_content}"
-
-            logger.info(
-                f"Loaded material {material_id}: {material.file_name} "
-                f"({len(encoded_content)} bytes base64)"
-            )
-
-            return data_uri
 
         except Exception as e:
             error_msg = f"Erro ao carregar material: {str(e)}"
