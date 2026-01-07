@@ -103,7 +103,7 @@ def extract_image_prompt(markdown_content: str) -> str:
     return result
 
 
-def build_image_prompt(content: str, max_length: int = 30000) -> str:
+def build_image_prompt(content: str, max_length: int = 30000, materials: list | None = None) -> str:
     """
     Build the final prompt for image generation.
 
@@ -112,15 +112,31 @@ def build_image_prompt(content: str, max_length: int = 30000) -> str:
     Args:
         content: Extracted content from markdown.
         max_length: Maximum length of the prompt.
+        materials: Optional list of ExperimentMaterial objects for context.
 
     Returns:
         Final prompt for image generation.
     """
+    # Include materials context if provided
+    materials_context = ""
+    if materials:
+        from synth_lab.services.materials_context import format_materials_for_prompt
 
-    # Truncate content if too long
-    if len(content) > max_length:
-        content = content[:max_length] + "..."
-    return content
+        materials_context = format_materials_for_prompt(
+            materials=materials,
+            context="exploration",
+            include_tool_instructions=False,
+        )
+        materials_context = f"\n\n{materials_context}\n\n"
+
+    # Combine materials context with content
+    full_content = f"{materials_context}{content}"
+
+    # Truncate if too long
+    if len(full_content) > max_length:
+        full_content = full_content[:max_length] + "..."
+
+    return full_content
 
 
 class SummaryImageService:
@@ -172,6 +188,7 @@ class SummaryImageService:
         experiment_id: str,
         doc_id: str,
         output_format: str = "png",
+        materials: list | None = None,
     ) -> Path | None:
         """
         Generate an image from summary content and save it.
@@ -181,6 +198,7 @@ class SummaryImageService:
             experiment_id: Experiment ID for filename.
             doc_id: Document ID for filename.
             output_format: Image format (png, jpeg, webp).
+            materials: Optional list of ExperimentMaterial objects for context.
 
         Returns:
             Path to the saved image, or None if generation failed.
@@ -205,7 +223,7 @@ class SummaryImageService:
                     return None
 
                 # 2. Build final prompt
-                image_prompt = build_image_prompt(extracted_content)
+                image_prompt = build_image_prompt(extracted_content, materials=materials)
                 self._logger.debug(f"Image prompt length: {len(image_prompt)} chars")
 
                 if span:
@@ -277,6 +295,7 @@ class SummaryImageService:
         experiment_id: str,
         doc_id: str,
         output_format: str = "png",
+        materials: list | None = None,
     ) -> str:
         """
         Generate image and append it to the markdown content.
@@ -289,6 +308,7 @@ class SummaryImageService:
             experiment_id: Experiment ID for filename.
             doc_id: Document ID for filename.
             output_format: Image format (png, jpeg, webp).
+            materials: Optional list of ExperimentMaterial objects for context.
 
         Returns:
             Updated markdown with image section appended.
@@ -299,6 +319,7 @@ class SummaryImageService:
             experiment_id=experiment_id,
             doc_id=doc_id,
             output_format=output_format,
+            materials=materials,
         )
 
         if image_path is None:

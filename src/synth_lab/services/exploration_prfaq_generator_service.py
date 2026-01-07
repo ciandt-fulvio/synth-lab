@@ -198,8 +198,37 @@ class ExplorationPRFAQGeneratorService:
                 raise PRFAQGenerationInProgressError(exploration_id)
 
             try:
-                # 7. Generate content via LLM
-                prompt = self._build_prompt(exploration, winning_path, experiment_name)
+                # 7. Fetch materials for PR-FAQ
+                materials = []
+                materials_urls = {}
+                try:
+                    from synth_lab.repositories.experiment_material_repository import (
+                        ExperimentMaterialRepository,
+                    )
+                    from synth_lab.infrastructure.storage_client import generate_view_url
+
+                    material_repo = ExperimentMaterialRepository()
+                    materials = material_repo.list_by_experiment(exploration.experiment_id)
+                    self._logger.info(f"Loaded {len(materials)} materials for exploration PR-FAQ")
+
+                    # Generate presigned URLs for materials (valid for 2 hours)
+                    for mat in materials:
+                        if mat.file_url:
+                            url_parts = mat.file_url.split("/")
+                            object_key = "/".join(url_parts[4:])
+                            try:
+                                materials_urls[mat.id] = generate_view_url(object_key, expires_in=7200)
+                                self._logger.debug(f"Generated presigned URL for {mat.id}")
+                            except Exception as e:
+                                self._logger.warning(f"Failed to generate URL for {mat.id}: {e}")
+
+                    if materials_urls:
+                        self._logger.info(f"Generated {len(materials_urls)} presigned URLs for materials")
+                except Exception as e:
+                    self._logger.warning(f"Failed to load materials: {e}")
+
+                # 8. Generate content via LLM
+                prompt = self._build_prompt(exploration, winning_path, experiment_name, materials, materials_urls)
                 messages = [{"role": "user", "content": prompt}]
 
                 content = self._llm_client.complete(
@@ -255,6 +284,8 @@ class ExplorationPRFAQGeneratorService:
         exploration: Exploration,
         winning_path: list[ScenarioNode],
         experiment_name: str,
+        materials: list | None = None,
+        materials_urls: dict | None = None,
     ) -> str:
         """
         Build LLM prompt for PRFAQ generation.
@@ -263,6 +294,8 @@ class ExplorationPRFAQGeneratorService:
             exploration: Exploration entity.
             winning_path: List of nodes from root to best leaf.
             experiment_name: Name of the experiment.
+            materials: Optional list of ExperimentMaterial objects.
+            materials_urls: Optional dict mapping material IDs to presigned URLs.
 
         Returns:
             Prompt string for LLM.
@@ -304,11 +337,25 @@ class ExplorationPRFAQGeneratorService:
         risk_delta = final_sc.perceived_risk - root_sc.perceived_risk
         ttv_delta = final_sc.time_to_value - root_sc.time_to_value
 
+        # Format materials section if provided
+        materials_section = ""
+        if materials:
+            from synth_lab.services.materials_context import format_materials_for_prompt
+
+            materials_section = format_materials_for_prompt(
+                materials=materials,
+                context="prfaq",
+                include_tool_instructions=False,
+                presigned_urls=materials_urls,
+            )
+
         return f"""Você é um Product Manager da Amazon escrevendo um Press Release / FAQ (PRFAQ) no estilo Working Backwards.
 
 ## CONTEXTO
 
 Você está anunciando uma **nova versão otimizada** de "{experiment_name}" como se fosse um produto/feature pronto para lançamento.
+
+{materials_section}
 
 **Cenário Original**: {experiment_name} tinha taxa de sucesso de {baseline_rate:.0%}
 

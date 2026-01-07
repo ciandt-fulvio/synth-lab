@@ -250,6 +250,7 @@ class ExplorationSummaryGeneratorService:
                     markdown_content=content,
                     experiment_id=exploration.experiment_id,
                     doc_id=pending_doc.id,
+                    materials=materials,
                 )
 
                 # 9. Update document with content
