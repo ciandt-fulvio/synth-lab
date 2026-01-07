@@ -59,7 +59,8 @@ def create_interviewer(
     mcp_servers: list[Any] | None = None,
     model: str = "gpt-4o-mini",
     reasoning_effort: str = "low",
-    additional_context: str | None = None) -> Agent:
+    additional_context: str | None = None,
+    materials: list | None = None) -> Agent:
     """
     Create an interviewer agent.
 
@@ -74,6 +75,7 @@ def create_interviewer(
         model: LLM model to use
         reasoning_effort: Reasoning effort level ("low", "medium", "high")
         additional_context: Optional additional context to complement the research scenario
+        materials: Optional list of ExperimentMaterial objects to include in prompt
 
     Returns:
         Configured Agent instance
@@ -82,7 +84,8 @@ def create_interviewer(
         topic_guide=topic_guide,
         conversation_history=conversation_history,
         max_turns=max_turns,
-        additional_context=additional_context)
+        additional_context=additional_context,
+        materials=materials)
 
     # Build agent kwargs - only include model_settings if model supports it
     agent_kwargs = {
@@ -106,7 +109,8 @@ def create_interviewee(
     available_images: list[str] | None = None,
     initial_context: str = "",
     model: str = "gpt-4o-mini",
-    reasoning_effort: str = "low") -> Agent:
+    reasoning_effort: str = "low",
+    materials: list | None = None) -> Agent:
     """
     Create an interviewee agent.
 
@@ -117,17 +121,18 @@ def create_interviewee(
         synth: Complete synth data dictionary from database
         conversation_history: Formatted conversation history
         mcp_servers: Optional MCP servers for tool access
-        tools: Optional list of function tools (e.g., image loader)
+        tools: Optional list of function tools (e.g., image loader, materials tool)
         available_images: Optional list of available image filenames from topic guide
         initial_context: Pre-generated context about prior experience (positive/negative/neutral)
         model: LLM model to use
         reasoning_effort: Reasoning effort level ("low", "medium", "high")
+        materials: Optional list of ExperimentMaterial objects to include in prompt
 
     Returns:
         Configured Agent instance
     """
     instructions = format_interviewee_instructions(
-        synth, conversation_history, available_images, initial_context
+        synth, conversation_history, available_images, initial_context, materials
     )
     synth_name = synth.get("nome", "Participante")
 

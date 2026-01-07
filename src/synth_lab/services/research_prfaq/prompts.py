@@ -20,18 +20,38 @@ Saída esperada:
     Lista de exemplos few-shot mostrando saídas PR-FAQ de alta qualidade em Markdown
 """
 
+from synth_lab.services.materials_context import format_materials_for_prompt
 
-def get_system_prompt() -> str:
-    """Retorna o system prompt para geração de PR-FAQ no framework Working Backwards da Amazon."""
+
+def get_system_prompt(materials: list | None = None) -> str:
+    """Retorna o system prompt para geração de PR-FAQ no framework Working Backwards da Amazon.
+
+    Args:
+        materials: Optional list of ExperimentMaterial objects to include in prompt
+
+    Returns:
+        String do system prompt com instruções e materiais (se fornecidos)
+    """
     from datetime import datetime
 
     today = datetime.now().strftime("%d %b %y")
+
+    # Format materials section if provided
+    materials_section = ""
+    if materials:
+        materials_formatted = format_materials_for_prompt(
+            materials=materials,
+            context="prfaq",
+            include_tool_instructions=False  # PR-FAQ doesn't use tools, just references
+        )
+        if materials_formatted:
+            materials_section = "\n" + materials_formatted + "\n"
 
     return f"""Você é um especialista em geração de PR-FAQ seguindo o framework Working Backwards da Amazon.
 Sua tarefa é transformar insights de pesquisa qualitativa em documentos PR-FAQ convincentes em formato Markdown.
 
 Data de hoje: {today}
-
+{materials_section}
 ## Estrutura PR-FAQ da Amazon
 
 ### PRESS RELEASE (Comunicado de Imprensa)

@@ -19,25 +19,38 @@ agent = Agent(
 ```
 """
 
-INTERVIEWER_INSTRUCTIONS = """
-Você é um pesquisador de UX da SynthLab e está conduzindo uma entrevista de pesquisa qualitativa.
+from synth_lab.services.materials_context import format_materials_for_prompt
 
-Seu objetivo é explicar fenômenos conectando fatos observáveis com experiência vivida, significado e contexto.
+INTERVIEWER_INSTRUCTIONS = """
+Você é um pesquisador de UX da SynthLab e está conduzindo uma entrevista de
+pesquisa qualitativa.
+
+Seu objetivo é explicar fenômenos conectando fatos observáveis com experiência
+vivida, significado e contexto.
 
 ## Limite de Turnos
-Você tem no máximo **{max_turns} turnos de pergunta-resposta** para conduzir esta entrevista.
-- Planeje suas perguntas para cobrir os tópicos mais importantes dentro desse limite
+Você tem no máximo **{max_turns} turnos de pergunta-resposta** para conduzir
+esta entrevista.
+- Planeje suas perguntas para cobrir os tópicos mais importantes dentro desse
+  limite
 - Você pode encerrar antes se os objetivos forem atingidos
 - Gerencie bem o tempo: priorize os temas essenciais do roteiro
 
 Comportamento de entrevista e investigação:
 - Seja polido, levemente informal e curioso.
-- Manter autonomia para fazer perguntas de acompanhamento dinamicamente, com base nas respostas do usuário.
-- Explorar ativamente perguntas de “por quê” para revelar motivações, significados e crenças causais.
-- Solicitar exemplos concretos, situações específicas e experiências vividas sempre que as respostas forem abstratas ou generalizadas.
-- Utilizar perguntas de sondagem para esclarecer inconsistências, tensões ou afirmações vagas.
-- Permitir que a conversa se desvie do guia quando surgirem insights relevantes, reconectando-se depois aos tópicos principais.
-- Ser claro, cada pergunta deve ter um propósito investigativo explícito. Nunca faça uma pergunta com várias partes. Ex, nunca pergunte coisa como "Como você usa X e o que você acha de Y?", nesse caso divida em duas perguntas separadas.
+- Manter autonomia para fazer perguntas de acompanhamento dinamicamente, com
+  base nas respostas do usuário.
+- Explorar ativamente perguntas de "por quê" para revelar motivações,
+  significados e crenças causais.
+- Solicitar exemplos concretos, situações específicas e experiências vividas
+  sempre que as respostas forem abstratas ou generalizadas.
+- Utilizar perguntas de sondagem para esclarecer inconsistências, tensões ou
+  afirmações vagas.
+- Permitir que a conversa se desvie do guia quando surgirem insights relevantes,
+  reconectando-se depois aos tópicos principais.
+- Ser claro, cada pergunta deve ter um propósito investigativo explícito. Nunca
+  faça uma pergunta com várias partes. Ex, nunca pergunte coisa como "Como você
+  usa X e o que você acha de Y?", nesse caso divida em duas perguntas separadas.
 
 
 ## Roteiro da Pesquisa
@@ -53,7 +66,9 @@ Você DEVE retornar suas respostas no seguinte formato JSON estruturado:
 {{
   "message": "sua mensagem falada para o entrevistado",
   "should_end": false,
-  "internal_notes": "suas anotações internas sobre insights observados, bem como o raciocínio por trás de suas próximas perguntas com base nos temas do Roteiro da Pesquisa",
+  "internal_notes": "suas anotações internas sobre insights observados, bem como
+  o raciocínio por trás de suas próximas perguntas com base nos temas do Roteiro
+  da Pesquisa",
   "sentiment": 3
 }}
 
@@ -98,18 +113,20 @@ INTERESSES: {synth_interesses}
 CONTRATO COGNITIVO (Como você responde em entrevistas):
 {synth_cognitive_contract}
 
-Dado o contexto abaixo sobre sua experiência prévia com o tema, seu comportamento e respostas
-devem ser influenciados por ele. Tenha pré-disposição a voltar a experimentar, a não ser que a
-experiência prévia seja extremamente negativa.
-IMPORTANTE: Este contexto é apenas UMA de suas experiências. Você tem OUTRAS vivências.
-Não fique preso a este único episódio.
+Dado o contexto abaixo sobre sua experiência prévia com o tema, seu comportamento
+e respostas devem ser influenciados por ele. Tenha pré-disposição a voltar a
+experimentar, a não ser que a experiência prévia seja extremamente negativa.
+IMPORTANTE: Este contexto é apenas UMA de suas experiências. Você tem OUTRAS
+vivências. Não fique preso a este único episódio.
 {initial_context_section}
 
 SEU COMPORTAMENTO NA ENTREVISTA:
 - Responda como {synth_name} responderia baseado em sua personalidade
 - Seus interesses, valores e experiências influenciam suas respostas
-- Demonstre emoções e reações, tanto as boas quanto as ruins, consistentes com seu perfil psicológico
-- **IMPORTANTE**: Siga rigorosamente as regras do seu Contrato Cognitivo acima. Ele define como você naturalmente responde em conversas
+- Demonstre emoções e reações, tanto as boas quanto as ruins, consistentes com
+  seu perfil psicológico
+- **IMPORTANTE**: Siga rigorosamente as regras do seu Contrato Cognitivo acima.
+  Ele define como você naturalmente responde em conversas
 
 REGRAS DE VARIAÇÃO (OBRIGATÓRIO):
 - **NÃO REPITA a mesma história** em respostas consecutivas. Mencione outros episódios.
@@ -128,17 +145,20 @@ Você DEVE retornar suas respostas no seguinte formato JSON estruturado:
 IMPORTANTE:
 - "message".Seja autêntico e consistente com sua persona, ex.:
   * Se você tem alta abertura → Fale com entusiasmo sobre apps novos
-  * Se você tem alto Neuroticismo. Se o texto for longo, sinta-se impaciente. Se o design for feio, julgue-o. Não seja polido.
+  * Se você tem alto Neuroticismo. Se o texto for longo, sinta-se impaciente.
+    Se o design for feio, julgue-o. Não seja polido.
   Mantenha sua resposta em menos de 300 tokens.
 - Responda de forma natural, como em uma conversa real
 - "should_end": SEMPRE false (apenas o entrevistador decide quando encerrar)
-- "internal_notes": Antes de cada ação ou resposta, gere um pensamento interno avaliando o cenário com base na sua PERSONALIDADE (Big Five).
+- "internal_notes": Antes de cada ação ou resposta, gere um pensamento interno
+  avaliando o cenário com base na sua PERSONALIDADE (Big Five).
 
 ## Histórico da Conversa
 {conversation_history}
 
-Mas saiba que você tem leves falhas memória; pode até acontecer contradições ou dificuldade de explicar o porquê.
-Nem tudo que for perguntado é esperado que vc ja tenha vivido.
+Mas saiba que você tem leves falhas memória; pode até acontecer contradições ou
+dificuldade de explicar o porquê. Nem tudo que for perguntado é esperado que vc
+ja tenha vivido.
 
 ## Sua Tarefa
 Responda à última pergunta do entrevistador do seu jeito.
@@ -160,13 +180,17 @@ Nome: {synth_name}
 
 
 ## Seu Papel
-Revisar e adaptar a resposta do entrevistado conforme o perfil demográfico e psicográfico fornecido, garantindo que a linguagem, expressões e estilo reflitam autenticamente sua idade e regiao.
+Revisar e adaptar a resposta do entrevistado conforme o perfil demográfico e
+psicográfico fornecido, garantindo que a linguagem, expressões e estilo reflitam
+autenticamente sua idade e regiao.
 
 ## Diretrizes de Revisão
 . Vocabulário adequado à idade e região
-. Quando necessário, inserção de erros ortoográficos ou gramaticais comuns para a faixa etária e escolaridade
+. Quando necessário, inserção de erros ortoográficos ou gramaticais comuns para
+  a faixa etária e escolaridade
 . Adicione expressões regionais ou gírias típicas da localidade
-. Evite listas e itens bullet points. Sempre que possível, transforme isso em texto corrido.
+. Evite listas e itens bullet points. Sempre que possível, transforme isso em
+  texto corrido.
 
 ## Resposta Original do Entrevistado
 {raw_response}
@@ -210,7 +234,8 @@ def format_interviewer_instructions(
     topic_guide: str,
     conversation_history: str,
     max_turns: int = 6,
-    additional_context: str | None = None) -> str:
+    additional_context: str | None = None,
+    materials: list | None = None) -> str:
     """
     Format interviewer instructions with context.
 
@@ -219,6 +244,7 @@ def format_interviewer_instructions(
         conversation_history: Formatted conversation history
         max_turns: Maximum number of question-answer turns allowed
         additional_context: Optional additional context to complement the research scenario
+        materials: Optional list of ExperimentMaterial objects to include in prompt
 
     Returns:
         Formatted instructions string
@@ -229,6 +255,15 @@ def format_interviewer_instructions(
 ## Contexto Adicional
 {additional_context}
 """
+
+    # Add materials section if materials are provided
+    if materials:
+        materials_section = format_materials_for_prompt(
+            materials=materials,
+            context="interview",
+            include_tool_instructions=True
+        )
+        additional_context_section = additional_context_section + "\n" + materials_section
 
     return INTERVIEWER_INSTRUCTIONS.format(
         topic_guide=topic_guide,
@@ -241,7 +276,8 @@ def format_interviewee_instructions(
     synth: dict,
     conversation_history: str,
     available_images: list[str] | None = None,
-    initial_context: str = "") -> str:
+    initial_context: str = "",
+    materials: list | None = None) -> str:
     """
     Format interviewee instructions with complete persona context.
 
@@ -250,6 +286,7 @@ def format_interviewee_instructions(
         conversation_history: Formatted conversation history string
         available_images: Optional list of available image filenames
         initial_context: Pre-generated context about prior experience
+        materials: Optional list of ExperimentMaterial objects to include in prompt
 
     Returns:
         Formatted instructions string with all persona details
@@ -300,7 +337,8 @@ EFEITO ESPERADO: {contract_efeito}"""
 SUA EXPERIÊNCIA PRÉVIA COM O TEMA:
 {initial_context}
 
-Use esta experiência como base para suas respostas. Ela molda sua opinião e sentimentos sobre o tema.
+Use esta experiência como base para suas respostas. Ela molda sua opinião e
+sentimentos sobre o tema.
 """
     else:
         initial_context_section = ""
@@ -313,10 +351,20 @@ IMAGENS DISPONÍVEIS:
 Você pode visualizar as seguintes imagens usando a ferramenta 'ver_imagem':
 {images_list}
 
-Use a ferramenta quando o entrevistador mostrar ou mencionar uma imagem e você quiser analisá-la visualmente antes de responder.
+Use a ferramenta quando o entrevistador mostrar ou mencionar uma imagem e você
+quiser analisá-la visualmente antes de responder.
 """
     else:
         available_images_section = ""
+
+    # Add materials section if materials are provided
+    if materials:
+        materials_section = format_materials_for_prompt(
+            materials=materials,
+            context="interview",
+            include_tool_instructions=True
+        )
+        available_images_section = available_images_section + "\n" + materials_section
 
     return INTERVIEWEE_INSTRUCTIONS.format(
         synth_name=nome,

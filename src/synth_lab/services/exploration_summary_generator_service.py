@@ -27,9 +27,13 @@ from synth_lab.infrastructure.phoenix_tracing import get_tracer
 from synth_lab.repositories.experiment_document_repository import (
     ExperimentDocumentRepository,
 )
+from synth_lab.repositories.experiment_material_repository import (
+    ExperimentMaterialRepository,
+)
 from synth_lab.repositories.experiment_repository import ExperimentRepository
 from synth_lab.repositories.exploration_repository import ExplorationRepository
 from synth_lab.services.exploration_utils import get_winning_path
+from synth_lab.services.materials_context import format_materials_for_prompt
 from synth_lab.services.summary_image_service import (
     SummaryImageService,
     get_summary_image_service,
@@ -149,6 +153,17 @@ class ExplorationSummaryGeneratorService:
         experiment = experiment_repo.get_by_id(exploration.experiment_id)
         experiment_name = experiment.name if experiment else "Experimento"
 
+        # 2.5 Fetch materials if experiment exists
+        materials = None
+        if experiment:
+            self._logger.debug(f"Fetching materials for experiment {exploration.experiment_id}")
+            material_repo = ExperimentMaterialRepository()
+            materials = material_repo.list_by_experiment(exploration.experiment_id)
+            if materials:
+                self._logger.info(
+                    f"Loaded {len(materials)} materials for experiment {exploration.experiment_id}"
+                )
+
         with _tracer.start_as_current_span(
             f"Generate Exploration Summary: {exploration.status.value}",
             attributes={
@@ -156,6 +171,7 @@ class ExplorationSummaryGeneratorService:
                 "exploration_id": exploration_id,
                 "experiment_id": exploration.experiment_id,
                 "status": exploration.status.value,
+                "materials_count": len(materials) if materials else 0,
             },
         ) as span:
 
@@ -212,7 +228,9 @@ class ExplorationSummaryGeneratorService:
 
             try:
                 # 7. Generate content via LLM
-                prompt = self._build_prompt(exploration, winning_path, experiment_name)
+                prompt = self._build_prompt(
+                    exploration, winning_path, experiment_name, materials=materials
+                )
                 messages = [{"role": "user", "content": prompt}]
 
                 content = self._llm_client.complete(
@@ -276,6 +294,7 @@ class ExplorationSummaryGeneratorService:
         exploration: Exploration,
         winning_path: list[ScenarioNode],
         experiment_name: str,
+        materials: list | None = None,
     ) -> str:
         """
         Build LLM prompt for summary generation.
@@ -284,6 +303,7 @@ class ExplorationSummaryGeneratorService:
             exploration: Exploration entity.
             winning_path: List of nodes from root to best leaf.
             experiment_name: Name of the experiment.
+            materials: Optional list of ExperimentMaterial objects to include.
 
         Returns:
             Prompt string for LLM.
@@ -327,6 +347,13 @@ class ExplorationSummaryGeneratorService:
         risk_delta = final_sc.perceived_risk - root_sc.perceived_risk
         ttv_delta = final_sc.time_to_value - root_sc.time_to_value
 
+        # Format delta strings for display
+        complexity_str = f"{'+' if complexity_delta >= 0 else ''}{complexity_delta:.0%}"
+        effort_str = f"{'+' if effort_delta >= 0 else ''}{effort_delta:.0%}"
+        risk_str = f"{'+' if risk_delta >= 0 else ''}{risk_delta:.0%}"
+        ttv_str = f"{'+' if ttv_delta >= 0 else ''}{ttv_delta:.0%}"
+        improvement_str = f"{'+' if improvement_pct >= 0 else ''}{improvement_pct:.1f}%"
+
         scorecard_comparison = f"""
 **Baseline**:
 - Complexidade: {root_sc.complexity:.0%}
@@ -336,12 +363,23 @@ class ExplorationSummaryGeneratorService:
 - Taxa de Sucesso: {baseline_rate:.0%}
 
 **Resultado Final**:
-- Complexidade: {final_sc.complexity:.0%} ({'+' if complexity_delta >= 0 else ''}{complexity_delta:.0%})
-- Esforço Inicial: {final_sc.initial_effort:.0%} ({'+' if effort_delta >= 0 else ''}{effort_delta:.0%})
-- Risco Percebido: {final_sc.perceived_risk:.0%} ({'+' if risk_delta >= 0 else ''}{risk_delta:.0%})
-- Tempo até Valor: {final_sc.time_to_value:.0%} ({'+' if ttv_delta >= 0 else ''}{ttv_delta:.0%})
-- Taxa de Sucesso: {final_rate:.0%} ({'+' if improvement_pct >= 0 else ''}{improvement_pct:.1f}%)
+- Complexidade: {final_sc.complexity:.0%} ({complexity_str})
+- Esforço Inicial: {final_sc.initial_effort:.0%} ({effort_str})
+- Risco Percebido: {final_sc.perceived_risk:.0%} ({risk_str})
+- Tempo até Valor: {final_sc.time_to_value:.0%} ({ttv_str})
+- Taxa de Sucesso: {final_rate:.0%} ({improvement_str})
 """
+
+        # Format materials section if provided
+        materials_section = ""
+        if materials:
+            materials_formatted = format_materials_for_prompt(
+                materials=materials,
+                context="exploration",
+                include_tool_instructions=False  # Summaries use metadata only
+            )
+            if materials_formatted:
+                materials_section = f"\n{materials_formatted}\n"
 
         return f"""Você é um especialista em UX Research e Product Management.
 
@@ -356,21 +394,26 @@ class ExplorationSummaryGeneratorService:
 
 ## COMPARAÇÃO DE SCORECARD
 {scorecard_comparison}
-
+{materials_section}
 ## MELHORIAS APLICADAS NO CAMINHO VENCEDOR
 {improvements_text}
 
 ## TAREFA
 
-Escreva uma síntese profissional descrevendo como o experimento ficaria APÓS a aplicação de todas essas melhorias.
+Escreva uma síntese profissional descrevendo como o experimento ficaria APÓS a
+aplicação de todas essas melhorias.
 
-**IMPORTANTE**: NÃO descreva as melhorias como passos sequenciais ("primeiro fazer X, depois Y"). Em vez disso, descreva o estado final integrado do experimento otimizado.
+**IMPORTANTE**: NÃO descreva as melhorias como passos sequenciais ("primeiro
+fazer X, depois Y"). Em vez disso, descreva o estado final integrado do
+experimento otimizado.
 
 ## DIRETRIZES DE ANÁLISE
 
-1. **Foque no Estado Final**: Descreva a experiência otimizada como se já estivesse implementada
+1. **Foque no Estado Final**: Descreva a experiência otimizada como se já
+   estivesse implementada
 2. **Use Dados Concretos**: Cite as métricas de scorecard e taxa de sucesso
-3. **Identifique Trade-offs**: Onde houve ganhos e onde houve custos (ex: menor complexidade vs maior esforço)
+3. **Identifique Trade-offs**: Onde houve ganhos e onde houve custos (ex: menor
+   complexidade vs maior esforço)
 4. **Seja Específico**: Use detalhes das ações aplicadas, não generalidades
 
 ## FORMATO DE SAÍDA
@@ -380,23 +423,29 @@ Estruture sua resposta em Markdown com EXATAMENTE estas seções:
 # Síntese de Exploração: {experiment_name}
 
 ## Resumo Executivo
-(2-3 parágrafos descrevendo o estado final otimizado, destacando a melhoria de {improvement_pct:.1f}% na taxa de sucesso)
+(2-3 parágrafos descrevendo o estado final otimizado, destacando a melhoria de
+{improvement_pct:.1f}% na taxa de sucesso)
 
 ## Características Principais
-(4-6 aspectos-chave que definem esta versão melhorada, com referências específicas às ações aplicadas)
+(4-6 aspectos-chave que definem esta versão melhorada, com referências
+específicas às ações aplicadas)
 
 ## Análise de Métricas
-(Discussão detalhada das mudanças no scorecard: o que melhorou, o que piorou, e por quê)
+(Discussão detalhada das mudanças no scorecard: o que melhorou, o que piorou,
+e por quê)
 
 ## Trade-offs Identificados
-(Onde houve ganhos em uma dimensão mas custos em outra - ex: redução de complexidade aumentou esforço inicial)
+(Onde houve ganhos em uma dimensão mas custos em outra - ex: redução de
+complexidade aumentou esforço inicial)
 
 ## Impacto Esperado
-(Como essas mudanças afetam a experiência do usuário e os resultados do negócio, com base nas evidências das melhorias)
+(Como essas mudanças afetam a experiência do usuário e os resultados do
+negócio, com base nas evidências das melhorias)
 
 ---
 
-Responda em português, com tom profissional mas acessível. Use os dados numéricos fornecidos para embasar suas afirmações."""
+Responda em português, com tom profissional mas acessível. Use os dados
+numéricos fornecidos para embasar suas afirmações."""
 
     def get_summary(self, exploration_id: str) -> ExperimentDocument | None:
         """
