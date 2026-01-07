@@ -37,6 +37,7 @@ from typing import Literal
 
 from agents import FunctionTool, function_tool
 from loguru import logger
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 from pydantic import BaseModel
 
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
@@ -127,20 +128,30 @@ def create_image_loader_tool(
         Returns:
             Base64-encoded image data with data URI prefix
         """
-        image_data = load_image_base64(filename, topic_guide_name)
+        with _tracer.start_as_current_span(
+            "Tool: ver_imagem",
+            attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.TOOL.value,
+                SpanAttributes.TOOL_NAME: "ver_imagem",
+                SpanAttributes.TOOL_PARAMETERS: f'{{"filename": "{filename}"}}',
+                "filename": filename,
+                "topic_guide_name": topic_guide_name,
+            }
+        ):
+            image_data = load_image_base64(filename, topic_guide_name)
 
-        # Determine MIME type from extension
-        ext = Path(filename).suffix.lower()
-        mime_types = {
-            ".png": "image/png",
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".gif": "image/gif",
-            ".webp": "image/webp",
-        }
-        mime_type = mime_types.get(ext, "image/png")
+            # Determine MIME type from extension
+            ext = Path(filename).suffix.lower()
+            mime_types = {
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".gif": "image/gif",
+                ".webp": "image/webp",
+            }
+            mime_type = mime_types.get(ext, "image/png")
 
-        return f"data:{mime_type};base64,{image_data}"
+            return f"data:{mime_type};base64,{image_data}"
 
     return load_image
 
@@ -292,10 +303,13 @@ def _load_material_content(
         Data URI with base64-encoded content or error message
     """
     with _tracer.start_as_current_span(
-        "Load Material",
+        "Tool: ver_material",
         attributes={
+            SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.TOOL.value,
+            SpanAttributes.TOOL_NAME: "ver_material",
+            SpanAttributes.TOOL_PARAMETERS: f'{{"material_id": "{material_id}"}}',
             "material_id": material_id,
-            "experiment_id": experiment_id
+            "experiment_id": experiment_id,
         }
     ):
         try:
