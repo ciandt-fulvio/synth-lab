@@ -294,6 +294,174 @@ class ExplorationSummaryGeneratorService:
                 )
                 raise
 
+    async def generate_for_exploration_async(
+        self,
+        exploration_id: str,
+    ) -> ExperimentDocument:
+        """
+        Async version of generate_for_exploration.
+
+        Args:
+            exploration_id: ID of the exploration.
+
+        Returns:
+            ExperimentDocument with generated summary.
+
+        Raises:
+            ValueError: If exploration not found.
+            ExplorationNotCompletedError: If exploration is not completed.
+            SummaryGenerationInProgressError: If generation already in progress.
+        """
+        exploration_repo = self._get_exploration_repo()
+        document_repo = self._get_document_repo()
+        experiment_repo = self._get_experiment_repo()
+
+        # 1. Get exploration
+        exploration = exploration_repo.get_exploration_by_id(exploration_id)
+        if exploration is None:
+            raise ValueError(f"Exploration {exploration_id} not found")
+
+        # 2. Get experiment name
+        experiment = experiment_repo.get_by_id(exploration.experiment_id)
+        experiment_name = experiment.name if experiment else "Experimento"
+
+        # 2.5 Fetch materials if experiment exists
+        materials = None
+        if experiment:
+            self._logger.debug(f"Fetching materials for experiment {exploration.experiment_id}")
+            material_repo = ExperimentMaterialRepository()
+            materials = material_repo.list_by_experiment(exploration.experiment_id)
+            if materials:
+                self._logger.info(
+                    f"Loaded {len(materials)} materials for experiment {exploration.experiment_id}"
+                )
+
+        with _tracer.start_as_current_span(
+            f"Generate Exploration Summary: {exploration.status.value}",
+            attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "exploration_id": exploration_id,
+                "experiment_id": exploration.experiment_id,
+                "status": exploration.status.value,
+                "materials_count": len(materials) if materials else 0,
+            },
+        ) as span:
+
+            # 3. Validate status
+            if exploration.status not in self.COMPLETED_STATUSES:
+                raise ExplorationNotCompletedError(exploration_id, exploration.status.value)
+
+            # 4. Check for existing generation in progress
+            existing = document_repo.get_by_experiment(
+                exploration.experiment_id,
+                DocumentType.EXPLORATION_SUMMARY,
+                source_id=exploration_id,
+            )
+            if existing and existing.status == DocumentStatus.GENERATING:
+                raise SummaryGenerationInProgressError(exploration_id)
+
+            # 5. Get winning path
+            winning_path = get_winning_path(exploration_repo, exploration_id)
+            span.set_attribute("path_length", len(winning_path))
+
+            if not winning_path:
+                raise ValueError(f"No nodes found for exploration {exploration_id}")
+
+            root_node = winning_path[0]
+            final_node = winning_path[-1]
+
+            # Calculate improvement metrics
+            baseline_rate = root_node.get_success_rate() or 0
+            final_rate = final_node.get_success_rate() or 0
+            improvement = (
+                ((final_rate - baseline_rate) / baseline_rate * 100) if baseline_rate > 0 else 0
+            )
+
+            # 6. Create pending document
+            metadata = {
+                "source": "exploration",
+                "exploration_id": exploration_id,
+                "winning_path_nodes": [n.id for n in winning_path],
+                "path_length": len(winning_path),
+                "baseline_success_rate": baseline_rate,
+                "final_success_rate": final_rate,
+                "improvement_percentage": round(improvement, 1),
+            }
+
+            pending_doc = document_repo.create_pending(
+                experiment_id=exploration.experiment_id,
+                document_type=DocumentType.EXPLORATION_SUMMARY,
+                source_id=exploration_id,
+                model="gpt-4o-mini",
+            )
+
+            if pending_doc is None:
+                raise SummaryGenerationInProgressError(exploration_id)
+
+            try:
+                # 7. Generate content via LLM
+                prompt = self._build_prompt(
+                    exploration, winning_path, experiment_name, materials=materials
+                )
+                messages = [{"role": "user", "content": prompt}]
+
+                content = self._llm_client.complete(
+                    messages=messages,
+                    temperature=0.7,
+                    max_tokens=2000,
+                    operation_name="Generate Exploration Summary",
+                )
+
+                if span:
+                    span.set_attribute("summary_length", len(content))
+                    span.set_attribute("improvement_percentage", round(improvement, 1))
+
+                # 8. Generate summary image and append to content (ASYNC)
+                image_service = self._get_image_service()
+                content = await image_service.generate_and_append_image(
+                    markdown_content=content,
+                    experiment_id=exploration.experiment_id,
+                    doc_id=pending_doc.id,
+                    materials=materials,
+                )
+
+                # 9. Update document with content
+                document_repo.update_status(
+                    experiment_id=exploration.experiment_id,
+                    document_type=DocumentType.EXPLORATION_SUMMARY,
+                    status=DocumentStatus.COMPLETED,
+                    source_id=exploration_id,
+                    markdown_content=content,
+                    metadata=metadata,
+                )
+
+                self._logger.info(
+                    f"Generated summary for exploration {exploration_id} "
+                    f"(path length: {len(winning_path)}, improvement: {improvement:.1f}%)"
+                )
+
+                # Return updated document
+                return document_repo.get_by_experiment(
+                    exploration.experiment_id,
+                    DocumentType.EXPLORATION_SUMMARY,
+                    source_id=exploration_id,
+                )
+
+            except Exception as e:
+                # 10. Mark as failed
+                self._logger.error(
+                    f"Failed to generate summary for exploration {exploration_id}: {e}"
+                )
+                document_repo.update_status(
+                    experiment_id=exploration.experiment_id,
+                    document_type=DocumentType.EXPLORATION_SUMMARY,
+                    status=DocumentStatus.FAILED,
+                    source_id=exploration_id,
+                    error_message=str(e),
+                    metadata=metadata,
+                )
+                raise
+
     def _build_prompt(
         self,
         exploration: Exploration,
