@@ -399,13 +399,13 @@ class ExplorationSummaryGeneratorService:
                 raise SummaryGenerationInProgressError(exploration_id)
 
             try:
-                # 7. Generate content via LLM
+                # 7. Generate content via LLM (ASYNC to avoid blocking)
                 prompt = self._build_prompt(
                     exploration, winning_path, experiment_name, materials=materials
                 )
                 messages = [{"role": "user", "content": prompt}]
 
-                content = self._llm_client.complete(
+                content = await self._llm_client.complete_async(
                     messages=messages,
                     temperature=0.7,
                     max_tokens=2000,

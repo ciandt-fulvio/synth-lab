@@ -260,6 +260,45 @@ class LLMClient:
 
             return _call()
 
+    async def complete_async(
+        self,
+        messages: list[dict[str, str]],
+        model: str | None = None,
+        temperature: float = 1.0,
+        max_tokens: int | None = None,
+        operation_name: str | None = None,
+        **kwargs: Any,
+    ) -> str:
+        """
+        Async version of complete() - runs in thread pool to avoid blocking event loop.
+
+        Args:
+            messages: List of message dicts with 'role' and 'content'.
+            model: Model to use. Defaults to default_model.
+            temperature: Sampling temperature. Defaults to 1.0.
+            max_tokens: Maximum tokens in response.
+            operation_name: Custom name for tracing span. Defaults to "LLM Completion: {model}".
+            **kwargs: Additional OpenAI API parameters.
+
+        Returns:
+            str: The completion text.
+
+        Raises:
+            Exception: If all retries fail.
+        """
+        import asyncio
+
+        # Run blocking LLM call in thread pool
+        return await asyncio.to_thread(
+            self.complete,
+            messages=messages,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            operation_name=operation_name,
+            **kwargs,
+        )
+
     def complete_stream(
         self,
         messages: list[dict[str, str]],
