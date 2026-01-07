@@ -254,6 +254,17 @@ class ResearchSummaryGeneratorService:
                 if experiment:
                     summary_title = experiment.name
 
+                # 9.5. Fetch materials for summary
+                materials = None
+                if execution.experiment_id:
+                    from synth_lab.repositories.experiment_material_repository import (
+                        ExperimentMaterialRepository,
+                    )
+
+                    material_repo = ExperimentMaterialRepository()
+                    materials = material_repo.list_by_experiment(execution.experiment_id)
+                    self._logger.info(f"Loaded {len(materials)} materials for summary")
+
                 # 10. Generate summary via LLM
                 self._logger.info(
                     f"Generating summary for {exec_id} with "
@@ -266,6 +277,7 @@ class ResearchSummaryGeneratorService:
                         interview_results=interview_results,
                         topic_guide_name=summary_title,
                         model=model,
+                        materials=materials,
                     )
                 )
 
