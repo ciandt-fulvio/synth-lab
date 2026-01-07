@@ -189,7 +189,8 @@ async def run_single_interview_safe(
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
     guide_name: str = "interview",
-    analysis_id: str | None = None) -> tuple[InterviewResult | None, dict[str, Any], Exception | None]:
+    analysis_id: str | None = None,
+    materials: list | None = None) -> tuple[InterviewResult | None, dict[str, Any], Exception | None]:
     """
     Run a single interview with error handling and semaphore control.
 
@@ -401,7 +402,8 @@ async def run_batch_interviews(
                 skip_interviewee_review=skip_interviewee_review,
                 additional_context=additional_context,
                 guide_name=guide_name,
-                analysis_id=analysis_id)
+                analysis_id=analysis_id,
+                materials=materials)
             for synth in synths_to_interview
         ]
 
