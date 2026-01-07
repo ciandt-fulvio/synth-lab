@@ -41,6 +41,7 @@ from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttribu
 from pydantic import BaseModel
 
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
+from synth_lab.infrastructure.storage_client import get_object_bytes
 
 # Phoenix tracer for observability
 _tracer = get_tracer("materials-tool")
@@ -286,18 +287,17 @@ def _load_material_content(
     material_id: str,
     experiment_id: str,
     material_repository,
-    s3_client
 ) -> str:
     """
     Core business logic for loading material content.
 
     This function is separated from the tool wrapper for testability.
+    Uses get_object_bytes from storage_client directly for S3 access.
 
     Args:
         material_id: ID of the material to load
         experiment_id: ID of the experiment (for validation)
         material_repository: Repository for fetching material metadata
-        s3_client: S3 client for downloading files
 
     Returns:
         Data URI with base64-encoded content or error message
@@ -339,9 +339,27 @@ def _load_material_content(
                 logger.warning(f"Material {material_id} too large: {material.file_size} bytes")
                 return error_msg
 
+            # Extract object_key from file_url
+            # URL format: https://endpoint/bucket/materials/exp_id/mat_id.ext
+            if not material.file_url:
+                error_msg = f"Material {material_id} não tem arquivo associado."
+                logger.warning(f"Material {material_id} has no file_url")
+                return error_msg
+
+            url_parts = material.file_url.split("/")
+            # Skip https:, empty, endpoint, bucket -> get the key
+            object_key = "/".join(url_parts[4:])
+
             # Download file from S3
             try:
-                file_content = s3_client.download_from_s3(material.file_url)
+                file_content = get_object_bytes(object_key)
+                if file_content is None:
+                    error_msg = (
+                        "Material não encontrado no armazenamento. "
+                        "Arquivo pode ter sido removido."
+                    )
+                    logger.error(f"S3 returned None for {object_key}")
+                    return error_msg
             except TimeoutError as e:
                 error_msg = (
                     "Timeout ao carregar material. "
@@ -351,10 +369,10 @@ def _load_material_content(
                 return error_msg
             except Exception as e:
                 error_msg = (
-                    "Material não encontrado. "
-                    "Arquivo pode ter sido removido do armazenamento."
+                    "Erro ao acessar armazenamento. "
+                    "Tente novamente em alguns segundos."
                 )
-                logger.error(f"S3 download failed for {material_id}: {e}")
+                logger.error(f"S3 download failed for {material_id} ({object_key}): {e}")
                 return error_msg
 
             # Encode to base64
@@ -384,7 +402,6 @@ def _load_material_content(
 def create_materials_tool(
     experiment_id: str,
     material_repository,
-    s3_client
 ) -> FunctionTool:
     """
     Create a function tool for loading experiment materials.
@@ -395,7 +412,6 @@ def create_materials_tool(
     Args:
         experiment_id: ID of the current experiment
         material_repository: Repository for fetching material metadata
-        s3_client: S3 client for downloading files
 
     Returns:
         FunctionTool configured to load materials from S3
@@ -406,8 +422,7 @@ def create_materials_tool(
 
     tool = create_materials_tool(
         experiment_id="exp_123",
-        material_repository=ExperimentMaterialRepository(session),
-        s3_client=material_service
+        material_repository=ExperimentMaterialRepository(),
     )
     ```
     """
@@ -434,7 +449,6 @@ def create_materials_tool(
             material_id=material_id,
             experiment_id=experiment_id,
             material_repository=material_repository,
-            s3_client=s3_client
         )
 
     return view_material

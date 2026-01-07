@@ -96,20 +96,17 @@ def create_interviewer(
         # Get experiment_id from first material
         experiment_id = materials[0].experiment_id
 
-        # Import repository and service for materials tool
+        # Import repository for materials tool
         from synth_lab.repositories.experiment_material_repository import (
             ExperimentMaterialRepository,
         )
-        from synth_lab.services.material_service import MaterialService
 
         material_repo = ExperimentMaterialRepository()
-        material_service = MaterialService()
 
         # Create and add materials tool
         materials_tool = create_materials_tool(
             experiment_id=experiment_id,
             material_repository=material_repo,
-            s3_client=material_service,
         )
         agent_tools.append(materials_tool)
 
@@ -170,20 +167,17 @@ def create_interviewee(
         # Get experiment_id from first material
         experiment_id = materials[0].experiment_id
 
-        # Import repository and service for materials tool
+        # Import repository for materials tool
         from synth_lab.repositories.experiment_material_repository import (
             ExperimentMaterialRepository,
         )
-        from synth_lab.services.material_service import MaterialService
 
         material_repo = ExperimentMaterialRepository()
-        material_service = MaterialService()
 
         # Create and add materials tool
         materials_tool = create_materials_tool(
             experiment_id=experiment_id,
             material_repository=material_repo,
-            s3_client=material_service,
         )
         agent_tools.append(materials_tool)
 
