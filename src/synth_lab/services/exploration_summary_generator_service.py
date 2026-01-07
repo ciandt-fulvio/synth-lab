@@ -245,12 +245,16 @@ class ExplorationSummaryGeneratorService:
                     span.set_attribute("improvement_percentage", round(improvement, 1))
 
                 # 8. Generate summary image and append to content
+                import asyncio
+
                 image_service = self._get_image_service()
-                content = image_service.generate_and_append_image(
-                    markdown_content=content,
-                    experiment_id=exploration.experiment_id,
-                    doc_id=pending_doc.id,
-                    materials=materials,
+                content = asyncio.run(
+                    image_service.generate_and_append_image(
+                        markdown_content=content,
+                        experiment_id=exploration.experiment_id,
+                        doc_id=pending_doc.id,
+                        materials=materials,
+                    )
                 )
 
                 # 9. Update document with content

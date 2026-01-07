@@ -175,7 +175,7 @@ class ImageGenerator:
 
             return _call()
 
-    def generate_bytes(
+    async def generate_bytes(
         self,
         prompt: str,
         model: str | None = None,
@@ -200,11 +200,15 @@ class ImageGenerator:
 
         Example:
             >>> generator = ImageGenerator()
-            >>> image_bytes = generator.generate_bytes("A forest landscape")
+            >>> image_bytes = await generator.generate_bytes("A forest landscape")
             >>> with open("output.png", "wb") as f:
             ...     f.write(image_bytes)
         """
-        base64_string = self.generate(
+        import asyncio
+
+        # Run blocking operations in thread pool
+        base64_string = await asyncio.to_thread(
+            self.generate,
             prompt=prompt,
             model=model,
             n=n,
@@ -212,7 +216,7 @@ class ImageGenerator:
             quality=quality,
             output_format=output_format,
         )
-        return base64.b64decode(base64_string)
+        return await asyncio.to_thread(base64.b64decode, base64_string)
 
 
 # Global image generator instance

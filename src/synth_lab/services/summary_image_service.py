@@ -182,7 +182,7 @@ class SummaryImageService:
         filename = f"{experiment_id}_{doc_id}.{extension}"
         return self._images_dir / filename
 
-    def generate_image(
+    async def generate_image(
         self,
         markdown_content: str,
         experiment_id: str,
@@ -232,17 +232,19 @@ class SummaryImageService:
                 # 3. Ensure directory exists
                 self._ensure_images_dir()
 
-                # 4. Generate image
-                image_bytes = self._image_generator.generate_bytes(
+                # 4. Generate image (async)
+                image_bytes = await self._image_generator.generate_bytes(
                     prompt=image_prompt,
                     output_format=output_format,
                     size="1536x1024",
                     quality="auto",
                 )
 
-                # 5. Save to file
+                # 5. Save to file (async to avoid blocking)
+                import asyncio
+
                 image_path = self._get_image_path(experiment_id, doc_id, output_format)
-                image_path.write_bytes(image_bytes)
+                await asyncio.to_thread(image_path.write_bytes, image_bytes)
 
                 self._logger.info(
                     f"Generated summary image: {image_path} ({len(image_bytes)} bytes)"
@@ -289,7 +291,7 @@ class SummaryImageService:
 """
         return markdown_content.rstrip() + image_section
 
-    def generate_and_append_image(
+    async def generate_and_append_image(
         self,
         markdown_content: str,
         experiment_id: str,
@@ -314,7 +316,7 @@ class SummaryImageService:
             Updated markdown with image section appended.
             If image generation fails, returns original markdown unchanged.
         """
-        image_path = self.generate_image(
+        image_path = await self.generate_image(
             markdown_content=markdown_content,
             experiment_id=experiment_id,
             doc_id=doc_id,

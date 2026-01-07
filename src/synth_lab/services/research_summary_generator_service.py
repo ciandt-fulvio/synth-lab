@@ -285,11 +285,15 @@ class ResearchSummaryGeneratorService:
                     span.set_attribute("summary_length", len(content))
 
                 # 11. Generate summary image and append to content
+                import asyncio
+
                 image_service = self._get_image_service()
-                content = image_service.generate_and_append_image(
-                    markdown_content=content,
-                    experiment_id=execution.experiment_id,
-                    doc_id=pending_doc.id,
+                content = asyncio.run(
+                    image_service.generate_and_append_image(
+                        markdown_content=content,
+                        experiment_id=execution.experiment_id,
+                        doc_id=pending_doc.id,
+                    )
                 )
 
                 # 12. Update document with content
@@ -462,11 +466,15 @@ class ResearchSummaryGeneratorService:
                     span.set_attribute("summary_length", len(content))
 
                 # 11. Generate summary image and append to content
+                import asyncio
+
                 image_service = self._get_image_service()
-                content = image_service.generate_and_append_image(
-                    markdown_content=content,
-                    experiment_id=execution.experiment_id,
-                    doc_id=pending_doc.id,
+                content = asyncio.run(
+                    image_service.generate_and_append_image(
+                        markdown_content=content,
+                        experiment_id=execution.experiment_id,
+                        doc_id=pending_doc.id,
+                    )
                 )
 
                 # 12. Update document with content
