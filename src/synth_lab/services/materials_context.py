@@ -147,7 +147,8 @@ def to_material_context(material) -> MaterialContext:
 def format_materials_for_prompt(
     materials: list | None,
     context: Literal["interview", "prfaq", "exploration"],
-    include_tool_instructions: bool = True
+    include_tool_instructions: bool = True,
+    role: Literal["interviewer", "interviewee"] = "interviewee"
 ) -> str:
     """
     Format experiment materials as markdown section for LLM system prompts.
@@ -162,6 +163,7 @@ def format_materials_for_prompt(
             - prfaq: Includes reference format guidelines
             - exploration: Metadata only (no tool)
         include_tool_instructions: Whether to include ver_material() tool usage
+        role: Role of the agent (interviewer or interviewee) - affects instructions
 
     Returns:
         Markdown-formatted materials section (empty string if no materials)
@@ -194,7 +196,7 @@ def format_materials_for_prompt(
 
     # Build markdown section based on context
     if context == "interview":
-        return _format_for_interview(contexts, include_tool_instructions) + truncation_note
+        return _format_for_interview(contexts, include_tool_instructions, role) + truncation_note
     elif context == "prfaq":
         return _format_for_prfaq(contexts) + truncation_note
     elif context == "exploration":
@@ -203,7 +205,8 @@ def format_materials_for_prompt(
 
 def _format_for_interview(
     contexts: list[MaterialContext],
-    include_tool: bool
+    include_tool: bool,
+    role: Literal["interviewer", "interviewee"] = "interviewee"
 ) -> str:
     """
     Format materials for interview context with tool usage instructions.
@@ -211,49 +214,81 @@ def _format_for_interview(
     Creates a markdown section that includes:
     - List of all materials with IDs and metadata
     - Instructions for using ver_material() tool (if enabled)
-    - Examples of how to reference visual elements in responses
+    - Role-specific guidance (interviewer asks about materials, interviewee views them)
 
     Args:
         contexts: List of MaterialContext objects to format
         include_tool: If True, includes ver_material() tool usage instructions
+        role: Role of the agent - affects the instructions given
 
     Returns:
         Markdown-formatted string with materials section for interview prompts
     """
     lines = ["## Materiais Anexados", ""]
 
-    if include_tool:
-        lines.append(
-            "Você tem acesso aos seguintes materiais do experimento. "
-            "Use a função `ver_material(material_id)` para visualizar qualquer "
-            "material quando precisar analisá-lo em detalhes."
-        )
+    if role == "interviewer":
+        # Interviewer should ASK the interviewee to look at materials
+        lines.extend([
+            "Este experimento tem materiais visuais (imagens, telas, protótipos). "
+            "Durante a entrevista, você deve:",
+            "",
+            "**COMO USAR OS MATERIAIS NA ENTREVISTA**:",
+            "- Peça ao entrevistado para OLHAR materiais específicos pelo ID",
+            "- Exemplo: \"Gostaria que você olhasse a tela mat_abc123. O que acha?\"",
+            "- Pergunte sobre elementos visuais específicos após mostrar o material",
+            "- Explore reações emocionais e usabilidade baseado nos materiais",
+            "",
+        ])
+    elif include_tool:
+        # Interviewee should USE the tool to view materials
+        lines.extend([
+            "**IMPORTANTE**: Você tem acesso a imagens e documentos do experimento. "
+            "As descrições abaixo são apenas metadados - você NÃO consegue ver o "
+            "conteúdo visual sem chamar a função `ver_material(material_id)`.",
+            "",
+            "**QUANDO USAR A FERRAMENTA**:",
+            "- SEMPRE chame `ver_material()` ANTES de comentar sobre qualquer imagem",
+            "- A descrição textual NÃO substitui ver a imagem real",
+            "- Você precisa VER o material para dar feedback visual autêntico",
+            "",
+        ])
     else:
         lines.append("Você tem acesso aos seguintes materiais do experimento:")
 
+    lines.append("**Materiais disponíveis:**")
     lines.append("")
 
     # List materials
     for ctx in contexts:
         lines.append(f"- **{ctx.material_id}** - {ctx.display_label}")
         if ctx.description:
-            lines.append(f"  Descrição: {ctx.description}")
+            lines.append(f"  (Metadado: {ctx.description})")
         lines.append("")
 
-    # Add tool usage instructions if requested
-    if include_tool:
+    # Add role-specific usage instructions
+    if role == "interviewer":
         lines.extend([
-            "### Como Referenciar Materiais",
+            "### Sugestões de Perguntas com Materiais",
             "",
-            "Quando discutir os materiais:",
-            "- Cite elementos específicos: \"o botão verde no canto superior\"",
-            "- Para vídeos, mencione timestamps: \"aos 1:23 do vídeo...\"",
-            "- Relacione com sua persona: explique como os elementos afetam sua experiência",
+            "- \"Vou te mostrar a tela [ID]. Olhe com calma e me diga sua impressão.\"",
+            "- \"O que você acha do layout desta página?\"",
+            "- \"Consegue encontrar onde faria X nesta tela?\"",
+            "- \"Algo te confunde ou incomoda visualmente?\"",
+            ""
+        ])
+    elif include_tool:
+        lines.extend([
+            "### Como Usar os Materiais",
             "",
-            "Exemplo:",
-            "❌ \"Gostei do design\"",
+            "1. Quando o entrevistador mencionar uma imagem/tela, "
+            "chame `ver_material(material_id)` para visualizá-la",
+            "2. Analise o conteúdo visual real (cores, botões, layout, textos)",
+            "3. Responda baseado no que você VIU, não apenas na descrição",
+            "",
+            "Exemplo de resposta após ver material:",
+            "❌ \"Gostei do design\" (genérico, sem ver)",
             "✅ \"Achei o botão 'Finalizar Pedido' bem visível no wireframe, mas "
-            "os 8 campos do formulário me intimidaram por serem muitos\"",
+            "os 8 campos do formulário me intimidaram\" (específico, após ver)",
             ""
         ])
 

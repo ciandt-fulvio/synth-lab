@@ -262,7 +262,8 @@ def format_interviewer_instructions(
         materials_section = format_materials_for_prompt(
             materials=materials,
             context="interview",
-            include_tool_instructions=True
+            include_tool_instructions=True,
+            role="interviewer"
         )
         additional_context_section = additional_context_section + "\n" + materials_section
 
@@ -363,7 +364,8 @@ quiser analisá-la visualmente antes de responder.
         materials_section = format_materials_for_prompt(
             materials=materials,
             context="interview",
-            include_tool_instructions=True
+            include_tool_instructions=True,
+            role="interviewee"
         )
         available_images_section = available_images_section + "\n" + materials_section
 
