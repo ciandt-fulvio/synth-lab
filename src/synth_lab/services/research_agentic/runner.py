@@ -474,7 +474,8 @@ async def run_interview(
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
     guide_name: str = "interview",
-    analysis_id: str | None = None) -> InterviewResult:
+    analysis_id: str | None = None,
+    materials: list | None = None) -> InterviewResult:
     """
     Run an agentic interview with orchestrated turn-taking.
 
@@ -500,6 +501,8 @@ async def run_interview(
         analysis_id: Optional analysis ID to fetch simulation results for context.
             When provided, synth's simulation performance is included in the
             interviewee prompt for coherent behavior.
+        materials: Optional list of ExperimentMaterial objects to include in prompts.
+            When provided, materials are accessible to both interviewer and interviewee.
 
     Returns:
         InterviewResult with conversation and metadata
@@ -603,7 +606,8 @@ async def run_interview(
                             conversation_history=shared_memory.format_history(),
                             max_turns=max_turns,
                             model=model,
-                            additional_context=additional_context)
+                            additional_context=additional_context,
+                            materials=materials)
 
                         # Log request
                         span.set_attribute(
@@ -671,7 +675,8 @@ async def run_interview(
                             synth=shared_memory.synth,
                             conversation_history=shared_memory.format_history(),
                             initial_context=initial_context,
-                            model=model)
+                            model=model,
+                            materials=materials)
 
                         # Log request
                         span.set_attribute(
@@ -803,7 +808,8 @@ async def run_interview_simple(
             topic_guide=shared_memory.topic_guide,
             conversation_history=shared_memory.format_history(),
             max_turns=max_turns,
-            model=model)
+            model=model,
+            materials=materials)
 
         result = await Runner.run(interviewer, input="Ask your question.")
         response = result.final_output
@@ -826,7 +832,8 @@ async def run_interview_simple(
         interviewee = create_interviewee(
             synth=shared_memory.synth,
             conversation_history=shared_memory.format_history(),
-            model=model)
+            model=model,
+            materials=materials)
 
         result = await Runner.run(interviewee, input="Answer the question.")
         response = result.final_output
