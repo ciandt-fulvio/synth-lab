@@ -15,6 +15,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { getChartInsight } from '@/services/insights-api';
+import { APIError } from '@/services/api';
 import type { ChartInsight } from '@/types/insights';
 
 interface UseChartInsightOptions {
@@ -26,7 +27,7 @@ export function useChartInsight(
   chartType: string,
   options?: UseChartInsightOptions
 ) {
-  return useQuery<ChartInsight, Error>({
+  return useQuery<ChartInsight, APIError>({
     queryKey: ['chart-insight', experimentId, chartType],
     queryFn: () => getChartInsight(experimentId, chartType),
     enabled: options?.enabled !== false,
@@ -43,15 +44,20 @@ export function useChartInsight(
       return insight?.status === 'completed' ? 5 * 60 * 1000 : 0;
     },
 
-    // Don't refetch on window focus for completed insights
+    // Don't refetch on window focus for completed insights or 404 errors
     refetchOnWindowFocus: (query) => {
       const insight = query.state.data;
-      return insight?.status !== 'completed';
+      const error = query.state.error;
+      // Don't refetch if completed or if we got 404 (insight not generated yet)
+      if (insight?.status === 'completed' || error?.status === 404) {
+        return false;
+      }
+      return true;
     },
 
     // Retry on network errors, but not on 404 (insight not generated yet)
     retry: (failureCount, error) => {
-      if (error.message?.includes('404')) {
+      if (error.status === 404) {
         return false;
       }
       return failureCount < 3;

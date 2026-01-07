@@ -103,7 +103,7 @@ def extract_image_prompt(markdown_content: str) -> str:
     return result
 
 
-def build_image_prompt(content: str, max_length: int = 30000) -> str:
+def build_image_prompt(content: str, max_length: int = 30000, materials: list | None = None) -> str:
     """
     Build the final prompt for image generation.
 
@@ -112,15 +112,31 @@ def build_image_prompt(content: str, max_length: int = 30000) -> str:
     Args:
         content: Extracted content from markdown.
         max_length: Maximum length of the prompt.
+        materials: Optional list of ExperimentMaterial objects for context.
 
     Returns:
         Final prompt for image generation.
     """
+    # Include materials context if provided
+    materials_context = ""
+    if materials:
+        from synth_lab.services.materials_context import format_materials_for_prompt
 
-    # Truncate content if too long
-    if len(content) > max_length:
-        content = content[:max_length] + "..."
-    return content
+        materials_context = format_materials_for_prompt(
+            materials=materials,
+            context="exploration",
+            include_tool_instructions=False,
+        )
+        materials_context = f"\n\n{materials_context}\n\n"
+
+    # Combine materials context with content
+    full_content = f"{materials_context}{content}"
+
+    # Truncate if too long
+    if len(full_content) > max_length:
+        full_content = full_content[:max_length] + "..."
+
+    return full_content
 
 
 class SummaryImageService:
@@ -166,12 +182,13 @@ class SummaryImageService:
         filename = f"{experiment_id}_{doc_id}.{extension}"
         return self._images_dir / filename
 
-    def generate_image(
+    async def generate_image(
         self,
         markdown_content: str,
         experiment_id: str,
         doc_id: str,
         output_format: str = "png",
+        materials: list | None = None,
     ) -> Path | None:
         """
         Generate an image from summary content and save it.
@@ -181,6 +198,7 @@ class SummaryImageService:
             experiment_id: Experiment ID for filename.
             doc_id: Document ID for filename.
             output_format: Image format (png, jpeg, webp).
+            materials: Optional list of ExperimentMaterial objects for context.
 
         Returns:
             Path to the saved image, or None if generation failed.
@@ -205,7 +223,7 @@ class SummaryImageService:
                     return None
 
                 # 2. Build final prompt
-                image_prompt = build_image_prompt(extracted_content)
+                image_prompt = build_image_prompt(extracted_content, materials=materials)
                 self._logger.debug(f"Image prompt length: {len(image_prompt)} chars")
 
                 if span:
@@ -214,17 +232,19 @@ class SummaryImageService:
                 # 3. Ensure directory exists
                 self._ensure_images_dir()
 
-                # 4. Generate image
-                image_bytes = self._image_generator.generate_bytes(
+                # 4. Generate image (async)
+                image_bytes = await self._image_generator.generate_bytes(
                     prompt=image_prompt,
                     output_format=output_format,
                     size="1536x1024",
                     quality="auto",
                 )
 
-                # 5. Save to file
+                # 5. Save to file (async to avoid blocking)
+                import asyncio
+
                 image_path = self._get_image_path(experiment_id, doc_id, output_format)
-                image_path.write_bytes(image_bytes)
+                await asyncio.to_thread(image_path.write_bytes, image_bytes)
 
                 self._logger.info(
                     f"Generated summary image: {image_path} ({len(image_bytes)} bytes)"
@@ -271,12 +291,13 @@ class SummaryImageService:
 """
         return markdown_content.rstrip() + image_section
 
-    def generate_and_append_image(
+    async def generate_and_append_image(
         self,
         markdown_content: str,
         experiment_id: str,
         doc_id: str,
         output_format: str = "png",
+        materials: list | None = None,
     ) -> str:
         """
         Generate image and append it to the markdown content.
@@ -289,16 +310,18 @@ class SummaryImageService:
             experiment_id: Experiment ID for filename.
             doc_id: Document ID for filename.
             output_format: Image format (png, jpeg, webp).
+            materials: Optional list of ExperimentMaterial objects for context.
 
         Returns:
             Updated markdown with image section appended.
             If image generation fails, returns original markdown unchanged.
         """
-        image_path = self.generate_image(
+        image_path = await self.generate_image(
             markdown_content=markdown_content,
             experiment_id=experiment_id,
             doc_id=doc_id,
             output_format=output_format,
+            materials=materials,
         )
 
         if image_path is None:

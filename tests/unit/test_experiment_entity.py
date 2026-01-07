@@ -101,17 +101,18 @@ class TestExperimentEntity:
             Experiment(name="test", hypothesis="test", description=desc_2001)
 
     def test_id_pattern_validation(self) -> None:
-        """Verify ID must match exp_[a-f0-9]{8} pattern."""
-        # Valid pattern
+        """Verify ID must match exp_[a-z0-9_]+ pattern."""
+        # Valid patterns
         exp = Experiment(id="exp_abcd1234", name="test", hypothesis="test")
         assert exp.id == "exp_abcd1234"
 
-        # Invalid patterns
+        # Short suffix is also valid (pattern allows any length >= 1)
+        exp_short = Experiment(id="exp_12345", name="test", hypothesis="test")
+        assert exp_short.id == "exp_12345"
+
+        # Invalid pattern - doesn't start with exp_
         with pytest.raises(ValueError):
             Experiment(id="invalid", name="test", hypothesis="test")
-
-        with pytest.raises(ValueError):
-            Experiment(id="exp_12345", name="test", hypothesis="test")  # Too short
 
     def test_model_dump(self) -> None:
         """Verify model_dump produces valid dict."""

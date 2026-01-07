@@ -1,0 +1,230 @@
+# API Contract: Materials Context Module
+# Module: services/materials_context.py
+# Purpose: Shared utilities for formatting materials in LLM prompts
+
+functions:
+  format_materials_for_prompt:
+    description: >
+      Format experiment materials as markdown section for LLM system prompts.
+      Generates consistent materials context across interview, PR-FAQ, and exploration flows.
+
+    inputs:
+      materials:
+        type: List[ExperimentMaterial]
+        description: List of materials from database (ORM models)
+        constraints:
+          - Max 20 materials (soft limit, logs warning if exceeded)
+          - Materials must belong to same experiment
+
+      context:
+        type: Literal["interview", "prfaq", "exploration"]
+        description: Context type determines formatting style
+        constraints:
+          - interview: Includes tool usage instructions
+          - prfaq: Includes reference format guidelines
+          - exploration: Metadata only (no tool)
+
+      include_tool_instructions:
+        type: bool
+        default: true
+        description: Whether to include ver_material() tool usage instructions
+
+    outputs:
+      type: str
+      description: Markdown-formatted materials section for system prompt
+      format: |
+        ## Materiais Anexados
+
+        Você tem acesso aos seguintes materiais do experimento...
+
+        - **mat_abc123** - [design] wireframe.png (image/png, 2.3 MB)
+          Descrição: Wireframe do fluxo...
+
+    constraints:
+      - Output must not exceed 2000 tokens
+      - Must handle empty materials list (return empty string)
+      - Must handle materials with missing descriptions
+      - Must escape markdown special characters in filenames
+
+    errors:
+      - ValueError: If context not in allowed values
+      - None raised if materials empty or invalid (returns empty string with warning log)
+
+  to_material_context:
+    description: Convert ORM ExperimentMaterial to MaterialContext (in-memory struct)
+
+    inputs:
+      material:
+        type: ExperimentMaterial
+        description: SQLAlchemy ORM model
+
+    outputs:
+      type: MaterialContext
+      description: Pydantic model for prompt formatting
+      fields:
+        - material_id (str)
+        - material_type (str)
+        - file_name (str)
+        - mime_type (str)
+        - description (str | None)
+        - file_size_mb (float)
+
+    constraints:
+      - Must round file_size_mb to 2 decimal places
+      - Must handle None description gracefully
+
+  validate_token_budget:
+    description: Check if materials section exceeds token budget
+
+    inputs:
+      formatted_section:
+        type: str
+        description: Output from format_materials_for_prompt()
+
+    outputs:
+      type: dict
+      fields:
+        is_valid: bool
+        estimated_tokens: int
+        budget: int  # Always 2000
+        exceeded_by: int | None  # None if valid, else tokens over budget
+
+    constraints:
+      - Uses tiktoken for accurate token counting
+      - Model: "gpt-4" (conservative estimate)
+
+data_models:
+  MaterialContext:
+    description: In-memory representation of material for prompt formatting
+    fields:
+      material_id:
+        type: str
+        constraints:
+          - Must match pattern: mat_[a-z0-9]{12}
+      material_type:
+        type: str
+        allowed_values: [design, prototype, competitor, spec, other]
+      file_name:
+        type: str
+        constraints:
+          - Max 255 characters
+      mime_type:
+        type: str
+        allowed_values:
+          - image/png
+          - image/jpeg
+          - image/gif
+          - image/webp
+          - application/pdf
+          - video/mp4
+          - video/webm
+      description:
+        type: str | None
+        constraints:
+          - Max 500 characters (from DB description field)
+      file_size_mb:
+        type: float
+        constraints:
+          - Rounded to 2 decimal places
+          - Max 50.0 (from spec constraint)
+
+  MaterialReference:
+    description: Parsed reference to material in generated content
+    fields:
+      material_id:
+        type: str
+        description: Either mat_XXXXXX or filename
+      reference_type:
+        type: Literal["material_id", "filename_timestamp", "filename"]
+      timestamp:
+        type: str | None
+        constraints:
+          - Format: HH:MM or MM:SS or H:MM:SS
+          - Only present for video references
+      context:
+        type: str
+        description: The insight/observation text from markdown link
+
+    methods:
+      from_markdown_link:
+        input: str (markdown link format)
+        output: MaterialReference
+        examples:
+          - "[text](mat_abc123)" → material_id type
+          - "[text](video.mp4@01:23)" → filename_timestamp type
+          - "[text](image.png)" → filename type
+
+examples:
+  interview_context:
+    input:
+      materials:
+        - id: mat_abc123
+          material_type: design
+          file_name: wireframe-checkout.png
+          mime_type: image/png
+          file_size: 2_300_000
+          description: Wireframe do fluxo de checkout
+      context: interview
+      include_tool_instructions: true
+
+    output: |
+      ## Materiais Anexados
+
+      Você tem acesso aos seguintes materiais do experimento. Use a função `ver_material(material_id)` para visualizar qualquer material quando precisar analisá-lo em detalhes.
+
+      - **mat_abc123** - [design] wireframe-checkout.png (image/png, 2.3 MB)
+        Descrição: Wireframe do fluxo de checkout
+
+      ### Como Referenciar Materiais
+
+      Quando discutir os materiais:
+      - Cite elementos específicos: "o botão verde no canto superior"
+      - Para vídeos, mencione timestamps: "aos 1:23 do vídeo..."
+      - Relacione com sua persona: [explicar conexão com traits]
+
+  prfaq_context:
+    input:
+      materials:
+        - id: mat_def456
+          material_type: prototype
+          file_name: demo-video.mp4
+          mime_type: video/mp4
+          file_size: 15_000_000
+          description: Vídeo de demonstração do fluxo
+      context: prfaq
+      include_tool_instructions: false
+
+    output: |
+      ## Materiais de Referência
+
+      Os seguintes materiais foram usados durante a pesquisa:
+
+      - **mat_def456** - [prototype] demo-video.mp4 (video/mp4, 15.0 MB)
+        Descrição: Vídeo de demonstração do fluxo
+
+      ### Formato de Referências
+
+      Ao citar materiais nos insights:
+      - Use: [observação](mat_XXXXXX) para imagens/documentos
+      - Use: [observação](filename.mp4@MM:SS) para vídeos com timestamp
+
+      Exemplo: "Calendário visual [ref: demo-video.mp4@01:23] teve boa recepção"
+
+testing:
+  unit_tests:
+    - test_format_empty_materials: Returns empty string
+    - test_format_single_material: Correct markdown structure
+    - test_format_multiple_materials: Ordered correctly
+    - test_format_missing_description: Handles None gracefully
+    - test_format_interview_context: Includes tool instructions
+    - test_format_prfaq_context: Includes reference format
+    - test_format_exploration_context: Metadata only
+    - test_token_budget_validation: Warns when >2000 tokens
+    - test_special_characters_escaped: Handles filenames with []()
+    - test_truncation_over_20_materials: Logs warning, truncates
+
+  contract_tests:
+    - test_output_is_valid_markdown: Parses without errors
+    - test_output_includes_all_materials: No materials dropped
+    - test_material_ids_preserved: IDs match input
+    - test_context_specific_sections: Correct headers per context

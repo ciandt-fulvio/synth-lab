@@ -1,0 +1,236 @@
+# API Contract: Materials Retrieval Tool
+# Module: services/research_agentic/tools.py
+# Purpose: LLM function tool for on-demand material retrieval
+
+tool_definition:
+  name: ver_material
+  description: >
+    Visualiza um material anexado ao experimento. Use o material_id da lista
+    de materiais disponíveis no contexto do experimento.
+
+  parameters:
+    material_id:
+      type: string
+      description: ID do material (ex: mat_abc123)
+      required: true
+      pattern: ^mat_[a-z0-9]{12}$
+
+  returns:
+    type: string
+    description: >
+      Data URI com conteúdo do material em base64.
+      Formato: "data:{mime_type};base64,{encoded_content}"
+    examples:
+      - "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+      - "data:application/pdf;base64,JVBERi0xLjQKJeLjz9..."
+      - "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21..."
+
+implementation:
+  function_name: create_materials_tool
+  signature: |
+    def create_materials_tool(
+        experiment_id: str,
+        material_repository: ExperimentMaterialRepository,
+        s3_client: Any  # boto3 client
+    ) -> FunctionTool
+
+  behavior:
+    - Fetch material by ID from repository
+    - Validate material belongs to experiment_id
+    - Download file from S3 using material.file_url
+    - Encode content as base64
+    - Return data URI with mime_type and encoded content
+
+  error_handling:
+    material_not_found:
+      condition: material_id not in experiment's materials
+      response: "Material {material_id} não encontrado neste experimento."
+      log_level: WARNING
+
+    material_not_in_s3:
+      condition: S3 download fails (404, 403, etc.)
+      response: "Material não encontrado. Arquivo pode ter sido removido do armazenamento."
+      log_level: ERROR
+
+    download_timeout:
+      condition: S3 download exceeds 10 seconds
+      response: "Timeout ao carregar material. Tente novamente ou escolha outro material."
+      log_level: WARNING
+
+    corrupted_file:
+      condition: Base64 encoding fails
+      response: "Erro ao processar material. Arquivo pode estar corrompido."
+      log_level: ERROR
+
+    file_too_large:
+      condition: file_size > 50MB
+      response: "Material muito grande (>50MB). Use a descrição do material como referência."
+      log_level: WARNING
+
+  performance:
+    timeout: 10 seconds per material
+    max_file_size: 50 MB (52,428,800 bytes)
+    caching: Cache downloaded materials in memory during interview session
+    retry_logic: 3 attempts with exponential backoff (via existing S3 client)
+
+  tracing:
+    phoenix_span:
+      name: "Load Material"
+      attributes:
+        - material_id
+        - mime_type
+        - file_size_mb
+        - experiment_id
+      span_kind: TOOL
+
+decorator_usage:
+  pattern: |
+    from agents import function_tool
+
+    @function_tool(
+        name_override="ver_material",
+        description_override="Visualiza um material anexado ao experimento..."
+    )
+    def view_material(material_id: str) -> str:
+        """Implementation"""
+        pass
+
+  registration: |
+    # In agent creation
+    materials_tool = create_materials_tool(
+        experiment_id="exp_123",
+        material_repository=repo,
+        s3_client=s3
+    )
+
+    agent = Agent(
+        name="Interviewee",
+        instructions=instructions,
+        tools=[materials_tool]  # Tool available to LLM
+    )
+
+data_flows:
+  successful_retrieval:
+    steps:
+      1. LLM calls: ver_material(material_id="mat_abc123")
+      2. Tool validates: material belongs to experiment
+      3. Tool downloads: S3 → bytes
+      4. Tool encodes: bytes → base64
+      5. Tool returns: "data:image/png;base64,..."
+      6. LLM receives: data URI in function response
+      7. LLM analyzes: image content (via multimodal capability)
+      8. LLM responds: with specific observations
+
+  failed_retrieval:
+    steps:
+      1. LLM calls: ver_material(material_id="mat_invalid")
+      2. Tool validates: material NOT in experiment
+      3. Tool returns: error message string
+      4. LLM receives: error as plain text
+      5. LLM responds: acknowledging material unavailable
+
+video_handling:
+  small_videos:
+    condition: file_size < 10 MB
+    action: Return full video as base64
+
+  medium_videos:
+    condition: 10 MB <= file_size < 50 MB
+    action: Return full video with warning about processing time
+
+  large_videos:
+    condition: file_size >= 50 MB
+    action: Return error message, suggest using description
+
+  future_optimization:
+    note: >
+      Phase 2 could implement keyframe extraction for large videos.
+      Current implementation prioritizes simplicity.
+
+testing:
+  unit_tests:
+    - test_create_tool_with_valid_params: Tool created successfully
+    - test_tool_validates_material_id_format: Rejects invalid IDs
+    - test_tool_validates_experiment_ownership: Rejects materials from other experiments
+
+  integration_tests:
+    - test_load_image_material: Returns valid base64 data URI
+    - test_load_pdf_material: Returns valid PDF data URI
+    - test_load_video_material: Returns valid video data URI
+    - test_load_nonexistent_material: Returns error message
+    - test_load_deleted_s3_file: Returns error message
+    - test_load_timeout: Returns timeout error after 10s
+    - test_load_large_file: Returns size error for >50MB
+
+  contract_tests:
+    - test_tool_name_is_ver_material: Matches expected name
+    - test_tool_has_single_param: Only material_id parameter
+    - test_tool_returns_string: Return type is str
+    - test_data_uri_format: Matches "data:{mime};base64,{data}"
+
+  end_to_end_tests:
+    - test_interview_with_materials: Agent can call tool during interview
+    - test_multiple_material_loads: Agent loads multiple materials in session
+    - test_agent_references_material_content: Agent's response cites specific elements from loaded material
+
+examples:
+  successful_call:
+    llm_request:
+      function: ver_material
+      arguments:
+        material_id: mat_abc123def456
+
+    tool_execution:
+      - Fetch from DB: ExperimentMaterial(id='mat_abc123def456', ...)
+      - Validate: belongs to experiment_id='exp_789'
+      - Download: S3 GET s3://bucket/materials/mat_abc123def456.png
+      - Encode: base64.b64encode(bytes) → "iVBORw0KGgoAAAA..."
+      - Return: "data:image/png;base64,iVBORw0KGgoAAAA..."
+
+    llm_response:
+      > Analisando o wireframe, observei que o botão "Finalizar Pedido" está
+      > posicionado no canto inferior direito. Achei que a cor verde chama bastante
+      > atenção, o que é bom para uma ação importante. Porém, o formulário acima
+      > tem 8 campos obrigatórios, o que me deixou um pouco intimidado.
+
+  error_call:
+    llm_request:
+      function: ver_material
+      arguments:
+        material_id: mat_999invalid
+
+    tool_execution:
+      - Fetch from DB: None (not found)
+      - Validate: FAIL
+      - Return error: "Material mat_999invalid não encontrado neste experimento."
+
+    llm_response:
+      > Desculpe, não consigo visualizar esse material específico. Posso continuar
+      > respondendo com base na descrição dos materiais disponíveis ou nos outros
+      > materiais que consegui ver.
+
+security:
+  access_control:
+    - Tool validates material belongs to current experiment_id
+    - No cross-experiment material access
+    - Uses existing experiment permissions (no new auth needed)
+
+  data_privacy:
+    - Materials sent to OpenAI API via data URI
+    - Same privacy implications as existing interview text data
+    - Materials are design artifacts, not user PII (typically)
+
+  rate_limiting:
+    - No specific rate limits (OpenAI API limits apply)
+    - Session caching prevents redundant downloads
+    - Tool timeout prevents runaway requests
+
+dependencies:
+  repositories:
+    - ExperimentMaterialRepository: Fetch material metadata
+  infrastructure:
+    - boto3 S3 client: Download files from S3
+    - Phoenix tracer: Observability
+  external:
+    - OpenAI Agents SDK: @function_tool decorator
+    - base64: Standard library encoding

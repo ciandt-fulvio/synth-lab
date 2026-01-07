@@ -40,6 +40,8 @@ _tracer = get_tracer("summarizer")
 SUMMARIZER_INSTRUCTIONS = """
 Você é um especialista em síntese de pesquisa UX qualitativa. Sua tarefa é analisar múltiplas entrevistas e gerar um relatório de síntese focado em insights acionáveis.
 
+{materials_section}
+
 ## Diretrizes de Análise
 
 ### 1) Padrões Recorrentes (O Núcleo)
@@ -101,6 +103,17 @@ Estruture seu relatório nas seguintes seções:
 
 ## Recomendações
 (2 a 4 Baseadas nas evidências encontradas)
+
+---
+
+## Referenciando Materiais Visuais
+
+Ao mencionar materiais anexados ao experimento (telas, protótipos, documentos), use o formato:
+[descrição visual](mat_XXXXXX)
+
+Exemplo: "O wireframe [tela de checkout](mat_abc123) mostrou boa usabilidade"
+
+Isso permite que os leitores visualizem os materiais referenciados.
 
 ---
 
@@ -178,7 +191,8 @@ def create_summarizer_agent(
     topic_guide_name: str,
     interviews_content: str,
     model: str = "gpt-4o-mini",
-    reasoning_effort: str = "medium") -> Agent:
+    reasoning_effort: str = "medium",
+    materials: list | None = None) -> Agent:
     """
     Create a summarizer agent for analyzing multiple interviews.
 
@@ -187,13 +201,25 @@ def create_summarizer_agent(
         interviews_content: Formatted content of all interviews
         model: LLM model to use
         reasoning_effort: Reasoning effort level
+        materials: Optional list of ExperimentMaterial objects to include in prompt
 
     Returns:
         Configured Agent instance
     """
+    # Format materials section if provided
+    materials_section = ""
+    if materials:
+        from synth_lab.services.materials_context import format_materials_for_prompt
+        materials_section = format_materials_for_prompt(
+            materials=materials,
+            context="exploration",
+            include_tool_instructions=False
+        )
+
     instructions = SUMMARIZER_INSTRUCTIONS.format(
         topic_guide=topic_guide_name,
-        interviews_content=interviews_content)
+        interviews_content=interviews_content,
+        materials_section=materials_section)
 
     # Build agent kwargs - only include model_settings if model supports it
     agent_kwargs = {
@@ -211,7 +237,8 @@ def create_summarizer_agent(
 async def summarize_interviews(
     interview_results: list[tuple[InterviewResult, dict[str, Any]]],
     topic_guide_name: str,
-    model: str = "gpt-4o-mini") -> str:
+    model: str = "gpt-4o-mini",
+    materials: list | None = None) -> str:
     """
     Summarize multiple interview results into a synthesis report.
 
@@ -219,6 +246,7 @@ async def summarize_interviews(
         interview_results: List of tuples (InterviewResult, synth_data)
         topic_guide_name: Name of the topic guide used
         model: LLM model to use for summarization
+        materials: Optional list of ExperimentMaterial objects to include in prompt
 
     Returns:
         Synthesis report as markdown string
@@ -262,7 +290,8 @@ async def summarize_interviews(
             topic_guide_name=topic_guide_name,
             interviews_content=interviews_content,
             model=model,
-            reasoning_effort="medium")
+            reasoning_effort="medium",
+            materials=materials)
 
         # Run summarization
         logger.info("Running summarizer agent...")
@@ -291,9 +320,7 @@ if __name__ == "__main__":
     # Test 1: Import works
     total_tests += 1
     try:
-        from .summarizer import (
-            create_summarizer_agent,
-            format_interview_for_summary)
+        from .summarizer import create_summarizer_agent, format_interview_for_summary
 
         print("✓ All imports successful")
     except Exception as e:

@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useChartInsight } from '@/hooks/use-chart-insight';
+import { APIError } from '@/services/api';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -40,7 +41,7 @@ export function InsightSection({ experimentId, chartType }: InsightSectionProps)
   const { data: insight, isLoading, error } = useChartInsight(experimentId, chartType);
 
   // Don't render if no insight available yet (404 error on first fetch)
-  if (error && error.message?.includes('404')) {
+  if (error && error.status === 404) {
     return null;
   }
 
@@ -86,7 +87,7 @@ export function InsightSection({ experimentId, chartType }: InsightSectionProps)
             )}
 
             {/* Error State (non-404) */}
-            {error && !error.message?.includes('404') && (
+            {error && error.status !== 404 && (
               <Alert variant="destructive" className="mt-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
