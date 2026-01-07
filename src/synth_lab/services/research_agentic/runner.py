@@ -762,7 +762,8 @@ async def run_interview_simple(
     persona_description: str | None = None,
     max_turns: int = 4,
     model: str = "gpt-4o-mini",
-    verbose: bool = True) -> list[ConversationMessage]:
+    verbose: bool = True,
+    materials: list | None = None) -> list[ConversationMessage]:
     """
     Run a simple interview, optionally loading synth from database.
 
@@ -775,6 +776,7 @@ async def run_interview_simple(
         max_turns: Maximum conversation turns
         model: LLM model to use
         verbose: Whether to print to console
+        materials: Optional list of ExperimentMaterial objects to include in prompts
 
     Returns:
         List of conversation messages
