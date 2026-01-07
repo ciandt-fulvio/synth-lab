@@ -2,7 +2,7 @@
 Integration tests for exploration-related services.
 
 Tests the full flow: Service → Repository → Database → LLM Client
-Uses real database (isolated_db_session) and mocks only external LLM calls.
+Uses real database (db_session) and mocks only external LLM calls.
 
 Executar: pytest -m integration tests/integration/services/test_exploration_services.py
 """
@@ -19,52 +19,78 @@ from synth_lab.services.exploration.exploration_service import (
     ExplorationNotFoundError,
 )
 from synth_lab.services.exploration.action_catalog import ActionCatalogService
+from synth_lab.services.exploration.tree_manager import TreeManager
+from synth_lab.repositories.exploration_repository import ExplorationRepository
+from synth_lab.repositories.experiment_repository import ExperimentRepository
+from synth_lab.repositories.analysis_repository import AnalysisRepository
 from synth_lab.models.orm.experiment import Experiment
 from synth_lab.models.orm.exploration import Exploration, ScenarioNode
 from synth_lab.models.orm.analysis import AnalysisRun
+
+
+def create_exploration_service(session) -> ExplorationService:
+    """Create an ExplorationService with test session."""
+    exploration_repo = ExplorationRepository(session=session)
+    experiment_repo = ExperimentRepository(session=session)
+    analysis_repo = AnalysisRepository(session=session)
+    tree_manager = TreeManager(repository=exploration_repo)
+    return ExplorationService(
+        exploration_repo=exploration_repo,
+        experiment_repo=experiment_repo,
+        analysis_repo=analysis_repo,
+        tree_manager=tree_manager,
+    )
 
 
 @pytest.mark.integration
 class TestExplorationServiceIntegration:
     """Integration tests for exploration_service.py - Core exploration operations."""
 
-    def test_start_exploration_creates_exploration_record(self, isolated_db_session):
+    def test_start_exploration_creates_exploration_record(self, db_session):
         """Test that start_exploration creates Exploration in database."""
-        # Setup: Create experiment with scorecard and baseline analysis
+        # Setup: Create experiment with scorecard and baseline analysis (IDs must match patterns)
         experiment = Experiment(
-            id="exp_expl_001",
+            id="exp_e1a2b3c4",
             name="Exploration Test",
             hypothesis="Testing exploration creation",
             status="active",
             created_at=datetime.now().isoformat(),
             scorecard_data={
+                "feature_name": "Test Feature",
+                "scenario": "Test scenario",
+                "description_text": "Test description",
+                "complexity": {"score": 0.5, "reasoning": "Medium"},
+                "initial_effort": {"score": 0.6, "reasoning": "Medium"},
+                "perceived_risk": {"score": 0.4, "reasoning": "Low"},
+                "time_to_value": {"score": 0.7, "reasoning": "Fast"},
                 "features": [
                     {"name": "feature1", "data_type": "continuous"},
                     {"name": "feature2", "data_type": "continuous"},
-                ]
+                ],
             },
         )
-        isolated_db_session.add(experiment)
+        db_session.add(experiment)
 
-        # Create baseline analysis
+        # Create baseline analysis (ID must match ^ana_[a-f0-9]{8}$)
+        # aggregated_outcomes must have did_not_try_rate, failed_rate, success_rate that sum to 1.0
         analysis = AnalysisRun(
-            id="analysis_baseline_001",
-            experiment_id="exp_expl_001",
-            config={"n_simulations": 100},
+            id="ana_a1b2c3d4",
+            experiment_id="exp_e1a2b3c4",
+            config={"n_synths": 100},
             status="completed",
             started_at=datetime.now().isoformat(),
             completed_at=datetime.now().isoformat(),
             total_synths=100,
-            aggregated_outcomes={"success_rate": 0.65, "summary_stats": {"feature1": {"mean": 50.0}, "feature2": {"mean": 30.0}}},
+            aggregated_outcomes={"did_not_try_rate": 0.15, "failed_rate": 0.20, "success_rate": 0.65},
         )
-        isolated_db_session.add(analysis)
-        isolated_db_session.commit()
+        db_session.add(analysis)
+        db_session.commit()
 
         # Execute: Start exploration
-        service = ExplorationService()
+        service = create_exploration_service(db_session)
 
         exploration = service.start_exploration(
-            experiment_id="exp_expl_001",
+            experiment_id="exp_e1a2b3c4",
             goal_value=0.80,
             beam_width=3,
             max_depth=5,
@@ -72,54 +98,61 @@ class TestExplorationServiceIntegration:
 
         # Verify: Exploration created in DB
         assert exploration.id is not None, "Exploration should have ID after creation"
-        assert exploration.experiment_id == "exp_expl_001"
+        assert exploration.experiment_id == "exp_e1a2b3c4"
         assert exploration.status == "running"
-        assert exploration.goal["parameter"] is not None
-        assert exploration.goal["target_value"] == 0.80
+        assert exploration.goal.metric is not None
+        assert exploration.goal.value == 0.80
 
         # Verify in database
         db_exploration = (
-            isolated_db_session.query(Exploration).filter_by(id=exploration.id).first()
+            db_session.query(Exploration).filter_by(id=exploration.id).first()
         )
         assert db_exploration is not None
-        assert db_exploration.experiment_id == "exp_expl_001"
+        assert db_exploration.experiment_id == "exp_e1a2b3c4"
         assert db_exploration.total_nodes >= 1  # At least root node
 
-    def test_start_exploration_creates_root_node(self, isolated_db_session):
+    def test_start_exploration_creates_root_node(self, db_session):
         """Test that start_exploration creates root scenario node."""
-        # Setup
+        # Setup (IDs must match patterns)
         experiment = Experiment(
-            id="exp_root_001",
+            id="exp_e2a3b4c5",
             name="Root Node Test",
             hypothesis="Testing root node creation",
             status="active",
             created_at=datetime.now().isoformat(),
             scorecard_data={
-                "features": [{"name": "feature1", "data_type": "continuous"}]
+                "feature_name": "Test Feature",
+                "scenario": "Test scenario",
+                "description_text": "Test description",
+                "complexity": {"score": 0.5, "reasoning": "Medium"},
+                "initial_effort": {"score": 0.6, "reasoning": "Medium"},
+                "perceived_risk": {"score": 0.4, "reasoning": "Low"},
+                "time_to_value": {"score": 0.7, "reasoning": "Fast"},
+                "features": [{"name": "feature1", "data_type": "continuous"}],
             },
         )
         analysis = AnalysisRun(
-            id="analysis_root_001",
-            experiment_id="exp_root_001",
-            config={"n_simulations": 100},
+            id="ana_a2b3c4d5",
+            experiment_id="exp_e2a3b4c5",
+            config={"n_synths": 100},
             status="completed",
             started_at=datetime.now().isoformat(),
             completed_at=datetime.now().isoformat(),
             total_synths=100,
-            aggregated_outcomes={"success_rate": 0.60, "summary_stats": {"feature1": {"mean": 50.0}}},
+            aggregated_outcomes={"did_not_try_rate": 0.20, "failed_rate": 0.20, "success_rate": 0.60},
         )
-        isolated_db_session.add_all([experiment, analysis])
-        isolated_db_session.commit()
+        db_session.add_all([experiment, analysis])
+        db_session.commit()
 
         # Execute
-        service = ExplorationService()
+        service = create_exploration_service(db_session)
         exploration = service.start_exploration(
-            experiment_id="exp_root_001", goal_value=0.75
+            experiment_id="exp_e2a3b4c5", goal_value=0.75
         )
 
         # Verify: Root node exists
         root_nodes = (
-            isolated_db_session.query(ScenarioNode)
+            db_session.query(ScenarioNode)
             .filter_by(exploration_id=exploration.id, parent_id=None)
             .all()
         )
@@ -127,90 +160,105 @@ class TestExplorationServiceIntegration:
         assert len(root_nodes) == 1, "Should have exactly one root node"
         root = root_nodes[0]
         assert root.depth == 0
-        assert root.status == "pending"
-        assert root.scenario is not None
-        assert "baseline_success_rate" in root.scenario
+        assert root.node_status == "active"  # Root node starts as active
+        assert root.scorecard_params is not None
 
     def test_start_exploration_raises_error_for_missing_experiment(
-        self, isolated_db_session
+        self, db_session
     ):
         """Test that start_exploration raises error for non-existent experiment."""
-        service = ExplorationService()
+        service = create_exploration_service(db_session)
 
         with pytest.raises(ExperimentNotFoundError):
             service.start_exploration(
-                experiment_id="non_existent_exp", goal_value=0.80
+                experiment_id="exp_00000000", goal_value=0.80
             )
 
     def test_start_exploration_raises_error_for_missing_scorecard(
-        self, isolated_db_session
+        self, db_session
     ):
         """Test that start_exploration raises error when experiment has no scorecard."""
-        # Setup: Experiment without scorecard_data
+        # Setup: Experiment without scorecard_data (ID must match pattern)
         experiment = Experiment(
-            id="exp_no_scorecard",
+            id="exp_e3a4b5c6",
             name="No Scorecard",
             hypothesis="Missing scorecard",
             status="active",
             created_at=datetime.now().isoformat(),
             scorecard_data=None,  # No scorecard
         )
-        isolated_db_session.add(experiment)
-        isolated_db_session.commit()
+        db_session.add(experiment)
+        db_session.commit()
 
-        service = ExplorationService()
+        service = create_exploration_service(db_session)
 
         with pytest.raises(NoScorecardError):
-            service.start_exploration(experiment_id="exp_no_scorecard", goal_value=0.80)
+            service.start_exploration(experiment_id="exp_e3a4b5c6", goal_value=0.80)
 
     def test_start_exploration_raises_error_for_missing_baseline(
-        self, isolated_db_session
+        self, db_session
     ):
         """Test that start_exploration raises error when no baseline analysis exists."""
-        # Setup: Experiment with scorecard but no analysis
+        # Setup: Experiment with scorecard but no analysis (ID must match pattern)
         experiment = Experiment(
-            id="exp_no_baseline",
+            id="exp_e4a5b6c7",
             name="No Baseline",
             hypothesis="Missing baseline analysis",
             status="active",
             created_at=datetime.now().isoformat(),
             scorecard_data={
-                "features": [{"name": "feature1", "data_type": "continuous"}]
+                "feature_name": "Test Feature",
+                "scenario": "Test scenario",
+                "description_text": "Test description",
+                "complexity": {"score": 0.5, "reasoning": "Medium"},
+                "initial_effort": {"score": 0.6, "reasoning": "Medium"},
+                "perceived_risk": {"score": 0.4, "reasoning": "Low"},
+                "time_to_value": {"score": 0.7, "reasoning": "Fast"},
+                "features": [{"name": "feature1", "data_type": "continuous"}],
             },
         )
-        isolated_db_session.add(experiment)
-        isolated_db_session.commit()
+        db_session.add(experiment)
+        db_session.commit()
 
-        service = ExplorationService()
+        service = create_exploration_service(db_session)
 
         with pytest.raises(NoBaselineAnalysisError):
-            service.start_exploration(experiment_id="exp_no_baseline", goal_value=0.80)
+            service.start_exploration(experiment_id="exp_e4a5b6c7", goal_value=0.80)
 
-    def test_get_exploration_retrieves_full_details(self, isolated_db_session):
+    def test_get_exploration_retrieves_full_details(self, db_session):
         """Test that get_exploration returns exploration with all relationships."""
-        # Setup: Create exploration with nodes
+        # Setup: Create exploration with nodes (IDs must match patterns)
         experiment = Experiment(
-            id="exp_get_001",
+            id="exp_e5a6b7c8",
             name="Get Exploration Test",
             hypothesis="Testing retrieval",
             status="active",
             created_at=datetime.now().isoformat(),
-            scorecard_data={"features": [{"name": "f1", "data_type": "continuous"}]},
+            scorecard_data={
+                "feature_name": "Test Feature",
+                "scenario": "Test scenario",
+                "description_text": "Test description",
+                "complexity": {"score": 0.5, "reasoning": "Medium"},
+                "initial_effort": {"score": 0.6, "reasoning": "Medium"},
+                "perceived_risk": {"score": 0.4, "reasoning": "Low"},
+                "time_to_value": {"score": 0.7, "reasoning": "Fast"},
+                "features": [{"name": "f1", "data_type": "continuous"}],
+            },
         )
         analysis = AnalysisRun(
-            id="analysis_get_001",
-            experiment_id="exp_get_001",
-            config={"n_simulations": 100},
+            id="ana_a3b4c5d6",
+            experiment_id="exp_e5a6b7c8",
+            config={"n_synths": 100},
             status="completed",
             started_at=datetime.now().isoformat(),
             total_synths=100,
-            aggregated_outcomes={"success_rate": 0.65},
+            aggregated_outcomes={"did_not_try_rate": 0.15, "failed_rate": 0.20, "success_rate": 0.65},
         )
         exploration = Exploration(
-            id="expl_get_001",
-            experiment_id="exp_get_001",
-            baseline_analysis_id="analysis_get_001",
-            goal={"parameter": "success_rate", "target_value": 0.80},
+            id="expl_a1b2c3d4",
+            experiment_id="exp_e5a6b7c8",
+            baseline_analysis_id="ana_a3b4c5d6",
+            goal={"metric": "success_rate", "operator": ">=", "value": 0.80},
             config={"beam_width": 3, "max_depth": 5},
             status="running",
             current_depth=1,
@@ -218,27 +266,27 @@ class TestExplorationServiceIntegration:
             total_llm_calls=0,
             started_at=datetime.now().isoformat(),
         )
-        isolated_db_session.add_all([experiment, analysis, exploration])
-        isolated_db_session.commit()
+        db_session.add_all([experiment, analysis, exploration])
+        db_session.commit()
 
         # Execute
-        service = ExplorationService()
-        result = service.get_exploration("expl_get_001")
+        service = create_exploration_service(db_session)
+        result = service.get_exploration("expl_a1b2c3d4")
 
         # Verify
-        assert result.id == "expl_get_001"
-        assert result.experiment_id == "exp_get_001"
+        assert result.id == "expl_a1b2c3d4"
+        assert result.experiment_id == "exp_e5a6b7c8"
         assert result.status == "running"
-        assert result.goal.parameter == "success_rate"
-        assert result.goal.target_value == 0.80
+        assert result.goal.metric == "success_rate"
+        assert result.goal.value == 0.80
         assert result.config.beam_width == 3
 
-    def test_get_exploration_raises_not_found_error(self, isolated_db_session):
+    def test_get_exploration_raises_not_found_error(self, db_session):
         """Test that get_exploration raises error for non-existent exploration."""
-        service = ExplorationService()
+        service = create_exploration_service(db_session)
 
         with pytest.raises(ExplorationNotFoundError):
-            service.get_exploration("non_existent_expl")
+            service.get_exploration("expl_00000000")
 
 
 @pytest.mark.integration
@@ -349,31 +397,40 @@ class TestActionCatalogServiceIntegration:
 class TestExplorationSummaryGeneratorIntegration:
     """Integration tests for exploration_summary_generator_service.py - Summary generation."""
 
-    def test_generate_summary_creates_document(self, isolated_db_session):
+    def test_generate_summary_creates_document(self, db_session):
         """Test that exploration summary generator can retrieve exploration data for summary generation."""
 
-        # Setup: Create exploration with nodes
+        # Setup: Create exploration with nodes (IDs must match patterns)
         experiment = Experiment(
-            id="exp_summary_001",
+            id="exp_e6a7b8c9",
             name="Summary Test",
             hypothesis="Testing summary generation",
             status="active",
             created_at=datetime.now().isoformat(),
+            scorecard_data={
+                "feature_name": "Test Feature",
+                "scenario": "Test scenario",
+                "description_text": "Test description",
+                "complexity": {"score": 0.5, "reasoning": "Medium"},
+                "initial_effort": {"score": 0.6, "reasoning": "Medium"},
+                "perceived_risk": {"score": 0.4, "reasoning": "Low"},
+                "time_to_value": {"score": 0.7, "reasoning": "Fast"},
+            },
         )
         analysis = AnalysisRun(
-            id="analysis_summary_001",
-            experiment_id="exp_summary_001",
-            config={"n_simulations": 100},
+            id="ana_a4b5c6d7",
+            experiment_id="exp_e6a7b8c9",
+            config={"n_synths": 100},
             status="completed",
             started_at=datetime.now().isoformat(),
             total_synths=100,
-            aggregated_outcomes={"success_rate": 0.60},
+            aggregated_outcomes={"did_not_try_rate": 0.20, "failed_rate": 0.20, "success_rate": 0.60},
         )
         exploration = Exploration(
-            id="expl_summary_001",
-            experiment_id="exp_summary_001",
-            baseline_analysis_id="analysis_summary_001",
-            goal={"parameter": "success_rate", "target_value": 0.80},
+            id="expl_a2b3c4d5",
+            experiment_id="exp_e6a7b8c9",
+            baseline_analysis_id="ana_a4b5c6d7",
+            goal={"metric": "success_rate", "operator": ">=", "value": 0.80},
             config={"beam_width": 3, "max_depth": 5},
             status="goal_achieved",
             current_depth=3,
@@ -384,34 +441,36 @@ class TestExplorationSummaryGeneratorIntegration:
             completed_at=datetime.now().isoformat(),
         )
 
-        # Create scenario nodes
+        # Create scenario nodes (IDs must match ^node_[a-f0-9]{8}$ pattern)
         for i in range(3):
             node = ScenarioNode(
-                id=f"node_summary_{i:03d}",
-                exploration_id="expl_summary_001",
-                parent_id=None if i == 0 else f"node_summary_000",
+                id=f"node_a1b2c3{i:02d}",
+                exploration_id="expl_a2b3c4d5",
+                parent_id=None if i == 0 else "node_a1b2c300",
                 depth=i,
-                status="completed" if i < 2 else "goal_achieved",
-                scenario={
-                    "description": f"Scenario {i}",
-                    "changes": [{"parameter": "feature1", "change": 10 * i}],
-                    "projected_success_rate": 0.60 + (i * 0.10),
+                node_status="active" if i < 2 else "winner",
+                scorecard_params={
+                    "complexity": 0.5,
+                    "initial_effort": 0.6,
+                    "perceived_risk": 0.4,
+                    "time_to_value": 0.7,
+                },
+                simulation_results={
+                    "did_not_try_rate": 0.20 - (i * 0.05),
+                    "failed_rate": 0.20 - (i * 0.05),
+                    "success_rate": 0.60 + (i * 0.10),
                 },
                 created_at=datetime.now().isoformat(),
             )
-            isolated_db_session.add(node)
+            db_session.add(node)
 
-        isolated_db_session.add_all([experiment, analysis, exploration])
-        isolated_db_session.commit()
+        db_session.add_all([experiment, analysis, exploration])
+        db_session.commit()
 
         # Note: This test verifies the service can retrieve exploration data
         # Full LLM call testing requires more complex mocking of LLMClient
-        from synth_lab.services.exploration.exploration_service import (
-            ExplorationService,
-        )
-
-        exploration_service = ExplorationService()
-        exploration_detail = exploration_service.get_exploration("expl_summary_001")
+        exploration_service = create_exploration_service(db_session)
+        exploration_detail = exploration_service.get_exploration("expl_a2b3c4d5")
 
         # Verify exploration is in correct state for summary generation
         assert (
@@ -421,58 +480,65 @@ class TestExplorationSummaryGeneratorIntegration:
 
         # Verify we can retrieve nodes (service layer working)
         nodes = (
-            isolated_db_session.query(ScenarioNode)
-            .filter_by(exploration_id="expl_summary_001")
+            db_session.query(ScenarioNode)
+            .filter_by(exploration_id="expl_a2b3c4d5")
             .all()
         )
         assert len(nodes) == 3, "Should have 3 nodes for summary"
-        assert all(n.scenario is not None for n in nodes), "All nodes should have scenarios"
+        assert all(n.scorecard_params is not None for n in nodes), "All nodes should have scorecard params"
 
 
 @pytest.mark.integration
 class TestExplorationServiceErrorHandling:
     """Integration tests for error handling in exploration services."""
 
-    def test_get_exploration_raises_not_found_error(self, isolated_db_session):
+    def test_get_exploration_raises_not_found_error(self, db_session):
         """Test that service raises appropriate error for non-existent exploration."""
-        service = ExplorationService()
+        service = create_exploration_service(db_session)
 
         with pytest.raises(ExplorationNotFoundError):
-            service.get_exploration("non_existent_expl_id")
+            service.get_exploration("expl_00000001")
 
-    def test_start_exploration_validates_goal_value(self, isolated_db_session):
+    def test_start_exploration_validates_goal_value(self, db_session):
         """Test that start_exploration validates goal value is achievable."""
-        # Setup
+        # Setup (IDs must match patterns)
         experiment = Experiment(
-            id="exp_invalid_goal",
+            id="exp_e7a8b9c0",
             name="Invalid Goal Test",
             hypothesis="Testing goal validation",
             status="active",
             created_at=datetime.now().isoformat(),
             scorecard_data={
-                "features": [{"name": "feature1", "data_type": "continuous"}]
+                "feature_name": "Test Feature",
+                "scenario": "Test scenario",
+                "description_text": "Test description",
+                "complexity": {"score": 0.5, "reasoning": "Medium"},
+                "initial_effort": {"score": 0.6, "reasoning": "Medium"},
+                "perceived_risk": {"score": 0.4, "reasoning": "Low"},
+                "time_to_value": {"score": 0.7, "reasoning": "Fast"},
+                "features": [{"name": "feature1", "data_type": "continuous"}],
             },
         )
         analysis = AnalysisRun(
-            id="analysis_invalid_goal",
-            experiment_id="exp_invalid_goal",
-            config={"n_simulations": 100},
+            id="ana_a5b6c7d8",
+            experiment_id="exp_e7a8b9c0",
+            config={"n_synths": 100},
             status="completed",
             started_at=datetime.now().isoformat(),
             total_synths=100,
-            aggregated_outcomes={"success_rate": 0.50},
+            aggregated_outcomes={"did_not_try_rate": 0.25, "failed_rate": 0.25, "success_rate": 0.50},
         )
-        isolated_db_session.add_all([experiment, analysis])
-        isolated_db_session.commit()
+        db_session.add_all([experiment, analysis])
+        db_session.commit()
 
-        service = ExplorationService()
+        service = create_exploration_service(db_session)
 
         # Execute: Try to start exploration with invalid goal
         # Note: This should ideally raise a validation error, but depends on implementation
         # For now, just verify it doesn't crash
         try:
             exploration = service.start_exploration(
-                experiment_id="exp_invalid_goal",
+                experiment_id="exp_e7a8b9c0",
                 goal_value=2.0,  # Invalid: > 1.0 for success_rate
             )
             # If it doesn't raise an error, verify it was created

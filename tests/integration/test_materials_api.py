@@ -433,16 +433,17 @@ class TestGetViewUrlEndpoint:
         from synth_lab.models.orm.material import ExperimentMaterial
 
         # Create test experiment (ID must match ^exp_[a-f0-9]{8}$)
-        experiment = create_test_experiment("exp_a1b2c3d4")
+        # Use different ID than seeded data (exp_a1b2c3d4)
+        experiment = create_test_experiment("exp_d1e2f3a4")
         db_session.add(experiment)
 
         # Create material with file and thumbnail (ID must match ^mat_[a-f0-9]{12}$)
         material = ExperimentMaterial(
-            id="mat_a1b2c3d4e5f6",
-            experiment_id="exp_a1b2c3d4",
+            id="mat_d1e2f3a4b5c6",
+            experiment_id="exp_d1e2f3a4",
             file_type="image",
-            file_url="https://s3.com/bucket/materials/exp_a1b2c3d4/mat_a1b2c3d4e5f6.png",
-            thumbnail_url="https://s3.com/bucket/thumbnails/exp_a1b2c3d4/mat_a1b2c3d4e5f6.png",
+            file_url="https://s3.com/bucket/materials/exp_d1e2f3a4/mat_d1e2f3a4b5c6.png",
+            thumbnail_url="https://s3.com/bucket/thumbnails/exp_d1e2f3a4/mat_d1e2f3a4b5c6.png",
             file_name="test.png",
             file_size=1024000,
             mime_type="image/png",
@@ -461,12 +462,12 @@ class TestGetViewUrlEndpoint:
         ]
 
         response = client.get(
-            "/experiments/exp_a1b2c3d4/materials/mat_a1b2c3d4e5f6/view-url"
+            "/experiments/exp_d1e2f3a4/materials/mat_d1e2f3a4b5c6/view-url"
         )
 
         assert response.status_code == 200, f"Got {response.status_code}: {response.json()}"
         data = response.json()
-        assert data["material_id"] == "mat_a1b2c3d4e5f6"
+        assert data["material_id"] == "mat_d1e2f3a4b5c6"
         assert data["view_url"] == "https://presigned-view-url.com"
         assert data["thumbnail_url"] == "https://presigned-thumb-url.com"
         assert "expires_in" in data

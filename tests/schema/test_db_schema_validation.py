@@ -11,7 +11,7 @@ Executar: pytest -m schema
 IMPORTÂNCIA: Estes testes detectam 90% dos problemas de "funcionou local mas quebrou em prod"
 relacionados a divergências de schema.
 
-Requer: DATABASE_TEST_URL environment variable.
+Requer: POSTGRES_URL environment variable.
 """
 
 import os
@@ -27,10 +27,10 @@ from synth_lab.models.orm.base import Base
 
 @pytest.fixture(scope="module")
 def db_inspector():
-    """Create inspector for database schema introspection using DATABASE_TEST_URL."""
-    database_url = os.getenv("DATABASE_TEST_URL")
+    """Create inspector for database schema introspection using POSTGRES_URL."""
+    database_url = os.getenv("POSTGRES_URL")
     if not database_url:
-        pytest.skip("DATABASE_TEST_URL not set")
+        pytest.skip("POSTGRES_URL not set")
     engine = create_db_engine(database_url)
     return inspect(engine)
 
@@ -239,7 +239,7 @@ class TestAllModelsHaveTables:
 
         # Pega todos os models do Base
         model_tables = {
-            mapper.mapped_table.name for mapper in Base.registry.mappers}
+            mapper.persist_selectable.name for mapper in Base.registry.mappers}
 
         # Remove tabela do Alembic (não é um model)
         db_tables.discard("alembic_version")
@@ -257,7 +257,7 @@ class TestAllModelsHaveTables:
         db_tables.discard("alembic_version")  # Tabela do Alembic é OK
 
         model_tables = {
-            mapper.mapped_table.name for mapper in Base.registry.mappers}
+            mapper.persist_selectable.name for mapper in Base.registry.mappers}
 
         orphan_tables = db_tables - model_tables
 
