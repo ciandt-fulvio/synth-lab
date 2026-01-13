@@ -175,10 +175,10 @@ def build_prompt(synths: list[dict[str, Any]]) -> str:
     if len(synths) != 9:
         raise ValueError(f"Esperado exatamente 9 synths, recebido {len(synths)}")
 
-    # Atribuir filtros aleatórios
-    filters = assign_random_filters(8)
+    # Atribuir filtros aleatórios (9 for 3x3 grid)
+    filters = assign_random_filters(9)
 
-    framing = assign_random_framing(6)
+    framing = assign_random_framing(9)
 
     # Construir descrições numeradas dos blocos
     descricoes_blocos = "\n".join(

@@ -39,6 +39,7 @@ from synth_lab.repositories.analysis_repository import AnalysisRepository
 from synth_lab.repositories.exploration_repository import ExplorationRepository
 from synth_lab.repositories.interview_guide_repository import InterviewGuideRepository
 from synth_lab.repositories.research_repository import ResearchRepository
+from synth_lab.repositories.synth_group_repository import SynthGroupRepository
 from synth_lab.repositories.synth_repository import SynthRepository
 from synth_lab.services.experiment_service import ExperimentService
 from synth_lab.services.interview_guide_generator_service import (
@@ -59,6 +60,14 @@ router = APIRouter()
 def get_experiment_service() -> ExperimentService:
     """Get experiment service instance."""
     return ExperimentService()
+
+
+def _get_synth_group_name(synth_group_id: str) -> str:
+    """Get synth group name by ID."""
+    with get_session() as session:
+        repo = SynthGroupRepository(session=session)
+        group = repo.get_by_id(synth_group_id)
+        return group.name if group else "Unknown"
 
 
 def _convert_schema_to_scorecard_data(
@@ -171,12 +180,16 @@ async def create_experiment(data: ExperimentCreateSchema) -> ExperimentResponse:
             interview_guide_repo = InterviewGuideRepository(session=session)
             has_interview_guide = interview_guide_repo.exists(experiment.id)
 
+        # Get synth group name for response
+        synth_group_name = _get_synth_group_name(experiment.synth_group_id)
+
         return ExperimentResponse(
             id=experiment.id,
             name=experiment.name,
             hypothesis=experiment.hypothesis,
             description=experiment.description,
             synth_group_id=experiment.synth_group_id,
+            synth_group_name=synth_group_name,
             scorecard_data=scorecard_schema,
             has_scorecard=experiment.has_scorecard(),
             has_interview_guide=has_interview_guide,
@@ -439,12 +452,16 @@ async def update_experiment(
             interview_guide_repo = InterviewGuideRepository(session=session)
             has_interview_guide = interview_guide_repo.exists(experiment_id)
 
+        # Get synth group name for response
+        synth_group_name = _get_synth_group_name(updated.synth_group_id)
+
         return ExperimentResponse(
             id=updated.id,
             name=updated.name,
             hypothesis=updated.hypothesis,
             description=updated.description,
             synth_group_id=updated.synth_group_id,
+            synth_group_name=synth_group_name,
             scorecard_data=scorecard_schema,
             has_scorecard=updated.has_scorecard(),
             has_interview_guide=has_interview_guide,
@@ -507,12 +524,16 @@ async def update_scorecard(
             interview_guide_repo = InterviewGuideRepository(session=session)
             has_interview_guide = interview_guide_repo.exists(experiment_id)
 
+        # Get synth group name for response
+        synth_group_name = _get_synth_group_name(updated.synth_group_id)
+
         return ExperimentResponse(
             id=updated.id,
             name=updated.name,
             hypothesis=updated.hypothesis,
             description=updated.description,
             synth_group_id=updated.synth_group_id,
+            synth_group_name=synth_group_name,
             scorecard_data=scorecard_schema,
             has_scorecard=updated.has_scorecard(),
             has_interview_guide=has_interview_guide,

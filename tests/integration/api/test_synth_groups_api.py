@@ -16,7 +16,49 @@ from synth_lab.api.main import app
 from synth_lab.api.routers import synth_groups as synth_groups_router
 from synth_lab.services.synth_group_service import SynthGroupService
 from synth_lab.repositories.synth_group_repository import SynthGroupRepository
-from synth_lab.models.orm.synth import SynthGroup as SynthGroupORM
+from synth_lab.models.orm.synth import SynthGroup as SynthGroupORM, Synth as SynthORM
+from synth_lab.models.orm.experiment import Experiment as ExperimentORM
+
+
+@pytest.fixture
+def initial_group_count(db_session) -> int:
+    """Get initial count of synth groups (from seed data)."""
+    return db_session.query(SynthGroupORM).count()
+
+
+@pytest.fixture
+def valid_config() -> dict:
+    """Return a valid synth group config with all required fields."""
+    return {
+        "n_synths": 5,
+        "distributions": {
+            "idade": {"15-29": 0.25, "30-44": 0.25, "45-59": 0.25, "60+": 0.25},
+            "escolaridade": {
+                "sem_instrucao": 0.25,
+                "fundamental": 0.25,
+                "medio": 0.25,
+                "superior": 0.25,
+            },
+            "deficiencias": {
+                "taxa_com_deficiencia": 0.1,
+                "distribuicao_severidade": {
+                    "nenhuma": 0.2,
+                    "leve": 0.2,
+                    "moderada": 0.2,
+                    "severa": 0.2,
+                    "total": 0.2,
+                },
+            },
+            "composicao_familiar": {
+                "unipessoal": 0.2,
+                "casal_sem_filhos": 0.2,
+                "casal_com_filhos": 0.3,
+                "monoparental": 0.15,
+                "multigeracional": 0.15,
+            },
+            "domain_expertise": {"alpha": 3, "beta": 3},
+        },
+    }
 
 
 @pytest.fixture
@@ -26,14 +68,14 @@ def client(db_session):
     repository = SynthGroupRepository(session=db_session)
     service = SynthGroupService(repository=repository)
 
-    # Override _get_service to return our test service
-    original_get_service = synth_groups_router._get_service
-    synth_groups_router._get_service = lambda: service
+    # Override service getter (use actual function name from router)
+    original_get_service = synth_groups_router.get_synth_group_service
+    synth_groups_router.get_synth_group_service = lambda: service
 
     yield TestClient(app)
 
     # Restore original
-    synth_groups_router._get_service = original_get_service
+    synth_groups_router.get_synth_group_service = original_get_service
 
 
 class TestCreateSynthGroupBasic:
@@ -71,15 +113,17 @@ class TestCreateSynthGroupBasic:
 
     def test_create_basic_group_custom_id(self, client, db_session):
         """Create basic group with custom ID."""
+        # ID must match pattern: grp_[a-f0-9]{8}
+        custom_id = "grp_abc12345"
         response = client.post(
             "/synth-groups",
-            json={"name": "Custom ID Group", "id": "grp_custom99"},
+            json={"name": "Custom ID Group", "id": custom_id},
         )
 
-        assert response.status_code == 201
+        assert response.status_code == 201, f"Failed to create group: {response.json()}"
         data = response.json()
 
-        assert data["id"] == "grp_custom99"
+        assert data["id"] == custom_id
 
     def test_create_basic_group_validates_name(self, client):
         """Create fails with empty name."""
@@ -201,18 +245,18 @@ class TestCreateSynthGroupWithConfig:
 class TestListSynthGroups:
     """Integration tests for GET /synth-groups/list endpoint."""
 
-    def test_list_empty(self, client, db_session):
-        """List returns empty when no groups exist."""
+    def test_list_returns_seeded_groups(self, client, db_session, initial_group_count):
+        """List returns seed data groups."""
         response = client.get("/synth-groups/list")
 
         assert response.status_code == 200
         data = response.json()
 
-        assert data["data"] == []
-        assert data["pagination"]["total"] == 0
+        # Should have at least the seeded groups
+        assert data["pagination"]["total"] >= initial_group_count
 
-    def test_list_with_groups(self, client, db_session):
-        """List returns all groups."""
+    def test_list_with_new_groups(self, client, db_session, initial_group_count):
+        """List returns seed + newly created groups."""
         # Create groups via API
         for i in range(3):
             client.post("/synth-groups", json={"name": f"Group {i}"})
@@ -222,14 +266,17 @@ class TestListSynthGroups:
         assert response.status_code == 200
         data = response.json()
 
-        assert len(data["data"]) == 3
-        assert data["pagination"]["total"] == 3
+        # Should have seed groups + 3 new ones
+        assert len(data["data"]) == initial_group_count + 3
+        assert data["pagination"]["total"] == initial_group_count + 3
 
-    def test_list_pagination(self, client, db_session):
+    def test_list_pagination(self, client, db_session, initial_group_count):
         """List respects pagination parameters."""
         # Create 5 groups
         for i in range(5):
             client.post("/synth-groups", json={"name": f"Group {i}"})
+
+        total_expected = initial_group_count + 5
 
         # Get first 2
         response = client.get("/synth-groups/list?limit=2&offset=0")
@@ -238,7 +285,7 @@ class TestListSynthGroups:
         data = response.json()
 
         assert len(data["data"]) == 2
-        assert data["pagination"]["total"] == 5
+        assert data["pagination"]["total"] == total_expected
         assert data["pagination"]["limit"] == 2
         assert data["pagination"]["offset"] == 0
 
@@ -257,18 +304,19 @@ class TestListSynthGroups:
         assert data["data"][1]["name"] == "Second"
         assert data["data"][2]["name"] == "First"
 
-    def test_list_includes_synth_count(self, client, db_session):
+    def test_list_includes_synth_count(self, client, db_session, valid_config):
         """List includes synth count for each group."""
         # Create group with synths
-        config = {"n_synths": 5}
         response = client.post(
             "/synth-groups/with-config",
-            json={"name": "Group with Synths", "config": config},
+            json={"name": "Group with Synths", "config": valid_config},
         )
+        assert response.status_code == 201, f"Failed to create group: {response.json()}"
         group_id = response.json()["id"]
 
         # List groups
         response = client.get("/synth-groups/list")
+        assert response.status_code == 200
         data = response.json()
 
         group = next(g for g in data["data"] if g["id"] == group_id)
@@ -278,14 +326,15 @@ class TestListSynthGroups:
 class TestGetSynthGroupDetail:
     """Integration tests for GET /synth-groups/{group_id} endpoint."""
 
-    def test_get_detail_success(self, client, db_session):
+    def test_get_detail_success(self, client, db_session, valid_config):
         """Get detail returns group with synths list."""
-        # Create group with synths
-        config = {"n_synths": 3}
+        # Create group with synths (use 3 synths)
+        config = {**valid_config, "n_synths": 3}
         create_response = client.post(
             "/synth-groups/with-config",
             json={"name": "Detailed Group", "config": config},
         )
+        assert create_response.status_code == 201, f"Failed to create group: {create_response.json()}"
         group_id = create_response.json()["id"]
 
         # Get detail
@@ -307,13 +356,13 @@ class TestGetSynthGroupDetail:
         data = response.json()
         assert "detail" in data
 
-    def test_get_detail_includes_config(self, client, db_session):
+    def test_get_detail_includes_config(self, client, db_session, valid_config):
         """Get detail includes config if present."""
-        config = {"n_synths": 5}
         create_response = client.post(
             "/synth-groups/with-config",
-            json={"name": "Config Group", "config": config},
+            json={"name": "Config Group", "config": valid_config},
         )
+        assert create_response.status_code == 201, f"Failed to create group: {create_response.json()}"
         group_id = create_response.json()["id"]
 
         response = client.get(f"/synth-groups/{group_id}")
@@ -333,6 +382,7 @@ class TestDeleteSynthGroup:
             "/synth-groups",
             json={"name": "To Delete"},
         )
+        assert create_response.status_code == 201, f"Failed to create group: {create_response.json()}"
         group_id = create_response.json()["id"]
 
         # Delete
@@ -350,24 +400,29 @@ class TestDeleteSynthGroup:
 
         assert response.status_code == 404
 
-    def test_delete_preserves_synths(self, client, db_session):
+    def test_delete_preserves_synths(self, client, db_session, valid_config):
         """Delete nullifies synth group_id but keeps synths."""
         from synth_lab.models.orm.synth import Synth as SynthORM
 
         # Create group with synths
-        config = {"n_synths": 3}
+        config = {**valid_config, "n_synths": 3}
         create_response = client.post(
             "/synth-groups/with-config",
             json={"name": "To Delete", "config": config},
         )
+        assert create_response.status_code == 201, f"Failed to create group: {create_response.json()}"
         group_id = create_response.json()["id"]
 
         # Get synth IDs
         detail_response = client.get(f"/synth-groups/{group_id}")
+        assert detail_response.status_code == 200
         synth_ids = [s["id"] for s in detail_response.json()["synths"]]
 
         # Delete group
         client.delete(f"/synth-groups/{group_id}")
+
+        # Refresh session to see changes from API call
+        db_session.expire_all()
 
         # Verify synths still exist but with null group_id
         for synth_id in synth_ids:
@@ -379,19 +434,18 @@ class TestDeleteSynthGroup:
 class TestSynthGroupsFullFlow:
     """End-to-end integration tests for synth groups."""
 
-    def test_create_list_detail_delete_flow(self, client, db_session):
+    def test_create_list_detail_delete_flow(self, client, db_session, valid_config):
         """Test complete CRUD flow."""
         # 1. Create group with config
-        config = {"n_synths": 5}
         create_response = client.post(
             "/synth-groups/with-config",
             json={
                 "name": "Flow Test Group",
                 "description": "Testing full flow",
-                "config": config,
+                "config": valid_config,
             },
         )
-        assert create_response.status_code == 201
+        assert create_response.status_code == 201, f"Failed to create group: {create_response.json()}"
         group_id = create_response.json()["id"]
 
         # 2. List groups - should appear
@@ -400,11 +454,11 @@ class TestSynthGroupsFullFlow:
         groups = list_response.json()["data"]
         assert any(g["id"] == group_id for g in groups)
 
-        # 3. Get detail - should have synths
+        # 3. Get detail - should have synths (valid_config has n_synths=5)
         detail_response = client.get(f"/synth-groups/{group_id}")
         assert detail_response.status_code == 200
         detail = detail_response.json()
-        assert detail["synth_count"] == 5
+        assert detail["synth_count"] == 5  # valid_config default
         assert len(detail["synths"]) == 5
 
         # 4. Delete group
@@ -415,29 +469,29 @@ class TestSynthGroupsFullFlow:
         get_response = client.get(f"/synth-groups/{group_id}")
         assert get_response.status_code == 404
 
-    def test_create_basic_then_add_synths_separate_group(self, client, db_session):
+    def test_create_basic_then_add_synths_separate_group(self, client, db_session, initial_group_count, valid_config):
         """Create basic group, then create separate group with synths."""
         # 1. Create basic group
         basic_response = client.post(
             "/synth-groups",
             json={"name": "Basic Group"},
         )
-        assert basic_response.status_code == 201
+        assert basic_response.status_code == 201, f"Failed to create basic group: {basic_response.json()}"
         basic_id = basic_response.json()["id"]
 
-        # 2. Create group with synths
-        config = {"n_synths": 3}
+        # 2. Create group with synths (3 synths)
+        config = {**valid_config, "n_synths": 3}
         config_response = client.post(
             "/synth-groups/with-config",
             json={"name": "Config Group", "config": config},
         )
-        assert config_response.status_code == 201
+        assert config_response.status_code == 201, f"Failed to create config group: {config_response.json()}"
         config_id = config_response.json()["id"]
 
-        # 3. Verify both exist
+        # 3. Verify both new groups exist (plus any seeded ones)
         list_response = client.get("/synth-groups/list")
         groups = list_response.json()["data"]
-        assert len(groups) == 2
+        assert len(groups) == initial_group_count + 2
 
         # 4. Verify correct synth counts
         basic_detail = client.get(f"/synth-groups/{basic_id}").json()
