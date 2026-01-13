@@ -341,12 +341,14 @@ session: Session | None = None):
             name=row["name"],
             hypothesis=row["hypothesis"],
             description=row["description"],
+            synth_group_id=row["synth_group_id"],
             has_scorecard=has_scorecard,
             has_analysis=bool(row["has_analysis"]) if "has_analysis" in row.keys() else False,
             has_interview_guide=(
                 bool(row["has_interview_guide"]) if "has_interview_guide" in row.keys() else False
             ),
             interview_count=row["interview_count"] if "interview_count" in row.keys() else 0,
+            tags=[],  # Raw SQL conversion doesn't load tags
             created_at=created_at,
             updated_at=updated_at)
 

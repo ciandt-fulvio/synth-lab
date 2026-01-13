@@ -397,6 +397,7 @@ if __name__ == "__main__":
             id="exp_12345678",
             name="Test",
             hypothesis="Test",
+            synth_group_id="grp_00000001",
             has_scorecard=True,
             has_analysis=True,
             interview_count=3,

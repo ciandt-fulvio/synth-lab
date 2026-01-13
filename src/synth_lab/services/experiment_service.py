@@ -37,6 +37,7 @@ class ExperimentService:
         name: str,
         hypothesis: str,
         description: str | None = None,
+        synth_group_id: str = "grp_00000001",
         scorecard_data: ScorecardData | None = None) -> Experiment:
         """
         Create a new experiment.
@@ -45,6 +46,7 @@ class ExperimentService:
             name: Short name of the feature (max 100 chars).
             hypothesis: Description of hypothesis to test (max 500 chars).
             description: Additional context (max 2000 chars).
+            synth_group_id: ID of the synth group to use (defaults to grp_00000001).
             scorecard_data: Optional embedded scorecard data.
 
         Returns:
@@ -78,6 +80,7 @@ class ExperimentService:
             name=name.strip(),
             hypothesis=hypothesis.strip(),
             description=description.strip() if description else None,
+            synth_group_id=synth_group_id,
             scorecard_data=scorecard_data)
 
         return self.repository.create(experiment)

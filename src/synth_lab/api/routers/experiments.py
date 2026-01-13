@@ -148,6 +148,7 @@ async def create_experiment(data: ExperimentCreateSchema) -> ExperimentResponse:
             name=data.name,
             hypothesis=data.hypothesis,
             description=data.description,
+            synth_group_id=data.synth_group_id,
             scorecard_data=scorecard_data)
 
         # Trigger async interview guide generation (non-blocking)
@@ -175,6 +176,7 @@ async def create_experiment(data: ExperimentCreateSchema) -> ExperimentResponse:
             name=experiment.name,
             hypothesis=experiment.hypothesis,
             description=experiment.description,
+            synth_group_id=experiment.synth_group_id,
             scorecard_data=scorecard_schema,
             has_scorecard=experiment.has_scorecard(),
             has_interview_guide=has_interview_guide,
@@ -286,6 +288,7 @@ async def list_experiments(
             name=exp.name,
             hypothesis=exp.hypothesis,
             description=exp.description,
+            synth_group_id=exp.synth_group_id,
             has_scorecard=exp.has_scorecard,
             has_analysis=exp.has_analysis,
             has_interview_guide=exp.has_interview_guide,
@@ -382,6 +385,7 @@ async def get_experiment(experiment_id: str) -> ExperimentDetail:
         name=experiment.name,
         hypothesis=experiment.hypothesis,
         description=experiment.description,
+        synth_group_id=experiment.synth_group_id,
         scorecard_data=scorecard_schema,
         has_scorecard=experiment.has_scorecard(),
         has_interview_guide=has_interview_guide,
@@ -428,6 +432,7 @@ async def update_experiment(
             name=updated.name,
             hypothesis=updated.hypothesis,
             description=updated.description,
+            synth_group_id=updated.synth_group_id,
             scorecard_data=scorecard_schema,
             has_scorecard=updated.has_scorecard(),
             has_interview_guide=has_interview_guide,
@@ -495,6 +500,7 @@ async def update_scorecard(
             name=updated.name,
             hypothesis=updated.hypothesis,
             description=updated.description,
+            synth_group_id=updated.synth_group_id,
             scorecard_data=scorecard_schema,
             has_scorecard=updated.has_scorecard(),
             has_interview_guide=has_interview_guide,
