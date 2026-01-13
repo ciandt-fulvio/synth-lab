@@ -6,16 +6,24 @@ Business logic layer for synth group operations.
 References:
     - Spec: specs/018-experiment-hub/spec.md
     - Data model: specs/018-experiment-hub/data-model.md
+    - Custom groups: specs/030-custom-synth-groups/spec.md
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Any
+
+import numpy as np
 
 from synth_lab.domain.entities.synth_group import SynthGroup
+from synth_lab.gen_synth.config import load_config_data
+from synth_lab.gen_synth.synth_builder import assemble_synth_with_config
+from synth_lab.models.orm.synth import Synth as SynthORM
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.repositories.synth_group_repository import (
     SynthGroupDetail,
     SynthGroupRepository,
-    SynthGroupSummary)
+    SynthGroupSummary,
+)
 
 
 class SynthGroupService:
@@ -68,6 +76,79 @@ class SynthGroupService:
 
         # Return as summary (with synth_count)
         return self.repository.get_by_id(group.id)
+
+    def create_with_config(
+        self,
+        name: str,
+        config: dict[str, Any],
+        description: str | None = None,
+    ) -> SynthGroupSummary:
+        """
+        Create a new synth group with custom distribution config and generate synths.
+
+        This method:
+        1. Validates the group configuration
+        2. Generates N synths using custom distributions
+        3. Persists group and synths atomically
+
+        Args:
+            name: Descriptive name for the group.
+            config: Group configuration with:
+                - n_synths: Number of synths to generate (default 500)
+                - distributions: Custom distributions for demographics
+            description: Optional description.
+
+        Returns:
+            Created synth group summary with synth count.
+
+        Raises:
+            ValueError: If validation fails.
+        """
+        # Validate required fields
+        if not name or not name.strip():
+            raise ValueError("name is required and cannot be empty")
+
+        # Get number of synths to generate
+        n_synths = config.get("n_synths", 500)
+        if n_synths < 1 or n_synths > 1000:
+            raise ValueError("n_synths must be between 1 and 1000")
+
+        # Load base configuration for synth generation
+        base_config = load_config_data()
+
+        # Create RNG for reproducibility within this batch
+        rng = np.random.default_rng()
+
+        # Generate synths using custom distributions
+        synth_orms: list[SynthORM] = []
+        for _ in range(n_synths):
+            synth_data = assemble_synth_with_config(base_config, config, rng)
+
+            # Convert to ORM model
+            synth_orm = SynthORM(
+                id=synth_data["id"],
+                nome=synth_data["nome"],
+                descricao=synth_data.get("descricao"),
+                link_photo=synth_data.get("link_photo"),
+                avatar_path=None,
+                created_at=synth_data.get("created_at", datetime.now(timezone.utc).isoformat()),
+                version=synth_data.get("version", "2.3.0"),
+                data=synth_data,
+            )
+            synth_orms.append(synth_orm)
+
+        # Create group entity
+        group = SynthGroup(
+            name=name.strip(),
+            description=description.strip() if description else None,
+        )
+
+        # Persist group and synths atomically
+        return self.repository.create_with_config(
+            group=group,
+            config=config,
+            synths=synth_orms,
+        )
 
     def get_or_create_group(
         self,

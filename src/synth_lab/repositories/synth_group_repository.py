@@ -20,7 +20,8 @@ from synth_lab.domain.entities.synth_group import (
     DEFAULT_SYNTH_GROUP_DESCRIPTION,
     DEFAULT_SYNTH_GROUP_ID,
     DEFAULT_SYNTH_GROUP_NAME,
-    SynthGroup)
+    SynthGroup,
+)
 from synth_lab.models.orm.synth import Synth as SynthORM
 from synth_lab.models.orm.synth import SynthGroup as SynthGroupORM
 from synth_lab.models.pagination import PaginatedResponse, PaginationMeta, PaginationParams
@@ -35,6 +36,7 @@ class SynthGroupSummary(BaseModel):
     description: str | None = Field(default=None, description="Group description.")
     synth_count: int = Field(default=0, description="Number of synths in group.")
     created_at: datetime = Field(description="Creation timestamp.")
+    config: dict | None = Field(default=None, description="Distribution configuration.")
 
 
 class SynthSummary(BaseModel):
@@ -56,6 +58,7 @@ class SynthGroupDetail(BaseModel):
     description: str | None = Field(default=None, description="Group description.")
     synth_count: int = Field(default=0, description="Number of synths in group.")
     created_at: datetime = Field(description="Creation timestamp.")
+    config: dict | None = Field(default=None, description="Distribution configuration.")
     synths: list[SynthSummary] = Field(default_factory=list, description="Synths in this group.")
 
 
@@ -65,10 +68,8 @@ class SynthGroupRepository(BaseRepository):
     Uses SQLAlchemy ORM for database operations.
     """
 
-    def __init__(
-        self,
-session: Session | None = None):
-        super().__init__( session=session)
+    def __init__(self, session: Session | None = None):
+        super().__init__(session=session)
 
     def ensure_default_group(self) -> SynthGroupSummary:
         """
@@ -90,17 +91,20 @@ session: Session | None = None):
             id=DEFAULT_SYNTH_GROUP_ID,
             name=DEFAULT_SYNTH_GROUP_NAME,
             description=DEFAULT_SYNTH_GROUP_DESCRIPTION,
-            created_at=now.isoformat())
+            created_at=now.isoformat(),
+        )
         self._add(orm_group)
         self._flush()
         self._commit()
         return self.get_by_id(DEFAULT_SYNTH_GROUP_ID)
-    def create(self, group: SynthGroup) -> SynthGroup:
+
+    def create(self, group: SynthGroup, config: dict | None = None) -> SynthGroup:
         """
         Create a new synth group.
 
         Args:
             group: SynthGroup entity to create.
+            config: Optional distribution configuration (JSONB).
 
         Returns:
             Created synth group with persisted data.
@@ -109,11 +113,51 @@ session: Session | None = None):
             id=group.id,
             name=group.name,
             description=group.description,
-            created_at=group.created_at.isoformat())
+            created_at=group.created_at.isoformat(),
+            config=config,
+        )
         self._add(orm_group)
         self._flush()
         self._commit()
         return group
+
+    def create_with_config(
+        self,
+        group: SynthGroup,
+        config: dict,
+        synths: list[SynthORM] | None = None,
+    ) -> SynthGroupSummary:
+        """
+        Create a new synth group with config and optionally synths atomically.
+
+        Args:
+            group: SynthGroup entity to create.
+            config: Distribution configuration (JSONB).
+            synths: Optional list of synth ORM objects to persist with the group.
+
+        Returns:
+            Created synth group summary with config.
+        """
+        orm_group = SynthGroupORM(
+            id=group.id,
+            name=group.name,
+            description=group.description,
+            created_at=group.created_at.isoformat(),
+            config=config,
+        )
+        self._add(orm_group)
+
+        # Add synths if provided
+        if synths:
+            for synth in synths:
+                synth.synth_group_id = group.id
+                self._add(synth)
+
+        self._flush()
+        self._commit()
+
+        return self._orm_to_summary(orm_group)
+
     def get_by_id(self, group_id: str) -> SynthGroupSummary | None:
         """
         Get a synth group by ID with synth count.
@@ -128,6 +172,7 @@ session: Session | None = None):
         if orm_group is None:
             return None
         return self._orm_to_summary(orm_group)
+
     def get_detail(self, group_id: str) -> SynthGroupDetail | None:
         """
         Get a synth group with full details including synths.
@@ -147,10 +192,12 @@ session: Session | None = None):
             created_at = datetime.fromisoformat(created_at)
 
         # Sort synths by created_at descending
-        orm_synths = sorted(
-            orm_group.synths,
-            key=lambda s: s.created_at if isinstance(s.created_at, str) else s.created_at.isoformat(),
-            reverse=True)
+        def get_sort_key(s: SynthORM) -> str:
+            if isinstance(s.created_at, str):
+                return s.created_at
+            return s.created_at.isoformat()
+
+        orm_synths = sorted(orm_group.synths, key=get_sort_key, reverse=True)
 
         synths = [self._orm_synth_to_summary(s) for s in orm_synths]
 
@@ -160,7 +207,10 @@ session: Session | None = None):
             description=orm_group.description,
             synth_count=len(synths),
             created_at=created_at,
-            synths=synths)
+            config=orm_group.config,
+            synths=synths,
+        )
+
     def list_groups(self, params: PaginationParams) -> PaginatedResponse[SynthGroupSummary]:
         """
         List synth groups with pagination.
@@ -181,6 +231,7 @@ session: Session | None = None):
         summaries = [self._orm_to_summary(g) for g in groups]
         meta = PaginationMeta.from_params(total, params)
         return PaginatedResponse(data=summaries, pagination=meta)
+
     def delete(self, group_id: str) -> bool:
         """
         Delete a synth group.
@@ -205,6 +256,7 @@ session: Session | None = None):
         self._flush()
         self._commit()
         return True
+
     def _row_to_summary(self, row) -> SynthGroupSummary:
         """Convert a database row to SynthGroupSummary."""
         created_at = row["created_at"]
@@ -216,7 +268,8 @@ session: Session | None = None):
             name=row["name"],
             description=row["description"],
             synth_count=row["synth_count"],
-            created_at=created_at)
+            created_at=created_at,
+        )
 
     def _row_to_synth_summary(self, row) -> SynthSummary:
         """Convert a database row to SynthSummary."""
@@ -230,7 +283,8 @@ session: Session | None = None):
             descricao=row["descricao"],
             avatar_path=row["avatar_path"],
             synth_group_id=row["synth_group_id"],
-            created_at=created_at)
+            created_at=created_at,
+        )
 
     # =========================================================================
     # ORM conversion methods
@@ -249,7 +303,9 @@ session: Session | None = None):
             name=orm_group.name,
             description=orm_group.description,
             synth_count=synth_count,
-            created_at=created_at)
+            created_at=created_at,
+            config=orm_group.config,
+        )
 
     def _orm_synth_to_summary(self, orm_synth: SynthORM) -> SynthSummary:
         """Convert ORM Synth model to SynthSummary."""
@@ -263,7 +319,8 @@ session: Session | None = None):
             descricao=orm_synth.descricao,
             avatar_path=orm_synth.avatar_path,
             synth_group_id=orm_synth.synth_group_id,
-            created_at=created_at)
+            created_at=created_at,
+        )
 
 
 if __name__ == "__main__":

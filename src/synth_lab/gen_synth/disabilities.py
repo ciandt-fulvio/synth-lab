@@ -30,7 +30,11 @@ import random
 from typing import Any
 
 
-def generate_disabilities(ibge_data: dict[str, Any]) -> dict[str, Any]:
+def generate_disabilities(
+    ibge_data: dict[str, Any],
+    custom_rate: float | None = None,
+    custom_severity_dist: dict[str, float] | None = None,
+) -> dict[str, Any]:
     """
     Gera deficiências usando distribuições IBGE PNS 2019 (8.4% pelo menos uma).
 
@@ -40,13 +44,21 @@ def generate_disabilities(ibge_data: dict[str, Any]) -> dict[str, Any]:
 
     Args:
         ibge_data: IBGE configuration data including disability distributions
+        custom_rate: Custom disability rate (0.0 to 1.0). If None, uses IBGE rate.
+        custom_severity_dist: Custom severity distribution dict with keys:
+            nenhuma, leve, moderada, severa, total. Must sum to 1.0.
+            If None, uses uniform distribution for severity.
 
     Returns:
         dict[str, Any]: Disability profile with visual, auditory, motor, and cognitive attributes
     """
     deficiencias_dist = ibge_data["deficiencias"]
 
-    tem_deficiencia = random.random() > deficiencias_dist["nenhuma"]
+    # Determine disability rate
+    if custom_rate is not None:
+        tem_deficiencia = random.random() < custom_rate
+    else:
+        tem_deficiencia = random.random() > deficiencias_dist["nenhuma"]
 
     if not tem_deficiencia:
         return {
@@ -56,6 +68,38 @@ def generate_disabilities(ibge_data: dict[str, Any]) -> dict[str, Any]:
             "cognitiva": {"tipo": "nenhuma"},
         }
 
+    # Determine severity distribution
+    if custom_severity_dist:
+        # Use weighted choice based on custom severity distribution
+        severity_weights = {
+            "nenhuma": custom_severity_dist.get("nenhuma", 0.2),
+            "leve": custom_severity_dist.get("leve", 0.2),
+            "moderada": custom_severity_dist.get("moderada", 0.2),
+            "severa": custom_severity_dist.get("severa", 0.2),
+            "total": custom_severity_dist.get("total", 0.2),
+        }
+
+        def weighted_severity(options_for_total: str) -> str:
+            """Choose severity based on weights, mapping 'total' to specific type."""
+            severity = _weighted_choice(severity_weights)
+            if severity == "total":
+                return options_for_total
+            return severity
+
+        def _weighted_choice(weights: dict[str, float]) -> str:
+            """Helper for weighted random choice."""
+            items = list(weights.keys())
+            probs = list(weights.values())
+            return random.choices(items, weights=probs, k=1)[0]
+
+        return {
+            "visual": {"tipo": weighted_severity("cegueira")},
+            "auditiva": {"tipo": weighted_severity("surdez")},
+            "motora": {"tipo": weighted_severity("severa")},  # motora maps total to severa
+            "cognitiva": {"tipo": weighted_severity("severa")},  # cognitiva maps total to severa
+        }
+
+    # Default: uniform random distribution for each disability type
     return {
         "visual": {"tipo": random.choice(["nenhuma", "leve", "moderada", "severa", "cegueira"])},
         "auditiva": {"tipo": random.choice(["nenhuma", "leve", "moderada", "severa", "surdez"])},
