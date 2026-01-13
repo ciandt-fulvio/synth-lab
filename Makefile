@@ -18,8 +18,8 @@ POSTGRES_TEST_DB := synthlab_test
 DATABASE_TEST_URL := postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:$(POSTGRES_PORT)/$(POSTGRES_TEST_DB)
 
 # Test server ports (to avoid conflicts with dev servers)
-TEST_BACKEND_PORT := 8009
-TEST_FRONTEND_PORT := 8089
+TEST_BACKEND_PORT := 8000
+TEST_FRONTEND_PORT := 8080
 
 # Alembic
 ALEMBIC_CONFIG := src/synth_lab/alembic/alembic.ini
@@ -62,18 +62,18 @@ help:
 	@echo "Development:"
 	@echo "  make serve             Start API server (port 8000)"
 	@echo "  make serve-front       Start frontend (port 8080)"
-	@echo "  make serve-test        Start API server for tests (port 8009)"
+	@echo "  make serve-test        Start API server for tests (port 8000)"
 	@echo "  make serve-front-test  Start frontend for tests (port 8089)"
 	@echo "  make phoenix           Start Phoenix tracing (port 6006)"
 	@echo "  make kill              Kill all dev servers (ports 8000, 8080, 6006)"
-	@echo "  make kill-test-servers Kill test servers (ports 8009, 8089)"
+	@echo "  make kill-test-servers Kill test servers (ports 8000, 8080)"
 	@echo "  make gensynth          Generate synths: make gensynth ARGS='-n 3'"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test                    Run all tests"
 	@echo "  make test-fast               Run fast anti-regression tests (~30s: smoke+contract+schema)"
 	@echo "  make test-full               Run all tests verbose"
-	@echo "  make test-e2e                Run E2E tests (requires servers running on ports 8009/8089)"
+	@echo "  make test-e2e                Run E2E tests (requires servers running on ports 8000/8080)"
 	@echo "  make test-e2e-ui             Run E2E tests in UI mode"
 	@echo "  make test-coverage-analysis  Analyze test coverage gaps (suggests Claude prompts)"
 	@echo ""

@@ -119,8 +119,8 @@ npm run test:e2e:report       # Ver relatório HTML
 
 ## Portas
 
-- Backend de teste: **8009**
-- Frontend de teste: **8089**
+- Backend de teste: **8000**
+- Frontend de teste: **8080**
 
 (Evita conflito com dev: 8000/8080)
 
