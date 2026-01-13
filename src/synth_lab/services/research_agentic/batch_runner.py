@@ -116,11 +116,21 @@ def _select_synths_for_interview(
 
     Returns:
         List of selected synth dictionaries
+
+    Note:
+        The input list is explicitly shuffled to ensure true randomization,
+        since load_synths() always returns synths in the same order (by created_at).
     """
+    # ALWAYS shuffle input list first to ensure true randomization
+    # This is critical because load_synths() returns synths in a fixed order
+    shuffled_synths = all_synths.copy()
+    random.shuffle(shuffled_synths)
+
     if synth_ids is not None:
         # Filter synths to only those in the provided list
+        # Note: Filter from shuffled list to maintain randomization
         synth_id_set = set(synth_ids)
-        filtered_synths = [s for s in all_synths if s.get("id") in synth_id_set]
+        filtered_synths = [s for s in shuffled_synths if s.get("id") in synth_id_set]
 
         if len(filtered_synths) <= max_interviews:
             # Use all synths from the filtered list
@@ -130,22 +140,23 @@ def _select_synths_for_interview(
             )
             return filtered_synths
         else:
-            # Randomly sample max_interviews from the filtered list
-            selected = random.sample(filtered_synths, max_interviews)
+            # Sample from already shuffled filtered list (no need for random.sample)
+            selected = filtered_synths[:max_interviews]
             logger.info(
-                f"Randomly selected {max_interviews} synths from {len(filtered_synths)} "
-                f"in provided list"
+                f"Selected first {max_interviews} synths from {len(filtered_synths)} "
+                f"shuffled synths in provided list"
             )
             return selected
     else:
-        # No specific IDs provided - randomly sample from all synths
-        if len(all_synths) <= max_interviews:
-            logger.info(f"Using all {len(all_synths)} available synths")
-            return all_synths
+        # No specific IDs provided - use shuffled synths
+        if len(shuffled_synths) <= max_interviews:
+            logger.info(f"Using all {len(shuffled_synths)} available synths")
+            return shuffled_synths
         else:
-            selected = random.sample(all_synths, max_interviews)
+            # Take first N from shuffled list (no need for random.sample)
+            selected = shuffled_synths[:max_interviews]
             logger.info(
-                f"Randomly selected {max_interviews} synths from {len(all_synths)} available"
+                f"Selected first {max_interviews} synths from {len(shuffled_synths)} shuffled available synths"
             )
             return selected
 
@@ -602,18 +613,18 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"get_timestamp_gmt3: {e}")
 
-    # Test 5: _select_synths_for_interview - no synth_ids (random sampling)
+    # Test 5: _select_synths_for_interview - no synth_ids (shuffle + slice)
     total_tests += 1
     try:
         mock_synths = [{"id": f"s{i}", "nome": f"Synth {i}"} for i in range(10)]
 
-        # Case 1: No synth_ids, max_interviews < total synths (should random sample)
+        # Case 1: No synth_ids, max_interviews < total synths (should shuffle + slice)
         result = _select_synths_for_interview(mock_synths, None, 5)
         assert len(result) == 5, f"Expected 5 synths, got {len(result)}"
         assert all(s in mock_synths for s in result), "Selected synths not in original list"
-        print("✓ _select_synths_for_interview: random sampling works")
+        print("✓ _select_synths_for_interview: shuffle + slice works")
     except Exception as e:
-        all_validation_failures.append(f"_select_synths (random): {e}")
+        all_validation_failures.append(f"_select_synths (shuffle): {e}")
 
     # Test 6: _select_synths_for_interview - synth_ids with less than max
     total_tests += 1
@@ -634,13 +645,13 @@ if __name__ == "__main__":
     try:
         mock_synths = [{"id": f"s{i}", "nome": f"Synth {i}"} for i in range(10)]
 
-        # Case 3: synth_ids provided with more than max_interviews (should sample)
+        # Case 3: synth_ids provided with more than max_interviews (should shuffle + slice)
         result = _select_synths_for_interview(mock_synths, ["s1", "s2", "s3", "s4", "s5"], 3)
-        assert len(result) == 3, f"Expected 3 synths (sampled), got {len(result)}"
+        assert len(result) == 3, f"Expected 3 synths (shuffled), got {len(result)}"
         valid_ids = {"s1", "s2", "s3", "s4", "s5"}
         result_ids = {s["id"] for s in result}
         assert result_ids.issubset(valid_ids), f"Selected IDs {result_ids} not in {valid_ids}"
-        print("✓ _select_synths_for_interview: randomly samples when list > max")
+        print("✓ _select_synths_for_interview: shuffles and slices when list > max")
     except Exception as e:
         all_validation_failures.append(f"_select_synths (list > max): {e}")
 
@@ -695,6 +706,31 @@ if __name__ == "__main__":
             print("○ _ensure_avatars_for_synths: avatars dir doesn't exist")
     except Exception as e:
         all_validation_failures.append(f"_ensure_avatars (existing): {e}")
+
+    # Test 12: _select_synths_for_interview - verify true randomization
+    total_tests += 1
+    try:
+        # Create a list of synths and run selection multiple times
+        # to verify we get different results (proving randomization works)
+        mock_synths = [{"id": f"s{i:03d}", "nome": f"Synth {i}"} for i in range(50)]
+
+        # Run selection 10 times and collect first IDs
+        first_ids = []
+        for _ in range(10):
+            result = _select_synths_for_interview(mock_synths, None, 5)
+            first_ids.append(result[0]["id"])
+
+        # If randomization works, we should have at least 3 different first IDs
+        unique_first_ids = set(first_ids)
+        if len(unique_first_ids) < 3:
+            all_validation_failures.append(
+                f"_select_synths randomization: Only {len(unique_first_ids)} unique first IDs "
+                f"in 10 runs, expected at least 3 (got: {unique_first_ids})"
+            )
+        else:
+            print(f"✓ _select_synths_for_interview: true randomization verified ({len(unique_first_ids)} unique first synths in 10 runs)")
+    except Exception as e:
+        all_validation_failures.append(f"_select_synths (randomization): {e}")
 
     # Final validation result
     print()
