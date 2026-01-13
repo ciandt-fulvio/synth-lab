@@ -299,10 +299,11 @@ class ResearchService:
         analysis = analysis_repo.get_by_experiment_id(request.experiment_id)
         analysis_id = analysis.id if analysis else None
 
-        # Get experiment name for summary title
+        # Get experiment name and synth_group_id for summary title and synth filtering
         experiment_repo = ExperimentRepository()
         experiment = experiment_repo.get_by_id(request.experiment_id)
         experiment_name = experiment.name if experiment else None
+        synth_group_id = experiment.synth_group_id if experiment else None
 
         # Determine synth count
         synth_count = request.synth_count or (len(request.synth_ids) if request.synth_ids else 5)
@@ -333,6 +334,7 @@ class ResearchService:
                 guide_name=request.topic_name,
                 additional_context=request.additional_context,
                 synth_ids=request.synth_ids,
+                synth_group_id=synth_group_id,
                 synth_count=synth_count,
                 max_concurrent=request.max_concurrent,
                 max_turns=request.max_turns,
@@ -357,6 +359,7 @@ class ResearchService:
         guide_name: str,
         additional_context: str | None,
         synth_ids: list[str] | None,
+        synth_group_id: str | None,
         synth_count: int,
         max_concurrent: int,
         max_turns: int,
@@ -522,6 +525,7 @@ class ResearchService:
                 generate_summary=False,  # Don't generate summary yet
                 exec_id=exec_id,
                 synth_ids=synth_ids,
+                synth_group_id=synth_group_id,
                 message_callback=on_message,
                 on_interview_completed=on_interview_complete,
                 on_transcription_completed=on_transcription_complete_with_save,

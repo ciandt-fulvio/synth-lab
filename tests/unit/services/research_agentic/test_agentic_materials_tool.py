@@ -10,7 +10,7 @@ References:
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, patch
 from synth_lab.services.research_agentic.tools import (
     create_materials_tool,
     MaterialToolResponse,
@@ -62,29 +62,22 @@ class TestCreateMaterialsTool:
         return repo
 
     @pytest.fixture
-    def mock_s3_client(self):
-        """Create mock S3 client."""
-        client = Mock()
-        return client
-
-    @pytest.fixture
     def sample_material(self):
         """Create sample material."""
         material = Mock()
         material.id = "mat_abc123"
         material.experiment_id = "exp_123"
-        material.file_url = "s3://bucket/mat_abc123.png"
+        material.file_url = "https://endpoint/bucket/materials/exp_123/mat_abc123.png"
         material.mime_type = "image/png"
         material.file_name = "wireframe.png"
         material.file_size = 2_300_000
         return material
 
-    def test_create_tool_with_valid_params(self, mock_repository, mock_s3_client):
+    def test_create_tool_with_valid_params(self, mock_repository):
         """Test tool is created successfully with valid parameters."""
         tool = create_materials_tool(
             experiment_id="exp_123",
             material_repository=mock_repository,
-            s3_client=mock_s3_client
         )
 
         # Tool should be a FunctionTool
@@ -93,12 +86,11 @@ class TestCreateMaterialsTool:
         # Tool name should be ver_material
         assert tool.name == "ver_material"
 
-    def test_tool_validates_material_id_format(self, mock_repository, mock_s3_client):
+    def test_tool_validates_material_id_format(self, mock_repository):
         """Test tool validates material ID follows mat_XXXXXX format."""
         tool = create_materials_tool(
             experiment_id="exp_123",
             material_repository=mock_repository,
-            s3_client=mock_s3_client
         )
 
         # Invalid ID should be rejected
@@ -106,7 +98,7 @@ class TestCreateMaterialsTool:
         assert tool is not None
 
     def test_tool_validates_experiment_ownership(
-        self, mock_repository, mock_s3_client, sample_material
+        self, mock_repository, sample_material
     ):
         """Test tool rejects materials from other experiments."""
         # Setup: Material belongs to different experiment
@@ -116,7 +108,6 @@ class TestCreateMaterialsTool:
         tool = create_materials_tool(
             experiment_id="exp_123",  # Different from material's experiment
             material_repository=mock_repository,
-            s3_client=mock_s3_client
         )
 
         # When tool function is called, it should validate ownership
@@ -134,46 +125,39 @@ class TestMaterialToolFunction:
         return repo
 
     @pytest.fixture
-    def mock_s3_client(self):
-        """Create mock S3 client."""
-        client = Mock()
-        return client
-
-    @pytest.fixture
     def sample_material(self):
         """Create sample material."""
         material = Mock()
         material.id = "mat_abc123"
         material.experiment_id = "exp_123"
-        material.file_url = "s3://bucket/mat_abc123.png"
+        material.file_url = "https://endpoint/bucket/materials/exp_123/mat_abc123.png"
         material.mime_type = "image/png"
         material.file_name = "wireframe.png"
         material.file_size = 2_300_000
         return material
 
-    def test_function_returns_data_uri_on_success(
-        self, mock_repository, mock_s3_client, sample_material
+    @patch("synth_lab.services.research_agentic.tools.generate_view_url")
+    def test_function_returns_view_url_on_success(
+        self, mock_generate_url, mock_repository, sample_material
     ):
-        """Test function returns base64 data URI on successful load."""
+        """Test function returns presigned view URL on successful load."""
         # Setup
         mock_repository.get_by_id.return_value = sample_material
-        mock_s3_client.download_from_s3.return_value = b"fake_image_data"
+        mock_generate_url.return_value = "https://presigned-url.example.com/mat_abc123.png?sig=abc123"
 
         # Call the core function directly
         result = _load_material_content(
             material_id="mat_abc123",
             experiment_id="exp_123",
             material_repository=mock_repository,
-            s3_client=mock_s3_client
         )
 
-        # Should return data URI
-        assert result.startswith("data:image/png;base64,")
-        # Should contain base64 encoded data
-        assert "ZmFrZV9pbWFnZV9kYXRh" in result  # base64 of "fake_image_data"
+        # Should return presigned URL
+        assert result.startswith("https://")
+        assert "presigned-url" in result
 
     def test_function_returns_error_for_nonexistent_material(
-        self, mock_repository, mock_s3_client
+        self, mock_repository
     ):
         """Test function returns error when material doesn't exist."""
         # Setup: Repository returns None
@@ -184,14 +168,13 @@ class TestMaterialToolFunction:
             material_id="mat_invalid",
             experiment_id="exp_123",
             material_repository=mock_repository,
-            s3_client=mock_s3_client
         )
 
         # Should return error message
-        assert "não encontrado" in result.lower() or "not found" in result.lower()
+        assert "não encontrado" in result.lower()
 
     def test_function_validates_experiment_ownership(
-        self, mock_repository, mock_s3_client, sample_material
+        self, mock_repository, sample_material
     ):
         """Test function rejects materials from other experiments."""
         # Setup: Material from different experiment
@@ -203,38 +186,36 @@ class TestMaterialToolFunction:
             material_id="mat_abc123",
             experiment_id="exp_123",
             material_repository=mock_repository,
-            s3_client=mock_s3_client
         )
 
         # Should return error
-        assert "não encontrado" in result.lower() or "not found" in result.lower()
+        assert "não encontrado" in result.lower()
 
-    def test_function_handles_s3_download_failure(
-        self, mock_repository, mock_s3_client, sample_material
+    @patch("synth_lab.services.research_agentic.tools.generate_view_url")
+    def test_function_handles_s3_url_generation_failure(
+        self, mock_generate_url, mock_repository, sample_material
     ):
-        """Test function handles S3 download errors gracefully."""
-        # Setup: S3 download fails
+        """Test function handles URL generation errors gracefully."""
+        # Setup: URL generation fails
         mock_repository.get_by_id.return_value = sample_material
-        mock_s3_client.download_from_s3.side_effect = Exception("S3 error")
+        mock_generate_url.side_effect = Exception("S3 error")
 
         # Call function
         result = _load_material_content(
             material_id="mat_abc123",
             experiment_id="exp_123",
             material_repository=mock_repository,
-            s3_client=mock_s3_client
         )
 
-        # Should return error message about missing/removed file
+        # Should return error message
         assert isinstance(result, str)
-        assert ("não encontrado" in result.lower() or "removido" in result.lower() or
-                "error" in result.lower())
+        assert "erro" in result.lower()
 
 
 # This module needs to be implemented for tests to pass
 if __name__ == "__main__":
     import sys
 
-    print("❌ EXPECTED TO FAIL - materials tool not yet implemented")
-    print("Run pytest to see actual failures")
-    sys.exit(1)
+    print("Running materials tool unit tests...")
+    print("Use pytest to run all tests")
+    sys.exit(0)

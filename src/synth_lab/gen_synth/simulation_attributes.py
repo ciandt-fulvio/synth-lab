@@ -229,6 +229,8 @@ def _normalize_family_composition(composicao_familiar: dict[str, Any] | None) ->
 def generate_observables(
     rng: Generator,
     deficiencias: dict[str, Any],
+    expertise_alpha: float = 3.0,
+    expertise_beta: float = 3.0,
 ) -> SimulationObservables:
     """
     Generate observable attributes using Beta distributions.
@@ -236,6 +238,8 @@ def generate_observables(
     Args:
         rng: NumPy random generator for reproducibility
         deficiencias: Disabilities dict with 'motora.tipo'
+        expertise_alpha: Alpha parameter for domain_expertise Beta distribution (default 3.0)
+        expertise_beta: Beta parameter for domain_expertise Beta distribution (default 3.0)
 
     Returns:
         SimulationObservables with all fields in [0, 1]
@@ -244,14 +248,14 @@ def generate_observables(
         - digital_literacy: Beta(2,4) -> skewed toward low-medium values
         - similar_tool_experience: Beta(3,3) -> symmetric
         - time_availability: Beta(2,3) -> skewed toward low values
-        - domain_expertise: Beta(3,3) -> symmetric
+        - domain_expertise: Beta(expertise_alpha, expertise_beta) -> customizable
         - motor_ability: derived from deficiencias.motora.tipo
     """
     # Generate via Beta distributions
     digital_literacy = float(rng.beta(2, 4))
     similar_tool_experience = float(rng.beta(3, 3))
     time_availability = float(rng.beta(2, 3))
-    domain_expertise = float(rng.beta(3, 3))
+    domain_expertise = float(rng.beta(expertise_alpha, expertise_beta))
 
     # Derive motor_ability from disabilities
     motora_tipo = deficiencias.get("motora", {}).get("tipo", "nenhuma")
@@ -272,6 +276,8 @@ def generate_observables_correlated(
     escolaridade: str | None = None,
     composicao_familiar: dict[str, Any] | None = None,
     idade: int | None = None,
+    expertise_alpha: float = 3.0,
+    expertise_beta: float = 3.0,
 ) -> SimulationObservables:
     """
     Generate observable attributes correlated with demographics.
@@ -286,6 +292,8 @@ def generate_observables_correlated(
         escolaridade: Education level string (e.g., 'Superior completo')
         composicao_familiar: Family composition dict with 'tipo'
         idade: Age in years (affects time_availability)
+        expertise_alpha: Alpha parameter for domain_expertise Beta distribution (default 3.0)
+        expertise_beta: Beta parameter for domain_expertise Beta distribution (default 3.0)
 
     Returns:
         SimulationObservables with all fields in [0, 1]
@@ -297,7 +305,7 @@ def generate_observables_correlated(
           age_motor_factor: <30 -> 0.0, 30-60 -> 0.3, >60 -> 0.6
         - time_availability: Shifts left with higher family pressure, adjusted by age
         - similar_tool_experience: Correlation with education
-        - domain_expertise: Base Beta distribution (no shift)
+        - domain_expertise: Beta(expertise_alpha, expertise_beta) -> customizable
 
     Example:
         >>> rng = np.random.default_rng(42)
@@ -363,8 +371,8 @@ def generate_observables_correlated(
     time_beta = 3 + family_pressure * 2  # Range: 3-5
     time_availability = float(rng.beta(time_alpha, time_beta))
 
-    # Generate domain_expertise (neutral, uncorrelated)
-    domain_expertise = float(rng.beta(3, 3))
+    # Generate domain_expertise (customizable Beta distribution)
+    domain_expertise = float(rng.beta(expertise_alpha, expertise_beta))
 
     # Ensure all values are in [0, 1]
     digital_literacy = max(0.0, min(1.0, digital_literacy))

@@ -28,6 +28,7 @@ class SynthGroup(Base):
         name: Group name
         description: Optional group description
         created_at: ISO timestamp of creation
+        config: Optional JSONB config with demographic distributions
 
     Relationships:
         synths: 1:N - Synths in this group
@@ -39,6 +40,7 @@ class SynthGroup(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[str] = mapped_column(String(50), nullable=False)
+    config: Mapped[dict[str, Any] | None] = mapped_column(MutableJSON, nullable=True)
 
     # Relationships
     synths: Mapped[list["Synth"]] = relationship(
@@ -50,6 +52,7 @@ class SynthGroup(Base):
     # Indexes
     __table_args__ = (
         Index("idx_synth_groups_created", "created_at", postgresql_ops={"created_at": "DESC"}),
+        Index("idx_synth_groups_config", "config", postgresql_using="gin"),
     )
 
     def __repr__(self) -> str:

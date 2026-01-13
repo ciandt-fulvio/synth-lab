@@ -32,6 +32,8 @@ class ExperimentSummary(BaseModel):
     name: str = Field(description="Short name of the feature.")
     hypothesis: str = Field(description="Hypothesis description.")
     description: str | None = Field(default=None, description="Additional context.")
+    synth_group_id: str = Field(description="ID of the synth group used for this experiment.")
+    synth_group_name: str = Field(description="Name of the synth group used for this experiment.")
     has_scorecard: bool = Field(default=False, description="Whether scorecard is filled.")
     has_analysis: bool = Field(default=False, description="Whether analysis exists.")
     has_interview_guide: bool = Field(
@@ -84,6 +86,7 @@ session: Session | None = None):
             name=experiment.name,
             hypothesis=experiment.hypothesis,
             description=experiment.description,
+            synth_group_id=experiment.synth_group_id,
             scorecard_data=scorecard_dict,
             status="active",
             created_at=experiment.created_at.isoformat(),
@@ -109,9 +112,12 @@ session: Session | None = None):
 
     def _get_by_id_orm(self, experiment_id: str) -> Experiment | None:
         """Get experiment by ID using ORM."""
+        from sqlalchemy.orm import joinedload
+
         stmt = select(ExperimentORM).where(
             ExperimentORM.id == experiment_id,
-            ExperimentORM.status == "active")
+            ExperimentORM.status == "active"
+        ).options(joinedload(ExperimentORM.synth_group))
         result = self.session.execute(stmt).scalar_one_or_none()
         if result is None:
             return None
@@ -134,10 +140,13 @@ session: Session | None = None):
     def _list_experiments_orm(self, params: PaginationParams) -> PaginatedResponse[ExperimentSummary]:
         """List experiments using ORM with eager-loaded relationships."""
         from sqlalchemy import func as sqlfunc, or_
+        from sqlalchemy.orm import joinedload
         from synth_lab.models.orm.tag import ExperimentTag as ExperimentTagORM, Tag as TagORM
 
-        # Base query for active experiments
-        stmt = select(ExperimentORM).where(ExperimentORM.status == "active")
+        # Base query for active experiments with eager-loaded synth_group
+        stmt = select(ExperimentORM).where(ExperimentORM.status == "active").options(
+            joinedload(ExperimentORM.synth_group)
+        )
         count_where = [ExperimentORM.status == "active"]
 
         # Apply tag filter
@@ -334,17 +343,23 @@ session: Session | None = None):
         if "scorecard_data" in row.keys() and row["scorecard_data"]:
             has_scorecard = True
 
+        # Get synth_group_name if available in row, otherwise default to "Unknown"
+        synth_group_name = row.get("synth_group_name", "Unknown")
+
         return ExperimentSummary(
             id=row["id"],
             name=row["name"],
             hypothesis=row["hypothesis"],
             description=row["description"],
+            synth_group_id=row["synth_group_id"],
+            synth_group_name=synth_group_name,
             has_scorecard=has_scorecard,
             has_analysis=bool(row["has_analysis"]) if "has_analysis" in row.keys() else False,
             has_interview_guide=(
                 bool(row["has_interview_guide"]) if "has_interview_guide" in row.keys() else False
             ),
             interview_count=row["interview_count"] if "interview_count" in row.keys() else 0,
+            tags=[],  # Raw SQL conversion doesn't load tags
             created_at=created_at,
             updated_at=updated_at)
 
@@ -375,6 +390,7 @@ session: Session | None = None):
             name=orm_exp.name,
             hypothesis=orm_exp.hypothesis,
             description=orm_exp.description,
+            synth_group_id=orm_exp.synth_group_id,
             scorecard_data=scorecard_data,
             tags=tags,
             created_at=created_at,
@@ -399,11 +415,22 @@ session: Session | None = None):
         # Get tag names from experiment_tags relationship
         tags = [et.tag.name for et in orm_exp.experiment_tags] if orm_exp.experiment_tags else []
 
+        # Get synth group name from relationship
+        synth_group_name = "Unknown"
+        try:
+            if orm_exp.synth_group:
+                synth_group_name = orm_exp.synth_group.name
+        except Exception:
+            # If relationship fails to load, use default
+            pass
+
         return ExperimentSummary(
             id=orm_exp.id,
             name=orm_exp.name,
             hypothesis=orm_exp.hypothesis,
             description=orm_exp.description,
+            synth_group_id=orm_exp.synth_group_id,
+            synth_group_name=synth_group_name,
             has_scorecard=has_scorecard,
             has_analysis=has_analysis,
             has_interview_guide=has_interview_guide,

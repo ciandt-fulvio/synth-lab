@@ -26,6 +26,10 @@ from typing import Any
 
 import numpy as np
 
+from synth_lab.domain.constants.group_defaults import (
+    expand_education_distribution,
+    normalize_composicao_familiar_distribution,
+)
 from synth_lab.gen_synth import (
     demographics,
     derivations,
@@ -118,6 +122,128 @@ def assemble_synth(
     }
 
     # 8. Derive description (needs complete synth)
+    descricao = derivations.derive_description(synth)
+    synth["descricao"] = descricao
+
+    return synth
+
+
+def assemble_synth_with_config(
+    config: dict[str, Any],
+    group_config: dict[str, Any],
+    rng: np.random.Generator | None = None,
+) -> dict[str, Any]:
+    """
+    Assemble a synth using custom group configuration distributions.
+
+    This function generates a synthetic persona using custom distributions
+    from the group_config instead of IBGE defaults.
+
+    Args:
+        config: Base configuration dict with 'ibge', 'occupations', 'interests_hobbies'
+        group_config: Custom distributions with:
+            - distributions.idade: Age distribution (4 buckets)
+            - distributions.escolaridade: Education distribution (4 buckets)
+            - distributions.deficiencias: Disability config (rate + severity dist)
+            - distributions.composicao_familiar: Family composition distribution
+            - distributions.domain_expertise: Beta params (alpha, beta)
+        rng: Optional NumPy random generator for reproducibility
+
+    Returns:
+        dict: Complete synth with all fields populated using custom distributions.
+    """
+    # Generate unique ID
+    synth_id = gerar_id(tamanho=6)
+
+    # Create RNG if not provided
+    if rng is None:
+        rng = np.random.default_rng()
+
+    # Extract custom distributions
+    distributions = group_config.get("distributions", {})
+
+    # Build custom_distributions for demographics module
+    custom_distributions: dict[str, Any] = {}
+
+    # Age distribution (convert alias keys if needed)
+    idade_dist = distributions.get("idade", {})
+    if idade_dist:
+        custom_distributions["idade"] = {
+            "15-29": idade_dist.get("15-29", idade_dist.get("faixa_15_29", 0.25)),
+            "30-44": idade_dist.get("30-44", idade_dist.get("faixa_30_44", 0.25)),
+            "45-59": idade_dist.get("45-59", idade_dist.get("faixa_45_59", 0.25)),
+            "60+": idade_dist.get("60+", idade_dist.get("faixa_60_plus", 0.25)),
+        }
+
+    # Education distribution (expand from 4-level to 8-level)
+    escolaridade_dist = distributions.get("escolaridade", {})
+    if escolaridade_dist:
+        custom_distributions["escolaridade"] = expand_education_distribution(escolaridade_dist)
+
+    # Family composition distribution (convert internal keys to display names)
+    composicao_dist = distributions.get("composicao_familiar", {})
+    if composicao_dist:
+        custom_distributions["composicao_familiar"] = normalize_composicao_familiar_distribution(
+            composicao_dist
+        )
+
+    # 1. Generate demographics with custom distributions
+    demografia = demographics.generate_demographics(config, custom_distributions)
+
+    # 2. Generate name based on demographics
+    nome = demographics.generate_name(demografia)
+
+    # 3. Generate psychographics (interests, cognitive contract)
+    psicografia = psychographics.generate_psychographics(config)
+
+    # 4. Generate disabilities with custom rate and severity
+    defic_config = distributions.get("deficiencias", {})
+    custom_rate = defic_config.get("taxa_com_deficiencia")
+    custom_severity = defic_config.get("distribuicao_severidade")
+
+    deficiencias = disabilities.generate_disabilities(
+        config["ibge"],
+        custom_rate=custom_rate,
+        custom_severity_dist=custom_severity,
+    )
+
+    # 5. Generate observables with custom domain expertise params
+    idade = demografia.get("idade")
+    escolaridade = demografia.get("escolaridade")
+    composicao_familiar = demografia.get("composicao_familiar")
+
+    domain_expertise_config = distributions.get("domain_expertise", {})
+    expertise_alpha = domain_expertise_config.get("alpha", 3.0)
+    expertise_beta = domain_expertise_config.get("beta", 3.0)
+
+    observables = generate_observables_correlated(
+        rng=rng,
+        deficiencias=deficiencias,
+        escolaridade=escolaridade,
+        composicao_familiar=composicao_familiar,
+        idade=idade,
+        expertise_alpha=expertise_alpha,
+        expertise_beta=expertise_beta,
+    )
+
+    # 6. Generate photo link
+    link_photo = derivations.generate_photo_link(nome)
+
+    # 7. Assemble complete synth
+    synth = {
+        "id": synth_id,
+        "nome": nome,
+        "descricao": "",
+        "link_photo": link_photo,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "version": "2.3.0",
+        "demografia": demografia,
+        "psicografia": psicografia,
+        "deficiencias": deficiencias,
+        "observables": observables.model_dump(),
+    }
+
+    # 8. Derive description
     descricao = derivations.derive_description(synth)
     synth["descricao"] = descricao
 
@@ -219,8 +345,9 @@ if __name__ == "__main__":
         else:
             # Verify interests is 1-4 items
             if not (1 <= len(psico["interesses"]) <= 4):
+                count = len(psico["interesses"])
                 all_validation_failures.append(
-                    f"Psychographics: interesses should be 1-4 items, got {len(psico['interesses'])}"
+                    f"Psychographics: interesses should be 1-4 items, got {count}"
                 )
             # Verify cognitive contract structure
             cc = psico.get("contrato_cognitivo", {})
