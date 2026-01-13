@@ -63,7 +63,7 @@ help:
 	@echo "  make serve             Start API server (port 8000)"
 	@echo "  make serve-front       Start frontend (port 8080)"
 	@echo "  make serve-test        Start API server for tests (port 8000)"
-	@echo "  make serve-front-test  Start frontend for tests (port 8089)"
+	@echo "  make serve-front-test  Start frontend for tests (port 8080)"
 	@echo "  make phoenix           Start Phoenix tracing (port 6006)"
 	@echo "  make kill              Kill all dev servers (ports 8000, 8080, 6006)"
 	@echo "  make kill-test-servers Kill test servers (ports 8000, 8080)"

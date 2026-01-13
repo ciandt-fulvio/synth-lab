@@ -6,7 +6,7 @@ Guia completo para rodar testes end-to-end contra diferentes ambientes.
 
 | Ambiente | URL | Quando Usar |
 |----------|-----|-------------|
-| **Local** | `http://localhost:8089` | Desenvolvimento local (padrão) |
+| **Local** | `http://localhost:8080` | Desenvolvimento local (padrão) |
 | **Staging** | `https://synth-lab-frontend-staging.up.railway.app` | Testes antes de deploy production |
 | **Production** | `https://synth-lab-frontend-production.up.railway.app` | Smoke tests após deploy |
 

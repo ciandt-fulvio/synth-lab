@@ -128,7 +128,7 @@ npm run test:e2e:report       # Ver relatório HTML
 
 ```bash
 # Timeout ao iniciar
-lsof -ti:8089 | xargs kill -9
+lsof -ti:8080 | xargs kill -9
 
 # Ver screenshots de erros
 ls test-results/

@@ -124,7 +124,7 @@ jobs:
 
       - name: Wait for frontend to be ready
         run: |
-          npx wait-on http://localhost:8089 --timeout 60000
+          npx wait-on http://localhost:8080 --timeout 60000
 
       # ========================================================================
       # 7. Run E2E Tests
@@ -133,7 +133,7 @@ jobs:
         working-directory: frontend
         run: npm run test:e2e
         env:
-          BASE_URL: http://localhost:8089
+          BASE_URL: http://localhost:8080
 
       # ========================================================================
       # 8. Upload Results and Logs

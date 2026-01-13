@@ -19,7 +19,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 // Environment URLs
 const ENVIRONMENTS = {
-  local: process.env.VITE_PORT ? `http://localhost:${process.env.VITE_PORT}` : 'http://localhost:8089',
+  local: process.env.VITE_PORT ? `http://localhost:${process.env.VITE_PORT}` : 'http://localhost:8080',
   staging: 'https://synth-lab-frontend-staging.up.railway.app',
   production: 'https://synth-lab-frontend-production.up.railway.app',
 } as const;
