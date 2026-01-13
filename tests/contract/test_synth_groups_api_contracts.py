@@ -8,18 +8,13 @@ These tests ensure API changes don't break the frontend by validating:
 - Nested structures maintained
 
 Run: pytest tests/contract/test_synth_groups_api_contracts.py -v
+
+Note: Uses shared 'client' fixture from tests/contract/conftest.py
+      which ensures tests run against DATABASE_TEST_URL.
 """
 
 import pytest
 from fastapi.testclient import TestClient
-
-from synth_lab.api.main import app
-
-
-@pytest.fixture
-def client():
-    """Create FastAPI test client."""
-    return TestClient(app)
 
 
 def validate_timestamp(value: str) -> bool:
