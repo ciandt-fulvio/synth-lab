@@ -77,16 +77,19 @@ class BatchResult:
     total_failed: int
 
 
-def load_all_synths() -> list[dict[str, Any]]:
+def load_all_synths(synth_group_id: str | None = None) -> list[dict[str, Any]]:
     """
-    Load all synths from the database.
+    Load synths from the database, optionally filtered by group.
+
+    Args:
+        synth_group_id: Optional synth group ID to filter by
 
     Returns:
         List of synth dictionaries
     """
     from synth_lab.gen_synth.storage import load_synths
 
-    return load_synths()
+    return load_synths(synth_group_id=synth_group_id)
 
 
 def get_timestamp_gmt3() -> str:
@@ -294,6 +297,7 @@ async def run_batch_interviews(
     generate_summary: bool = True,
     exec_id: str | None = None,
     synth_ids: list[str] | None = None,
+    synth_group_id: str | None = None,
     message_callback: Callable[[str, str, int, ConversationMessage], Awaitable[None]] | None = None,
     on_interview_completed: Callable[[str, str, int, "InterviewResult"], Awaitable[None]] | None = None,
     on_transcription_completed: Callable[[str, int, int], Awaitable[None]] | None = None,
@@ -319,7 +323,9 @@ async def run_batch_interviews(
         synth_ids: Optional list of specific synth IDs to interview.
             If provided and len(synth_ids) <= max_interviews: uses all synths from list.
             If provided and len(synth_ids) > max_interviews: randomly samples max_interviews.
-            If not provided: randomly samples max_interviews from all available synths.
+            If not provided: randomly samples max_interviews from available synths.
+        synth_group_id: Optional synth group ID to filter available synths.
+            Only used when synth_ids is not provided. Filters synths to those in the specified group.
         message_callback: Async callback for real-time message streaming (optional)
             Signature: (exec_id, synth_id, turn_number, message) -> None
         on_interview_completed: Callback when a single interview completes
@@ -356,7 +362,7 @@ async def run_batch_interviews(
     batch_id = exec_id if exec_id else f"batch_{guide_name}_{get_timestamp_gmt3()}"
 
     # Load synths and select which ones to interview
-    all_synths = load_all_synths()
+    all_synths = load_all_synths(synth_group_id=synth_group_id)
     synths_to_interview = _select_synths_for_interview(
         all_synths=all_synths,
         synth_ids=synth_ids,
