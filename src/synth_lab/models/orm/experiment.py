@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from synth_lab.models.orm.exploration import Exploration
     from synth_lab.models.orm.material import ExperimentMaterial
     from synth_lab.models.orm.research import ResearchExecution
+    from synth_lab.models.orm.synth import SynthGroup
     from synth_lab.models.orm.tag import ExperimentTag
 
 
@@ -66,6 +67,10 @@ class Experiment(Base, TimestampMixin, SoftDeleteMixin):
     scorecard_data: Mapped[dict[str, Any] | None] = mapped_column(MutableJSON, nullable=True)
 
     # Relationships
+    synth_group: Mapped["SynthGroup"] = relationship(
+        "SynthGroup",
+        foreign_keys=[synth_group_id],
+    )
     analysis_run: Mapped["AnalysisRun | None"] = relationship(
         "AnalysisRun",
         back_populates="experiment",

@@ -289,6 +289,7 @@ async def list_experiments(
             hypothesis=exp.hypothesis,
             description=exp.description,
             synth_group_id=exp.synth_group_id,
+            synth_group_name=exp.synth_group_name,
             has_scorecard=exp.has_scorecard,
             has_analysis=exp.has_analysis,
             has_interview_guide=exp.has_interview_guide,
@@ -321,6 +322,16 @@ async def get_experiment(experiment_id: str) -> ExperimentDetail:
             detail=f"Experiment {experiment_id} not found")
 
     with get_session() as session:
+        # Get synth group name
+        from synth_lab.models.orm.synth import SynthGroup as SynthGroupORM
+        from sqlalchemy import select
+
+        synth_group_name = "Unknown"
+        stmt = select(SynthGroupORM.name).where(SynthGroupORM.id == experiment.synth_group_id)
+        result = session.execute(stmt).scalar_one_or_none()
+        if result:
+            synth_group_name = result
+
         # Get analysis (1:1 relationship)
         analysis_repo = AnalysisRepository(session=session)
         analysis_run = analysis_repo.get_by_experiment_id(experiment_id)
@@ -386,6 +397,7 @@ async def get_experiment(experiment_id: str) -> ExperimentDetail:
         hypothesis=experiment.hypothesis,
         description=experiment.description,
         synth_group_id=experiment.synth_group_id,
+        synth_group_name=synth_group_name,
         scorecard_data=scorecard_schema,
         has_scorecard=experiment.has_scorecard(),
         has_interview_guide=has_interview_guide,

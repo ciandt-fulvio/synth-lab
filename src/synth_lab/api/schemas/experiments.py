@@ -237,6 +237,7 @@ class ExperimentResponse(BaseModel):
     hypothesis: str = Field(description="Hypothesis description.")
     description: str | None = Field(default=None, description="Additional context.")
     synth_group_id: str = Field(description="ID of the synth group used for this experiment.")
+    synth_group_name: str = Field(description="Name of the synth group used for this experiment.")
     scorecard_data: ScorecardDataSchema | None = Field(
         default=None,
         description="Embedded scorecard data.")
@@ -257,6 +258,7 @@ class ExperimentSummary(BaseModel):
     hypothesis: str = Field(description="Hypothesis description.")
     description: str | None = Field(default=None, description="Additional context.")
     synth_group_id: str = Field(description="ID of the synth group used for this experiment.")
+    synth_group_name: str = Field(description="Name of the synth group used for this experiment.")
     has_scorecard: bool = Field(default=False, description="Whether scorecard is filled.")
     has_analysis: bool = Field(default=False, description="Whether analysis exists.")
     has_interview_guide: bool = Field(

@@ -197,6 +197,10 @@ export interface ExperimentSummary {
   hypothesis: string;
   /** Additional context */
   description?: string | null;
+  /** ID of the synth group used for this experiment */
+  synth_group_id: string;
+  /** Name of the synth group used for this experiment */
+  synth_group_name: string;
   /** Whether scorecard is filled */
   has_scorecard: boolean;
   /** Whether analysis exists */
@@ -225,6 +229,10 @@ export interface ExperimentDetail {
   hypothesis: string;
   /** Additional context */
   description?: string | null;
+  /** ID of the synth group used for this experiment */
+  synth_group_id: string;
+  /** Name of the synth group used for this experiment */
+  synth_group_name: string;
   /** Embedded scorecard data */
   scorecard_data?: ScorecardData | null;
   /** Whether scorecard is filled */
