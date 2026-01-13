@@ -32,6 +32,7 @@ class ExperimentSummary(BaseModel):
     name: str = Field(description="Short name of the feature.")
     hypothesis: str = Field(description="Hypothesis description.")
     description: str | None = Field(default=None, description="Additional context.")
+    synth_group_id: str = Field(description="ID of the synth group used for this experiment.")
     has_scorecard: bool = Field(default=False, description="Whether scorecard is filled.")
     has_analysis: bool = Field(default=False, description="Whether analysis exists.")
     has_interview_guide: bool = Field(
@@ -84,6 +85,7 @@ session: Session | None = None):
             name=experiment.name,
             hypothesis=experiment.hypothesis,
             description=experiment.description,
+            synth_group_id=experiment.synth_group_id,
             scorecard_data=scorecard_dict,
             status="active",
             created_at=experiment.created_at.isoformat(),
@@ -375,6 +377,7 @@ session: Session | None = None):
             name=orm_exp.name,
             hypothesis=orm_exp.hypothesis,
             description=orm_exp.description,
+            synth_group_id=orm_exp.synth_group_id,
             scorecard_data=scorecard_data,
             tags=tags,
             created_at=created_at,
@@ -404,6 +407,7 @@ session: Session | None = None):
             name=orm_exp.name,
             hypothesis=orm_exp.hypothesis,
             description=orm_exp.description,
+            synth_group_id=orm_exp.synth_group_id,
             has_scorecard=has_scorecard,
             has_analysis=has_analysis,
             has_interview_guide=has_interview_guide,

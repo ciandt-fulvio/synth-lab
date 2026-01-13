@@ -57,6 +57,12 @@ class Experiment(Base, TimestampMixin, SoftDeleteMixin):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     hypothesis: Mapped[str] = mapped_column(String(500), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    synth_group_id: Mapped[str] = mapped_column(
+        String(50),
+        ForeignKey("synth_groups.id"),
+        nullable=False,
+        default="grp_00000001"
+    )
     scorecard_data: Mapped[dict[str, Any] | None] = mapped_column(MutableJSON, nullable=True)
 
     # Relationships
@@ -104,6 +110,7 @@ class Experiment(Base, TimestampMixin, SoftDeleteMixin):
         Index("idx_experiments_created", "created_at", postgresql_ops={"created_at": "DESC"}),
         Index("idx_experiments_name", "name"),
         Index("idx_experiments_status", "status"),
+        Index("idx_experiments_synth_group_id", "synth_group_id"),
     )
 
     def __repr__(self) -> str:

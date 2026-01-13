@@ -151,6 +151,7 @@ class Experiment(BaseModel):
         name: Short name of the feature (max 100 chars)
         hypothesis: Description of the hypothesis to test (max 500 chars)
         description: Additional context, links, references (max 2000 chars)
+        synth_group_id: ID of the synth group to use for this experiment
         scorecard_data: Embedded scorecard (optional until filled)
         created_at: ISO 8601 timestamp of creation
         updated_at: ISO 8601 timestamp of last update
@@ -176,6 +177,13 @@ class Experiment(BaseModel):
         default=None,
         max_length=2000,
         description="Additional context, links, references.",
+    )
+
+    # Synth group for this experiment
+    synth_group_id: str = Field(
+        default="grp_00000001",  # Default group
+        max_length=50,
+        description="ID of the synth group to use for research and explorations.",
     )
 
     # Embedded scorecard (optional until filled)
