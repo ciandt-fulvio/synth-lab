@@ -343,12 +343,16 @@ session: Session | None = None):
         if "scorecard_data" in row.keys() and row["scorecard_data"]:
             has_scorecard = True
 
+        # Get synth_group_name if available in row, otherwise default to "Unknown"
+        synth_group_name = row.get("synth_group_name", "Unknown")
+
         return ExperimentSummary(
             id=row["id"],
             name=row["name"],
             hypothesis=row["hypothesis"],
             description=row["description"],
             synth_group_id=row["synth_group_id"],
+            synth_group_name=synth_group_name,
             has_scorecard=has_scorecard,
             has_analysis=bool(row["has_analysis"]) if "has_analysis" in row.keys() else False,
             has_interview_guide=(

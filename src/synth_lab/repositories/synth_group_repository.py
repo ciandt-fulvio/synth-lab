@@ -153,10 +153,25 @@ class SynthGroupRepository(BaseRepository):
                 synth.synth_group_id = group.id
                 self._add(synth)
 
+        # Calculate synth count before commit to avoid DetachedInstanceError
+        synth_count = len(synths) if synths else 0
+
         self._flush()
         self._commit()
 
-        return self._orm_to_summary(orm_group)
+        # Build summary manually to avoid accessing detached orm_group.synths relationship
+        created_at = group.created_at
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
+
+        return SynthGroupSummary(
+            id=orm_group.id,
+            name=orm_group.name,
+            description=orm_group.description,
+            synth_count=synth_count,
+            created_at=created_at,
+            config=config,
+        )
 
     def get_by_id(self, group_id: str) -> SynthGroupSummary | None:
         """
