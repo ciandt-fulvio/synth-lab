@@ -272,7 +272,7 @@ session: Session | None = None):
         """
         Get synths for Monte Carlo simulation with derived simulation_attributes.
 
-        Retrieves synths that participated in an experiment's analysis and
+        Retrieves synths from the experiment's synth_group_id and
         derives their simulation_attributes from observables (v2.3.0+) or
         Big Five personality traits (legacy synths).
 
@@ -285,32 +285,29 @@ session: Session | None = None):
             simulation_attributes contains 'observables' and 'latent_traits'.
 
         Raises:
-            ValueError: If experiment has no completed analysis.
+            ValueError: If experiment not found or has no synth group.
         """
         from synth_lab.domain.entities.simulation_attributes import SimulationObservables
         from synth_lab.gen_synth.simulation_attributes import derive_latent_traits
+        from synth_lab.models.orm.experiment import Experiment as ExperimentORM
 
-        # Get analysis_id for this experiment using ORM
-        stmt = select(AnalysisRunORM).where(
-            AnalysisRunORM.experiment_id == experiment_id,
-            AnalysisRunORM.status == "completed"
-        )
-        analysis = self.session.execute(stmt).scalar_one_or_none()
-        if not analysis:
-            raise ValueError(f"No completed analysis found for experiment {experiment_id}")
+        # Get experiment's synth_group_id
+        stmt = select(ExperimentORM).where(ExperimentORM.id == experiment_id)
+        experiment = self.session.execute(stmt).scalar_one_or_none()
+        if not experiment:
+            raise ValueError(f"Experiment {experiment_id} not found")
 
-        analysis_id = analysis.id
+        synth_group_id = experiment.synth_group_id
+        if not synth_group_id:
+            raise ValueError(f"Experiment {experiment_id} has no synth_group_id")
 
-        # Get synths that participated in this analysis using ORM
-        # Join synths with synth_outcomes to find synths in this analysis
+        # Get synths from the experiment's group
         stmt = (
             select(SynthORM)
-            .join(SynthOutcomeORM, SynthORM.id == SynthOutcomeORM.synth_id)
             .where(
-                SynthOutcomeORM.analysis_id == analysis_id,
+                SynthORM.synth_group_id == synth_group_id,
                 SynthORM.data.isnot(None)
             )
-            .distinct()
             .limit(limit)
         )
         orm_synths = list(self.session.execute(stmt).scalars().all())

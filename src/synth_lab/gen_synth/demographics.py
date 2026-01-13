@@ -262,12 +262,19 @@ def generate_name(demographics: dict[str, Any]) -> str:
     return nome
 
 
-def generate_demographics(config_data: dict[str, Any]) -> dict[str, Any]:
+def generate_demographics(
+    config_data: dict[str, Any],
+    custom_distributions: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """
     Gera atributos demográficos usando distribuições IBGE com coerência entre campos.
 
     Args:
         config_data: Dicionário com configurações IBGE e ocupações
+        custom_distributions: Distribuições customizadas opcionais:
+            - idade: dict com pesos {"15-29": 0.26, "30-44": 0.27, ...}
+            - escolaridade: dict com pesos {"sem_instrucao": 0.068, ...}
+            - composicao_familiar: dict com pesos {"unipessoal": 0.15, ...}
 
     Returns:
         dict: Dados demográficos coerentes
@@ -280,8 +287,11 @@ def generate_demographics(config_data: dict[str, Any]) -> dict[str, Any]:
     estado = random.choice(ibge_data["estados_por_regiao"][regiao])
     cidade = random.choice(ibge_data["cidades_principais"][estado])
 
-    # Idade (minima: 18)
-    faixa_etaria = weighted_choice(ibge_data["faixas_etarias"])
+    # Idade (minima: 18) - usa distribuição customizada se fornecida
+    if custom_distributions and "idade" in custom_distributions:
+        faixa_etaria = weighted_choice(custom_distributions["idade"])
+    else:
+        faixa_etaria = weighted_choice(ibge_data["faixas_etarias"])
 
     if faixa_etaria == "15-29":
         idade = random.randint(18, 29)
@@ -292,8 +302,11 @@ def generate_demographics(config_data: dict[str, Any]) -> dict[str, Any]:
     else:  # 60+
         idade = random.randint(60, 100)
 
-    # Escolaridade inicial
-    escolaridade = weighted_choice(ibge_data["escolaridade"])
+    # Escolaridade inicial - usa distribuição customizada se fornecida
+    if custom_distributions and "escolaridade" in custom_distributions:
+        escolaridade = weighted_choice(custom_distributions["escolaridade"])
+    else:
+        escolaridade = weighted_choice(ibge_data["escolaridade"])
 
     # Ajustar escolaridade por idade
     if idade < 7:
@@ -315,10 +328,34 @@ def generate_demographics(config_data: dict[str, Any]) -> dict[str, Any]:
     genero_biologico = weighted_choice(ibge_data["genero_biologico"])
 
     # Estado civil e família coerentes
-    estado_civil_inicial = weighted_choice(ibge_data["estado_civil"])
-    estado_civil, composicao_familiar = generate_coherent_family(
-        ibge_data, idade, estado_civil_inicial
-    )
+    # Se distribuição customizada de composição familiar for fornecida, usar diretamente
+    if custom_distributions and "composicao_familiar" in custom_distributions:
+        tipo_familia = weighted_choice(custom_distributions["composicao_familiar"])
+        # Definir número de pessoas baseado no tipo
+        if tipo_familia == "unipessoal":
+            num_pessoas = 1
+            estado_civil = "solteiro"
+        elif tipo_familia == "casal_sem_filhos":
+            num_pessoas = 2
+            estado_civil = random.choice(["casado", "união estável"])
+        elif tipo_familia == "casal_com_filhos":
+            num_pessoas = random.randint(3, 6)
+            estado_civil = random.choice(["casado", "união estável"])
+        elif tipo_familia == "monoparental":
+            num_pessoas = random.randint(2, 4)
+            estado_civil = random.choice(["solteiro", "divorciado", "viúvo"])
+        elif tipo_familia == "multigeracional":
+            num_pessoas = random.randint(3, 7)
+            estado_civil = weighted_choice(ibge_data["estado_civil"])
+        else:  # outros
+            num_pessoas = random.randint(2, 5)
+            estado_civil = weighted_choice(ibge_data["estado_civil"])
+        composicao_familiar = {"tipo": tipo_familia, "numero_pessoas": num_pessoas}
+    else:
+        estado_civil_inicial = weighted_choice(ibge_data["estado_civil"])
+        estado_civil, composicao_familiar = generate_coherent_family(
+            ibge_data, idade, estado_civil_inicial
+        )
 
     # Ocupação e renda coerentes
     ocupacao_dict, escolaridade = generate_coherent_occupation(

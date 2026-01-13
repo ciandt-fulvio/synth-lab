@@ -5,18 +5,13 @@ Validates that Research API maintains expected schemas for frontend consumption.
 Tests verify response structure, required fields, and data types - NOT business logic.
 
 Executar: pytest -m contract tests/contract/test_research_api_contracts.py
+
+Note: Uses shared 'client' fixture from tests/contract/conftest.py
+      which ensures tests run against DATABASE_TEST_URL.
 """
 
 import pytest
 from fastapi.testclient import TestClient
-
-from synth_lab.api.main import app
-
-
-@pytest.fixture
-def client():
-    """Create FastAPI test client."""
-    return TestClient(app)
 
 
 def validate_timestamp(value: str) -> bool:

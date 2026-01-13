@@ -58,7 +58,8 @@ class TestInterviewWithMaterials:
         # Should include materials section
         assert "mat_abc123" in instructions
         assert "wireframe.png" in instructions
-        assert "ver_material" in instructions
+        # Interviewer doesn't use the tool - they ask interviewee to look
+        assert "peça" in instructions.lower() or "gostaria que" in instructions.lower()
 
     def test_interviewee_agent_has_materials_in_prompt(
         self, sample_experiment_with_materials
@@ -112,18 +113,19 @@ class TestInterviewWithMaterials:
         mock_s3 = Mock()
         mock_s3.download_from_s3.return_value = b"fake_image_data"
 
-        # Call the core function directly
-        result = _load_material_content(
-            material_id="mat_abc123",
-            experiment_id="exp_test123",
-            material_repository=mock_repo,
-            s3_client=mock_s3
-        )
+        # Call the core function directly (now returns presigned URL, not data URI)
+        with patch("synth_lab.services.research_agentic.tools.generate_view_url") as mock_generate:
+            mock_generate.return_value = "https://presigned-url.example.com/mat_abc123.png"
 
-        # Should return data URI
-        assert result.startswith("data:image/png;base64,")
-        assert mock_repo.get_by_id.called
-        assert mock_s3.download_from_s3.called
+            result = _load_material_content(
+                material_id="mat_abc123",
+                experiment_id="exp_test123",
+                material_repository=mock_repo,
+            )
+
+            # Should return presigned URL
+            assert result.startswith("https://")
+            assert mock_repo.get_by_id.called
 
     def test_interview_with_materials_completes_successfully(
         self, sample_experiment_with_materials
@@ -148,11 +150,9 @@ class TestInterviewWithMaterials:
 
         # Can create tool
         mock_repo = Mock()
-        mock_s3 = Mock()
         tool = create_materials_tool(
             experiment_id="exp_test123",
             material_repository=mock_repo,
-            s3_client=mock_s3
         )
         assert tool is not None
 

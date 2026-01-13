@@ -12,6 +12,9 @@ Executar: pytest -m contract
 IMPORTANTE: Estes NÃO testam lógica de negócio, apenas contrato da API.
 Se endpoint retorna 404 porque não há dados, isso é OK - teste passa.
 O que importa é que SE retornar dados, o schema esteja correto.
+
+Note: Uses shared 'client' fixture from tests/contract/conftest.py
+      which ensures tests run against DATABASE_TEST_URL.
 """
 
 import sys
@@ -19,14 +22,6 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-
-from synth_lab.api.main import app
-
-
-@pytest.fixture
-def client():
-    """Create FastAPI test client."""
-    return TestClient(app)
 
 
 def validate_timestamp(value: str) -> bool:

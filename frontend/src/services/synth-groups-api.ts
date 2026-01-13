@@ -14,6 +14,8 @@ import type {
   SynthGroupDetail,
   SynthGroupSummary,
   PaginatedSynthGroup,
+  CreateSynthGroupRequest,
+  SynthGroupCreateResponse,
 } from '@/types/synthGroup';
 import type { PaginationParams } from '@/types';
 
@@ -59,5 +61,18 @@ export async function createSynthGroup(
 export async function deleteSynthGroup(id: string): Promise<void> {
   return fetchAPI<void>(`/synth-groups/${id}`, {
     method: 'DELETE',
+  });
+}
+
+/**
+ * Create a new synth group with custom distribution configuration.
+ * Generates N synths using the provided distributions.
+ */
+export async function createSynthGroupWithConfig(
+  data: CreateSynthGroupRequest
+): Promise<SynthGroupCreateResponse> {
+  return fetchAPI<SynthGroupCreateResponse>('/synth-groups/with-config', {
+    method: 'POST',
+    body: JSON.stringify(data),
   });
 }

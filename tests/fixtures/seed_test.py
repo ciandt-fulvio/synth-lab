@@ -65,9 +65,9 @@ def seed_database(engine: Engine) -> None:
         # Clear existing data (in correct order due to FK constraints)
         _clear_existing_data(session)
 
-        # Seed in dependency order
-        experiment = _seed_primary_experiment(session)
+        # Seed in dependency order (synth_groups MUST come before experiment due to FK)
         synth_groups = _seed_synth_groups(session)
+        experiment = _seed_primary_experiment(session)
         synths = _seed_synths(session, synth_groups)
         analysis_run = _seed_analysis_run(session, experiment, synth_count=500)
         _seed_synth_outcomes(session, analysis_run, synth_count=500)
@@ -160,6 +160,13 @@ def _seed_synth_groups(session: Session) -> list[SynthGroup]:
     base_time = datetime.now()
 
     groups = [
+        # Default group - MUST be created first as experiments use this by default
+        SynthGroup(
+            id="grp_00000001",  # Default group ID used by experiments
+            name="Default",
+            description="Grupo padrão para synths sem grupo específico",
+            created_at=(base_time - timedelta(days=90)).isoformat(),
+        ),
         SynthGroup(
             id="grp_a1b2c3d4",  # Valid format: grp_[a-f0-9]{8}
             name="Usuários Frequentes",
@@ -194,11 +201,11 @@ def _seed_synths(session: Session, groups: list[SynthGroup]) -> list[Synth]:
     base_time = datetime.now()
 
     synths = [
-        # Frequent Users
+        # Frequent Users (index 1 = grp_a1b2c3d4)
         Synth(
             id="syn_maria_silva",
             nome="Maria Silva",
-            synth_group_id=groups[0].id,
+            synth_group_id=groups[1].id,
             data={
                 "idade": 28,
                 "ocupacao": "Designer",
@@ -210,7 +217,7 @@ def _seed_synths(session: Session, groups: list[SynthGroup]) -> list[Synth]:
         Synth(
             id="syn_joao_santos",
             nome="João Santos",
-            synth_group_id=groups[0].id,
+            synth_group_id=groups[1].id,
             data={
                 "idade": 32,
                 "ocupacao": "Desenvolvedor",
@@ -219,11 +226,11 @@ def _seed_synths(session: Session, groups: list[SynthGroup]) -> list[Synth]:
             },
             created_at=(base_time - timedelta(days=50)).isoformat(),
         ),
-        # Busy Professionals
+        # Busy Professionals (index 2 = grp_b2c3d4e5)
         Synth(
             id="syn_ana_rodrigues",
             nome="Ana Rodrigues",
-            synth_group_id=groups[1].id,
+            synth_group_id=groups[2].id,
             data={
                 "idade": 42,
                 "ocupacao": "Gerente de Marketing",
@@ -235,7 +242,7 @@ def _seed_synths(session: Session, groups: list[SynthGroup]) -> list[Synth]:
         Synth(
             id="syn_carlos_lima",
             nome="Carlos Lima",
-            synth_group_id=groups[1].id,
+            synth_group_id=groups[2].id,
             data={
                 "idade": 38,
                 "ocupacao": "Diretor Comercial",
@@ -244,11 +251,11 @@ def _seed_synths(session: Session, groups: list[SynthGroup]) -> list[Synth]:
             },
             created_at=(base_time - timedelta(days=50)).isoformat(),
         ),
-        # Family Users
+        # Family Users (index 3 = grp_c3d4e5f6)
         Synth(
             id="syn_patricia_costa",
             nome="Patrícia Costa",
-            synth_group_id=groups[2].id,
+            synth_group_id=groups[3].id,
             data={
                 "idade": 35,
                 "ocupacao": "Professora",
@@ -261,7 +268,7 @@ def _seed_synths(session: Session, groups: list[SynthGroup]) -> list[Synth]:
         Synth(
             id="syn_roberto_alves",
             nome="Roberto Alves",
-            synth_group_id=groups[2].id,
+            synth_group_id=groups[3].id,
             data={
                 "idade": 40,
                 "ocupacao": "Contador",

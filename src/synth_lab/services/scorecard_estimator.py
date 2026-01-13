@@ -315,8 +315,12 @@ if __name__ == "__main__":
             name="Dark Mode Toggle",
             hypothesis="Users will prefer dark mode for night usage",
             description="Add a toggle in settings",
-            simulation_count=0,
+            synth_group_id="grp_00000001",
+            has_scorecard=False,
+            has_analysis=False,
+            has_interview_guide=False,
             interview_count=0,
+            tags=[],
             created_at=datetime.now(),
             updated_at=None)
         prompt = estimator._build_prompt(exp)

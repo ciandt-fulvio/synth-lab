@@ -16,8 +16,16 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Loader2, Sparkles, ArrowRight, ArrowLeft } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Loader2, Sparkles, ArrowRight, ArrowLeft, Users } from 'lucide-react';
 import { useEstimateScorecardFromText } from '@/hooks/use-experiments';
+import { useSynthGroups } from '@/hooks/use-synth-groups';
 import { useToast } from '@/hooks/use-toast';
 import type { ExperimentCreate, ExperimentUpdate, ScorecardData } from '@/types/experiment';
 
@@ -70,6 +78,7 @@ export function ExperimentForm({
 }: ExperimentFormProps) {
   const { toast } = useToast();
   const estimateMutation = useEstimateScorecardFromText();
+  const { data: synthGroupsData, isLoading: isLoadingSynthGroups } = useSynthGroups();
 
   // Step management (1 = basic info, 2 = scorecard)
   const [step, setStep] = useState(1);
@@ -77,6 +86,7 @@ export function ExperimentForm({
   const [name, setName] = useState(initialData?.name ?? '');
   const [hypothesis, setHypothesis] = useState(initialData?.hypothesis ?? '');
   const [description, setDescription] = useState(initialData?.description ?? '');
+  const [selectedSynthGroupId, setSelectedSynthGroupId] = useState<string>('grp_00000001');
   const [errors, setErrors] = useState<FormErrors>({});
 
   // Initialize sliders from existing scorecard or defaults
@@ -175,6 +185,7 @@ export function ExperimentForm({
       name: name.trim(),
       hypothesis: hypothesis.trim(),
       description: description.trim() || undefined,
+      synth_group_id: selectedSynthGroupId,
     };
 
     // Include scorecard data if showing sliders
@@ -253,6 +264,32 @@ export function ExperimentForm({
           />
           {errors.description && <p className="text-sm text-red-500">{errors.description}</p>}
           <p className="text-xs text-gray-500">{description.length}/2000</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="synth-group">
+            <Users className="inline h-4 w-4 mr-1" />
+            Grupo de Synths
+          </Label>
+          <Select
+            value={selectedSynthGroupId}
+            onValueChange={setSelectedSynthGroupId}
+            disabled={isSubmitting || isLoadingSynthGroups}
+          >
+            <SelectTrigger id="synth-group">
+              <SelectValue placeholder="Selecione um grupo..." />
+            </SelectTrigger>
+            <SelectContent>
+              {synthGroupsData?.data.map((group) => (
+                <SelectItem key={group.id} value={group.id}>
+                  {group.name} ({group.synth_count} synths)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-gray-500">
+            Synths deste grupo serão usados em simulações, entrevistas e explorações
+          </p>
         </div>
 
         <div className="flex justify-end gap-2 pt-4">
@@ -348,6 +385,32 @@ export function ExperimentForm({
             />
             {errors.description && <p className="text-sm text-red-500">{errors.description}</p>}
             <p className="text-xs text-gray-500">{description.length}/2000</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="synth-group-step1">
+              <Users className="inline h-4 w-4 mr-1" />
+              Grupo de Synths
+            </Label>
+            <Select
+              value={selectedSynthGroupId}
+              onValueChange={setSelectedSynthGroupId}
+              disabled={isSubmitting || isLoadingSynthGroups}
+            >
+              <SelectTrigger id="synth-group-step1">
+                <SelectValue placeholder="Selecione um grupo..." />
+              </SelectTrigger>
+              <SelectContent>
+                {synthGroupsData?.data.map((group) => (
+                  <SelectItem key={group.id} value={group.id}>
+                    {group.name} ({group.synth_count} synths)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500">
+              Synths deste grupo serão usados em simulações, entrevistas e explorações
+            </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

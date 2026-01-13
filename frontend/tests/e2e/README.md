@@ -119,8 +119,8 @@ npm run test:e2e:report       # Ver relatório HTML
 
 ## Portas
 
-- Backend de teste: **8009**
-- Frontend de teste: **8089**
+- Backend de teste: **8000**
+- Frontend de teste: **8080**
 
 (Evita conflito com dev: 8000/8080)
 
@@ -128,7 +128,7 @@ npm run test:e2e:report       # Ver relatório HTML
 
 ```bash
 # Timeout ao iniciar
-lsof -ti:8089 | xargs kill -9
+lsof -ti:8080 | xargs kill -9
 
 # Ver screenshots de erros
 ls test-results/

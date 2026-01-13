@@ -15,9 +15,10 @@ import {
   getSynthGroup,
   createSynthGroup,
   deleteSynthGroup,
+  createSynthGroupWithConfig,
 } from '@/services/synth-groups-api';
 import type { PaginationParams } from '@/types';
-import type { SynthGroupCreate } from '@/types/synthGroup';
+import type { SynthGroupCreate, CreateSynthGroupRequest } from '@/types/synthGroup';
 
 /**
  * Hook to fetch paginated list of synth groups.
@@ -68,6 +69,22 @@ export function useDeleteSynthGroup() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.synthGroupDetail(id),
       });
+      queryClient.invalidateQueries({ queryKey: queryKeys.synthGroupsList });
+    },
+  });
+}
+
+/**
+ * Hook to create a synth group with custom distribution configuration.
+ * Generates N synths using the provided distributions.
+ */
+export function useCreateSynthGroupWithConfig() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateSynthGroupRequest) => createSynthGroupWithConfig(data),
+    onSuccess: () => {
+      // Invalidate synth groups list to show the new group
       queryClient.invalidateQueries({ queryKey: queryKeys.synthGroupsList });
     },
   });

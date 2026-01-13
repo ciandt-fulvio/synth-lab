@@ -127,15 +127,21 @@ def save_synth(
             logger.debug(f"Synth saved: {synth_id} (group: {group_id})")
 
 
-def load_synths() -> list[dict[str, Any]]:
+def load_synths(synth_group_id: str | None = None) -> list[dict[str, Any]]:
     """
-    Load all synths from database.
+    Load synths from database, optionally filtered by group.
+
+    Args:
+        synth_group_id: Optional synth group ID to filter by
 
     Returns:
         List of synth dictionaries
     """
     with get_session() as session:
-        synths = session.query(Synth).order_by(Synth.created_at.desc()).all()
+        query = session.query(Synth)
+        if synth_group_id:
+            query = query.filter(Synth.synth_group_id == synth_group_id)
+        synths = query.order_by(Synth.created_at.desc()).all()
         return [_synth_to_dict(s) for s in synths]
 
 

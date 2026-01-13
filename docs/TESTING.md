@@ -246,13 +246,13 @@ Alguns testes fazem HTTP requests e **precisam dos servidores rodando**:
 **Terminal 1 - Backend de Teste:**
 ```bash
 make serve-test
-# API rodando em http://localhost:8009
+# API rodando em http://localhost:8000
 ```
 
 **Terminal 2 - Frontend de Teste (apenas para E2E):**
 ```bash
 make serve-front-test
-# Frontend rodando em http://localhost:8089
+# Frontend rodando em http://localhost:8080
 ```
 
 **Terminal 3 - Rodar Testes:**
@@ -267,7 +267,7 @@ pytest tests/contract/test_openapi_typescript_sync.py -v
 ### Por que Portas Diferentes?
 
 - **Dev:** 8000 (backend), 8080 (frontend)
-- **Teste:** 8009 (backend), 8089 (frontend)
+- **Teste:** 8000 (backend), 8080 (frontend)
 
 **Benefício:** Rodar testes enquanto dev servers estão rodando sem conflito.
 

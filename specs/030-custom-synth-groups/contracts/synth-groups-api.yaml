@@ -1,0 +1,459 @@
+openapi: 3.0.3
+info:
+  title: Synth Groups API - Custom Distributions
+  description: API for managing synth groups with customizable demographic distributions
+  version: 1.0.0
+
+servers:
+  - url: /api
+    description: Local development server
+
+paths:
+  /synth-groups:
+    get:
+      summary: List all synth groups
+      operationId: listSynthGroups
+      tags:
+        - Synth Groups
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [created_at, name]
+            default: created_at
+        - name: sort_order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: List of synth groups
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSynthGroupList'
+
+    post:
+      summary: Create a new synth group with custom distributions
+      operationId: createSynthGroup
+      tags:
+        - Synth Groups
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSynthGroupRequest'
+      responses:
+        '201':
+          description: Synth group created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SynthGroupCreateResponse'
+        '400':
+          description: Invalid request (validation error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /synth-groups/{group_id}:
+    get:
+      summary: Get synth group details with config
+      operationId: getSynthGroup
+      tags:
+        - Synth Groups
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^grp_[a-f0-9]{8}$|^default$'
+      responses:
+        '200':
+          description: Synth group details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SynthGroupDetailResponse'
+        '404':
+          description: Synth group not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+
+components:
+  schemas:
+    # Request Schemas
+    CreateSynthGroupRequest:
+      type: object
+      required:
+        - name
+        - config
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Group name (required)
+          example: "Aposentados 60+"
+        description:
+          type: string
+          maxLength: 50
+          nullable: true
+          description: Optional description
+          example: "Grupo para simular previdência"
+        config:
+          $ref: '#/components/schemas/GroupConfig'
+
+    GroupConfig:
+      type: object
+      required:
+        - n_synths
+        - distributions
+      properties:
+        n_synths:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 500
+          description: Number of synths to generate
+        distributions:
+          $ref: '#/components/schemas/GroupDistributions'
+
+    GroupDistributions:
+      type: object
+      required:
+        - idade
+        - escolaridade
+        - deficiencias
+        - composicao_familiar
+        - domain_expertise
+      properties:
+        idade:
+          $ref: '#/components/schemas/IdadeDistribution'
+        escolaridade:
+          $ref: '#/components/schemas/EscolaridadeDistribution'
+        deficiencias:
+          $ref: '#/components/schemas/DeficienciasConfig'
+        composicao_familiar:
+          $ref: '#/components/schemas/ComposicaoFamiliarDistribution'
+        domain_expertise:
+          $ref: '#/components/schemas/DomainExpertiseConfig'
+
+    IdadeDistribution:
+      type: object
+      description: Age distribution weights (must sum to 1.0)
+      required:
+        - "15-29"
+        - "30-44"
+        - "45-59"
+        - "60+"
+      properties:
+        "15-29":
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        "30-44":
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        "45-59":
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        "60+":
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+      example:
+        "15-29": 0.05
+        "30-44": 0.05
+        "45-59": 0.10
+        "60+": 0.80
+
+    EscolaridadeDistribution:
+      type: object
+      description: Education distribution weights (must sum to 1.0)
+      required:
+        - sem_instrucao
+        - fundamental
+        - medio
+        - superior
+      properties:
+        sem_instrucao:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        fundamental:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        medio:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        superior:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+      example:
+        sem_instrucao: 0.10
+        fundamental: 0.40
+        medio: 0.30
+        superior: 0.20
+
+    DeficienciasConfig:
+      type: object
+      required:
+        - taxa_com_deficiencia
+        - distribuicao_severidade
+      properties:
+        taxa_com_deficiencia:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Percentage of synths with disabilities (0.0 to 1.0)
+        distribuicao_severidade:
+          $ref: '#/components/schemas/SeveridadeDistribution'
+
+    SeveridadeDistribution:
+      type: object
+      description: Severity distribution weights (must sum to 1.0)
+      required:
+        - nenhuma
+        - leve
+        - moderada
+        - severa
+        - total
+      properties:
+        nenhuma:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        leve:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        moderada:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        severa:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        total:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+      example:
+        nenhuma: 0.00
+        leve: 0.10
+        moderada: 0.25
+        severa: 0.30
+        total: 0.35
+
+    ComposicaoFamiliarDistribution:
+      type: object
+      description: Family composition weights (must sum to 1.0)
+      required:
+        - unipessoal
+        - casal_sem_filhos
+        - casal_com_filhos
+        - monoparental
+        - multigeracional
+      properties:
+        unipessoal:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        casal_sem_filhos:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        casal_com_filhos:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        monoparental:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        multigeracional:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+      example:
+        unipessoal: 0.30
+        casal_sem_filhos: 0.40
+        casal_com_filhos: 0.10
+        monoparental: 0.10
+        multigeracional: 0.10
+
+    DomainExpertiseConfig:
+      type: object
+      description: Beta distribution parameters for domain expertise
+      required:
+        - alpha
+        - beta
+      properties:
+        alpha:
+          type: number
+          format: float
+          minimum: 0.1
+          maximum: 10
+          description: Alpha shape parameter for Beta distribution
+        beta:
+          type: number
+          format: float
+          minimum: 0.1
+          maximum: 10
+          description: Beta shape parameter for Beta distribution
+      example:
+        alpha: 2
+        beta: 5
+
+    # Response Schemas
+    SynthGroupSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: '^grp_[a-f0-9]{8}$|^default$'
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        synths_count:
+          type: integer
+          minimum: 0
+
+    SynthGroupCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: '^grp_[a-f0-9]{8}$'
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        synths_count:
+          type: integer
+          description: Number of synths generated (should be 500)
+
+    SynthGroupDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        synths_count:
+          type: integer
+        config:
+          $ref: '#/components/schemas/GroupConfig'
+          nullable: true
+          description: Distribution configuration (null for legacy groups)
+
+    PaginatedSynthGroupList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SynthGroupSummary'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        sort_by:
+          type: string
+        sort_order:
+          type: string
+
+    # Error Schemas
+    ValidationError:
+      type: object
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              loc:
+                type: array
+                items:
+                  type: string
+              msg:
+                type: string
+              type:
+                type: string
+
+    NotFoundError:
+      type: object
+      properties:
+        detail:
+          type: string
+          example: "Synth group not found"

@@ -236,7 +236,7 @@ class TestAlembicMigrationsPostgres:
             result = conn.execute(text("SELECT version_num FROM alembic_version"))
             version = result.scalar()
 
-        assert version == "09d318020a17", f"Expected version '09d318020a17', got '{version}'"
+        assert version == "add_synth_group_id_exp", f"Expected version 'add_synth_group_id_exp', got '{version}'"
 
         engine.dispose()
 

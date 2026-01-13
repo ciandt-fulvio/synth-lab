@@ -77,7 +77,7 @@ class TestInterviewerPromptWithMaterials:
         assert "prototype-demo.mp4" in result
 
     def test_interviewer_prompt_includes_tool_instructions(self, sample_materials):
-        """Test interviewer prompt includes ver_material tool usage instructions."""
+        """Test interviewer prompt includes instructions for asking interviewee to view materials."""
         result = format_interviewer_instructions(
             topic_guide="Test topic guide",
             materials=sample_materials,
@@ -86,11 +86,12 @@ class TestInterviewerPromptWithMaterials:
             additional_context=""
         )
 
-        # Should mention the tool
-        assert "ver_material" in result
+        # Interviewer doesn't use the tool directly - they ask interviewee to look
+        # Should mention asking the interviewee to look at materials
+        assert "peça" in result.lower() or "gostaria que você olhasse" in result.lower()
 
-        # Should have usage instructions
-        assert "como" in result.lower() or "when" in result.lower()
+        # Should have material IDs for reference
+        assert "mat_" in result
 
     def test_interviewer_prompt_without_materials_has_no_section(self):
         """Test interviewer prompt without materials has no materials section."""

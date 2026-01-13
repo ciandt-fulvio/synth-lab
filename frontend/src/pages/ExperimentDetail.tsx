@@ -306,9 +306,17 @@ export default function ExperimentDetail() {
                 <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl text-white shadow-lg shadow-purple-200">
                   <FlaskConical className="h-5 w-5" />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900">
-                  {experiment.name}
-                </h2>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-2xl font-bold text-slate-900">
+                    {experiment.name}
+                  </h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Users className="h-3.5 w-3.5 text-slate-400" />
+                    <span className="text-sm text-slate-500">
+                      {experiment.synth_group_name}
+                    </span>
+                  </div>
+                </div>
               </div>
               <p className="text-slate-600 leading-relaxed mb-2">
                 {experiment.hypothesis}

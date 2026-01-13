@@ -135,6 +135,12 @@ class ExperimentCreate(BaseModel):
         description="Additional context, links, references.",
         examples=["Baseado em feedback de usuários e análise de abandono"])
 
+    synth_group_id: str = Field(
+        default="grp_00000001",
+        max_length=50,
+        description="ID of the synth group to use for this experiment.",
+        examples=["grp_00000001", "grp_abc123"])
+
     scorecard_data: ScorecardDataSchema | None = Field(
         default=None,
         description="Optional embedded scorecard data.")
@@ -230,6 +236,8 @@ class ExperimentResponse(BaseModel):
     name: str = Field(description="Short name of the feature.")
     hypothesis: str = Field(description="Hypothesis description.")
     description: str | None = Field(default=None, description="Additional context.")
+    synth_group_id: str = Field(description="ID of the synth group used for this experiment.")
+    synth_group_name: str = Field(description="Name of the synth group used for this experiment.")
     scorecard_data: ScorecardDataSchema | None = Field(
         default=None,
         description="Embedded scorecard data.")
@@ -249,6 +257,8 @@ class ExperimentSummary(BaseModel):
     name: str = Field(description="Short name of the feature.")
     hypothesis: str = Field(description="Hypothesis description.")
     description: str | None = Field(default=None, description="Additional context.")
+    synth_group_id: str = Field(description="ID of the synth group used for this experiment.")
+    synth_group_name: str = Field(description="Name of the synth group used for this experiment.")
     has_scorecard: bool = Field(default=False, description="Whether scorecard is filled.")
     has_analysis: bool = Field(default=False, description="Whether analysis exists.")
     has_interview_guide: bool = Field(
@@ -389,6 +399,7 @@ if __name__ == "__main__":
             id="exp_12345678",
             name="Test",
             hypothesis="Test",
+            synth_group_id="grp_00000001",
             has_scorecard=True,
             has_analysis=True,
             interview_count=3,
