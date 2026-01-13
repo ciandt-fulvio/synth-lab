@@ -163,6 +163,8 @@ export interface ExperimentCreate {
   hypothesis: string;
   /** Additional context, links, references (max 2000 chars) */
   description?: string;
+  /** ID of the synth group to use for this experiment (defaults to grp_00000001) */
+  synth_group_id?: string;
   /** Optional scorecard data to create with experiment */
   scorecard_data?: ScorecardData;
 }
