@@ -1,0 +1,107 @@
+#!/bin/bash
+#
+# Claude Code Hook: post-commit
+#
+# Este hook é executado DEPOIS de um commit bem-sucedido.
+# Ele lembra o Claude de executar os testes para validar o commit.
+#
+# Documentação: https://docs.anthropic.com/claude/docs/claude-code-hooks
+
+set -e
+
+# Pega informações do último commit
+LAST_COMMIT=$(git log -1 --oneline)
+COMMIT_HASH=$(git rev-parse --short HEAD)
+COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+
+# Lista arquivos modificados no último commit
+CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD)
+
+# Filtra arquivos de código
+CODE_FILES=$(echo "$CHANGED_FILES" | grep -E '\.(py|ts|tsx|js|jsx)$' | grep -v -E 'test|spec|__tests__|\.test\.|\.spec\.' || true)
+
+# Se não há arquivos de código, não mostra prompt
+if [ -z "$CODE_FILES" ]; then
+    exit 0
+fi
+
+# Detecta tipo de mudança
+HAS_BACKEND=$(echo "$CODE_FILES" | grep -E '^src/synth_lab/.*\.py$' || true)
+HAS_FRONTEND=$(echo "$CODE_FILES" | grep -E '^frontend/src/.*\.(ts|tsx|js|jsx)$' || true)
+
+cat <<EOF
+
+✅ **COMMIT SUCCESSFUL**
+
+**Commit:** $COMMIT_HASH
+**Message:** $COMMIT_MESSAGE
+
+**📁 Arquivos de código modificados:**
+$CODE_FILES
+
+---
+
+**🧪 PRÓXIMOS PASSOS - EXECUTAR TESTES**
+
+Para garantir que o commit não quebrou nada, execute:
+
+EOF
+
+if [ -n "$HAS_BACKEND" ]; then
+    cat <<EOF
+### Backend Tests
+\`\`\`bash
+# Quick check (unit tests)
+pytest tests/unit/ -v
+
+# Full check (all tests)
+pytest tests/ -v
+
+# With coverage
+pytest --cov=src/synth_lab --cov-report=term-missing
+\`\`\`
+
+EOF
+fi
+
+if [ -n "$HAS_FRONTEND" ]; then
+    cat <<EOF
+### Frontend Tests
+\`\`\`bash
+cd frontend
+
+# Unit tests
+npm test
+
+# E2E tests (if UI changed)
+npm run test:e2e
+
+# Lint check
+npm run lint
+\`\`\`
+
+EOF
+fi
+
+cat <<EOF
+---
+
+**💡 RECOMENDAÇÃO:**
+
+Execute os testes agora para:
+1. Verificar que o commit não introduziu bugs
+2. Validar que a cobertura de testes está adequada
+3. Garantir que testes existentes ainda passam
+
+**Se algum teste falhar:**
+- Corrija o problema
+- Use \`git commit --amend\` para ajustar o commit
+- Ou crie um novo commit com a correção
+
+**Continue com:**
+- \`git push\` quando os testes passarem
+- Ou continue desenvolvendo se ainda há trabalho
+
+EOF
+
+exit 0

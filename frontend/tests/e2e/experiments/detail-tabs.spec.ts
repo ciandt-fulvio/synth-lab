@@ -18,19 +18,23 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
+    // Wait for experiments page to load
+    await expect(page.locator('h2').filter({ hasText: /experimentos/i })).toBeVisible({ timeout: 10000 });
+
     const firstCard = page.locator('.cursor-pointer').filter({
       has: page.locator('h3')
     }).first();
 
-    if (!(await firstCard.isVisible())) {
-      throw new Error('Nenhum experimento disponível para teste');
-    }
-
+    await expect(firstCard).toBeVisible({ timeout: 10000 });
     await firstCard.click();
     await page.waitForLoadState('networkidle');
 
     // Verifica que navegou para página de detalhe
     await expect(page).toHaveURL(/\/experiments\/exp_/);
+
+    // Wait for experiment detail page to load
+    await expect(page.locator('h2').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('tab', { name: /análise/i })).toBeVisible({ timeout: 10000 });
   });
 
   test('DT001 - All tabs are visible', async ({ page }) => {

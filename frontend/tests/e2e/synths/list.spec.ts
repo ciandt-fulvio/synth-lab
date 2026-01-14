@@ -16,11 +16,16 @@ test.describe('Synths - List Page @critical @synths', () => {
 
     // Clica no botão "Synths" no header
     const synthsBtn = page.getByRole('button', { name: /synths/i });
+    await expect(synthsBtn).toBeVisible({ timeout: 10000 });
     await synthsBtn.click();
 
     // Aguarda navegação
     await expect(page).toHaveURL(/\/synths/);
     await page.waitForLoadState('networkidle');
+
+    // Wait for page to load completely
+    await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('img[alt]').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('Y001 - Synths page loads correctly', async ({ page }) => {
