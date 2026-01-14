@@ -5,7 +5,7 @@ Test Database Flow:
 1. Session start: DROP ALL → Alembic migrations → Verify schema → Seed data
 2. Each test: BEGIN TRANSACTION → SAVEPOINT → test runs → ROLLBACK (seed preserved)
 
-CRITICAL: Integration tests use POSTGRES_URL pointing to 'synthlab_test' database.
+CRITICAL: Integration tests use DATABASE_TEST_URL pointing to 'synthlab_test' database.
 This prevents destructive tests from affecting development data.
 """
 
@@ -128,7 +128,7 @@ def pytest_configure(config):
 @pytest.fixture(scope="session")
 def postgres_test_url() -> str:
     """
-    Get PostgreSQL test database URL from POSTGRES_URL.
+    Get PostgreSQL test database URL from DATABASE_TEST_URL.
 
     Safety checks:
     - Must be set
@@ -138,18 +138,18 @@ def postgres_test_url() -> str:
         str: PostgreSQL connection string for test database
 
     Raises:
-        pytest.skip: If POSTGRES_URL is not set
+        pytest.skip: If DATABASE_TEST_URL is not set
         ValueError: If URL doesn't point to test database
     """
-    db_url = os.getenv("POSTGRES_URL")
+    db_url = os.getenv("DATABASE_TEST_URL")
 
     if not db_url:
-        pytest.skip("POSTGRES_URL not set - PostgreSQL test database required")
+        pytest.skip("DATABASE_TEST_URL not set - PostgreSQL test database required")
 
     # Safety check: ensure we're NOT using the development database
     if "synthlab_test" not in db_url and "test" not in db_url:
         raise ValueError(
-            f"CRITICAL: POSTGRES_URL must point to 'synthlab_test' database!\n"
+            f"CRITICAL: DATABASE_TEST_URL must point to 'synthlab_test' database!\n"
             f"Current: {db_url}\n"
             f"Expected: postgresql://user:pass@localhost:5432/synthlab_test"
         )

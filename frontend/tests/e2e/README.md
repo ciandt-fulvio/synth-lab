@@ -10,7 +10,9 @@ tests/e2e/
 │   └── critical-flows.spec.ts   # ST001-ST009
 ├── experiments/                 # Testes de experimentos
 │   ├── crud.spec.ts             # E001-E011 (criar, listar, visualizar)
-│   └── list.spec.ts             # EL001-EL008 (filtros, busca, ordenação)
+│   ├── list.spec.ts             # EL001-EL008 (filtros, busca, ordenação)
+│   ├── detail-tabs.spec.ts      # DT001-DT023 (navegação entre tabs)
+│   └── materials.spec.ts        # MAT001-MAT020 (upload de materiais)
 ├── interviews/                  # Testes de entrevistas
 │   └── create.spec.ts           # I001-I013 (modal, validação)
 └── synths/                      # Testes de synths
@@ -119,14 +121,16 @@ npx playwright test --grep-invert @slow
 | **Interviews** | `interviews/create.spec.ts` | I001-I013 | P0 |
 | **Synths** | `synths/list.spec.ts` | Y001-Y013 | P0/P1 |
 | **Synths** | `synths/detail.spec.ts` | Y014-Y027 | P1 |
+| **Experiments** | `experiments/detail-tabs.spec.ts` | DT001-DT023 | P1 |
+| **Experiments** | `experiments/materials.spec.ts` | MAT001-MAT020 | P1 |
 
-**Total**: ~60 cenários de teste cobrindo os fluxos críticos da aplicação.
+**Total**: ~100 cenários de teste cobrindo os fluxos críticos e importantes da aplicação.
 
 ### Roadmap (Ver E2E_TEST_PLAN.md)
 
-- [ ] `experiments/detail-tabs.spec.ts` - Navegação entre todas as tabs (P1)
-- [ ] `experiments/materials.spec.ts` - Upload de materiais (P1)
 - [ ] `shared/navigation.spec.ts` - Navegação geral (P2)
+- [ ] Testes de responsividade mobile (P2)
+- [ ] Testes de acessibilidade (a11y) (P2)
 
 Ver [E2E_TEST_PLAN.md](./E2E_TEST_PLAN.md) para plano detalhado e roadmap.
 
