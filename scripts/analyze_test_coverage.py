@@ -8,18 +8,29 @@ Detecta:
 - Services sem integration tests
 - Fluxos críticos sem E2E tests
 
+NOVO: Analisa commits específicos e sugere testes baseado nas mudanças.
+
 Usage:
+    # Análise geral do projeto
     python scripts/analyze_test_coverage.py
     python scripts/analyze_test_coverage.py --verbose
     python scripts/analyze_test_coverage.py --suggest-claude-prompts
     python scripts/analyze_test_coverage.py --check-goals  # Exit 0 if goals met, 1 otherwise
+
+    # Análise de commit específico (NOVO)
+    python scripts/analyze_test_coverage.py --commit HEAD
+    python scripts/analyze_test_coverage.py --commit abc123
+    python scripts/analyze_test_coverage.py --commit HEAD --show-templates
 """
 
 import argparse
+import json
 import re
+import subprocess
 import sys
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import List, Set
+from typing import List, Literal, Set
 
 # Metas de cobertura de testes
 COVERAGE_TARGETS = {
@@ -396,6 +407,345 @@ def print_results(results: dict, suggest_prompts: bool = False, check_goals: boo
     print("=" * 60)
 
 
+# ========================================
+# COMMIT-BASED ANALYSIS (NEW)
+# ========================================
+
+
+@dataclass
+class TestSuggestion:
+    """Test suggestion based on code changes."""
+
+    type: Literal["unit", "integration", "contract", "smoke", "e2e", "migration"]
+    priority: Literal["OBRIGATÓRIO", "RECOMENDADO", "OPCIONAL"]
+    file: str
+    function: str | None = None
+    reason: str = ""
+    template: str | None = None
+
+
+@dataclass
+class CommitAnalysis:
+    """Complete coverage analysis for a commit."""
+
+    commit: str
+    files_changed: list[str]
+    tests_missing: list[TestSuggestion]
+    coverage_status: Literal["COMPLETE", "INCOMPLETE", "UNKNOWN"]
+
+
+def get_changed_files(commit: str = "HEAD") -> list[str]:
+    """Get list of files changed in a commit."""
+    try:
+        result = subprocess.run(
+            ["git", "diff-tree", "--no-commit-id", "--name-only", "-r", commit],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return [
+            line.strip() for line in result.stdout.strip().split("\n") if line.strip()
+        ]
+    except subprocess.CalledProcessError as e:
+        print(f"Error getting changed files: {e}", file=sys.stderr)
+        return []
+
+
+def analyze_router_changes(file_path: str) -> list[TestSuggestion]:
+    """Analyze changes in API routers."""
+    suggestions = []
+
+    # Extract endpoint name from file path
+    file_name = Path(file_path).stem
+    endpoint = file_name.replace("_", "-")
+
+    # Contract test is OBRIGATÓRIO
+    suggestions.append(
+        TestSuggestion(
+            type="contract",
+            priority="OBRIGATÓRIO",
+            file="tests/contract/test_api_contracts.py",
+            function=f"test_{file_name}_contract",
+            reason=f"Endpoint público {endpoint} deve ter contract test",
+            template=f'''def test_{file_name}_contract(client):
+    """Valida schema da resposta de /{endpoint}."""
+    response = client.get("/{endpoint}")
+
+    assert response.status_code == 200
+    body = response.json()
+
+    # Campos obrigatórios (ajustar conforme schema real)
+    assert "id" in body
+    assert "name" in body
+''',
+        )
+    )
+
+    # E2E test is RECOMENDADO for public endpoints
+    suggestions.append(
+        TestSuggestion(
+            type="e2e",
+            priority="RECOMENDADO",
+            file=f"frontend/tests/e2e/{file_name.replace('_', '-')}.spec.ts",
+            function=f"test_{file_name}_user_flow",
+            reason=f"Endpoint /{endpoint} pode ser usado por usuários",
+            template=f'''test('{endpoint} user flow', async ({{ page }}) => {{
+  // 1. Navega para página
+  await page.goto('/');
+
+  // 2. Interage com UI
+  await page.click('text=Novo');
+
+  // 3. Valida resultado
+  await expect(page).toHaveURL(/{endpoint}/);
+}});
+''',
+        )
+    )
+
+    return suggestions
+
+
+def analyze_service_changes(file_path: str) -> list[TestSuggestion]:
+    """Analyze changes in services."""
+    suggestions = []
+
+    file_name = Path(file_path).stem
+    service_name = file_name.replace("_service", "")
+
+    # Integration test is OBRIGATÓRIO
+    suggestions.append(
+        TestSuggestion(
+            type="integration",
+            priority="OBRIGATÓRIO",
+            file=f"tests/integration/test_{service_name}_workflow.py",
+            function=f"test_{service_name}_flow",
+            reason=f"Serviço {service_name} precisa de teste de fluxo completo",
+            template=f'''def test_{service_name}_flow(client, db_session):
+    """Testa fluxo completo do serviço {service_name}."""
+    # 1. Chama API
+    response = client.post("/{service_name}", json={{"data": "value"}})
+    resource_id = response.json()["id"]
+
+    # 2. Valida no DB
+    resource = db_session.query(Model).filter_by(id=resource_id).first()
+    assert resource is not None
+    assert resource.status == "expected"
+''',
+        )
+    )
+
+    return suggestions
+
+
+def analyze_model_changes(file_path: str) -> list[TestSuggestion]:
+    """Analyze changes in ORM models."""
+    suggestions = []
+
+    file_name = Path(file_path).stem
+
+    # Migration is OBRIGATÓRIO
+    suggestions.append(
+        TestSuggestion(
+            type="migration",
+            priority="OBRIGATÓRIO",
+            file="(criar via alembic)",
+            function=None,
+            reason=f"Model {file_name} mudou, precisa criar/atualizar migration",
+            template=f'''# 1. Criar migration
+DATABASE_URL="$DATABASE_TEST_URL" alembic revision --autogenerate -m "Update {file_name}"
+
+# 2. Aplicar
+DATABASE_URL="$DATABASE_TEST_URL" alembic upgrade head
+
+# 3. Validar
+pytest -m schema
+''',
+        )
+    )
+
+    return suggestions
+
+
+def analyze_repository_changes(file_path: str) -> list[TestSuggestion]:
+    """Analyze changes in repositories."""
+    suggestions = []
+
+    file_name = Path(file_path).stem
+    repo_name = file_name.replace("_repository", "")
+
+    # Integration test is OBRIGATÓRIO
+    suggestions.append(
+        TestSuggestion(
+            type="integration",
+            priority="OBRIGATÓRIO",
+            file=f"tests/integration/test_{repo_name}_repository.py",
+            function=f"test_{repo_name}_repository_queries",
+            reason=f"Repository {repo_name} precisa validar queries SQL",
+            template=f'''def test_{repo_name}_repository_queries(db_session):
+    """Valida queries do repository {repo_name}."""
+    repo = {repo_name.title()}Repository(db_session)
+
+    # Teste de criação
+    entity = repo.create(name="Test", data={{}})
+    assert entity.id is not None
+
+    # Teste de busca
+    found = repo.get_by_id(entity.id)
+    assert found is not None
+    assert found.name == "Test"
+''',
+        )
+    )
+
+    return suggestions
+
+
+def analyze_frontend_changes(file_path: str) -> list[TestSuggestion]:
+    """Analyze changes in frontend."""
+    suggestions = []
+
+    # E2E test for pages
+    if "frontend/src/pages" in file_path:
+        page_name = Path(file_path).stem
+        suggestions.append(
+            TestSuggestion(
+                type="e2e",
+                priority="RECOMENDADO",
+                file=f"frontend/tests/e2e/{page_name}.spec.ts",
+                function=f"test_{page_name}_page",
+                reason=f"Página {page_name} deve ter teste E2E",
+                template=f'''test('{page_name} page', async ({{ page }}) => {{
+  // 1. Navega para página
+  await page.goto('/{page_name}');
+
+  // 2. Valida que carregou
+  await expect(page).toHaveTitle(/{page_name}/i);
+
+  // 3. Testa interações principais
+  // TODO: adicionar interações específicas
+}});
+''',
+            )
+        )
+
+    return suggestions
+
+
+def analyze_commit_changes(commit: str = "HEAD") -> CommitAnalysis:
+    """Analyze changes in a commit and suggest tests."""
+    changed_files = get_changed_files(commit)
+
+    if not changed_files:
+        return CommitAnalysis(
+            commit=commit,
+            files_changed=[],
+            tests_missing=[],
+            coverage_status="UNKNOWN",
+        )
+
+    all_suggestions: list[TestSuggestion] = []
+
+    for file_path in changed_files:
+        # Skip test files themselves
+        if "/tests/" in file_path or ".spec." in file_path or ".test." in file_path:
+            continue
+
+        # Analyze based on file type
+        if "api/routers" in file_path and file_path.endswith(".py"):
+            all_suggestions.extend(analyze_router_changes(file_path))
+
+        elif "services/" in file_path and file_path.endswith(".py"):
+            all_suggestions.extend(analyze_service_changes(file_path))
+
+        elif "models/orm" in file_path and file_path.endswith(".py"):
+            all_suggestions.extend(analyze_model_changes(file_path))
+
+        elif "repositories/" in file_path and file_path.endswith(".py"):
+            all_suggestions.extend(analyze_repository_changes(file_path))
+
+        elif "frontend/src/" in file_path:
+            all_suggestions.extend(analyze_frontend_changes(file_path))
+
+    # Determine coverage status
+    has_obrigatorio = any(s.priority == "OBRIGATÓRIO" for s in all_suggestions)
+    coverage_status = "INCOMPLETE" if has_obrigatorio else "COMPLETE"
+
+    return CommitAnalysis(
+        commit=commit,
+        files_changed=changed_files,
+        tests_missing=all_suggestions,
+        coverage_status=coverage_status,
+    )
+
+
+def print_commit_analysis(analysis: CommitAnalysis, show_templates: bool = False) -> None:
+    """Print commit coverage analysis to console."""
+    print("\n📊 Análise de Cobertura de Testes (Commit)")
+    print("━" * 60)
+    print(f"Commit: {analysis.commit}")
+    print(f"Arquivos modificados: {len(analysis.files_changed)}")
+    print()
+
+    if not analysis.tests_missing:
+        print("✅ Nenhum teste adicional necessário para este commit")
+        return
+
+    # Group by priority
+    obrigatorio = [s for s in analysis.tests_missing if s.priority == "OBRIGATÓRIO"]
+    recomendado = [s for s in analysis.tests_missing if s.priority == "RECOMENDADO"]
+    opcional = [s for s in analysis.tests_missing if s.priority == "OPCIONAL"]
+
+    if obrigatorio:
+        print("🔴 OBRIGATÓRIO ({})".format(len(obrigatorio)))
+        for suggestion in obrigatorio:
+            print(
+                f"   ├─ {suggestion.type.upper()} Test: {suggestion.function or '(ver template)'}"
+            )
+            print(f"   │  Arquivo: {suggestion.file}")
+            print(f"   │  Razão: {suggestion.reason}")
+            if show_templates and suggestion.template:
+                print("   │  Template:")
+                for line in suggestion.template.split("\n"):
+                    print(f"   │    {line}")
+            print("   │")
+        print()
+
+    if recomendado:
+        print("🟡 RECOMENDADO ({})".format(len(recomendado)))
+        for suggestion in recomendado:
+            print(
+                f"   ├─ {suggestion.type.upper()} Test: {suggestion.function or '(ver template)'}"
+            )
+            print(f"   │  Arquivo: {suggestion.file}")
+            print(f"   │  Razão: {suggestion.reason}")
+            if show_templates and suggestion.template:
+                print("   │  Template:")
+                for line in suggestion.template.split("\n"):
+                    print(f"   │    {line}")
+            print("   │")
+        print()
+
+    if opcional:
+        print("⚪ OPCIONAL ({})".format(len(opcional)))
+        for suggestion in opcional:
+            print(
+                f"   └─ {suggestion.type.upper()} Test: {suggestion.function or '(ver template)'}"
+            )
+        print()
+
+    print("💡 Próximos passos:")
+    if obrigatorio:
+        print("   1. Criar testes OBRIGATÓRIOS antes do push")
+    if recomendado:
+        print("   2. Considerar testes RECOMENDADOS para cobertura completa")
+    if show_templates:
+        print("   3. Copiar templates acima e ajustar conforme necessário")
+    else:
+        print("   3. Executar novamente com --show-templates para ver exemplos")
+    print()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analisa gaps de cobertura de testes")
     parser.add_argument("-v", "--verbose", action="store_true", help="Modo verbose")
@@ -410,13 +760,57 @@ if __name__ == "__main__":
         action="store_true",
         help="Verifica se metas de cobertura foram atingidas (exit 0 se sim, 1 se não)",
     )
+    # NEW: Commit-based analysis
+    parser.add_argument(
+        "--commit",
+        type=str,
+        help="Analisa um commit específico (ex: HEAD, abc123)",
+    )
+    parser.add_argument(
+        "--show-templates",
+        action="store_true",
+        help="Mostra templates de testes nas sugestões",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output em formato JSON",
+    )
 
     args = parser.parse_args()
 
-    results = analyze_coverage(verbose=args.verbose)
-    print_results(results, suggest_prompts=args.suggest_claude_prompts, check_goals=args.check_goals)
+    # NEW: Commit-based analysis mode
+    if args.commit:
+        analysis = analyze_commit_changes(args.commit)
 
-    # Exit code based on goals check
-    if args.check_goals:
-        all_goals_met, _, _ = check_coverage_goals(results)
-        sys.exit(0 if all_goals_met else 1)
+        if args.json:
+            # Convert to dict and handle dataclasses
+            output = {
+                "commit": analysis.commit,
+                "files_changed": analysis.files_changed,
+                "tests_missing": [asdict(s) for s in analysis.tests_missing],
+                "coverage_status": analysis.coverage_status,
+            }
+            print(json.dumps(output, indent=2))
+        else:
+            print_commit_analysis(analysis, show_templates=args.show_templates)
+
+        # Exit with error if OBRIGATÓRIO tests missing
+        has_obrigatorio = any(
+            s.priority == "OBRIGATÓRIO" for s in analysis.tests_missing
+        )
+        sys.exit(1 if has_obrigatorio else 0)
+
+    # Original: Project-wide analysis mode
+    else:
+        results = analyze_coverage(verbose=args.verbose)
+        print_results(
+            results,
+            suggest_prompts=args.suggest_claude_prompts,
+            check_goals=args.check_goals,
+        )
+
+        # Exit code based on goals check
+        if args.check_goals:
+            all_goals_met, _, _ = check_coverage_goals(results)
+            sys.exit(0 if all_goals_met else 1)
