@@ -167,6 +167,86 @@ class TestPhoenixTracing:
             pytest.fail(f"Falha ao importar phoenix_tracing: {e}")
 
 
+@pytest.mark.smoke
+class TestBasicCRUD:
+    """Valida operações CRUD básicas no banco de dados."""
+
+    def test_can_insert_and_read_experiment(self):
+        """Consegue criar e ler um experimento básico."""
+        from sqlalchemy import text
+        from synth_lab.infrastructure.database_v2 import create_db_engine
+        import uuid
+
+        engine = create_db_engine()
+        test_exp_id = f"test-exp-{uuid.uuid4()}"
+        test_group_id = f"test-group-{uuid.uuid4()}"
+
+        with engine.begin() as conn:
+            # Create test synth_group first (FK dependency)
+            conn.execute(
+                text(
+                    "INSERT INTO synth_groups (id, name, created_at) "
+                    "VALUES (:id, :name, NOW())"
+                ),
+                {
+                    "id": test_group_id,
+                    "name": "Test Group",
+                },
+            )
+
+            # Insert experiment
+            conn.execute(
+                text(
+                    "INSERT INTO experiments (id, name, hypothesis, status, synth_group_id, created_at) "
+                    "VALUES (:id, :name, :hypothesis, :status, :synth_group_id, NOW())"
+                ),
+                {
+                    "id": test_exp_id,
+                    "name": "Test Experiment",
+                    "hypothesis": "Test hypothesis",
+                    "status": "draft",
+                    "synth_group_id": test_group_id,
+                },
+            )
+
+            # Read
+            result = conn.execute(
+                text("SELECT name, hypothesis FROM experiments WHERE id = :id"),
+                {"id": test_exp_id},
+            ).first()
+
+            assert result is not None, "Falha ao ler experimento criado"
+            assert result[0] == "Test Experiment"
+            assert result[1] == "Test hypothesis"
+
+            # Cleanup (experiments first due to FK, then synth_groups)
+            conn.execute(text("DELETE FROM experiments WHERE id = :id"), {"id": test_exp_id})
+            conn.execute(text("DELETE FROM synth_groups WHERE id = :id"), {"id": test_group_id})
+
+
+@pytest.mark.smoke
+class TestAPIRoutesRegistered:
+    """Valida que rotas principais da API estão registradas."""
+
+    def test_main_routes_are_registered(self):
+        """Rotas essenciais devem estar registradas no app."""
+        from synth_lab.api.main import app
+
+        routes = [route.path for route in app.routes]
+
+        essential_routes = [
+            "/experiments/list",
+            "/experiments/{experiment_id}",
+            "/synth-groups/list",
+        ]
+
+        for route in essential_routes:
+            assert route in routes, (
+                f"Rota essencial '{route}' não está registrada! "
+                f"Frontend pode quebrar se esta rota não existir."
+            )
+
+
 # Validation block para executar standalone
 if __name__ == "__main__":
     import subprocess
