@@ -5,15 +5,30 @@
 ```
 tests/e2e/
 ├── README.md                    # Este arquivo
-├── TEST_SCENARIOS.md            # Catálogo completo de cenários
+├── E2E_TEST_PLAN.md             # Plano de testes e roadmap
 ├── smoke/                       # Smoke tests (Production)
-│   └── critical-flows.spec.ts
+│   └── critical-flows.spec.ts   # ST001-ST009
 ├── experiments/                 # Testes de experimentos
-│   └── crud.spec.ts
-└── ... (outros módulos)
+│   ├── crud.spec.ts             # E001-E011 (criar, listar, visualizar)
+│   └── list.spec.ts             # EL001-EL008 (filtros, busca, ordenação)
+├── interviews/                  # Testes de entrevistas
+│   └── create.spec.ts           # I001-I013 (modal, validação)
+└── synths/                      # Testes de synths
+    ├── list.spec.ts             # Y001-Y013 (listagem, filtros, paginação)
+    └── detail.spec.ts           # Y014-Y027 (modal com tabs)
 ```
 
 ## 🚀 Rodar Testes
+
+### ⭐ Testes Críticos (Gate de PR)
+
+```bash
+# Rodar apenas testes P0 (críticos) - DEVE PASSAR antes de PR
+npx playwright test --grep "@critical"
+
+# Duração esperada: < 3 minutos
+# Cobertura: Smoke tests + CRUD + Filtros + Entrevistas + Synths
+```
 
 ### Local (Desenvolvimento)
 
@@ -26,6 +41,11 @@ npm run test:e2e:ui
 
 # Arquivo específico
 npx playwright test experiments/crud.spec.ts
+
+# Por módulo
+npx playwright test experiments/
+npx playwright test synths/
+npx playwright test interviews/
 ```
 
 ### Staging
@@ -87,13 +107,28 @@ npx playwright test --grep @experiments
 npx playwright test --grep-invert @slow
 ```
 
-## 📋 Cenários Disponíveis
+## 📋 Cobertura de Testes
 
-Ver [TEST_SCENARIOS.md](./TEST_SCENARIOS.md) para lista completa de cenários organizados por:
-- **Smoke Tests (ST001-ST009)**: Production, < 2 min
-- **Testes Completos (E001-U003)**: Local/Staging, 5-10 min
-- Por módulo: Experiments, Simulations, Interviews, etc.
-- Por prioridade: P0 (Crítico), P1 (Alto), P2 (Médio)
+### Implementados (✅)
+
+| Módulo | Arquivo | Testes | Prioridade |
+|--------|---------|--------|------------|
+| **Smoke** | `smoke/critical-flows.spec.ts` | ST001-ST009 | P0 |
+| **Experiments** | `experiments/crud.spec.ts` | E001-E011 | P0 |
+| **Experiments** | `experiments/list.spec.ts` | EL001-EL008 | P0 |
+| **Interviews** | `interviews/create.spec.ts` | I001-I013 | P0 |
+| **Synths** | `synths/list.spec.ts` | Y001-Y013 | P0/P1 |
+| **Synths** | `synths/detail.spec.ts` | Y014-Y027 | P1 |
+
+**Total**: ~60 cenários de teste cobrindo os fluxos críticos da aplicação.
+
+### Roadmap (Ver E2E_TEST_PLAN.md)
+
+- [ ] `experiments/detail-tabs.spec.ts` - Navegação entre todas as tabs (P1)
+- [ ] `experiments/materials.spec.ts` - Upload de materiais (P1)
+- [ ] `shared/navigation.spec.ts` - Navegação geral (P2)
+
+Ver [E2E_TEST_PLAN.md](./E2E_TEST_PLAN.md) para plano detalhado e roadmap.
 
 ## Scripts Disponíveis
 
