@@ -15,6 +15,10 @@ test.describe('Synths - Detail Modal @synths', () => {
     // Navega para página de synths
     await page.goto('/synths');
     await page.waitForLoadState('networkidle');
+
+    // Wait for synth cards to load
+    await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('img[alt]').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('Y014 - Click on synth card opens modal', async ({ page }) => {

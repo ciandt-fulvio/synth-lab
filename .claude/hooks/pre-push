@@ -1,0 +1,154 @@
+#!/bin/bash
+#
+# Claude Code Hook: pre-push
+#
+# Este hook é executado ANTES de um push e instrui o Claude a verificar
+# se os testes foram atualizados para cobrir as mudanças.
+#
+# Documentação: https://docs.anthropic.com/claude/docs/claude-code-hooks
+
+set -e
+
+# Pega os commits que serão enviados
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+REMOTE_BRANCH="origin/${CURRENT_BRANCH}"
+
+# Verifica se há commits para push
+if git rev-parse --verify "$REMOTE_BRANCH" >/dev/null 2>&1; then
+    COMMITS_TO_PUSH=$(git log "$REMOTE_BRANCH..HEAD" --oneline)
+else
+    COMMITS_TO_PUSH=$(git log HEAD --oneline)
+fi
+
+# Se não há commits, não faz nada
+if [ -z "$COMMITS_TO_PUSH" ]; then
+    exit 0
+fi
+
+# Lista arquivos modificados nos commits que serão enviados
+if git rev-parse --verify "$REMOTE_BRANCH" >/dev/null 2>&1; then
+    CHANGED_FILES=$(git diff --name-only "$REMOTE_BRANCH..HEAD")
+else
+    CHANGED_FILES=$(git diff --name-only --cached)
+fi
+
+# Filtra apenas arquivos de código (ignora testes)
+CODE_FILES=$(echo "$CHANGED_FILES" | grep -E '\.(py|ts|tsx|js|jsx)$' | grep -v -E 'test|spec|__tests__|\.test\.|\.spec\.' || true)
+
+# Se não há arquivos de código modificados, não precisa verificar testes
+if [ -z "$CODE_FILES" ]; then
+    exit 0
+fi
+
+# Detecta tipos de arquivos modificados
+HAS_BACKEND=$(echo "$CODE_FILES" | grep -E '^src/synth_lab/.*\.py$' || true)
+HAS_FRONTEND=$(echo "$CODE_FILES" | grep -E '^frontend/src/.*\.(ts|tsx|js|jsx)$' || true)
+HAS_API=$(echo "$CODE_FILES" | grep -E '^src/synth_lab/api/.*\.py$' || true)
+HAS_SERVICE=$(echo "$CODE_FILES" | grep -E '^src/synth_lab/services/.*\.py$' || true)
+HAS_REPOSITORY=$(echo "$CODE_FILES" | grep -E '^src/synth_lab/repositories/.*\.py$' || true)
+HAS_DOMAIN=$(echo "$CODE_FILES" | grep -E '^src/synth_lab/domain/.*\.py$' || true)
+
+# Monta o prompt para o Claude
+cat <<EOF
+
+🧪 **PRE-PUSH TEST CHECK**
+
+Você está prestes a fazer push de commits que modificaram arquivos de código.
+
+**Commits a serem enviados:**
+$COMMITS_TO_PUSH
+
+**Arquivos de código modificados:**
+$CODE_FILES
+
+**AÇÃO OBRIGATÓRIA:**
+
+Antes de permitir o push, você DEVE verificar e atualizar os seguintes tipos de testes para cobrir as mudanças:
+
+EOF
+
+if [ -n "$HAS_BACKEND" ]; then
+    cat <<EOF
+### Backend Python (src/synth_lab/)
+- [ ] **Testes Unitários** - Verifique tests/ para funções/métodos modificados
+- [ ] **Testes de Integração** - Se houver interação entre componentes
+- [ ] **Testes de Contrato** - Se APIs foram modificadas
+EOF
+fi
+
+if [ -n "$HAS_API" ]; then
+    cat <<EOF
+- [ ] **Testes de API (E2E/Contract)** - Endpoints modificados em api/
+EOF
+fi
+
+if [ -n "$HAS_SERVICE" ]; then
+    cat <<EOF
+- [ ] **Testes de Serviço** - Lógica de negócio em services/
+EOF
+fi
+
+if [ -n "$HAS_REPOSITORY" ]; then
+    cat <<EOF
+- [ ] **Testes de Repository** - Queries SQL em repositories/
+EOF
+fi
+
+if [ -n "$HAS_DOMAIN" ]; then
+    cat <<EOF
+- [ ] **Testes de Domain** - Entidades em domain/
+EOF
+fi
+
+if [ -n "$HAS_FRONTEND" ]; then
+    cat <<EOF
+
+### Frontend TypeScript (frontend/src/)
+- [ ] **Testes Unitários** - Components, hooks, utils modificados
+- [ ] **Testes de Integração** - Se houver interação entre componentes
+- [ ] **Testes E2E (Playwright)** - Fluxos de usuário afetados
+EOF
+fi
+
+cat <<EOF
+
+**INSTRUÇÕES:**
+
+1. **Analise cada arquivo modificado** e identifique:
+   - Novas funcionalidades adicionadas
+   - Comportamentos alterados
+   - Casos de borda introduzidos
+   - APIs modificadas
+
+2. **Verifique os testes existentes:**
+   - Leia os arquivos de teste correspondentes
+   - Identifique gaps de cobertura
+   - Verifique se testes existentes ainda são válidos
+
+3. **Atualize/Crie testes:**
+   - Adicione testes unitários para novas funções
+   - Adicione testes de integração se componentes interagem
+   - Atualize testes E2E se UI foi modificada
+   - Adicione testes de contrato se APIs mudaram
+
+4. **Execute os testes:**
+   - Backend: \`pytest tests/\`
+   - Frontend: \`npm test\` e \`npm run test:e2e\`
+
+5. **Confirme:**
+   - Liste quais testes foram atualizados/criados
+   - Confirme que todos os testes passam
+   - Se algum teste falhar, corrija antes do push
+
+**IMPORTANTE:**
+- Não faça push sem confirmar que os testes foram atualizados
+- Testes devem cobrir casos de sucesso E falha
+- Inclua testes para edge cases
+- Siga os padrões existentes de teste no projeto
+
+**Pergunta:** Você verificou e atualizou todos os testes necessários? Liste o que foi feito.
+
+EOF
+
+# Retorna código 0 para não bloquear o push, mas o prompt acima será mostrado ao Claude
+exit 0

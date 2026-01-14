@@ -16,14 +16,22 @@ test.describe('Experiments - Materials Upload @experiments', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
+    // Wait for experiments page to load
+    await expect(page.locator('h2').filter({ hasText: /experimentos/i })).toBeVisible({ timeout: 10000 });
+
     const firstCard = page.locator('.cursor-pointer').first();
+    await expect(firstCard).toBeVisible({ timeout: 10000 });
     await firstCard.click();
     await page.waitForLoadState('networkidle');
 
     // Vai para tab Materiais
     const materialsTab = page.getByRole('tab', { name: /materiais/i });
+    await expect(materialsTab).toBeVisible({ timeout: 10000 });
     await materialsTab.click();
     await page.waitForTimeout(500);
+
+    // Wait for materials tab content to load
+    await expect(page.locator('h3').filter({ hasText: /materiais/i })).toBeVisible({ timeout: 10000 });
   });
 
   test('MAT001 - Materials tab shows upload area', async ({ page }) => {
