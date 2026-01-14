@@ -9,56 +9,54 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Create Basic Synth Group', () => {
   test('should open create group modal', async ({ page }) => {
-    // Navigate to home page (experiments list)
-    await page.goto('/');
+    // Navigate to synths page (where groups are managed)
+    await page.goto('/synths');
+    await page.waitForLoadState('networkidle');
 
-    // Look for navigation or link to synth groups
-    // Assuming there's a "Grupos" or "Synth Groups" link in navigation
-    const synthGroupsLink = page.locator('text=/grupos/i').or(page.locator('text=/synth groups/i'));
+    // Wait for page to load completely
+    await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
 
-    if (await synthGroupsLink.count() > 0) {
-      await synthGroupsLink.first().click();
-      await page.waitForLoadState('networkidle');
-    } else {
-      // Direct navigation if no link found
-      await page.goto('/synth-groups');
-    }
-
-    // Look for "Create" or "Novo Grupo" button
-    const createButton = page.locator('button').filter({ hasText: /criar|novo|create|new/i });
-    await expect(createButton.first()).toBeVisible({ timeout: 10000 });
+    // Look for "Novo Grupo" button
+    const createButton = page.getByRole('button', { name: /novo grupo/i });
+    await expect(createButton).toBeVisible({ timeout: 10000 });
 
     // Click create button
-    await createButton.first().click();
+    await createButton.click();
 
     // Verify modal opened
-    // Modal should have dialog role or specific test ID
-    const modal = page.locator('[role="dialog"]').or(page.locator('[data-testid="create-group-modal"]'));
-    await expect(modal).toBeVisible({ timeout: 5000 });
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 10000 });
   });
 
   test('should create basic group with name only', async ({ page }) => {
-    // Navigate to synth groups page
-    await page.goto('/synth-groups');
+    // Navigate to synths page
+    await page.goto('/synths');
     await page.waitForLoadState('networkidle');
 
+    // Wait for page to load
+    await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
+
     // Open create modal
-    const createButton = page.locator('button').filter({ hasText: /criar|novo|create|new/i });
-    await createButton.first().click();
+    const createButton = page.getByRole('button', { name: /novo grupo/i });
+    await expect(createButton).toBeVisible({ timeout: 10000 });
+    await createButton.click();
 
     // Wait for modal
-    await page.waitForSelector('[role="dialog"]', { timeout: 5000 });
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 10000 });
 
     // Fill in group name
     const nameInput = page.locator('input[name="name"]').or(
       page.locator('label:has-text("Nome")').locator('..').locator('input')
     );
+    await expect(nameInput).toBeVisible({ timeout: 5000 });
     await nameInput.fill('E2E Test Basic Group');
 
     // Submit form
     const submitButton = page.locator('button[type="submit"]').or(
       page.locator('button').filter({ hasText: /criar|create|salvar|save/i })
     );
+    await expect(submitButton).toBeVisible({ timeout: 5000 });
     await submitButton.click();
 
     // Wait for success toast
@@ -67,16 +65,20 @@ test.describe('Create Basic Synth Group', () => {
     });
 
     // Verify group appears in list
-    await expect(page.locator('text=E2E Test Basic Group')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=E2E Test Basic Group')).toBeVisible({ timeout: 10000 });
   });
 
   test('should create group with name and description', async ({ page }) => {
-    await page.goto('/synth-groups');
+    await page.goto('/synths');
     await page.waitForLoadState('networkidle');
 
+    // Wait for page to load
+    await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
+
     // Open create modal
-    const createButton = page.locator('button').filter({ hasText: /criar|novo|create|new/i });
-    await createButton.first().click();
+    const createButton = page.getByRole('button', { name: /novo grupo/i });
+    await expect(createButton).toBeVisible({ timeout: 10000 });
+    await createButton.click();
 
     // Fill in name
     const nameInput = page.locator('input[name="name"]').or(
@@ -111,12 +113,16 @@ test.describe('Create Basic Synth Group', () => {
   });
 
   test('should validate empty name', async ({ page }) => {
-    await page.goto('/synth-groups');
+    await page.goto('/synths');
     await page.waitForLoadState('networkidle');
 
+    // Wait for page to load
+    await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
+
     // Open create modal
-    const createButton = page.locator('button').filter({ hasText: /criar|novo|create|new/i });
-    await createButton.first().click();
+    const createButton = page.getByRole('button', { name: /novo grupo/i });
+    await expect(createButton).toBeVisible({ timeout: 10000 });
+    await createButton.click();
 
     // Try to submit without name
     const submitButton = page.locator('button[type="submit"]').or(
@@ -140,12 +146,16 @@ test.describe('Create Basic Synth Group', () => {
   });
 
   test('should cancel group creation', async ({ page }) => {
-    await page.goto('/synth-groups');
+    await page.goto('/synths');
     await page.waitForLoadState('networkidle');
 
+    // Wait for page to load
+    await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
+
     // Open create modal
-    const createButton = page.locator('button').filter({ hasText: /criar|novo|create|new/i });
-    await createButton.first().click();
+    const createButton = page.getByRole('button', { name: /novo grupo/i });
+    await expect(createButton).toBeVisible({ timeout: 10000 });
+    await createButton.click();
 
     // Fill in some data
     const nameInput = page.locator('input[name="name"]').or(
@@ -165,12 +175,16 @@ test.describe('Create Basic Synth Group', () => {
   });
 
   test('should close modal with X button', async ({ page }) => {
-    await page.goto('/synth-groups');
+    await page.goto('/synths');
     await page.waitForLoadState('networkidle');
 
+    // Wait for page to load
+    await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
+
     // Open create modal
-    const createButton = page.locator('button').filter({ hasText: /criar|novo|create|new/i });
-    await createButton.first().click();
+    const createButton = page.getByRole('button', { name: /novo grupo/i });
+    await expect(createButton).toBeVisible({ timeout: 10000 });
+    await createButton.click();
 
     // Look for close button (X icon or similar)
     const closeButton = page.locator('button[aria-label*="close"]').or(

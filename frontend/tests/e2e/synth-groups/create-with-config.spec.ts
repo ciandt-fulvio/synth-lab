@@ -10,12 +10,16 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Create Synth Group with Config', () => {
   test('should create group with custom distributions', async ({ page }) => {
-    await page.goto('/synth-groups');
+    await page.goto('/synths');
     await page.waitForLoadState('networkidle');
 
+    // Wait for page to load
+    await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
+
     // Open create modal
-    const createButton = page.locator('button').filter({ hasText: /criar|novo|create|new/i });
-    await createButton.first().click();
+    const createButton = page.getByRole('button', { name: /novo grupo/i });
+    await expect(createButton).toBeVisible({ timeout: 10000 });
+    await createButton.click();
 
     // Fill in group name
     const nameInput = page.locator('input[name="name"]').or(
@@ -68,12 +72,16 @@ test.describe('Create Synth Group with Config', () => {
   });
 
   test('should adjust distribution sliders', async ({ page }) => {
-    await page.goto('/synth-groups');
+    await page.goto('/synths');
     await page.waitForLoadState('networkidle');
 
+    // Wait for page to load
+    await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
+
     // Open create modal
-    const createButton = page.locator('button').filter({ hasText: /criar|novo|create|new/i });
-    await createButton.first().click();
+    const createButton = page.getByRole('button', { name: /novo grupo/i });
+    await expect(createButton).toBeVisible({ timeout: 10000 });
+    await createButton.click();
 
     // Find distribution section (idade/age)
     const ageSection = page.locator('text=/distribui[çc][ãa]o.*idade|age.*distribution/i').locator('..');
@@ -99,12 +107,16 @@ test.describe('Create Synth Group with Config', () => {
   });
 
   test('should reset distribution to defaults', async ({ page }) => {
-    await page.goto('/synth-groups');
+    await page.goto('/synths');
     await page.waitForLoadState('networkidle');
 
+    // Wait for page to load
+    await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
+
     // Open create modal
-    const createButton = page.locator('button').filter({ hasText: /criar|novo|create|new/i });
-    await createButton.first().click();
+    const createButton = page.getByRole('button', { name: /novo grupo/i });
+    await expect(createButton).toBeVisible({ timeout: 10000 });
+    await createButton.click();
 
     // Find a distribution section with reset button
     const resetButton = page.locator('button').filter({ hasText: /reset|padr[ãa]o|default/i });
@@ -135,12 +147,16 @@ test.describe('Create Synth Group with Config', () => {
   });
 
   test('should select domain expertise preset', async ({ page }) => {
-    await page.goto('/synth-groups');
+    await page.goto('/synths');
     await page.waitForLoadState('networkidle');
 
+    // Wait for page to load
+    await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
+
     // Open create modal
-    const createButton = page.locator('button').filter({ hasText: /criar|novo|create|new/i });
-    await createButton.first().click();
+    const createButton = page.getByRole('button', { name: /novo grupo/i });
+    await expect(createButton).toBeVisible({ timeout: 10000 });
+    await createButton.click();
 
     // Look for domain expertise section
     const expertiseSection = page.locator('text=/dom[ií]nio|domain.*expertise/i').locator('..');
@@ -168,12 +184,16 @@ test.describe('Create Synth Group with Config', () => {
   });
 
   test('should validate n_synths range', async ({ page }) => {
-    await page.goto('/synth-groups');
+    await page.goto('/synths');
     await page.waitForLoadState('networkidle');
 
+    // Wait for page to load
+    await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
+
     // Open create modal
-    const createButton = page.locator('button').filter({ hasText: /criar|novo|create|new/i });
-    await createButton.first().click();
+    const createButton = page.getByRole('button', { name: /novo grupo/i });
+    await expect(createButton).toBeVisible({ timeout: 10000 });
+    await createButton.click();
 
     // Fill in name
     const nameInput = page.locator('input[name="name"]').or(
@@ -207,12 +227,16 @@ test.describe('Create Synth Group with Config', () => {
   });
 
   test('should show progress during synth generation', async ({ page }) => {
-    await page.goto('/synth-groups');
+    await page.goto('/synths');
     await page.waitForLoadState('networkidle');
 
+    // Wait for page to load
+    await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
+
     // Open create modal
-    const createButton = page.locator('button').filter({ hasText: /criar|novo|create|new/i });
-    await createButton.first().click();
+    const createButton = page.getByRole('button', { name: /novo grupo/i });
+    await expect(createButton).toBeVisible({ timeout: 10000 });
+    await createButton.click();
 
     // Fill in minimal data
     const nameInput = page.locator('input[name="name"]').or(

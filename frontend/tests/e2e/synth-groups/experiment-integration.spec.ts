@@ -13,6 +13,9 @@ test.describe('Synth Groups - Experiment Integration', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
+    // Wait for page to load
+    await expect(page.locator('h2').filter({ hasText: /experimentos/i })).toBeVisible({ timeout: 10000 });
+
     // Look for create experiment button
     const createButton = page.locator('button').filter({ hasText: /novo.*experimento|new.*experiment|criar/i });
 
@@ -200,16 +203,16 @@ test.describe('Synth Groups - Experiment Integration', () => {
       await experimentCards.first().click();
       await page.waitForLoadState('networkidle');
 
-      // Look for link to synth group
-      const groupLink = page.locator('a[href*="/synth-groups/"]').or(
+      // Look for link to synth group (groups are shown in /synths page)
+      const groupLink = page.locator('a[href*="/synths"]').or(
         page.locator('button').filter({ hasText: /ver.*grupo|view.*group/i })
       );
 
       if (await groupLink.count() > 0) {
         await groupLink.first().click();
 
-        // Should navigate to group detail
-        await expect(page).toHaveURL(/\/synth-groups\/grp_/);
+        // Should navigate to synths page
+        await expect(page).toHaveURL(/\/synths/);
       }
     } else {
       test.skip('No experiments available');
@@ -273,11 +276,15 @@ test.describe('Synth Groups - Experiment Integration', () => {
 test.describe('Synth Groups - Full Integration Flow', () => {
   test('complete flow: create group → create experiment → verify linkage', async ({ page }) => {
     // 1. Create synth group
-    await page.goto('/synth-groups');
+    await page.goto('/synths');
     await page.waitForLoadState('networkidle');
 
-    const createGroupButton = page.locator('button').filter({ hasText: /criar|novo|create|new/i });
-    await createGroupButton.first().click();
+    // Wait for page to load
+    await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
+
+    const createGroupButton = page.getByRole('button', { name: /novo grupo/i });
+    await expect(createGroupButton).toBeVisible({ timeout: 10000 });
+    await createGroupButton.click();
 
     const nameInput = page.locator('input[name="name"]');
     await nameInput.fill('E2E Integration Test Group');

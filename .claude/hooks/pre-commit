@@ -1,0 +1,152 @@
+#!/bin/bash
+#
+# Claude Code Hook: pre-commit
+#
+# Este hook é executado ANTES de um commit e instrui o Claude a verificar
+# se os testes foram atualizados para cobrir as mudanças.
+#
+# Documentação: https://docs.anthropic.com/claude/docs/claude-code-hooks
+
+set -e
+
+# Lista arquivos staged (que serão commitados)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR)
+
+# Se não há arquivos staged, sai
+if [ -z "$STAGED_FILES" ]; then
+    exit 0
+fi
+
+# Filtra apenas arquivos de código (ignora testes)
+CODE_FILES=$(echo "$STAGED_FILES" | grep -E '\.(py|ts|tsx|js|jsx)$' | grep -v -E 'test|spec|__tests__|\.test\.|\.spec\.' || true)
+
+# Se não há arquivos de código, não precisa verificar testes
+if [ -z "$CODE_FILES" ]; then
+    exit 0
+fi
+
+# Detecta tipos de mudanças
+HAS_BACKEND=$(echo "$CODE_FILES" | grep -E '^src/synth_lab/.*\.py$' || true)
+HAS_FRONTEND=$(echo "$CODE_FILES" | grep -E '^frontend/src/.*\.(ts|tsx|js|jsx)$' || true)
+
+# Se apenas arquivos de teste foram modificados, não mostra prompt
+TEST_FILES=$(echo "$STAGED_FILES" | grep -E 'test|spec|__tests__|\.test\.|\.spec\.' || true)
+if [ -n "$TEST_FILES" ] && [ -z "$CODE_FILES" ]; then
+    exit 0
+fi
+
+# Monta o prompt para o Claude
+cat <<EOF
+
+🧪 **PRE-COMMIT TEST CHECK**
+
+Você está prestes a commitar arquivos de código.
+
+**Arquivos de código staged:**
+$CODE_FILES
+
+EOF
+
+if [ -n "$TEST_FILES" ]; then
+    cat <<EOF
+**Arquivos de teste staged:**
+$TEST_FILES
+
+EOF
+fi
+
+cat <<EOF
+**VERIFICAÇÃO OBRIGATÓRIA:**
+
+Antes de commitar, confirme que:
+
+EOF
+
+if [ -n "$HAS_BACKEND" ]; then
+    cat <<EOF
+### Backend (Python)
+- [ ] Testes unitários criados/atualizados para novas funções
+- [ ] Testes de integração se houver interação entre componentes
+- [ ] Testes de repository se houver queries SQL novas/modificadas
+- [ ] Testes de serviço se houver lógica de negócio nova/modificada
+- [ ] Testes de API se endpoints foram criados/modificados
+
+**Comandos:**
+\`\`\`bash
+# Rodar testes unitários
+pytest tests/unit/
+
+# Rodar testes de integração
+pytest tests/integration/
+
+# Rodar todos os testes
+pytest tests/
+\`\`\`
+
+EOF
+fi
+
+if [ -n "$HAS_FRONTEND" ]; then
+    cat <<EOF
+### Frontend (TypeScript/React)
+- [ ] Testes unitários para componentes novos/modificados
+- [ ] Testes de hooks se houver custom hooks
+- [ ] Testes de serviços/utils se houver lógica modificada
+- [ ] Testes E2E atualizados se fluxos de UI foram modificados
+
+**Comandos:**
+\`\`\`bash
+cd frontend
+
+# Testes unitários
+npm test
+
+# Testes E2E (Playwright)
+npm run test:e2e
+
+# Coverage
+npm run test:coverage
+\`\`\`
+
+EOF
+fi
+
+cat <<EOF
+**PADRÕES DE TESTE A SEGUIR:**
+
+1. **Cobertura Mínima:**
+   - Funções públicas: 100%
+   - Lógica de negócio: 100%
+   - Components: 80%+
+   - Edge cases: Obrigatório
+
+2. **Estrutura de Teste:**
+   - Backend: Seguir padrão em \`tests/\` espelhando \`src/\`
+   - Frontend: Seguir padrão \`*.test.ts\` ou \`*.spec.ts\`
+
+3. **Tipos de Teste:**
+   - **Unit**: Funções isoladas, sem dependências externas
+   - **Integration**: Interação entre componentes/serviços
+   - **Contract**: APIs/endpoints (request/response)
+   - **E2E**: Fluxos completos de usuário
+
+4. **Validação:**
+   - ✅ Casos de sucesso
+   - ✅ Casos de erro
+   - ✅ Edge cases
+   - ✅ Validação de inputs
+   - ✅ Tratamento de exceções
+
+**AÇÃO REQUERIDA:**
+
+Execute os comandos acima e confirme:
+1. Quais testes foram criados/atualizados?
+2. Qual a cobertura atual?
+3. Todos os testes passaram?
+
+**IMPORTANTE:** Se você não criou/atualizou testes, faça isso AGORA antes do commit.
+
+EOF
+
+# Retorna 0 para não bloquear o commit, mas o prompt será mostrado
+exit 0

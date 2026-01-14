@@ -1,0 +1,274 @@
+#!/bin/bash
+#
+# Claude Code Hook: pull-request
+#
+# Este hook é executado quando você pede ao Claude para criar um PR.
+# Ele verifica se os testes foram atualizados e adiciona checklist ao PR.
+#
+# Documentação: https://docs.anthropic.com/claude/docs/claude-code-hooks
+
+set -e
+
+# Pega a branch atual e a branch base (main/master)
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+BASE_BRANCH=${1:-main}
+
+# Se não conseguir determinar base branch, tenta master
+if ! git rev-parse --verify "origin/$BASE_BRANCH" >/dev/null 2>&1; then
+    BASE_BRANCH="master"
+fi
+
+# Lista todos os arquivos modificados neste branch comparado com base
+if git rev-parse --verify "origin/$BASE_BRANCH" >/dev/null 2>&1; then
+    CHANGED_FILES=$(git diff --name-only "origin/$BASE_BRANCH...HEAD")
+    COMMITS=$(git log --oneline "origin/$BASE_BRANCH..HEAD")
+else
+    CHANGED_FILES=$(git diff --name-only HEAD~1..HEAD)
+    COMMITS=$(git log --oneline -1)
+fi
+
+# Filtra arquivos de código e testes separadamente
+CODE_FILES=$(echo "$CHANGED_FILES" | grep -E '\.(py|ts|tsx|js|jsx)$' | grep -v -E 'test|spec|__tests__|\.test\.|\.spec\.' || true)
+TEST_FILES=$(echo "$CHANGED_FILES" | grep -E 'test|spec|__tests__|\.test\.|\.spec\.' || true)
+
+# Detecta tipos de mudanças
+HAS_BACKEND=$(echo "$CODE_FILES" | grep -E '^src/synth_lab/.*\.py$' || true)
+HAS_FRONTEND=$(echo "$CODE_FILES" | grep -E '^frontend/src/.*\.(ts|tsx|js|jsx)$' || true)
+HAS_API=$(echo "$CODE_FILES" | grep -E '^src/synth_lab/api/.*\.py$' || true)
+HAS_SERVICE=$(echo "$CODE_FILES" | grep -E '^src/synth_lab/services/.*\.py$' || true)
+HAS_COMPONENT=$(echo "$CODE_FILES" | grep -E '^frontend/src/components/.*\.(tsx|jsx)$' || true)
+HAS_PAGE=$(echo "$CODE_FILES" | grep -E '^frontend/src/pages/.*\.(tsx|jsx)$' || true)
+
+# Detecta tipos de testes modificados
+HAS_UNIT_TESTS=$(echo "$TEST_FILES" | grep -E 'tests/unit/|\.test\.(ts|tsx|py)$' || true)
+HAS_INTEGRATION_TESTS=$(echo "$TEST_FILES" | grep -E 'tests/integration/' || true)
+HAS_E2E_TESTS=$(echo "$TEST_FILES" | grep -E 'tests/e2e/|\.spec\.ts$' || true)
+
+# Monta o prompt para o Claude
+cat <<EOF
+
+🔍 **PULL REQUEST TEST VALIDATION**
+
+Você está criando um Pull Request de **$CURRENT_BRANCH** para **$BASE_BRANCH**.
+
+**📊 Análise de Mudanças:**
+
+**Commits incluídos:**
+$COMMITS
+
+**Arquivos de código modificados:** $(echo "$CODE_FILES" | wc -l | tr -d ' ')
+$CODE_FILES
+
+**Arquivos de teste modificados:** $(echo "$TEST_FILES" | wc -l | tr -d ' ')
+$TEST_FILES
+
+---
+
+**🧪 VERIFICAÇÃO DE TESTES - OBRIGATÓRIO**
+
+Antes de criar o PR, você DEVE garantir que:
+
+EOF
+
+# Seção de Backend
+if [ -n "$HAS_BACKEND" ]; then
+    cat <<EOF
+### ✅ Backend (Python) - Testes Obrigatórios
+
+EOF
+
+    if [ -n "$HAS_API" ]; then
+        cat <<EOF
+**APIs Modificadas** (\`api/\`):
+- [ ] Testes de contrato para endpoints novos/modificados
+- [ ] Testes de validação de request/response
+- [ ] Testes de status codes (200, 400, 404, 500)
+- [ ] Testes de autenticação/autorização (se aplicável)
+
+EOF
+    fi
+
+    if [ -n "$HAS_SERVICE" ]; then
+        cat <<EOF
+**Serviços Modificados** (\`services/\`):
+- [ ] Testes unitários para lógica de negócio
+- [ ] Testes de integração com repositories
+- [ ] Testes de integração com LLM calls (mocked)
+- [ ] Testes de error handling
+
+EOF
+    fi
+
+    cat <<EOF
+**Comandos para validar:**
+\`\`\`bash
+# Testes unitários
+pytest tests/unit/ -v
+
+# Testes de integração
+pytest tests/integration/ -v
+
+# Coverage
+pytest --cov=src/synth_lab --cov-report=term-missing
+
+# Smoke tests
+pytest tests/smoke/ -v
+\`\`\`
+
+EOF
+fi
+
+# Seção de Frontend
+if [ -n "$HAS_FRONTEND" ]; then
+    cat <<EOF
+### ✅ Frontend (TypeScript/React) - Testes Obrigatórios
+
+EOF
+
+    if [ -n "$HAS_COMPONENT" ]; then
+        cat <<EOF
+**Componentes Modificados** (\`components/\`):
+- [ ] Testes unitários para rendering
+- [ ] Testes de interação (clicks, inputs)
+- [ ] Testes de props
+- [ ] Testes de conditional rendering
+
+EOF
+    fi
+
+    if [ -n "$HAS_PAGE" ]; then
+        cat <<EOF
+**Páginas Modificadas** (\`pages/\`):
+- [ ] Testes de integração de página
+- [ ] Testes E2E para fluxos principais
+- [ ] Testes de navegação
+- [ ] Testes de loading states
+
+EOF
+    fi
+
+    cat <<EOF
+**Comandos para validar:**
+\`\`\`bash
+cd frontend
+
+# Testes unitários
+npm test
+
+# Testes E2E
+npm run test:e2e
+
+# Coverage
+npm run test:coverage
+
+# Lint
+npm run lint
+\`\`\`
+
+EOF
+fi
+
+# Análise de cobertura de testes
+cat <<EOF
+---
+
+**📈 CHECKLIST DE COBERTURA:**
+
+EOF
+
+if [ -n "$CODE_FILES" ] && [ -z "$TEST_FILES" ]; then
+    cat <<EOF
+⚠️  **ATENÇÃO:** Código foi modificado mas NENHUM teste foi adicionado/atualizado!
+
+EOF
+fi
+
+if [ -n "$HAS_UNIT_TESTS" ]; then
+    cat <<EOF
+✅ Testes unitários foram modificados
+EOF
+else
+    cat <<EOF
+❌ Nenhum teste unitário foi adicionado/modificado
+EOF
+fi
+
+if [ -n "$HAS_INTEGRATION_TESTS" ]; then
+    cat <<EOF
+✅ Testes de integração foram modificados
+EOF
+else
+    if [ -n "$HAS_SERVICE" ] || [ -n "$HAS_API" ]; then
+        cat <<EOF
+⚠️  Testes de integração devem ser adicionados para services/APIs
+EOF
+    fi
+fi
+
+if [ -n "$HAS_E2E_TESTS" ]; then
+    cat <<EOF
+✅ Testes E2E foram modificados
+EOF
+else
+    if [ -n "$HAS_PAGE" ] || [ -n "$HAS_COMPONENT" ]; then
+        cat <<EOF
+⚠️  Testes E2E devem ser considerados para UI changes
+EOF
+    fi
+fi
+
+cat <<EOF
+
+---
+
+**📋 CHECKLIST PARA PR DESCRIPTION:**
+
+Adicione esta checklist à descrição do PR:
+
+\`\`\`markdown
+## Test Plan
+
+### Testes Executados
+- [ ] Unit tests: \`pytest tests/unit/\` ou \`npm test\`
+- [ ] Integration tests: \`pytest tests/integration/\`
+- [ ] E2E tests: \`npm run test:e2e\`
+- [ ] Smoke tests: \`pytest tests/smoke/\`
+
+### Cobertura de Testes
+- [ ] Novos testes cobrem funcionalidades adicionadas
+- [ ] Testes existentes foram atualizados se necessário
+- [ ] Edge cases foram considerados
+- [ ] Error handling foi testado
+
+### Validação Manual
+- [ ] Testei localmente todos os fluxos afetados
+- [ ] Verifiquei em diferentes resoluções (se UI)
+- [ ] Testei casos de erro
+
+### Resultados
+- **Test Coverage:** ____%
+- **Tests Passing:** ___/___
+- **E2E Tests Passing:** ___/___
+\`\`\`
+
+---
+
+**🎯 AÇÃO REQUERIDA:**
+
+1. **Execute TODOS os testes** relevantes listados acima
+2. **Confirme que todos passam**
+3. **Liste os testes criados/atualizados** neste PR
+4. **Adicione a checklist** acima à descrição do PR
+5. **Documente a cobertura** de testes alcançada
+
+**IMPORTANTE:**
+- PRs sem testes adequados serão rejeitados
+- Cobertura mínima: 80% para novo código
+- Todos os testes CI devem passar
+
+**Você está pronto para criar o PR com testes completos?**
+
+EOF
+
+# Retorna 0 para não bloquear a criação do PR
+exit 0
