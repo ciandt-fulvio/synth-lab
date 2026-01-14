@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+*.egg-info/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Frontend (not needed in backend build)
+frontend/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Git
+.git/
+.gitignore
+
+# Docs (but keep README.md for package install)
+docs/
+*.md
+!README.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Logs
+*.log
+/tmp/
+
+# Database
+*.db
+*.sqlite
+
+# Test artifacts
+playwright-report/
+test-results/

@@ -1,11 +1,28 @@
-.PHONY: help install setup-hooks serve serve-front serve-test serve-front-test gensynth phoenix kill kill-server kill-test-servers db db-stop db-reset db-migrate db-test db-test-reset validate-ui test test-fast test-full test-unit test-integration test-contract test-e2e test-e2e-ui lint-format update-docs clean clean-server
+.PHONY: help install setup-hooks serve serve-front serve-test serve-front-test gensynth phoenix kill kill-server kill-test-servers db db-stop db-reset db-migrate db-test db-test-reset validate-ui test test-fast test-full test-unit test-integration test-contract test-e2e test-e2e-local test-e2e-ui test-e2e-docker test-e2e-docker-up test-e2e-docker-down test-e2e-docker-logs lint-format update-docs clean clean-server
 
 # =============================================================================
 # Configuration
 # =============================================================================
 ENV ?= dev
 
-# PostgreSQL (via Podman)
+# Container runtime detection (Docker or Podman)
+# GitHub Actions uses Docker, local dev might use Podman
+DOCKER_CMD := $(shell command -v docker 2> /dev/null)
+PODMAN_CMD := $(shell command -v podman 2> /dev/null)
+
+ifdef DOCKER_CMD
+    CONTAINER_RUNTIME := docker
+    COMPOSE_CMD := docker-compose
+else ifdef PODMAN_CMD
+    CONTAINER_RUNTIME := podman
+    COMPOSE_CMD := podman-compose
+else
+    $(error Neither Docker nor Podman found. Please install one of them.)
+endif
+
+$(info 🐳 Using container runtime: $(CONTAINER_RUNTIME))
+
+# PostgreSQL (via Podman/Docker)
 POSTGRES_CONTAINER := synthlab-postgres
 POSTGRES_USER := synthlab
 POSTGRES_PASSWORD := synthlab
@@ -73,7 +90,11 @@ help:
 	@echo "  make test                    Run all tests"
 	@echo "  make test-fast               Run fast anti-regression tests (~30s: smoke+contract+schema)"
 	@echo "  make test-full               Run all tests verbose"
-	@echo "  make test-e2e                Run E2E tests (requires servers running on ports 8000/8080)"
+	@echo "  make test-e2e                Run E2E tests via Docker (isolated environment)"
+	@echo "  make test-e2e-docker         Same as test-e2e (alias for clarity)"
+	@echo "  make test-e2e-docker-up      Start E2E Docker environment (keeps running)"
+	@echo "  make test-e2e-docker-down    Stop E2E Docker environment"
+	@echo "  make test-e2e-local          Run E2E tests locally (requires servers on 8000/8080)"
 	@echo "  make test-e2e-ui             Run E2E tests in UI mode"
 	@echo "  make test-coverage-analysis  Analyze test coverage gaps (suggests Claude prompts)"
 	@echo ""
@@ -208,7 +229,7 @@ kill-test-servers:
 # Testing
 # =============================================================================
 test:
-	POSTGRES_URL="$(DATABASE_TEST_URL)" uv run pytest
+	DATABASE_TEST_URL="$(DATABASE_TEST_URL)" uv run pytest
 
 test-fast:
 	@echo "🚀 Running fast anti-regression tests..."
@@ -216,19 +237,53 @@ test-fast:
 	DATABASE_TEST_URL="$(DATABASE_TEST_URL)" uv run pytest -m "smoke or contract or schema" --maxfail=5 -q --tb=short
 
 test-full:
-	POSTGRES_URL="$(DATABASE_TEST_URL)" uv run pytest tests/ -v --tb=short
+	DATABASE_TEST_URL="$(DATABASE_TEST_URL)" uv run pytest tests/ -v --tb=short
 
 test-unit:
 	uv run pytest tests/unit/ -v
 
 test-integration:
-	POSTGRES_URL="$(DATABASE_TEST_URL)" uv run pytest tests/integration/ -v
+	DATABASE_TEST_URL="$(DATABASE_TEST_URL)" uv run pytest tests/integration/ -v
 
 test-contract:
 	uv run pytest tests/contract/ -v
 
-test-e2e:
-	@echo "🎭 Running E2E tests..."
+# E2E Tests via Docker (default - isolated environment)
+test-e2e: test-e2e-docker
+
+test-e2e-docker:
+	@echo "🎭 Running E2E tests (isolated environment)..."
+	@echo "   Frontend: http://localhost:8091"
+	@echo "   Backend:  http://localhost:8001"
+	@echo "   Database: localhost:5433"
+	@echo ""
+	@./scripts/compose-e2e.sh up; \
+	exit_code=$$?; \
+	./scripts/compose-e2e.sh down; \
+	exit $$exit_code
+
+test-e2e-docker-up:
+	@echo "🎭 Starting E2E environment..."
+	@./scripts/compose-e2e.sh up-detached
+	@echo ""
+	@echo "✅ E2E environment running at:"
+	@echo "   Frontend: http://localhost:8091"
+	@echo "   Backend:  http://localhost:8001"
+	@echo "   Database: localhost:5433"
+	@echo ""
+	@echo "To run tests: cd frontend && TEST_ENV=docker npm run test:e2e"
+	@echo "To view logs: make test-e2e-docker-logs"
+	@echo "To stop: make test-e2e-docker-down"
+
+test-e2e-docker-down:
+	@./scripts/compose-e2e.sh down
+
+test-e2e-docker-logs:
+	@./scripts/compose-e2e.sh logs
+
+# E2E Tests locally (legacy - requires manual server startup)
+test-e2e-local:
+	@echo "🎭 Running E2E tests locally..."
 	@echo "⚠️  Make sure test servers are running:"
 	@echo "   Terminal 1: make serve-test"
 	@echo "   Terminal 2: make serve-front-test"

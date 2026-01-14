@@ -1,8 +1,8 @@
 # E2E Tests - Triggered on code push
 #
-# Flow: Setup DB → Start Backend → Start Frontend → Run E2E Tests
+# Flow: Docker Compose → Run E2E Tests → Cleanup
 #
-# Runs complete E2E test suite against local environment with PostgreSQL
+# Runs complete E2E test suite in isolated Docker environment
 # to validate integration before deployment to staging.
 
 name: E2E Tests
@@ -15,32 +15,16 @@ on:
   workflow_dispatch:
 
 env:
-  DATABASE_URL: postgresql://test:test@localhost:5432/synthlab_test
   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
 jobs:
   # ============================================================================
-  # E2E Tests with Local Environment
+  # E2E Tests with Docker Compose
   # ============================================================================
   e2e-tests:
-    name: E2E Tests (Local)
+    name: E2E Tests (Docker)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
-    services:
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: synthlab_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
 
     steps:
       # ========================================================================
@@ -50,46 +34,7 @@ jobs:
         uses: actions/checkout@v4
 
       # ========================================================================
-      # 2. Setup Backend (Python + Dependencies + Migrations)
-      # ========================================================================
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
-
-      - name: Install backend dependencies
-        run: |
-          uv pip install --system -e .
-          uv pip install --system pytest
-
-      - name: Run database migrations
-        run: |
-          cd src/synth_lab/alembic
-          alembic upgrade head
-
-      - name: Seed test database
-        run: |
-          python tests/fixtures/seed_test.py
-
-      # ========================================================================
-      # 3. Start Backend Server
-      # ========================================================================
-      - name: Start backend server
-        run: |
-          nohup uvicorn synth_lab.api.main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
-          echo $! > backend.pid
-          sleep 5  # Give the server time to start
-          if ! ps -p $(cat backend.pid) > /dev/null 2>&1; then
-            echo "Backend failed to start. Logs:"
-            cat backend.log
-            exit 1
-          fi
-
-      # ========================================================================
-      # 4. Setup Frontend (Node + Dependencies + Playwright)
+      # 2. Setup Node.js (for Playwright)
       # ========================================================================
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -107,36 +52,28 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       # ========================================================================
-      # 5. Start Frontend Server
+      # 3. Run E2E Tests via Docker Compose
       # ========================================================================
-      - name: Start frontend server
-        working-directory: frontend
+      - name: Start E2E environment with Docker Compose
         run: |
-          nohup npm run dev:test > frontend.log 2>&1 &
-          echo $! > frontend.pid
+          docker-compose -f docker-compose.e2e.yml up --build -d
+          echo "Waiting for services to be healthy..."
+          sleep 30  # Give services time to start and run migrations
 
-      # ========================================================================
-      # 6. Wait for Services to be Ready
-      # ========================================================================
       - name: Wait for backend to be ready
         run: |
-          npx wait-on http://localhost:8000/health --timeout 60000
+          npx wait-on http://localhost:8001/health --timeout 120000
 
       - name: Wait for frontend to be ready
         run: |
-          npx wait-on http://localhost:8080 --timeout 60000
+          npx wait-on http://localhost:8091 --timeout 120000
 
-      # ========================================================================
-      # 7. Run E2E Tests
-      # ========================================================================
       - name: Run E2E tests
         working-directory: frontend
-        run: npm run test:e2e
-        env:
-          BASE_URL: http://localhost:8080
+        run: TEST_ENV=docker npm run test:e2e
 
       # ========================================================================
-      # 8. Upload Results and Logs
+      # 4. Upload Results and Logs
       # ========================================================================
       - name: Upload test results
         if: failure()
@@ -154,34 +91,28 @@ jobs:
           path: frontend/playwright-report/
           retention-days: 7
 
-      - name: Upload backend logs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-logs
-          path: backend.log
-          retention-days: 7
-
-      - name: Upload frontend logs
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-logs
-          path: frontend/frontend.log
-          retention-days: 7
-
       # ========================================================================
-      # 9. Cleanup
+      # 5. Cleanup and Logs
       # ========================================================================
-      - name: Stop servers
-        if: always()
+      - name: Collect Docker Compose logs
+        if: failure()
         run: |
-          if [ -f backend.pid ]; then
-            kill $(cat backend.pid) || true
-          fi
-          if [ -f frontend/frontend.pid ]; then
-            kill $(cat frontend/frontend.pid) || true
-          fi
+          mkdir -p docker-logs
+          docker-compose -f docker-compose.e2e.yml logs backend-e2e > docker-logs/backend.log 2>&1 || true
+          docker-compose -f docker-compose.e2e.yml logs frontend-e2e > docker-logs/frontend.log 2>&1 || true
+          docker-compose -f docker-compose.e2e.yml logs postgres-e2e > docker-logs/postgres.log 2>&1 || true
+
+      - name: Upload Docker Compose logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-compose-logs
+          path: docker-logs/
+          retention-days: 7
+
+      - name: Stop Docker Compose
+        if: always()
+        run: docker-compose -f docker-compose.e2e.yml down -v
 
   # ============================================================================
   # Notify on completion

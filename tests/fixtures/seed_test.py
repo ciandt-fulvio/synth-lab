@@ -90,7 +90,7 @@ def _clear_existing_data(session: Session) -> None:
     """Clear existing test data."""
     logger.debug("Clearing existing data...")
 
-    # Delete in reverse dependency order
+    # Delete in reverse dependency order (children before parents)
     session.query(SynthOutcome).delete()
     session.query(Transcript).delete()
     session.query(ResearchExecution).delete()
@@ -99,8 +99,8 @@ def _clear_existing_data(session: Session) -> None:
     session.query(ExperimentDocument).delete()
     session.query(AnalysisRun).delete()
     session.query(Synth).delete()
+    session.query(Experiment).delete()  # Must delete before SynthGroup (FK dependency)
     session.query(SynthGroup).delete()
-    session.query(Experiment).delete()
 
     session.commit()
 

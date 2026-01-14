@@ -6,6 +6,10 @@ import { defineConfig, devices } from '@playwright/test';
  * Local tests (default):
  *   npm run test:e2e
  *
+ * Docker tests (isolated environment):
+ *   TEST_ENV=docker npm run test:e2e
+ *   npm run test:e2e:docker
+ *
  * Staging tests:
  *   npm run test:e2e:staging
  *   TEST_ENV=staging npm run test:e2e
@@ -20,6 +24,7 @@ import { defineConfig, devices } from '@playwright/test';
 // Environment URLs
 const ENVIRONMENTS = {
   local: process.env.VITE_PORT ? `http://localhost:${process.env.VITE_PORT}` : 'http://localhost:8080',
+  docker: 'http://localhost:8091',
   staging: 'https://synth-lab-frontend-staging.up.railway.app',
   production: 'https://synth-lab-frontend-production.up.railway.app',
 } as const;
@@ -52,7 +57,7 @@ export default defineConfig({
     },
   ],
 
-  // Only start local dev server when testing locally
+  // Only start local dev server when testing locally (not for docker or remote envs)
   ...(isLocal && {
     webServer: {
       command: 'npm run dev:test',

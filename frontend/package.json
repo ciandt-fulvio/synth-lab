@@ -23,7 +23,11 @@
     "test:e2e:staging:ui": "TEST_ENV=staging playwright test --ui",
     "test:e2e:staging:headed": "TEST_ENV=staging playwright test --headed",
     "test:e2e:production": "TEST_ENV=production playwright test",
-    "test:e2e:production:ui": "TEST_ENV=production playwright test --ui"
+    "test:e2e:production:ui": "TEST_ENV=production playwright test --ui",
+    "test:e2e:docker": "TEST_ENV=docker playwright test",
+    "test:e2e:docker:up": "../scripts/compose-e2e.sh up-detached",
+    "test:e2e:docker:down": "../scripts/compose-e2e.sh down",
+    "test:e2e:docker:logs": "../scripts/compose-e2e.sh logs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
