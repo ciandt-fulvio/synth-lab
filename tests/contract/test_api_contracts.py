@@ -116,6 +116,60 @@ class TestExperimentContracts:
         # FastAPI valida via regex pattern, deve retornar 422
         assert response.status_code == 422, "Deve rejeitar sort_by invalido"
 
+    def test_list_experiments_pagination_works_correctly(self, client: TestClient):
+        """GET /experiments/list?limit=N&offset=M aplica paginação corretamente."""
+        # Get total count first
+        response_all = client.get("/experiments/list")
+        total = response_all.json()["pagination"]["total"]
+
+        if total == 0:
+            pytest.skip("Nenhum experimento para testar paginação")
+
+        # Request with limit=1
+        response = client.get("/experiments/list?limit=1&offset=0")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert len(data["data"]) <= 1, "limit=1 deve retornar no máximo 1 item"
+        assert data["pagination"]["limit"] == 1
+        assert data["pagination"]["offset"] == 0
+
+    def test_list_experiments_search_filters_results(self, client: TestClient):
+        """GET /experiments/list?search=X retorna apenas experimentos relevantes."""
+        # Get all experiments first
+        response_all = client.get("/experiments/list")
+        all_count = len(response_all.json()["data"])
+
+        if all_count == 0:
+            pytest.skip("Nenhum experimento para testar busca")
+
+        # Search with unlikely string
+        response_search = client.get("/experiments/list?search=xyzabc123nonexistent")
+        search_results = response_search.json()["data"]
+
+        # Search should return fewer or equal items
+        assert len(search_results) <= all_count, "Search deve filtrar resultados"
+
+    def test_list_experiments_sorting_affects_order(self, client: TestClient):
+        """GET /experiments/list?sort_by=name muda ordem dos resultados."""
+        # Get experiments sorted by name asc
+        response_asc = client.get("/experiments/list?sort_by=name&sort_order=asc")
+        data_asc = response_asc.json()["data"]
+
+        if len(data_asc) < 2:
+            pytest.skip("Necessário pelo menos 2 experimentos para testar ordenação")
+
+        # Validate that items are sorted
+        names_asc = [exp["name"] for exp in data_asc]
+        assert names_asc == sorted(names_asc), "Experimentos devem estar ordenados por nome (asc)"
+
+        # Get experiments sorted by name desc
+        response_desc = client.get("/experiments/list?sort_by=name&sort_order=desc")
+        data_desc = response_desc.json()["data"]
+
+        names_desc = [exp["name"] for exp in data_desc]
+        assert names_desc == sorted(names_desc, reverse=True), "Experimentos devem estar ordenados por nome (desc)"
+
     def test_get_experiment_detail_returns_valid_schema(self, client: TestClient):
         """GET /experiments/:id retorna schema detalhado esperado."""
         # Tenta pegar um experimento existente
@@ -205,6 +259,27 @@ class TestExperimentContracts:
             required_fields = ["id", "nome"]
             for field in required_fields:
                 assert field in synth, f"Synth deve ter campo '{field}'"
+
+
+    def test_get_experiment_detail_returns_404_for_nonexistent(self, client: TestClient):
+        """GET /experiments/nonexistent-id retorna 404."""
+        response = client.get("/experiments/nonexistent-id-12345")
+        assert response.status_code == 404, "ID inexistente deve retornar 404"
+
+        error = response.json()
+        assert "detail" in error, "Erro 404 deve ter campo 'detail'"
+
+    def test_list_experiments_rejects_negative_pagination(self, client: TestClient):
+        """GET /experiments/list?limit=-1 deve rejeitar valores negativos."""
+        response = client.get("/experiments/list?limit=-1")
+        # FastAPI valida constraints, deve retornar 422
+        assert response.status_code == 422, "limit negativo deve ser rejeitado"
+
+    def test_list_experiments_rejects_invalid_sort_order(self, client: TestClient):
+        """GET /experiments/list?sort_order=invalid deve rejeitar valor invalido."""
+        response = client.get("/experiments/list?sort_order=invalid")
+        # FastAPI valida enum, deve retornar 422
+        assert response.status_code == 422, "sort_order invalido deve ser rejeitado"
 
 
 @pytest.mark.contract

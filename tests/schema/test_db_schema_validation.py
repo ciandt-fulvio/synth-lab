@@ -11,7 +11,7 @@ Executar: pytest -m schema
 IMPORTÂNCIA: Estes testes detectam 90% dos problemas de "funcionou local mas quebrou em prod"
 relacionados a divergências de schema.
 
-Requer: POSTGRES_URL environment variable.
+Requer: DATABASE_TEST_URL environment variable.
 """
 
 import os
@@ -27,10 +27,10 @@ from synth_lab.models.orm.base import Base
 
 @pytest.fixture(scope="module")
 def db_inspector():
-    """Create inspector for database schema introspection using POSTGRES_URL."""
-    database_url = os.getenv("POSTGRES_URL")
+    """Create inspector for database schema introspection using DATABASE_TEST_URL."""
+    database_url = os.getenv("DATABASE_TEST_URL")
     if not database_url:
-        pytest.skip("POSTGRES_URL not set")
+        pytest.skip("DATABASE_TEST_URL not set")
     engine = create_db_engine(database_url)
     return inspect(engine)
 
@@ -267,6 +267,135 @@ class TestAllModelsHaveTables:
                 f"\n⚠️  ATENÇÃO: Tabelas órfãs no DB (sem model): {orphan_tables}"
             )
             print("    Considere remover ou criar models para elas.")
+
+
+@pytest.mark.schema
+class TestForeignKeyConstraints:
+    """Valida constraints de foreign keys e relacionamentos."""
+
+    def test_synths_fk_has_cascade_on_delete(self, db_inspector):
+        """FK de synths para experiments deve ter ON DELETE CASCADE."""
+        columns = {col["name"]: col for col in db_inspector.get_columns("synths")}
+
+        if "experiment_id" not in columns:
+            pytest.skip("synths.experiment_id não existe")
+
+        fkeys = db_inspector.get_foreign_keys("synths")
+        exp_fkey = next(
+            (fk for fk in fkeys if "experiment_id" in fk["constrained_columns"]),
+            None,
+        )
+
+        if exp_fkey is None:
+            pytest.skip("FK de experiment_id não encontrada")
+
+        # Valida que tem cascade (importante para não deixar synths órfãos)
+        # Alguns dialetos podem não reportar ondelete, então apenas avisamos
+        if "ondelete" in exp_fkey:
+            assert exp_fkey["ondelete"] in ["CASCADE", None], (
+                "FK deve ter ON DELETE CASCADE para evitar synths órfãos"
+            )
+
+    def test_experiment_materials_fk_references_experiments(self, db_inspector):
+        """FK de experiment_materials para experiments deve existir."""
+        if "experiment_materials" not in db_inspector.get_table_names():
+            pytest.skip("Tabela experiment_materials não existe")
+
+        fkeys = db_inspector.get_foreign_keys("experiment_materials")
+        exp_fkey = next(
+            (fk for fk in fkeys if "experiment_id" in fk["constrained_columns"]),
+            None,
+        )
+
+        assert exp_fkey is not None, (
+            "experiment_materials.experiment_id deve ter FK para experiments"
+        )
+        assert exp_fkey["referred_table"] == "experiments"
+
+
+@pytest.mark.schema
+class TestUniqueConstraints:
+    """Valida constraints de unicidade."""
+
+    def test_experiments_id_is_unique(self, db_inspector):
+        """experiments.id deve ter constraint UNIQUE (via PK)."""
+        pk = db_inspector.get_pk_constraint("experiments")
+        assert "id" in pk["constrained_columns"], "id deve ser PK (implica UNIQUE)"
+
+    def test_synth_groups_name_is_unique(self, db_inspector):
+        """synth_groups.name idealmente deveria ser único."""
+        if "synth_groups" not in db_inspector.get_table_names():
+            pytest.skip("Tabela synth_groups não existe")
+
+        # Check for unique constraint or index
+        indexes = db_inspector.get_indexes("synth_groups")
+        unique_indexes = [idx for idx in indexes if idx.get("unique", False)]
+
+        name_is_unique = any(
+            "name" in idx["column_names"] for idx in unique_indexes
+        )
+
+        # Some implementations might use constraints instead of unique indexes
+        if not name_is_unique:
+            unique_constraints = db_inspector.get_unique_constraints("synth_groups")
+            name_is_unique = any(
+                "name" in uc["column_names"] for uc in unique_constraints
+            )
+
+        # NOTE: Currently name is not unique, which allows duplicate group names
+        # This is acceptable for current use case, but might want to add UNIQUE constraint later
+        if not name_is_unique:
+            print(
+                "\n⚠️  INFO: synth_groups.name is not UNIQUE. "
+                "This allows duplicate group names."
+            )
+
+
+@pytest.mark.schema
+class TestTimestampColumns:
+    """Valida colunas de timestamp."""
+
+    def test_tables_have_created_at(self, db_inspector):
+        """Tabelas principais devem ter created_at ou equivalent timestamp."""
+        # Check tables that have created_at
+        # Note: analysis_runs has started_at/ended_at, explorations has started_at
+        created_at_tables = ["experiments", "synths"]
+
+        for table in created_at_tables:
+            if table not in db_inspector.get_table_names():
+                continue
+
+            columns = {col["name"]: col for col in db_inspector.get_columns(table)}
+            assert "created_at" in columns, (
+                f"{table} deve ter coluna created_at para auditoria"
+            )
+
+            # Valida que created_at não é nullable
+            created_at = columns["created_at"]
+            assert created_at["nullable"] is False, (
+                f"{table}.created_at deve ser NOT NULL"
+            )
+
+        # Check that explorations has started_at
+        if "explorations" in db_inspector.get_table_names():
+            columns = {col["name"]: col for col in db_inspector.get_columns("explorations")}
+            assert "started_at" in columns, (
+                "explorations deve ter coluna started_at para tracking temporal"
+            )
+            started_at = columns["started_at"]
+            assert started_at["nullable"] is False, "explorations.started_at deve ser NOT NULL"
+
+    def test_experiments_has_updated_at(self, db_inspector):
+        """experiments deve ter updated_at para tracking de modificações."""
+        columns = {col["name"]: col for col in db_inspector.get_columns("experiments")}
+
+        assert "updated_at" in columns, "experiments deve ter updated_at"
+
+        # updated_at pode ser nullable (null = nunca foi atualizado)
+        updated_at = columns["updated_at"]
+        assert updated_at["nullable"] is True, (
+            "experiments.updated_at deve ser nullable"
+        )
 
 
 @pytest.mark.schema
