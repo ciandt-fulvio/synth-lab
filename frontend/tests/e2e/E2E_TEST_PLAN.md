@@ -61,10 +61,10 @@ tests/e2e/
 ├── smoke/
 │   └── critical-flows.spec.ts (P0: smoke tests para production)
 ├── experiments/
-│   ├── list.spec.ts (listagem, filtros, busca, ordenação)
-│   ├── crud.spec.ts (criar, visualizar, deletar)
-│   ├── detail-tabs.spec.ts (navegação entre tabs)
-│   └── materials.spec.ts (upload de materiais)
+│   ├── list.spec.ts (listagem, filtros, busca, ordenação) ✅
+│   ├── crud.spec.ts (criar, visualizar, deletar) ✅
+│   ├── detail-tabs.spec.ts (navegação entre tabs) ✅
+│   └── materials.spec.ts (upload de materiais) ✅
 ├── interviews/
 │   └── create.spec.ts (modal de criação, validação)
 ├── synths/
@@ -181,15 +181,15 @@ test.describe('[Módulo] - [Funcionalidade] @tag1 @tag2', () => {
 4. [ ] Revisar e padronizar `smoke/critical-flows.spec.ts`
 5. [ ] Revisar e padronizar `experiments/crud.spec.ts`
 
-### Fase 2: Novos Testes P0 (hoje/amanhã)
-6. [ ] Implementar `experiments/list.spec.ts`
-7. [ ] Implementar `interviews/create.spec.ts`
-8. [ ] Implementar `synths/list.spec.ts`
+### Fase 2: Novos Testes P0 ✅ CONCLUÍDO
+6. ✅ Implementar `experiments/list.spec.ts`
+7. ✅ Implementar `interviews/create.spec.ts`
+8. ✅ Implementar `synths/list.spec.ts`
 
-### Fase 3: Testes P1 (esta semana)
-9. [ ] Implementar `experiments/detail-tabs.spec.ts`
-10. [ ] Implementar `synths/detail.spec.ts`
-11. [ ] Implementar `experiments/materials.spec.ts`
+### Fase 3: Testes P1 ✅ CONCLUÍDO
+9. ✅ Implementar `experiments/detail-tabs.spec.ts` (DT001-DT023)
+10. ✅ Implementar `synths/detail.spec.ts` (Y014-Y027)
+11. ✅ Implementar `experiments/materials.spec.ts` (MAT001-MAT020)
 
 ### Fase 4: Integração CI/CD
 12. [ ] Atualizar README.md com comandos atualizados
