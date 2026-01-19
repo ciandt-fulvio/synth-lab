@@ -231,7 +231,8 @@ session: Session | None = None):
         experiment_id: str,
         name: str | None = None,
         hypothesis: str | None = None,
-        description: str | None = None) -> Experiment | None:
+        description: str | None = None,
+        synth_group_id: str | None = None) -> Experiment | None:
         """
         Update an experiment.
 
@@ -240,18 +241,20 @@ session: Session | None = None):
             name: New name (optional).
             hypothesis: New hypothesis (optional).
             description: New description (optional).
+            synth_group_id: New synth group ID (optional).
 
         Returns:
             Updated experiment if found, None otherwise.
         """
-        return self._update_orm(experiment_id, name, hypothesis, description)
+        return self._update_orm(experiment_id, name, hypothesis, description, synth_group_id)
 
     def _update_orm(
         self,
         experiment_id: str,
         name: str | None = None,
         hypothesis: str | None = None,
-        description: str | None = None) -> Experiment | None:
+        description: str | None = None,
+        synth_group_id: str | None = None) -> Experiment | None:
         """Update experiment using ORM."""
         stmt = select(ExperimentORM).where(
             ExperimentORM.id == experiment_id,
@@ -266,6 +269,8 @@ session: Session | None = None):
             orm_exp.hypothesis = hypothesis
         if description is not None:
             orm_exp.description = description
+        if synth_group_id is not None:
+            orm_exp.synth_group_id = synth_group_id
 
         orm_exp.updated_at = datetime.now(timezone.utc).isoformat()
         self._flush()

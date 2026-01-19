@@ -137,7 +137,8 @@ class ExperimentService:
         experiment_id: str,
         name: str | None = None,
         hypothesis: str | None = None,
-        description: str | None = None) -> Experiment | None:
+        description: str | None = None,
+        synth_group_id: str | None = None) -> Experiment | None:
         """
         Update an experiment.
 
@@ -146,6 +147,7 @@ class ExperimentService:
             name: New name (optional).
             hypothesis: New hypothesis (optional).
             description: New description (optional).
+            synth_group_id: New synth group ID (optional).
 
         Returns:
             Updated experiment if found, None otherwise.
@@ -172,7 +174,8 @@ class ExperimentService:
             experiment_id,
             name=name,
             hypothesis=hypothesis,
-            description=description)
+            description=description,
+            synth_group_id=synth_group_id)
 
     def delete_experiment(self, experiment_id: str) -> bool:
         """
