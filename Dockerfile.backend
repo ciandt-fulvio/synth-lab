@@ -32,6 +32,10 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy application code
 COPY . .
 
+# Copy data directory to the location expected by the installed package
+# (config.py uses Path(__file__).parent.parent.parent.parent / "data")
+COPY data/ /usr/local/lib/python3.13/data/
+
 # Make entrypoint script executable
 RUN chmod +x scripts/docker-entrypoint-backend.sh
 

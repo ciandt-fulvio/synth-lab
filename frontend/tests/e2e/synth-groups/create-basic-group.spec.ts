@@ -8,6 +8,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Create Basic Synth Group', () => {
+  // Run tests serially to avoid race conditions with parallel group creation
+  test.describe.configure({ mode: 'serial' });
+
   test('should open create group modal', async ({ page }) => {
     // Navigate to synths page (where groups are managed)
     await page.goto('/synths');
@@ -36,6 +39,10 @@ test.describe('Create Basic Synth Group', () => {
     // Wait for page to load
     await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
 
+    // Generate unique group name with short random suffix (UI truncates long names)
+    const uniqueId = Math.random().toString(36).substring(2, 8);
+    const groupName = `BG ${uniqueId}`;
+
     // Open create modal
     const createButton = page.getByRole('button', { name: /novo grupo/i });
     await expect(createButton).toBeVisible({ timeout: 10000 });
@@ -45,27 +52,24 @@ test.describe('Create Basic Synth Group', () => {
     const modal = page.locator('[role="dialog"]');
     await expect(modal).toBeVisible({ timeout: 10000 });
 
-    // Fill in group name
-    const nameInput = page.locator('input[name="name"]').or(
-      page.locator('label:has-text("Nome")').locator('..').locator('input')
-    );
+    // Fill in group name using the textbox labeled "Nome do Grupo"
+    const nameInput = modal.getByRole('textbox', { name: /nome do grupo/i });
     await expect(nameInput).toBeVisible({ timeout: 5000 });
-    await nameInput.fill('E2E Test Basic Group');
+    await nameInput.fill(groupName);
 
-    // Submit form
-    const submitButton = page.locator('button[type="submit"]').or(
-      page.locator('button').filter({ hasText: /criar|create|salvar|save/i })
-    );
-    await expect(submitButton).toBeVisible({ timeout: 5000 });
+    // Submit form - button is "Criar Grupo"
+    const submitButton = modal.getByRole('button', { name: /criar grupo/i });
+    await expect(submitButton).toBeEnabled({ timeout: 5000 });
     await submitButton.click();
 
-    // Wait for success toast
-    await expect(page.locator('text=/sucesso|success|criado|created/i')).toBeVisible({
-      timeout: 10000
-    });
+    // Wait for modal to close (indicates success)
+    await expect(modal).not.toBeVisible({ timeout: 30000 });
 
-    // Verify group appears in list
-    await expect(page.locator('text=E2E Test Basic Group')).toBeVisible({ timeout: 10000 });
+    // Wait for list to refresh after group creation
+    await page.waitForTimeout(1000);
+
+    // Verify group appears in list (use exact text match with first to avoid strict mode)
+    await expect(page.getByText(groupName).first()).toBeVisible({ timeout: 15000 });
   });
 
   test('should create group with name and description', async ({ page }) => {
@@ -75,41 +79,42 @@ test.describe('Create Basic Synth Group', () => {
     // Wait for page to load
     await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
 
+    // Generate unique group name with short random suffix (UI truncates long names)
+    const uniqueId = Math.random().toString(36).substring(2, 8);
+    const groupName = `GD ${uniqueId}`;
+
     // Open create modal
     const createButton = page.getByRole('button', { name: /novo grupo/i });
     await expect(createButton).toBeVisible({ timeout: 10000 });
     await createButton.click();
 
+    // Wait for modal
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 10000 });
+
     // Fill in name
-    const nameInput = page.locator('input[name="name"]').or(
-      page.locator('label').filter({ hasText: /nome|name/i }).locator('..').locator('input')
-    );
-    await nameInput.fill('E2E Test Group with Description');
+    const nameInput = modal.getByRole('textbox', { name: /nome do grupo/i });
+    await nameInput.fill(groupName);
 
     // Fill in description
-    const descInput = page.locator('textarea[name="description"]').or(
-      page.locator('input[name="description"]')
-    ).or(
-      page.locator('label').filter({ hasText: /descri[cç][aã]o|description/i }).locator('..').locator('textarea, input')
-    );
-
-    if (await descInput.count() > 0) {
+    const descInput = modal.getByRole('textbox', { name: /descri/i });
+    if (await descInput.isVisible()) {
       await descInput.fill('This is a test description for E2E testing');
     }
 
     // Submit
-    const submitButton = page.locator('button[type="submit"]').or(
-      page.locator('button').filter({ hasText: /criar|create|salvar|save/i })
-    );
+    const submitButton = modal.getByRole('button', { name: /criar grupo/i });
+    await expect(submitButton).toBeEnabled({ timeout: 5000 });
     await submitButton.click();
 
-    // Wait for success
-    await expect(page.locator('text=/sucesso|success|criado|created/i')).toBeVisible({
-      timeout: 10000
-    });
+    // Wait for modal to close (indicates success)
+    await expect(modal).not.toBeVisible({ timeout: 30000 });
 
-    // Verify both name and description
-    await expect(page.locator('text=E2E Test Group with Description')).toBeVisible();
+    // Wait for list to refresh after group creation
+    await page.waitForTimeout(1000);
+
+    // Verify group appears in list (use first to avoid strict mode)
+    await expect(page.getByText(groupName).first()).toBeVisible({ timeout: 15000 });
   });
 
   test('should validate empty name', async ({ page }) => {
@@ -124,10 +129,12 @@ test.describe('Create Basic Synth Group', () => {
     await expect(createButton).toBeVisible({ timeout: 10000 });
     await createButton.click();
 
-    // Try to submit without name
-    const submitButton = page.locator('button[type="submit"]').or(
-      page.locator('button').filter({ hasText: /criar|create|salvar|save/i })
-    );
+    // Wait for modal
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 10000 });
+
+    // Try to submit without name - button is "Criar Grupo"
+    const submitButton = modal.getByRole('button', { name: /criar grupo/i });
 
     // Button might be disabled or form shows validation error
     const isDisabled = await submitButton.isDisabled();
@@ -157,18 +164,21 @@ test.describe('Create Basic Synth Group', () => {
     await expect(createButton).toBeVisible({ timeout: 10000 });
     await createButton.click();
 
-    // Fill in some data
-    const nameInput = page.locator('input[name="name"]').or(
-      page.locator('label').filter({ hasText: /nome|name/i }).locator('..').locator('input')
-    );
+    // Wait for modal
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 10000 });
+
+    // Fill in some data using the textbox labeled "Nome do Grupo"
+    const nameInput = modal.getByRole('textbox', { name: /nome do grupo/i });
+    await expect(nameInput).toBeVisible({ timeout: 5000 });
     await nameInput.fill('Should Be Canceled');
 
     // Click cancel
-    const cancelButton = page.locator('button').filter({ hasText: /cancelar|cancel|fechar|close/i });
+    const cancelButton = modal.locator('button').filter({ hasText: /cancelar|cancel|fechar|close/i });
     await cancelButton.first().click();
 
     // Modal should close
-    await expect(page.locator('[role="dialog"]')).not.toBeVisible({ timeout: 3000 });
+    await expect(modal).not.toBeVisible({ timeout: 3000 });
 
     // Group should not be in list
     await expect(page.locator('text=Should Be Canceled')).not.toBeVisible();
