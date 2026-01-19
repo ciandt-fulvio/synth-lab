@@ -46,7 +46,7 @@ class SynthGroup(Base):
     synths: Mapped[list["Synth"]] = relationship(
         "Synth",
         back_populates="synth_group",
-        cascade="all, delete-orphan",
+        cascade="save-update, merge",
     )
 
     # Indexes

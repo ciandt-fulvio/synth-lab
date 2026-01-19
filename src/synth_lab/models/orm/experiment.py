@@ -60,9 +60,10 @@ class Experiment(Base, TimestampMixin, SoftDeleteMixin):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     synth_group_id: Mapped[str] = mapped_column(
         String(50),
-        ForeignKey("synth_groups.id"),
+        ForeignKey("synth_groups.id", ondelete="SET DEFAULT"),
         nullable=False,
-        default="grp_00000001"
+        default="grp_00000001",
+        server_default="grp_00000001"
     )
     scorecard_data: Mapped[dict[str, Any] | None] = mapped_column(MutableJSON, nullable=True)
 

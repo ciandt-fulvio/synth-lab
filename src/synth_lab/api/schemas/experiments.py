@@ -164,6 +164,10 @@ class ExperimentUpdate(BaseModel):
         max_length=2000,
         description="Additional context, links, references.")
 
+    synth_group_id: str | None = Field(
+        default=None,
+        description="ID of the synth group to use for this experiment.")
+
 
 # =============================================================================
 # Related Entity Summaries (for ExperimentDetail)
