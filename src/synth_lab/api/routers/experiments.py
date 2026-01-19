@@ -200,6 +200,14 @@ async def create_experiment(data: ExperimentCreateSchema) -> ExperimentResponse:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(e))
+    except Exception as e:
+        # Handle database integrity errors (e.g., foreign key violations)
+        if "foreign key" in str(e).lower() or "IntegrityError" in str(type(e).__name__):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid reference: {str(e)}")
+        # Re-raise other exceptions
+        raise
 
 
 class ScorecardEstimateRequest(BaseModel):
@@ -427,7 +435,7 @@ async def update_experiment(
     experiment_id: str,
     data: ExperimentUpdateSchema) -> ExperimentResponse:
     """
-    Update an experiment (name, hypothesis, description only).
+    Update an experiment (name, hypothesis, description, synth_group_id).
 
     To update the scorecard, use PUT /experiments/{id}/scorecard.
     """
@@ -437,7 +445,8 @@ async def update_experiment(
             experiment_id,
             name=data.name,
             hypothesis=data.hypothesis,
-            description=data.description)
+            description=data.description,
+            synth_group_id=data.synth_group_id)
         if updated is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

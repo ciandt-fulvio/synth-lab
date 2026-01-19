@@ -75,11 +75,12 @@ class TestSynthGroupServiceCreate:
         self, service: SynthGroupService, session: Session
     ):
         """Create synth group with custom ID."""
+        # Use valid hex ID matching pattern '^grp_[a-f0-9]{8}$'
         result = service.create_group(
-            name="Custom ID Group", group_id="grp_custom01"
+            name="Custom ID Group", group_id="grp_abcd1234"
         )
 
-        assert result.id == "grp_custom01"
+        assert result.id == "grp_abcd1234"
         session.commit()
 
     def test_create_group_validates_empty_name(self, service: SynthGroupService):

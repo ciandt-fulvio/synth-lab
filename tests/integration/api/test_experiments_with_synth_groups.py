@@ -260,7 +260,7 @@ class TestExperimentsWithCustomGroup:
         exp2 = exp2_resp.json()
 
         # List experiments
-        list_response = client.get("/experiments")
+        list_response = client.get("/experiments/list")
 
         assert list_response.status_code == 200
         experiments = list_response.json()["data"]

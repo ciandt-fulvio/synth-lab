@@ -287,20 +287,22 @@ def _load_material_content(
     material_id: str,
     experiment_id: str,
     material_repository,
+    storage_client=None,  # Optional for testing
 ) -> str:
     """
     Core business logic for loading material content.
 
     This function is separated from the tool wrapper for testability.
-    Uses get_object_bytes from storage_client directly for S3 access.
+    Uses generate_view_url from storage_client to create presigned URLs.
 
     Args:
         material_id: ID of the material to load
         experiment_id: ID of the experiment (for validation)
         material_repository: Repository for fetching material metadata
+        storage_client: Optional storage client for testing (unused, kept for backward compatibility)
 
     Returns:
-        Data URI with base64-encoded content or error message
+        Presigned URL for viewing the material or error message
     """
     with _tracer.start_as_current_span(
         "Tool: ver_material",
