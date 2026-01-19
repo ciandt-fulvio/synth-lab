@@ -20,8 +20,20 @@ COPY src/ ./src/
 # Install dependencies using uv
 RUN uv pip install --system -e .
 
+# Copy alembic configuration
+COPY src/synth_lab/alembic/ ./src/synth_lab/alembic/
+
 # Expose port (Railway sets PORT env var)
 EXPOSE 8000
 
-# Start command
-CMD ["sh", "-c", "uvicorn synth_lab.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Create entrypoint script that runs migrations before starting the server
+RUN echo '#!/bin/sh\n\
+set -e\n\
+echo "Running Alembic migrations..."\n\
+alembic -c src/synth_lab/alembic/alembic.ini upgrade head\n\
+echo "Migrations completed. Starting server..."\n\
+exec uvicorn synth_lab.api.main:app --host 0.0.0.0 --port ${PORT:-8000}\n\
+' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+
+# Start command with migrations
+CMD ["/app/entrypoint.sh"]
