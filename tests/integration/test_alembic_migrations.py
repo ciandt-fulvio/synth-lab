@@ -165,28 +165,13 @@ class TestAlembicMigrationsPostgres:
         engine.dispose()
 
     def test_experiments_table_schema(self, test_database_url: str):
-        """Test that experiments table has expected columns."""
+        """Test that experiments table has expected columns.
+
+        Note: This test uses the database as set up by conftest.py auto-setup fixture.
+        It does NOT drop tables - that would break other tests running in the same session.
+        """
         # Use test_database_url from conftest.py fixture (ensures safety check)
-        config = get_alembic_config(test_database_url)
-
-        # Clean up before test
-        try:
-            from sqlalchemy import create_engine, text
-            engine = create_engine(test_database_url)
-            with engine.connect() as conn:
-                conn.execute(text("DROP TABLE IF EXISTS alembic_version CASCADE"))
-                result = conn.execute(text("""
-                    SELECT tablename FROM pg_tables
-                    WHERE schemaname = 'public'
-                """))
-                for table in result:
-                    conn.execute(text(f'DROP TABLE IF EXISTS "{table[0]}" CASCADE'))
-                conn.commit()
-            engine.dispose()
-        except Exception:
-            pass
-
-        command.upgrade(config, "head")
+        # Database is already set up with migrations by the auto_setup_test_database fixture
 
         engine = create_engine(test_database_url)
         inspector = inspect(engine)
@@ -208,28 +193,13 @@ class TestAlembicMigrationsPostgres:
         engine.dispose()
 
     def test_version_tracked_after_upgrade(self, test_database_url: str):
-        """Test that Alembic tracks version after upgrade."""
+        """Test that Alembic tracks version after upgrade.
+
+        Note: This test uses the database as set up by conftest.py auto-setup fixture.
+        It does NOT drop tables - that would break other tests running in the same session.
+        """
         # Use test_database_url from conftest.py fixture (ensures safety check)
-        config = get_alembic_config(test_database_url)
-
-        # Clean up before test
-        try:
-            from sqlalchemy import create_engine, text
-            engine = create_engine(test_database_url)
-            with engine.connect() as conn:
-                conn.execute(text("DROP TABLE IF EXISTS alembic_version CASCADE"))
-                result = conn.execute(text("""
-                    SELECT tablename FROM pg_tables
-                    WHERE schemaname = 'public'
-                """))
-                for table in result:
-                    conn.execute(text(f'DROP TABLE IF EXISTS "{table[0]}" CASCADE'))
-                conn.commit()
-            engine.dispose()
-        except Exception:
-            pass
-
-        command.upgrade(config, "head")
+        # Database is already set up with migrations by the auto_setup_test_database fixture
 
         engine = create_engine(test_database_url)
         with engine.connect() as conn:

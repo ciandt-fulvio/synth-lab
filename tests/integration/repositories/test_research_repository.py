@@ -31,19 +31,26 @@ from synth_lab.repositories.research_repository import (
 @pytest.fixture(scope="module")
 def research_db_engine(test_database_url: str):
     """
-    Create database engine and tables for research repository tests.
+    Create database engine for research repository tests.
 
-    Scope is module so tables are created once for all tests in this module.
+    Scope is module so engine is created once for all tests in this module.
+
+    Note: Tables are set up by auto_setup_test_database fixture in conftest.py.
+    We do NOT drop tables here as that would break other tests in the suite.
     """
     engine = create_engine(test_database_url)
 
-    # Create all tables from ORM models
-    Base.metadata.create_all(engine)
+    # Tables are already created by auto_setup_test_database - just verify
+    from sqlalchemy import inspect
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+    if "research_executions" not in tables:
+        # If somehow tables don't exist, create them
+        Base.metadata.create_all(engine)
 
     yield engine
 
-    # Cleanup
-    Base.metadata.drop_all(engine)
+    # Do NOT drop tables - they are shared across the test suite
     engine.dispose()
 
 

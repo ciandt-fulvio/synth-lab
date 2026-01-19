@@ -25,6 +25,7 @@ export function SynthCard({ synth, onClick, groupName }: SynthCardProps) {
     <Card
       className="cursor-pointer hover:shadow-lg transition-shadow"
       onClick={() => onClick(synth.id)}
+      data-testid="synth-card"
     >
       <CardHeader className="flex flex-row items-center gap-4">
         <Avatar className="h-16 w-16">
