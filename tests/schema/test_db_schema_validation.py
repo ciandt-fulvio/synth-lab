@@ -26,13 +26,50 @@ from synth_lab.models.orm.base import Base
 
 
 @pytest.fixture(scope="module")
-def db_inspector():
-    """Create inspector for database schema introspection using DATABASE_TEST_URL."""
+def db_inspector(request):
+    """Create inspector for database schema introspection using DATABASE_TEST_URL.
+
+    This fixture ensures the database is properly set up before running schema tests.
+    If tables are missing (possibly dropped by other tests), it will re-run migrations.
+    """
     database_url = os.getenv("DATABASE_TEST_URL")
     if not database_url:
         pytest.skip("DATABASE_TEST_URL not set")
-    engine = create_db_engine(database_url)
-    return inspect(engine)
+
+    from sqlalchemy import create_engine
+    engine = create_engine(database_url)
+
+    # Check if tables exist - if not, re-run migrations
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+
+    if "experiments" not in tables:
+        # Tables were dropped by another test - need to re-run migrations
+        print("\n⚠️  Tables missing - re-running migrations for schema tests...")
+        from alembic import command
+        from alembic.config import Config
+        from pathlib import Path
+
+        project_root = Path(__file__).parent.parent.parent
+        alembic_ini = project_root / "src" / "synth_lab" / "alembic" / "alembic.ini"
+
+        config = Config(str(alembic_ini))
+        config.set_main_option(
+            "script_location", str(project_root / "src" / "synth_lab" / "alembic")
+        )
+        os.environ["DATABASE_URL"] = database_url
+
+        command.upgrade(config, "head")
+        print("✅ Migrations re-applied for schema tests")
+
+        # Recreate engine and inspector after migrations
+        engine.dispose()
+        engine = create_engine(database_url)
+        inspector = inspect(engine)
+
+    yield inspector
+
+    engine.dispose()
 
 
 @pytest.mark.schema

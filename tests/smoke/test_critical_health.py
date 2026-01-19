@@ -18,16 +18,21 @@ import pytest
 from sqlalchemy import text
 
 
+def _get_test_db_url() -> str:
+    """Get database URL for testing (prefers DATABASE_TEST_URL)."""
+    return os.getenv("DATABASE_TEST_URL") or os.getenv("DATABASE_URL")
+
+
 @pytest.mark.smoke
 class TestDatabaseHealth:
     """Valida que banco de dados está acessível e configurado."""
 
     def test_database_url_is_configured(self):
-        """DATABASE_URL deve estar configurada."""
-        database_url = os.getenv("DATABASE_URL")
+        """DATABASE_URL ou DATABASE_TEST_URL deve estar configurada."""
+        database_url = _get_test_db_url()
         assert database_url is not None, (
-            "DATABASE_URL não configurada! "
-            "Configure com: export DATABASE_URL='postgresql://...'"
+            "DATABASE_URL ou DATABASE_TEST_URL não configurada! "
+            "Configure com: export DATABASE_TEST_URL='postgresql://...'"
         )
         assert database_url.startswith("postgresql"), (
             f"DATABASE_URL deve ser PostgreSQL. Got: {database_url[:20]}"
@@ -35,21 +40,24 @@ class TestDatabaseHealth:
 
     def test_database_connection_works(self):
         """Consegue conectar ao banco de dados."""
-        from synth_lab.infrastructure.database_v2 import create_db_engine
+        from sqlalchemy import create_engine
 
-        engine = create_db_engine()
+        db_url = _get_test_db_url()
+        engine = create_engine(db_url)
         with engine.connect() as conn:
             result = conn.execute(text("SELECT 1")).scalar()
             assert result == 1, "Query básica falhou"
+        engine.dispose()
 
     def test_database_has_tables(self):
         """Banco de dados tem tabelas essenciais criadas."""
-        from sqlalchemy import inspect
-        from synth_lab.infrastructure.database_v2 import create_db_engine
+        from sqlalchemy import inspect, create_engine
 
-        engine = create_db_engine()
+        db_url = _get_test_db_url()
+        engine = create_engine(db_url)
         inspector = inspect(engine)
         tables = inspector.get_table_names()
+        engine.dispose()
 
         # Tabelas essenciais devem existir
         essential_tables = ["experiments", "synths"]
@@ -173,11 +181,11 @@ class TestBasicCRUD:
 
     def test_can_insert_and_read_experiment(self):
         """Consegue criar e ler um experimento básico."""
-        from sqlalchemy import text
-        from synth_lab.infrastructure.database_v2 import create_db_engine
+        from sqlalchemy import text, create_engine
         import uuid
 
-        engine = create_db_engine()
+        db_url = _get_test_db_url()
+        engine = create_engine(db_url)
         test_exp_id = f"test-exp-{uuid.uuid4()}"
         test_group_id = f"test-group-{uuid.uuid4()}"
 
