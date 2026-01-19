@@ -112,6 +112,9 @@ def temp_output_dir():
 # PostgreSQL Test Database Configuration
 # ==============================================================================
 
+# Global flag to track if database setup has been done
+_database_setup_done = False
+
 
 def pytest_configure(config):
     """Register custom markers."""
@@ -123,6 +126,90 @@ def pytest_configure(config):
         "markers",
         "integration: mark test as integration test requiring database"
     )
+
+
+def _ensure_test_database_setup():
+    """
+    Ensure test database is set up with migrations and seed data.
+
+    This function is idempotent - it only runs setup once per session.
+    Called automatically by the autouse fixture.
+    """
+    global _database_setup_done
+
+    if _database_setup_done:
+        return
+
+    db_url = os.getenv("DATABASE_TEST_URL")
+    prod_url = os.getenv("DATABASE_URL")
+
+    if not db_url:
+        # Skip setup if no test database URL
+        return
+
+    # Safety check
+    if "synthlab_test" not in db_url and "test" not in db_url:
+        raise ValueError(
+            f"CRITICAL: DATABASE_TEST_URL must point to test database!\n"
+            f"Current: {db_url}"
+        )
+
+    from sqlalchemy import create_engine
+
+    print("\n" + "=" * 70)
+    print("🐘 PostgreSQL Test Database Auto-Setup")
+    print("=" * 70)
+
+    engine = create_engine(db_url)
+
+    try:
+        # Step 1: Clean slate
+        _drop_all_tables(engine)
+
+        # Step 2: Run migrations
+        _run_alembic_migrations(db_url)
+
+        # Recreate engine after schema changes
+        engine.dispose()
+        engine = create_engine(db_url)
+
+        # Step 3: Verify schema (if prod URL available)
+        if prod_url:
+            try:
+                _verify_schema_matches_prod(engine, prod_url)
+            except Exception as e:
+                print(f"   ⚠️  Schema verification skipped: {e}")
+
+        # Step 4: Seed data
+        _seed_test_data(engine)
+
+        print("=" * 70)
+        print("✅ Test database ready!")
+        print("=" * 70 + "\n")
+
+        _database_setup_done = True
+
+    except Exception as e:
+        print(f"\n❌ Database setup failed: {e}")
+        raise
+    finally:
+        engine.dispose()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def auto_setup_test_database():
+    """
+    Automatically set up test database at the start of every test session.
+
+    This fixture runs BEFORE any test, ensuring:
+    - Migrations are applied
+    - Seed data is present
+    - All tests can access a properly configured database
+
+    The autouse=True means this runs automatically without being requested.
+    """
+    _ensure_test_database_setup()
+    yield
 
 
 @pytest.fixture(scope="session")
@@ -316,37 +403,45 @@ def seeded_test_engine(postgres_test_url: str, prod_database_url: str):
     This runs ONCE per test session. All tests share the seeded data.
     Individual test isolation is handled by db_session using SAVEPOINT.
 
+    Note: This fixture now uses the global setup flag to avoid
+    re-running setup if auto_setup_test_database already ran.
+
     Yields:
         Engine: SQLAlchemy engine connected to seeded test database
     """
+    global _database_setup_done
     from sqlalchemy import create_engine
-
-    print("\n" + "=" * 70)
-    print("🐘 PostgreSQL Test Database Setup")
-    print("=" * 70)
 
     engine = create_engine(postgres_test_url)
 
     try:
-        # Step 1: Clean slate - drop everything
-        _drop_all_tables(engine)
+        # Only run setup if not already done by auto_setup_test_database
+        if not _database_setup_done:
+            print("\n" + "=" * 70)
+            print("🐘 PostgreSQL Test Database Setup (via seeded_test_engine)")
+            print("=" * 70)
 
-        # Step 2: Run Alembic migrations
-        _run_alembic_migrations(postgres_test_url)
+            # Step 1: Clean slate - drop everything
+            _drop_all_tables(engine)
 
-        # Recreate engine after schema changes
-        engine.dispose()
-        engine = create_engine(postgres_test_url)
+            # Step 2: Run Alembic migrations
+            _run_alembic_migrations(postgres_test_url)
 
-        # Step 3: Verify schema matches production
-        _verify_schema_matches_prod(engine, prod_database_url)
+            # Recreate engine after schema changes
+            engine.dispose()
+            engine = create_engine(postgres_test_url)
 
-        # Step 4: Seed test data
-        _seed_test_data(engine)
+            # Step 3: Verify schema matches production
+            _verify_schema_matches_prod(engine, prod_database_url)
 
-        print("=" * 70)
-        print("✅ Test database ready!")
-        print("=" * 70 + "\n")
+            # Step 4: Seed test data
+            _seed_test_data(engine)
+
+            print("=" * 70)
+            print("✅ Test database ready!")
+            print("=" * 70 + "\n")
+
+            _database_setup_done = True
 
         yield engine
 

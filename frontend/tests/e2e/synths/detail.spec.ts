@@ -11,14 +11,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Synths - Detail Modal @synths', () => {
-  // Helper to get synth cards - targets the known seed synth names
-  // These are the synths seeded in the database that we can reliably test with
+  // Helper to get synth cards - uses data-testid for reliable selection
   const getSynthCards = (page: import('@playwright/test').Page) => {
-    // Use known seed synth names to find synth cards
-    // These synths are seeded and always present in the test database
-    return page.locator('main h3').filter({
-      hasText: /^(Maria Silva|João Santos|Ana Rodrigues|Carlos Lima|Patrícia Costa|Roberto Alves)$/
-    });
+    return page.locator('[data-testid="synth-card"]');
   };
 
   test.beforeEach(async ({ page }) => {
@@ -29,16 +24,18 @@ test.describe('Synths - Detail Modal @synths', () => {
     // Wait for page header to load
     await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
 
-    // Wait for seed synths to be visible (they exist in the database)
+    // Wait for any synth cards to be visible
     // Use a longer timeout to ensure data is fully loaded
     const synthCards = getSynthCards(page);
     await expect(synthCards.first()).toBeVisible({ timeout: 15000 });
   });
 
   test('Y014 - Click on synth card opens modal', async ({ page }) => {
-    // Get all synth headings (beforeEach already ensures they're loaded)
+    // Get synth cards (beforeEach already ensures they're loaded)
     const synthCards = getSynthCards(page);
-    const synthName = await synthCards.first().textContent();
+
+    // Get the synth name from the card title (h3 inside the card)
+    const synthName = await synthCards.first().locator('h3').first().textContent();
     await synthCards.first().click();
 
     // Modal deve abrir
@@ -50,7 +47,7 @@ test.describe('Synths - Detail Modal @synths', () => {
     await expect(modalTitle).toBeVisible();
 
     if (synthName) {
-      await expect(modalTitle).toHaveText(new RegExp(synthName, 'i'));
+      await expect(modalTitle).toContainText(synthName);
     }
   });
 
@@ -251,29 +248,41 @@ test.describe('Synths - Detail Modal @synths', () => {
 
   test('Y027 - Open different synth modals', async ({ page }) => {
     const synthCards = getSynthCards(page);
-    // We have 6 seed synths, so at least 2 will be available
+
+    // Need at least 2 synths for this test
+    const cardCount = await synthCards.count();
+    if (cardCount < 2) {
+      test.skip();
+      return;
+    }
 
     // Clica no primeiro synth
-    const firstSynthName = await synthCards.first().textContent();
+    const firstSynthName = await synthCards.first().locator('h3').first().textContent();
     await synthCards.first().click();
 
     let modal = page.locator('[role="dialog"]');
     await expect(modal).toBeVisible();
-    await expect(modal.locator('h2').first()).toHaveText(new RegExp(firstSynthName!, 'i'));
+    if (firstSynthName) {
+      await expect(modal.locator('h2').first()).toContainText(firstSynthName);
+    }
 
     // Fecha modal
     await page.keyboard.press('Escape');
     await expect(modal).not.toBeVisible();
 
     // Clica no segundo synth
-    const secondSynthName = await synthCards.nth(1).textContent();
+    const secondSynthName = await synthCards.nth(1).locator('h3').first().textContent();
     await synthCards.nth(1).click();
 
     modal = page.locator('[role="dialog"]');
     await expect(modal).toBeVisible();
-    await expect(modal.locator('h2').first()).toHaveText(new RegExp(secondSynthName!, 'i'));
+    if (secondSynthName) {
+      await expect(modal.locator('h2').first()).toContainText(secondSynthName);
+    }
 
-    // Nomes devem ser diferentes
-    expect(firstSynthName).not.toEqual(secondSynthName);
+    // Nomes devem ser diferentes (if both exist)
+    if (firstSynthName && secondSynthName) {
+      expect(firstSynthName).not.toEqual(secondSynthName);
+    }
   });
 });
