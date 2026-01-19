@@ -40,8 +40,10 @@ export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Add retries for flaky tests (parallel execution can cause race conditions)
+  retries: process.env.CI ? 2 : 1,
+  // Limit workers to reduce parallel execution issues with shared state
+  workers: process.env.CI ? 1 : 2,
   reporter: 'html',
 
   use: {

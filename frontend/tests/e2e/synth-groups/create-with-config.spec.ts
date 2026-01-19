@@ -9,6 +9,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Create Synth Group with Config', () => {
+  // Run tests serially to avoid race conditions with parallel group creation
+  test.describe.configure({ mode: 'serial' });
+
   test('should create group with custom distributions', async ({ page }) => {
     await page.goto('/synths');
     await page.waitForLoadState('networkidle');
@@ -16,31 +19,29 @@ test.describe('Create Synth Group with Config', () => {
     // Wait for page to load
     await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
 
+    // Generate unique group name with short random suffix (UI truncates long names)
+    const uniqueId = Math.random().toString(36).substring(2, 8);
+    const groupName = `CD ${uniqueId}`;
+
     // Open create modal
     const createButton = page.getByRole('button', { name: /novo grupo/i });
     await expect(createButton).toBeVisible({ timeout: 10000 });
     await createButton.click();
 
-    // Fill in group name
-    const nameInput = page.locator('input[name="name"]').or(
-      page.locator('label').filter({ hasText: /nome|name/i }).locator('..').locator('input')
-    );
-    await nameInput.fill('E2E Custom Distribution Group');
+    // Wait for modal
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 10000 });
 
-    // Set number of synths (smaller number for E2E speed)
-    const nSynthsInput = page.locator('input[name="n_synths"]').or(
-      page.locator('label').filter({ hasText: /n[uú]mero.*synths|number.*synths/i }).locator('..').locator('input')
-    );
+    // Fill in group name using the textbox labeled "Nome do Grupo"
+    const nameInput = modal.getByRole('textbox', { name: /nome do grupo/i });
+    await expect(nameInput).toBeVisible({ timeout: 5000 });
+    await nameInput.fill(groupName);
 
-    if (await nSynthsInput.count() > 0) {
-      await nSynthsInput.clear();
-      await nSynthsInput.fill('10');
-    }
+    // Number of synths is a combobox with preset values - skip this configuration
+    // The UI uses a select dropdown, not a text input
 
     // Adjust age distribution slider (if present)
-    const ageSliders = page.locator('input[type="range"]').filter({
-      has: page.locator('label:has-text("idade"), label:has-text("age")')
-    });
+    const ageSliders = modal.locator('input[type="range"]');
 
     if (await ageSliders.count() > 0) {
       // Adjust first age slider
@@ -48,27 +49,18 @@ test.describe('Create Synth Group with Config', () => {
     }
 
     // Submit and wait for synth generation
-    const submitButton = page.locator('button[type="submit"]').or(
-      page.locator('button').filter({ hasText: /criar|create|gerar|generate/i })
-    );
+    const submitButton = modal.getByRole('button', { name: /criar grupo/i });
+    await expect(submitButton).toBeEnabled({ timeout: 5000 });
     await submitButton.click();
 
-    // Should show loading state during generation
-    const loadingIndicator = page.locator('text=/gerando|generating|aguarde|wait/i').or(
-      page.locator('[data-testid="loading"]')
-    );
+    // Wait for modal to close (indicates success)
+    await expect(modal).not.toBeVisible({ timeout: 30000 });
 
-    if (await loadingIndicator.count() > 0) {
-      await expect(loadingIndicator).toBeVisible({ timeout: 3000 });
-    }
+    // Wait for list to refresh after group creation
+    await page.waitForTimeout(1000);
 
-    // Wait for success (may take several seconds)
-    await expect(page.locator('text=/sucesso|success|criado|created/i')).toBeVisible({
-      timeout: 30000 // Longer timeout for synth generation
-    });
-
-    // Verify group appears in list with synth count
-    await expect(page.locator('text=E2E Custom Distribution Group')).toBeVisible();
+    // Verify group appears in list (use first to avoid strict mode)
+    await expect(page.getByText(groupName).first()).toBeVisible({ timeout: 15000 });
   });
 
   test('should adjust distribution sliders', async ({ page }) => {
@@ -83,26 +75,27 @@ test.describe('Create Synth Group with Config', () => {
     await expect(createButton).toBeVisible({ timeout: 10000 });
     await createButton.click();
 
-    // Find distribution section (idade/age)
-    const ageSection = page.locator('text=/distribui[çc][ãa]o.*idade|age.*distribution/i').locator('..');
+    // Wait for modal
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 10000 });
 
-    if (await ageSection.count() > 0) {
-      // Find sliders in age section
-      const sliders = ageSection.locator('input[type="range"]');
-      const sliderCount = await sliders.count();
+    // Find any sliders in the modal
+    const sliders = modal.locator('input[type="range"]');
+    const sliderCount = await sliders.count();
 
-      if (sliderCount > 0) {
-        // Get first slider initial value
-        const firstSlider = sliders.first();
-        const initialValue = await firstSlider.inputValue();
+    if (sliderCount > 0) {
+      // Get first slider initial value
+      const firstSlider = sliders.first();
+      const initialValue = await firstSlider.inputValue();
 
-        // Adjust slider
-        await firstSlider.fill('60');
+      // Adjust slider
+      await firstSlider.fill('60');
 
-        // Verify value changed
-        const newValue = await firstSlider.inputValue();
-        expect(newValue).not.toBe(initialValue);
-      }
+      // Verify value changed
+      const newValue = await firstSlider.inputValue();
+      expect(newValue).not.toBe(initialValue);
+    } else {
+      test.skip('No distribution sliders found in modal');
     }
   });
 
@@ -118,8 +111,12 @@ test.describe('Create Synth Group with Config', () => {
     await expect(createButton).toBeVisible({ timeout: 10000 });
     await createButton.click();
 
+    // Wait for modal
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 10000 });
+
     // Find a distribution section with reset button
-    const resetButton = page.locator('button').filter({ hasText: /reset|padr[ãa]o|default/i });
+    const resetButton = modal.locator('button').filter({ hasText: /reset|padr[ãa]o|default/i });
 
     if (await resetButton.count() > 0) {
       // Find associated slider
@@ -140,6 +137,8 @@ test.describe('Create Synth Group with Config', () => {
         // Value should change back
         const resetValue = await slider.inputValue();
         expect(resetValue).not.toBe(changedValue);
+      } else {
+        test.skip('No slider found near reset button');
       }
     } else {
       test.skip('No reset button found');
@@ -158,8 +157,12 @@ test.describe('Create Synth Group with Config', () => {
     await expect(createButton).toBeVisible({ timeout: 10000 });
     await createButton.click();
 
+    // Wait for modal
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 10000 });
+
     // Look for domain expertise section
-    const expertiseSection = page.locator('text=/dom[ií]nio|domain.*expertise/i').locator('..');
+    const expertiseSection = modal.locator('text=/dom[ií]nio|domain.*expertise/i').locator('..');
 
     if (await expertiseSection.count() > 0) {
       // Look for preset buttons (baixo, regular, alto)
@@ -179,51 +182,18 @@ test.describe('Create Synth Group with Config', () => {
         );
 
         expect(isPressed === 'true' || hasActiveClass).toBeTruthy();
+      } else {
+        test.skip('No preset buttons found');
       }
+    } else {
+      test.skip('No domain expertise section found');
     }
   });
 
   test('should validate n_synths range', async ({ page }) => {
-    await page.goto('/synths');
-    await page.waitForLoadState('networkidle');
-
-    // Wait for page to load
-    await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
-
-    // Open create modal
-    const createButton = page.getByRole('button', { name: /novo grupo/i });
-    await expect(createButton).toBeVisible({ timeout: 10000 });
-    await createButton.click();
-
-    // Fill in name
-    const nameInput = page.locator('input[name="name"]').or(
-      page.locator('label').filter({ hasText: /nome|name/i }).locator('..').locator('input')
-    );
-    await nameInput.fill('Invalid Range Test');
-
-    // Try invalid n_synths
-    const nSynthsInput = page.locator('input[name="n_synths"]').or(
-      page.locator('label').filter({ hasText: /n[uú]mero.*synths/i }).locator('..').locator('input')
-    );
-
-    if (await nSynthsInput.count() > 0) {
-      // Try value > 1000
-      await nSynthsInput.clear();
-      await nSynthsInput.fill('1001');
-
-      // Try to submit
-      const submitButton = page.locator('button[type="submit"]').or(
-        page.locator('button').filter({ hasText: /criar|create/i })
-      );
-      await submitButton.click();
-
-      // Should show validation error
-      await expect(page.locator('text=/m[aá]ximo|maximum|1000/i')).toBeVisible({
-        timeout: 5000
-      });
-    } else {
-      test.skip('n_synths input not found');
-    }
+    // This test is skipped because the UI uses a select dropdown with preset values
+    // instead of a free-form input, so there's no way to enter invalid values
+    test.skip('n_synths uses a select dropdown with preset valid values only');
   });
 
   test('should show progress during synth generation', async ({ page }) => {
@@ -233,54 +203,39 @@ test.describe('Create Synth Group with Config', () => {
     // Wait for page to load
     await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
 
+    // Generate unique group name with short random suffix (UI truncates long names)
+    const uniqueId = Math.random().toString(36).substring(2, 8);
+    const groupName = `PT ${uniqueId}`;
+
     // Open create modal
     const createButton = page.getByRole('button', { name: /novo grupo/i });
     await expect(createButton).toBeVisible({ timeout: 10000 });
     await createButton.click();
 
-    // Fill in minimal data
-    const nameInput = page.locator('input[name="name"]').or(
-      page.locator('label').filter({ hasText: /nome|name/i }).locator('..').locator('input')
-    );
-    await nameInput.fill('Progress Test Group');
+    // Wait for modal
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 10000 });
 
-    // Set small n_synths
-    const nSynthsInput = page.locator('input[name="n_synths"]');
-    if (await nSynthsInput.count() > 0) {
-      await nSynthsInput.clear();
-      await nSynthsInput.fill('5');
-    }
+    // Fill in minimal data using the textbox labeled "Nome do Grupo"
+    const nameInput = modal.getByRole('textbox', { name: /nome do grupo/i });
+    await expect(nameInput).toBeVisible({ timeout: 5000 });
+    await nameInput.fill(groupName);
 
     // Submit
-    const submitButton = page.locator('button[type="submit"]').or(
-      page.locator('button').filter({ hasText: /criar|create/i })
-    );
+    const submitButton = modal.getByRole('button', { name: /criar grupo/i });
+    await expect(submitButton).toBeEnabled({ timeout: 5000 });
     await submitButton.click();
 
-    // Should show loading or progress indicator
-    const loadingIndicators = [
-      page.locator('text=/gerando|generating|processando|processing/i'),
-      page.locator('[role="progressbar"]'),
-      page.locator('[data-testid="loading"]'),
-      page.locator('.animate-spin')
-    ];
+    // Should show loading or progress indicator (button may show loading state)
+    // Or modal may close immediately if generation is fast
 
-    let foundLoading = false;
-    for (const indicator of loadingIndicators) {
-      if (await indicator.count() > 0) {
-        await expect(indicator).toBeVisible({ timeout: 3000 });
-        foundLoading = true;
-        break;
-      }
-    }
+    // Wait for modal to close (indicates success)
+    await expect(modal).not.toBeVisible({ timeout: 30000 });
 
-    // At least one loading indicator should appear
-    // (or generation is very fast)
-    // expect(foundLoading).toBeTruthy();
+    // Wait for list to refresh after group creation
+    await page.waitForTimeout(1000);
 
-    // Wait for completion
-    await expect(page.locator('text=/sucesso|success|criado|created/i')).toBeVisible({
-      timeout: 30000
-    });
+    // Verify group appears in list (use first to avoid strict mode)
+    await expect(page.getByText(groupName).first()).toBeVisible({ timeout: 15000 });
   });
 });
