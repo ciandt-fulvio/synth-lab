@@ -135,7 +135,7 @@ class Disabilities(BaseModel):
 class SynthBase(BaseModel):
     """Base synth model with core fields."""
 
-    id: str = Field(..., min_length=6, max_length=6, description="6-character unique ID")
+    id: str = Field(..., min_length=1, max_length=100, description="Unique synth ID (e.g., syn_uuid or 6-char legacy)")
     synth_group_id: str | None = Field(
         default=None, description="ID of the synth group this synth belongs to"
     )
@@ -228,17 +228,20 @@ if __name__ == "__main__":
     try:
         from pydantic import ValidationError
 
+        # Empty ID should fail
         try:
-            SynthBase(id="abc", nome="Test", created_at=datetime.now())
-            all_validation_failures.append("Should reject ID with length < 6")
+            SynthBase(id="", nome="Test", created_at=datetime.now())
+            all_validation_failures.append("Should reject empty ID")
         except ValidationError:
             pass  # Expected
 
-        try:
-            SynthBase(id="abc1234", nome="Test", created_at=datetime.now())
-            all_validation_failures.append("Should reject ID with length > 6")
-        except ValidationError:
-            pass  # Expected
+        # Valid IDs should pass (both legacy 6-char and new format)
+        synth_legacy = SynthBase(id="abc123", nome="Test", created_at=datetime.now())
+        synth_new = SynthBase(id="syn_maria_silva", nome="Test", created_at=datetime.now())
+        if synth_legacy.id != "abc123":
+            all_validation_failures.append(f"Legacy ID mismatch: {synth_legacy.id}")
+        if synth_new.id != "syn_maria_silva":
+            all_validation_failures.append(f"New ID mismatch: {synth_new.id}")
     except Exception as e:
         all_validation_failures.append(f"ID validation failed: {e}")
 

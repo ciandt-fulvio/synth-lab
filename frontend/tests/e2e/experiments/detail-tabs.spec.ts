@@ -67,15 +67,15 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
       await page.waitForTimeout(500);
     }
 
-    // Deve mostrar scorecard OU mensagem de scorecard não configurado
-    const hasScorecardConfig = await page.locator('h3').filter({
-      hasText: /scorecard não configurado/i
+    // Deve mostrar conteúdo de análise quantitativa ou mensagem de aguardando
+    const hasAnalysisContent = await page.locator('h3').filter({
+      hasText: /análise quantitativa/i
     }).count() > 0;
 
-    const hasScorecardContent = await page.locator('text=/scorecard|atributos|dimensões/i').count() > 0;
+    const hasWaitingMessage = await page.locator('text=/aguardando execução|aguardando análise/i').count() > 0;
 
     // Uma das duas opções deve ser verdadeira
-    expect(hasScorecardConfig || hasScorecardContent).toBeTruthy();
+    expect(hasAnalysisContent || hasWaitingMessage).toBeTruthy();
   });
 
   test('DT004 - Navigate to Entrevistas tab', async ({ page }) => {
@@ -97,9 +97,15 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
     await interviewsTab.click();
     await page.waitForTimeout(500);
 
-    // Deve mostrar contagem (ex: "0 entrevista(s) realizada(s)")
-    const countText = page.locator('text=/\d+\s*entrevista\(s\)/i');
-    await expect(countText).toBeVisible({ timeout: 5000 });
+    // Tab should be selected
+    await expect(interviewsTab).toHaveAttribute('aria-selected', 'true');
+
+    // Check for the heading "Entrevistas" in the page
+    await expect(page.locator('h3').filter({ hasText: /entrevistas/i })).toBeVisible({ timeout: 5000 });
+
+    // Check for count text (e.g., "0 entrevista(s) realizada(s)")
+    // Using getByText with exact text pattern
+    await expect(page.getByText(/\d+\s*entrevista/i)).toBeVisible();
   });
 
   test('DT006 - Entrevistas tab shows empty state or list', async ({ page }) => {
@@ -121,10 +127,10 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
   test('DT007 - Navigate to Explorações tab', async ({ page }) => {
     const explorationsTab = page.getByRole('tab', { name: /explorações/i });
 
-    // Verifica se tab está habilitada
-    const isDisabled = await explorationsTab.getAttribute('aria-disabled');
+    // Verifica se tab está habilitada (HTML disabled ou data-disabled attribute)
+    const isDisabled = await explorationsTab.isDisabled();
 
-    if (isDisabled === 'true') {
+    if (isDisabled) {
       test.skip('Tab Explorações está desabilitada para este experimento');
     }
 
@@ -138,9 +144,10 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
   test('DT008 - Explorações tab shows content when enabled', async ({ page }) => {
     const explorationsTab = page.getByRole('tab', { name: /explorações/i });
 
-    const isDisabled = await explorationsTab.getAttribute('aria-disabled');
+    // Verifica se tab está habilitada
+    const isDisabled = await explorationsTab.isDisabled();
 
-    if (isDisabled === 'true') {
+    if (isDisabled) {
       test.skip('Tab Explorações está desabilitada');
     }
 
@@ -172,9 +179,14 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
     await materialsTab.click();
     await page.waitForTimeout(500);
 
-    // Deve mostrar contagem (ex: "0 arquivo(s) anexado(s)")
-    const countText = page.locator('text=/\d+\s*arquivo\(s\)/i');
-    await expect(countText).toBeVisible({ timeout: 5000 });
+    // Tab should be selected
+    await expect(materialsTab).toHaveAttribute('aria-selected', 'true');
+
+    // Check for the heading "Materiais" in the page
+    await expect(page.locator('h3').filter({ hasText: /materiais/i })).toBeVisible({ timeout: 5000 });
+
+    // Check for count text (e.g., "0 arquivo(s) anexado(s)")
+    await expect(page.locator('text=/arquivo.*anexado/i')).toBeVisible();
   });
 
   test('DT011 - Materiais tab shows upload area', async ({ page }) => {
@@ -236,8 +248,8 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
 
     // Explorações (se habilitada)
     const explorationsTab = page.getByRole('tab', { name: /explorações/i });
-    const isDisabled = await explorationsTab.getAttribute('aria-disabled');
-    if (isDisabled !== 'true') {
+    const isDisabled = await explorationsTab.isDisabled();
+    if (!isDisabled) {
       await explorationsTab.click();
       await page.waitForTimeout(500);
       await expect(explorationsTab).toHaveAttribute('aria-selected', 'true');
@@ -344,9 +356,9 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
   test('DT020 - Disabled tab cannot be selected', async ({ page }) => {
     const explorationsTab = page.getByRole('tab', { name: /explorações/i });
 
-    const isDisabled = await explorationsTab.getAttribute('aria-disabled');
+    const isDisabled = await explorationsTab.isDisabled();
 
-    if (isDisabled !== 'true') {
+    if (!isDisabled) {
       test.skip('Tab Explorações está habilitada para este experimento');
     }
 
@@ -380,9 +392,9 @@ test.describe('Experiments - Tab Accessibility @experiments @a11y', () => {
     const ariaSelected = await analysisTab.getAttribute('aria-selected');
     expect(ariaSelected).toBeTruthy();
 
-    // Tabpanel deve ter role="tabpanel"
-    const tabpanel = page.locator('[role="tabpanel"]');
-    await expect(tabpanel).toBeVisible();
+    // Tabpanel ativo deve ter role="tabpanel" (apenas o visível)
+    const activeTabpanel = page.locator('[role="tabpanel"][data-state="active"]');
+    await expect(activeTabpanel).toBeVisible();
   });
 
   test('DT022 - Keyboard navigation works (Arrow keys)', async ({ page }) => {

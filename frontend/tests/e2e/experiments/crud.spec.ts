@@ -14,6 +14,13 @@ test.describe('Experiments - CRUD Operations @critical @experiments', () => {
     // Navega para home antes de cada teste
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+
+    // Wait for experiments page to load
+    await expect(page.locator('h2').filter({ hasText: /experimentos/i })).toBeVisible({ timeout: 10000 });
+
+    // Wait for experiment cards to load (h3 elements inside cards)
+    // E2E tests create experiments, so there should always be some
+    await expect(page.locator('h3').first()).toBeVisible({ timeout: 15000 });
   });
 
   test('E001 - Create new experiment successfully', async ({ page }) => {
@@ -80,16 +87,10 @@ test.describe('Experiments - CRUD Operations @critical @experiments', () => {
   });
 
   test('E003 - View experiment details', async ({ page }) => {
-    // Procura primeiro experimento
+    // Procura primeiro experimento (beforeEach ensures experiments are loaded)
     const firstCard = page.locator('.cursor-pointer').filter({
       has: page.locator('h3')
     }).first();
-
-    const hasExperiments = await firstCard.isVisible();
-
-    if (!hasExperiments) {
-      test.skip('Nenhum experimento disponível para teste');
-    }
 
     // Salva nome do experimento
     const experimentName = await firstCard.locator('h3').textContent();
@@ -115,12 +116,8 @@ test.describe('Experiments - CRUD Operations @critical @experiments', () => {
   });
 
   test('E004 - Experiment detail shows all sections', async ({ page }) => {
+    // beforeEach ensures experiments are loaded
     const firstCard = page.locator('.cursor-pointer').first();
-
-    if (!(await firstCard.isVisible())) {
-      test.skip('Nenhum experimento disponível');
-    }
-
     await firstCard.click();
     await page.waitForLoadState('networkidle');
 
@@ -138,11 +135,8 @@ test.describe('Experiments - CRUD Operations @critical @experiments', () => {
   });
 
   test('E005 - Navigate back to experiments list', async ({ page }) => {
+    // beforeEach ensures experiments are loaded
     const firstCard = page.locator('.cursor-pointer').first();
-
-    if (!(await firstCard.isVisible())) {
-      test.skip('Nenhum experimento disponível');
-    }
 
     // Vai para detalhe
     await firstCard.click();
@@ -271,17 +265,18 @@ test.describe('Experiments - Navigation @navigation @experiments', () => {
   });
 
   test('E011 - Deep link to experiment works', async ({ page }) => {
+    // Navigate and wait for experiments to load
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    const firstCard = page.locator('.cursor-pointer').first();
-
-    if (!(await firstCard.isVisible())) {
-      test.skip('Nenhum experimento disponível');
-    }
+    // Wait for experiment cards to load (h3 elements inside cursor-pointer cards)
+    const cards = page.locator('.cursor-pointer').filter({
+      has: page.locator('h3')
+    });
+    await expect(cards.first()).toBeVisible({ timeout: 15000 });
 
     // Pega URL do experimento
-    await firstCard.click();
+    await cards.first().click();
     const experimentUrl = page.url();
 
     // Abre nova aba com URL direta
