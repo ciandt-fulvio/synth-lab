@@ -1,7 +1,10 @@
+# Railway configuration for frontend service
+# Uses Nixpacks to build the React app
+
 [build]
 builder = "nixpacks"
 
 [deploy]
-startCommand = "npx serve dist -s -l $PORT"
 healthcheckPath = "/"
 healthcheckTimeout = 100
+startCommand = "npx serve dist -s -l $PORT"
