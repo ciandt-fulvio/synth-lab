@@ -69,7 +69,7 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           echo "Deploying backend to Railway..."
-          railway up --service synth-lab-api --environment production --project ${{ secrets.RAILWAY_PROJECT_ID }} --detach
+          railway up --service synth-lab-api --detach
           echo "✅ Backend deployment triggered"
 
   # ============================================================================
@@ -93,7 +93,7 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           echo "Deploying frontend to Railway..."
-          railway up --service synth-lab-frontend --environment production --project ${{ secrets.RAILWAY_PROJECT_ID }} --detach
+          railway up --service synth-lab-frontend --detach
           echo "✅ Frontend deployment triggered"
 
       - name: Wait for deployments to stabilize
