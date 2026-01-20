@@ -15,6 +15,7 @@ on:
 
 env:
   RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+  RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
 
 jobs:
   # ============================================================================
@@ -63,12 +64,14 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
+      - name: Link Railway project
+        run: railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment production
+
       - name: Deploy Backend to Production
         run: |
           echo "Deploying backend to Railway..."
-          railway up --service synth-lab-api --environment production
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          railway up --service synth-lab-api --environment production --detach
+          echo "✅ Backend deployment triggered"
 
   # ============================================================================
   # Stage 3: Deploy Frontend to Production
@@ -85,13 +88,19 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
+      - name: Link Railway project
+        working-directory: frontend
+        run: railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment production
+
       - name: Deploy Frontend to Production
         working-directory: frontend
         run: |
           echo "Deploying frontend to Railway..."
-          railway up --service synth-lab-frontend --environment production
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          railway up --service synth-lab-frontend --environment production --detach
+          echo "✅ Frontend deployment triggered"
+
+      - name: Wait for deployments to stabilize
+        run: sleep 120  # Wait 2 minutes for both services to deploy
 
   # ============================================================================
   # Stage 4: Smoke Tests on Production
@@ -102,9 +111,6 @@ jobs:
     needs: deploy-frontend
 
     steps:
-      - name: Wait for services to stabilize
-        run: sleep 30
-
       - name: Checkout code
         uses: actions/checkout@v4
 
