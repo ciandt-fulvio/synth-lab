@@ -1,6 +1,6 @@
-# Multi-stage Dockerfile for synth-lab frontend
-# Stage 1: Build assets
-FROM node:20-alpine AS builder
+# Multi-stage Dockerfile for React/Vite frontend
+# Stage 1: Build
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -8,29 +8,27 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --only=production=false
 
 # Copy source code
 COPY . .
 
-# Build production assets
+# Build the app
 RUN npm run build
 
-# Stage 2: Serve built assets
-FROM node:20-alpine
+# Stage 2: Production
+FROM node:20-slim
 
 WORKDIR /app
 
+# Install serve to run the static files
+RUN npm install -g serve
+
 # Copy built assets from builder
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/vite.config.ts ./
 
-# Install all dependencies (Vite is needed for preview mode)
-RUN npm ci
+# Expose port (Railway sets PORT env var)
+EXPOSE 3000
 
-# Expose port
-EXPOSE 8080
-
-# Serve using Vite preview mode with proxy support
-CMD ["npx", "vite", "preview", "--host", "0.0.0.0", "--port", "8080"]
+# Serve the static files
+CMD ["sh", "-c", "serve dist -s -l ${PORT:-3000}"]
