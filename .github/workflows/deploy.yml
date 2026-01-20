@@ -65,7 +65,7 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Link Railway project
-        run: railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+        run: railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment production
 
       - name: Deploy Backend to Production
         run: |
@@ -90,7 +90,7 @@ jobs:
 
       - name: Link Railway project
         working-directory: frontend
-        run: railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+        run: railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment production
 
       - name: Deploy Frontend to Production
         working-directory: frontend
