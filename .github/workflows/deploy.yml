@@ -51,40 +51,21 @@ jobs:
   # ============================================================================
   # Stage 2: Deploy to Production
   # ============================================================================
-  deploy-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: migrate-production
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy Backend to Production
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway up --service synth-lab-api --environment production --detach
-
-      - name: Deploy Frontend to Production
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway up --service synth-lab-frontend --environment production --detach
-
-      - name: Wait for deployments to be ready
-        run: sleep 60  # Aguarda 60s para os serviços estabilizarem
+  # NOTE: Automatic deployment disabled - Railway auto-deploys on git push
+  # Migrations run successfully, Railway handles deployment automatically
 
   # ============================================================================
-  # Stage 3: Smoke Tests on Production
+  # Stage 2: Smoke Tests on Production
   # ============================================================================
   verify-production:
     name: Smoke Tests (Production)
     runs-on: ubuntu-latest
-    needs: deploy-production
+    needs: migrate-production
 
     steps:
+      - name: Wait for Railway auto-deployment
+        run: sleep 120  # Wait 2 minutes for Railway to auto-deploy after migrations
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -149,7 +130,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Deployment Flow" >> $GITHUB_STEP_SUMMARY
           echo "1. ✅ Migrate Production DB (Alembic)" >> $GITHUB_STEP_SUMMARY
-          echo "2. ✅ Deploy to Production" >> $GITHUB_STEP_SUMMARY
+          echo "2. ⏳ Railway Auto-Deploy (triggered by git push)" >> $GITHUB_STEP_SUMMARY
           echo "3. ✅ Smoke Tests on Production" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Environment" >> $GITHUB_STEP_SUMMARY
