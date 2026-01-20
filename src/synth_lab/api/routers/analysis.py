@@ -22,7 +22,6 @@ from synth_lab.api.schemas.analysis_run import (
     InsightsResponse,
     InterviewSuggestionsResponse,
     PaginatedSynthOutcomes,
-    RegionAnalysisResponse,
     SynthAttributesSchema,
     SynthOutcomeResponse)
 from synth_lab.domain.entities.analysis_cache import CacheKeys
@@ -331,44 +330,6 @@ async def list_outcomes(
     return PaginatedSynthOutcomes(
         data=outcomes,
         pagination=result.pagination)
-
-
-# =============================================================================
-# Region Analysis Endpoints
-# =============================================================================
-
-
-@router.get(
-    "/{experiment_id}/analysis/regions",
-    response_model=RegionAnalysisResponse)
-async def analyze_regions(
-    experiment_id: str,
-    min_failure_rate: float = Query(
-        default=0.3,
-        ge=0.0,
-        le=1.0,
-        description="Minimum failure rate for high-risk regions")) -> RegionAnalysisResponse:
-    """
-    Analyze high-risk regions in the analysis.
-
-    Identifies clusters of synths with high failure rates.
-    """
-    service = get_analysis_service()
-    analysis = service.get_analysis(experiment_id)
-
-    if analysis is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}")
-
-    if analysis.status != "completed":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed to analyze regions (status: {analysis.status})")
-
-    # TODO: Implement region analysis using clustering
-    # For now, return empty regions
-    return RegionAnalysisResponse(regions=[])
 
 
 # =============================================================================
@@ -1466,7 +1427,6 @@ if __name__ == "__main__":
         expected_paths = [
             "/{experiment_id}/analysis",
             "/{experiment_id}/analysis/outcomes",
-            "/{experiment_id}/analysis/regions",
             "/{experiment_id}/analysis/interview-suggestions",
             "/{experiment_id}/analysis/insights",
         ]

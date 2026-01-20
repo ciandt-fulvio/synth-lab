@@ -84,19 +84,9 @@ from synth_lab.domain.entities.outlier_result import (
     OutlierResult,
     OutlierSynth,
 )
-from synth_lab.domain.entities.region_analysis import (
-    RegionAnalysis,
-    RegionRule,
-    format_rules_as_text,
-    generate_region_id,
-)
 from synth_lab.domain.entities.scenario import (
     PREDEFINED_SCENARIOS,
     Scenario,
-)
-from synth_lab.domain.entities.sensitivity_result import (
-    DimensionSensitivity,
-    SensitivityResult,
 )
 from synth_lab.domain.entities.simulation_attributes import (
     SimulationAttributes,
@@ -197,17 +187,9 @@ __all__ = [
     "ExtremeSynth",
     "OutlierResult",
     "OutlierSynth",
-    # Region analysis
-    "RegionAnalysis",
-    "RegionRule",
-    "format_rules_as_text",
-    "generate_region_id",
     # Scenario
     "PREDEFINED_SCENARIOS",
     "Scenario",
-    # Sensitivity result
-    "DimensionSensitivity",
-    "SensitivityResult",
     # Simulation attributes
     "SimulationAttributes",
     "SimulationLatentTraits",
