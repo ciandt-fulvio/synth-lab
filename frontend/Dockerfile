@@ -2,6 +2,10 @@
 # Stage 1: Build
 FROM node:20-slim AS builder
 
+# Accept build arguments for Vite environment variables
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
+
 WORKDIR /app
 
 # Copy package files
@@ -13,7 +17,7 @@ RUN npm ci --only=production=false
 # Copy source code
 COPY . .
 
-# Build the app
+# Build the app (Vite will use VITE_API_URL during build)
 RUN npm run build
 
 # Stage 2: Production
