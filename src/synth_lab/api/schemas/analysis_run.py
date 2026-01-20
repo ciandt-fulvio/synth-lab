@@ -196,42 +196,6 @@ class PaginatedSynthOutcomes(BaseModel):
 
 
 # =============================================================================
-# Region Analysis Schemas
-# =============================================================================
-
-
-class RegionSchema(BaseModel):
-    """Schema for a high-risk region cluster."""
-
-    cluster_id: int = Field(
-        description="Cluster identifier.")
-
-    synth_count: int = Field(
-        ge=0,
-        description="Number of synths in cluster.")
-
-    avg_failure_rate: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Average failure rate in cluster.")
-
-    common_attributes: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Common attributes of synths in cluster.")
-
-    representative_synths: list[str] = Field(
-        default_factory=list,
-        description="IDs of representative synths.")
-
-
-class RegionAnalysisResponse(BaseModel):
-    """Response for region analysis."""
-
-    regions: list[RegionSchema] = Field(
-        description="Identified high-risk regions.")
-
-
-# =============================================================================
 # Interview Suggestion Schemas
 # =============================================================================
 
@@ -404,21 +368,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"SynthOutcomeResponse creation failed: {e}")
 
-    # Test 7: RegionSchema
-    total_tests += 1
-    try:
-        region = RegionSchema(
-            cluster_id=1,
-            synth_count=50,
-            avg_failure_rate=0.65,
-            common_attributes={"low_digital_literacy": True},
-            representative_synths=["synth_001", "synth_015"])
-        if region.avg_failure_rate != 0.65:
-            all_validation_failures.append(f"avg_failure_rate mismatch: {region.avg_failure_rate}")
-    except Exception as e:
-        all_validation_failures.append(f"RegionSchema creation failed: {e}")
-
-    # Test 8: InterviewSuggestionSchema
+    # Test 7: InterviewSuggestionSchema
     total_tests += 1
     try:
         suggestion = InterviewSuggestionSchema(
@@ -432,7 +382,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"InterviewSuggestionSchema creation failed: {e}")
 
-    # Test 9: InsightSchema
+    # Test 8: InsightSchema
     total_tests += 1
     try:
         insight = InsightSchema(
@@ -445,7 +395,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"InsightSchema creation failed: {e}")
 
-    # Test 10: InsightsResponse
+    # Test 9: InsightsResponse
     total_tests += 1
     try:
         insight = InsightSchema(

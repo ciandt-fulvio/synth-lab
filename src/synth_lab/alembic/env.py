@@ -28,7 +28,7 @@ from synth_lab.models.orm import (  # noqa: F401
     Synth, SynthGroup,
     ResearchExecution, Transcript,
     Exploration, ScenarioNode,
-    ChartInsight, SensitivityResult, RegionAnalysis,
+    ChartInsight,
     ExperimentDocument,
     ExperimentMaterial,
 )

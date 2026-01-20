@@ -27,7 +27,6 @@ from synth_lab.domain.entities import (
     HeatmapCell,
     OutcomeCounts,
     OutcomeDistributionChart,
-    RegionAnalysis,
     RegionBoxPlot,
     SankeyFlowChart,
     SankeyLink,
@@ -343,23 +342,19 @@ class ChartDataService:
         self,
         simulation_id: str,
         outcomes: list[SynthOutcome],
-        region_analysis: RegionAnalysis | None,
         metric: Literal["success_rate", "failed_rate", "did_not_try_rate"] = "success_rate",
         include_baseline: bool = True) -> BoxPlotChart:
         """
-        Generate box plot data by region.
-
-        Uses existing region analysis to group synths.
+        Generate box plot data for the entire population.
 
         Args:
             simulation_id: ID of the simulation.
             outcomes: List of SynthOutcome entities.
-            region_analysis: Existing region analysis result.
             metric: Metric to display.
             include_baseline: Include baseline stats for entire population.
 
         Returns:
-            BoxPlotChart with region-wise statistics.
+            BoxPlotChart with population-wide statistics.
         """
         logger.info(f"Generating box plot for {simulation_id}, metric={metric}")
 
@@ -367,30 +362,8 @@ class ChartDataService:
         all_values = [get_attribute_value(o, metric) for o in outcomes]
         baseline_stats = self._calculate_box_stats(all_values)
 
+        # No region segmentation - return baseline only
         regions: list[RegionBoxPlot] = []
-
-        if region_analysis and region_analysis.regions:
-            # Create lookup for synth outcomes
-            outcome_map = {o.synth_id: o for o in outcomes}
-
-            for region in region_analysis.regions:
-                # Get metric values for synths in this region
-                region_values = []
-                for synth_id in region.synth_ids:
-                    if synth_id in outcome_map:
-                        value = get_attribute_value(outcome_map[synth_id], metric)
-                        region_values.append(value)
-
-                if region_values:
-                    stats = self._calculate_box_stats(region_values)
-                    region_box = RegionBoxPlot(
-                        region_id=region.region_id,
-                        region_label=region.rule_text[:50]
-                        if len(region.rule_text) > 50
-                        else region.rule_text,
-                        synth_count=len(region_values),
-                        stats=stats)
-                    regions.append(region_box)
 
         return BoxPlotChart(
             simulation_id=simulation_id,

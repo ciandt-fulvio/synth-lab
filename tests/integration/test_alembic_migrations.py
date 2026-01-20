@@ -25,7 +25,7 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, inspect, text
 
-# Expected tables from 001_initial_schema.py + later migrations
+# Expected tables after all migrations
 EXPECTED_TABLES = {
     "synth_groups",
     "synths",
@@ -39,15 +39,14 @@ EXPECTED_TABLES = {
     "explorations",
     "scenario_nodes",
     "chart_insights",
-    "sensitivity_results",
-    "region_analyses",
     "experiment_documents",
-    "simulation_runs",
-    "prfaq_metadata",
-    "experiment_materials",  # Added in 20260106_0218
-    "tags",  # Added in 20260106_1103
-    "experiment_tags",  # Added in 20260106_1103
+    "experiment_materials",
+    "tags",
+    "experiment_tags",
 }
+
+# Current HEAD revision ID (drop_unused_sensitivity_and_region_tables)
+CURRENT_HEAD_REVISION = "e6b4ffd0b652"
 
 
 def get_alembic_config(database_url: str) -> Config:
@@ -206,7 +205,7 @@ class TestAlembicMigrationsPostgres:
             result = conn.execute(text("SELECT version_num FROM alembic_version"))
             version = result.scalar()
 
-        assert version == "add_exp_srvdefault", f"Expected version 'add_exp_srvdefault' (current HEAD), got '{version}'"
+        assert version == CURRENT_HEAD_REVISION, f"Expected version '{CURRENT_HEAD_REVISION}' (current HEAD), got '{version}'"
 
         engine.dispose()
 

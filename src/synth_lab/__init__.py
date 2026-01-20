@@ -6,6 +6,6 @@ com atributos demográficos, psicográficos e comportamentais realistas
 baseados em dados do IBGE e pesquisas verificadas.
 """
 
-__version__ = "1.0.0"
+__version__ = "0.2.0"
 
 __all__ = ["__version__", "trace_visualizer"]
