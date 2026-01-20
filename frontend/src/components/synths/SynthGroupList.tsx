@@ -11,7 +11,8 @@
 import { SynthGroupCard } from './SynthGroupCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
-import { Users, Plus, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Users, Plus } from 'lucide-react';
 import type { SynthGroupSummary } from '@/types/synthGroup';
 
 interface SynthGroupListProps {
@@ -56,34 +57,22 @@ function LoadingSkeleton() {
 
 function EmptyState({ onCreateClick }: { onCreateClick?: () => void }) {
   return (
-    <div className="text-center py-16 px-4">
-      <div className="mx-auto w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center mb-5 shadow-sm">
-        <Users className="h-10 w-10 text-slate-400" />
+    <div className="flex flex-col items-center justify-center py-16 px-4">
+      <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+        <Users className="w-8 h-8 text-primary" />
       </div>
-      <h3 className="text-xl font-bold text-slate-900 mb-2">
-        Nenhum grupo encontrado
+      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+        Nenhum grupo ainda
       </h3>
-      <p className="text-sm text-slate-600 max-w-md mx-auto mb-6 leading-relaxed">
-        Crie seu primeiro grupo de synths com distribuições demográficas customizadas
+      <p className="text-gray-600 text-center max-w-md mb-6">
+        Grupos de synths permitem criar distribuições demográficas customizadas
         para simular diferentes perfis de usuários.
       </p>
       {onCreateClick && (
-        <button
-          onClick={onCreateClick}
-          className="
-            inline-flex items-center gap-2 px-5 py-2.5
-            bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600
-            hover:from-blue-700 hover:via-indigo-700 hover:to-violet-700
-            text-white text-sm font-semibold rounded-xl
-            shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/30
-            transition-all duration-200
-            hover:scale-105
-          "
-        >
-          <Plus className="h-4 w-4" />
-          Criar Primeiro Grupo
-          <Sparkles className="h-4 w-4 ml-0.5" />
-        </button>
+        <Button onClick={onCreateClick}>
+          <Plus className="w-4 h-4 mr-2" />
+          Criar primeiro grupo
+        </Button>
       )}
     </div>
   );

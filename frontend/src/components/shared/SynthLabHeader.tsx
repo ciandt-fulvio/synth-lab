@@ -23,6 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import packageJson from '../../../package.json';
 
 interface SynthLabHeaderProps {
   /** Subtitle text shown below "SynthLab" */
@@ -75,7 +76,7 @@ export function SynthLabHeader({ subtitle, backTo, actions }: SynthLabHeaderProp
                     </Link>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>v0.2.0</p>
+                    <p>v{packageJson.version}</p>
                   </TooltipContent>
                 </Tooltip>
                 <Badge variant="secondary" className="text-xs badge-primary hover:bg-indigo-100 cursor-default">
