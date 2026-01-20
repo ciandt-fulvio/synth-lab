@@ -1,6 +1,6 @@
 # Deploy Workflow - Triggered on new tags
 #
-# Flow: Tag → Migrate Production → Deploy Production → Smoke Tests
+# Flow: Tag → Migrate DB → Deploy Backend → Deploy Frontend → Smoke Tests
 #
 # Usage:
 #   git tag -a v1.0.0 -m "Release 1.0.0"
@@ -18,7 +18,7 @@ env:
 
 jobs:
   # ============================================================================
-  # Stage 1: Run Migrations on Production
+  # Stage 1: Run Migrations on Production DB
   # ============================================================================
   migrate-production:
     name: Migrate Production DB
@@ -49,22 +49,61 @@ jobs:
           echo "✅ Production migrations completed"
 
   # ============================================================================
-  # Stage 2: Deploy to Production
+  # Stage 2: Deploy Backend to Production
   # ============================================================================
-  # NOTE: Automatic deployment disabled - Railway auto-deploys on git push
-  # Migrations run successfully, Railway handles deployment automatically
-
-  # ============================================================================
-  # Stage 2: Smoke Tests on Production
-  # ============================================================================
-  verify-production:
-    name: Smoke Tests (Production)
+  deploy-backend:
+    name: Deploy Backend
     runs-on: ubuntu-latest
     needs: migrate-production
 
     steps:
-      - name: Wait for Railway auto-deployment
-        run: sleep 120  # Wait 2 minutes for Railway to auto-deploy after migrations
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy Backend to Production
+        run: |
+          echo "Deploying backend to Railway..."
+          railway up --service synth-lab-api --environment production
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+  # ============================================================================
+  # Stage 3: Deploy Frontend to Production
+  # ============================================================================
+  deploy-frontend:
+    name: Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy Frontend to Production
+        working-directory: frontend
+        run: |
+          echo "Deploying frontend to Railway..."
+          railway up --service synth-lab-frontend --environment production
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+  # ============================================================================
+  # Stage 4: Smoke Tests on Production
+  # ============================================================================
+  verify-production:
+    name: Smoke Tests (Production)
+    runs-on: ubuntu-latest
+    needs: deploy-frontend
+
+    steps:
+      - name: Wait for services to stabilize
+        run: sleep 30
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -130,8 +169,10 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Deployment Flow" >> $GITHUB_STEP_SUMMARY
           echo "1. ✅ Migrate Production DB (Alembic)" >> $GITHUB_STEP_SUMMARY
-          echo "2. ⏳ Railway Auto-Deploy (triggered by git push)" >> $GITHUB_STEP_SUMMARY
-          echo "3. ✅ Smoke Tests on Production" >> $GITHUB_STEP_SUMMARY
+          echo "2. ✅ Deploy Backend (Railway CLI)" >> $GITHUB_STEP_SUMMARY
+          echo "3. ✅ Deploy Frontend (Railway CLI)" >> $GITHUB_STEP_SUMMARY
+          echo "4. ✅ Smoke Tests on Production" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Environment" >> $GITHUB_STEP_SUMMARY
-          echo "- **Production**: https://synth-lab-frontend-production.up.railway.app" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend**: https://synth-lab-frontend-production.up.railway.app" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend**: https://synth-lab-api-production.up.railway.app" >> $GITHUB_STEP_SUMMARY
