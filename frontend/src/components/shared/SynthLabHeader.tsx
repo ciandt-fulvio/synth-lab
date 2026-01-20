@@ -18,6 +18,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface SynthLabHeaderProps {
   /** Subtitle text shown below "SynthLab" */
@@ -61,13 +66,20 @@ export function SynthLabHeader({ subtitle, backTo, actions }: SynthLabHeaderProp
             {/* Title and subtitle */}
             <div>
               <div className="flex items-center gap-2">
-                <Link to="/" className="hover:opacity-80 transition-opacity">
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 bg-clip-text text-transparent">
-                    SynthLab
-                  </h1>
-                </Link>
-                <Badge variant="secondary" className="text-xs badge-primary">
-                  Beta
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/" className="hover:opacity-80 transition-opacity">
+                      <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 bg-clip-text text-transparent">
+                        SynthLab
+                      </h1>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>v0.2.0</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Badge variant="secondary" className="text-xs badge-primary hover:bg-indigo-100 cursor-default">
+                  Alpha
                 </Badge>
               </div>
               {subtitle ? (
