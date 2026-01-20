@@ -64,13 +64,12 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Link Railway project
-        run: railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment production
-
       - name: Deploy Backend to Production
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           echo "Deploying backend to Railway..."
-          railway up --service synth-lab-api --environment production --detach
+          railway up --service synth-lab-api --environment production --project ${{ secrets.RAILWAY_PROJECT_ID }} --detach
           echo "✅ Backend deployment triggered"
 
   # ============================================================================
@@ -88,15 +87,13 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Link Railway project
-        working-directory: frontend
-        run: railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment production
-
       - name: Deploy Frontend to Production
         working-directory: frontend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           echo "Deploying frontend to Railway..."
-          railway up --service synth-lab-frontend --environment production --detach
+          railway up --service synth-lab-frontend --environment production --project ${{ secrets.RAILWAY_PROJECT_ID }} --detach
           echo "✅ Frontend deployment triggered"
 
       - name: Wait for deployments to stabilize
