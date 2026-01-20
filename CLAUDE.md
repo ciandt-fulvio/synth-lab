@@ -73,6 +73,8 @@ PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
 - PostgreSQL 14+ (metadata via `experiment_materials` table), S3-compatible storage (file content) (029-synth-material-integration)
 - Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, React 18, TanStack Query, shadcn/ui (030-custom-synth-groups)
 - PostgreSQL 14+ (JSONB for config), S3-compatible (avatars) (030-custom-synth-groups)
+- Python 3.13+ (backend), TypeScript 5.5+ / Node.js 20 (frontend) + FastAPI 0.109+, React 18, Vite 6.3, SQLAlchemy 2.0+, TanStack Query 5.56 (033-docker-containerization)
+- PostgreSQL 14+ (local container for dev/test, Railway PostgreSQL for prod) (033-docker-containerization)
 
 ## Recent Changes
 - 028-exploration-summary: Added Python 3.13+ + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, Arize Phoenix
