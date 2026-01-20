@@ -9,7 +9,7 @@ Usage:
     docker-compose -f docker/docker-compose.postgres.yml up -d
 
     # Run tests:
-    POSTGRES_URL=postgresql://synthlab:synthlab_dev@localhost:5432/synthlab \
+    DATABASE_TEST_URL=postgresql://synthlab:synthlab_dev@localhost:5432/synthlab_test \
         pytest tests/integration/test_postgres_connection.py -v
 
 References:
@@ -27,15 +27,15 @@ from sqlalchemy.pool import QueuePool
 
 # Skip all tests if PostgreSQL is not available
 pytestmark = pytest.mark.skipif(
-    not os.getenv("POSTGRES_URL"),
-    reason="POSTGRES_URL environment variable not set"
+    not os.getenv("DATABASE_TEST_URL"),
+    reason="DATABASE_TEST_URL environment variable not set"
 )
 
 
 @pytest.fixture(scope="module")
 def postgres_url():
     """Get PostgreSQL URL from environment."""
-    return os.getenv("POSTGRES_URL")
+    return os.getenv("DATABASE_TEST_URL")
 
 
 @pytest.fixture(scope="module")
@@ -88,7 +88,7 @@ class TestPostgresPooling:
         """Test pool size configuration based on workers."""
         from synth_lab.infrastructure.database_v2 import create_db_engine
 
-        postgres_url = os.getenv("POSTGRES_URL")
+        postgres_url = os.getenv("DATABASE_TEST_URL")
 
         with patch.dict(os.environ, {"WORKERS": "2"}):
             engine = create_db_engine(postgres_url)
@@ -100,7 +100,7 @@ class TestPostgresPooling:
         """Test pool overflow configuration."""
         from synth_lab.infrastructure.database_v2 import create_db_engine
 
-        postgres_url = os.getenv("POSTGRES_URL")
+        postgres_url = os.getenv("DATABASE_TEST_URL")
 
         with patch.dict(os.environ, {"WORKERS": "2"}):
             engine = create_db_engine(postgres_url)
@@ -123,7 +123,7 @@ class TestPostgresSSL:
         """Test SSL mode configuration from environment."""
         from synth_lab.infrastructure.database_v2 import create_db_engine
 
-        postgres_url = os.getenv("POSTGRES_URL")
+        postgres_url = os.getenv("DATABASE_TEST_URL")
 
         with patch.dict(os.environ, {"POSTGRES_SSL_MODE": "require"}):
             engine = create_db_engine(postgres_url)
@@ -135,7 +135,7 @@ class TestPostgresSSL:
         """SSL should be disabled if POSTGRES_SSL_MODE not set."""
         from synth_lab.infrastructure.database_v2 import create_db_engine
 
-        postgres_url = os.getenv("POSTGRES_URL")
+        postgres_url = os.getenv("DATABASE_TEST_URL")
 
         # Remove SSL mode if set
         env = os.environ.copy()
@@ -203,7 +203,7 @@ class TestDatabaseV2Integration:
         )
         import synth_lab.infrastructure.database_v2 as db_mod
 
-        postgres_url = os.getenv("POSTGRES_URL")
+        postgres_url = os.getenv("DATABASE_TEST_URL")
 
         # Set up engine
         db_mod._engine = create_db_engine(postgres_url)
@@ -226,7 +226,7 @@ class TestDatabaseV2Integration:
         )
         import synth_lab.infrastructure.database_v2 as db_mod
 
-        postgres_url = os.getenv("POSTGRES_URL")
+        postgres_url = os.getenv("DATABASE_TEST_URL")
 
         # Set up engine
         db_mod._engine = create_db_engine(postgres_url)
