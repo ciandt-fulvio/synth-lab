@@ -380,10 +380,10 @@ class TestSynthGroupRepositoryDelete:
         result = repo.delete("grp_nonexist")
         assert result is False
 
-    def test_delete_cascade_deletes_synths(
+    def test_delete_preserves_synths(
         self, repo: SynthGroupRepository, session: Session
     ):
-        """Delete cascade deletes associated synths due to delete-orphan."""
+        """Delete preserves associated synths by nullifying synth_group_id."""
         group = SynthGroup(name="Group to Delete")
         now = datetime.now(timezone.utc).isoformat()
 
@@ -409,6 +409,7 @@ class TestSynthGroupRepositoryDelete:
         result = repo.delete(group.id)
         assert result is True
 
-        # Due to delete-orphan cascade, synths are also deleted
+        # Synths are preserved with nullified synth_group_id
         synth_orm = session.get(SynthORM, "synth_0")
-        assert synth_orm is None
+        assert synth_orm is not None
+        assert synth_orm.synth_group_id is None

@@ -248,8 +248,8 @@ class TestSynthCRUD:
         assert result.synth_group_id is None
         assert result.synth_group is None
 
-    def test_cascade_delete_synths_with_group(self, session: Session):
-        """Synths should be deleted when parent group is deleted."""
+    def test_delete_group_preserves_synths(self, session: Session):
+        """Synths should be preserved when parent group is deleted."""
         group = SynthGroup(
             id="grp_55555555",
             name="To Delete",
@@ -260,7 +260,7 @@ class TestSynthCRUD:
 
         synth = Synth(
             id="syn006",
-            nome="Will Be Deleted",
+            nome="Will Be Preserved",
             synth_group_id="grp_55555555",
             created_at=datetime.now().isoformat(),
             version="2.0.0",
@@ -272,9 +272,10 @@ class TestSynthCRUD:
         session.delete(group)
         session.commit()
 
-        # Synth should also be deleted
+        # Synth should be preserved with nullified synth_group_id
         result = session.get(Synth, "syn006")
-        assert result is None
+        assert result is not None
+        assert result.synth_group_id is None
 
 
 if __name__ == "__main__":
