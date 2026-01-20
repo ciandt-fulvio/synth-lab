@@ -5,6 +5,10 @@
 builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
+# Pass environment variables as Docker build arguments
+[build.buildArgs]
+VITE_API_URL = "${{VITE_API_URL}}"
+
 [deploy]
 healthcheckPath = "/"
 healthcheckTimeout = 100
