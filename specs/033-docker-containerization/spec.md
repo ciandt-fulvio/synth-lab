@@ -1,6 +1,6 @@
 # Feature Specification: Docker Containerization
 
-**Feature Branch**: `001-docker-containerization`
+**Feature Branch**: `033-docker-containerization`
 **Created**: 2026-01-20
 **Status**: Draft
 **Input**: User description: "como fazer para que tudo passe a duncionar como container docker: 1. eu quero o ambiente de dev como docker (usando volume local), 2. o ambiente de teste E2E e teste manual deve ser docker também, porém já usando os arquivos (containered) nao locais - em ambos os casos o postgres subindo junto com eles. 3. essa mesma versao que roda em teste deve ser a versao que será enviada para prod, no railway (separando em frontend, backend e com postgres no railway tbm)"
