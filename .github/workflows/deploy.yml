@@ -39,14 +39,13 @@ jobs:
       - name: Install dependencies
         run: uv pip install --system -e .
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
       - name: Run Alembic migrations on Production
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_PRODUCTION_URL }}
         run: |
           echo "Running migrations on Production database..."
-          railway run --service synth-lab-api --environment production -- \
-            alembic -c src/synth_lab/alembic/alembic.ini upgrade head
+          cd src/synth_lab/alembic
+          alembic upgrade head
           echo "✅ Production migrations completed"
 
   # ============================================================================
@@ -65,9 +64,13 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Deploy Backend to Production
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: railway up --service synth-lab-api --environment production --detach
 
       - name: Deploy Frontend to Production
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: railway up --service synth-lab-frontend --environment production --detach
 
       - name: Wait for deployments to be ready
