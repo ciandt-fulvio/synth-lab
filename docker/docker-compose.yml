@@ -171,12 +171,13 @@ services:
       - synthlab-test
 
   # Frontend for testing (production build, no volume mounts)
+  # VITE_API_URL points to backend on host (for Playwright running on host)
   frontend-test:
     build:
       context: ../frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ""
+        VITE_API_URL: "http://localhost:8001"
     container_name: synthlab-frontend-test
     profiles: ["test"]
     environment:

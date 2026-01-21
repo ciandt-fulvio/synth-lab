@@ -39,17 +39,11 @@ out/
 .cache/
 .parcel-cache/
 
-# Environment variables
+# Environment variables - only .env.example is tracked
 .env
-.env.local
-.env*.local
-.env.production
-.env.development
-.env.e2e
-docker/.env.dev
-docker/.env.test
+.env.*
+!.env.example
 docker/.env.*
-!docker/.env.*.example
 
 # IDEs
 .vscode/
