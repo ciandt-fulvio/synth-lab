@@ -45,6 +45,11 @@ out/
 .env*.local
 .env.production
 .env.development
+.env.e2e
+docker/.env.dev
+docker/.env.test
+docker/.env.*
+!docker/.env.*.example
 
 # IDEs
 .vscode/
