@@ -24,10 +24,32 @@ fi
 
 echo "🐳 Using: $RUNTIME"
 
+# Cleanup function for Podman (handles orphaned pods/containers/networks)
+cleanup_podman() {
+    echo "🧹 Cleaning up previous test environment..."
+
+    # Stop and remove test containers (ignore errors if they don't exist)
+    podman stop synthlab-postgres-test synthlab-backend-test synthlab-frontend-test 2>/dev/null || true
+    podman rm -f synthlab-postgres-test synthlab-backend-test synthlab-frontend-test 2>/dev/null || true
+
+    # Remove any pods created by podman-compose (pod name contains "docker")
+    for pod in $(podman pod ls -q --filter "name=docker" 2>/dev/null); do
+        podman pod rm -f "$pod" 2>/dev/null || true
+    done
+
+    # Clean up test network (must be after containers/pods are removed)
+    podman network rm -f synthlab-test-network 2>/dev/null || true
+}
+
 case "$COMMAND" in
     up)
         # Full test workflow: start containers, run tests, stop containers
         echo "Starting E2E environment (profile: $COMPOSE_PROFILE)..."
+
+        # Pre-cleanup for Podman to handle orphaned pods/containers
+        if [ "$RUNTIME" = "podman" ]; then
+            cleanup_podman
+        fi
 
         # Start containers
         if [ "$RUNTIME" = "podman" ]; then
@@ -54,6 +76,12 @@ case "$COMMAND" in
 
     up-detached)
         echo "Starting E2E environment (detached, profile: $COMPOSE_PROFILE)..."
+
+        # Pre-cleanup for Podman to handle orphaned pods/containers
+        if [ "$RUNTIME" = "podman" ]; then
+            cleanup_podman
+        fi
+
         if [ "$RUNTIME" = "podman" ]; then
             $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" up --build -d --force-recreate
         else
@@ -64,12 +92,9 @@ case "$COMMAND" in
     down)
         echo "Stopping E2E environment..."
         if [ "$RUNTIME" = "podman" ]; then
-            # Podman: try compose down, fallback to manual cleanup
-            $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" down -v 2>/dev/null || {
-                echo "Cleaning up with podman directly..."
-                podman rm -f synthlab-postgres-test synthlab-backend-test synthlab-frontend-test 2>/dev/null || true
-                podman pod rm -f pod_docker 2>/dev/null || true
-            }
+            # Podman: try compose down first, then use cleanup function
+            $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" down -v 2>/dev/null || true
+            cleanup_podman
         else
             $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" down -v
         fi
