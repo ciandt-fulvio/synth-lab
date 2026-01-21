@@ -71,9 +71,16 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-synthlab}:${POSTGRES_PASSWORD:-synthlab_dev}@postgres-dev:5432/${POSTGRES_DB:-synthlab}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      PHOENIX_ENABLED: ${PHOENIX_ENABLED:-false}
+      PHOENIX_ENABLED: ${PHOENIX_ENABLED:-true}
+      PHOENIX_COLLECTOR_ENDPOINT: ${PHOENIX_COLLECTOR_ENDPOINT:-http://localhost:6006}
       LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
       WATCHFILES_FORCE_POLLING: "true"
+      # S3 Storage (Railway Buckets)
+      ENDPOINT: ${ENDPOINT}
+      BUCKET: ${BUCKET}
+      BUCKET_ACCESS_KEY_ID: ${BUCKET_ACCESS_KEY_ID}
+      BUCKET_SECRET_ACCESS_KEY: ${BUCKET_SECRET_ACCESS_KEY}
+      REGION: ${REGION}
     ports:
       - "8000:8000"
     volumes:
@@ -156,6 +163,12 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-dummy_key_for_testing}
       PHOENIX_ENABLED: "false"
       LOG_LEVEL: INFO
+      # S3 Storage (Railway Buckets)
+      ENDPOINT: ${ENDPOINT}
+      BUCKET: ${BUCKET}
+      BUCKET_ACCESS_KEY_ID: ${BUCKET_ACCESS_KEY_ID}
+      BUCKET_SECRET_ACCESS_KEY: ${BUCKET_SECRET_ACCESS_KEY}
+      REGION: ${REGION}
     # Override entrypoint to include test data seeding
     command: >
       sh -c "

@@ -21,8 +21,8 @@
 ### 1. Iniciar Ambiente
 
 ```bash
-# Copiar variáveis de ambiente
-cp .env.example .env.docker.dev
+# As variáveis de desenvolvimento estão em docker/.env.dev
+# Não é necessário copiar - o docker-compose já usa este arquivo
 
 # Iniciar todos os serviços
 docker compose --profile dev up
@@ -63,8 +63,8 @@ docker compose --profile dev down
 ### 1. Iniciar Ambiente
 
 ```bash
-# Copiar variáveis de teste
-cp .env.e2e .env.docker.test
+# As variáveis de teste estão em docker/.env.test
+# Não é necessário copiar - o docker-compose já usa este arquivo
 
 # Build das imagens de produção
 docker compose --profile test build
@@ -190,8 +190,8 @@ sudo docker compose --profile dev up
 | Arquivo | Propósito |
 |---------|-----------|
 | `docker/docker-compose.yml` | Compose principal |
-| `.env.docker.dev` | Variáveis desenvolvimento |
-| `.env.docker.test` | Variáveis teste |
+| `docker/.env.dev` | Variáveis desenvolvimento |
+| `docker/.env.test` | Variáveis teste |
 | `Dockerfile` | Backend para Railway |
 | `frontend/Dockerfile` | Frontend para Railway |
 | `docker/backend/Dockerfile` | Backend para dev local |

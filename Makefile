@@ -199,7 +199,7 @@ dev-up:
 	@echo ""
 	@$(CONTAINER_RUNTIME) compose -f $(COMPOSE_FILE) --profile dev up -d
 	@echo ""
-	@echo "✅ Environment ready! Use 'make dev-logs' to view logs"
+	@echo "✅ Environment ready! Use 'make dev-logs-back e make dev-logs-front' to view logs"
 
 dev-down:
 	@echo "🛑 Stopping Docker development environment..."
