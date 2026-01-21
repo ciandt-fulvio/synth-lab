@@ -193,14 +193,11 @@ pytest tests/contract/test_api_contracts.py::test_new_endpoint_contract
 # 1. Crie model
 vim src/synth_lab/models/orm/new_model.py
 
-# 2. Crie migration
-DATABASE_URL="$DATABASE_TEST_URL" alembic revision --autogenerate -m "Add NewModel"
+# 2. Crie migration (contra dev database)
+make db-migrate MSG="Add NewModel"
 
-# 3. Aplique
-DATABASE_URL="$DATABASE_TEST_URL" alembic upgrade head
-
-# 4. Testes de schema detectam automaticamente
-pytest -m schema
+# 3. Testes de schema validam automaticamente
+make test-fast
 ```
 
 ### Novo Fluxo
@@ -292,8 +289,12 @@ make db-test
 
 ### "Migration pending"
 ```bash
-# Aplique migrations
-DATABASE_URL="$DATABASE_TEST_URL" alembic upgrade head
+# Aplique migrations ao dev database
+DATABASE_URL="postgresql://synthlab:synthlab_dev@localhost:5432/synthlab" \
+  alembic -c src/synth_lab/alembic/alembic.ini upgrade head
+
+# Ou rode os testes (container de teste aplica automaticamente)
+make test-fast
 ```
 
 ### "Schema diverge"

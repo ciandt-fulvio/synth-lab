@@ -1,63 +1,61 @@
 # 🚀 PostgreSQL Auto-Setup para Testes
 
-O banco PostgreSQL de testes **configura-se automaticamente**! Não é mais necessário rodar scripts manualmente.
+O banco PostgreSQL de testes **configura-se automaticamente** via container Docker isolado.
 
 ## ✨ Como Funciona
 
-Quando você roda `pytest`, o sistema:
+Quando você roda `make test` ou `make test-fast`:
 
-1. ✅ Detecta se algum teste precisa de PostgreSQL
-2. ✅ Cria o banco `synthlab_test` se não existir
+1. ✅ Sobe o container `postgres-test` (porta 5433, efêmero)
+2. ✅ Aguarda o banco ficar healthy
 3. ✅ Aplica todas as Alembic migrations automaticamente
-4. ✅ Verifica se migrations estão atualizadas
-5. ✅ Tudo isso **antes** de rodar os testes
+4. ✅ Roda os testes com `DATABASE_URL` apontando para o container
+5. ✅ Para o container ao final (dados são descartados)
 
 **Você só precisa garantir que:**
-- PostgreSQL está rodando
-- `DATABASE_TEST_URL` está no `.env`
+- Docker/Podman está rodando
+- Ambiente de dev está up: `make dev-up`
 
 ---
 
 ## 📝 Setup Inicial (Apenas Uma Vez)
 
-### 1. Adicione ao `.env`
+### 1. Suba o ambiente de desenvolvimento
 
 ```bash
-DATABASE_TEST_URL=postgresql://synthlab:synthlab@localhost:5432/synthlab_test
+make dev-up
 ```
 
-### 2. Inicie o PostgreSQL
+### 2. Pronto! Rode os Testes
 
 ```bash
-docker compose up -d postgres
+make test-fast  # Testes rápidos (~5s)
+make test       # Suite completa (~4min)
 ```
 
-### 3. Pronto! Rode os Testes
-
-```bash
-pytest tests/
-```
-
-**Na primeira execução você verá:**
+**Na execução você verá:**
 
 ```
+🐘 Starting test database container...
+⏳ Waiting for postgres-test to be healthy...
+✅ Test database ready at localhost:5433
+🚀 Running fast anti-regression tests...
+
 ======================================================================
 🐘 PostgreSQL Test Database Auto-Setup
 ======================================================================
-
-🔧 Creating test database 'synthlab_test'...
-✅ Database 'synthlab_test' created
-
-🔧 Applying migrations to test database...
-   Current: None
-   Target:  58b0dafa7483
-✅ Migrations applied successfully
+   🗑️  Dropping all tables...
+   ✅ All tables dropped
+   🔧 Running Alembic migrations...
+   ✅ Migrations applied (HEAD: abc123)
+   🌱 Seeding test data...
+   ✅ Test data seeded
 ======================================================================
-```
+✅ Test database ready!
+======================================================================
 
-**Nas próximas execuções:**
-- Se migrations estiverem atualizadas: **roda direto**
-- Se houver novas migrations: **aplica automaticamente**
+84 passed, 4 skipped in 4.30s
+```
 
 ---
 
@@ -94,18 +92,12 @@ class TestMyFeature:
 
 ## 🔄 Quando Modificar Models
 
-O workflow continua o mesmo, mas mais simples:
-
 ```bash
-# 1. Criar migration
-DATABASE_URL=$DATABASE_TEST_URL alembic -c src/synth_lab/alembic/alembic.ini \
-  revision --autogenerate -m "Add column"
+# 1. Criar migration (contra dev database)
+make db-migrate MSG="Add column"
 
-# 2. Aplicar ao banco principal
-alembic -c src/synth_lab/alembic/alembic.ini upgrade head
-
-# 3. Rodar testes (auto-setup aplica a migration ao banco de teste)
-pytest tests/
+# 2. Rodar testes (container de teste aplica migrations automaticamente)
+make test-fast
 ```
 
 **Não precisa mais** rodar `setup_test_db.py` manualmente!
@@ -141,28 +133,30 @@ def test_raw_sql(migrated_db_engine):
 
 ## 🧪 Executando Testes
 
-### Todos os Testes
+### Testes Rápidos (Recomendado para Desenvolvimento)
 
 ```bash
-pytest tests/
+make test-fast  # smoke + contract + schema (~5s)
+```
+
+### Suite Completa
+
+```bash
+make test  # Todos os testes (~4min)
 ```
 
 ### Apenas Testes que Requerem PostgreSQL
 
 ```bash
-pytest -m requires_postgres
-```
-
-### Apenas Testes de Concorrência
-
-```bash
-pytest tests/integration/test_concurrent_operations.py
+DATABASE_URL="postgresql://synthlab_test:synthlab_test@localhost:5433/synthlab_test" \
+  uv run pytest -m requires_postgres
 ```
 
 ### Apenas Testes de Migrations
 
 ```bash
-pytest tests/schema/test_migrations.py
+DATABASE_URL="postgresql://synthlab_test:synthlab_test@localhost:5433/synthlab_test" \
+  uv run pytest tests/schema/test_migrations.py
 ```
 
 ---
@@ -171,27 +165,17 @@ pytest tests/schema/test_migrations.py
 
 ```mermaid
 graph TD
-    A[pytest inicia] --> B{Tem DATABASE_TEST_URL?}
-    B -->|Não| C[Testes PostgreSQL são skipped]
-    B -->|Sim| D{Algum teste usa PostgreSQL?}
-    D -->|Não| E[Continua sem setup]
-    D -->|Sim| F[Auto-setup inicia]
-    F --> G{Banco existe?}
-    G -->|Não| H[Cria banco]
-    G -->|Sim| I{Migrations atualizadas?}
-    H --> I
-    I -->|Não| J[Aplica migrations]
-    I -->|Sim| K[Pronto!]
-    J --> K
-    K --> L[Roda testes]
+    A[make test] --> B[Sobe postgres-test container]
+    B --> C[Aguarda healthy]
+    C --> D[Seta DATABASE_URL para container]
+    D --> E[pytest inicia]
+    E --> F[conftest.py detecta DATABASE_URL]
+    F --> G[Drop all tables]
+    G --> H[Aplica migrations]
+    H --> I[Seed test data]
+    I --> J[Roda testes]
+    J --> K[Para container]
 ```
-
-### Detecção Automática
-
-O auto-setup detecta testes PostgreSQL através de:
-
-1. **Fixtures usadas**: `db_session`, `migrated_db_engine`, etc.
-2. **Marker**: `@pytest.mark.requires_postgres`
 
 ---
 
@@ -202,20 +186,21 @@ O auto-setup detecta testes PostgreSQL através de:
 ```bash
 # Toda vez que modificava models:
 uv run python scripts/setup_test_db.py --reset
-pytest tests/
+DATABASE_URL=... pytest tests/
 ```
 
 ### Agora (Automático)
 
 ```bash
 # Só isso:
-pytest tests/
+make test
 ```
 
 **Benefícios:**
 - ✅ Zero setup manual
+- ✅ Container isolado (porta 5433)
+- ✅ Dados efêmeros (sem persistência)
 - ✅ Migrations sempre atualizadas
-- ✅ Banco criado automaticamente
 - ✅ CI/CD simplificado
 - ✅ Onboarding mais fácil
 
@@ -223,43 +208,49 @@ pytest tests/
 
 ## 🚨 Troubleshooting
 
-### "PostgreSQL connection refused"
+### "Container not starting"
 
 ```bash
-# Verificar se PostgreSQL está rodando
-docker ps | grep postgres
+# Verificar se Docker/Podman está rodando
+docker ps
 
-# Iniciar se necessário
-docker compose up -d postgres
+# Verificar logs do container
+docker logs synthlab-postgres-test
 ```
 
-### "DATABASE_TEST_URL not set"
+### "DATABASE_URL must point to test database"
+
+Você está tentando rodar pytest diretamente sem `make test`:
 
 ```bash
-echo "DATABASE_TEST_URL=postgresql://synthlab:synthlab@localhost:5432/synthlab_test" >> .env
+# Use o Makefile que configura DATABASE_URL corretamente
+make test-fast
 ```
 
 ### "Migrations out of date"
 
-Rode pytest novamente - auto-setup aplica as migrations:
+O container de teste sempre aplica migrations do zero. Se houver erro:
 
 ```bash
-pytest tests/
+# Verifique se migrations estão corretas no dev
+make db-migrate MSG="Fix migration"
 ```
 
-### Forçar Recriação do Banco
-
-Se algo der errado, use o script manual:
+### Forçar Limpeza
 
 ```bash
-uv run python scripts/setup_test_db.py --reset
+# Para e remove o container de teste
+make test-db-down
+
+# Remove volumes órfãos
+docker volume prune
 ```
 
 ---
 
 ## 📚 Referências
 
-- **Auto-setup**: `tests/conftest.py` → `_auto_setup_postgres_if_needed`
+- **Auto-setup**: `tests/conftest.py` → `_ensure_test_database_setup`
 - **Fixtures**: `tests/conftest.py` → Seção "PostgreSQL Test Database Fixtures"
 - **Seed Data**: `tests/fixtures/seed_test.py`
-- **Setup Manual**: `scripts/setup_test_db.py`
+- **Docker Config**: `docker/docker-compose.yml` → `postgres-test` service

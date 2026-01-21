@@ -11,7 +11,7 @@ Executar: pytest -m schema
 IMPORTÂNCIA: Estes testes detectam 90% dos problemas de "funcionou local mas quebrou em prod"
 relacionados a divergências de schema.
 
-Requer: DATABASE_TEST_URL environment variable.
+Requer: DATABASE_URL environment variable pointing to test database.
 """
 
 import os
@@ -27,14 +27,14 @@ from synth_lab.models.orm.base import Base
 
 @pytest.fixture(scope="module")
 def db_inspector(request):
-    """Create inspector for database schema introspection using DATABASE_TEST_URL.
+    """Create inspector for database schema introspection using DATABASE_URL.
 
     This fixture ensures the database is properly set up before running schema tests.
     If tables are missing (possibly dropped by other tests), it will re-run migrations.
     """
-    database_url = os.getenv("DATABASE_TEST_URL")
+    database_url = os.getenv("DATABASE_URL")
     if not database_url:
-        pytest.skip("DATABASE_TEST_URL not set")
+        pytest.skip("DATABASE_URL not set - run via: make test")
 
     from sqlalchemy import create_engine
     engine = create_engine(database_url)

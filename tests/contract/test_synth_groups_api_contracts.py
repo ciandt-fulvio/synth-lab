@@ -10,7 +10,7 @@ These tests ensure API changes don't break the frontend by validating:
 Run: pytest tests/contract/test_synth_groups_api_contracts.py -v
 
 Note: Uses shared 'client' fixture from tests/contract/conftest.py
-      which ensures tests run against DATABASE_TEST_URL.
+      which ensures tests run against the test database (DATABASE_URL set by Makefile).
 """
 
 import pytest

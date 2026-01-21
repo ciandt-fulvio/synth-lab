@@ -5,10 +5,11 @@ Este teste NÃO usa LLM - compara schemas JSON diretamente.
 
 Executar: pytest tests/contract/test_openapi_typescript_sync.py -v
 
-Requer: Backend rodando em localhost:8000
+Requer: Backend rodando (BACKEND_URL env var or localhost:8000)
 """
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -16,15 +17,17 @@ from pathlib import Path
 import pytest
 import requests
 
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+
 
 def get_openapi_schema() -> dict:
     """Fetch OpenAPI schema from running backend."""
     try:
-        response = requests.get("http://localhost:8000/openapi.json", timeout=5)
+        response = requests.get(f"{BACKEND_URL}/openapi.json", timeout=5)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.ConnectionError:
-        pytest.skip("Backend not running at localhost:8000")
+        pytest.skip(f"Backend not running at {BACKEND_URL}")
 
 
 def extract_schema_fields(schema: dict, schema_name: str) -> set[str]:

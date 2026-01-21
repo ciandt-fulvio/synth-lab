@@ -4,68 +4,66 @@ Este documento explica como configurar e usar o banco PostgreSQL de testes para 
 
 ## 📋 Visão Geral
 
-O banco de testes usa **Alembic migrations** (não `create_all()`) para garantir que:
-- ✅ Schema de testes = schema de produção
-- ✅ Testes de migration detectam mudanças não migradas
+O banco de testes usa um **container Docker isolado** (porta 5433) para garantir que:
+- ✅ Schema de testes = schema de produção (via Alembic migrations)
+- ✅ Dados efêmeros (sem persistência entre execuções)
+- ✅ Isolamento total do banco de desenvolvimento
 - ✅ Testes de concorrência rodam com PostgreSQL real
-- ✅ Dados de teste realistas via seed
 
 ---
 
 ## 🚀 Setup Inicial
 
-### 1. Configurar Variável de Ambiente
-
-Adicione ao seu `.env`:
+### 1. Suba o ambiente de desenvolvimento
 
 ```bash
-DATABASE_TEST_URL=postgresql://synthlab:synthlab@localhost:5432/synthlab_test
+make dev-up
 ```
 
-> **IMPORTANTE**: O banco DEVE ter `test` no nome para segurança!
-
-### 2. Criar e Migrar o Banco de Teste
-
-Execute o script de setup:
+### 2. Rode os testes
 
 ```bash
-# Criar banco limpo com migrations
-uv run python scripts/setup_test_db.py --reset
-
-# Com dados de seed (opcional)
-uv run python scripts/setup_test_db.py --reset --seed
+make test-fast  # Testes rápidos (~5s)
+make test       # Suite completa (~4min)
 ```
 
-**O que este script faz:**
-1. ❌ Dropa o banco `synthlab_test` (se existir)
-2. ✅ Cria um banco novo vazio
-3. ✅ Aplica todas as Alembic migrations
-4. ✅ Opcionalmente popula com dados de teste (--seed)
+**É só isso!** O Makefile:
+1. Sobe o container `postgres-test` (porta 5433)
+2. Configura `DATABASE_URL` para o container de teste
+3. Aplica migrations automaticamente
+4. Roda os testes
+5. Para o container ao final
 
 ---
 
 ## 🧪 Rodando Testes
 
-### Todos os Testes
+### Testes Rápidos (Recomendado para Desenvolvimento)
 
 ```bash
-pytest tests/
+make test-fast  # smoke + contract + schema (~5s)
 ```
 
-### Apenas Testes que Usam PostgreSQL
+### Suite Completa
 
 ```bash
-# Testes de concorrência
-pytest tests/integration/test_concurrent_operations.py -v
-
-# Testes de migrations
-pytest tests/schema/test_migrations.py -v
+make test  # Todos os testes (~4min)
 ```
 
-### Apenas Testes de Contract/Smoke
+### Testes Específicos (Manual)
+
+Se precisar rodar testes específicos manualmente:
 
 ```bash
-pytest tests/smoke/ tests/contract/ -v
+# Primeiro, suba o container de teste
+make test-db-up
+
+# Rode os testes desejados
+DATABASE_URL="postgresql://synthlab_test:synthlab_test@localhost:5433/synthlab_test" \
+  uv run pytest tests/integration/test_concurrent_operations.py -v
+
+# Depois, pare o container
+make test-db-down
 ```
 
 ---
@@ -79,7 +77,6 @@ Engine do PostgreSQL com migrations aplicadas.
 ```python
 def test_something(migrated_db_engine):
     # Engine já tem schema do Alembic
-    # Não usa create_all()
     pass
 ```
 
@@ -102,7 +99,6 @@ Sessão com dados de teste pré-carregados.
 ```python
 def test_with_data(seeded_db_session):
     # Dados de seed já estão no banco
-    # 3 experiments, 2 synth groups, etc.
     experiments = seeded_db_session.query(Experiment).all()
     assert len(experiments) == 3
 ```
@@ -126,7 +122,6 @@ O arquivo `tests/fixtures/seed_test.py` cria:
 
 ```python
 def test_list_experiments(seeded_db_session):
-    # Usa fixture seeded_db_session
     service = ExperimentService(session=seeded_db_session)
     result = service.list_experiments()
     assert result.pagination.total == 3  # Seed criou 3 experiments
@@ -141,34 +136,23 @@ def test_list_experiments(seeded_db_session):
 1. **Alterar o model** (ex: adicionar coluna)
 2. **Criar migration**:
    ```bash
-   source .env
-   DATABASE_URL=$DATABASE_TEST_URL alembic -c src/synth_lab/alembic/alembic.ini \
-     revision --autogenerate -m "Add new column"
+   make db-migrate MSG="Add new column"
    ```
-3. **Aplicar ao banco de teste**:
+3. **Rodar testes** (migrations são aplicadas automaticamente no container):
    ```bash
-   uv run python scripts/setup_test_db.py --reset
-   ```
-4. **Aplicar ao banco principal**:
-   ```bash
-   alembic -c src/synth_lab/alembic/alembic.ini upgrade head
-   ```
-5. **Rodar testes**:
-   ```bash
-   pytest tests/
+   make test-fast
    ```
 
 ### Quando Testes de Migration Falharem
 
-```
-❌ Database migrations out of date!
-Run: uv run python scripts/setup_test_db.py --reset
-```
+O container de teste sempre começa do zero, aplicando todas as migrations. Se houver erro:
 
-**Solução:**
 ```bash
-uv run python scripts/setup_test_db.py --reset
-pytest tests/schema/test_migrations.py -v
+# Verifique se migrations estão corretas
+make db-migrate MSG="Fix model changes"
+
+# Rode os testes novamente
+make test-fast
 ```
 
 ---
@@ -177,59 +161,69 @@ pytest tests/schema/test_migrations.py -v
 
 ### Checks Automáticos
 
-- ✅ Fixture `postgres_test_url` só aceita URLs com `test` no nome
-- ✅ Script `setup_test_db.py` verifica `DATABASE_TEST_URL`
-- ✅ Banco de teste é SEMPRE separado do desenvolvimento
+- ✅ `conftest.py` verifica que `DATABASE_URL` contém "test"
+- ✅ Container de teste é efêmero (sem volume persistente)
+- ✅ Porta diferente (5433) do dev (5432)
 
 ### Nunca Use
 
-❌ `DATABASE_URL` para testes
-❌ Banco `synthlab` (sem _test)
+❌ Rodar pytest sem `make test` (DATABASE_URL errado)
+❌ Container de dev para testes
 ❌ `Base.metadata.create_all()` em testes de integration
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Erro: "DATABASE_TEST_URL not set"
+### Erro: "DATABASE_URL must point to test database"
+
+Você está tentando rodar pytest diretamente. Use o Makefile:
 
 ```bash
-echo "DATABASE_TEST_URL=postgresql://synthlab:synthlab@localhost:5432/synthlab_test" >> .env
+make test-fast
 ```
 
-### Erro: "relation already exists"
-
-O banco tem schema antigo. Reset:
+### Erro: "Container not starting"
 
 ```bash
-uv run python scripts/setup_test_db.py --reset
+# Verificar se Docker/Podman está rodando
+docker ps
+
+# Verificar logs
+docker logs synthlab-postgres-test
+
+# Forçar limpeza e tentar novamente
+make test-db-down
+make test-fast
 ```
 
-### Erro: "Models divergem do DB"
-
-Você mudou um model sem criar migration:
+### Erro: "relation already exists" ou "Models divergem"
 
 ```bash
-source .env
-DATABASE_URL=$DATABASE_TEST_URL alembic -c src/synth_lab/alembic/alembic.ini \
-  revision --autogenerate -m "Fix model changes"
-uv run python scripts/setup_test_db.py --reset
+# Crie a migration faltante
+make db-migrate MSG="Fix model changes"
+
+# Rode os testes
+make test-fast
 ```
 
-### PostgreSQL não está rodando
+### PostgreSQL de Dev não está rodando
 
 ```bash
-# Verificar se está rodando
-docker ps | grep postgres
+# Verificar containers
+docker ps
 
-# Iniciar se necessário
-docker compose up -d postgres
+# Iniciar ambiente completo
+make dev-up
 ```
 
 ---
 
 ## 📚 Referências
 
+- **Auto-setup**: `tests/conftest.py` → `_ensure_test_database_setup`
+- **Fixtures**: `tests/conftest.py` → Seção "PostgreSQL Test Database Fixtures"
+- **Seed Data**: `tests/fixtures/seed_test.py`
+- **Docker Config**: `docker/docker-compose.yml` → `postgres-test` service
 - **Alembic**: https://alembic.sqlalchemy.org/
 - **SQLAlchemy Testing**: https://docs.sqlalchemy.org/en/20/orm/session_transaction.html
-- **Pytest Fixtures**: https://docs.pytest.org/en/stable/fixture.html

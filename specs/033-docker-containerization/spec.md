@@ -7,7 +7,7 @@
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Local Development with Hot Reload (Priority: P1)
+### User Story 1 - Local Development with Hot Reload 
 
 Developers need to run the complete application stack locally using Docker containers while maintaining the ability to edit code and see changes immediately reflected without rebuilding containers. The development environment must include PostgreSQL database, backend API, and frontend application all running together.
 
@@ -24,7 +24,7 @@ Developers need to run the complete application stack locally using Docker conta
 
 ---
 
-### User Story 2 - Isolated Testing Environment (Priority: P2)
+### User Story 2 - Isolated Testing Environment 
 
 QA engineers and developers need to run end-to-end and manual tests in a containerized environment that uses the actual production build artifacts (not local source files with volumes). This environment must be completely isolated and reproducible, with its own PostgreSQL instance containing test data.
 
@@ -41,7 +41,7 @@ QA engineers and developers need to run end-to-end and manual tests in a contain
 
 ---
 
-### User Story 3 - Production Deployment to Railway (Priority: P3)
+### User Story 3 - Production Deployment to Railway 
 
 The same Docker images validated in the test environment must be deployable to Railway production infrastructure with frontend, backend, and PostgreSQL running as separate Railway services. Configuration must adapt to Railway's environment without code changes.
 
@@ -81,10 +81,10 @@ The same Docker images validated in the test environment must be deployable to R
 - **FR-007**: Docker images MUST be configured to run in multiple environments (dev, test, prod) via environment variables
 - **FR-008**: Frontend container MUST serve the built application and handle client-side routing
 - **FR-009**: Backend container MUST run FastAPI with OpenTelemetry tracing configured
-- **FR-010**: PostgreSQL container MUST persist data using volumes in development mode
-- **FR-011**: PostgreSQL container MUST support initialization scripts for test data seeding
-- **FR-012**: Production deployment MUST separate frontend, backend, and PostgreSQL as independent Railway services
-- **FR-013**: Production configuration MUST use Railway's PostgreSQL service instead of containerized PostgreSQL
+- *
+- *
+- *
+- *
 - **FR-014**: Docker Compose configuration MUST provide separate profiles for development and testing modes
 - **FR-015**: All containers MUST use health checks to verify service availability before dependent services start
 - **FR-016**: Backend container MUST wait for PostgreSQL to be ready before starting the FastAPI application
@@ -111,7 +111,7 @@ The same Docker images validated in the test environment must be deployable to R
 - **SC-003**: Test environment produces identical E2E test results when run locally versus in CI/CD pipeline (100% reproducibility)
 - **SC-004**: The same Docker images used in test environment deploy successfully to Railway production without modifications
 - **SC-005**: Development environment restart preserves all local PostgreSQL data and does not require re-seeding
-- **SC-006**: Production deployments to Railway complete within 10 minutes from image push to service availability
+- *
 - **SC-007**: All three environments (dev, test, prod) use the same database migration scripts without environment-specific code
 - **SC-008**: Developers successfully onboard and run the project locally using only Docker documentation within 30 minutes
 

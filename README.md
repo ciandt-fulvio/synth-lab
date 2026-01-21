@@ -84,6 +84,36 @@ uv run uvicorn src.synth_lab.api.main:app --reload --host 0.0.0.0 --port 8000
 open http://localhost:8000/docs
 ```
 
+### 🐳 Docker Development (Recomendado)
+
+O SynthLab oferece ambientes Docker pré-configurados para desenvolvimento e testes:
+
+```bash
+# Desenvolvimento com hot reload (recomendado)
+make dev-up        # Inicia frontend (8080), backend (8000), postgres (5432)
+make dev-logs      # Ver logs de todos os serviços
+make dev-down      # Para o ambiente
+
+# Testes E2E (ambiente isolado)
+make test-e2e              # Executa tudo: build + start + test + cleanup
+make test-e2e-docker-up    # Inicia ambiente para debug (portas 8091, 8001, 5433)
+make test-e2e-docker-down  # Para e limpa o ambiente
+```
+
+**Características do ambiente de desenvolvimento:**
+- ✅ Hot reload para backend (uvicorn --reload com polling)
+- ✅ HMR (Hot Module Replacement) para frontend (Vite)
+- ✅ Volume mounts para código fonte
+- ✅ PostgreSQL persistente para dados de desenvolvimento
+
+**Características do ambiente de testes:**
+- ✅ Imagens de produção (sem volume mounts)
+- ✅ PostgreSQL efêmero (dados limpos a cada execução)
+- ✅ Portas separadas (não conflita com ambiente de dev)
+- ✅ Seed de dados de teste automático
+
+> 📖 Para documentação detalhada, veja [Docker Development Guide](docs/docker-development.md)
+
 ## 📖 Uso
 
 ### Interface de Linha de Comando

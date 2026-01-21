@@ -1,6 +1,9 @@
 """
 Setup PostgreSQL test database for synth-lab.
 
+NOTE: With Docker-based testing, this script is rarely needed.
+      Use `make test` instead, which uses an isolated test container.
+
 This script:
 1. Drops and recreates the test database (clean slate)
 2. Applies all Alembic migrations
@@ -8,17 +11,16 @@ This script:
 
 Usage:
     # Setup clean database with migrations only
-    uv run python scripts/setup_test_db.py
+    DATABASE_URL="postgresql://..." uv run python scripts/setup_test_db.py
 
     # Setup with seed data
-    uv run python scripts/setup_test_db.py --seed
+    DATABASE_URL="postgresql://..." uv run python scripts/setup_test_db.py --seed
 
     # Reset existing database
-    uv run python scripts/setup_test_db.py --reset
+    DATABASE_URL="postgresql://..." uv run python scripts/setup_test_db.py --reset
 
 Environment Variables Required:
-    DATABASE_TEST_URL: PostgreSQL connection string for test database
-    Example: postgresql://synthlab:synthlab@localhost:5432/synthlab_test
+    DATABASE_URL: PostgreSQL connection string (must contain 'test' for safety)
 """
 
 import os
@@ -40,10 +42,13 @@ app = typer.Typer()
 
 def get_test_db_url() -> str:
     """Get test database URL from environment."""
-    db_url = os.getenv("DATABASE_TEST_URL")
+    db_url = os.getenv("DATABASE_URL")
     if not db_url:
-        logger.error("DATABASE_TEST_URL environment variable not set")
-        logger.info("Example: DATABASE_TEST_URL=postgresql://user:pass@localhost:5432/synthlab_test")
+        logger.error("DATABASE_URL environment variable not set")
+        logger.info("Example: DATABASE_URL=postgresql://user:pass@localhost:5432/synthlab_test")
+        sys.exit(1)
+    if "test" not in db_url.lower():
+        logger.error("DATABASE_URL must point to a test database (must contain 'test')")
         sys.exit(1)
     return db_url
 

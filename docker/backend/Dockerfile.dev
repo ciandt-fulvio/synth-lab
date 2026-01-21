@@ -1,0 +1,47 @@
+# Development Dockerfile for synth-lab backend
+# Optimized for hot reload with volume mounts
+
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv for fast package management
+RUN pip install --no-cache-dir uv
+
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
+
+# Create a minimal src structure for uv to parse the package
+# This will be replaced by the volume mount at runtime
+RUN mkdir -p src/synth_lab && \
+    touch src/synth_lab/__init__.py
+
+# Install all dependencies including the package in editable mode
+# The source will be replaced by volume mount at runtime
+RUN uv pip install --system --no-cache -e ".[dev]"
+
+# Remove the placeholder src (will be replaced by volume mount)
+RUN rm -rf src
+
+# Source code will be mounted as volume at runtime
+# Volume: ./src:/app/src:cached
+
+# Environment variables for hot reload
+ENV WATCHFILES_FORCE_POLLING=true
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+# Add src to PYTHONPATH for module discovery
+ENV PYTHONPATH=/app/src
+
+# Expose port
+EXPOSE 8000
+
+# Development entrypoint: run migrations then start with reload
+CMD ["sh", "-c", "alembic -c src/synth_lab/alembic/alembic.ini upgrade head && uvicorn synth_lab.api.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/src --reload-delay 0.25"]

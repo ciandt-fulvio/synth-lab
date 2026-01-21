@@ -5,8 +5,8 @@ Test Database Flow:
 1. Session start: DROP ALL → Alembic migrations → Verify schema → Seed data
 2. Each test: BEGIN TRANSACTION → SAVEPOINT → test runs → ROLLBACK (seed preserved)
 
-CRITICAL: Integration tests use DATABASE_TEST_URL pointing to 'synthlab_test' database.
-This prevents destructive tests from affecting development data.
+CRITICAL: Tests use DATABASE_URL which must point to a test database (contains 'test').
+Run via `make test` or `make test-fast` which sets DATABASE_URL to the test container.
 """
 
 import json
@@ -21,7 +21,8 @@ import pytest
 from dotenv import load_dotenv
 
 # Load .env file automatically for all tests
-load_dotenv()
+# override=True ensures .env values take precedence over shell environment
+load_dotenv(override=True)
 
 
 # ==============================================================================
@@ -140,18 +141,18 @@ def _ensure_test_database_setup():
     if _database_setup_done:
         return
 
-    db_url = os.getenv("DATABASE_TEST_URL")
-    prod_url = os.getenv("DATABASE_URL")
+    db_url = os.getenv("DATABASE_URL")
 
     if not db_url:
-        # Skip setup if no test database URL
+        # Skip setup if no database URL
         return
 
-    # Safety check
-    if "synthlab_test" not in db_url and "test" not in db_url:
+    # Safety check - DATABASE_URL must point to a test database
+    if "test" not in db_url.lower():
         raise ValueError(
-            f"CRITICAL: DATABASE_TEST_URL must point to test database!\n"
-            f"Current: {db_url}"
+            f"CRITICAL: DATABASE_URL must point to test database (must contain 'test')!\n"
+            f"Current: {db_url}\n"
+            f"Run tests via: make test  (sets DATABASE_URL to test container)"
         )
 
     from sqlalchemy import create_engine
@@ -173,14 +174,7 @@ def _ensure_test_database_setup():
         engine.dispose()
         engine = create_engine(db_url)
 
-        # Step 3: Verify schema (if prod URL available)
-        if prod_url:
-            try:
-                _verify_schema_matches_prod(engine, prod_url)
-            except Exception as e:
-                print(f"   ⚠️  Schema verification skipped: {e}")
-
-        # Step 4: Seed data
+        # Step 3: Seed data
         _seed_test_data(engine)
 
         print("=" * 70)
@@ -215,52 +209,31 @@ def auto_setup_test_database():
 @pytest.fixture(scope="session")
 def postgres_test_url() -> str:
     """
-    Get PostgreSQL test database URL from DATABASE_TEST_URL.
+    Get PostgreSQL test database URL from DATABASE_URL.
 
     Safety checks:
     - Must be set
-    - Must contain 'synthlab_test' or 'test' to prevent accidental use of prod DB
+    - Must contain 'test' to prevent accidental use of prod DB
 
     Returns:
         str: PostgreSQL connection string for test database
 
     Raises:
-        pytest.skip: If DATABASE_TEST_URL is not set
-        ValueError: If URL doesn't point to test database
-    """
-    db_url = os.getenv("DATABASE_TEST_URL")
-
-    if not db_url:
-        pytest.skip("DATABASE_TEST_URL not set - PostgreSQL test database required")
-
-    # Safety check: ensure we're NOT using the development database
-    if "synthlab_test" not in db_url and "test" not in db_url:
-        raise ValueError(
-            f"CRITICAL: DATABASE_TEST_URL must point to 'synthlab_test' database!\n"
-            f"Current: {db_url}\n"
-            f"Expected: postgresql://user:pass@localhost:5432/synthlab_test"
-        )
-
-    return db_url
-
-
-@pytest.fixture(scope="session")
-def prod_database_url() -> str:
-    """
-    Get production/development database URL from DATABASE_URL.
-
-    Used for schema comparison to ensure test DB matches prod DB.
-
-    Returns:
-        str: PostgreSQL connection string for prod/dev database
-
-    Raises:
         pytest.skip: If DATABASE_URL is not set
+        ValueError: If URL doesn't point to test database
     """
     db_url = os.getenv("DATABASE_URL")
 
     if not db_url:
-        pytest.skip("DATABASE_URL not set - cannot compare schemas")
+        pytest.skip("DATABASE_URL not set - run via: make test")
+
+    # Safety check: ensure we're NOT using the development database
+    if "test" not in db_url.lower():
+        raise ValueError(
+            f"CRITICAL: DATABASE_URL must point to test database (must contain 'test')!\n"
+            f"Current: {db_url}\n"
+            f"Run via: make test  (sets DATABASE_URL to test container)"
+        )
 
     return db_url
 
@@ -390,15 +363,14 @@ def _seed_test_data(engine) -> None:
 
 
 @pytest.fixture(scope="session")
-def seeded_test_engine(postgres_test_url: str, prod_database_url: str):
+def seeded_test_engine(postgres_test_url: str):
     """
     Session-scoped fixture that prepares the test database.
 
     Flow:
     1. DROP ALL tables (clean slate)
     2. Run Alembic migrations (create schema)
-    3. Verify schema matches production
-    4. Seed test data
+    3. Seed test data
 
     This runs ONCE per test session. All tests share the seeded data.
     Individual test isolation is handled by db_session using SAVEPOINT.
@@ -431,10 +403,7 @@ def seeded_test_engine(postgres_test_url: str, prod_database_url: str):
             engine.dispose()
             engine = create_engine(postgres_test_url)
 
-            # Step 3: Verify schema matches production
-            _verify_schema_matches_prod(engine, prod_database_url)
-
-            # Step 4: Seed test data
+            # Step 3: Seed test data
             _seed_test_data(engine)
 
             print("=" * 70)

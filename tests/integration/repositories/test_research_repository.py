@@ -305,13 +305,13 @@ if __name__ == "__main__":
     """
     import sys
 
-    postgres_url = os.getenv("DATABASE_TEST_URL")
+    postgres_url = os.getenv("DATABASE_URL")
     if not postgres_url:
-        print("❌ DATABASE_TEST_URL environment variable not set")
+        print("❌ DATABASE_URL environment variable not set")
         sys.exit(1)
 
     if "synthlab_test" not in postgres_url:
-        print(f"❌ DATABASE_TEST_URL must point to test database (synthlab_test)")
+        print(f"❌ DATABASE_URL must point to test database (synthlab_test)")
         print(f"   Current: {postgres_url}")
         sys.exit(1)
 

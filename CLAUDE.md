@@ -83,4 +83,4 @@ PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
   - Document Storage: Uses existing experiment_documents table with exploration.experiment_id as FK
   - Phoenix Tracing: All LLM calls wrapped with _tracer.start_as_current_span()
 
-Database migration must be alway done via Alembic. and applyed to DATABASE_URL and DATABASE_TEST_URL as well.
+Database migration must be always done via Alembic. Tests use an isolated container (make test) which auto-applies migrations.
