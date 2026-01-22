@@ -1,0 +1,38 @@
+#!/bin/bash
+# Post-commit hook: auto-update docs and tests suggestions
+#
+# This hook runs after every commit to:
+# 1. Update documentation based on code changes
+# 2. Suggest tests for new/modified code
+#
+# Note: These scripts only suggest changes, they don't auto-commit.
+
+set -e
+
+SCRIPTS_DIR="$(git rev-parse --show-toplevel)/scripts"
+
+echo ""
+echo "=== Post-commit: Auto-update docs and tests ==="
+echo ""
+
+# Run auto-update-docs.sh if it exists and is executable
+if [ -x "$SCRIPTS_DIR/auto-update-docs.sh" ]; then
+    echo "[1/2] Running auto-update-docs.sh..."
+    "$SCRIPTS_DIR/auto-update-docs.sh" || true
+else
+    echo "[1/2] Skipping: auto-update-docs.sh not found or not executable"
+fi
+
+echo ""
+
+# Run auto-update-tests.sh if it exists and is executable
+if [ -x "$SCRIPTS_DIR/auto-update-tests.sh" ]; then
+    echo "[2/2] Running auto-update-tests.sh..."
+    "$SCRIPTS_DIR/auto-update-tests.sh" || true
+else
+    echo "[2/2] Skipping: auto-update-tests.sh not found or not executable"
+fi
+
+echo ""
+echo "=== Post-commit hook completed ==="
+echo ""
