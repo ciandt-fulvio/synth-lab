@@ -2,7 +2,9 @@
 # Wrapper script for running E2E environment with Docker or Podman
 # Uses unified docker-compose.yml with --profile test
 #
-# Handles compatibility issues between docker-compose and podman-compose
+# Features:
+# - Automatic rebuild detection: only rebuilds when frontend/backend changed
+# - Handles compatibility issues between docker-compose and podman-compose
 
 set -e
 
@@ -23,6 +25,92 @@ else
 fi
 
 echo "🐳 Using: $RUNTIME"
+
+# Check if frontend image needs rebuild (compares image timestamp with source files)
+needs_frontend_rebuild() {
+    local image_name="docker_frontend-test"
+
+    # If image doesn't exist, need to build
+    if ! $RUNTIME image inspect "$image_name" &>/dev/null 2>&1; then
+        echo "   📦 Frontend image not found, will build..."
+        return 0
+    fi
+
+    # Get image creation timestamp in seconds since epoch
+    local image_created_epoch=$($RUNTIME image inspect "$image_name" --format='{{.Created}}')
+
+    # Convert to epoch seconds (works on both Linux and macOS)
+    if date -j -f "%Y-%m-%d %H:%M:%S" "2020-01-01 00:00:00" +%s &>/dev/null; then
+        # macOS date
+        image_created_epoch=$(echo "$image_created_epoch" | sed 's/\.[0-9]* \+0000 UTC//' | xargs -I {} date -j -f "%Y-%m-%d %H:%M:%S" "{}" +%s 2>/dev/null)
+    else
+        # GNU date (Linux)
+        image_created_epoch=$(date -d "$image_created_epoch" +%s 2>/dev/null)
+    fi
+
+    # Check if any frontend source files were modified after the image (by comparing epoch times)
+    local has_newer=0
+    for file in $(find frontend/src frontend/package.json frontend/vite.config.ts frontend/Dockerfile -type f 2>/dev/null); do
+        if [ -f "$file" ]; then
+            local file_epoch=$(stat -f %m "$file" 2>/dev/null || stat -c %Y "$file" 2>/dev/null)
+            if [ "$file_epoch" -gt "$image_created_epoch" ]; then
+                has_newer=1
+                break
+            fi
+        fi
+    done
+
+    if [ "$has_newer" -eq 1 ]; then
+        echo "   🔄 Frontend changes detected (newer than image), will rebuild..."
+        return 0
+    fi
+
+    echo "   ✅ No frontend changes, using cached image"
+    return 1
+}
+
+# Check if backend image needs rebuild (compares image timestamp with source files)
+needs_backend_rebuild() {
+    local image_name="docker_backend-test"
+
+    # If image doesn't exist, need to build
+    if ! $RUNTIME image inspect "$image_name" &>/dev/null 2>&1; then
+        echo "   📦 Backend image not found, will build..."
+        return 0
+    fi
+
+    # Get image creation timestamp in seconds since epoch
+    local image_created_epoch=$($RUNTIME image inspect "$image_name" --format='{{.Created}}')
+
+    # Convert to epoch seconds (works on both Linux and macOS)
+    if date -j -f "%Y-%m-%d %H:%M:%S" "2020-01-01 00:00:00" +%s &>/dev/null; then
+        # macOS date
+        image_created_epoch=$(echo "$image_created_epoch" | sed 's/\.[0-9]* \+0000 UTC//' | xargs -I {} date -j -f "%Y-%m-%d %H:%M:%S" "{}" +%s 2>/dev/null)
+    else
+        # GNU date (Linux)
+        image_created_epoch=$(date -d "$image_created_epoch" +%s 2>/dev/null)
+    fi
+
+    # Check if any backend source files were modified after the image (by comparing epoch times)
+    local has_newer=0
+    for file in $(find src pyproject.toml Dockerfile -type f 2>/dev/null); do
+        if [ -f "$file" ]; then
+            local file_epoch=$(stat -f %m "$file" 2>/dev/null || stat -c %Y "$file" 2>/dev/null)
+            if [ "$file_epoch" -gt "$image_created_epoch" ]; then
+                has_newer=1
+                break
+            fi
+        fi
+    done
+
+    if [ "$has_newer" -eq 1 ]; then
+        echo "   🔄 Backend changes detected (newer than image), will rebuild..."
+        return 0
+    fi
+
+    echo "   ✅ No backend changes, using cached image"
+    return 1
+}
 
 # Cleanup function for Podman (handles orphaned pods/containers/networks)
 cleanup_podman() {
@@ -51,11 +139,18 @@ case "$COMMAND" in
             cleanup_podman
         fi
 
+        # Check if we need to rebuild images
+        echo "🔍 Checking for changes..."
+        BUILD_FLAG=""
+        if needs_frontend_rebuild || needs_backend_rebuild; then
+            BUILD_FLAG="--build"
+        fi
+
         # Start containers
         if [ "$RUNTIME" = "podman" ]; then
-            $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" up --build -d --force-recreate
+            $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" up $BUILD_FLAG -d --force-recreate
         else
-            $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" up --build -d
+            $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" up $BUILD_FLAG -d
         fi
 
         # Wait for services to be healthy
@@ -82,10 +177,17 @@ case "$COMMAND" in
             cleanup_podman
         fi
 
+        # Check if we need to rebuild images
+        echo "🔍 Checking for changes..."
+        BUILD_FLAG=""
+        if needs_frontend_rebuild || needs_backend_rebuild; then
+            BUILD_FLAG="--build"
+        fi
+
         if [ "$RUNTIME" = "podman" ]; then
-            $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" up --build -d --force-recreate
+            $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" up $BUILD_FLAG -d --force-recreate
         else
-            $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" up --build -d
+            $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" up $BUILD_FLAG -d
         fi
         ;;
 
@@ -106,6 +208,14 @@ case "$COMMAND" in
 
     *)
         echo "Usage: $0 {up|up-detached|down|logs}"
+        echo ""
+        echo "Commands:"
+        echo "  up          - Start E2E environment and run tests (auto-detects changes)"
+        echo "  up-detached - Start E2E environment without running tests"
+        echo "  down        - Stop E2E environment"
+        echo "  logs        - Show logs from E2E services"
+        echo ""
+        echo "Note: Rebuild is automatic when source files are newer than Docker images"
         exit 1
         ;;
 esac
