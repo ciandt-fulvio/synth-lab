@@ -131,13 +131,18 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
+      - name: Link Railway project
+        run: railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment staging
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+
       - name: Deploy Backend to Staging
         run: |
           echo "Deploying backend to Railway staging..."
-          railway up --service synth-lab-api --environment staging --detach
+          railway up --service synth-lab-api --detach
           echo "✅ Backend deployment triggered"
         env:
-          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
 
   # ============================================================================
   # Stage 5: Deploy Frontend to Staging
@@ -154,13 +159,18 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
+      - name: Link Railway project
+        run: railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment staging
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+
       - name: Deploy Frontend to Staging
         run: |
           echo "Deploying frontend to Railway staging..."
-          railway up --service synth-lab-frontend --environment staging --detach
+          railway up --service synth-lab-frontend --detach
           echo "✅ Frontend deployment triggered"
         env:
-          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
 
       - name: Wait for deployments to stabilize
         run: sleep 120  # Wait 2 minutes for both services to deploy
