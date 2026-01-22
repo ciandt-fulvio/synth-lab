@@ -103,7 +103,7 @@ JWT_REFRESH_TOKEN_EXPIRE_DAYS=30
 WHITELIST=seu-email@gmail.com,@seu-dominio.com
 
 # Database
-DATABASE_URL=postgresql://synthlab:synthlab_dev@localhost:5432/synthlab
+DATABASE_URL=postgresql://synthlab:synthlab@localhost:5432/synthlab
 
 # CORS
 FRONTEND_URL=http://localhost:5173

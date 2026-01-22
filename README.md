@@ -678,7 +678,7 @@ uv run synthlab gensynth -n 18 --avatar --analyze all --benchmark
 **3. Análise Demográfica com PostgreSQL**
 ```bash
 # Conectar ao banco
-psql postgresql://synthlab:synthlab_dev@localhost:5432/synthlab
+psql postgresql://synthlab:synthlab@localhost:5432/synthlab
 
 # Distribuição por região (exemplo - schema pode variar)
 SELECT regiao, COUNT(*) as total FROM synths GROUP BY regiao ORDER BY total DESC;
@@ -695,7 +695,7 @@ SELECT * FROM synths WHERE renda_mensal > 10000 AND escolaridade = 'Superior com
 **4. Testes de UX/UI**
 ```bash
 # Conectar ao banco PostgreSQL
-psql postgresql://synthlab:synthlab_dev@localhost:5432/synthlab
+psql postgresql://synthlab:synthlab@localhost:5432/synthlab
 
 # Selecionar Synths com baixa alfabetização digital (exemplo - schema pode variar)
 SELECT * FROM synths WHERE alfabetizacao_digital < 40;
@@ -707,7 +707,7 @@ SELECT nome, idade, cidade FROM synths WHERE deficiencia_visual != 'nenhuma';
 **5. Segmentação de Mercado**
 ```bash
 # Conectar ao banco PostgreSQL
-psql postgresql://synthlab:synthlab_dev@localhost:5432/synthlab
+psql postgresql://synthlab:synthlab@localhost:5432/synthlab
 
 # Jovens da região Sudeste (exemplo - schema pode variar)
 SELECT * FROM synths WHERE idade BETWEEN 18 AND 35 AND regiao = 'Sudeste';

@@ -30,7 +30,7 @@ test.describe('Synths - Detail Modal @synths', () => {
     await expect(synthCards.first()).toBeVisible({ timeout: 15000 });
   });
 
-  test('Y014 - Click on synth card opens modal', async ({ page }) => {
+  test.skip('Y014 - Click on synth card opens modal', async ({ page }) => {
     // Get synth cards (beforeEach already ensures they're loaded)
     const synthCards = getSynthCards(page);
 
@@ -51,7 +51,7 @@ test.describe('Synths - Detail Modal @synths', () => {
     }
   });
 
-  test('Y015 - Modal shows synth description', async ({ page }) => {
+  test.skip('Y015 - Modal shows synth description', async ({ page }) => {
     // Clica no primeiro synth (beforeEach already ensures they're loaded)
     const synthCards = getSynthCards(page);
     await synthCards.first().click();

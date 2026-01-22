@@ -59,7 +59,7 @@ Se precisar rodar testes específicos manualmente:
 make test-db-up
 
 # Rode os testes desejados
-DATABASE_URL="postgresql://synthlab_test:synthlab_test@localhost:5433/synthlab_test" \
+DATABASE_URL="postgresql://synthlab:synthlab@localhost:5433/synthlab" \
   uv run pytest tests/integration/test_concurrent_operations.py -v
 
 # Depois, pare o container

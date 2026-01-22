@@ -18,7 +18,7 @@ Examples:
     DATABASE_URL=postgresql://user:pass@localhost:5432/staging python scripts/seed_database.py
 
     # Seed local dev database
-    DATABASE_URL=postgresql://synthlab:synthlab_dev@localhost:5432/synthlab python scripts/seed_database.py
+    DATABASE_URL=postgresql://synthlab:synthlab@localhost:5432/synthlab python scripts/seed_database.py
 """
 
 import os

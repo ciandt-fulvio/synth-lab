@@ -8,7 +8,7 @@ fall back to PostgreSQL in-memory for testing.
 Usage:
     # With PostgreSQL (recommended):
     docker compose up -d postgres
-    DATABASE_URL=postgresql://synthlab:synthlab_dev@localhost:5432/synthlab \
+    DATABASE_URL=postgresql://synthlab:synthlab@localhost:5432/synthlab \
         pytest tests/integration/test_concurrent_operations.py -v
 
     # With PostgreSQL in-memory (fallback for testing):

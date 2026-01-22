@@ -69,11 +69,11 @@ def test_{service}_flow(client, db_session):
 **Checklist:**
 ```bash
 # 1. Criar migration (use dev database)
-DATABASE_URL="postgresql://synthlab:synthlab_dev@localhost:5432/synthlab" \
+DATABASE_URL="postgresql://synthlab:synthlab@localhost:5432/synthlab" \
   alembic -c src/synth_lab/alembic/alembic.ini revision --autogenerate -m "Add {Model}"
 
 # 2. Aplicar ao dev
-DATABASE_URL="postgresql://synthlab:synthlab_dev@localhost:5432/synthlab" \
+DATABASE_URL="postgresql://synthlab:synthlab@localhost:5432/synthlab" \
   alembic -c src/synth_lab/alembic/alembic.ini upgrade head
 
 # 3. Validar (test container aplica migrations automaticamente)

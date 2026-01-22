@@ -5,7 +5,8 @@ Test Database Flow:
 1. Session start: DROP ALL → Alembic migrations → Verify schema → Seed data
 2. Each test: BEGIN TRANSACTION → SAVEPOINT → test runs → ROLLBACK (seed preserved)
 
-CRITICAL: Tests use DATABASE_URL which must point to a test database (contains 'test').
+CRITICAL: Tests use DATABASE_URL which must point to a test database.
+Accepted: URL containing 'test', port 5433, or host 'postgres-test'.
 Run via `make test` or `make test-fast` which sets DATABASE_URL to the test container.
 """
 
@@ -120,6 +121,35 @@ def temp_output_dir():
 _database_setup_done = False
 
 
+def _is_test_database(db_url: str) -> bool:
+    """
+    Check if DATABASE_URL points to a test database.
+
+    Accepts any of:
+    - URL containing 'test' (e.g., synthlab_test, postgres-test)
+    - URL using port 5433 (test container port)
+    - URL with host 'postgres-test' (docker compose test service)
+
+    Returns:
+        True if the URL appears to be a test database, False otherwise.
+    """
+    db_url_lower = db_url.lower()
+
+    # Check 1: Name contains 'test'
+    if "test" in db_url_lower:
+        return True
+
+    # Check 2: Port 5433 (test container port)
+    if ":5433/" in db_url or ":5433" in db_url:
+        return True
+
+    # Check 3: Host is postgres-test (docker compose)
+    if "@postgres-test:" in db_url_lower or "@postgres-test/" in db_url_lower:
+        return True
+
+    return False
+
+
 def pytest_configure(config):
     """Register custom markers."""
     config.addinivalue_line(
@@ -151,9 +181,10 @@ def _ensure_test_database_setup():
         return
 
     # Safety check - DATABASE_URL must point to a test database
-    if "test" not in db_url.lower():
+    if not _is_test_database(db_url):
         raise ValueError(
-            f"CRITICAL: DATABASE_URL must point to test database (must contain 'test')!\n"
+            f"CRITICAL: DATABASE_URL must point to test database!\n"
+            f"Accepted: URL containing 'test', port 5433, or host 'postgres-test'\n"
             f"Current: {db_url}\n"
             f"Run tests via: make test  (sets DATABASE_URL to test container)"
         )
@@ -216,7 +247,7 @@ def postgres_test_url() -> str:
 
     Safety checks:
     - Must be set
-    - Must contain 'test' to prevent accidental use of prod DB
+    - Must be a test database (contains 'test', port 5433, or host 'postgres-test')
 
     Returns:
         str: PostgreSQL connection string for test database
@@ -231,9 +262,10 @@ def postgres_test_url() -> str:
         pytest.skip("DATABASE_URL not set - run via: make test")
 
     # Safety check: ensure we're NOT using the development database
-    if "test" not in db_url.lower():
+    if not _is_test_database(db_url):
         raise ValueError(
-            f"CRITICAL: DATABASE_URL must point to test database (must contain 'test')!\n"
+            f"CRITICAL: DATABASE_URL must point to test database!\n"
+            f"Accepted: URL containing 'test', port 5433, or host 'postgres-test'\n"
             f"Current: {db_url}\n"
             f"Run via: make test  (sets DATABASE_URL to test container)"
         )
