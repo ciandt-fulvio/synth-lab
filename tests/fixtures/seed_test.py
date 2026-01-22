@@ -7,6 +7,7 @@ Creates a complete experiment scenario matching production usage patterns.
 Seed includes:
 - 1 primary experiment: "App de Delivery - Feature de Agendamento de Pedidos"
 - Scorecard with detailed metrics
+- Interview guide (required for "Nova Entrevista" button)
 - 500 synths analyzed (AnalysisRun + SynthOutcomes)
 - 6 completed interviews (ResearchExecution + Transcripts)
 - Documents: summary + executive summary + PR-FAQ
@@ -40,6 +41,7 @@ from synth_lab.models.orm import (
     AnalysisRun,
     SynthOutcome,
 )
+from synth_lab.models.orm.experiment import InterviewGuide
 
 
 def seed_database(engine: Engine) -> None:
@@ -73,6 +75,7 @@ def seed_database(engine: Engine) -> None:
         _seed_synth_outcomes(session, analysis_run, synth_count=500)
         _seed_research_executions(session, experiment, synths)
         _seed_exploration(session, experiment, analysis_run)
+        _seed_interview_guide(session, experiment)
         _seed_documents(session, experiment)
 
         session.commit()
@@ -99,6 +102,7 @@ def _clear_existing_data(session: Session) -> None:
     session.query(ExperimentDocument).delete()
     session.query(AnalysisRun).delete()
     session.query(Synth).delete()
+    session.query(InterviewGuide).delete()  # Must delete before Experiment (FK dependency)
     session.query(Experiment).delete()  # Must delete before SynthGroup (FK dependency)
     session.query(SynthGroup).delete()
 
@@ -557,6 +561,35 @@ def _seed_exploration(session: Session, experiment: Experiment, baseline_analysi
     session.commit()
 
     logger.debug(f"Created exploration with 3 scenario nodes (goal: 60% → achieved: 63%)")
+
+
+def _seed_interview_guide(session: Session, experiment: Experiment) -> None:
+    """Seed interview guide for the experiment (required for 'Nova Entrevista' button)."""
+    logger.debug("Seeding interview guide...")
+
+    base_time = datetime.now()
+
+    interview_guide = InterviewGuide(
+        experiment_id=experiment.id,
+        context_definition="""Você está testando uma nova funcionalidade de agendamento de pedidos em um app de delivery.
+O usuário pode programar entregas para horários específicos, com opção de pedido recorrente.
+A funcionalidade inclui calendário, seleção de horários disponíveis e notificações.""",
+        questions="""1. Como você normalmente decide quando pedir delivery?
+2. O que você acha da ideia de poder agendar pedidos com antecedência?
+3. Em quais situações você usaria o agendamento de pedidos?
+4. Quais preocupações você teria ao usar essa funcionalidade?
+5. Como você gostaria de ser notificado sobre pedidos agendados?
+6. Você usaria a opção de pedido recorrente? Em quais situações?""",
+        context_examples="""Exemplo positivo: 'Adoro a ideia! Trabalho muito e seria ótimo deixar o almoço programado.'
+Exemplo negativo: 'Prefiro decidir na hora, não gosto de me comprometer com antecedência.'
+Exemplo neutro: 'Interessante, mas teria que ver como funciona na prática.'""",
+        created_at=(base_time - timedelta(days=10)).isoformat(),
+    )
+
+    session.add(interview_guide)
+    session.commit()
+
+    logger.debug(f"Created interview guide for experiment: {experiment.id}")
 
 
 def _seed_documents(session: Session, experiment: Experiment) -> None:
