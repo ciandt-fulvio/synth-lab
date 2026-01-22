@@ -9,6 +9,9 @@ CRITICAL: Tests use DATABASE_URL which must point to a test database (contains '
 Run via `make test` or `make test-fast` which sets DATABASE_URL to the test container.
 """
 
+# Ensure pytest-asyncio is loaded for async test support
+pytest_plugins = ['pytest_asyncio']
+
 import json
 import os
 import shutil
