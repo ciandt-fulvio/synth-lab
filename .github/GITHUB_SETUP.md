@@ -36,7 +36,7 @@ Railway oferece dois tipos de tokens com usos diferentes:
 |------------|-------------|--------------|---------------|
 | `RAILWAY_API_TOKEN` | **Account Token** do Railway (acesso a todos os ambientes) | Railway Dashboard → Settings → Tokens | Use o token "API_TOKEN" ou "github20JAN26" existente |
 | `RAILWAY_PROJECT_ID` | ID do projeto Railway | Railway Dashboard → Project Settings → Project ID | Mesmo ID para staging e production |
-| `DATABASE_STAGING_URL` | PostgreSQL connection string para staging | Railway Dashboard → staging → PostgreSQL → Variables → DATABASE_URL | `postgresql://postgres:VlvlpcnhOWiufXeTBuKenfcgSYyfSvWp@interchange.proxy.rlwy.net:29807/railway` |
+| `DATABASE_STAGING_URL` | PostgreSQL connection string para staging | Railway Dashboard → staging → PostgreSQL → Variables → DATABASE_URL | `postgresql://postgres:***@host:port/database` |
 | `DATABASE_PRODUCTION_URL` | PostgreSQL connection string para produção | Railway Dashboard → production → PostgreSQL → Variables → DATABASE_URL | Similar ao staging, mas para produção |
 | `OPENAI_API_KEY` | OpenAI API key (shared entre todos os ambientes) | OpenAI Dashboard → API Keys | Usado para testes, staging e produção |
 
