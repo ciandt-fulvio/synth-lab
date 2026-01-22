@@ -2,22 +2,30 @@
 Avatar Image Processing - Download e divisão de imagens de grid em avatares individuais.
 
 Este módulo gerencia o processamento de imagens 1024x1024 geradas pela OpenAI,
-incluindo download de URLs temporárias e divisão em 9 avatares individuais 341x341.
+incluindo download de URLs temporárias e divisão em 9 avatares individuais.
 
-Dependências: Pillow>=10.0.0, requests>=2.31.0
+Os avatares são redimensionados para 200x200 pixels e salvos diretamente no S3.
+
+Dependências: Pillow>=10.0.0, requests>=2.31.0, boto3>=1.34.0
 Entrada: URL de imagem 1024x1024 ou dados base64 e lista de 9 IDs de synth
-Saída: 9 arquivos PNG salvos em output/synths/avatar/
+Saída: 9 arquivos PNG no S3 bucket (avatars/{synth_id}.png)
 """
 
 import base64
 import re
 import tempfile
 import uuid
+from io import BytesIO
 from pathlib import Path
 
 import requests
 from loguru import logger
 from PIL import Image
+
+from synth_lab.infrastructure.storage_client import upload_object
+
+# Avatar dimensions after resize
+AVATAR_SIZE = (200, 200)
 
 # Padrão para identificar synths temporários (ex: temp0100, temp0101)
 TEMP_SYNTH_PATTERN = re.compile(r"^temp\d+$")
@@ -99,18 +107,18 @@ def download_image(url: str, temp_dir: str | None = None) -> str:
 
 def split_grid_image(image_path: str, output_dir: str, synth_ids: list[str]) -> list[str]:
     """
-    Divide imagem 1024x1024 em grid 3x3 de 9 avatares individuais 341x341.
+    Divide imagem 1024x1024 em grid 3x3 de 9 avatares e faz upload para S3.
 
-    Cada célula do grid é extraída e salva como arquivo PNG separado com nome
-    baseado no ID do synth correspondente.
+    Cada célula do grid é extraída, redimensionada para 200x200 pixels,
+    e enviada para o S3 bucket como PNG.
 
     Args:
         image_path: Caminho da imagem 1024x1024 de origem
-        output_dir: Diretório onde salvar avatares individuais
+        output_dir: DEPRECATED - não mais utilizado (mantido para compatibilidade)
         synth_ids: Lista de exatamente 9 IDs de synth (ordem: left-to-right, top-to-bottom)
 
     Returns:
-        list[str]: Lista de caminhos dos avatares salvos
+        list[str]: Lista de S3 object keys dos avatares salvos (ex: "avatars/synth_001.png")
 
     Raises:
         ValueError: Se synth_ids não contém exatamente 9 IDs
@@ -120,9 +128,9 @@ def split_grid_image(image_path: str, output_dir: str, synth_ids: list[str]) -> 
     Examples:
         >>> # Requer imagem real para teste
         >>> synth_ids = [f"test{i:02d}" for i in range(9)]
-        >>> # paths = split_grid_image("grid.png", "avatars/", synth_ids)
-        >>> # len(paths)
-        >>> # 9
+        >>> # keys = split_grid_image("grid.png", "avatars/", synth_ids)
+        >>> # keys[0]
+        >>> # "avatars/test00.png"
     """
     if len(synth_ids) != 9:
         raise ValueError(f"Esperado exatamente 9 synth IDs, recebido {len(synth_ids)}")
@@ -134,7 +142,7 @@ def split_grid_image(image_path: str, output_dir: str, synth_ids: list[str]) -> 
     cell_width = img.width // 3  # 341 pixels
     cell_height = img.height // 3  # 341 pixels
 
-    saved_paths = []
+    saved_keys = []
 
     # Extrair cada uma das 9 células
     skipped_count = 0
@@ -159,15 +167,29 @@ def split_grid_image(image_path: str, output_dir: str, synth_ids: list[str]) -> 
             # Cortar célula
             cell = img.crop((left, upper, right, lower))
 
-            # Salvar como PNG
-            output_path = Path(output_dir) / f"{synth_id}.png"
-            cell.save(output_path, format="PNG", optimize=True)
-            saved_paths.append(str(output_path))
+            # Redimensionar para 200x200 pixels
+            cell = cell.resize(AVATAR_SIZE, Image.Resampling.LANCZOS)
+
+            # Converter para bytes PNG
+            buffer = BytesIO()
+            cell.save(buffer, format="PNG", optimize=True)
+            buffer.seek(0)
+            png_bytes = buffer.getvalue()
+
+            # Upload para S3
+            object_key = f"avatars/{synth_id}.png"
+            success = upload_object(object_key, png_bytes, "image/png")
+
+            if success:
+                saved_keys.append(object_key)
+                logger.debug(f"Avatar uploaded to S3: {object_key}")
+            else:
+                logger.error(f"Failed to upload avatar to S3: {object_key}")
 
     if skipped_count > 0:
         logger.info(f"Skipped {skipped_count} avatar(es) temporário(s)")
 
-    return saved_paths
+    return saved_keys
 
 
 if __name__ == "__main__":

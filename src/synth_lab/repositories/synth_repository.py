@@ -191,15 +191,15 @@ session: Session | None = None):
         synths = [self._row_to_summary(row) for row in rows]
         return PaginatedResponse(data=synths, pagination=meta)
 
-    def get_avatar_path(self, synth_id: str) -> Path:
+    def get_avatar_s3_key(self, synth_id: str) -> str | None:
         """
-        Get the avatar file path for a synth.
+        Get the S3 object key for a synth's avatar.
 
         Args:
             synth_id: 6-character synth ID.
 
         Returns:
-            Path to avatar PNG file.
+            S3 object key (e.g., "avatars/synth_001.png") or None if not set.
 
         Raises:
             SynthNotFoundError: If synth not found.
@@ -208,13 +208,31 @@ session: Session | None = None):
         if orm_synth is None:
             raise SynthNotFoundError(synth_id)
 
+        # Return avatar_path which now stores S3 object key
         if orm_synth.avatar_path:
-            return Path(orm_synth.avatar_path)
+            return orm_synth.avatar_path
 
-        # Default path if not in database
-        from synth_lab.infrastructure.config import AVATARS_DIR
+        # Default S3 key pattern
+        return f"avatars/{synth_id}.png"
 
-        return AVATARS_DIR / f"{synth_id}.png"
+    def get_avatar_path(self, synth_id: str) -> Path:
+        """
+        DEPRECATED: Use get_avatar_s3_key() instead.
+
+        Get the avatar file path for a synth.
+        Now returns a Path wrapper around the S3 key for backwards compatibility.
+
+        Args:
+            synth_id: 6-character synth ID.
+
+        Returns:
+            Path object wrapping the S3 key.
+
+        Raises:
+            SynthNotFoundError: If synth not found.
+        """
+        s3_key = self.get_avatar_s3_key(synth_id)
+        return Path(s3_key) if s3_key else Path(f"avatars/{synth_id}.png")
     def get_extreme_cases(self, experiment_id: str, top_n: int = 5) -> tuple[list[str], list[str]]:
         """
         Get extreme case synth IDs for an experiment (top and bottom performers).

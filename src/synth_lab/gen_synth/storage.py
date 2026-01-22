@@ -204,17 +204,18 @@ def update_avatar_path(synth_id: str, avatar_path: str | Path) -> bool:
     """
     Update the avatar_path field for a synth.
 
-    Called after avatar image is generated and saved to disk.
+    Called after avatar image is generated and uploaded to S3.
+    The avatar_path field now stores the S3 object key.
 
     Args:
         synth_id: The synth ID to update
-        avatar_path: Path to the avatar image file
+        avatar_path: S3 object key for the avatar (e.g., "avatars/abc123.png")
 
     Returns:
         True if update was successful, False if synth not found
 
     Example:
-        >>> update_avatar_path("abc123", "output/synths/avatar/abc123.png")
+        >>> update_avatar_path("abc123", "avatars/abc123.png")
         True
     """
     with get_session() as session:

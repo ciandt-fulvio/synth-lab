@@ -2,17 +2,18 @@
 Avatar generation service for synth-lab.
 
 Ensures synths have avatars generated before interviews or other operations.
+Avatars are stored in S3 and accessed via presigned URLs.
 
 References:
     - Avatar Generator: synth_lab.gen_synth.avatar_generator
-    - Config: synth_lab.infrastructure.config.AVATARS_DIR
+    - S3 Storage: synth_lab.infrastructure.storage_client
 
 Sample Input:
     synth_ids = ["synth_001", "synth_002", "synth_003"]
 
 Expected Output:
-    Avatars generated for synths without existing avatar files.
-    Returns dict of {synth_id: avatar_path} for generated avatars.
+    Avatars generated for synths without existing avatar files in S3.
+    Returns dict of {synth_id: s3_object_key} for generated avatars.
 """
 
 import math
@@ -22,17 +23,22 @@ from typing import Any, Awaitable, Callable
 from loguru import logger
 
 from synth_lab.infrastructure.config import AVATARS_DIR
+from synth_lab.infrastructure.storage_client import (
+    check_object_exists,
+    generate_view_url,
+)
 
 
 class AvatarService:
-    """Service for ensuring synths have avatar images."""
+    """Service for ensuring synths have avatar images in S3."""
 
     def __init__(self, avatars_dir: Path | None = None):
         """
         Initialize avatar service.
 
         Args:
-            avatars_dir: Directory for avatar files (default: AVATARS_DIR from config)
+            avatars_dir: DEPRECATED - avatars are now stored in S3.
+                         Kept for backwards compatibility.
         """
         self.avatars_dir = avatars_dir or AVATARS_DIR
         self.logger = logger.bind(component="avatar_service")
@@ -41,11 +47,11 @@ class AvatarService:
         self,
         synths: list[dict[str, Any]],
         on_generation_start: Callable[[int], Awaitable[None]] | None = None,
-        on_generation_complete: Callable[[int], Awaitable[None]] | None = None) -> dict[str, Path]:
+        on_generation_complete: Callable[[int], Awaitable[None]] | None = None) -> dict[str, str]:
         """
-        Ensure all synths have avatars generated.
+        Ensure all synths have avatars generated in S3.
 
-        Checks which synths are missing avatar files and generates them automatically.
+        Checks which synths are missing avatar files in S3 and generates them automatically.
         Existing avatars are not overwritten.
 
         Args:
@@ -54,25 +60,23 @@ class AvatarService:
             on_generation_complete: Async callback when generation completes (receives count)
 
         Returns:
-            Dict mapping synth_id to avatar file path for newly generated avatars.
+            Dict mapping synth_id to S3 object key for newly generated avatars.
 
         Note:
             - Avatars are generated in batches of 9 (OpenAI API optimization)
             - Synths without 'id' field are skipped
             - Avatar generation errors are logged but don't fail the operation
+            - Avatars are stored in S3 at "avatars/{synth_id}.png"
         """
-        # Ensure avatar directory exists
-        self.avatars_dir.mkdir(parents=True, exist_ok=True)
-
-        # Check which synths need avatars
+        # Check which synths need avatars (check S3 instead of local)
         synths_without_avatar = []
         for synth in synths:
             synth_id = synth.get("id")
             if not synth_id:
                 continue
 
-            avatar_file = self.avatars_dir / f"{synth_id}.png"
-            if not avatar_file.exists():
+            s3_key = f"avatars/{synth_id}.png"
+            if not check_object_exists(s3_key):
                 synths_without_avatar.append(synth)
 
         if not synths_without_avatar:
@@ -97,23 +101,23 @@ class AvatarService:
 
         from synth_lab.gen_synth.avatar_generator import generate_avatars
 
-        generated_paths: dict[str, Path] = {}
+        generated_keys: dict[str, str] = {}
 
         try:
             # Run avatar generation in a separate thread to avoid blocking the event loop
             # generate_avatars uses time.sleep() and synchronous API calls
-            path_strings = await asyncio.to_thread(generate_avatars, synths=synths_without_avatar)
-            self.logger.info(f"Successfully generated {len(path_strings)} avatar files")
+            s3_keys = await asyncio.to_thread(generate_avatars, synths=synths_without_avatar)
+            self.logger.info(f"Successfully generated {len(s3_keys)} avatar files in S3")
 
-            # Build result dict - convert strings to Path objects
-            for path_str in path_strings:
-                path = Path(path_str)
-                synth_id = path.stem  # filename without extension
-                generated_paths[synth_id] = path
+            # Build result dict - keys are S3 object keys like "avatars/synth_001.png"
+            for s3_key in s3_keys:
+                # Extract synth_id from key (e.g., "avatars/synth_001.png" -> "synth_001")
+                synth_id = s3_key.replace("avatars/", "").replace(".png", "")
+                generated_keys[synth_id] = s3_key
 
             # Notify generation complete
             if on_generation_complete:
-                await on_generation_complete(len(generated_paths))
+                await on_generation_complete(len(generated_keys))
 
         except Exception as e:
             # Log error but don't fail - avatars are helpful but not essential
@@ -121,32 +125,66 @@ class AvatarService:
                 f"Error generating avatars (operation will continue): {e}"
             )
 
-        return generated_paths
+        return generated_keys
 
-    def get_avatar_path(self, synth_id: str) -> Path | None:
+    def get_avatar_s3_key(self, synth_id: str) -> str | None:
         """
-        Get avatar file path for a synth.
+        Get S3 object key for a synth's avatar if it exists.
 
         Args:
             synth_id: Synth ID.
 
         Returns:
-            Path to avatar file if it exists, None otherwise.
+            S3 object key if avatar exists, None otherwise.
         """
-        avatar_file = self.avatars_dir / f"{synth_id}.png"
-        return avatar_file if avatar_file.exists() else None
+        s3_key = f"avatars/{synth_id}.png"
+        return s3_key if check_object_exists(s3_key) else None
+
+    def get_avatar_url(self, synth_id: str, expires_in: int = 3600) -> str | None:
+        """
+        Get presigned URL for a synth's avatar.
+
+        Args:
+            synth_id: Synth ID.
+            expires_in: URL expiration time in seconds (default: 1 hour).
+
+        Returns:
+            Presigned URL if avatar exists, None otherwise.
+        """
+        s3_key = f"avatars/{synth_id}.png"
+        if check_object_exists(s3_key):
+            return generate_view_url(s3_key, expires_in)
+        return None
 
     def has_avatar(self, synth_id: str) -> bool:
         """
-        Check if synth has an avatar file.
+        Check if synth has an avatar in S3.
 
         Args:
             synth_id: Synth ID.
 
         Returns:
-            True if avatar file exists.
+            True if avatar exists in S3.
         """
-        return self.get_avatar_path(synth_id) is not None
+        s3_key = f"avatars/{synth_id}.png"
+        return check_object_exists(s3_key)
+
+    # Deprecated method kept for backwards compatibility
+    def get_avatar_path(self, synth_id: str) -> Path | None:
+        """
+        DEPRECATED: Use get_avatar_url() instead.
+
+        This method now checks S3 and returns a dummy path for backwards
+        compatibility. Use get_avatar_url() for the actual S3 presigned URL.
+
+        Args:
+            synth_id: Synth ID.
+
+        Returns:
+            Path object with the S3 key if avatar exists, None otherwise.
+        """
+        s3_key = self.get_avatar_s3_key(synth_id)
+        return Path(s3_key) if s3_key else None
 
 
 if __name__ == "__main__":

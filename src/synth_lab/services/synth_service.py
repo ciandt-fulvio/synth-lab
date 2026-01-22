@@ -9,6 +9,7 @@ References:
 
 from pathlib import Path
 
+from synth_lab.infrastructure.storage_client import check_object_exists, generate_view_url
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.synth import SynthDetail, SynthFieldInfo, SynthSummary
 from synth_lab.repositories.synth_repository import SynthRepository
@@ -83,26 +84,54 @@ class SynthService:
         params = params or PaginationParams()
         return self.synth_repo.search(where_clause, query, params)
 
+    def get_avatar_url(self, synth_id: str, expires_in: int = 3600) -> str:
+        """
+        Get a presigned S3 URL for the synth's avatar.
+
+        Args:
+            synth_id: 6-character synth ID.
+            expires_in: URL expiration time in seconds (default: 1 hour).
+
+        Returns:
+            Presigned S3 URL for the avatar image.
+
+        Raises:
+            SynthNotFoundError: If synth not found.
+            AvatarNotFoundError: If avatar doesn't exist in S3.
+        """
+        # Get the S3 key from repository (validates synth exists)
+        s3_key = self.synth_repo.get_avatar_s3_key(synth_id)
+
+        # Check if avatar exists in S3
+        if not s3_key or not check_object_exists(s3_key):
+            raise AvatarNotFoundError(synth_id)
+
+        # Generate presigned URL
+        return generate_view_url(s3_key, expires_in)
+
     def get_avatar(self, synth_id: str) -> Path:
         """
+        DEPRECATED: Use get_avatar_url() instead.
+
         Get the avatar file path for a synth.
+        This method is deprecated as avatars are now stored in S3.
 
         Args:
             synth_id: 6-character synth ID.
 
         Returns:
-            Path to avatar PNG file.
+            Path object with S3 key (not a real local path).
 
         Raises:
             SynthNotFoundError: If synth not found.
-            AvatarNotFoundError: If avatar file doesn't exist.
+            AvatarNotFoundError: If avatar doesn't exist in S3.
         """
-        avatar_path = self.synth_repo.get_avatar_path(synth_id)
+        s3_key = self.synth_repo.get_avatar_s3_key(synth_id)
 
-        if not avatar_path.exists():
+        if not s3_key or not check_object_exists(s3_key):
             raise AvatarNotFoundError(synth_id)
 
-        return avatar_path
+        return Path(s3_key)
 
     def get_fields(self) -> list[SynthFieldInfo]:
         """
