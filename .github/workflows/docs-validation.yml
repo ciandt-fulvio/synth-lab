@@ -2,16 +2,8 @@ name: Docs Validation
 
 on:
   pull_request:
-    paths:
-      - 'src/**/*.py'
-      - 'frontend/src/**/*.{ts,tsx}'
-      - 'docs/**/*.md'
-  push:
     branches:
       - main
-    paths:
-      - 'docs/**/*.md'
-      - '.github/workflows/docs-validation.yml'
   workflow_dispatch:
 
 jobs:
