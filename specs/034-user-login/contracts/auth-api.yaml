@@ -1,0 +1,529 @@
+openapi: 3.0.3
+info:
+  title: Synth-Lab Authentication & Sharing API
+  description: |
+    API for user authentication via Google OAuth 2.0 and resource sharing (experiments and synth_groups).
+
+    ## Authentication Flow
+    1. Frontend redirects to `/auth/login`
+    2. User completes Google OAuth consent
+    3. Google redirects to `/auth/callback` with authorization code
+    4. Backend exchanges code for tokens, creates/updates user
+    5. Backend sets HTTP-only cookie with JWT
+    6. Frontend redirects to app with authenticated session
+
+    ## Authorization
+    All protected endpoints require a valid JWT in the `session` cookie.
+  version: 1.0.0
+  contact:
+    name: Synth-Lab Team
+
+servers:
+  - url: http://localhost:8000
+    description: Local development
+  - url: https://synth-lab.up.railway.app
+    description: Production
+
+tags:
+  - name: auth
+    description: Authentication endpoints
+  - name: sharing
+    description: Resource sharing endpoints
+
+paths:
+  /auth/login:
+    get:
+      tags: [auth]
+      summary: Initiate Google OAuth login
+      description: Redirects user to Google OAuth consent screen
+      responses:
+        '302':
+          description: Redirect to Google OAuth
+          headers:
+            Location:
+              schema:
+                type: string
+                example: https://accounts.google.com/o/oauth2/v2/auth?...
+
+  /auth/callback:
+    get:
+      tags: [auth]
+      summary: Google OAuth callback
+      description: |
+        Handles OAuth callback from Google. Exchanges authorization code for tokens,
+        validates user email against whitelist, creates/updates user, and sets session cookie.
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Authorization code from Google
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+          description: CSRF state token
+      responses:
+        '302':
+          description: Redirect to frontend with session cookie
+          headers:
+            Location:
+              schema:
+                type: string
+                example: http://localhost:5173/
+            Set-Cookie:
+              schema:
+                type: string
+                example: session=eyJhbGc...; HttpOnly; Secure; SameSite=Lax
+        '403':
+          description: User not whitelisted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Email not authorized. Contact administrator."
+        '500':
+          description: OAuth flow error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: Get current user
+      description: Returns the currently authenticated user's profile
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Logout current user
+      description: Clears the session cookie
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Successfully logged out
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: session=; Max-Age=0
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out successfully
+
+  /experiments/{experiment_id}/shares:
+    get:
+      tags: [sharing]
+      summary: List experiment shares
+      description: Get all users who have access to this experiment
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of shares
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExperimentShare'
+        '403':
+          description: Not authorized (not owner)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Experiment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [sharing]
+      summary: Share experiment
+      description: |
+        Grant another user access to this experiment. Automatically shares the associated synth_group.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShareRequest'
+      responses:
+        '201':
+          description: Share created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  experiment_share:
+                    $ref: '#/components/schemas/ExperimentShare'
+                  synth_group_share:
+                    $ref: '#/components/schemas/SynthGroupShare'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                userNotWhitelisted:
+                  value:
+                    detail: "Cannot share with non-whitelisted user"
+                shareWithSelf:
+                  value:
+                    detail: "Cannot share with yourself"
+        '403':
+          description: Not authorized (not owner)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Experiment or user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Share already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /experiments/{experiment_id}/shares/{user_id}:
+    delete:
+      tags: [sharing]
+      summary: Revoke experiment access
+      description: |
+        Remove user's access to this experiment. Does NOT automatically revoke synth_group access.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Share deleted successfully
+        '403':
+          description: Not authorized (not owner)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Share not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /synth-groups/{synth_group_id}/shares:
+    get:
+      tags: [sharing]
+      summary: List synth_group shares
+      description: Get all users who have access to this synth_group
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: synth_group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of shares
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SynthGroupShare'
+        '403':
+          description: Not authorized (not owner)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Synth group not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [sharing]
+      summary: Share synth_group
+      description: Grant another user access to this synth_group independently of experiments
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: synth_group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShareRequest'
+      responses:
+        '201':
+          description: Share created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SynthGroupShare'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not authorized (not owner)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Synth group or user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Share already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /synth-groups/{synth_group_id}/shares/{user_id}:
+    delete:
+      tags: [sharing]
+      summary: Revoke synth_group access
+      description: Remove user's access to this synth_group
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: synth_group_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Share deleted successfully
+        '403':
+          description: Not authorized (not owner)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Share not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+      description: JWT token stored in HTTP-only cookie
+
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - google_user_id
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        google_user_id:
+          type: string
+          example: "1074729472929292"
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        display_name:
+          type: string
+          nullable: true
+          example: "John Doe"
+        profile_picture_url:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://lh3.googleusercontent.com/..."
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-22T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-22T10:30:00Z"
+
+    ShareRequest:
+      type: object
+      required:
+        - user_email
+        - permission_level
+      properties:
+        user_email:
+          type: string
+          format: email
+          description: Email of the user to share with
+          example: "colleague@example.com"
+        permission_level:
+          type: string
+          enum: [viewer, editor]
+          description: Level of access to grant
+          example: "editor"
+
+    ExperimentShare:
+      type: object
+      required:
+        - id
+        - experiment_id
+        - user
+        - permission_level
+        - granted_at
+        - granted_by
+      properties:
+        id:
+          type: string
+          format: uuid
+        experiment_id:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/User'
+        permission_level:
+          type: string
+          enum: [viewer, editor]
+          example: "editor"
+        granted_at:
+          type: string
+          format: date-time
+          example: "2024-01-22T10:30:00Z"
+        granted_by:
+          $ref: '#/components/schemas/User'
+
+    SynthGroupShare:
+      type: object
+      required:
+        - id
+        - synth_group_id
+        - user
+        - permission_level
+        - granted_at
+        - granted_by
+      properties:
+        id:
+          type: string
+          format: uuid
+        synth_group_id:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/User'
+        permission_level:
+          type: string
+          enum: [viewer, editor]
+          example: "viewer"
+        granted_at:
+          type: string
+          format: date-time
+          example: "2024-01-22T10:30:00Z"
+        granted_by:
+          $ref: '#/components/schemas/User'
+
+    Error:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          example: "An error occurred"

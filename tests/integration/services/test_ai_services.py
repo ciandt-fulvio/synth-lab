@@ -69,19 +69,16 @@ class TestAvatarServiceIntegration:
         avatars_dir = tmp_path / "avatars"
         service = AvatarService(avatars_dir=avatars_dir)
 
+        # Mock S3 check to return False (no avatars exist in S3)
         # Mock avatar generation to avoid OpenAI API call
         with patch(
+            "synth_lab.services.avatar_service.check_object_exists", return_value=False
+        ), patch(
             "synth_lab.gen_synth.avatar_generator.generate_avatars"
         ) as mock_generate:
-            # Mock the avatar generation to create dummy files
+            # Mock the avatar generation to return S3 keys
             def mock_avatar_gen(synths=None, **kwargs):
-                result_paths = []
-                for synth in synths or []:
-                    avatar_file = avatars_dir / f"{synth['id']}.png"
-                    avatar_file.parent.mkdir(parents=True, exist_ok=True)
-                    avatar_file.write_text("dummy avatar")
-                    result_paths.append(str(avatar_file))
-                return result_paths
+                return [f"avatars/{synth['id']}.png" for synth in synths or []]
 
             mock_generate.side_effect = mock_avatar_gen
 
@@ -92,40 +89,36 @@ class TestAvatarServiceIntegration:
             assert len(result) == 3
             for synth_data in synths_data:
                 assert synth_data["id"] in result
-                assert result[synth_data["id"]].exists()
+                assert result[synth_data["id"]] == f"avatars/{synth_data['id']}.png"
 
     @pytest.mark.asyncio
     async def test_ensure_avatars_skips_existing_avatars(
         self, isolated_db_session, tmp_path
     ):
-        """Test that ensure_avatars does not regenerate existing avatar files."""
-        # Setup: Create synths and one existing avatar
+        """Test that ensure_avatars does not regenerate existing avatar files in S3."""
+        # Setup: Create synths - one with existing avatar in S3, one without
         synths_data = [
             {"id": "synth_existing_001", "nome": "Existing Avatar"},
             {"id": "synth_new_001", "nome": "New Avatar"},
         ]
 
         avatars_dir = tmp_path / "avatars"
-        avatars_dir.mkdir(parents=True, exist_ok=True)
-
-        # Create existing avatar file
-        existing_avatar = avatars_dir / "synth_existing_001.png"
-        existing_avatar.write_text("existing avatar")
-
         service = AvatarService(avatars_dir=avatars_dir)
+
+        # Mock S3 check: existing avatar exists, new one doesn't
+        def mock_check_exists(s3_key):
+            return "synth_existing_001" in s3_key
 
         # Mock avatar generation
         with patch(
+            "synth_lab.services.avatar_service.check_object_exists",
+            side_effect=mock_check_exists,
+        ), patch(
             "synth_lab.gen_synth.avatar_generator.generate_avatars"
         ) as mock_generate:
 
             def mock_avatar_gen(synths=None, **kwargs):
-                result_paths = []
-                for synth in synths or []:
-                    avatar_file = avatars_dir / f"{synth['id']}.png"
-                    avatar_file.write_text("new avatar")
-                    result_paths.append(str(avatar_file))
-                return result_paths
+                return [f"avatars/{synth['id']}.png" for synth in synths or []]
 
             mock_generate.side_effect = mock_avatar_gen
 
@@ -137,8 +130,11 @@ class TestAvatarServiceIntegration:
             assert "synth_new_001" in result
             assert "synth_existing_001" not in result
 
-            # Verify existing avatar was not overwritten
-            assert existing_avatar.read_text() == "existing avatar"
+            # Verify generate_avatars was called only with new synth
+            mock_generate.assert_called_once()
+            call_args = mock_generate.call_args
+            assert len(call_args.kwargs.get("synths", [])) == 1
+            assert call_args.kwargs["synths"][0]["id"] == "synth_new_001"
 
     @pytest.mark.asyncio
     async def test_ensure_avatars_calls_callbacks(self, tmp_path):
