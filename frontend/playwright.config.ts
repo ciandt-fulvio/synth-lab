@@ -42,9 +42,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   // Add retries for flaky tests (parallel execution can cause race conditions)
   retries: process.env.CI ? 2 : 1,
-  // Use 2 workers in CI for faster execution
+  // Use 4 workers in CI for faster execution
   // Tests with shared state should use: test.describe.configure({ mode: 'serial' })
-  workers: process.env.CI ? 2 : 4,
+  workers: process.env.CI ? 4 : 6,
   reporter: 'html',
 
   use: {
