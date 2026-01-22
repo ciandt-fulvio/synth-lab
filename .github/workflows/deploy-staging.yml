@@ -149,8 +149,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv pip install --system -e .
-          uv pip install --system pytest pytest-cov
+          uv pip install --system -e ".[dev]"
 
       - name: Run migrations
         env:
