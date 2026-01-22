@@ -117,6 +117,7 @@ jobs:
         run: railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment production
 
       - name: Deploy Frontend to Production
+        working-directory: frontend
         run: |
           echo "Deploying frontend to Railway..."
           railway up --service synth-lab-frontend --environment production --detach

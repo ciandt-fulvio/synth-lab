@@ -165,6 +165,7 @@ jobs:
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
 
       - name: Deploy Frontend to Staging
+        working-directory: frontend
         run: |
           echo "Deploying frontend to Railway staging..."
           railway up --service synth-lab-frontend --detach
