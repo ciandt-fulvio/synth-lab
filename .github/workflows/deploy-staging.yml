@@ -1,0 +1,252 @@
+# Deploy Staging - Automatic on main push
+#
+# Flow: Reset DB → Migrate → Seed → Deploy → E2E Tests
+#
+# Triggered automatically when code is merged to main branch.
+# Can also be triggered manually via workflow_dispatch.
+#
+# IMPORTANT: Staging database is EPHEMERAL - it gets reset on every deploy.
+# Do not store important data in staging environment.
+
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+  RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+
+jobs:
+  # ============================================================================
+  # Stage 1: Reset Staging Database
+  # ============================================================================
+  reset-staging-db:
+    name: Reset Staging DB
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install dependencies
+        run: uv pip install --system -e .
+
+      - name: Reset staging database (drop all tables)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_STAGING_URL }}
+        run: |
+          echo "⚠️  Resetting staging database (dropping all tables)..."
+          cd src/synth_lab/alembic
+          alembic downgrade base
+          echo "✅ Staging database reset completed"
+
+  # ============================================================================
+  # Stage 2: Run Migrations on Staging DB
+  # ============================================================================
+  migrate-staging:
+    name: Migrate Staging DB
+    runs-on: ubuntu-latest
+    needs: reset-staging-db
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install dependencies
+        run: uv pip install --system -e .
+
+      - name: Run Alembic migrations on Staging
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_STAGING_URL }}
+        run: |
+          echo "Running migrations on Staging database..."
+          cd src/synth_lab/alembic
+          alembic upgrade head
+          echo "✅ Staging migrations completed"
+
+  # ============================================================================
+  # Stage 3: Seed Staging Database
+  # ============================================================================
+  seed-staging:
+    name: Seed Staging DB
+    runs-on: ubuntu-latest
+    needs: migrate-staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install dependencies
+        run: uv pip install --system -e .
+
+      - name: Seed staging database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_STAGING_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          echo "Seeding staging database with test data..."
+          python scripts/seed_database.py
+          echo "✅ Staging database seeded"
+
+  # ============================================================================
+  # Stage 4: Deploy Backend to Staging
+  # ============================================================================
+  deploy-backend:
+    name: Deploy Backend (Staging)
+    runs-on: ubuntu-latest
+    needs: seed-staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy Backend to Staging
+        run: |
+          echo "Deploying backend to Railway staging..."
+          railway up --service synth-lab-api --environment staging --detach
+          echo "✅ Backend deployment triggered"
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+  # ============================================================================
+  # Stage 5: Deploy Frontend to Staging
+  # ============================================================================
+  deploy-frontend:
+    name: Deploy Frontend (Staging)
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy Frontend to Staging
+        run: |
+          echo "Deploying frontend to Railway staging..."
+          railway up --service synth-lab-frontend --environment staging --detach
+          echo "✅ Frontend deployment triggered"
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Wait for deployments to stabilize
+        run: sleep 120  # Wait 2 minutes for both services to deploy
+
+  # ============================================================================
+  # Stage 6: Run E2E Tests on Staging
+  # ============================================================================
+  verify-staging:
+    name: E2E Tests (Staging)
+    runs-on: ubuntu-latest
+    needs: deploy-frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests on Staging
+        working-directory: frontend
+        run: npm run test:e2e:staging
+        env:
+          TEST_ENV: staging
+          STAGING_FRONTEND_URL: ${{ vars.STAGING_FRONTEND_URL }}
+          STAGING_BACKEND_URL: ${{ vars.STAGING_BACKEND_URL }}
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-e2e-test-results
+          path: frontend/test-results/
+          retention-days: 7
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
+
+  # ============================================================================
+  # Notify on completion
+  # ============================================================================
+  notify:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: verify-staging
+    if: always()
+
+    steps:
+      - name: Summary
+        run: |
+          echo "## Staging Deploy Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: ${{ needs.verify-staging.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployment Flow" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Reset Staging DB (drop all tables)" >> $GITHUB_STEP_SUMMARY
+          echo "2. ✅ Migrate Staging DB (Alembic)" >> $GITHUB_STEP_SUMMARY
+          echo "3. ✅ Seed Staging DB (test data)" >> $GITHUB_STEP_SUMMARY
+          echo "4. ✅ Deploy Backend (Railway CLI)" >> $GITHUB_STEP_SUMMARY
+          echo "5. ✅ Deploy Frontend (Railway CLI)" >> $GITHUB_STEP_SUMMARY
+          echo "6. ✅ E2E Tests on Staging" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Environment" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend**: ${{ vars.STAGING_FRONTEND_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend**: ${{ vars.STAGING_BACKEND_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.verify-staging.result }}" == "success" ]; then
+            echo "✅ All E2E tests passed on staging!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Staging deployment or E2E tests failed. Check artifacts for details." >> $GITHUB_STEP_SUMMARY
+          fi

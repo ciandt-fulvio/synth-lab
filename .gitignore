@@ -45,6 +45,9 @@ out/
 !.env.example
 docker/.env.*
 
+# GitHub secrets/credentials (never commit)
+.github/SECRETS_VALUES.md
+
 # IDEs
 .vscode/
 .idea/
