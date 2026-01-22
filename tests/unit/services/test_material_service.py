@@ -37,6 +37,23 @@ def mock_repository():
     return MagicMock()
 
 
+@pytest.fixture(autouse=True)
+def mock_s3_config():
+    """Mock S3 configuration for all tests."""
+    with patch("synth_lab.services.material_service.config") as mock_config:
+        # S3 settings
+        mock_config.S3_ENDPOINT_URL = "https://s3.endpoint.com"
+        mock_config.BUCKET_NAME = "test-bucket"
+        mock_config.PRESIGNED_URL_EXPIRATION = 3600
+        # Material limits (aligned with test expectations)
+        mock_config.MAX_MATERIALS_PER_EXPERIMENT = 10
+        mock_config.MAX_TOTAL_SIZE_PER_EXPERIMENT = 262_144_000  # 250MB
+        mock_config.MAX_IMAGE_SIZE = 26_214_400  # 25MB (test expects images > 25MB to fail)
+        mock_config.MAX_VIDEO_SIZE = 104_857_600  # 100MB
+        mock_config.MAX_DOCUMENT_SIZE = 52_428_800  # 50MB
+        yield mock_config
+
+
 @pytest.fixture
 def material_service(mock_repository):
     """Create MaterialService with mocked repository."""
