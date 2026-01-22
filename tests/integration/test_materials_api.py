@@ -204,12 +204,17 @@ class TestUploadUrlEndpoint:
 class TestConfirmEndpoint:
     """Integration tests for POST /confirm endpoint (T017)."""
 
+    @patch("synth_lab.services.material_service.config")
     @patch("synth_lab.services.material_service.check_object_exists")
     def test_confirm_upload_updates_material(
-        self, mock_check_exists, client, db_session
+        self, mock_check_exists, mock_config, client, db_session
     ):
         """Should confirm upload and return updated material."""
         from synth_lab.models.orm.material import ExperimentMaterial
+
+        # Mock S3 config
+        mock_config.S3_ENDPOINT_URL = "https://s3.endpoint.com"
+        mock_config.BUCKET_NAME = "test-bucket"
 
         # Create test experiment
         experiment = create_test_experiment("exp_44556677")

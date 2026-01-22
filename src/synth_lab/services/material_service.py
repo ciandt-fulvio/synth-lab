@@ -233,6 +233,8 @@ class MaterialService:
             raise S3StorageError("object existence check", "unexpected error") from e
 
         # Build file URL
+        if not config.S3_ENDPOINT_URL:
+            raise S3StorageError("confirm upload", "S3_ENDPOINT_URL not configured")
         endpoint = config.S3_ENDPOINT_URL.replace('https://', '')
         file_url = f"https://{endpoint}/{config.BUCKET_NAME}/{object_key}"
 
@@ -573,6 +575,9 @@ class MaterialService:
                 return None
 
             # Build thumbnail URL
+            if not config.S3_ENDPOINT_URL:
+                self.logger.error("S3_ENDPOINT_URL not configured")
+                return None
             endpoint = config.S3_ENDPOINT_URL.replace('https://', '')
             thumbnail_url = f"https://{endpoint}/{config.BUCKET_NAME}/{thumb_key}"
 

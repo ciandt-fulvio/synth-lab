@@ -141,8 +141,8 @@ echo "Service ID: $SERVICE_ID"
 
 echo "Updating service image to: $IMAGE_URL"
 
-# Note: Railway's serviceInstanceUpdate mutation updates the service configuration
-# The image field sets the Docker image source
+# Note: The service must be configured with "Docker Image" source in Railway UI
+# This mutation updates the image URL for image-based services
 UPDATE_QUERY=$(cat <<EOF
 {
     "query": "mutation { serviceInstanceUpdate(serviceId: \"$SERVICE_ID\", environmentId: \"$ENVIRONMENT_ID\", input: { source: { image: \"$IMAGE_URL\" } }) }"
@@ -151,7 +151,7 @@ EOF
 )
 
 UPDATE_RESPONSE=$(railway_graphql "$UPDATE_QUERY")
-echo "Service updated successfully"
+echo "Service image updated successfully"
 
 # =============================================================================
 # Trigger Redeploy
