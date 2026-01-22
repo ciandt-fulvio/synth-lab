@@ -201,3 +201,13 @@ Após configurar todos os secrets e variáveis:
 - [GitHub Actions Variables](https://docs.github.com/en/actions/learn-github-actions/variables)
 - [Railway CLI Documentation](https://docs.railway.app/develop/cli)
 - [Railway API Tokens](https://docs.railway.app/develop/tokens)
+
+## Checklist de Configuração
+
+- [ ] `RAILWAY_API_TOKEN` (secret) ⭐ **Account Token, não Project Token**
+- [ ] `RAILWAY_PROJECT_ID` (secret)
+- [ ] `DATABASE_STAGING_URL` (secret)
+- [ ] `DATABASE_PRODUCTION_URL` (secret)
+- [ ] `OPENAI_API_KEY` (secret)
+- [ ] `STAGING_FRONTEND_URL` (variable)
+- [ ] `STAGING_BACKEND_URL` (variable)
