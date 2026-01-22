@@ -19,8 +19,8 @@ from sqlalchemy import text
 
 
 def _get_test_db_url() -> str:
-    """Get database URL for testing (prefers DATABASE_TEST_URL)."""
-    return os.getenv("DATABASE_TEST_URL") or os.getenv("DATABASE_URL")
+    """Get database URL for testing."""
+    return os.getenv("DATABASE_URL")
 
 
 @pytest.mark.smoke
@@ -28,11 +28,11 @@ class TestDatabaseHealth:
     """Valida que banco de dados está acessível e configurado."""
 
     def test_database_url_is_configured(self):
-        """DATABASE_URL ou DATABASE_TEST_URL deve estar configurada."""
+        """DATABASE_URL deve estar configurada."""
         database_url = _get_test_db_url()
         assert database_url is not None, (
-            "DATABASE_URL ou DATABASE_TEST_URL não configurada! "
-            "Configure com: export DATABASE_TEST_URL='postgresql://...'"
+            "DATABASE_URL não configurada! "
+            "Run tests via: make test"
         )
         assert database_url.startswith("postgresql"), (
             f"DATABASE_URL deve ser PostgreSQL. Got: {database_url[:20]}"

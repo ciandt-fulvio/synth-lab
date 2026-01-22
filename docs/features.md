@@ -1069,11 +1069,11 @@ O **synth-lab** é uma plataforma de pesquisa e experimentação que utiliza per
 
 ### 15.1 Variáveis de Ambiente
 ```bash
-# Database
+# Database (set by Makefile/Docker, not in .env)
 DATABASE_URL=postgresql://user:pass@localhost/synthlab
-DATABASE_TEST_URL=postgresql://user:pass@localhost/synthlab_test
+# Tests use isolated container (port 5433) - run via: make test
 
-# AI
+# AI (must be set in shell environment)
 OPENAI_API_KEY=sk-...
 
 # Observability

@@ -6,12 +6,13 @@ Usage:
     uv run python scripts/test_exploration_api.py
 """
 
+import os
 import sys
 import time
 
 import httpx
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 TIMEOUT = 120.0
 
 

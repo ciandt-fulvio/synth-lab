@@ -1,17 +1,18 @@
-# E2E Tests - Triggered on code push
+# E2E Tests - Triggered on Pull Requests
 #
 # Flow: Docker Compose → Run E2E Tests → Cleanup
 #
 # Runs complete E2E test suite in isolated Docker environment
-# to validate integration before deployment to staging.
+# to validate integration before merging PRs.
+# E2E tests are slow (~15min), so we only run them on PRs to save CI time.
 
 name: E2E Tests
 
 on:
-  push:
-    branches: ['**']
-    tags-ignore:
-      - 'v*'  # Ignora tags (deploy.yml cuida disso)
+  pull_request:
+    branches:
+      - main
+      - develop
   workflow_dispatch:
 
 env:
