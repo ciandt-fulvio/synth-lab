@@ -96,7 +96,7 @@ make test-e2e-down
 
 2. Verify test data:
    ```bash
-   docker exec synthlab-postgres-test psql -U synthlab_test -d synthlab_test -c "SELECT name FROM experiments;"
+   docker exec synthlab-postgres-test psql -U synthlab -d synthlab -c "SELECT name FROM experiments;"
    ```
 
 3. Test backend directly:

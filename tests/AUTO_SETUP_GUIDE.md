@@ -148,14 +148,14 @@ make test  # Todos os testes (~4min)
 ### Apenas Testes que Requerem PostgreSQL
 
 ```bash
-DATABASE_URL="postgresql://synthlab_test:synthlab_test@localhost:5433/synthlab_test" \
+DATABASE_URL="postgresql://synthlab:synthlab@localhost:5433/synthlab" \
   uv run pytest -m requires_postgres
 ```
 
 ### Apenas Testes de Migrations
 
 ```bash
-DATABASE_URL="postgresql://synthlab_test:synthlab_test@localhost:5433/synthlab_test" \
+DATABASE_URL="postgresql://synthlab:synthlab@localhost:5433/synthlab" \
   uv run pytest tests/schema/test_migrations.py
 ```
 

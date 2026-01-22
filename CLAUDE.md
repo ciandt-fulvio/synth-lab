@@ -59,7 +59,7 @@ make dev-down
 podman stop <container-name> && podman rm <container-name>
 
 # Re-seed banco de dev se necessário
-DATABASE_URL="postgresql://synthlab:synthlab_dev@localhost:5432/synthlab" python scripts/seed_database.py
+DATABASE_URL="postgresql://synthlab:synthlab@localhost:5432/synthlab" python scripts/seed_database.py
 ```
 
 **Dados persistentes:**

@@ -156,6 +156,20 @@ jobs:
         run: |
           npx wait-on http://localhost:8091 --timeout 120000
 
+      # Seed the E2E database with test data
+      - name: Setup Python for seeding
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Seed E2E database
+        run: |
+          uv sync --dev
+          make test-e2e-seed
+
       - name: Run E2E tests
         working-directory: frontend
         run: TEST_ENV=docker npm run test:e2e

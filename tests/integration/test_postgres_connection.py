@@ -9,7 +9,7 @@ Usage:
     docker-compose -f docker/docker-compose.postgres.yml up -d
 
     # Run tests:
-    DATABASE_URL=postgresql://synthlab:synthlab_dev@localhost:5432/synthlab_test \
+    DATABASE_URL=postgresql://synthlab:synthlab@localhost:5432/synthlab \
         pytest tests/integration/test_postgres_connection.py -v
 
 References:

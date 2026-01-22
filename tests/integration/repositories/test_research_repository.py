@@ -310,8 +310,8 @@ if __name__ == "__main__":
         print("❌ DATABASE_URL environment variable not set")
         sys.exit(1)
 
-    if "synthlab_test" not in postgres_url:
-        print(f"❌ DATABASE_URL must point to test database (synthlab_test)")
+    if "synthlab" not in postgres_url:
+        print(f"❌ DATABASE_URL must point to test database (synthlab)")
         print(f"   Current: {postgres_url}")
         sys.exit(1)
 

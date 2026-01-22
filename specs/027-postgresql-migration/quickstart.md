@@ -233,7 +233,7 @@ DATABASE_URL="postgresql:///test.db" pytest tests/
 docker compose -f docker/docker-compose.postgres.yml up -d
 
 # Run tests
-DATABASE_URL="postgresql://synthlab:synthlab@localhost:5432/synthlab_test" pytest tests/
+DATABASE_URL="postgresql://synthlab:synthlab@localhost:5432/synthlab" pytest tests/
 
 # Stop container
 docker compose -f docker/docker-compose.postgres.yml down

@@ -7,20 +7,20 @@ Uses real database (isolated_db_session) and mocks only external LLM/Image API c
 Executar: pytest -m integration tests/integration/services/test_ai_services.py
 """
 
-import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
 from datetime import datetime
-from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
+from synth_lab.models.chat import ChatRequest
+from synth_lab.models.orm.experiment import Experiment
+from synth_lab.models.orm.research import ResearchExecution, Transcript
+from synth_lab.models.orm.synth import Synth, SynthGroup
 from synth_lab.services.avatar_service import AvatarService
+from synth_lab.services.chat.service import ChatService
 from synth_lab.services.interview_guide_generator_service import (
     InterviewGuideGeneratorService,
 )
-from synth_lab.services.chat.service import ChatService
-from synth_lab.models.orm.experiment import Experiment
-from synth_lab.models.orm.synth import Synth, SynthGroup
-from synth_lab.models.orm.research import ResearchExecution, Transcript
-from synth_lab.models.chat import ChatRequest
 
 
 @pytest.mark.integration
@@ -28,9 +28,7 @@ class TestAvatarServiceIntegration:
     """Integration tests for avatar_service.py - Avatar generation."""
 
     @pytest.mark.asyncio
-    async def test_ensure_avatars_detects_missing_avatars(
-        self, isolated_db_session, tmp_path
-    ):
+    async def test_ensure_avatars_detects_missing_avatars(self, isolated_db_session, tmp_path):
         """Test that ensure_avatars identifies synths without avatar files."""
         # Setup: Create synths in database
         experiment = Experiment(
@@ -43,7 +41,6 @@ class TestAvatarServiceIntegration:
         group = SynthGroup(
             id="group_avatar_001",
             name="Avatar Group",
-            
             created_at=datetime.now().isoformat(),
         )
         isolated_db_session.add_all([experiment, group])
@@ -71,11 +68,10 @@ class TestAvatarServiceIntegration:
 
         # Mock S3 check to return False (no avatars exist in S3)
         # Mock avatar generation to avoid OpenAI API call
-        with patch(
-            "synth_lab.services.avatar_service.check_object_exists", return_value=False
-        ), patch(
-            "synth_lab.gen_synth.avatar_generator.generate_avatars"
-        ) as mock_generate:
+        with (
+            patch("synth_lab.services.avatar_service.check_object_exists", return_value=False),
+            patch("synth_lab.gen_synth.avatar_generator.generate_avatars") as mock_generate,
+        ):
             # Mock the avatar generation to return S3 keys
             def mock_avatar_gen(synths=None, **kwargs):
                 return [f"avatars/{synth['id']}.png" for synth in synths or []]
@@ -92,9 +88,7 @@ class TestAvatarServiceIntegration:
                 assert result[synth_data["id"]] == f"avatars/{synth_data['id']}.png"
 
     @pytest.mark.asyncio
-    async def test_ensure_avatars_skips_existing_avatars(
-        self, isolated_db_session, tmp_path
-    ):
+    async def test_ensure_avatars_skips_existing_avatars(self, isolated_db_session, tmp_path):
         """Test that ensure_avatars does not regenerate existing avatar files in S3."""
         # Setup: Create synths - one with existing avatar in S3, one without
         synths_data = [
@@ -110,12 +104,13 @@ class TestAvatarServiceIntegration:
             return "synth_existing_001" in s3_key
 
         # Mock avatar generation
-        with patch(
-            "synth_lab.services.avatar_service.check_object_exists",
-            side_effect=mock_check_exists,
-        ), patch(
-            "synth_lab.gen_synth.avatar_generator.generate_avatars"
-        ) as mock_generate:
+        with (
+            patch(
+                "synth_lab.services.avatar_service.check_object_exists",
+                side_effect=mock_check_exists,
+            ),
+            patch("synth_lab.gen_synth.avatar_generator.generate_avatars") as mock_generate,
+        ):
 
             def mock_avatar_gen(synths=None, **kwargs):
                 return [f"avatars/{synth['id']}.png" for synth in synths or []]
@@ -148,10 +143,13 @@ class TestAvatarServiceIntegration:
         start_callback = AsyncMock()
         complete_callback = AsyncMock()
 
-        # Mock avatar generation
-        with patch("synth_lab.gen_synth.avatar_generator.generate_avatars") as mock_gen:
-            # Mock should return list of paths
-            mock_gen.return_value = [str(avatars_dir / "synth_callback_001.png")]
+        # Mock S3 check and avatar generation
+        with (
+            patch("synth_lab.services.avatar_service.check_object_exists", return_value=False),
+            patch("synth_lab.gen_synth.avatar_generator.generate_avatars") as mock_gen,
+        ):
+            # Mock should return list of S3 keys
+            mock_gen.return_value = ["avatars/synth_callback_001.png"]
 
             await service.ensure_avatars_for_synths(
                 synths_data,
@@ -170,15 +168,11 @@ class TestInterviewGuideGeneratorIntegration:
 
     @pytest.mark.asyncio
     @patch("synth_lab.services.interview_guide_generator_service._tracer")
-    async def test_generate_for_experiment_creates_guide(
-        self, mock_tracer, isolated_db_session
-    ):
+    async def test_generate_for_experiment_creates_guide(self, mock_tracer, isolated_db_session):
         """Test that generate_for_experiment creates InterviewGuide in database."""
         # Setup mock tracer
         mock_span = MagicMock()
-        mock_tracer.start_as_current_span.return_value.__enter__.return_value = (
-            mock_span
-        )
+        mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
         # Setup: Create experiment
         experiment = Experiment(
@@ -200,15 +194,15 @@ class TestInterviewGuideGeneratorIntegration:
         }
 
         from synth_lab.repositories.interview_guide_repository import InterviewGuideRepository
+
         repo = InterviewGuideRepository(session=isolated_db_session)
         service = InterviewGuideGeneratorService(interview_guide_repo=repo)
 
         # Mock the LLM client's complete_json method
-        with patch.object(
-            service.llm, "complete_json"
-        ) as mock_llm:
+        with patch.object(service.llm, "complete_json") as mock_llm:
             # Configure mock to return JSON string
             import json
+
             mock_llm.return_value = json.dumps(mock_llm_response)
 
             # Execute: Generate guide
@@ -235,9 +229,7 @@ class TestInterviewGuideGeneratorIntegration:
         """Test that generate_for_experiment creates Phoenix trace spans."""
         # Setup mock tracer
         mock_span = MagicMock()
-        mock_tracer.start_as_current_span.return_value.__enter__.return_value = (
-            mock_span
-        )
+        mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
         # Setup experiment
         experiment = Experiment(
@@ -251,19 +243,17 @@ class TestInterviewGuideGeneratorIntegration:
         isolated_db_session.commit()
 
         from synth_lab.repositories.interview_guide_repository import InterviewGuideRepository
+
         repo = InterviewGuideRepository(session=isolated_db_session)
         service = InterviewGuideGeneratorService(interview_guide_repo=repo)
 
         # Mock LLM response
-        with patch.object(
-            service.llm, "complete_json"
-        ) as mock_llm:
+        with patch.object(service.llm, "complete_json") as mock_llm:
             import json
-            mock_llm.return_value = json.dumps({
-                "questions": "Q1",
-                "context_definition": "C1",
-                "context_examples": "E1"
-            })
+
+            mock_llm.return_value = json.dumps(
+                {"questions": "Q1", "context_definition": "C1", "context_examples": "E1"}
+            )
 
             await service.generate_for_experiment(
                 experiment_id="exp_tracing_001",
@@ -286,9 +276,7 @@ class TestChatServiceIntegration:
         """Test that generate_response loads synth profile and interview transcript."""
         # Setup mock tracer
         mock_span = MagicMock()
-        mock_tracer.start_as_current_span.return_value.__enter__.return_value = (
-            mock_span
-        )
+        mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
         # Setup: Create experiment, synth group, synth, research execution, and transcript
         experiment = Experiment(
@@ -301,7 +289,6 @@ class TestChatServiceIntegration:
         group = SynthGroup(
             id="group_chat_001",
             name="Chat Group",
-            
             created_at=datetime.now().isoformat(),
         )
         synth = Synth(
@@ -351,9 +338,7 @@ class TestChatServiceIntegration:
                 {"role": "assistant", "content": "Achei muito interessante."},
             ],
         )
-        isolated_db_session.add_all(
-            [experiment, group, synth, execution, transcript]
-        )
+        isolated_db_session.add_all([experiment, group, synth, execution, transcript])
         isolated_db_session.commit()
 
         # Execute: Generate chat response
@@ -371,9 +356,7 @@ class TestChatServiceIntegration:
         )
 
         # Mock LLM response
-        with patch.object(
-            service.llm_client, "complete"
-        ) as mock_llm:
+        with patch.object(service.llm_client, "complete") as mock_llm:
             mock_llm.return_value = "Gostei da simplicidade."
 
             response = service.generate_response("chat01", request)
@@ -391,15 +374,11 @@ class TestChatServiceIntegration:
             assert any(msg["role"] == "system" for msg in messages)
 
     @patch("synth_lab.services.chat.service._tracer")
-    def test_generate_response_uses_phoenix_tracing(
-        self, mock_tracer, isolated_db_session
-    ):
+    def test_generate_response_uses_phoenix_tracing(self, mock_tracer, isolated_db_session):
         """Test that generate_response creates Phoenix trace spans."""
         # Setup mock tracer
         mock_span = MagicMock()
-        mock_tracer.start_as_current_span.return_value.__enter__.return_value = (
-            mock_span
-        )
+        mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
         # Setup minimal data
         experiment = Experiment(
@@ -412,7 +391,6 @@ class TestChatServiceIntegration:
         group = SynthGroup(
             id="group_tracing_chat",
             name="Tracing Group",
-            
             created_at=datetime.now().isoformat(),
         )
         synth = Synth(
@@ -451,14 +429,10 @@ class TestChatServiceIntegration:
         synths_repo = SynthRepository(session=isolated_db_session)
         service = ChatService(research_repo=research_repo, synths_repo=synths_repo)
 
-        request = ChatRequest(
-            exec_id="exec_tracing_chat", message="Test message", history=[]
-        )
+        request = ChatRequest(exec_id="exec_tracing_chat", message="Test message", history=[])
 
         # Mock LLM
-        with patch.object(
-            service.llm_client, "complete"
-        ) as mock_llm:
+        with patch.object(service.llm_client, "complete") as mock_llm:
             mock_llm.return_value = "Test response"
 
             service.generate_response("chat02", request)
@@ -482,19 +456,22 @@ class TestAIServicesErrorHandling:
         avatars_dir = tmp_path / "avatars"
         service = AvatarService(avatars_dir=avatars_dir)
 
-        # Mock avatar generation
-        with patch("synth_lab.gen_synth.avatar_generator.generate_avatars"):
+        # Mock S3 check and avatar generation
+        with (
+            patch("synth_lab.services.avatar_service.check_object_exists", return_value=False),
+            patch("synth_lab.gen_synth.avatar_generator.generate_avatars") as mock_gen,
+        ):
+            mock_gen.return_value = ["avatars/synth_valid_001.png"]
             result = await service.ensure_avatars_for_synths(synths_data)
 
             # Should only generate for synth with ID
-            assert len(result) <= 1
+            assert len(result) == 1
+            assert "synth_valid_001" in result
 
     def test_chat_service_handles_missing_synth(self, isolated_db_session):
         """Test that chat service raises error for non-existent synth."""
         service = ChatService()
-        request = ChatRequest(
-            exec_id="exec_nonexistent", message="Test", history=[]
-        )
+        request = ChatRequest(exec_id="exec_nonexistent", message="Test", history=[])
 
         # Should raise error when synth not found
         with pytest.raises(Exception):  # Could be AttributeError or custom error

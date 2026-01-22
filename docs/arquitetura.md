@@ -497,7 +497,7 @@ O sistema utiliza **PostgreSQL** como banco de dados principal.
 DATABASE_URL="postgresql://user:pass@localhost:5432/synthlab"
 
 # Docker Compose (local)
-DATABASE_URL="postgresql://synthlab:synthlab_dev@localhost:5432/synthlab"
+DATABASE_URL="postgresql://synthlab:synthlab@localhost:5432/synthlab"
 ```
 
 **Padrão de uso (SQLAlchemy Session):**

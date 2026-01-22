@@ -45,7 +45,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-synthlab}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-synthlab_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-synthlab}
       POSTGRES_DB: ${POSTGRES_DB:-synthlab}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
@@ -69,7 +69,7 @@ services:
     profiles: ["dev"]
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-synthlab}:${POSTGRES_PASSWORD:-synthlab_dev}@postgres-dev:5432/${POSTGRES_DB:-synthlab}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-synthlab}:${POSTGRES_PASSWORD:-synthlab}@postgres-dev:5432/${POSTGRES_DB:-synthlab}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       PHOENIX_ENABLED: ${PHOENIX_ENABLED:-true}
       PHOENIX_COLLECTOR_ENDPOINT: ${PHOENIX_COLLECTOR_ENDPOINT:-http://localhost:6006}
@@ -135,15 +135,15 @@ services:
     container_name: synthlab-postgres-test
     profiles: ["test"]
     environment:
-      POSTGRES_USER: synthlab_test
-      POSTGRES_PASSWORD: synthlab_test
-      POSTGRES_DB: synthlab_test
+      POSTGRES_USER: synthlab
+      POSTGRES_PASSWORD: synthlab
+      POSTGRES_DB: synthlab
     ports:
       - "5433:5432"
     volumes:
       - ./postgres/init-scripts:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U synthlab_test -d synthlab_test"]
+      test: ["CMD-SHELL", "pg_isready -U synthlab -d synthlab"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -159,7 +159,7 @@ services:
     container_name: synthlab-backend-test
     profiles: ["test"]
     environment:
-      DATABASE_URL: postgresql://synthlab_test:synthlab_test@postgres-test:5432/synthlab_test
+      DATABASE_URL: postgresql://synthlab:synthlab@postgres-test:5432/synthlab
       OPENAI_API_KEY: ${OPENAI_API_KEY:-dummy_key_for_testing}
       PHOENIX_ENABLED: "false"
       LOG_LEVEL: INFO
@@ -175,7 +175,7 @@ services:
       echo 'Running Alembic migrations...' &&
       alembic -c src/synth_lab/alembic/alembic.ini upgrade head &&
       echo 'Seeding test data...' &&
-      DATABASE_URL=postgresql://synthlab_test:synthlab_test@postgres-test:5432/synthlab_test uv run python -m tests.fixtures.seed_test &&
+      DATABASE_URL=postgresql://synthlab:synthlab@postgres-test:5432/synthlab uv run python -m tests.fixtures.seed_test &&
       echo 'Starting server...' &&
       exec uvicorn synth_lab.api.main:app --host 0.0.0.0 --port 8000
       "

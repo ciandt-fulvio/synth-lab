@@ -27,7 +27,7 @@ jobs:
         env:
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
-          POSTGRES_DB: synthlab_test
+          POSTGRES_DB: synthlab
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -53,20 +53,20 @@ jobs:
 
       - name: Run migrations
         env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/synthlab_test
+          DATABASE_URL: postgresql://test:test@localhost:5432/synthlab
         run: |
           cd src/synth_lab/alembic
           alembic upgrade head
 
       - name: Seed test database
         env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/synthlab_test
+          DATABASE_URL: postgresql://test:test@localhost:5432/synthlab
         run: |
           python tests/fixtures/seed_test.py
 
       - name: Run unit and integration tests (excluding smoke/contract/schema)
         env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/synthlab_test
+          DATABASE_URL: postgresql://test:test@localhost:5432/synthlab
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           pytest tests/ -v --tb=short \

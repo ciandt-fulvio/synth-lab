@@ -20,7 +20,7 @@ Usage:
     DATABASE_URL="postgresql://..." uv run python scripts/setup_test_db.py --reset
 
 Environment Variables Required:
-    DATABASE_URL: PostgreSQL connection string (must contain 'test' for safety)
+    DATABASE_URL: PostgreSQL connection string (must be a test database: contains 'test', port 5433, or host 'postgres-test')
 """
 
 import os
@@ -40,15 +40,37 @@ sys.path.insert(0, str(project_root))
 app = typer.Typer()
 
 
+def _is_test_database(db_url: str) -> bool:
+    """
+    Check if DATABASE_URL points to a test database.
+
+    Accepts any of:
+    - URL containing 'test' (e.g., synthlab_test, postgres-test)
+    - URL using port 5433 (test container port)
+    - URL with host 'postgres-test' (docker compose test service)
+    """
+    db_url_lower = db_url.lower()
+    if "test" in db_url_lower:
+        return True
+    if ":5433/" in db_url or ":5433" in db_url:
+        return True
+    if "@postgres-test:" in db_url_lower or "@postgres-test/" in db_url_lower:
+        return True
+    return False
+
+
 def get_test_db_url() -> str:
     """Get test database URL from environment."""
     db_url = os.getenv("DATABASE_URL")
     if not db_url:
         logger.error("DATABASE_URL environment variable not set")
-        logger.info("Example: DATABASE_URL=postgresql://user:pass@localhost:5432/synthlab_test")
+        logger.info("Example: DATABASE_URL=postgresql://user:pass@localhost:5432/synthlab")
         sys.exit(1)
-    if "test" not in db_url.lower():
-        logger.error("DATABASE_URL must point to a test database (must contain 'test')")
+    if not _is_test_database(db_url):
+        logger.error(
+            "DATABASE_URL must point to a test database "
+            "(must contain 'test', use port 5433, or host 'postgres-test')"
+        )
         sys.exit(1)
     return db_url
 

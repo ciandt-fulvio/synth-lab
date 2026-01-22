@@ -41,8 +41,8 @@
 ### Database Setup
 
 - [X] T005 Create Alembic migration for users table in migrations/versions/
-- [ ] T006 [P] Create Alembic migration for experiment_shares table in migrations/versions/
-- [ ] T007 [P] Create Alembic migration for synth_group_shares table in migrations/versions/
+- [X] T006 [P] Create Alembic migration for experiment_shares table in migrations/versions/
+- [X] T007 [P] Create Alembic migration for synth_group_shares table in migrations/versions/
 - [ ] T008 [P] Create Alembic migration to add owner_id to experiments table in migrations/versions/
 - [ ] T009 [P] Create Alembic migration to add owner_id to synth_groups table in migrations/versions/
 - [ ] T010 Apply all migrations via `uv run alembic upgrade head`
