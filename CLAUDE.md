@@ -35,6 +35,37 @@ cd frontend && npm run dev
 npm run lint
 ```
 
+## Container Management (CRITICAL)
+
+⚠️ **NUNCA execute comandos destrutivos em massa:**
+```bash
+# ❌ PROIBIDO - destroi dados de dev/prod
+podman stop -a
+podman rm -a
+podman pod rm -a
+docker stop $(docker ps -aq)
+docker rm $(docker ps -aq)
+```
+
+✅ **Use comandos específicos:**
+```bash
+# Parar ambiente de teste
+make test-e2e-docker-down
+
+# Parar ambiente de dev
+make dev-down
+
+# Limpar container específico travado
+podman stop <container-name> && podman rm <container-name>
+
+# Re-seed banco de dev se necessário
+DATABASE_URL="postgresql://synthlab:synthlab_dev@localhost:5432/synthlab" python scripts/seed_database.py
+```
+
+**Dados persistentes:**
+- `synthlab-postgres-dev`: Banco de desenvolvimento (porta 5432) - **NÃO APAGAR**
+- `synthlab-postgres-test`: Banco de teste (porta 5433) - efêmero, pode ser recriado
+
 ## Architecture Rules (NON-NEGOTIABLE)
 
 ### Backend
