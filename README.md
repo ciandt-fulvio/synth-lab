@@ -36,7 +36,7 @@ Criar Synths representativos da população brasileira para:
 
 > 📝 **Nota**: Outras funcionalidades (pesquisas UX, topic guides, PR-FAQ) estão disponíveis via **REST API** - veja seção [API REST](#-api-rest-moderna-novo)
 
-### Dados Realistas (Schema v2.0.0)
+### Dados Realistas (Schema v2.3.0)
 - **Atributos Demográficos**: Idade, gênero, localização, escolaridade, renda, ocupação (IBGE Censo 2022, PNAD 2022/2023)
 - **Atributos Psicográficos**: Personalidade Big Five, interesses, inclinação política/religiosa
 - **Atributos Comportamentais**: Hábitos de consumo, padrões de mídia social
@@ -94,6 +94,10 @@ make dev-up        # Inicia frontend (8080), backend (8000), postgres (5432)
 make dev-logs      # Ver logs de todos os serviços
 make dev-down      # Para o ambiente
 
+# Testes Backend (ambiente isolado com PostgreSQL)
+make test                  # Executa todos os testes backend (846+ testes)
+make test-fast             # Testes rápidos (unit only, sem integração)
+
 # Testes E2E (ambiente isolado)
 make test-e2e              # Executa tudo: build + start + test + cleanup
 make test-e2e-docker-up    # Inicia ambiente para debug (portas 8091, 8001, 5433)
@@ -111,8 +115,27 @@ make test-e2e-docker-down  # Para e limpa o ambiente
 - ✅ PostgreSQL efêmero (dados limpos a cada execução)
 - ✅ Portas separadas (não conflita com ambiente de dev)
 - ✅ Seed de dados de teste automático
+- ✅ Migrações Alembic aplicadas automaticamente
+- ✅ Isolamento de transações (SAVEPOINT) por teste
 
 > 📖 Para documentação detalhada, veja [Docker Development Guide](docs/docker-development.md)
+
+### 🚀 CI/CD Pipeline
+
+O projeto usa GitHub Actions com pipeline automatizado:
+
+```
+push → lint → build → test → deploy
+```
+
+**Workflows:**
+- **PR/Push**: Lint, build e testes (backend + E2E)
+- **Staging**: Deploy automático para Railway (staging)
+- **Production**: Deploy manual via workflow dispatch
+
+**Ambientes:**
+- **Staging**: `synth-lab-*-staging.up.railway.app`
+- **Production**: `synth-lab-*.up.railway.app`
 
 ## 📖 Uso
 
@@ -350,7 +373,7 @@ Os Synths são salvos como arquivos JSON em `data/synths/` com identificadores �
 - **Deficiências**: Limitações visuais, auditivas, motoras (cadeira de rodas), cognitivas (se aplicável)
 - **Capacidades Tecnológicas**: Alfabetização digital, dispositivos (principal, qualidade), preferências de acessibilidade (zoom, contraste), velocidade de digitação, frequência de internet, familiaridade com plataformas
 - **Vieses Comportamentais**: Aversão à perda, desconto hiperbólico, suscetibilidade a chamariz, ancoragem, viés de confirmação, viés de status quo, sobrecarga de informação (alinhados com traços de personalidade)
-- **Metadata**: Timestamp de criação (ISO 8601), versão do schema (2.0.0)
+- **Metadata**: Timestamp de criação (ISO 8601), versão do schema (2.3.0)
 
 <details>
 <summary>Exemplo de Synth gerado (clique para expandir)</summary>
@@ -363,7 +386,7 @@ Os Synths são salvos como arquivos JSON em `data/synths/` com identificadores �
   "descricao": "Mulher de 28 anos, designer gráfica, mora em São Paulo, SP. Possui traços marcantes de Abertura, Amabilidade.",
   "link_photo": "https://ui-avatars.com/api/?name=Maria+Silva+Santos&size=256&background=random",
   "created_at": "2025-12-14T15:30:00Z",
-  "version": "2.0.0",
+  "version": "2.3.0",
   "demografia": {
     "idade": 28,
     "genero_biologico": "feminino",
@@ -570,6 +593,8 @@ Todas as distribuições estatísticas são baseadas em fontes oficiais e pesqui
 ✅ Distribuição regional: <7% erro vs IBGE
 ✅ Distribuição etária: <4% erro vs IBGE
 ✅ Validação schema: 100% dos synths gerados passam
+✅ Cobertura de testes: 846+ testes automatizados
+✅ E2E tests: 105+ testes Playwright
 ```
 
 ## 🛠️ Stack Tecnológica
