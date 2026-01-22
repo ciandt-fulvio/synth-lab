@@ -9,7 +9,7 @@ References:
 
 Sample input:
     - Fresh database with no tables
-    - Database URL from DATABASE_TEST_URL environment variable
+    - Database URL from DATABASE_URL environment variable
 
 Expected output:
     - All tables created after upgrade
@@ -62,8 +62,8 @@ def get_alembic_config(database_url: str) -> Config:
 
 
 @pytest.mark.skipif(
-    not os.getenv("DATABASE_TEST_URL"),
-    reason="DATABASE_TEST_URL not set - skipping PostgreSQL tests",
+    not os.getenv("DATABASE_URL"),
+    reason="DATABASE_URL not set - skipping PostgreSQL tests",
 )
 class TestAlembicMigrationsPostgres:
     """Test Alembic migrations with PostgreSQL backend."""
@@ -74,7 +74,7 @@ class TestAlembicMigrationsPostgres:
         DEPRECATED: Use test_database_url fixture from conftest.py instead.
         This ensures the test database safety check is enforced.
         """
-        return os.environ["DATABASE_TEST_URL"]
+        return os.environ["DATABASE_URL"]
 
     @pytest.mark.skip(reason="Destructive test - use test_database_url fixture instead of postgres_db")
     def test_upgrade_creates_all_tables(self, postgres_db: str):
@@ -214,9 +214,9 @@ if __name__ == "__main__":
     """Run validation tests."""
     import sys
 
-    postgres_url = os.getenv("DATABASE_TEST_URL")
+    postgres_url = os.getenv("DATABASE_URL")
     if not postgres_url:
-        print("❌ DATABASE_TEST_URL environment variable not set")
+        print("❌ DATABASE_URL environment variable not set")
         sys.exit(1)
 
     all_failures = []

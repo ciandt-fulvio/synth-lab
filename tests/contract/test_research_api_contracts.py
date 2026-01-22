@@ -7,7 +7,7 @@ Tests verify response structure, required fields, and data types - NOT business 
 Executar: pytest -m contract tests/contract/test_research_api_contracts.py
 
 Note: Uses shared 'client' fixture from tests/contract/conftest.py
-      which ensures tests run against DATABASE_TEST_URL.
+      which ensures tests run against the test database (DATABASE_URL set by Makefile).
 """
 
 import pytest

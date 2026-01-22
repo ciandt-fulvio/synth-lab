@@ -82,13 +82,12 @@ API_HOST = os.getenv("SYNTHLAB_API_HOST", "0.0.0.0")
 API_PORT = int(os.getenv("SYNTHLAB_API_PORT", "8000"))
 
 # S3 Storage configuration (Railway Buckets)
-# Railway provides: BUCKET, ACCESS_KEY_ID, SECRET_ACCESS_KEY, ENDPOINT, REGION
-# Fallback to AWS-style names for compatibility
-S3_ENDPOINT_URL = os.getenv("ENDPOINT", os.getenv("S3_ENDPOINT_URL", "https://storage.railway.app"))
-BUCKET_NAME = os.getenv("BUCKET", os.getenv("BUCKET_NAME", "attachments"))
-S3_REGION = os.getenv("REGION", "auto")
-AWS_ACCESS_KEY_ID = os.getenv("ACCESS_KEY_ID", os.getenv("AWS_ACCESS_KEY_ID"))
-AWS_SECRET_ACCESS_KEY = os.getenv("SECRET_ACCESS_KEY", os.getenv("AWS_SECRET_ACCESS_KEY"))
+# Railway provides: BUCKET, BUCKET_ACCESS_KEY_ID, BUCKET_SECRET_ACCESS_KEY, ENDPOINT, REGION
+S3_ENDPOINT_URL = os.getenv("ENDPOINT")
+BUCKET_NAME = os.getenv("BUCKET")
+S3_REGION = os.getenv("REGION")
+AWS_ACCESS_KEY_ID = os.getenv("BUCKET_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("BUCKET_SECRET_ACCESS_KEY")
 
 # Material upload limits
 MAX_MATERIALS_PER_EXPERIMENT = 10

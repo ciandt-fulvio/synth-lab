@@ -5,6 +5,7 @@ FROM python:3.13-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -22,6 +23,9 @@ RUN uv pip install --system -e .
 
 # Copy alembic configuration
 COPY src/synth_lab/alembic/ ./src/synth_lab/alembic/
+
+# Copy test fixtures for E2E test seeding
+COPY tests/ ./tests/
 
 # Expose port (Railway sets PORT env var)
 EXPOSE 8000

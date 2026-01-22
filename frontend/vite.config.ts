@@ -21,15 +21,30 @@ export default defineConfig(() => {
     }
   };
 
+  const port = parseInt(process.env.VITE_PORT || "8080");
+
   return {
     server: {
-      host: "::",
-      port: parseInt(process.env.VITE_PORT || "8080"),
-      proxy: proxyConfig
+      // Bind to all interfaces for Docker access
+      host: "0.0.0.0",
+      port: port,
+      proxy: proxyConfig,
+      // HMR configuration for Docker
+      hmr: {
+        // Use same port as exposed by Docker
+        clientPort: port,
+        // Host for browser WebSocket connection
+        host: "localhost",
+      },
+      // File watching for Docker volumes
+      watch: {
+        usePolling: true,
+        interval: 100,
+      },
     },
     preview: {
-      host: "::",
-      port: parseInt(process.env.VITE_PORT || "8080"),
+      host: "0.0.0.0",
+      port: port,
       proxy: proxyConfig
     },
     plugins: [dyadComponentTagger(), react()],

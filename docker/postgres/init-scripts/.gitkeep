@@ -1,0 +1,2 @@
+# This directory contains PostgreSQL initialization scripts
+# Scripts are executed in alphabetical order on container first start

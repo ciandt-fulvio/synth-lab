@@ -16,7 +16,7 @@ Seed includes:
 Usage:
     from tests.fixtures.seed_test import seed_database
 
-    engine = create_engine(DATABASE_TEST_URL)
+    engine = create_engine(DATABASE_URL)  # Set by Makefile to test container
     seed_database(engine)
 """
 
@@ -686,9 +686,9 @@ if __name__ == "__main__":
     import os
     from synth_lab.infrastructure.database_v2 import create_db_engine
 
-    db_url = os.getenv("DATABASE_TEST_URL") or os.getenv("DATABASE_URL")
+    db_url = os.getenv("DATABASE_URL")
     if not db_url:
-        print("ERROR: DATABASE_TEST_URL or DATABASE_URL not set")
+        print("ERROR: DATABASE_URL not set - run via: make test")
         exit(1)
 
     engine = create_db_engine(db_url)

@@ -552,14 +552,11 @@ def analyze_model_changes(file_path: str) -> list[TestSuggestion]:
             file="(criar via alembic)",
             function=None,
             reason=f"Model {file_name} mudou, precisa criar/atualizar migration",
-            template=f'''# 1. Criar migration
-DATABASE_URL="$DATABASE_TEST_URL" alembic revision --autogenerate -m "Update {file_name}"
+            template=f'''# 1. Criar migration (contra dev database)
+make db-migrate MSG="Update {file_name}"
 
-# 2. Aplicar
-DATABASE_URL="$DATABASE_TEST_URL" alembic upgrade head
-
-# 3. Validar
-pytest -m schema
+# 2. Validar (container de teste aplica migrations automaticamente)
+make test-fast
 ''',
         )
     )

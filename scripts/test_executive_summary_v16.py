@@ -13,19 +13,21 @@ Prerequisites:
     3. At least 2 chart insights must exist (from generating insights on charts)
 """
 
+import os
 import sys
 import time
 
 import requests
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 
 def main():
     if len(sys.argv) < 2:
         print("Usage: python scripts/test_executive_summary_v16.py <experiment_id>")
         print("\nTo find experiment IDs:")
-        print("  psql postgresql://synthlab:synthlab_dev@localhost:5432/synthlab -c 'SELECT id, name FROM experiments LIMIT 10'")
+        db_url = os.getenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/synthlab")
+        print(f"  psql {db_url} -c 'SELECT id, name FROM experiments LIMIT 10'")
         sys.exit(1)
 
     experiment_id = sys.argv[1]

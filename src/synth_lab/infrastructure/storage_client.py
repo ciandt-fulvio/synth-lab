@@ -6,15 +6,12 @@ as well as object management operations.
 
 Railway Buckets are S3-compatible, so we use boto3 with Railway's endpoint.
 
-Environment Variables (Railway provides these automatically):
-    ENDPOINT: Railway endpoint (default: https://storage.railway.app)
+Environment Variables (Railway provides these automatically in production):
+    ENDPOINT: Railway endpoint (e.g., https://storage.railway.app)
     BUCKET: Target bucket name
-    ACCESS_KEY_ID: Access key for S3 authentication
-    SECRET_ACCESS_KEY: Secret key for S3 authentication
-    REGION: Bucket region (default: auto)
-
-    Fallback AWS-style names also supported:
-    S3_ENDPOINT_URL, BUCKET_NAME, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+    BUCKET_ACCESS_KEY_ID: Access key for S3 authentication
+    BUCKET_SECRET_ACCESS_KEY: Secret key for S3 authentication
+    REGION: Bucket region (e.g., auto)
 
 References:
     - Railway Storage Buckets: https://docs.railway.com/guides/storage-buckets

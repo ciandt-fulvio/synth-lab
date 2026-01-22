@@ -24,7 +24,7 @@
 - [x] T003 [P] Add S3 environment variables to src/synth_lab/infrastructure/config.py (BUCKET_NAME, S3_ENDPOINT_URL, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
 - [x] T004 [P] Create S3 storage client in src/synth_lab/infrastructure/storage_client.py
 - [x] T005 Create Alembic migration for experiment_materials table in alembic/versions/
-- [x] T006 Apply migration to DATABASE_URL and DATABASE_TEST_URL
+- [x] T006 Apply migration to DATABASE_URL (test container via `make test`)
 
 ---
 
@@ -289,4 +289,4 @@ T067 Retry button
 - Tests follow TDD: write first, verify they FAIL, then implement
 - Commit after each task or logical group
 - All LLM calls must use Phoenix tracing spans
-- Database migrations must be applied to both DATABASE_URL and DATABASE_TEST_URL
+- Database migrations must be applied via Alembic (test container applies automatically via `make test`)

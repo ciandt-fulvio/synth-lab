@@ -14,7 +14,7 @@ Se endpoint retorna 404 porque não há dados, isso é OK - teste passa.
 O que importa é que SE retornar dados, o schema esteja correto.
 
 Note: Uses shared 'client' fixture from tests/contract/conftest.py
-      which ensures tests run against DATABASE_TEST_URL.
+      which ensures tests run against the test database (DATABASE_URL set by Makefile).
 """
 
 import sys
