@@ -1,4 +1,4 @@
-.PHONY: help install setup-hooks gensynth phoenix kill validate-ui test test-fast test-e2e test-e2e-docker test-e2e-docker-up test-e2e-docker-down test-e2e-docker-logs lint-format update-docs clean dev-up dev-down dev-logs-back dev-logs-front db-migrate
+.PHONY: help install setup-hooks gensynth phoenix kill validate-ui test test-fast test-e2e test-e2e-docker test-e2e-docker-up test-e2e-docker-down test-e2e-docker-logs test-smoke-staging test-smoke-production lint-format update-docs clean dev-up dev-down dev-logs-back dev-logs-front db-migrate
 
 # =============================================================================
 # Configuration
@@ -48,9 +48,11 @@ help:
 	@echo "  make dev-logs-front View frontend logs"
 	@echo ""
 	@echo "Testing:"
-	@echo "  make test          Run unit/integration tests (requires dev-up)"
-	@echo "  make test-fast     Run fast anti-regression tests (~30s)"
-	@echo "  make test-e2e      Run E2E tests (isolated Docker environment)"
+	@echo "  make test               Run unit/integration tests (requires dev-up)"
+	@echo "  make test-fast          Run fast anti-regression tests (~30s)"
+	@echo "  make test-e2e           Run E2E tests (isolated Docker environment)"
+	@echo "  make test-smoke-staging Run smoke tests against Staging (Railway)"
+	@echo "  make test-smoke-production Run smoke tests against Production (Railway)"
 	@echo ""
 	@echo "Observability:"
 	@echo "  make phoenix       Start Phoenix tracing UI (http://localhost:6006)"
@@ -162,6 +164,16 @@ test-e2e-docker-down:
 
 test-e2e-docker-logs:
 	@./scripts/compose-e2e.sh logs
+
+# Smoke Tests for deployed environments (staging/production)
+# These run against real Railway deployments to validate deploys
+test-smoke-staging:
+	@echo "🔥 Running smoke tests against Staging..."
+	@cd frontend && TEST_ENV=staging npm run test:e2e -- smoke/
+
+test-smoke-production:
+	@echo "🔥 Running smoke tests against Production..."
+	@cd frontend && TEST_ENV=production npm run test:e2e -- smoke/
 
 # =============================================================================
 # Other

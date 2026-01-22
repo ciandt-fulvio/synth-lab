@@ -1,6 +1,11 @@
 # Deploy Production - Manual Trigger Only
 #
-# Flow: Migrate DB → Deploy Backend → Deploy Frontend → Smoke Tests
+# Flow: Promote staging-verified images → Deploy → Smoke Tests → Tag as production
+#
+# Uses "Build Once, Deploy Anywhere" pattern:
+#   - Deploys the SAME images that were tested in staging
+#   - Images tagged :staging-verified are promoted to production
+#   - No rebuild = guaranteed identical deployment
 #
 # IMPORTANT: This is a MANUAL workflow. Deploy to production requires explicit confirmation.
 #
@@ -19,8 +24,14 @@ on:
         description: 'Type "deploy" to confirm production deployment'
         required: true
         type: string
+      image_tag:
+        description: 'Image tag to deploy (default: staging-verified)'
+        required: false
+        default: 'staging-verified'
+        type: string
 
 env:
+  REGISTRY: ghcr.io
   RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
   RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
 
@@ -32,6 +43,9 @@ jobs:
     name: Validate Confirmation
     runs-on: ubuntu-latest
 
+    outputs:
+      image_tag: ${{ steps.set-tag.outputs.tag }}
+
     steps:
       - name: Check confirmation input
         run: |
@@ -42,13 +56,60 @@ jobs:
           fi
           echo "✅ Confirmation validated. Proceeding with production deployment..."
 
+      - name: Set image tag
+        id: set-tag
+        run: |
+          TAG="${{ github.event.inputs.image_tag }}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Using image tag: $TAG"
+
   # ============================================================================
-  # Stage 1: Run Migrations on Production DB
+  # Stage 1: Verify Images Exist
+  # ============================================================================
+  verify-images:
+    name: Verify Images
+    runs-on: ubuntu-latest
+    needs: validate-confirmation
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify backend image exists
+        run: |
+          echo "Checking backend image..."
+          docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ needs.validate-confirmation.outputs.image_tag }}
+          echo "✅ Backend image found"
+
+      - name: Verify frontend image exists
+        run: |
+          echo "Checking frontend image..."
+          docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ needs.validate-confirmation.outputs.image_tag }}
+          echo "✅ Frontend image found"
+
+      - name: Image verification summary
+        run: |
+          echo "## Images Verified" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Image |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | \`${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ needs.validate-confirmation.outputs.image_tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | \`${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ needs.validate-confirmation.outputs.image_tag }}\` |" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # Stage 2: Run Migrations on Production DB
   # ============================================================================
   migrate-production:
     name: Migrate Production DB
     runs-on: ubuntu-latest
-    needs: validate-confirmation
+    needs: verify-images
 
     steps:
       - name: Checkout code
@@ -75,53 +136,45 @@ jobs:
           echo "✅ Production migrations completed"
 
   # ============================================================================
-  # Stage 2: Deploy Backend to Production
+  # Stage 3: Deploy Images to Railway Production
   # ============================================================================
   deploy-backend:
     name: Deploy Backend
     runs-on: ubuntu-latest
-    needs: migrate-production
+    needs: [validate-confirmation, migrate-production]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Link Railway project
-        run: railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment production
-
-      - name: Deploy Backend to Production
+      - name: Deploy backend image to Railway
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
         run: |
-          echo "Deploying backend to Railway..."
-          railway up --service synth-lab-api --environment production --detach
-          echo "✅ Backend deployment triggered"
+          ./scripts/railway-deploy-image.sh \
+            synth-lab-api \
+            "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ needs.validate-confirmation.outputs.image_tag }}" \
+            production
 
-  # ============================================================================
-  # Stage 3: Deploy Frontend to Production
-  # ============================================================================
   deploy-frontend:
     name: Deploy Frontend
     runs-on: ubuntu-latest
-    needs: deploy-backend
+    needs: [validate-confirmation, deploy-backend]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Link Railway project
-        run: railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment production
-
-      - name: Deploy Frontend to Production
-        working-directory: frontend
+      - name: Deploy frontend image to Railway
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
         run: |
-          echo "Deploying frontend to Railway..."
-          railway up --service synth-lab-frontend --environment production --detach
-          echo "✅ Frontend deployment triggered"
+          ./scripts/railway-deploy-image.sh \
+            synth-lab-frontend \
+            "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ needs.validate-confirmation.outputs.image_tag }}" \
+            production
 
       - name: Wait for deployments to stabilize
         run: sleep 120  # Wait 2 minutes for both services to deploy
@@ -145,7 +198,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
 
@@ -154,10 +207,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run smoke tests on Production
-        working-directory: frontend
-        run: npm run test:e2e:production -- smoke/
-        env:
-          TEST_ENV: production
+        run: make test-smoke-production
 
       - name: Upload test results
         if: failure()
@@ -176,32 +226,86 @@ jobs:
           retention-days: 7
 
   # ============================================================================
+  # Stage 5: Tag Images as Production
+  # ============================================================================
+  tag-production:
+    name: Tag Production Images
+    runs-on: ubuntu-latest
+    needs: [validate-confirmation, verify-production]
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag images as production
+        run: |
+          SOURCE_TAG="${{ needs.validate-confirmation.outputs.image_tag }}"
+
+          # Pull and re-tag backend
+          docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:$SOURCE_TAG
+          docker tag ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:$SOURCE_TAG \
+                     ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:production
+          docker tag ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:$SOURCE_TAG \
+                     ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:latest
+          docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:production
+          docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:latest
+
+          # Pull and re-tag frontend
+          docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:$SOURCE_TAG
+          docker tag ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:$SOURCE_TAG \
+                     ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:production
+          docker tag ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:$SOURCE_TAG \
+                     ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:latest
+          docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:production
+          docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:latest
+
+          echo "✅ Images tagged as production and latest"
+
+  # ============================================================================
   # Notify on completion
   # ============================================================================
   notify:
     name: Notify Completion
     runs-on: ubuntu-latest
-    needs: verify-production
+    needs: [validate-confirmation, verify-production, tag-production]
     if: always()
 
     steps:
-      - name: Get tag name
-        id: tag
-        run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-
       - name: Summary
         run: |
-          echo "## Deploy Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## Production Deploy Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Tag**: ${{ steps.tag.outputs.TAG }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tag**: \`${{ needs.validate-confirmation.outputs.image_tag }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Status**: ${{ needs.verify-production.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Deployment Flow" >> $GITHUB_STEP_SUMMARY
-          echo "1. ✅ Migrate Production DB (Alembic)" >> $GITHUB_STEP_SUMMARY
-          echo "2. ✅ Deploy Backend (Railway CLI)" >> $GITHUB_STEP_SUMMARY
-          echo "3. ✅ Deploy Frontend (Railway CLI)" >> $GITHUB_STEP_SUMMARY
-          echo "4. ✅ Smoke Tests on Production" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Validate confirmation" >> $GITHUB_STEP_SUMMARY
+          echo "2. ✅ Verify images exist in GHCR" >> $GITHUB_STEP_SUMMARY
+          echo "3. ✅ Migrate Production DB (Alembic)" >> $GITHUB_STEP_SUMMARY
+          echo "4. ✅ Deploy Backend Image (Railway)" >> $GITHUB_STEP_SUMMARY
+          echo "5. ✅ Deploy Frontend Image (Railway)" >> $GITHUB_STEP_SUMMARY
+          echo "6. ✅ Smoke Tests on Production" >> $GITHUB_STEP_SUMMARY
+          echo "7. ✅ Tag Images as production/latest" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Docker Images" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:production" >> $GITHUB_STEP_SUMMARY
+          echo "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:production" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Environment" >> $GITHUB_STEP_SUMMARY
           echo "- **Frontend**: https://synth-lab-frontend-production.up.railway.app" >> $GITHUB_STEP_SUMMARY
           echo "- **Backend**: https://synth-lab-api-production.up.railway.app" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.verify-production.result }}" == "success" ]; then
+            echo "✅ Production deployment successful!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Production deployment failed. Check artifacts for details." >> $GITHUB_STEP_SUMMARY
+          fi
