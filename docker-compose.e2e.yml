@@ -1,3 +1,19 @@
+# E2E Testing Docker Compose
+#
+# Supports two modes:
+#   1. Build mode (default): Builds images locally
+#      make test-e2e
+#
+#   2. Registry mode: Uses pre-built images from GHCR
+#      BACKEND_IMAGE=ghcr.io/owner/synth-lab-api:sha123 \
+#      FRONTEND_IMAGE=ghcr.io/owner/synth-lab-frontend:sha123 \
+#      docker compose -f docker-compose.e2e.yml up
+#
+# Environment variables:
+#   BACKEND_IMAGE  - If set, uses this image instead of building
+#   FRONTEND_IMAGE - If set, uses this image instead of building
+#   OPENAI_API_KEY - Required for backend
+
 version: '3.8'
 
 services:
@@ -22,7 +38,9 @@ services:
       - postgres-e2e-data:/var/lib/postgresql/data
 
   # Backend API server
+  # Uses BACKEND_IMAGE if provided, otherwise builds from Dockerfile.backend
   backend-e2e:
+    image: ${BACKEND_IMAGE:-}
     build:
       context: .
       dockerfile: Dockerfile.backend
@@ -47,19 +65,19 @@ services:
       - e2e-network
 
   # Frontend React app
+  # Uses FRONTEND_IMAGE if provided, otherwise builds from frontend/Dockerfile
   frontend-e2e:
+    image: ${FRONTEND_IMAGE:-}
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8001
     container_name: synthlab-frontend-e2e
     ports:
-      - "8091:8080"
+      - "8091:3000"
     environment:
-      # Configure proxy to point to backend within Docker network
-      VITE_PORT: "8080"
-      VITE_API_PORT: "8000"
-      # Override target to use Docker network hostname
-      VITE_BACKEND_HOST: backend-e2e
+      PORT: "3000"
     depends_on:
       backend-e2e:
         condition: service_healthy

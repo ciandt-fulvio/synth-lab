@@ -1,5 +1,13 @@
-# PR tests - Roda em Pull Requests (~10min)
-# Roda test-full: todos os testes com output verbose
+# PR Tests - Roda em Pull Requests
+#
+# Executa testes de unidade e integração (exceto smoke/contract/schema
+# que já rodam no pre-commit hook local).
+#
+# Fluxo de testes:
+#   - Local (pre-commit): smoke, contract, schema (~30s)
+#   - PR (este workflow):  unit, integration (~5min)
+#   - PR (tests-e2e.yml):  E2E Playwright (~15min)
+
 name: PR Tests
 
 on:
@@ -9,6 +17,7 @@ on:
 
 jobs:
   pr-tests:
+    name: Unit & Integration Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -56,12 +65,13 @@ jobs:
         run: |
           python tests/fixtures/seed_test.py
 
-      - name: Run all backend tests with coverage
+      - name: Run unit and integration tests (excluding smoke/contract/schema)
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/synthlab_test
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           pytest tests/ -v --tb=short \
+            -m "not (smoke or contract or schema)" \
             --cov=src/synth_lab \
             --cov-report=term \
             --cov-report=html
