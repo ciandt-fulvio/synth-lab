@@ -54,10 +54,16 @@ class TestRealOpenAIIntegration:
 
         Estimated cost: ~$0.02
         Estimated time: 5-10 seconds
+
+        Note: Avatars are now stored in S3, resized to 200x200 pixels.
         """
         import os
 
         from synth_lab.gen_synth.avatar_generator import generate_avatars
+        from synth_lab.infrastructure.storage_client import (
+            check_object_exists,
+            get_object_bytes,
+        )
 
         # Check if API key is configured
         api_key = os.environ.get("OPENAI_API_KEY")
@@ -69,7 +75,12 @@ class TestRealOpenAIIntegration:
         if not database_url:
             pytest.skip("DATABASE_URL not configured - skipping real API test")
 
-        # Generate real avatars
+        # Check if S3 credentials are configured
+        s3_endpoint = os.environ.get("S3_ENDPOINT_URL")
+        if not s3_endpoint:
+            pytest.skip("S3_ENDPOINT_URL not configured - skipping real API test")
+
+        # Generate real avatars (now returns S3 object keys)
         result = generate_avatars(
             real_synths, blocks=None, avatar_dir=temp_avatar_dir, api_key=api_key
         )
@@ -77,15 +88,23 @@ class TestRealOpenAIIntegration:
         # Verifications
         assert len(result) == 9, f"Expected 9 avatars, got {len(result)}"
 
-        # Verify all files were created
-        for path in result:
-            assert Path(path).exists(), f"Avatar not created: {path}"
+        # Verify all avatars were uploaded to S3
+        for s3_key in result:
+            assert s3_key.startswith("avatars/"), f"Invalid S3 key format: {s3_key}"
+            assert check_object_exists(s3_key), f"Avatar not found in S3: {s3_key}"
 
-            # Verify it's a valid PNG
+            # Verify it's a valid PNG with correct dimensions
+            from io import BytesIO
+
             from PIL import Image
 
-            img = Image.open(path)
-            assert img.width == 341 or img.height == 341, f"Incorrect dimension: {img.size}"
+            avatar_bytes = get_object_bytes(s3_key)
+            assert avatar_bytes is not None, f"Could not download avatar: {s3_key}"
+
+            img = Image.open(BytesIO(avatar_bytes))
+            assert img.width == 200 and img.height == 200, (
+                f"Incorrect dimension: {img.size}, expected (200, 200)"
+            )
 
     def test_real_api_error_handling(self, temp_avatar_dir):
         """

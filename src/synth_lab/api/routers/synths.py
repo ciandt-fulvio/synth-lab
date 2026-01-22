@@ -8,7 +8,7 @@ References:
 """
 
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.synth import SynthDetail, SynthFieldInfo, SynthSearchRequest, SynthSummary
@@ -72,22 +72,19 @@ async def get_synth(synth_id: str) -> SynthDetail:
 
 
 @router.get("/{synth_id}/avatar", response_model=None)
-async def get_avatar(synth_id: str) -> FileResponse | RedirectResponse:
+async def get_avatar(synth_id: str) -> RedirectResponse:
     """
     Get avatar image for a synth.
 
-    Returns the PNG avatar image for the specified synth.
-    If no avatar file exists, redirects to the link_photo URL as fallback.
+    Redirects to a presigned S3 URL for the avatar image.
+    If no avatar exists in S3, falls back to the link_photo URL.
     """
     service = get_synth_service()
 
     try:
-        # Try to get the local avatar file
-        avatar_path = service.get_avatar(synth_id)
-        return FileResponse(
-            path=avatar_path,
-            media_type="image/png",
-            filename=f"{synth_id}.png")
+        # Get presigned S3 URL for the avatar
+        avatar_url = service.get_avatar_url(synth_id)
+        return RedirectResponse(url=avatar_url, status_code=307)
     except AvatarNotFoundError:
         # Fallback: try to use link_photo
         synth = service.get_synth(synth_id)
@@ -96,7 +93,7 @@ async def get_avatar(synth_id: str) -> FileResponse | RedirectResponse:
             # Redirect to the dynamic photo generation service
             return RedirectResponse(url=synth.link_photo, status_code=307)
 
-        # No avatar file and no link_photo available
+        # No avatar in S3 and no link_photo available
         raise HTTPException(
             status_code=404,
             detail=f"Avatar not found for synth {synth_id} and no fallback link_photo available")
