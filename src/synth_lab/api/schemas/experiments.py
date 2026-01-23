@@ -13,6 +13,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from synth_lab.domain.entities.synth_group import DEFAULT_SYNTH_GROUP_ID
 from synth_lab.models.pagination import PaginationMeta
 
 # =============================================================================
@@ -136,9 +137,10 @@ class ExperimentCreate(BaseModel):
         examples=["Baseado em feedback de usuários e análise de abandono"])
 
     synth_group_id: str = Field(
+        default=DEFAULT_SYNTH_GROUP_ID,
         min_length=1,
         max_length=50,
-        description="ID of the synth group to use for this experiment.",
+        description="ID of the synth group to use for this experiment. Defaults to the default group.",
         examples=["grp_00000001", "grp_abc123"])
 
     scorecard_data: ScorecardDataSchema | None = Field(
@@ -317,17 +319,17 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"ExperimentCreate creation failed: {e}")
 
-    # Test 1b: ExperimentCreate should reject missing synth_group_id
+    # Test 1b: ExperimentCreate without synth_group_id uses default
     total_tests += 1
     try:
-        ExperimentCreate(
+        req = ExperimentCreate(
             name="Test Feature",
             hypothesis="Test hypothesis")
-        all_validation_failures.append("Should reject missing synth_group_id")
-    except ValueError:
-        pass  # Expected - synth_group_id is required
+        if req.synth_group_id != DEFAULT_SYNTH_GROUP_ID:
+            all_validation_failures.append(
+                f"synth_group_id should default to {DEFAULT_SYNTH_GROUP_ID}, got {req.synth_group_id}")
     except Exception as e:
-        all_validation_failures.append(f"Unexpected error for missing synth_group_id: {e}")
+        all_validation_failures.append(f"ExperimentCreate without synth_group_id failed: {e}")
 
     # Test 2: ExperimentCreate with scorecard
     total_tests += 1
@@ -474,6 +476,8 @@ if __name__ == "__main__":
             id="exp_12345678",
             name="Test",
             hypothesis="Test",
+            synth_group_id=DEFAULT_SYNTH_GROUP_ID,
+            synth_group_name="Default Synth Group",
             has_scorecard=False,
             created_at=datetime.now(timezone.utc),
             analysis=analysis,
