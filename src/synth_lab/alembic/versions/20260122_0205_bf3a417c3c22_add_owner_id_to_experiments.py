@@ -19,14 +19,20 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade database schema."""
-    # Add owner_id column to experiments table (nullable for existing experiments)
-    op.add_column('experiments', sa.Column('owner_id', sa.UUID(), nullable=True))
+    # Check if owner_id column already exists (may be added by parallel migration)
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [col['name'] for col in inspector.get_columns('experiments')]
 
-    # Add foreign key constraint
-    op.create_foreign_key('fk_experiments_owner', 'experiments', 'users', ['owner_id'], ['id'], ondelete='SET NULL')
+    if 'owner_id' not in columns:
+        # Add owner_id column to experiments table (nullable for existing experiments)
+        op.add_column('experiments', sa.Column('owner_id', sa.UUID(), nullable=True))
 
-    # Create index for efficient owner queries
-    op.create_index(op.f('ix_experiments_owner_id'), 'experiments', ['owner_id'], unique=False)
+        # Add foreign key constraint
+        op.create_foreign_key('fk_experiments_owner', 'experiments', 'users', ['owner_id'], ['id'], ondelete='SET NULL')
+
+        # Create index for efficient owner queries
+        op.create_index(op.f('ix_experiments_owner_id'), 'experiments', ['owner_id'], unique=False)
 
 
 def downgrade() -> None:
