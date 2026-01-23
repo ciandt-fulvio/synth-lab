@@ -1,4 +1,4 @@
-# SynthLab - Gerador de Personas Sintéticas
+# SynthLab - Gerador de Personas Sintéticas.
 
 > Gerador de personas sintéticas (Synths) com atributos demográficos, psicográficos, comportamentais e cognitivos realistas, baseados em dados do IBGE e pesquisas verificadas.
 
