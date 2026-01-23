@@ -29,12 +29,36 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+from sqlalchemy import text
 from synth_lab.infrastructure.database_v2 import create_db_engine
 from tests.fixtures.seed_test import seed_database
 
 
+def _check_synth_groups_exist(db_url: str) -> bool:
+    """Check if synth_groups table has any records.
+
+    Args:
+        db_url: Database connection URL
+
+    Returns:
+        True if synth_groups table has records, False otherwise
+    """
+    engine = create_db_engine(db_url)
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT COUNT(*) FROM synth_groups"))
+            count = result.scalar()
+            return count > 0
+    finally:
+        engine.dispose()
+
+
 def main() -> None:
-    """Seed database with test data."""
+    """Seed database with test data.
+
+    Only executes if synth_group table is empty. If data already exists,
+    skips seeding to preserve existing data.
+    """
     # Validate DATABASE_URL
     db_url = os.getenv("DATABASE_URL")
     if not db_url:
@@ -51,11 +75,27 @@ def main() -> None:
     if not os.getenv("OPENAI_API_KEY"):
         print("⚠️  WARNING: OPENAI_API_KEY not set - some LLM features may not work", file=sys.stderr)
 
-    print(f"🌱 Seeding database: {db_url.split('@')[-1]}")  # Print only host/db, not credentials
+    print(f"🌱 Checking database: {db_url.split('@')[-1]}")  # Print only host/db, not credentials
     print("")
+
+    # Check if data already exists
+    try:
+        if _check_synth_groups_exist(db_url):
+            print("ℹ️  Database already contains data (synth_groups table not empty)")
+            print("   Skipping seed to preserve existing data")
+            print("")
+            print("✅ Seed skipped - data already exists")
+            sys.exit(0)
+    except Exception as e:
+        print(f"⚠️  Warning: Could not check synth_groups table: {e}", file=sys.stderr)
+        print("   Proceeding with seed anyway...", file=sys.stderr)
+        print("", file=sys.stderr)
 
     # Create engine and seed
     try:
+        print("📝 Database is empty - seeding with test data...")
+        print("")
+
         engine = create_db_engine(db_url)
         seed_database(engine)
         engine.dispose()

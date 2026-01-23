@@ -1,12 +1,14 @@
 # Deploy Staging - Automatic on main push
 #
-# Flow: Build Images → [Tests if direct push] → Reset DB → Migrate → Seed → Deploy → Smoke Tests
+# Flow: [Images already built by build-and-test.yml] → Reset DB → Migrate → Seed → Deploy → Smoke Tests
 #
 # Uses "Build Once, Deploy Anywhere" pattern:
-#   1. Build Docker images and push to GHCR
-#   2. Run full tests IF direct push (not from PR merge) - avoids redundancy
-#   3. Deploy the SAME images to Railway staging
-#   4. Run smoke tests to validate deploy
+#   1. Uses pre-built and pre-tested images from GHCR (tagged with commit SHA)
+#   2. Reset staging database (ephemeral environment)
+#   3. Migrate database to latest schema
+#   4. Seed database (ONLY if synth_groups table is empty)
+#   5. Deploy images to Railway staging
+#   6. Run smoke tests to validate deployment
 #
 # The same images can then be promoted to production.
 #
@@ -25,223 +27,15 @@ env:
   REGISTRY: ghcr.io
   RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
   RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
   # ============================================================================
-  # Stage 1: Build and Push Docker Images
-  # ============================================================================
-  build-images:
-    name: Build Images
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    outputs:
-      backend_image: ${{ steps.backend-meta.outputs.tags }}
-      frontend_image: ${{ steps.frontend-meta.outputs.tags }}
-      image_tag: ${{ github.sha }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Backend Image
-      - name: Extract backend metadata
-        id: backend-meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api
-          tags: |
-            type=sha,prefix=
-            type=raw,value=staging
-
-      - name: Build and push backend image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile.backend
-          push: true
-          tags: ${{ steps.backend-meta.outputs.tags }}
-          labels: ${{ steps.backend-meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # Frontend Image
-      - name: Extract frontend metadata
-        id: frontend-meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend
-          tags: |
-            type=sha,prefix=
-            type=raw,value=staging
-
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
-          push: true
-          tags: ${{ steps.frontend-meta.outputs.tags }}
-          labels: ${{ steps.frontend-meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            VITE_API_URL=${{ vars.STAGING_BACKEND_URL }}
-
-      - name: Output build summary
-        run: |
-          echo "## Docker Images Built" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Service | Image |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Backend | \`${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Frontend | \`${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-
-  # ============================================================================
-  # Stage 1.5: Run Full Tests (ONLY if direct push, not PR merge)
-  # These tests already ran in PR, so skip if this is a merge commit
-  # ============================================================================
-  backend-tests:
-    name: Backend Tests (direct push only)
-    runs-on: ubuntu-latest
-    needs: build-images
-    # Only run if NOT a PR merge (PR merges have "Merge pull request" in commit message)
-    if: ${{ !contains(github.event.head_commit.message, 'Merge pull request') }}
-
-    services:
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: synthlab
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
-
-      - name: Install dependencies
-        run: |
-          uv pip install --system -e ".[dev]"
-
-      - name: Run migrations
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/synthlab
-        run: |
-          cd src/synth_lab/alembic
-          alembic upgrade head
-
-      - name: Seed test database
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/synthlab
-        run: python tests/fixtures/seed_test.py
-
-      - name: Run all backend tests
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/synthlab
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: pytest tests/ -v --tb=short
-
-  e2e-tests:
-    name: E2E Tests (direct push only)
-    runs-on: ubuntu-latest
-    needs: build-images
-    # Only run if NOT a PR merge
-    if: ${{ !contains(github.event.head_commit.message, 'Merge pull request') }}
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      packages: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Install Playwright browsers
-        working-directory: frontend
-        run: npx playwright install --with-deps chromium
-
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Start E2E environment with built images
-        env:
-          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          BACKEND_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ needs.build-images.outputs.image_tag }} \
-          FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ needs.build-images.outputs.image_tag }} \
-          docker compose -f docker-compose.e2e.yml up -d
-          sleep 30
-
-      - name: Wait for backend
-        run: npx wait-on http://localhost:8001/health --timeout 120000
-
-      - name: Wait for frontend
-        run: npx wait-on http://localhost:8091 --timeout 120000
-
-      - name: Run E2E tests
-        working-directory: frontend
-        timeout-minutes: 15
-        run: TEST_ENV=docker npm run test:e2e
-
-      - name: Stop Docker Compose
-        if: always()
-        run: docker compose -f docker-compose.e2e.yml down -v
-
-  # ============================================================================
-  # Stage 2: Reset Staging Database
+  # Stage 1: Reset Staging Database
   # ============================================================================
   reset-staging-db:
     name: Reset Staging DB
     runs-on: ubuntu-latest
-    needs: [build-images, backend-tests, e2e-tests]
-    # Always run, but wait for tests if they ran
-    if: ${{ always() && needs.build-images.result == 'success' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped') }}
 
     steps:
       - name: Checkout code
@@ -281,7 +75,7 @@ jobs:
           echo "✅ Staging database reset completed"
 
   # ============================================================================
-  # Stage 3: Run Migrations on Staging DB
+  # Stage 2: Run Migrations on Staging DB
   # ============================================================================
   migrate-staging:
     name: Migrate Staging DB
@@ -313,7 +107,7 @@ jobs:
           echo "✅ Staging migrations completed"
 
   # ============================================================================
-  # Stage 4: Seed Staging Database
+  # Stage 3: Seed Staging Database (ONLY if synth_groups table is empty)
   # ============================================================================
   seed-staging:
     name: Seed Staging DB
@@ -335,22 +129,22 @@ jobs:
       - name: Install dependencies
         run: uv pip install --system -e .
 
-      - name: Seed staging database
+      - name: Seed staging database (conditional)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_STAGING_URL }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          echo "Seeding staging database with test data..."
+          echo "Checking staging database and seeding if needed..."
           python scripts/seed_database.py
-          echo "✅ Staging database seeded"
+          echo "✅ Seed check completed"
 
   # ============================================================================
-  # Stage 5: Deploy Images to Railway Staging
+  # Stage 4: Deploy Images to Railway Staging
   # ============================================================================
   deploy-backend:
     name: Deploy Backend (Staging)
     runs-on: ubuntu-latest
-    needs: [build-images, seed-staging]
+    needs: seed-staging
 
     steps:
       - name: Checkout code
@@ -363,13 +157,13 @@ jobs:
         run: |
           ./scripts/railway-deploy-image.sh \
             synth-lab-api \
-            "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ needs.build-images.outputs.image_tag }}" \
+            "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ env.IMAGE_TAG }}" \
             staging
 
   deploy-frontend:
     name: Deploy Frontend (Staging)
     runs-on: ubuntu-latest
-    needs: [build-images, deploy-backend]
+    needs: deploy-backend
 
     steps:
       - name: Checkout code
@@ -382,14 +176,14 @@ jobs:
         run: |
           ./scripts/railway-deploy-image.sh \
             synth-lab-frontend \
-            "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ needs.build-images.outputs.image_tag }}" \
+            "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ env.IMAGE_TAG }}" \
             staging
 
       - name: Wait for deployments to stabilize
         run: sleep 120  # Wait 2 minutes for both services to deploy
 
   # ============================================================================
-  # Stage 6: Run Smoke Tests on Staging (deploy validation only)
+  # Stage 5: Run Smoke Tests on Staging (deploy validation only)
   # ============================================================================
   verify-staging:
     name: Smoke Tests (Staging)
@@ -452,12 +246,12 @@ jobs:
           retention-days: 7
 
   # ============================================================================
-  # Stage 7: Tag Images as Staging-Verified
+  # Stage 6: Tag Images as Staging-Verified
   # ============================================================================
   tag-verified:
     name: Tag Verified Images
     runs-on: ubuntu-latest
-    needs: [build-images, verify-staging]
+    needs: verify-staging
     permissions:
       contents: read
       packages: write
@@ -473,14 +267,14 @@ jobs:
       - name: Tag images as staging-verified
         run: |
           # Pull and re-tag backend
-          docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ needs.build-images.outputs.image_tag }}
-          docker tag ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ needs.build-images.outputs.image_tag }} \
+          docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ env.IMAGE_TAG }}
+          docker tag ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ env.IMAGE_TAG }} \
                      ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:staging-verified
           docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:staging-verified
 
           # Pull and re-tag frontend
-          docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ needs.build-images.outputs.image_tag }}
-          docker tag ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ needs.build-images.outputs.image_tag }} \
+          docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ env.IMAGE_TAG }}
+          docker tag ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ env.IMAGE_TAG }} \
                      ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:staging-verified
           docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:staging-verified
 
@@ -492,7 +286,7 @@ jobs:
   notify:
     name: Deployment Summary
     runs-on: ubuntu-latest
-    needs: [build-images, verify-staging, tag-verified]
+    needs: [verify-staging, tag-verified]
     if: always()
 
     steps:
@@ -504,19 +298,18 @@ jobs:
           echo "**Status**: ${{ needs.verify-staging.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Deployment Flow" >> $GITHUB_STEP_SUMMARY
-          echo "1. ✅ Build Docker Images (GHCR)" >> $GITHUB_STEP_SUMMARY
-          echo "2. ✅ Reset Staging DB (drop all tables)" >> $GITHUB_STEP_SUMMARY
-          echo "3. ✅ Migrate Staging DB (Alembic)" >> $GITHUB_STEP_SUMMARY
-          echo "4. ✅ Seed Staging DB (test data)" >> $GITHUB_STEP_SUMMARY
-          echo "5. ✅ Deploy Backend Image (Railway)" >> $GITHUB_STEP_SUMMARY
-          echo "6. ✅ Deploy Frontend Image (Railway)" >> $GITHUB_STEP_SUMMARY
-          echo "7. ✅ Smoke Tests (deploy validation)" >> $GITHUB_STEP_SUMMARY
-          echo "8. ✅ Tag Images as staging-verified" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Reset Staging DB (drop all tables)" >> $GITHUB_STEP_SUMMARY
+          echo "2. ✅ Migrate Staging DB (Alembic)" >> $GITHUB_STEP_SUMMARY
+          echo "3. ✅ Seed Staging DB (conditional - only if empty)" >> $GITHUB_STEP_SUMMARY
+          echo "4. ✅ Deploy Backend Image (Railway)" >> $GITHUB_STEP_SUMMARY
+          echo "5. ✅ Deploy Frontend Image (Railway)" >> $GITHUB_STEP_SUMMARY
+          echo "6. ✅ Smoke Tests (deploy validation)" >> $GITHUB_STEP_SUMMARY
+          echo "7. ✅ Tag Images as staging-verified" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Docker Images" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ needs.build-images.outputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ needs.build-images.outputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ env.IMAGE_TAG }}" >> $GITHUB_STEP_SUMMARY
+          echo "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ env.IMAGE_TAG }}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Environment" >> $GITHUB_STEP_SUMMARY
