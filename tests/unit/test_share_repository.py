@@ -4,7 +4,7 @@ Tests share repository operations with mocked database.
 Must FAIL before implementation.
 """
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 from synth_lab.repositories.share_repository import ShareRepository
@@ -14,7 +14,7 @@ from synth_lab.domain.entities.share import ExperimentShare, SynthGroupShare, Pe
 @pytest.fixture
 def mock_db_session():
     """Mock database session."""
-    session = AsyncMock()
+    session = MagicMock()
     return session
 
 
@@ -32,14 +32,13 @@ def share_repository(mock_db_session):
 class TestCreateExperimentShare:
     """Test create_experiment_share method - T086."""
 
-    @pytest.mark.asyncio
-    async def test_creates_experiment_share(self, share_repository, mock_db_session):
+    def test_creates_experiment_share(self, share_repository, mock_db_session):
         """Should create and persist experiment share."""
         experiment_id = "exp_12345678"
         user_id = str(uuid4())
         granted_by_id = str(uuid4())
 
-        share = await share_repository.create_experiment_share(
+        share = share_repository.create_experiment_share(
             experiment_id=experiment_id,
             user_id=user_id,
             permission_level=PermissionLevel.VIEWER,
@@ -52,10 +51,9 @@ class TestCreateExperimentShare:
         mock_db_session.execute.assert_called_once()
         mock_db_session.commit.assert_called_once()
 
-    @pytest.mark.asyncio
-    async def test_creates_share_with_editor_permission(self, share_repository, mock_db_session):
+    def test_creates_share_with_editor_permission(self, share_repository, mock_db_session):
         """Should create share with editor permission."""
-        share = await share_repository.create_experiment_share(
+        share = share_repository.create_experiment_share(
             experiment_id="exp_12345678",
             user_id=str(uuid4()),
             permission_level=PermissionLevel.EDITOR,
@@ -68,14 +66,13 @@ class TestCreateExperimentShare:
 class TestCreateSynthGroupShare:
     """Test create_synth_group_share method - T087."""
 
-    @pytest.mark.asyncio
-    async def test_creates_synth_group_share(self, share_repository, mock_db_session):
+    def test_creates_synth_group_share(self, share_repository, mock_db_session):
         """Should create and persist synth_group share."""
         synth_group_id = "grp_abcd1234"
         user_id = str(uuid4())
         granted_by_id = str(uuid4())
 
-        share = await share_repository.create_synth_group_share(
+        share = share_repository.create_synth_group_share(
             synth_group_id=synth_group_id,
             user_id=user_id,
             permission_level=PermissionLevel.VIEWER,
@@ -92,8 +89,7 @@ class TestCreateSynthGroupShare:
 class TestRevokeExperimentShare:
     """Test revoke_experiment_share method - T088."""
 
-    @pytest.mark.asyncio
-    async def test_revokes_experiment_share(self, share_repository, mock_db_session):
+    def test_revokes_experiment_share(self, share_repository, mock_db_session):
         """Should delete experiment share from database."""
         experiment_id = "exp_12345678"
         user_id = str(uuid4())
@@ -103,14 +99,13 @@ class TestRevokeExperimentShare:
         mock_result.rowcount = 1
         mock_db_session.execute.return_value = mock_result
 
-        revoked = await share_repository.revoke_experiment_share(experiment_id, user_id)
+        revoked = share_repository.revoke_experiment_share(experiment_id, user_id)
 
         assert revoked is True
         mock_db_session.execute.assert_called_once()
         mock_db_session.commit.assert_called_once()
 
-    @pytest.mark.asyncio
-    async def test_revoke_returns_false_if_not_found(self, share_repository, mock_db_session):
+    def test_revoke_returns_false_if_not_found(self, share_repository, mock_db_session):
         """Should return False if share doesn't exist."""
         experiment_id = "exp_12345678"
         user_id = str(uuid4())
@@ -120,7 +115,7 @@ class TestRevokeExperimentShare:
         mock_result.rowcount = 0
         mock_db_session.execute.return_value = mock_result
 
-        revoked = await share_repository.revoke_experiment_share(experiment_id, user_id)
+        revoked = share_repository.revoke_experiment_share(experiment_id, user_id)
 
         assert revoked is False
 
@@ -128,8 +123,7 @@ class TestRevokeExperimentShare:
 class TestGetExperimentShares:
     """Test get_experiment_shares method - T089."""
 
-    @pytest.mark.asyncio
-    async def test_gets_all_shares_for_experiment(self, share_repository, mock_db_session):
+    def test_gets_all_shares_for_experiment(self, share_repository, mock_db_session):
         """Should retrieve all shares for an experiment."""
         experiment_id = "exp_12345678"
 
@@ -145,21 +139,20 @@ class TestGetExperimentShares:
         ]
         mock_db_session.execute.return_value = mock_result
 
-        shares = await share_repository.get_experiment_shares(experiment_id)
+        shares = share_repository.get_experiment_shares(experiment_id)
 
         assert len(shares) == 1
         assert shares[0].experiment_id == experiment_id
         assert shares[0].permission_level == PermissionLevel.VIEWER
 
-    @pytest.mark.asyncio
-    async def test_returns_empty_list_if_no_shares(self, share_repository, mock_db_session):
+    def test_returns_empty_list_if_no_shares(self, share_repository, mock_db_session):
         """Should return empty list if no shares exist."""
         # Mock no results
         mock_result = MagicMock()
         mock_result.fetchall.return_value = []
         mock_db_session.execute.return_value = mock_result
 
-        shares = await share_repository.get_experiment_shares("exp_12345678")
+        shares = share_repository.get_experiment_shares("exp_12345678")
 
         assert shares == []
 
@@ -172,8 +165,7 @@ class TestGetExperimentShares:
 class TestShareValidation:
     """Test share validation logic - T091, T092."""
 
-    @pytest.mark.asyncio
-    async def test_cannot_share_with_self(self, share_repository):
+    def test_cannot_share_with_self(self, share_repository):
         """Should prevent sharing with self - T091.
 
         Note: This validation would be in the service layer,
@@ -190,8 +182,7 @@ class TestShareValidation:
 
         assert should_prevent is True
 
-    @pytest.mark.asyncio
-    async def test_validates_user_whitelisted(self, share_repository):
+    def test_validates_user_whitelisted(self, share_repository):
         """Should validate user is whitelisted before sharing - T092.
 
         Note: This validation happens in the service layer
@@ -210,8 +201,7 @@ class TestShareValidation:
 class TestIndependentSynthGroupSharing:
     """Test independent synth_group sharing - T121."""
 
-    @pytest.mark.asyncio
-    async def test_synth_group_share_independent_of_experiment(self, share_repository, mock_db_session):
+    def test_synth_group_share_independent_of_experiment(self, share_repository, mock_db_session):
         """Should create synth_group share independently.
 
         Synth_group shares should not automatically share experiments.
@@ -220,7 +210,7 @@ class TestIndependentSynthGroupSharing:
         user_id = str(uuid4())
         granted_by_id = str(uuid4())
 
-        share = await share_repository.create_synth_group_share(
+        share = share_repository.create_synth_group_share(
             synth_group_id=synth_group_id,
             user_id=user_id,
             permission_level=PermissionLevel.VIEWER,
@@ -232,8 +222,7 @@ class TestIndependentSynthGroupSharing:
         # No automatic experiment sharing
         assert not hasattr(share, 'experiment_id')
 
-    @pytest.mark.asyncio
-    async def test_can_get_synth_group_shares(self, share_repository, mock_db_session):
+    def test_can_get_synth_group_shares(self, share_repository, mock_db_session):
         """Should retrieve synth_group shares independently."""
         synth_group_id = "grp_abcd1234"
 
@@ -249,7 +238,7 @@ class TestIndependentSynthGroupSharing:
         ]
         mock_db_session.execute.return_value = mock_result
 
-        shares = await share_repository.get_synth_group_shares(synth_group_id)
+        shares = share_repository.get_synth_group_shares(synth_group_id)
 
         assert len(shares) == 1
         assert shares[0].synth_group_id == synth_group_id

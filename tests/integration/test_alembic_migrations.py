@@ -48,8 +48,8 @@ EXPECTED_TABLES = {
     "synth_group_shares",
 }
 
-# Current HEAD revision ID (add_owner_id_columns)
-CURRENT_HEAD_REVISION = "a7b8c9d0e1f2"
+# Current HEAD revision ID (merge auth and ownership branches)
+CURRENT_HEAD_REVISION = "cb21bd0e1556"
 
 
 def get_alembic_config(database_url: str) -> Config:
