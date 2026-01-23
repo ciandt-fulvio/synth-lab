@@ -3,12 +3,12 @@
 Tests sharing endpoints match the OpenAPI contract specification.
 Uses best practices for testing sharing/permission flows:
 - Separate fixtures for authenticated vs unauthenticated clients
-- AsyncMock for async service methods
+- MagicMock for sync service methods
 - Proper mocking of service layer for isolation
 """
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 from synth_lab.api.main import app
@@ -47,14 +47,14 @@ def authenticated_user_id():
 
 @pytest.fixture
 def mock_sharing_service():
-    """Create a mock sharing service with AsyncMock methods."""
+    """Create a mock sharing service with sync methods."""
     mock_service = MagicMock()
-    mock_service.share_experiment = AsyncMock()
-    mock_service.revoke_experiment_share = AsyncMock()
-    mock_service.list_experiment_shares = AsyncMock(return_value=[])
-    mock_service.share_synth_group = AsyncMock()
-    mock_service.revoke_synth_group_share = AsyncMock()
-    mock_service.list_synth_group_shares = AsyncMock(return_value=[])
+    mock_service.share_experiment = MagicMock()
+    mock_service.revoke_experiment_share = MagicMock()
+    mock_service.list_experiment_shares = MagicMock(return_value=[])
+    mock_service.share_synth_group = MagicMock()
+    mock_service.revoke_synth_group_share = MagicMock()
+    mock_service.list_synth_group_shares = MagicMock(return_value=[])
     return mock_service
 
 
