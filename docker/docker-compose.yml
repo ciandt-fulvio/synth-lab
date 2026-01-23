@@ -152,9 +152,9 @@ services:
     container_name: synthlab-postgres-test
     profiles: ["test"]
     environment:
-      POSTGRES_USER: synthlab
-      POSTGRES_PASSWORD: synthlab
-      POSTGRES_DB: synthlab
+      POSTGRES_USER: ${POSTGRES_USER:-synthlab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-synthlab}
+      POSTGRES_DB: ${POSTGRES_DB:-synthlab}
     ports:
       - "5433:5432"
     volumes:
@@ -249,8 +249,8 @@ services:
     profiles: ["admin"]
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@synthlab.local
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@synthlab.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
       PGADMIN_CONFIG_SERVER_MODE: "False"
     ports:
       - "5050:80"
