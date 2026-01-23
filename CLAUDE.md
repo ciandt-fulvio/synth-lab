@@ -116,3 +116,131 @@ PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
   - Phoenix Tracing: All LLM calls wrapped with _tracer.start_as_current_span()
 
 Database migration must be always done via Alembic. Tests use an isolated container (make test) which auto-applies migrations.
+
+## CI/CD Pipeline (Incremental Deploys)
+
+### Overview
+O pipeline de CI/CD é dividido em dois workflows principais:
+1. **build-and-test.yml**: Detecção incremental de mudanças + build + testes
+2. **deploy-staging.yml**: Deploy de imagens pré-testadas para staging
+
+### Workflow 1: Build and Test (Incremental)
+
+**Trigger**: Pull requests e pushes para `main`
+
+**Fluxo**:
+```
+1. Detect Changes
+   ├─> Backend changed? (src/, tests/, pyproject.toml, Dockerfile.backend)
+   └─> Frontend changed? (frontend/src/, frontend/tests/, package.json, Dockerfile)
+
+2. IF Backend Changed:
+   ├─> Build Docker image (backend)
+   ├─> Run full pytest suite
+   └─> Push image to GHCR (tag: commit SHA)
+
+3. IF Frontend Changed (AND backend passed):
+   ├─> Build Docker image (frontend)
+   └─> Push image to GHCR (tag: commit SHA)
+
+4. IF Frontend Changed (AND previous steps passed):
+   ├─> Start E2E environment with built images
+   └─> Run Playwright E2E tests
+
+5. Summary:
+   └─> Mark images as ready for staging if all tests passed
+```
+
+**Benefícios**:
+- ⚡ Builds incrementais: só reconstrói o que mudou
+- 🎯 Testes focados: backend tests só rodam se backend mudou
+- 🚀 E2E tests só rodam se frontend mudou
+- 💾 Cache de layers Docker otimizado
+
+### Workflow 2: Deploy Staging
+
+**Trigger**: Push para `main` (após build-and-test.yml passar)
+
+**Fluxo**:
+```
+1. Reset Staging DB
+   └─> DROP SCHEMA public CASCADE (limpa tudo)
+
+2. Migrate Staging DB
+   └─> alembic upgrade head (aplica migrations)
+
+3. Seed Staging DB (Conditional)
+   └─> Executa APENAS se synth_groups estiver vazia
+   └─> Preserva dados existentes se houver
+
+4. Deploy Backend
+   └─> Railway deploy com imagem GHCR:commit-sha
+
+5. Deploy Frontend
+   └─> Railway deploy com imagem GHCR:commit-sha
+
+6. Smoke Tests
+   └─> Playwright tests críticos (não dependem de dados específicos)
+
+7. Tag Verified
+   └─> Tag images como "staging-verified" se smoke tests passaram
+```
+
+**Características**:
+- 🔄 Usa imagens pré-buildadas e pré-testadas
+- 🗄️ Seed condicional: não recria dados se já existirem
+- ✅ Smoke tests não dependem de dados específicos do seed
+- 🏷️ Images são tagadas como "staging-verified" para promoção
+
+### Seed Condicional
+
+O script `scripts/seed_database.py` agora verifica se a tabela `synth_groups` tem dados:
+- **Se vazia**: executa seed completo
+- **Se tem dados**: pula seed e preserva dados existentes
+
+```bash
+# Exemplo de uso
+DATABASE_URL="postgresql://..." python scripts/seed_database.py
+
+# Saída se dados já existem:
+# ℹ️  Database already contains data (synth_groups table not empty)
+# ✅ Seed skipped - data already exists
+```
+
+### Smoke Tests
+
+Os smoke tests em `frontend/tests/e2e/smoke/` são projetados para:
+- ✅ Funcionar com ou sem dados no banco
+- ✅ Apenas verificar estrutura e funcionalidade básica
+- ❌ **NÃO** criar ou modificar dados
+- ❌ **NÃO** depender de IDs ou nomes específicos
+
+**Exemplo**: `ST005 - Experiment detail loads`
+- Se não houver experimentos: `test.skip()`
+- Se houver experimentos: verifica navegação básica
+
+### Comandos Úteis
+
+```bash
+# Forçar rebuild completo (ignora detecção de mudanças)
+gh workflow run build-and-test.yml
+
+# Forçar deploy para staging (usa últimas imagens)
+gh workflow run deploy-staging.yml
+
+# Rodar smoke tests localmente contra staging
+make test-smoke-staging
+
+# Rodar smoke tests localmente contra production
+make test-smoke-production
+```
+
+### Promoção para Produção (Futuro)
+
+As imagens tagadas como `staging-verified` podem ser promovidas para produção:
+```bash
+# Exemplo de promoção (quando workflow de prod estiver pronto)
+docker pull ghcr.io/owner/synth-lab-api:staging-verified
+docker tag ghcr.io/owner/synth-lab-api:staging-verified ghcr.io/owner/synth-lab-api:production
+docker push ghcr.io/owner/synth-lab-api:production
+```
