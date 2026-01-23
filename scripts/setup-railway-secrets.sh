@@ -67,60 +67,79 @@ if ! railway status &> /dev/null; then
 fi
 
 # ============================================================================
-# Carregar valores do .env.dev (quando disponível)
+# Carregar TODOS os valores do .env.dev
 # ============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 ENV_FILE="$PROJECT_ROOT/docker/.env.dev"
 
-if [ -f "$ENV_FILE" ]; then
-    echo "📂 Carregando valores de docker/.env.dev..."
-    # Carregar apenas valores não-secretos ou que podem ser reutilizados
-    source <(grep -E '^(GOOGLE_CLIENT_ID|JWT_ALGORITHM|ACCESS_TOKEN_EXPIRE_MINUTES|ENDPOINT|REGION)=' "$ENV_FILE")
-else
-    echo "⚠️  Arquivo docker/.env.dev não encontrado. Usando placeholders."
+if [ ! -f "$ENV_FILE" ]; then
+    echo "❌ Erro: Arquivo docker/.env.dev não encontrado!"
+    echo "   Esperado em: $ENV_FILE"
+    exit 1
 fi
 
-# ============================================================================
-# Valores padrão (placeholders) para valores não carregados do .env.dev
-# ============================================================================
+echo "📂 Carregando valores de docker/.env.dev..."
 
-# Google OAuth (ler do .env.dev se disponível, senão usar placeholder)
-GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-YOUR-GOOGLE-CLIENT-ID.apps.googleusercontent.com}"
-GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-YOUR_GOOGLE_CLIENT_SECRET}"
-
-# JWT (CRÍTICO: Gere novos valores para produção!)
-JWT_SECRET_KEY="${JWT_SECRET_KEY:-YOUR_JWT_SECRET_KEY}"
-JWT_ALGORITHM="${JWT_ALGORITHM:-HS256}"
-ACCESS_TOKEN_EXPIRE_MINUTES="${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}"
-
-# Session (CRÍTICO: Gere novo valor para produção!)
-SESSION_SECRET_KEY="${SESSION_SECRET_KEY:-YOUR_SESSION_SECRET_KEY}"
-
-# S3 Storage (Railway Buckets)
-S3_ENDPOINT="${ENDPOINT:-https://storage.railway.app}"
-S3_BUCKET="${BUCKET:-YOUR-BUCKET-NAME}"
-S3_ACCESS_KEY_ID="${BUCKET_ACCESS_KEY_ID:-YOUR-BUCKET-ACCESS-KEY-ID}"
-S3_SECRET_ACCESS_KEY="${BUCKET_SECRET_ACCESS_KEY:-YOUR-BUCKET-SECRET-ACCESS-KEY}"
-S3_REGION="${REGION:-auto}"
-
-# Whitelist (ajustar conforme necessário)
-WHITELIST="${WHITELIST:-user@example.com,@example.com}"
+# Carregar todas as variáveis do .env.dev (exceto comentários e linhas vazias)
+set -a  # Automatically export all variables
+source <(grep -v '^#' "$ENV_FILE" | grep -v '^$' | grep '=')
+set +a
 
 # ============================================================================
-# URLs específicas por ambiente
+# Sobrescrever valores específicos por ambiente
 # ============================================================================
 
+# URLs específicas por ambiente (Railway)
 if [ "$ENVIRONMENT" == "staging" ]; then
-    OAUTH_REDIRECT_URI="${OAUTH_REDIRECT_URI:-https://YOUR-BACKEND-STAGING.railway.app/auth/callback}"
-    CORS_ORIGINS="${CORS_ORIGINS:-https://YOUR-FRONTEND-STAGING.railway.app}"
+    OAUTH_REDIRECT_URI="https://synth-lab-api-staging.up.railway.app/auth/callback"
+    CORS_ORIGINS="https://synth-lab-frontend-staging.up.railway.app"
+    FRONTEND_URL="https://synth-lab-frontend-staging.up.railway.app"
     ENVIRONMENT_NAME="staging"
+    PHOENIX_ENABLED="false"
 else
-    OAUTH_REDIRECT_URI="${OAUTH_REDIRECT_URI:-https://YOUR-BACKEND-PRODUCTION.railway.app/auth/callback}"
-    CORS_ORIGINS="${CORS_ORIGINS:-https://YOUR-FRONTEND-PRODUCTION.railway.app}"
+    OAUTH_REDIRECT_URI="https://synth-lab-api.up.railway.app/auth/callback"
+    CORS_ORIGINS="https://synth-lab-frontend.up.railway.app"
+    FRONTEND_URL="https://synth-lab-frontend.up.railway.app"
     ENVIRONMENT_NAME="production"
+    PHOENIX_ENABLED="true"
 fi
+
+# OpenAI key - usar do ambiente se disponível (não está no .env.dev por segurança)
+OPENAI_KEY="${OPENAI_API_KEY:-}"
+if [ -z "$OPENAI_KEY" ]; then
+    echo "⚠️  OPENAI_API_KEY não definida no ambiente."
+    echo "   Defina antes de executar: export OPENAI_API_KEY=sk-..."
+    echo ""
+fi
+
+# ============================================================================
+# Validar variáveis críticas
+# ============================================================================
+
+echo "🔍 Validando variáveis..."
+
+MISSING_VARS=()
+
+[ -z "$GOOGLE_CLIENT_ID" ] && MISSING_VARS+=("GOOGLE_CLIENT_ID")
+[ -z "$GOOGLE_CLIENT_SECRET" ] && MISSING_VARS+=("GOOGLE_CLIENT_SECRET")
+[ -z "$JWT_SECRET_KEY" ] && MISSING_VARS+=("JWT_SECRET_KEY")
+[ -z "$SESSION_SECRET_KEY" ] && MISSING_VARS+=("SESSION_SECRET_KEY")
+[ -z "$BUCKET" ] && MISSING_VARS+=("BUCKET")
+[ -z "$BUCKET_ACCESS_KEY_ID" ] && MISSING_VARS+=("BUCKET_ACCESS_KEY_ID")
+[ -z "$BUCKET_SECRET_ACCESS_KEY" ] && MISSING_VARS+=("BUCKET_SECRET_ACCESS_KEY")
+
+if [ ${#MISSING_VARS[@]} -gt 0 ]; then
+    echo "❌ Erro: Variáveis obrigatórias não encontradas no .env.dev:"
+    for var in "${MISSING_VARS[@]}"; do
+        echo "   - $var"
+    done
+    exit 1
+fi
+
+echo "✅ Todas as variáveis obrigatórias encontradas"
+echo ""
 
 # ============================================================================
 # Configurar secrets no Railway
@@ -129,43 +148,32 @@ fi
 echo "📝 Configurando variáveis para $ENVIRONMENT..."
 echo ""
 
-# OpenAI (deve ser passada via env var)
-OPENAI_KEY="${OPENAI_API_KEY:-YOUR_OPENAI_API_KEY_HERE}"
-
-# Phoenix (observability) - condicional por ambiente
-if [ "$ENVIRONMENT" == "production" ]; then
-    PHOENIX_ENABLED="true"
-    PHOENIX_ENDPOINT="http://localhost:6006"
-else
-    PHOENIX_ENABLED="false"
-    PHOENIX_ENDPOINT=""
-fi
-
-# Configurar todas as variáveis em um único comando (mais rápido)
 railway variables \
   --set "OPENAI_API_KEY=$OPENAI_KEY" \
   --set "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" \
   --set "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" \
   --set "OAUTH_REDIRECT_URI=$OAUTH_REDIRECT_URI" \
   --set "JWT_SECRET_KEY=$JWT_SECRET_KEY" \
-  --set "JWT_ALGORITHM=$JWT_ALGORITHM" \
-  --set "ACCESS_TOKEN_EXPIRE_MINUTES=$ACCESS_TOKEN_EXPIRE_MINUTES" \
+  --set "JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}" \
+  --set "ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}" \
   --set "SESSION_SECRET_KEY=$SESSION_SECRET_KEY" \
   --set "ENVIRONMENT=$ENVIRONMENT_NAME" \
-  --set "WHITELIST=$WHITELIST" \
+  --set "WHITELIST=${WHITELIST:-}" \
   --set "CORS_ORIGINS=$CORS_ORIGINS" \
-  --set "ENDPOINT=$S3_ENDPOINT" \
-  --set "BUCKET=$S3_BUCKET" \
-  --set "BUCKET_ACCESS_KEY_ID=$S3_ACCESS_KEY_ID" \
-  --set "BUCKET_SECRET_ACCESS_KEY=$S3_SECRET_ACCESS_KEY" \
-  --set "REGION=$S3_REGION" \
+  --set "FRONTEND_URL=$FRONTEND_URL" \
+  --set "ENDPOINT=${ENDPOINT:-https://storage.railway.app}" \
+  --set "BUCKET=$BUCKET" \
+  --set "BUCKET_ACCESS_KEY_ID=$BUCKET_ACCESS_KEY_ID" \
+  --set "BUCKET_SECRET_ACCESS_KEY=$BUCKET_SECRET_ACCESS_KEY" \
+  --set "REGION=${REGION:-auto}" \
   --set "PHOENIX_ENABLED=$PHOENIX_ENABLED" \
+  --set "LOG_LEVEL=${LOG_LEVEL:-INFO}" \
   -e "$ENVIRONMENT" \
   -s "$SERVICE"
 
-# Phoenix endpoint (apenas para production)
+# Phoenix endpoint apenas para production
 if [ "$ENVIRONMENT" == "production" ]; then
-    railway variables --set "PHOENIX_COLLECTOR_ENDPOINT=$PHOENIX_ENDPOINT" -e "$ENVIRONMENT" -s "$SERVICE"
+    railway variables --set "PHOENIX_COLLECTOR_ENDPOINT=${PHOENIX_COLLECTOR_ENDPOINT:-http://localhost:6006}" -e "$ENVIRONMENT" -s "$SERVICE"
 fi
 
 echo ""
@@ -173,35 +181,26 @@ echo "✅ Secrets configurados para $ENVIRONMENT!"
 echo ""
 echo "📊 Resumo dos valores configurados:"
 echo "   - Serviço: $SERVICE"
-echo "   - Ambiente: $ENVIRONMENT"
+echo "   - Ambiente: $ENVIRONMENT_NAME"
 echo "   - OPENAI_API_KEY: ${OPENAI_KEY:0:20}..."
-echo "   - GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:0:30}..."
+echo "   - GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:0:40}..."
 echo "   - JWT_SECRET_KEY: ${JWT_SECRET_KEY:0:20}..."
 echo "   - SESSION_SECRET_KEY: ${SESSION_SECRET_KEY:0:20}..."
-echo "   - S3 BUCKET: $S3_BUCKET"
+echo "   - BUCKET: $BUCKET"
 echo "   - OAUTH_REDIRECT_URI: $OAUTH_REDIRECT_URI"
 echo "   - CORS_ORIGINS: $CORS_ORIGINS"
-echo "   - WHITELIST: $WHITELIST"
+echo "   - FRONTEND_URL: $FRONTEND_URL"
+echo "   - WHITELIST: ${WHITELIST:-<não definida>}"
 echo ""
-echo "⚠️  IMPORTANTE: Verifique os valores antes de usar em produção!"
+
 if [ "$ENVIRONMENT" == "production" ]; then
+    echo "🔴 ATENÇÃO: Ambiente de PRODUÇÃO!"
     echo ""
-    echo "🔴 Para PRODUÇÃO, você DEVE gerar novos valores para:"
+    echo "   Considere gerar novos valores para produção:"
     echo "   - JWT_SECRET_KEY: openssl rand -hex 32"
     echo "   - SESSION_SECRET_KEY: openssl rand -hex 32"
-    echo "   - GOOGLE_CLIENT_SECRET: Use credenciais de produção do Google Cloud"
     echo ""
-    echo "💡 Exemplo de uso com valores reais:"
-    echo "   OPENAI_API_KEY=sk-... JWT_SECRET_KEY=\$(openssl rand -hex 32) \\"
-    echo "   SESSION_SECRET_KEY=\$(openssl rand -hex 32) \\"
-    echo "   GOOGLE_CLIENT_SECRET=GOCSPX-... \\"
-    echo "   BUCKET=your-bucket BUCKET_ACCESS_KEY_ID=tid_... \\"
-    echo "   BUCKET_SECRET_ACCESS_KEY=tsec_... \\"
-    echo "   OAUTH_REDIRECT_URI=https://api.example.com/auth/callback \\"
-    echo "   CORS_ORIGINS=https://app.example.com \\"
-    echo "   WHITELIST=admin@example.com,@example.com \\"
-    echo "   ./scripts/setup-railway-secrets.sh production $SERVICE"
 fi
-echo ""
+
 echo "📖 Para verificar: railway variables -e $ENVIRONMENT -s $SERVICE"
 echo "🔐 Para gerar secrets seguras: openssl rand -hex 32"
