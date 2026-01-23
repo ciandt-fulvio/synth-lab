@@ -10,7 +10,7 @@
  *
  * Run: npm run test:e2e experiments/detail-tabs.spec.ts
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures';
 
 test.describe('Experiments - Detail Tabs @experiments', () => {
   test.beforeEach(async ({ page }) => {

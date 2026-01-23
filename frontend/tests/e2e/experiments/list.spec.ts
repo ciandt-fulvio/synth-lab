@@ -6,7 +6,7 @@
  *
  * Run: npm run test:e2e experiments/list.spec.ts
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures';
 
 test.describe('Experiments - List & Filters @critical @experiments', () => {
   test.beforeEach(async ({ page }) => {

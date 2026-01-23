@@ -180,6 +180,10 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-dummy_key_for_testing}
       PHOENIX_ENABLED: "false"
       LOG_LEVEL: INFO
+      # Enable test environment for test-login endpoint
+      ENVIRONMENT: "test"
+      # CORS: Allow E2E frontend origin for cross-origin API calls
+      CORS_ORIGINS: "http://localhost:8091,http://localhost:8080,http://localhost:5173"
       # S3 Storage (Railway Buckets)
       ENDPOINT: ${ENDPOINT}
       BUCKET: ${BUCKET}

@@ -7,7 +7,7 @@
  * Run: npm run test:e2e:production
  * Run specific: TEST_ENV=production npx playwright test smoke/critical-flows.spec.ts
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures';
 
 test.describe('Smoke Tests - Critical Flows @smoke @critical', () => {
   test('ST001 - Application loads and is responsive', async ({ page }) => {

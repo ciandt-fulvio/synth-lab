@@ -6,7 +6,7 @@
  *
  * Run: npx playwright test tests/e2e/synth-groups/experiment-integration.spec.ts
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures';
 
 test.describe('Synth Groups - Experiment Integration', () => {
   // Run tests serially to avoid race conditions with parallel test data creation

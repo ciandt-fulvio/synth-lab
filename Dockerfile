@@ -2,8 +2,10 @@
 FROM python:3.13-slim
 
 # Install system dependencies
+# gcc + g++ needed for compiling greenlet (SQLAlchemy dependency)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
+    g++ \
     libpq-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*

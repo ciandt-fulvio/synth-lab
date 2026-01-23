@@ -190,6 +190,71 @@ async def callback(
     return response
 
 
+@router.post("/test-login")
+async def test_login(
+    response: Response,
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    """Test-only endpoint to bypass OAuth for E2E tests.
+
+    Only available in test/development environments.
+    Creates or retrieves a test user and sets auth cookie.
+
+    Returns:
+        User profile data
+
+    Raises:
+        HTTPException: If not in test/development environment
+    """
+    environment = os.getenv("ENVIRONMENT", "development")
+    if environment not in ["test", "development"]:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not found",
+        )
+
+    # Get or create test user (matches tests/fixtures/seed_test.py)
+    test_email = "testuser@example.com"
+    test_user_id = "00000001-0000-0000-0000-000000000001"
+    test_google_id = "google-test-user-001"
+
+    user = auth_service.user_repository.get_by_email(test_email)
+
+    if not user:
+        from synth_lab.domain.entities.user import User
+        user = User(
+            id=test_user_id,
+            google_user_id=test_google_id,
+            email=test_email,
+            display_name="Test User",
+            profile_picture_url=None,
+        )
+        user = auth_service.user_repository.create(user)
+        logger.info(f"Created test user: {user.id} ({test_email})")
+
+    # Generate session token
+    session_token = auth_service.session_manager.create_access_token(
+        user_id=str(user.id),
+        email=user.email,
+    )
+
+    # Set auth cookie
+    is_secure = environment == "production"
+    response.set_cookie(
+        key="auth_token",
+        value=session_token,
+        httponly=True,
+        secure=is_secure,
+        samesite="lax",
+        max_age=480 * 60,  # 8 hours
+        path="/",
+    )
+
+    logger.debug(f"[/auth/test-login] Set auth cookie for test user {user.id}")
+
+    return user.to_dict()
+
+
 @router.get("/me")
 async def get_me(
     request: Request,

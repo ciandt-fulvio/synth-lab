@@ -8,7 +8,7 @@
  *
  * Run: npm run test:e2e synths/detail.spec.ts
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures';
 
 test.describe('Synths - Detail Modal @synths', () => {
   // Helper to get synth cards - uses data-testid for reliable selection
