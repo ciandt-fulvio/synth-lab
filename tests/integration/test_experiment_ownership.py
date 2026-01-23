@@ -31,6 +31,7 @@ class TestExperimentOwnership:
         created_exp = experiment_service.create_experiment(
             name="Owned Experiment",
             hypothesis="Test hypothesis",
+            synth_group_id="grp_00000001",
             owner_id=owner_id,
         )
 
@@ -64,11 +65,13 @@ class TestExperimentOwnership:
         experiment_service.create_experiment(
             name="Experiment 1",
             hypothesis="Hypothesis 1",
+            synth_group_id="grp_00000001",
             owner_id=owner_id,
         )
         experiment_service.create_experiment(
             name="Experiment 2",
             hypothesis="Hypothesis 2",
+            synth_group_id="grp_00000001",
             owner_id=owner_id,
         )
 
@@ -76,6 +79,7 @@ class TestExperimentOwnership:
         experiment_service.create_experiment(
             name="Other Experiment",
             hypothesis="Hypothesis 3",
+            synth_group_id="grp_00000001",
             owner_id=other_owner_id,
         )
 
@@ -104,6 +108,7 @@ class TestExperimentOwnership:
         created_exp = experiment_service.create_experiment(
             name="Original Name",
             hypothesis="Original hypothesis",
+            synth_group_id="grp_00000001",
             owner_id=owner_id,
         )
 

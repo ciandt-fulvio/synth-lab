@@ -33,6 +33,7 @@ class TestExperimentServiceIntegration:
         experiment = service.create_experiment(
             name="Integration Test Experiment",
             hypothesis="Testing integration with database",
+            synth_group_id="grp_00000001",
             description="This is a test experiment for integration testing",
         )
 

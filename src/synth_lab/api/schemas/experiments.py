@@ -136,7 +136,7 @@ class ExperimentCreate(BaseModel):
         examples=["Baseado em feedback de usuários e análise de abandono"])
 
     synth_group_id: str = Field(
-        default="grp_00000001",
+        min_length=1,
         max_length=50,
         description="ID of the synth group to use for this experiment.",
         examples=["grp_00000001", "grp_abc123"])
@@ -308,13 +308,26 @@ if __name__ == "__main__":
     try:
         req = ExperimentCreate(
             name="Test Feature",
-            hypothesis="Test hypothesis")
+            hypothesis="Test hypothesis",
+            synth_group_id="grp_00000001")
         if req.name != "Test Feature":
             all_validation_failures.append(f"Name mismatch: {req.name}")
         if req.scorecard_data is not None:
             all_validation_failures.append("scorecard_data should be None by default")
     except Exception as e:
         all_validation_failures.append(f"ExperimentCreate creation failed: {e}")
+
+    # Test 1b: ExperimentCreate should reject missing synth_group_id
+    total_tests += 1
+    try:
+        ExperimentCreate(
+            name="Test Feature",
+            hypothesis="Test hypothesis")
+        all_validation_failures.append("Should reject missing synth_group_id")
+    except ValueError:
+        pass  # Expected - synth_group_id is required
+    except Exception as e:
+        all_validation_failures.append(f"Unexpected error for missing synth_group_id: {e}")
 
     # Test 2: ExperimentCreate with scorecard
     total_tests += 1
@@ -329,6 +342,7 @@ if __name__ == "__main__":
         req = ExperimentCreate(
             name="Test",
             hypothesis="Test",
+            synth_group_id="grp_00000001",
             scorecard_data=scorecard)
         if req.scorecard_data is None:
             all_validation_failures.append("scorecard_data should not be None")
@@ -388,6 +402,8 @@ if __name__ == "__main__":
             id="exp_12345678",
             name="Test",
             hypothesis="Test",
+            synth_group_id="grp_00000001",
+            synth_group_name="Default Group",
             scorecard_data=scorecard,
             has_scorecard=True,
             created_at=datetime.now(timezone.utc))
@@ -404,6 +420,7 @@ if __name__ == "__main__":
             name="Test",
             hypothesis="Test",
             synth_group_id="grp_00000001",
+            synth_group_name="Default Group",
             has_scorecard=True,
             has_analysis=True,
             interview_count=3,

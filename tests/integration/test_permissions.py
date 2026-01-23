@@ -34,6 +34,7 @@ class TestPermissionChecksIntegration:
         created_exp = experiment_service.create_experiment(
             name="Owned Experiment",
             hypothesis="Test",
+            synth_group_id="grp_00000001",
             owner_id=owner_id,
         )
 
@@ -63,6 +64,7 @@ class TestPermissionChecksIntegration:
         created_exp = experiment_service.create_experiment(
             name="Private Experiment",
             hypothesis="Test",
+            synth_group_id="grp_00000001",
             owner_id=owner_id,
         )
 
@@ -96,6 +98,7 @@ class TestPermissionChecksIntegration:
         created_exp = experiment_service.create_experiment(
             name="Shared Experiment",
             hypothesis="Test",
+            synth_group_id="grp_00000001",
             owner_id=owner_id,
         )
 
