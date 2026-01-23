@@ -20,6 +20,9 @@ const authFile = path.join(__dirname, '../../playwright/.auth/user.json');
 // Get backend URL based on environment
 function getBackendUrl(): string {
   const testEnv = process.env.TEST_ENV || 'local';
+  if (testEnv === 'staging') {
+    return process.env.STAGING_BACKEND_URL || 'https://synth-lab-api-staging.up.railway.app';
+  }
   return testEnv === 'docker' ? 'http://localhost:8001' : 'http://localhost:8000';
 }
 
