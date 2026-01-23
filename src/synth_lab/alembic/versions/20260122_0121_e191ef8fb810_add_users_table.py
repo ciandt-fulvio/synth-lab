@@ -19,24 +19,29 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade database schema."""
-    # Create users table
-    op.create_table(
-        'users',
-        sa.Column('id', sa.UUID(), nullable=False),
-        sa.Column('google_user_id', sa.String(), nullable=False),
-        sa.Column('email', sa.String(), nullable=False),
-        sa.Column('display_name', sa.String(), nullable=True),
-        sa.Column('profile_picture_url', sa.String(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
-        sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('google_user_id'),
-        sa.UniqueConstraint('email')
-    )
+    # Check if users table already exists (may be created by parallel migration)
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
 
-    # Create indexes for efficient lookups
-    op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
-    op.create_index(op.f('ix_users_google_user_id'), 'users', ['google_user_id'], unique=True)
+    if 'users' not in inspector.get_table_names():
+        # Create users table
+        op.create_table(
+            'users',
+            sa.Column('id', sa.UUID(), nullable=False),
+            sa.Column('google_user_id', sa.String(), nullable=False),
+            sa.Column('email', sa.String(), nullable=False),
+            sa.Column('display_name', sa.String(), nullable=True),
+            sa.Column('profile_picture_url', sa.String(), nullable=True),
+            sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
+            sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
+            sa.PrimaryKeyConstraint('id'),
+            sa.UniqueConstraint('google_user_id'),
+            sa.UniqueConstraint('email')
+        )
+
+        # Create indexes for efficient lookups
+        op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
+        op.create_index(op.f('ix_users_google_user_id'), 'users', ['google_user_id'], unique=True)
 
 
 def downgrade() -> None:

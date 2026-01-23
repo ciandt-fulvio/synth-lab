@@ -20,25 +20,30 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade database schema."""
-    # Create synth_group_shares table
-    # Note: permission_level enum already created in previous migration
-    op.create_table(
-        'synth_group_shares',
-        sa.Column('id', sa.UUID(), nullable=False),
-        sa.Column('synth_group_id', sa.String(length=50), nullable=False),
-        sa.Column('user_id', sa.UUID(), nullable=False),
-        sa.Column('permission_level', postgresql.ENUM('viewer', 'editor', name='permission_level', create_type=False), nullable=False),
-        sa.Column('granted_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
-        sa.Column('granted_by_id', sa.UUID(), nullable=False),
-        sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['synth_group_id'], ['synth_groups.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['granted_by_id'], ['users.id'], ondelete='SET NULL'),
-        sa.UniqueConstraint('synth_group_id', 'user_id', name='uq_synth_group_shares_group_user')
-    )
+    # Check if synth_group_shares table already exists (may be created by parallel migration)
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
 
-    # Create index for efficient "my shared synth_groups" queries
-    op.create_index(op.f('ix_synth_group_shares_user_id'), 'synth_group_shares', ['user_id'], unique=False)
+    if 'synth_group_shares' not in inspector.get_table_names():
+        # Create synth_group_shares table
+        # Note: permission_level enum already created in previous migration
+        op.create_table(
+            'synth_group_shares',
+            sa.Column('id', sa.UUID(), nullable=False),
+            sa.Column('synth_group_id', sa.String(length=50), nullable=False),
+            sa.Column('user_id', sa.UUID(), nullable=False),
+            sa.Column('permission_level', postgresql.ENUM('viewer', 'editor', name='permission_level', create_type=False), nullable=False),
+            sa.Column('granted_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
+            sa.Column('granted_by_id', sa.UUID(), nullable=False),
+            sa.PrimaryKeyConstraint('id'),
+            sa.ForeignKeyConstraint(['synth_group_id'], ['synth_groups.id'], ondelete='CASCADE'),
+            sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+            sa.ForeignKeyConstraint(['granted_by_id'], ['users.id'], ondelete='SET NULL'),
+            sa.UniqueConstraint('synth_group_id', 'user_id', name='uq_synth_group_shares_group_user')
+        )
+
+        # Create index for efficient "my shared synth_groups" queries
+        op.create_index(op.f('ix_synth_group_shares_user_id'), 'synth_group_shares', ['user_id'], unique=False)
 
 
 def downgrade() -> None:
