@@ -207,6 +207,11 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Start E2E environment with built images
+        env:
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           BACKEND_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ needs.build-images.outputs.image_tag }} \
           FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ needs.build-images.outputs.image_tag }} \
