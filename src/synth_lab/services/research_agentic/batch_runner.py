@@ -106,57 +106,59 @@ def _select_synths_for_interview(
 
     Selection logic:
     1. If synth_ids is provided:
-       - Filter synths to only those in the provided list
-       - If filtered count <= max_interviews: use all filtered synths
-       - If filtered count > max_interviews: randomly sample max_interviews
+       - Load synths directly by ID (preserves order, ignores synth_group filter)
+       - If count <= max_interviews: use all synths in original order
+       - If count > max_interviews: randomly sample max_interviews
     2. If synth_ids is not provided:
        - Randomly sample max_interviews from all available synths
 
     Args:
-        all_synths: All available synths loaded from database
-        synth_ids: Optional list of specific synth IDs to include
+        all_synths: All available synths loaded from database (used only when synth_ids is None)
+        synth_ids: Optional list of specific synth IDs to include (order is preserved)
         max_interviews: Maximum number of synths to select
 
     Returns:
         List of selected synth dictionaries
 
     Note:
-        The input list is explicitly shuffled to ensure true randomization,
-        since load_synths() always returns synths in the same order (by created_at).
+        When synth_ids is provided, the order is preserved to maintain semantic meaning
+        (e.g., extreme cases: bottom 5 first, then top 5).
+        When synth_ids is not provided, the input list is shuffled for randomization.
     """
-    # ALWAYS shuffle input list first to ensure true randomization
-    # This is critical because load_synths() returns synths in a fixed order
-    shuffled_synths = all_synths.copy()
-    random.shuffle(shuffled_synths)
-
     if synth_ids is not None:
-        # Filter synths to only those in the provided list
-        # Note: Filter from shuffled list to maintain randomization
-        synth_id_set = set(synth_ids)
-        filtered_synths = [s for s in shuffled_synths if s.get("id") in synth_id_set]
+        # Load synths directly by IDs to preserve order and avoid group filtering issues
+        from synth_lab.gen_synth.avatar_generator import load_synths_by_ids
+
+        filtered_synths = load_synths_by_ids(synth_ids)
 
         if len(filtered_synths) <= max_interviews:
-            # Use all synths from the filtered list
+            # Use all synths from the filtered list (order preserved)
             logger.info(
                 f"Using all {len(filtered_synths)} synths from provided list "
                 f"(max_interviews={max_interviews})"
             )
             return filtered_synths
         else:
-            # Sample from already shuffled filtered list (no need for random.sample)
-            selected = filtered_synths[:max_interviews]
+            # Need to sample - shuffle first then take max_interviews
+            shuffled = filtered_synths.copy()
+            random.shuffle(shuffled)
+            selected = shuffled[:max_interviews]
             logger.info(
-                f"Selected first {max_interviews} synths from {len(filtered_synths)} "
-                f"shuffled synths in provided list"
+                f"Selected {max_interviews} synths from {len(filtered_synths)} "
+                f"in provided list (shuffled)"
             )
             return selected
     else:
-        # No specific IDs provided - use shuffled synths
+        # No specific IDs provided - shuffle all_synths for randomization
+        # This is critical because load_synths() returns synths in a fixed order
+        shuffled_synths = all_synths.copy()
+        random.shuffle(shuffled_synths)
+
         if len(shuffled_synths) <= max_interviews:
             logger.info(f"Using all {len(shuffled_synths)} available synths")
             return shuffled_synths
         else:
-            # Take first N from shuffled list (no need for random.sample)
+            # Take first N from shuffled list
             selected = shuffled_synths[:max_interviews]
             logger.info(
                 f"Selected first {max_interviews} synths from {len(shuffled_synths)} shuffled available synths"
@@ -633,31 +635,41 @@ if __name__ == "__main__":
         all_validation_failures.append(f"_select_synths (shuffle): {e}")
 
     # Test 6: _select_synths_for_interview - synth_ids with less than max
+    # NOTE: This test requires database access since synth_ids triggers load_synths_by_ids()
     total_tests += 1
     try:
-        mock_synths = [{"id": f"s{i}", "nome": f"Synth {i}"} for i in range(10)]
-
-        # Case 2: synth_ids provided with fewer than max_interviews
-        result = _select_synths_for_interview(mock_synths, ["s1", "s3", "s5"], 10)
-        assert len(result) == 3, f"Expected 3 synths (all from list), got {len(result)}"
-        ids = {s["id"] for s in result}
-        assert ids == {"s1", "s3", "s5"}, f"Expected s1,s3,s5, got {ids}"
-        print("✓ _select_synths_for_interview: uses all from list when less than max")
+        # Load real synths from database
+        synths = load_all_synths()
+        if len(synths) >= 3:
+            # Case 2: synth_ids provided with fewer than max_interviews
+            test_ids = [synths[0]["id"], synths[1]["id"], synths[2]["id"]]
+            result = _select_synths_for_interview([], test_ids, 10)
+            assert len(result) == 3, f"Expected 3 synths (all from list), got {len(result)}"
+            # Verify order is preserved (not shuffled)
+            result_ids = [s["id"] for s in result]
+            assert result_ids == test_ids, f"Expected order {test_ids}, got {result_ids}"
+            print("✓ _select_synths_for_interview: uses all from list when less than max (order preserved)")
+        else:
+            print("○ _select_synths_for_interview: skipped (need at least 3 synths in DB)")
     except Exception as e:
         all_validation_failures.append(f"_select_synths (list < max): {e}")
 
     # Test 7: _select_synths_for_interview - synth_ids with more than max
+    # NOTE: This test requires database access since synth_ids triggers load_synths_by_ids()
     total_tests += 1
     try:
-        mock_synths = [{"id": f"s{i}", "nome": f"Synth {i}"} for i in range(10)]
-
-        # Case 3: synth_ids provided with more than max_interviews (should shuffle + slice)
-        result = _select_synths_for_interview(mock_synths, ["s1", "s2", "s3", "s4", "s5"], 3)
-        assert len(result) == 3, f"Expected 3 synths (shuffled), got {len(result)}"
-        valid_ids = {"s1", "s2", "s3", "s4", "s5"}
-        result_ids = {s["id"] for s in result}
-        assert result_ids.issubset(valid_ids), f"Selected IDs {result_ids} not in {valid_ids}"
-        print("✓ _select_synths_for_interview: shuffles and slices when list > max")
+        # Load real synths from database
+        synths = load_all_synths()
+        if len(synths) >= 5:
+            # Case 3: synth_ids provided with more than max_interviews (should shuffle + slice)
+            test_ids = [synths[i]["id"] for i in range(5)]
+            result = _select_synths_for_interview([], test_ids, 3)
+            assert len(result) == 3, f"Expected 3 synths (shuffled), got {len(result)}"
+            result_ids = {s["id"] for s in result}
+            assert result_ids.issubset(set(test_ids)), f"Selected IDs {result_ids} not in {test_ids}"
+            print("✓ _select_synths_for_interview: shuffles and slices when list > max")
+        else:
+            print("○ _select_synths_for_interview: skipped (need at least 5 synths in DB)")
     except Exception as e:
         all_validation_failures.append(f"_select_synths (list > max): {e}")
 
