@@ -1,7 +1,7 @@
 # Build and Test - Incremental Detection
 #
 # Detects changes since last Docker image and builds/tests only what changed.
-# Runs on: pre-push hook, pull requests to main
+# Runs on: pull requests to main
 #
 # Flow:
 #   1. Detect changes (backend, frontend)
@@ -10,15 +10,13 @@
 #   4. Run E2E tests IF frontend changed (and previous steps passed)
 #   5. Push images to GHCR IF all tests passed
 #
-# Images are tagged with commit SHA and can be promoted to staging.
+# NOTE: On push to main, images are built and pushed locally via pre-push hook.
+# This workflow only runs on PRs to validate changes before merge.
 
 name: Build and Test (Incremental)
 
 on:
   pull_request:
-    branches:
-      - main
-  push:
     branches:
       - main
   workflow_dispatch:
