@@ -263,8 +263,21 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_STAGING_URL }}
         run: |
           echo "⚠️  Resetting staging database (dropping all tables)..."
-          cd src/synth_lab/alembic
-          alembic downgrade base
+          # Use raw SQL to drop all tables - more robust than alembic downgrade
+          # which can fail if indexes/constraints are missing from partial migrations
+          python -c "
+          import os
+          from sqlalchemy import create_engine, text
+
+          engine = create_engine(os.environ['DATABASE_URL'])
+          with engine.connect() as conn:
+              # Drop all tables in public schema
+              conn.execute(text('DROP SCHEMA public CASCADE'))
+              conn.execute(text('CREATE SCHEMA public'))
+              conn.execute(text('GRANT ALL ON SCHEMA public TO PUBLIC'))
+              conn.commit()
+          print('✅ All tables dropped successfully')
+          "
           echo "✅ Staging database reset completed"
 
   # ============================================================================
