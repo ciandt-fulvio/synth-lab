@@ -24,8 +24,9 @@ import pytest
 from dotenv import load_dotenv
 
 # Load .env file automatically for all tests
-# override=True ensures .env values take precedence over shell environment
-load_dotenv(override=True)
+# override=False ensures shell environment (from Makefile) takes precedence over .env
+# This allows `make test-fast` to correctly point to test database (port 5433)
+load_dotenv(override=False)
 
 # Set default JWT_SECRET_KEY for tests if not already set
 if not os.environ.get("JWT_SECRET_KEY"):
