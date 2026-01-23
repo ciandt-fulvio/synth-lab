@@ -70,6 +70,9 @@ echo "🚂 Configurando Railway Secrets"
 echo "   Ambiente: $ENVIRONMENT"
 echo "   Serviço: $SERVICE"
 echo ""
+echo "💡 Nota: Se o ambiente '$ENVIRONMENT' não existir, o script vai falhar."
+echo "   Ambientes válidos: staging, production"
+echo ""
 
 # ============================================================================
 # Carregar credenciais do .env.dev (NÃO URLs)
@@ -136,7 +139,9 @@ get_service_domain() {
 # Descobrir URLs dos serviços
 BACKEND_SERVICE="synth-lab-api"
 FRONTEND_SERVICE="synth-lab-frontend"
-POSTGRES_SERVICE="synthlab-postgres"
+# Possíveis nomes do serviço PostgreSQL no Railway
+POSTGRES_SERVICE="synthlab-postgres"  # Tente este primeiro
+POSTGRES_SERVICE_ALT="postgres"       # Alternativa comum
 
 echo "   Buscando URL do backend ($BACKEND_SERVICE)..."
 BACKEND_URL=$(get_service_domain "$BACKEND_SERVICE" "$ENVIRONMENT")
@@ -156,13 +161,21 @@ if [ -n "$DB_VAR" ]; then
     DATABASE_URL="$DB_VAR"
     echo "   ✓ DATABASE_URL: encontrada no serviço $POSTGRES_SERVICE"
 else
-    # Tentar obter do serviço de backend (pode já estar linkado)
-    DB_VAR=$(railway variables -e "$ENVIRONMENT" -s "$SERVICE" 2>/dev/null | grep -E "^DATABASE_URL=" | cut -d'=' -f2- || true)
+    # Tentar nome alternativo do PostgreSQL
+    DB_VAR=$(railway variables -e "$ENVIRONMENT" -s "$POSTGRES_SERVICE_ALT" 2>/dev/null | grep -E "^DATABASE_URL=" | cut -d'=' -f2- || true)
     if [ -n "$DB_VAR" ]; then
         DATABASE_URL="$DB_VAR"
-        echo "   ✓ DATABASE_URL: já configurada no $SERVICE"
+        echo "   ✓ DATABASE_URL: encontrada no serviço $POSTGRES_SERVICE_ALT"
     else
-        echo "   ⚠ DATABASE_URL: não encontrada (será adicionada aos pendentes)"
+        # Tentar obter do serviço de backend (pode já estar linkado)
+        DB_VAR=$(railway variables -e "$ENVIRONMENT" -s "$SERVICE" 2>/dev/null | grep -E "^DATABASE_URL=" | cut -d'=' -f2- || true)
+        if [ -n "$DB_VAR" ]; then
+            DATABASE_URL="$DB_VAR"
+            echo "   ✓ DATABASE_URL: já configurada no $SERVICE"
+        else
+            echo "   ⚠ DATABASE_URL: não encontrada"
+            echo "      Serviços tentados: $POSTGRES_SERVICE, $POSTGRES_SERVICE_ALT, $SERVICE"
+        fi
     fi
 fi
 
