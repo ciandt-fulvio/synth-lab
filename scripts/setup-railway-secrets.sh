@@ -136,6 +136,7 @@ get_service_domain() {
 # Descobrir URLs dos serviços
 BACKEND_SERVICE="synth-lab-api"
 FRONTEND_SERVICE="synth-lab-frontend"
+POSTGRES_SERVICE="synthlab-postgres"
 
 echo "   Buscando URL do backend ($BACKEND_SERVICE)..."
 BACKEND_URL=$(get_service_domain "$BACKEND_SERVICE" "$ENVIRONMENT")
@@ -144,6 +145,26 @@ echo "   ✓ Backend: $BACKEND_URL"
 echo "   Buscando URL do frontend ($FRONTEND_SERVICE)..."
 FRONTEND_URL=$(get_service_domain "$FRONTEND_SERVICE" "$ENVIRONMENT")
 echo "   ✓ Frontend: $FRONTEND_URL"
+
+# Descobrir DATABASE_URL do PostgreSQL no Railway
+echo "   Buscando DATABASE_URL..."
+DATABASE_URL=""
+
+# Tentar obter DATABASE_URL das variáveis existentes do serviço PostgreSQL
+DB_VAR=$(railway variables -e "$ENVIRONMENT" -s "$POSTGRES_SERVICE" 2>/dev/null | grep -E "^DATABASE_URL=" | cut -d'=' -f2- || true)
+if [ -n "$DB_VAR" ]; then
+    DATABASE_URL="$DB_VAR"
+    echo "   ✓ DATABASE_URL: encontrada no serviço $POSTGRES_SERVICE"
+else
+    # Tentar obter do serviço de backend (pode já estar linkado)
+    DB_VAR=$(railway variables -e "$ENVIRONMENT" -s "$SERVICE" 2>/dev/null | grep -E "^DATABASE_URL=" | cut -d'=' -f2- || true)
+    if [ -n "$DB_VAR" ]; then
+        DATABASE_URL="$DB_VAR"
+        echo "   ✓ DATABASE_URL: já configurada no $SERVICE"
+    else
+        echo "   ⚠ DATABASE_URL: não encontrada (será adicionada aos pendentes)"
+    fi
+fi
 
 # Construir URLs derivadas
 OAUTH_REDIRECT_URI="${BACKEND_URL}/auth/callback"
@@ -155,6 +176,11 @@ echo "   - BACKEND_URL: $BACKEND_URL"
 echo "   - FRONTEND_URL: $FRONTEND_URL"
 echo "   - OAUTH_REDIRECT_URI: $OAUTH_REDIRECT_URI"
 echo "   - CORS_ORIGINS: $CORS_ORIGINS"
+if [ -n "$DATABASE_URL" ]; then
+    # Mostrar URL mascarada (esconder senha)
+    DB_MASKED=$(echo "$DATABASE_URL" | sed 's/:[^:@]*@/:****@/')
+    echo "   - DATABASE_URL: $DB_MASKED"
+fi
 echo ""
 
 # ============================================================================
@@ -175,10 +201,10 @@ MISSING_MANUAL=()
 [ -z "$BUCKET_ACCESS_KEY_ID" ] && MISSING_VARS+=("BUCKET_ACCESS_KEY_ID")
 [ -z "$BUCKET_SECRET_ACCESS_KEY" ] && MISSING_VARS+=("BUCKET_SECRET_ACCESS_KEY")
 
-# OpenAI key - deve vir do ambiente (não está no .env.dev por segurança)
+# OpenAI key - usar do ambiente local se disponível
 OPENAI_KEY="${OPENAI_API_KEY:-}"
-if [ -z "$OPENAI_KEY" ]; then
-    MISSING_MANUAL+=("OPENAI_API_KEY (defina no ambiente: export OPENAI_API_KEY=sk-...)")
+if [ -n "$OPENAI_KEY" ]; then
+    echo "   ✓ OPENAI_API_KEY encontrada no ambiente local"
 fi
 
 if [ ${#MISSING_VARS[@]} -gt 0 ]; then
@@ -232,9 +258,20 @@ railway variables \
   -e "$ENVIRONMENT" \
   -s "$SERVICE"
 
-# Configurar OPENAI_API_KEY se disponível
+# Configurar OPENAI_API_KEY se disponível no ambiente local
 if [ -n "$OPENAI_KEY" ]; then
     railway variables --set "OPENAI_API_KEY=$OPENAI_KEY" -e "$ENVIRONMENT" -s "$SERVICE"
+    echo "   ✓ OPENAI_API_KEY configurada"
+else
+    MISSING_MANUAL+=("OPENAI_API_KEY (defina no ambiente local: export OPENAI_API_KEY=sk-... e rode novamente)")
+fi
+
+# Configurar DATABASE_URL se descoberta
+if [ -n "$DATABASE_URL" ]; then
+    railway variables --set "DATABASE_URL=$DATABASE_URL" -e "$ENVIRONMENT" -s "$SERVICE"
+    echo "   ✓ DATABASE_URL configurada"
+else
+    MISSING_MANUAL+=("DATABASE_URL (link o PostgreSQL ao serviço no Railway Dashboard)")
 fi
 
 # Phoenix endpoint apenas para production
@@ -258,17 +295,18 @@ echo "   │ Backend URL:    $BACKEND_URL"
 echo "   │ Frontend URL:   $FRONTEND_URL"
 echo "   │ CORS Origins:   $CORS_ORIGINS"
 echo "   │ OAuth Redirect: $OAUTH_REDIRECT_URI"
+if [ -n "$DATABASE_URL" ]; then
+echo "   │ Database:       ✓ Configurada"
+else
+echo "   │ Database:       ❌ Pendente"
+fi
+if [ -n "$OPENAI_KEY" ]; then
+echo "   │ OpenAI API:     ✓ Configurada"
+else
+echo "   │ OpenAI API:     ❌ Pendente"
+fi
 echo "   └─────────────────────────────────────────────────────────────────┘"
 echo ""
-
-# Verificar DATABASE_URL
-echo "🔍 Verificando DATABASE_URL..."
-DB_URL=$(railway variables -e "$ENVIRONMENT" -s "$SERVICE" 2>/dev/null | grep "DATABASE_URL" || true)
-if [ -z "$DB_URL" ]; then
-    MISSING_MANUAL+=("DATABASE_URL (configure via Railway Dashboard: Link PostgreSQL service)")
-else
-    echo "   ✓ DATABASE_URL está configurada"
-fi
 
 # Listar itens que precisam de configuração manual
 if [ ${#MISSING_MANUAL[@]} -gt 0 ]; then
