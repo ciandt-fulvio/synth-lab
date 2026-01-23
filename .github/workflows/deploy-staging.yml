@@ -400,6 +400,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Wait for backend to be healthy
+        run: |
+          echo "Waiting for staging backend to be healthy..."
+          for i in {1..30}; do
+            if curl -sf "${{ vars.STAGING_BACKEND_URL }}/health" > /dev/null 2>&1; then
+              echo "✅ Backend is healthy!"
+              exit 0
+            fi
+            echo "Attempt $i: Backend not ready yet, waiting 10s..."
+            sleep 10
+          done
+          echo "❌ Backend did not become healthy after 5 minutes"
+          exit 1
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
