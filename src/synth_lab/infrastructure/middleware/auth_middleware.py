@@ -21,6 +21,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         "/auth/login",
         "/auth/callback",
         "/auth/logout",  # Logout is idempotent - can be called without auth
+        "/auth/test-login",  # Test-only endpoint for E2E tests
         "/docs",
         "/openapi.json",
         "/redoc",

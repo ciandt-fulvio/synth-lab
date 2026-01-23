@@ -5,7 +5,7 @@
  *
  * Run: npx playwright test tests/e2e/synth-groups/group-details.spec.ts
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures';
 
 test.describe('Synth Group Details', () => {
   test.beforeEach(async ({ page }) => {

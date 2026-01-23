@@ -5,7 +5,7 @@
  *
  * Run: npx playwright test tests/e2e/synth-groups/create-basic-group.spec.ts
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures';
 
 test.describe('Create Basic Synth Group', () => {
   // Run tests serially to avoid race conditions with parallel group creation

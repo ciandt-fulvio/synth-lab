@@ -6,7 +6,7 @@
  *
  * Run: npm run test:e2e synths/list.spec.ts
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures';
 
 test.describe('Synths - List Page @critical @synths', () => {
   test.beforeEach(async ({ page }) => {

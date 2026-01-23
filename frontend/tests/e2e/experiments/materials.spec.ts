@@ -6,7 +6,7 @@
  *
  * Run: npm run test:e2e experiments/materials.spec.ts
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures';
 import * as fs from 'fs';
 import * as path from 'path';
 

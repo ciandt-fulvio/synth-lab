@@ -6,7 +6,7 @@
  *
  * Run: npm run test:e2e interviews/create.spec.ts
  */
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, Page } from '../fixtures';
 
 /**
  * Helper to navigate to an experiment's interview tab and check if "Nova Entrevista" is available.

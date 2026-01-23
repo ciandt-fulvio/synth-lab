@@ -7,7 +7,7 @@
  * Run local: npm run test:e2e experiments/crud.spec.ts
  * Run staging: npm run test:e2e:staging experiments/crud.spec.ts
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures';
 
 test.describe('Experiments - CRUD Operations @critical @experiments', () => {
   test.beforeEach(async ({ page }) => {
