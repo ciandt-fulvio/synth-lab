@@ -180,6 +180,10 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-dummy_key_for_testing}
       PHOENIX_ENABLED: "false"
       LOG_LEVEL: INFO
+      # Database pool configuration for E2E tests with high concurrency
+      # Playwright runs 200+ tests in parallel, each making multiple requests
+      # With WORKERS=20: pool_size=80, max_overflow=160, total=240 connections
+      WORKERS: "20"
       # Enable test environment for test-login endpoint
       ENVIRONMENT: "test"
       # CORS: Allow E2E frontend origin for cross-origin API calls
