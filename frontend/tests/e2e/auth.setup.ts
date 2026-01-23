@@ -18,15 +18,24 @@ const authFile = path.join(__dirname, '../../playwright/.auth/user.json');
 
 setup('authenticate', async ({ page, request }) => {
   // Determine URLs based on environment
-  // In Docker E2E: frontend=8091, backend=8001
-  // In local dev: frontend=8080, backend=8000
+  // - staging: Uses STAGING_BACKEND_URL and STAGING_FRONTEND_URL env vars
+  // - docker: frontend=8091, backend=8001
+  // - local: frontend=8080, backend=8000
   const testEnv = process.env.TEST_ENV || 'local';
-  const backendUrl = testEnv === 'docker'
-    ? 'http://localhost:8001'
-    : 'http://localhost:8000';
-  const frontendUrl = testEnv === 'docker'
-    ? 'http://localhost:8091'
-    : 'http://localhost:8080';
+
+  let backendUrl: string;
+  let frontendUrl: string;
+
+  if (testEnv === 'staging') {
+    backendUrl = process.env.STAGING_BACKEND_URL || 'https://synth-lab-api-staging.up.railway.app';
+    frontendUrl = process.env.STAGING_FRONTEND_URL || 'https://synth-lab-frontend-staging.up.railway.app';
+  } else if (testEnv === 'docker') {
+    backendUrl = 'http://localhost:8001';
+    frontendUrl = 'http://localhost:8091';
+  } else {
+    backendUrl = 'http://localhost:8000';
+    frontendUrl = 'http://localhost:8080';
+  }
 
   console.log(`🔐 Auth setup: environment=${testEnv}, backend=${backendUrl}, frontend=${frontendUrl}`);
 
@@ -63,15 +72,21 @@ setup('authenticate', async ({ page, request }) => {
   console.log(`🔧 Route handler installed for ${backendUrl}/**`);
 
   // Step 3: Also add cookie to browser context (for completeness)
+  // For staging, extract domain from URL and use secure cookies
+  const isStaging = testEnv === 'staging';
+  const cookieDomain = isStaging
+    ? new URL(frontendUrl).hostname  // e.g., synth-lab-frontend-staging.up.railway.app
+    : 'localhost';
+
   await page.context().addCookies([
     {
       name: 'auth_token',
       value: authTokenValue,
-      domain: 'localhost',
+      domain: cookieDomain,
       path: '/',
       httpOnly: true,
-      secure: false,
-      sameSite: 'Lax',
+      secure: isStaging,  // HTTPS in staging
+      sameSite: isStaging ? 'None' : 'Lax',  // None required for cross-origin in staging
       expires: Math.floor(Date.now() / 1000) + 8 * 60 * 60,
     },
   ]);
