@@ -226,6 +226,7 @@ jobs:
 
       - name: Run E2E tests
         working-directory: frontend
+        timeout-minutes: 15
         run: TEST_ENV=docker npm run test:e2e
 
       - name: Stop Docker Compose
