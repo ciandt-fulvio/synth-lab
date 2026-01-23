@@ -10,9 +10,10 @@ References:
 
 import asyncio
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status, Request, Depends
 from loguru import logger
 from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from synth_lab.api.schemas.experiments import (
     AggregatedOutcomesSchema,
@@ -32,7 +33,9 @@ from synth_lab.api.schemas.experiments import (
     ExperimentUpdate as ExperimentUpdateSchema)
 from synth_lab.api.schemas.exploration import ExplorationSummary
 from synth_lab.domain.entities.experiment import ScorecardData, ScorecardDimension
-from synth_lab.infrastructure.database_v2 import get_session
+from synth_lab.infrastructure.database_v2 import get_session, get_db_session
+from synth_lab.infrastructure.auth.session_manager import SessionManager
+from synth_lab.services.permission_service import PermissionService
 from synth_lab.models.pagination import PaginationParams
 from synth_lab.models.research import ResearchExecuteRequest, ResearchExecuteResponse
 from synth_lab.repositories.analysis_repository import AnalysisRepository
@@ -60,6 +63,39 @@ router = APIRouter()
 def get_experiment_service() -> ExperimentService:
     """Get experiment service instance."""
     return ExperimentService()
+
+
+async def get_current_user_id(request: Request) -> str:
+    """Get current user ID from request state (set by auth middleware).
+
+    Args:
+        request: FastAPI request
+
+    Returns:
+        User ID from session
+
+    Raises:
+        HTTPException: If not authenticated
+    """
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
+    return user_id
+
+
+def get_permission_service(db: AsyncSession = Depends(get_db_session)) -> PermissionService:
+    """Get permission service instance.
+
+    Args:
+        db: Database session
+
+    Returns:
+        Configured PermissionService
+    """
+    return PermissionService(db)
 
 
 def _get_synth_group_name(synth_group_id: str) -> str:
@@ -140,7 +176,11 @@ def _convert_scorecard_data_to_schema(
 
 
 @router.post("", response_model=ExperimentResponse, status_code=status.HTTP_201_CREATED)
-async def create_experiment(data: ExperimentCreateSchema) -> ExperimentResponse:
+async def create_experiment(
+    data: ExperimentCreateSchema,
+    request: Request,
+    current_user_id: str = Depends(get_current_user_id),
+) -> ExperimentResponse:
     """
     Create a new experiment, optionally with embedded scorecard.
 
@@ -158,7 +198,8 @@ async def create_experiment(data: ExperimentCreateSchema) -> ExperimentResponse:
             hypothesis=data.hypothesis,
             description=data.description,
             synth_group_id=data.synth_group_id,
-            scorecard_data=scorecard_data)
+            scorecard_data=scorecard_data,
+            owner_id=current_user_id)
 
         # Trigger async interview guide generation (non-blocking)
         asyncio.create_task(
@@ -327,7 +368,11 @@ async def list_experiments(
 
 
 @router.get("/{experiment_id}", response_model=ExperimentDetail)
-async def get_experiment(experiment_id: str) -> ExperimentDetail:
+async def get_experiment(
+    experiment_id: str,
+    current_user_id: str = Depends(get_current_user_id),
+    permission_service: PermissionService = Depends(get_permission_service),
+) -> ExperimentDetail:
     """
     Get an experiment by ID with full details.
 
@@ -335,12 +380,20 @@ async def get_experiment(experiment_id: str) -> ExperimentDetail:
     """
     service = get_experiment_service()
 
-    # Get full experiment (with scorecard)
+    # First check if resource exists (404 before 403)
     experiment = service.get_experiment(experiment_id)
     if experiment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Experiment {experiment_id} not found")
+
+    # Then check if user has access to this experiment
+    has_access = permission_service.can_access_experiment(current_user_id, experiment_id)
+    if not has_access:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this experiment",
+        )
 
     with get_session() as session:
         # Get synth group name
@@ -433,13 +486,32 @@ async def get_experiment(experiment_id: str) -> ExperimentDetail:
 @router.put("/{experiment_id}", response_model=ExperimentResponse)
 async def update_experiment(
     experiment_id: str,
-    data: ExperimentUpdateSchema) -> ExperimentResponse:
+    data: ExperimentUpdateSchema,
+    current_user_id: str = Depends(get_current_user_id),
+    permission_service: PermissionService = Depends(get_permission_service),
+) -> ExperimentResponse:
     """
     Update an experiment (name, hypothesis, description, synth_group_id).
 
     To update the scorecard, use PUT /experiments/{id}/scorecard.
     """
     service = get_experiment_service()
+
+    # First check if resource exists (404 before 403)
+    existing = service.get_experiment(experiment_id)
+    if existing is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Experiment {experiment_id} not found")
+
+    # Then check if user can edit this experiment
+    can_edit = permission_service.can_edit_experiment(current_user_id, experiment_id)
+    if not can_edit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to edit this experiment",
+        )
+
     try:
         updated = service.update_experiment(
             experiment_id,
@@ -447,10 +519,6 @@ async def update_experiment(
             hypothesis=data.hypothesis,
             description=data.description,
             synth_group_id=data.synth_group_id)
-        if updated is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Experiment {experiment_id} not found")
 
         scorecard_schema = None
         if updated.scorecard_data:
@@ -484,18 +552,34 @@ async def update_experiment(
 
 
 @router.delete("/{experiment_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_experiment(experiment_id: str) -> None:
+async def delete_experiment(
+    experiment_id: str,
+    current_user_id: str = Depends(get_current_user_id),
+    permission_service: PermissionService = Depends(get_permission_service),
+) -> None:
     """
     Delete an experiment.
 
     Returns 204 No Content on success.
     """
     service = get_experiment_service()
-    deleted = service.delete_experiment(experiment_id)
-    if not deleted:
+
+    # First check if resource exists (404 before 403)
+    existing = service.get_experiment(experiment_id)
+    if existing is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Experiment {experiment_id} not found")
+
+    # Then check if user can edit (delete) this experiment
+    can_edit = permission_service.can_edit_experiment(current_user_id, experiment_id)
+    if not can_edit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to delete this experiment",
+        )
+
+    service.delete_experiment(experiment_id)
 
 
 # =============================================================================

@@ -172,7 +172,7 @@ services:
 ```yaml
 environment:
   POSTGRES_USER: synthlab
-  POSTGRES_PASSWORD: synthlab_dev
+  POSTGRES_PASSWORD: synthlab
   POSTGRES_DB: synthlab
 ```
 

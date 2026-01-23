@@ -127,3 +127,71 @@ class TestExperimentEntity:
         exp = Experiment(name="Test", hypothesis="Hypothesis")
         data = exp.model_dump(mode="json")
         assert isinstance(data["created_at"], str)
+
+
+# =============================================================================
+# US2 Tests: Ownership (T063)
+# =============================================================================
+
+
+class TestExperimentOwnership:
+    """Tests for experiment ownership field - T063."""
+
+    def test_create_experiment_with_owner_id(self) -> None:
+        """Should create experiment with owner_id field.
+
+        US2 requirement: Experiments must have owner_id to track ownership.
+        """
+        from uuid import uuid4
+
+        owner_id = str(uuid4())
+        exp = Experiment(
+            name="Owned Experiment",
+            hypothesis="Test hypothesis",
+            owner_id=owner_id,
+        )
+
+        assert exp.owner_id == owner_id
+
+    def test_create_experiment_without_owner_id(self) -> None:
+        """Should allow experiment creation without owner_id (defaults to None).
+
+        For backward compatibility with existing experiments.
+        """
+        exp = Experiment(
+            name="Unowned Experiment",
+            hypothesis="Test hypothesis",
+        )
+
+        assert exp.owner_id is None
+
+    def test_owner_id_accepts_uuid_string(self) -> None:
+        """Should accept UUID string for owner_id."""
+        from uuid import uuid4
+
+        owner_id = str(uuid4())
+        exp = Experiment(
+            name="Test",
+            hypothesis="Test",
+            owner_id=owner_id,
+        )
+
+        assert exp.owner_id == owner_id
+        # Verify it's a valid UUID format
+        from uuid import UUID
+        UUID(exp.owner_id)  # Should not raise
+
+    def test_owner_id_in_model_dump(self) -> None:
+        """Should include owner_id in model dump."""
+        from uuid import uuid4
+
+        owner_id = str(uuid4())
+        exp = Experiment(
+            name="Test",
+            hypothesis="Test",
+            owner_id=owner_id,
+        )
+
+        data = exp.model_dump()
+        assert "owner_id" in data
+        assert data["owner_id"] == owner_id

@@ -2,7 +2,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import Index from "./pages/Index";
+import LoginPage from "./pages/LoginPage";
 import ExperimentDetail from "./pages/ExperimentDetail";
 import ExplorationDetail from "./pages/ExplorationDetail";
 import SimulationDetail from "./pages/SimulationDetail";
@@ -18,26 +20,17 @@ const App = () => (
       <Toaster />
       <BrowserRouter>
         <Routes>
-          {/* Home - Experiment List */}
-          <Route path="/" element={<Index />} />
+          {/* Public Routes */}
+          <Route path="/login" element={<LoginPage />} />
 
-          {/* Experiment Detail */}
-          <Route path="/experiments/:id" element={<ExperimentDetail />} />
-
-          {/* Simulation Detail (within experiment) */}
-          <Route path="/experiments/:id/simulations/:simId" element={<SimulationDetail />} />
-
-          {/* Exploration Detail (within experiment) */}
-          <Route path="/experiments/:id/explorations/:explorationId" element={<ExplorationDetail />} />
-
-          {/* Interview Detail (legacy route) */}
-          <Route path="/interviews/:execId" element={<InterviewDetail />} />
-
-          {/* Interview Detail (new route within experiment) */}
-          <Route path="/experiments/:expId/interviews/:execId" element={<InterviewDetail />} />
-
-          {/* Synths Catalog */}
-          <Route path="/synths" element={<Synths />} />
+          {/* Protected Routes */}
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/experiments/:id" element={<ProtectedRoute><ExperimentDetail /></ProtectedRoute>} />
+          <Route path="/experiments/:id/simulations/:simId" element={<ProtectedRoute><SimulationDetail /></ProtectedRoute>} />
+          <Route path="/experiments/:id/explorations/:explorationId" element={<ProtectedRoute><ExplorationDetail /></ProtectedRoute>} />
+          <Route path="/interviews/:execId" element={<ProtectedRoute><InterviewDetail /></ProtectedRoute>} />
+          <Route path="/experiments/:expId/interviews/:execId" element={<ProtectedRoute><InterviewDetail /></ProtectedRoute>} />
+          <Route path="/synths" element={<ProtectedRoute><Synths /></ProtectedRoute>} />
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

@@ -39,6 +39,8 @@ from synth_lab.models.orm.insight import ChartInsight
 from synth_lab.models.orm.research import ResearchExecution, Transcript
 from synth_lab.models.orm.synth import Synth, SynthGroup
 from synth_lab.models.orm.tag import ExperimentTag, Tag
+from synth_lab.models.orm.user import User
+from synth_lab.models.orm.share import ExperimentShare, SynthGroupShare, PermissionLevel
 
 __all__ = [
     # Base
@@ -74,4 +76,10 @@ __all__ = [
     # Tag
     "Tag",
     "ExperimentTag",
+    # User
+    "User",
+    # Share
+    "ExperimentShare",
+    "SynthGroupShare",
+    "PermissionLevel",
 ]

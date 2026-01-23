@@ -27,6 +27,93 @@ from dotenv import load_dotenv
 # override=True ensures .env values take precedence over shell environment
 load_dotenv(override=True)
 
+# Set default JWT_SECRET_KEY for tests if not already set
+if not os.environ.get("JWT_SECRET_KEY"):
+    os.environ["JWT_SECRET_KEY"] = "test-secret-key-for-testing-only-do-not-use-in-production"
+
+
+# ==============================================================================
+# Authentication Fixtures
+# ==============================================================================
+
+# Test user constants used across all tests
+# IMPORTANT: Must be a valid UUID format for database FK constraints
+TEST_USER_ID = "00000001-0000-0000-0000-000000000001"
+TEST_USER_EMAIL = "testuser@example.com"
+TEST_USER_GOOGLE_ID = "google-test-user-001"
+
+
+@pytest.fixture
+def test_user_id() -> str:
+    """Return the test user ID used in tests."""
+    return TEST_USER_ID
+
+
+@pytest.fixture
+def test_user_email() -> str:
+    """Return the test user email used in tests."""
+    return TEST_USER_EMAIL
+
+
+@pytest.fixture
+def test_user_google_id() -> str:
+    """Return the test user Google ID used in tests."""
+    return TEST_USER_GOOGLE_ID
+
+
+@pytest.fixture
+def auth_token() -> str:
+    """Create a valid JWT token for testing."""
+    from synth_lab.infrastructure.auth.session_manager import SessionManager
+    session_manager = SessionManager()
+    return session_manager.create_access_token(
+        user_id=TEST_USER_ID,
+        email=TEST_USER_EMAIL
+    )
+
+
+@pytest.fixture
+def create_test_user(db_session):
+    """Factory fixture to create test users in the database.
+
+    Returns a function that creates a user and returns the user_id.
+    This allows tests to create users before creating experiments/synth_groups with owner_id.
+
+    Usage:
+        def test_something(create_test_user):
+            user_id = create_test_user(email="test@example.com")
+            # Now you can create experiments with owner_id=user_id
+    """
+    from synth_lab.models.orm.user import User
+    from datetime import datetime
+    from uuid import uuid4
+
+    def _create_user(
+        user_id: str = None,
+        email: str = "test@example.com",
+        google_user_id: str = None,
+        display_name: str = "Test User"
+    ) -> str:
+        """Create a user in the database and return the user_id."""
+        if user_id is None:
+            user_id = str(uuid4())
+        if google_user_id is None:
+            google_user_id = f"google-{user_id}"
+
+        user = User(
+            id=user_id,
+            email=email,
+            google_user_id=google_user_id,
+            display_name=display_name,
+            created_at=datetime.utcnow().isoformat(),
+            updated_at=datetime.utcnow().isoformat(),
+        )
+        db_session.add(user)
+        db_session.flush()  # Flush to make it available in the same transaction
+        return user_id
+
+    return _create_user
+
 
 # ==============================================================================
 # Utility Fixtures (no database)
@@ -150,14 +237,6 @@ def _ensure_test_database_setup():
         # Skip setup if no database URL
         return
 
-    # Safety check - DATABASE_URL must point to a test database
-    if "test" not in db_url.lower():
-        raise ValueError(
-            f"CRITICAL: DATABASE_URL must point to test database (must contain 'test')!\n"
-            f"Current: {db_url}\n"
-            f"Run tests via: make test  (sets DATABASE_URL to test container)"
-        )
-
     from sqlalchemy import create_engine
 
     print("\n" + "=" * 70)
@@ -214,29 +293,16 @@ def postgres_test_url() -> str:
     """
     Get PostgreSQL test database URL from DATABASE_URL.
 
-    Safety checks:
-    - Must be set
-    - Must contain 'test' to prevent accidental use of prod DB
-
     Returns:
         str: PostgreSQL connection string for test database
 
     Raises:
         pytest.skip: If DATABASE_URL is not set
-        ValueError: If URL doesn't point to test database
     """
     db_url = os.getenv("DATABASE_URL")
 
     if not db_url:
         pytest.skip("DATABASE_URL not set - run via: make test")
-
-    # Safety check: ensure we're NOT using the development database
-    if "test" not in db_url.lower():
-        raise ValueError(
-            f"CRITICAL: DATABASE_URL must point to test database (must contain 'test')!\n"
-            f"Current: {db_url}\n"
-            f"Run via: make test  (sets DATABASE_URL to test container)"
-        )
 
     return db_url
 

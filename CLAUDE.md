@@ -59,7 +59,7 @@ make dev-down
 podman stop <container-name> && podman rm <container-name>
 
 # Re-seed banco de dev se necessário
-DATABASE_URL="postgresql://synthlab:synthlab_dev@localhost:5432/synthlab" python scripts/seed_database.py
+DATABASE_URL="postgresql://synthlab:synthlab@localhost:5432/synthlab" python scripts/seed_database.py
 ```
 
 **Dados persistentes:**
@@ -84,7 +84,8 @@ DATABASE_URL="postgresql://synthlab:synthlab_dev@localhost:5432/synthlab" python
 - Backend: `/tmp/synth-lab-backend.log`
 - Frontend: `/tmp/synth-lab-frontend.log`
 
-## Environment (.env)
+## Environment (.env.*)
+sempre use o .env.dev ou .env.test que está na pasta ./docker
 ```bash
 OPENAI_API_KEY=sk-...
 DATABASE_URL=postgresql://user:pass@localhost/synthlab

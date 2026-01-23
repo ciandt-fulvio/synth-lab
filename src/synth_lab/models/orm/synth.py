@@ -16,7 +16,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from synth_lab.models.orm.base import Base, MutableJSON
 
 if TYPE_CHECKING:
-    pass
+    from synth_lab.models.orm.user import User
 
 
 class SynthGroup(Base):
@@ -41,12 +41,23 @@ class SynthGroup(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[str] = mapped_column(String(50), nullable=False)
     config: Mapped[dict[str, Any] | None] = mapped_column(MutableJSON, nullable=True)
+    owner_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
 
     # Relationships
     synths: Mapped[list["Synth"]] = relationship(
         "Synth",
         back_populates="synth_group",
         cascade="save-update, merge",
+    )
+    owner: Mapped["User | None"] = relationship(
+        "User",
+        back_populates="owned_synth_groups",
+        foreign_keys=[owner_id],
     )
 
     # Indexes

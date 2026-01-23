@@ -61,6 +61,12 @@ class SynthGroup(BaseModel):
         description="Creation timestamp.",
     )
 
+    # Owner of this synth group (from user authentication)
+    owner_id: str | None = Field(
+        default=None,
+        description="UUID of the user who owns this synth group.",
+    )
+
     @field_validator("name")
     @classmethod
     def validate_name_not_empty(cls, v: str) -> str:
