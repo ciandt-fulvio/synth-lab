@@ -46,9 +46,14 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade database schema."""
-    # Drop indexes
-    op.drop_index(op.f('ix_users_google_user_id'), table_name='users')
-    op.drop_index(op.f('ix_users_email'), table_name='users')
+    # Check if users table exists before trying to drop
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
 
-    # Drop users table
-    op.drop_table('users')
+    if 'users' in inspector.get_table_names():
+        # Drop indexes with IF EXISTS to handle missing indexes
+        op.execute("DROP INDEX IF EXISTS ix_users_google_user_id")
+        op.execute("DROP INDEX IF EXISTS ix_users_email")
+
+        # Drop users table
+        op.drop_table('users')
