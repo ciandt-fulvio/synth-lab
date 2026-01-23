@@ -10,9 +10,7 @@ References:
 
 from synth_lab.domain.entities.experiment import Experiment, ScorecardData
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
-from synth_lab.repositories.experiment_repository import (
-    ExperimentRepository,
-    ExperimentSummary)
+from synth_lab.repositories.experiment_repository import ExperimentRepository, ExperimentSummary
 
 
 class ExperimentService:
@@ -36,8 +34,8 @@ class ExperimentService:
         self,
         name: str,
         hypothesis: str,
+        synth_group_id: str,
         description: str | None = None,
-        synth_group_id: str = "grp_00000001",
         scorecard_data: ScorecardData | None = None,
         owner_id: str | None = None) -> Experiment:
         """
@@ -46,8 +44,8 @@ class ExperimentService:
         Args:
             name: Short name of the feature (max 100 chars).
             hypothesis: Description of hypothesis to test (max 500 chars).
+            synth_group_id: ID of the synth group to use (required).
             description: Additional context (max 2000 chars).
-            synth_group_id: ID of the synth group to use (defaults to grp_00000001).
             scorecard_data: Optional embedded scorecard data.
             owner_id: UUID of the user who owns this experiment.
 
@@ -62,6 +60,8 @@ class ExperimentService:
             raise ValueError("name is required and cannot be empty")
         if not hypothesis or not hypothesis.strip():
             raise ValueError("hypothesis is required and cannot be empty")
+        if not synth_group_id or not synth_group_id.strip():
+            raise ValueError("synth_group_id is required and cannot be empty")
 
         # Validate max lengths
         if len(name) > self.NAME_MAX_LENGTH:
@@ -264,7 +264,8 @@ if __name__ == "__main__":
         try:
             exp = service.create_experiment(
                 name="Test Feature",
-                hypothesis="Users will prefer this approach")
+                hypothesis="Users will prefer this approach",
+                synth_group_id="grp_00000001")
             if not exp.id.startswith("exp_"):
                 all_validation_failures.append(f"ID should start with exp_: {exp.id}")
         except Exception as e:
@@ -273,7 +274,7 @@ if __name__ == "__main__":
         # Test 2: Validate name required
         total_tests += 1
         try:
-            service.create_experiment(name="", hypothesis="Valid")
+            service.create_experiment(name="", hypothesis="Valid", synth_group_id="grp_00000001")
             all_validation_failures.append("Should reject empty name")
         except ValueError:
             pass  # Expected
@@ -281,7 +282,7 @@ if __name__ == "__main__":
         # Test 3: Validate hypothesis required
         total_tests += 1
         try:
-            service.create_experiment(name="Valid", hypothesis="")
+            service.create_experiment(name="Valid", hypothesis="", synth_group_id="grp_00000001")
             all_validation_failures.append("Should reject empty hypothesis")
         except ValueError:
             pass  # Expected
@@ -289,8 +290,17 @@ if __name__ == "__main__":
         # Test 4: Validate name max length
         total_tests += 1
         try:
-            service.create_experiment(name="x" * 101, hypothesis="Valid")
+            service.create_experiment(
+                name="x" * 101, hypothesis="Valid", synth_group_id="grp_00000001")
             all_validation_failures.append("Should reject name > 100 chars")
+        except ValueError:
+            pass  # Expected
+
+        # Test 4b: Validate synth_group_id required
+        total_tests += 1
+        try:
+            service.create_experiment(name="Valid", hypothesis="Valid", synth_group_id="")
+            all_validation_failures.append("Should reject empty synth_group_id")
         except ValueError:
             pass  # Expected
 
@@ -329,6 +339,7 @@ if __name__ == "__main__":
             exp_with_sc = service.create_experiment(
                 name="Feature with Scorecard",
                 hypothesis="Test hypothesis",
+                synth_group_id="grp_00000001",
                 scorecard_data=scorecard)
             if not exp_with_sc.has_scorecard():
                 all_validation_failures.append("Experiment should have scorecard")

@@ -99,6 +99,7 @@ class TestSharingExperiment:
         created_exp = exp_service.create_experiment(
             name="Shared Experiment",
             hypothesis="Test",
+            synth_group_id="grp_00000001",
             owner_id=owner_id,
         )
 
@@ -193,6 +194,7 @@ class TestAccessingSharedExperiment:
         created_exp = exp_service.create_experiment(
             name="Accessible Experiment",
             hypothesis="Test",
+            synth_group_id="grp_00000001",
             owner_id=owner_id,
         )
 
@@ -230,6 +232,7 @@ class TestRevokingExperimentAccess:
         created_exp = exp_service.create_experiment(
             name="Revokable Experiment",
             hypothesis="Test",
+            synth_group_id="grp_00000001",
             owner_id=owner_id,
         )
 

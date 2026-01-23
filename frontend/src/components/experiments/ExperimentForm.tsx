@@ -46,6 +46,7 @@ interface FormErrors {
   name?: string;
   hypothesis?: string;
   description?: string;
+  synth_group_id?: string;
 }
 
 interface ScorecardSliders {
@@ -86,7 +87,7 @@ export function ExperimentForm({
   const [name, setName] = useState(initialData?.name ?? '');
   const [hypothesis, setHypothesis] = useState(initialData?.hypothesis ?? '');
   const [description, setDescription] = useState(initialData?.description ?? '');
-  const [selectedSynthGroupId, setSelectedSynthGroupId] = useState<string>('grp_00000001');
+  const [selectedSynthGroupId, setSelectedSynthGroupId] = useState<string>('');
   const [errors, setErrors] = useState<FormErrors>({});
 
   // Initialize sliders from existing scorecard or defaults
@@ -127,6 +128,11 @@ export function ExperimentForm({
     // Description validation (optional)
     if (description && description.length > 2000) {
       newErrors.description = 'Descrição deve ter no máximo 2000 caracteres';
+    }
+
+    // Synth group validation
+    if (!selectedSynthGroupId) {
+      newErrors.synth_group_id = 'Grupo de Synths é obrigatório';
     }
 
     setErrors(newErrors);
@@ -269,14 +275,14 @@ export function ExperimentForm({
         <div className="space-y-2">
           <Label htmlFor="synth-group">
             <Users className="inline h-4 w-4 mr-1" />
-            Grupo de Synths
+            Grupo de Synths <span className="text-red-500">*</span>
           </Label>
           <Select
             value={selectedSynthGroupId}
             onValueChange={setSelectedSynthGroupId}
             disabled={isSubmitting || isLoadingSynthGroups}
           >
-            <SelectTrigger id="synth-group">
+            <SelectTrigger id="synth-group" className={errors.synth_group_id ? 'border-red-500' : ''}>
               <SelectValue placeholder="Selecione um grupo..." />
             </SelectTrigger>
             <SelectContent>
@@ -287,6 +293,7 @@ export function ExperimentForm({
               ))}
             </SelectContent>
           </Select>
+          {errors.synth_group_id && <p className="text-sm text-red-500">{errors.synth_group_id}</p>}
           <p className="text-xs text-gray-500">
             Synths deste grupo serão usados em simulações, entrevistas e explorações
           </p>
@@ -390,14 +397,14 @@ export function ExperimentForm({
           <div className="space-y-2">
             <Label htmlFor="synth-group-step1">
               <Users className="inline h-4 w-4 mr-1" />
-              Grupo de Synths
+              Grupo de Synths <span className="text-red-500">*</span>
             </Label>
             <Select
               value={selectedSynthGroupId}
               onValueChange={setSelectedSynthGroupId}
               disabled={isSubmitting || isLoadingSynthGroups}
             >
-              <SelectTrigger id="synth-group-step1">
+              <SelectTrigger id="synth-group-step1" className={errors.synth_group_id ? 'border-red-500' : ''}>
                 <SelectValue placeholder="Selecione um grupo..." />
               </SelectTrigger>
               <SelectContent>
@@ -408,6 +415,7 @@ export function ExperimentForm({
                 ))}
               </SelectContent>
             </Select>
+            {errors.synth_group_id && <p className="text-sm text-red-500">{errors.synth_group_id}</p>}
             <p className="text-xs text-gray-500">
               Synths deste grupo serão usados em simulações, entrevistas e explorações
             </p>
