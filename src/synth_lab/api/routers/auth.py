@@ -173,8 +173,6 @@ async def callback(
     # Set session cookie
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
     is_secure = os.getenv("ENVIRONMENT", "development") == "production"
-    logger.debug(f"[/auth/callback] Setting cookie - secure={is_secure}, frontend_url={frontend_url}")
-    logger.debug(f"[/auth/callback] Token length: {len(session_token)}")
 
     response = RedirectResponse(url=frontend_url, status_code=status.HTTP_302_FOUND)
     response.set_cookie(
@@ -268,12 +266,7 @@ async def get_me(
     Raises:
         HTTPException: If not authenticated
     """
-    # Debug: log all cookies received
-    logger.debug(f"[/auth/me] All cookies: {dict(request.cookies)}")
-    logger.debug(f"[/auth/me] Headers: {dict(request.headers)}")
-
     session_token = request.cookies.get("auth_token")
-    logger.debug(f"[/auth/me] Session token present: {bool(session_token)}")
     if not session_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
