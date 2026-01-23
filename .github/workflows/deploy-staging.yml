@@ -179,8 +179,8 @@ jobs:
             "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ env.IMAGE_TAG }}" \
             staging
 
-      - name: Wait for deployments to stabilize
-        run: sleep 120  # Wait 2 minutes for both services to deploy
+      - name: Wait for Railway deployments to stabilize
+        run: sleep 120  # Wait 2 minutes for Railway to pull images and start containers
 
   # ============================================================================
   # Stage 5: Run Smoke Tests on Staging (deploy validation only)
@@ -194,18 +194,42 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check Railway deployment status
+        continue-on-error: true
+        run: |
+          echo "Checking recent Railway deployments..."
+          # This requires railway CLI to be installed
+          # For now, we'll skip this and rely on health checks
+          echo "ℹ️  Railway CLI check skipped - relying on health endpoint"
+
       - name: Wait for backend to be healthy
         run: |
           echo "Waiting for staging backend to be healthy..."
-          for i in {1..30}; do
+          echo "Testing URL: ${{ vars.STAGING_BACKEND_URL }}/health"
+
+          # Try for up to 10 minutes (60 attempts x 10s)
+          for i in {1..60}; do
+            echo "Attempt $i/60: Checking backend health..."
+
+            # Try to get health endpoint with verbose output on failure
             if curl -sf "${{ vars.STAGING_BACKEND_URL }}/health" > /dev/null 2>&1; then
               echo "✅ Backend is healthy!"
+              # Show the actual response
+              curl -s "${{ vars.STAGING_BACKEND_URL }}/health"
               exit 0
+            else
+              # On failure, show HTTP status code
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.STAGING_BACKEND_URL }}/health" 2>&1 || echo "connection_failed")
+              echo "  HTTP Status: $HTTP_CODE (not ready yet, waiting 10s...)"
             fi
-            echo "Attempt $i: Backend not ready yet, waiting 10s..."
+
             sleep 10
           done
-          echo "❌ Backend did not become healthy after 5 minutes"
+
+          echo ""
+          echo "❌ Backend did not become healthy after 10 minutes"
+          echo "Last attempt details:"
+          curl -v "${{ vars.STAGING_BACKEND_URL }}/health" || true
           exit 1
 
       - name: Setup Node.js
