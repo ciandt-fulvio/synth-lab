@@ -33,6 +33,32 @@ if not os.environ.get("JWT_SECRET_KEY"):
 
 
 # ==============================================================================
+# Safety Check: Prevent accidental deletion of dev database
+# ==============================================================================
+
+
+def _is_test_database(db_url: str) -> bool:
+    """
+    Check if DATABASE_URL points to a test database.
+
+    Accepts any of:
+    - URL containing 'test' (e.g., synthlab_test, postgres-test)
+    - URL using port 5433 (test container port)
+    - URL with host 'postgres-test' (docker compose test service)
+
+    CRITICAL: This prevents accidental deletion of the dev database.
+    """
+    db_url_lower = db_url.lower()
+    if "test" in db_url_lower:
+        return True
+    if ":5433/" in db_url or ":5433" in db_url:
+        return True
+    if "@postgres-test:" in db_url_lower or "@postgres-test/" in db_url_lower:
+        return True
+    return False
+
+
+# ==============================================================================
 # Authentication Fixtures
 # ==============================================================================
 
@@ -237,6 +263,26 @@ def _ensure_test_database_setup():
         # Skip setup if no database URL
         return
 
+    # CRITICAL SAFETY CHECK: Prevent accidental deletion of dev database
+    if not _is_test_database(db_url):
+        print("\n" + "=" * 70)
+        print("🚨 SAFETY ABORT: DATABASE_URL does not point to a test database!")
+        print("=" * 70)
+        print(f"   DATABASE_URL: {db_url}")
+        print("")
+        print("   Expected one of:")
+        print("   - URL containing 'test' (e.g., synthlab_test)")
+        print("   - Port 5433 (test container port)")
+        print("   - Host 'postgres-test'")
+        print("")
+        print("   Run tests via: make test")
+        print("=" * 70 + "\n")
+        pytest.exit(
+            "SAFETY ABORT: Refusing to drop tables on non-test database. "
+            "Use 'make test' to run tests with the correct DATABASE_URL.",
+            returncode=1
+        )
+
     from sqlalchemy import create_engine
 
     print("\n" + "=" * 70)
@@ -298,11 +344,20 @@ def postgres_test_url() -> str:
 
     Raises:
         pytest.skip: If DATABASE_URL is not set
+        pytest.exit: If DATABASE_URL does not point to a test database
     """
     db_url = os.getenv("DATABASE_URL")
 
     if not db_url:
         pytest.skip("DATABASE_URL not set - run via: make test")
+
+    # CRITICAL SAFETY CHECK: Prevent accidental deletion of dev database
+    if not _is_test_database(db_url):
+        pytest.exit(
+            f"SAFETY ABORT: DATABASE_URL ({db_url}) does not point to a test database. "
+            "Use 'make test' to run tests with the correct DATABASE_URL.",
+            returncode=1
+        )
 
     return db_url
 
