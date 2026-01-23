@@ -1,169 +1,248 @@
-"""Google OAuth 2.0 Client for user authentication.
+"""Google OAuth 2.0 client wrapper.
 
-This module provides OAuth 2.0 integration with Google for user authentication.
-Uses authlib for OAuth flow implementation.
-
-Documentation:
-- Authlib: https://docs.authlib.org/
-- Google OAuth 2.0: https://developers.google.com/identity/protocols/oauth2
-- Google userinfo endpoint: https://www.googleapis.com/oauth2/v3/userinfo
-
-Example OAuth Flow:
-    1. Generate authorization URL:
-       >>> client = GoogleOAuthClient(client_id, client_secret, redirect_uri)
-       >>> auth_url, state = client.generate_authorization_url()
-       >>> # Redirect user to auth_url
-
-    2. Handle callback and exchange code for token:
-       >>> token = client.exchange_code_for_token(code="auth-code-from-callback")
-
-    3. Fetch user information:
-       >>> user_info = client.get_user_info(access_token=token["access_token"])
-       >>> print(user_info["email"])
+Provides a simplified interface for Google OAuth authentication flow using authlib.
+Handles authorization URL generation and token exchange.
 """
-
+import os
 import secrets
-from authlib.integrations.requests_client import OAuth2Session
+from typing import Tuple, List, Optional, Dict, Any
+from urllib.parse import urlencode
 
 
-# Google OAuth 2.0 endpoints
-GOOGLE_AUTHORIZATION_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
-GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
-GOOGLE_USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v3/userinfo"
+class OAuthClient:
+    """Google OAuth 2.0 client for user authentication."""
 
-# Required scopes for user authentication
-GOOGLE_SCOPES = ["openid", "email", "profile"]
+    # Google OAuth 2.0 endpoints
+    AUTHORIZATION_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
+    TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
+    USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v3/userinfo"
 
+    # Default scopes for user authentication
+    DEFAULT_SCOPES = ["openid", "email", "profile"]
 
-class GoogleOAuthClient:
-    """Google OAuth 2.0 client for user authentication.
-
-    Handles the complete OAuth flow:
-    1. Generate authorization URL with state for CSRF protection
-    2. Exchange authorization code for access token
-    3. Fetch user information from Google
-
-    Attributes:
-        client_id: Google OAuth client ID
-        client_secret: Google OAuth client secret
-        redirect_uri: Callback URI registered in Google Console
-    """
-
-    def __init__(self, client_id: str, client_secret: str, redirect_uri: str):
-        """Initialize the Google OAuth client.
+    def __init__(
+        self,
+        client_id: str,
+        client_secret: str,
+        redirect_uri: str,
+        scopes: Optional[List[str]] = None,
+    ):
+        """Initialize OAuth client.
 
         Args:
-            client_id: Google OAuth client ID (from Google Cloud Console)
+            client_id: Google OAuth client ID
             client_secret: Google OAuth client secret
-            redirect_uri: Callback URI (must match Google Console configuration)
+            redirect_uri: Callback URL for OAuth flow
+            scopes: OAuth scopes to request (default: openid, email, profile)
+
+        Raises:
+            ValueError: If any required parameter is empty
+
+        Example:
+            >>> client = OAuthClient(
+            ...     client_id="your-client-id.apps.googleusercontent.com",
+            ...     client_secret="your-client-secret",
+            ...     redirect_uri="http://localhost:8000/auth/callback"
+            ... )
         """
+        if not client_id or not client_id.strip():
+            raise ValueError("client_id is required")
+        if not client_secret or not client_secret.strip():
+            raise ValueError("client_secret is required")
+        if not redirect_uri or not redirect_uri.strip():
+            raise ValueError("redirect_uri is required")
+
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
+        self.scopes = scopes or self.DEFAULT_SCOPES
 
-    def generate_authorization_url(self) -> tuple[str, str]:
-        """Generate the Google OAuth authorization URL.
+    @classmethod
+    def from_env(cls) -> "OAuthClient":
+        """Create OAuth client from environment variables.
 
-        Creates an authorization URL where the user will sign in with Google.
-        Also generates a random state parameter for CSRF protection.
+        Returns:
+            Configured OAuthClient instance
+
+        Environment Variables:
+            GOOGLE_CLIENT_ID: Required
+            GOOGLE_CLIENT_SECRET: Required
+            BACKEND_URL: Required (used to construct redirect_uri)
+
+        Raises:
+            ValueError: If required environment variables are not set
+
+        Example:
+            >>> client = OAuthClient.from_env()
+        """
+        client_id = os.getenv("GOOGLE_CLIENT_ID")
+        client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+        backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
+
+        if not client_id:
+            raise ValueError("GOOGLE_CLIENT_ID environment variable is required")
+        if not client_secret:
+            raise ValueError("GOOGLE_CLIENT_SECRET environment variable is required")
+
+        redirect_uri = f"{backend_url.rstrip('/')}/auth/callback"
+
+        return cls(
+            client_id=client_id,
+            client_secret=client_secret,
+            redirect_uri=redirect_uri,
+        )
+
+    def get_authorization_url(self, state: Optional[str] = None) -> Tuple[str, str]:
+        """Generate OAuth authorization URL.
+
+        Args:
+            state: Optional CSRF state token. If None, a random one is generated.
 
         Returns:
             Tuple of (authorization_url, state)
-            - authorization_url: URL to redirect the user to
-            - state: Random state value for CSRF protection (verify on callback)
 
         Example:
-            >>> client = GoogleOAuthClient(client_id, client_secret, redirect_uri)
-            >>> auth_url, state = client.generate_authorization_url()
-            >>> # Store state in session, redirect user to auth_url
+            >>> client = OAuthClient.from_env()
+            >>> auth_url, state = client.get_authorization_url()
+            >>> print(auth_url)
+            https://accounts.google.com/o/oauth2/v2/auth?client_id=...
         """
-        # Generate random state for CSRF protection
-        state = secrets.token_urlsafe(32)
+        # Generate random state if not provided (CSRF protection)
+        if not state:
+            state = secrets.token_urlsafe(32)
 
-        # Create OAuth2 session
-        session = OAuth2Session(
-            client_id=self.client_id,
-            client_secret=self.client_secret,
-            redirect_uri=self.redirect_uri,
-            scope=GOOGLE_SCOPES,
-        )
+        # Build authorization URL parameters
+        params = {
+            "client_id": self.client_id,
+            "redirect_uri": self.redirect_uri,
+            "response_type": "code",
+            "scope": " ".join(self.scopes),
+            "state": state,
+            "access_type": "offline",  # Request refresh token
+            "prompt": "consent",  # Force consent screen to get refresh token
+        }
 
-        # Generate authorization URL
-        authorization_url, _ = session.create_authorization_url(
-            GOOGLE_AUTHORIZATION_ENDPOINT, state=state
-        )
+        authorization_url = f"{self.AUTHORIZATION_ENDPOINT}?{urlencode(params)}"
 
-        return authorization_url, state
+        return (authorization_url, state)
 
-    def exchange_code_for_token(self, code: str) -> dict:
-        """Exchange authorization code for access token.
-
-        After the user authorizes, Google redirects back with an authorization code.
-        This method exchanges that code for an access token.
+    async def exchange_code_for_tokens(self, code: str) -> Dict[str, Any]:
+        """Exchange authorization code for access and refresh tokens.
 
         Args:
-            code: Authorization code from Google's callback
+            code: Authorization code from OAuth callback
 
         Returns:
-            Token response dictionary containing:
-            - access_token: OAuth access token
-            - token_type: Token type (usually "Bearer")
-            - expires_in: Token expiration time in seconds
-            - id_token: JWT ID token with user claims
+            Token response dict containing:
+                - access_token: OAuth access token
+                - refresh_token: OAuth refresh token (if granted)
+                - id_token: JWT ID token with user info
+                - expires_in: Token expiration time in seconds
+                - token_type: Usually "Bearer"
+
+        Raises:
+            Exception: If token exchange fails
 
         Example:
-            >>> token = client.exchange_code_for_token(code="auth-code-from-callback")
-            >>> access_token = token["access_token"]
+            >>> client = OAuthClient.from_env()
+            >>> tokens = await client.exchange_code_for_tokens("auth_code_here")
+            >>> print(tokens["access_token"])
         """
-        # Create OAuth2 session
-        session = OAuth2Session(
-            client_id=self.client_id,
-            client_secret=self.client_secret,
-            redirect_uri=self.redirect_uri,
-        )
+        import httpx
 
-        # Exchange code for token
-        token = session.fetch_token(
-            url=GOOGLE_TOKEN_ENDPOINT,
-            code=code,
-            grant_type="authorization_code",
-        )
+        token_data = {
+            "code": code,
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "redirect_uri": self.redirect_uri,
+            "grant_type": "authorization_code",
+        }
 
-        return token
+        async with httpx.AsyncClient() as http_client:
+            response = await http_client.post(
+                self.TOKEN_ENDPOINT,
+                data=token_data,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            response.raise_for_status()
+            return response.json()
 
-    def get_user_info(self, access_token: str) -> dict:
-        """Fetch user information from Google.
-
-        Uses the access token to retrieve the user's profile information
-        from Google's userinfo endpoint.
+    async def get_user_info(self, access_token: str) -> Dict[str, Any]:
+        """Fetch user information from Google using access token.
 
         Args:
             access_token: OAuth access token
 
         Returns:
-            User information dictionary containing:
-            - sub: Google user ID (unique identifier)
-            - email: User's email address
-            - email_verified: Whether email is verified
-            - name: Full name
-            - given_name: First name
-            - family_name: Last name
-            - picture: Profile picture URL
-            - locale: User's locale
+            User info dict containing:
+                - sub: Google user ID
+                - email: User email
+                - email_verified: Whether email is verified
+                - name: User's full name
+                - picture: Profile picture URL
+                - given_name: First name
+                - family_name: Last name
+
+        Raises:
+            Exception: If user info request fails
 
         Example:
-            >>> user_info = client.get_user_info(access_token="ya29....")
-            >>> print(f"User: {user_info['email']}")
+            >>> client = OAuthClient.from_env()
+            >>> user_info = await client.get_user_info("access_token_here")
+            >>> print(user_info["email"])
+            user@example.com
         """
-        # Create OAuth2 session with token
-        session = OAuth2Session(
-            client_id=self.client_id,
-            client_secret=self.client_secret,
-            token={"access_token": access_token, "token_type": "Bearer"},
+        import httpx
+
+        async with httpx.AsyncClient() as http_client:
+            response = await http_client.get(
+                self.USERINFO_ENDPOINT,
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            response.raise_for_status()
+            return response.json()
+
+    def decode_id_token(self, id_token: str) -> Dict[str, Any]:
+        """Decode ID token JWT to extract user claims.
+
+        Note: This does NOT verify the signature. For production use,
+        you should verify the token signature against Google's public keys.
+
+        Args:
+            id_token: JWT ID token from Google
+
+        Returns:
+            Decoded token payload with user claims
+
+        Example:
+            >>> client = OAuthClient.from_env()
+            >>> payload = client.decode_id_token(id_token)
+            >>> print(payload["email"])
+            user@example.com
+        """
+        from jose import jwt
+
+        # Decode without verification (for development)
+        # In production, should verify signature with Google's public keys
+        payload = jwt.decode(
+            id_token,
+            options={
+                "verify_signature": False,
+                "verify_aud": False,
+                "verify_exp": True,
+            },
         )
+        return payload
 
-        # Fetch user info from Google
-        response = session.get(GOOGLE_USERINFO_ENDPOINT)
-        user_info = response.json()
 
-        return user_info
+def get_oauth_client() -> OAuthClient:
+    """Get OAuth client instance configured from environment.
+
+    Returns:
+        Configured OAuthClient instance
+
+    Example:
+        >>> client = get_oauth_client()
+        >>> auth_url, state = client.get_authorization_url()
+    """
+    return OAuthClient.from_env()

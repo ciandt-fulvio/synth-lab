@@ -26,8 +26,8 @@ from synth_lab.models.orm.experiment import Experiment
 
 
 @pytest.fixture
-def client(db_session):
-    """Create test client with shared database session."""
+def client(db_session, auth_token):
+    """Create test client with shared database session and authentication."""
     # Create repository and service with the test session
     repository = ExperimentMaterialRepository(session=db_session)
     service = MaterialService(repository=repository)
@@ -36,7 +36,9 @@ def client(db_session):
     original_get_service = materials_router._get_service
     materials_router._get_service = lambda: service
 
-    yield TestClient(app)
+    test_client = TestClient(app)
+    test_client.cookies.set("auth_token", auth_token)
+    yield test_client
 
     # Restore original
     materials_router._get_service = original_get_service

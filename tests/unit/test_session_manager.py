@@ -1,171 +1,262 @@
-"""Unit tests for JWT Session Manager.
+"""Unit tests for JWT session management.
 
-Following Test-First Development:
-- Tests are written BEFORE implementation
-- Tests MUST fail initially (no implementation exists yet)
-- Implementation in src/synth_lab/infrastructure/auth/session_manager.py
-
-The SessionManager handles JWT token creation, validation, and expiration.
+Tests token creation, validation, and expiration logic.
+Must FAIL before implementation.
 """
-
 import pytest
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta
 from uuid import uuid4
+from synth_lab.infrastructure.auth.session_manager import SessionManager
+
+
+@pytest.fixture
+def session_manager():
+    """Create SessionManager with test configuration."""
+    return SessionManager(
+        secret_key="test_secret_key_32_characters_long_for_testing",
+        algorithm="HS256",
+        access_token_expire_minutes=30
+    )
 
 
 class TestJWTTokenCreation:
-    """Test JWT token creation (T014)."""
+    """Test JWT token creation."""
 
-    def test_create_access_token_returns_valid_jwt(self):
-        """Test that create_access_token returns a JWT string."""
-        from synth_lab.infrastructure.auth.session_manager import SessionManager
-
-        manager = SessionManager(secret_key="test-secret-key", algorithm="HS256")
+    def test_create_access_token(self, session_manager):
+        """Should create valid JWT access token."""
         user_id = str(uuid4())
-        token = manager.create_access_token(user_id=user_id, email="alice@example.com")
+        email = "user@example.com"
 
-        # Token should be a non-empty string with 3 parts (header.payload.signature)
+        token = session_manager.create_access_token(
+            user_id=user_id,
+            email=email
+        )
+
+        assert token is not None
         assert isinstance(token, str)
         assert len(token) > 0
-        assert token.count(".") == 2
 
-    def test_create_access_token_includes_user_data(self):
-        """Test that the token includes user ID and email in the payload."""
-        from synth_lab.infrastructure.auth.session_manager import SessionManager
-
-        manager = SessionManager(secret_key="test-secret-key", algorithm="HS256")
+    def test_token_contains_user_data(self, session_manager):
+        """Token payload should contain user_id and email."""
         user_id = str(uuid4())
-        email = "alice@example.com"
+        email = "user@example.com"
 
-        token = manager.create_access_token(user_id=user_id, email=email)
-
-        # Decode token to verify payload (without verification for testing)
-        import jwt
-        payload = jwt.decode(token, options={"verify_signature": False})
+        token = session_manager.create_access_token(user_id=user_id, email=email)
+        payload = session_manager.decode_token(token)
 
         assert payload["sub"] == user_id
         assert payload["email"] == email
 
-    def test_create_access_token_includes_expiration(self):
-        """Test that the token includes an expiration timestamp."""
-        from synth_lab.infrastructure.auth.session_manager import SessionManager
+    def test_token_contains_expiration(self, session_manager):
+        """Token payload should contain expiration time."""
+        user_id = str(uuid4())
+        email = "user@example.com"
 
-        manager = SessionManager(
-            secret_key="test-secret-key", algorithm="HS256", access_token_expire_minutes=30
-        )
-        token = manager.create_access_token(user_id=str(uuid4()), email="alice@example.com")
-
-        # Decode token to verify expiration
-        import jwt
-        payload = jwt.decode(token, options={"verify_signature": False})
+        token = session_manager.create_access_token(user_id=user_id, email=email)
+        payload = session_manager.decode_token(token)
 
         assert "exp" in payload
         assert isinstance(payload["exp"], int)
 
+    def test_token_expiration_is_correct(self, session_manager):
+        """Token expiration should match configured time."""
+        user_id = str(uuid4())
+        email = "user@example.com"
+
+        before_creation = datetime.utcnow()
+        token = session_manager.create_access_token(user_id=user_id, email=email)
+        after_creation = datetime.utcnow()
+
+        payload = session_manager.decode_token(token)
+        exp_timestamp = payload["exp"]
+        exp_datetime = datetime.utcfromtimestamp(exp_timestamp)
+
+        # Should expire 30 minutes from now (allow 1 second tolerance for timestamp rounding)
+        expected_min = before_creation + timedelta(minutes=30) - timedelta(seconds=1)
+        expected_max = after_creation + timedelta(minutes=30) + timedelta(seconds=1)
+
+        assert expected_min <= exp_datetime <= expected_max
+
+    def test_custom_expiration_time(self, session_manager):
+        """Should allow custom expiration time."""
+        user_id = str(uuid4())
+        email = "user@example.com"
+        custom_expires = timedelta(minutes=60)
+
+        token = session_manager.create_access_token(
+            user_id=user_id,
+            email=email,
+            expires_delta=custom_expires
+        )
+        payload = session_manager.decode_token(token)
+        exp_datetime = datetime.utcfromtimestamp(payload["exp"])
+
+        # Should expire ~60 minutes from now
+        now = datetime.utcnow()
+        expected = now + custom_expires
+        delta = abs((exp_datetime - expected).total_seconds())
+
+        assert delta < 2  # Within 2 seconds
+
 
 class TestJWTTokenValidation:
-    """Test JWT token validation (T015)."""
+    """Test JWT token validation."""
 
-    def test_validate_token_returns_payload_for_valid_token(self):
-        """Test that validate_token returns the payload for a valid token."""
-        from synth_lab.infrastructure.auth.session_manager import SessionManager
-
-        manager = SessionManager(secret_key="test-secret-key", algorithm="HS256")
+    def test_validate_valid_token(self, session_manager):
+        """Should validate correctly formed token."""
         user_id = str(uuid4())
-        email = "alice@example.com"
+        email = "user@example.com"
 
-        # Create token
-        token = manager.create_access_token(user_id=user_id, email=email)
-
-        # Validate token
-        payload = manager.validate_token(token)
+        token = session_manager.create_access_token(user_id=user_id, email=email)
+        payload = session_manager.validate_token(token)
 
         assert payload is not None
         assert payload["sub"] == user_id
         assert payload["email"] == email
 
-    def test_validate_token_raises_for_invalid_signature(self):
-        """Test that validate_token raises an exception for tampered tokens."""
-        from synth_lab.infrastructure.auth.session_manager import SessionManager
-        from jose import JWTError
+    def test_validate_invalid_signature(self, session_manager):
+        """Should reject token with invalid signature."""
+        # Create token with different secret
+        other_manager = SessionManager(
+            secret_key="different_secret_key_32_chars_test",
+            algorithm="HS256",
+            access_token_expire_minutes=30
+        )
+        token = other_manager.create_access_token(
+            user_id=str(uuid4()),
+            email="user@example.com"
+        )
 
-        manager = SessionManager(secret_key="test-secret-key", algorithm="HS256")
-        token = manager.create_access_token(user_id=str(uuid4()), email="alice@example.com")
+        # Try to validate with original manager
+        payload = session_manager.validate_token(token)
+        assert payload is None
 
-        # Tamper with the token (change last character)
-        tampered_token = token[:-1] + ("x" if token[-1] != "x" else "y")
+    def test_validate_malformed_token(self, session_manager):
+        """Should reject malformed token."""
+        malformed_tokens = [
+            "not.a.jwt",
+            "invalid",
+            "",
+            "header.payload",  # Missing signature
+        ]
 
-        # Validation should raise an exception
-        with pytest.raises(JWTError):
-            manager.validate_token(tampered_token)
+        for token in malformed_tokens:
+            payload = session_manager.validate_token(token)
+            assert payload is None
 
-    def test_validate_token_raises_for_wrong_secret(self):
-        """Test that validate_token fails if secret key is different."""
-        from synth_lab.infrastructure.auth.session_manager import SessionManager
-        from jose import JWTError
+    def test_decode_vs_validate(self, session_manager):
+        """decode_token should not check expiration, validate_token should."""
+        user_id = str(uuid4())
+        email = "user@example.com"
 
-        manager1 = SessionManager(secret_key="secret-key-1", algorithm="HS256")
-        manager2 = SessionManager(secret_key="secret-key-2", algorithm="HS256")
+        # Create expired token
+        token = session_manager.create_access_token(
+            user_id=user_id,
+            email=email,
+            expires_delta=timedelta(seconds=-1)  # Expired 1 second ago
+        )
 
-        # Create token with manager1
-        token = manager1.create_access_token(user_id=str(uuid4()), email="alice@example.com")
+        # decode_token should work (no expiration check)
+        decoded = session_manager.decode_token(token)
+        assert decoded is not None
+        assert decoded["sub"] == user_id
 
-        # Try to validate with manager2 (different secret)
-        with pytest.raises(JWTError):
-            manager2.validate_token(token)
+        # validate_token should fail (checks expiration)
+        validated = session_manager.validate_token(token)
+        assert validated is None
 
 
 class TestJWTTokenExpiration:
-    """Test JWT token expiration (T016)."""
+    """Test JWT token expiration handling."""
 
-    def test_expired_token_raises_exception(self):
-        """Test that validate_token raises an exception for expired tokens."""
-        from synth_lab.infrastructure.auth.session_manager import SessionManager
-        from jose import JWTError
-
-        # Create manager with very short expiration (negative to make it expire immediately)
-        manager = SessionManager(
-            secret_key="test-secret-key", algorithm="HS256", access_token_expire_minutes=-1
-        )
-
-        # Create token (already expired)
-        token = manager.create_access_token(user_id=str(uuid4()), email="alice@example.com")
-
-        # Validation should raise an exception
-        with pytest.raises(JWTError):
-            manager.validate_token(token)
-
-    def test_token_expiration_time_is_configurable(self):
-        """Test that expiration time can be configured."""
-        from synth_lab.infrastructure.auth.session_manager import SessionManager
-        import jwt
-
-        # Create token with 60 minute expiration
-        manager = SessionManager(
-            secret_key="test-secret-key", algorithm="HS256", access_token_expire_minutes=60
-        )
-        token = manager.create_access_token(user_id=str(uuid4()), email="alice@example.com")
-
-        # Decode and check expiration is approximately 60 minutes from now
-        payload = jwt.decode(token, options={"verify_signature": False})
-        exp_time = datetime.fromtimestamp(payload["exp"], UTC)
-        expected_exp = datetime.now(UTC) + timedelta(minutes=60)
-
-        # Allow 5 second tolerance for test execution time
-        time_diff = abs((exp_time - expected_exp).total_seconds())
-        assert time_diff < 5
-
-    def test_non_expired_token_validates_successfully(self):
-        """Test that tokens within expiration time validate successfully."""
-        from synth_lab.infrastructure.auth.session_manager import SessionManager
-
-        # Create token with reasonable expiration
-        manager = SessionManager(
-            secret_key="test-secret-key", algorithm="HS256", access_token_expire_minutes=30
-        )
+    def test_expired_token_rejected(self, session_manager):
+        """Should reject expired token."""
         user_id = str(uuid4())
-        token = manager.create_access_token(user_id=user_id, email="alice@example.com")
+        email = "user@example.com"
 
-        # Should validate successfully
-        payload = manager.validate_token(token)
+        # Create token that expires immediately
+        token = session_manager.create_access_token(
+            user_id=user_id,
+            email=email,
+            expires_delta=timedelta(seconds=-10)  # Expired 10 seconds ago
+        )
+
+        payload = session_manager.validate_token(token)
+        assert payload is None
+
+    def test_token_not_yet_expired(self, session_manager):
+        """Should accept token that hasn't expired yet."""
+        user_id = str(uuid4())
+        email = "user@example.com"
+
+        # Create token that expires in 1 hour
+        token = session_manager.create_access_token(
+            user_id=user_id,
+            email=email,
+            expires_delta=timedelta(hours=1)
+        )
+
+        payload = session_manager.validate_token(token)
+        assert payload is not None
         assert payload["sub"] == user_id
+
+    def test_token_boundary_expiration(self, session_manager):
+        """Should handle token expiring right now."""
+        user_id = str(uuid4())
+        email = "user@example.com"
+
+        # Create token that expires in 1 second
+        token = session_manager.create_access_token(
+            user_id=user_id,
+            email=email,
+            expires_delta=timedelta(seconds=1)
+        )
+
+        # Should be valid immediately
+        payload = session_manager.validate_token(token)
+        assert payload is not None
+
+        # Wait for expiration
+        import time
+        time.sleep(2)
+
+        # Should now be invalid
+        payload = session_manager.validate_token(token)
+        assert payload is None
+
+
+class TestSessionManagerEdgeCases:
+    """Test edge cases and error handling."""
+
+    def test_empty_user_id(self, session_manager):
+        """Should handle empty user_id."""
+        with pytest.raises(ValueError):
+            session_manager.create_access_token(user_id="", email="user@example.com")
+
+    def test_empty_email(self, session_manager):
+        """Should handle empty email."""
+        with pytest.raises(ValueError):
+            session_manager.create_access_token(user_id=str(uuid4()), email="")
+
+    def test_none_token_validation(self, session_manager):
+        """Should handle None token gracefully."""
+        payload = session_manager.validate_token(None)
+        assert payload is None
+
+    def test_refresh_token_creation(self, session_manager):
+        """Should create refresh token with longer expiration."""
+        user_id = str(uuid4())
+        email = "user@example.com"
+
+        refresh_token = session_manager.create_refresh_token(
+            user_id=user_id,
+            email=email
+        )
+
+        payload = session_manager.decode_token(refresh_token)
+        exp_datetime = datetime.utcfromtimestamp(payload["exp"])
+        now = datetime.utcnow()
+
+        # Refresh token should expire in ~30 days
+        delta_days = (exp_datetime - now).days
+        assert 29 <= delta_days <= 31

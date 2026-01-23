@@ -42,7 +42,8 @@ class SynthGroupService:
         self,
         name: str,
         description: str | None = None,
-        group_id: str | None = None) -> SynthGroupSummary:
+        group_id: str | None = None,
+        owner_id: str | None = None) -> SynthGroupSummary:
         """
         Create a new synth group.
 
@@ -50,6 +51,7 @@ class SynthGroupService:
             name: Descriptive name for the group.
             description: Optional description.
             group_id: Optional custom ID.
+            owner_id: UUID of the user who owns this synth group.
 
         Returns:
             Created synth group summary.
@@ -66,11 +68,13 @@ class SynthGroupService:
             group = SynthGroup(
                 id=group_id,
                 name=name.strip(),
-                description=description.strip() if description else None)
+                description=description.strip() if description else None,
+                owner_id=owner_id)
         else:
             group = SynthGroup(
                 name=name.strip(),
-                description=description.strip() if description else None)
+                description=description.strip() if description else None,
+                owner_id=owner_id)
 
         self.repository.create(group)
 
@@ -82,6 +86,7 @@ class SynthGroupService:
         name: str,
         config: dict[str, Any],
         description: str | None = None,
+        owner_id: str | None = None,
     ) -> SynthGroupSummary:
         """
         Create a new synth group with custom distribution config and generate synths.
@@ -97,6 +102,7 @@ class SynthGroupService:
                 - n_synths: Number of synths to generate (default 500)
                 - distributions: Custom distributions for demographics
             description: Optional description.
+            owner_id: UUID of the user who owns this synth group.
 
         Returns:
             Created synth group summary with synth count.
@@ -141,6 +147,7 @@ class SynthGroupService:
         group = SynthGroup(
             name=name.strip(),
             description=description.strip() if description else None,
+            owner_id=owner_id,
         )
 
         # Persist group and synths atomically

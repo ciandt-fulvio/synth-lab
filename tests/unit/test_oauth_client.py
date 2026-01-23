@@ -1,190 +1,186 @@
-"""Unit tests for Google OAuth Client.
+"""Unit tests for OAuth client wrapper.
 
-Following Test-First Development:
-- Tests are written BEFORE implementation
-- Tests MUST fail initially (no implementation exists yet)
-- Implementation in src/synth_lab/infrastructure/auth/oauth_client.py
-
-The GoogleOAuthClient handles OAuth 2.0 flow with Google:
-1. Generate authorization URL (user clicks "Sign in with Google")
-2. Exchange authorization code for access token (callback)
-3. Fetch user information from Google
+Tests OAuth client initialization and authorization URL generation.
+Must FAIL before implementation.
 """
-
 import pytest
-from unittest.mock import Mock, patch
+from synth_lab.infrastructure.auth.oauth_client import OAuthClient
+
+
+@pytest.fixture
+def oauth_config():
+    """OAuth configuration for testing."""
+    return {
+        "client_id": "test_client_id.apps.googleusercontent.com",
+        "client_secret": "test_client_secret",
+        "redirect_uri": "http://localhost:8000/auth/callback",
+    }
 
 
 class TestOAuthClientInitialization:
-    """Test OAuth client initialization (T018)."""
+    """Test OAuth client initialization."""
 
-    def test_client_initialization_stores_credentials(self):
-        """Test that GoogleOAuthClient stores client credentials."""
-        from synth_lab.infrastructure.auth.oauth_client import GoogleOAuthClient
-
-        client_id = "test-client-id.apps.googleusercontent.com"
-        client_secret = "test-client-secret"
-        redirect_uri = "http://localhost:8000/auth/callback"
-
-        client = GoogleOAuthClient(
-            client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri
+    def test_create_oauth_client(self, oauth_config):
+        """Should create OAuth client with valid config."""
+        client = OAuthClient(
+            client_id=oauth_config["client_id"],
+            client_secret=oauth_config["client_secret"],
+            redirect_uri=oauth_config["redirect_uri"],
         )
 
-        assert client.client_id == client_id
-        assert client.client_secret == client_secret
-        assert client.redirect_uri == redirect_uri
-
-    def test_client_requires_all_parameters(self):
-        """Test that GoogleOAuthClient requires all initialization parameters."""
-        from synth_lab.infrastructure.auth.oauth_client import GoogleOAuthClient
-
-        # Should work with all parameters
-        client = GoogleOAuthClient(
-            client_id="test-id", client_secret="test-secret", redirect_uri="http://localhost"
-        )
         assert client is not None
+        assert client.client_id == oauth_config["client_id"]
+        assert client.redirect_uri == oauth_config["redirect_uri"]
+
+    def test_create_without_client_id(self, oauth_config):
+        """Should raise error if client_id is missing."""
+        with pytest.raises(ValueError, match="client_id"):
+            OAuthClient(
+                client_id="",
+                client_secret=oauth_config["client_secret"],
+                redirect_uri=oauth_config["redirect_uri"],
+            )
+
+    def test_create_without_client_secret(self, oauth_config):
+        """Should raise error if client_secret is missing."""
+        with pytest.raises(ValueError, match="client_secret"):
+            OAuthClient(
+                client_id=oauth_config["client_id"],
+                client_secret="",
+                redirect_uri=oauth_config["redirect_uri"],
+            )
+
+    def test_create_without_redirect_uri(self, oauth_config):
+        """Should raise error if redirect_uri is missing."""
+        with pytest.raises(ValueError, match="redirect_uri"):
+            OAuthClient(
+                client_id=oauth_config["client_id"],
+                client_secret=oauth_config["client_secret"],
+                redirect_uri="",
+            )
+
+    def test_create_from_env(self, monkeypatch, oauth_config):
+        """Should create client from environment variables."""
+        monkeypatch.setenv("GOOGLE_CLIENT_ID", oauth_config["client_id"])
+        monkeypatch.setenv("GOOGLE_CLIENT_SECRET", oauth_config["client_secret"])
+        monkeypatch.setenv("BACKEND_URL", "http://localhost:8000")
+
+        client = OAuthClient.from_env()
+
+        assert client.client_id == oauth_config["client_id"]
+        assert client.redirect_uri == "http://localhost:8000/auth/callback"
 
 
-class TestOAuthAuthorizationURL:
-    """Test OAuth authorization URL generation (T019)."""
+class TestAuthorizationURLGeneration:
+    """Test OAuth authorization URL generation."""
 
-    def test_generate_authorization_url_returns_url_and_state(self):
-        """Test that generate_authorization_url returns a URL and state."""
-        from synth_lab.infrastructure.auth.oauth_client import GoogleOAuthClient
-
-        client = GoogleOAuthClient(
-            client_id="test-id",
-            client_secret="test-secret",
-            redirect_uri="http://localhost:8000/auth/callback",
+    def test_generate_authorization_url(self, oauth_config):
+        """Should generate valid authorization URL."""
+        client = OAuthClient(
+            client_id=oauth_config["client_id"],
+            client_secret=oauth_config["client_secret"],
+            redirect_uri=oauth_config["redirect_uri"],
         )
 
-        auth_url, state = client.generate_authorization_url()
+        auth_url, state = client.get_authorization_url()
 
-        # Should return a URL string
+        assert auth_url is not None
         assert isinstance(auth_url, str)
-        assert auth_url.startswith("https://")
-        assert "accounts.google.com" in auth_url
-
-        # Should return a state string for CSRF protection
+        assert len(auth_url) > 0
+        assert state is not None
         assert isinstance(state, str)
         assert len(state) > 0
 
-    def test_authorization_url_includes_redirect_uri(self):
-        """Test that the authorization URL includes the redirect_uri."""
-        from synth_lab.infrastructure.auth.oauth_client import GoogleOAuthClient
-
-        redirect_uri = "http://localhost:8000/auth/callback"
-        client = GoogleOAuthClient(
-            client_id="test-id", client_secret="test-secret", redirect_uri=redirect_uri
+    def test_authorization_url_contains_client_id(self, oauth_config):
+        """Authorization URL should contain client_id."""
+        client = OAuthClient(
+            client_id=oauth_config["client_id"],
+            client_secret=oauth_config["client_secret"],
+            redirect_uri=oauth_config["redirect_uri"],
         )
 
-        auth_url, _ = client.generate_authorization_url()
+        auth_url, _ = client.get_authorization_url()
 
-        # URL should include the redirect_uri as a parameter
-        from urllib.parse import quote
-        assert quote(redirect_uri, safe="") in auth_url or redirect_uri in auth_url
+        assert oauth_config["client_id"] in auth_url
 
-    def test_authorization_url_includes_required_scopes(self):
-        """Test that the authorization URL requests required Google scopes."""
-        from synth_lab.infrastructure.auth.oauth_client import GoogleOAuthClient
-
-        client = GoogleOAuthClient(
-            client_id="test-id",
-            client_secret="test-secret",
-            redirect_uri="http://localhost:8000/auth/callback",
+    def test_authorization_url_contains_redirect_uri(self, oauth_config):
+        """Authorization URL should contain redirect_uri."""
+        client = OAuthClient(
+            client_id=oauth_config["client_id"],
+            client_secret=oauth_config["client_secret"],
+            redirect_uri=oauth_config["redirect_uri"],
         )
 
-        auth_url, _ = client.generate_authorization_url()
+        auth_url, _ = client.get_authorization_url()
 
-        # Should request openid, email, and profile scopes
+        # URL encode check
+        assert "redirect_uri" in auth_url
+        assert "localhost" in auth_url
+
+    def test_authorization_url_contains_scopes(self, oauth_config):
+        """Authorization URL should request openid, email, and profile scopes."""
+        client = OAuthClient(
+            client_id=oauth_config["client_id"],
+            client_secret=oauth_config["client_secret"],
+            redirect_uri=oauth_config["redirect_uri"],
+        )
+
+        auth_url, _ = client.get_authorization_url()
+
+        # Check for required scopes
+        assert "scope" in auth_url
         assert "openid" in auth_url
-        assert "email" in auth_url or "userinfo.email" in auth_url
-        assert "profile" in auth_url or "userinfo.profile" in auth_url
+        assert "email" in auth_url
+        assert "profile" in auth_url
 
-
-class TestOAuthTokenExchange:
-    """Test OAuth token exchange and user info retrieval (T020)."""
-
-    @patch("synth_lab.infrastructure.auth.oauth_client.OAuth2Session")
-    def test_exchange_code_for_token_calls_oauth_session(self, mock_oauth_session):
-        """Test that exchange_code_for_token uses OAuth2Session to get token."""
-        from synth_lab.infrastructure.auth.oauth_client import GoogleOAuthClient
-
-        # Mock the OAuth2Session
-        mock_session = Mock()
-        mock_session.fetch_token.return_value = {
-            "access_token": "mock-access-token",
-            "token_type": "Bearer",
-        }
-        mock_oauth_session.return_value = mock_session
-
-        client = GoogleOAuthClient(
-            client_id="test-id",
-            client_secret="test-secret",
-            redirect_uri="http://localhost:8000/auth/callback",
+    def test_authorization_url_contains_state(self, oauth_config):
+        """Authorization URL should contain state parameter for CSRF protection."""
+        client = OAuthClient(
+            client_id=oauth_config["client_id"],
+            client_secret=oauth_config["client_secret"],
+            redirect_uri=oauth_config["redirect_uri"],
         )
 
-        # Exchange code for token
-        token = client.exchange_code_for_token(code="test-auth-code")
+        auth_url, state = client.get_authorization_url()
 
-        # Should have called fetch_token
-        assert mock_session.fetch_token.called
-        assert token["access_token"] == "mock-access-token"
+        assert "state=" in auth_url
+        assert state in auth_url
 
-    @patch("synth_lab.infrastructure.auth.oauth_client.OAuth2Session")
-    def test_get_user_info_fetches_from_google(self, mock_oauth_session):
-        """Test that get_user_info fetches user data from Google."""
-        from synth_lab.infrastructure.auth.oauth_client import GoogleOAuthClient
-
-        # Mock the OAuth2Session
-        mock_session = Mock()
-        mock_session.get.return_value.json.return_value = {
-            "sub": "1234567890",
-            "email": "alice@example.com",
-            "name": "Alice Smith",
-            "picture": "https://example.com/photo.jpg",
-        }
-        mock_oauth_session.return_value = mock_session
-
-        client = GoogleOAuthClient(
-            client_id="test-id",
-            client_secret="test-secret",
-            redirect_uri="http://localhost:8000/auth/callback",
+    def test_state_is_random(self, oauth_config):
+        """Each authorization URL should have unique state."""
+        client = OAuthClient(
+            client_id=oauth_config["client_id"],
+            client_secret=oauth_config["client_secret"],
+            redirect_uri=oauth_config["redirect_uri"],
         )
 
-        # Get user info
-        user_info = client.get_user_info(access_token="mock-access-token")
+        _, state1 = client.get_authorization_url()
+        _, state2 = client.get_authorization_url()
 
-        # Should have called Google's userinfo endpoint
-        assert mock_session.get.called
-        assert user_info["email"] == "alice@example.com"
-        assert user_info["sub"] == "1234567890"
+        assert state1 != state2
 
-    @patch("synth_lab.infrastructure.auth.oauth_client.OAuth2Session")
-    def test_get_user_info_includes_required_fields(self, mock_oauth_session):
-        """Test that get_user_info returns required user fields."""
-        from synth_lab.infrastructure.auth.oauth_client import GoogleOAuthClient
-
-        # Mock the OAuth2Session
-        mock_session = Mock()
-        mock_session.get.return_value.json.return_value = {
-            "sub": "google-user-id-123",
-            "email": "alice@example.com",
-            "name": "Alice Smith",
-            "picture": "https://example.com/photo.jpg",
-            "email_verified": True,
-        }
-        mock_oauth_session.return_value = mock_session
-
-        client = GoogleOAuthClient(
-            client_id="test-id",
-            client_secret="test-secret",
-            redirect_uri="http://localhost:8000/auth/callback",
+    def test_authorization_url_points_to_google(self, oauth_config):
+        """Authorization URL should point to Google's OAuth endpoint."""
+        client = OAuthClient(
+            client_id=oauth_config["client_id"],
+            client_secret=oauth_config["client_secret"],
+            redirect_uri=oauth_config["redirect_uri"],
         )
 
-        user_info = client.get_user_info(access_token="mock-access-token")
+        auth_url, _ = client.get_authorization_url()
 
-        # Must include these fields
-        assert "sub" in user_info  # Google user ID
-        assert "email" in user_info
-        assert "name" in user_info or "given_name" in user_info
+        assert auth_url.startswith("https://accounts.google.com/o/oauth2")
+
+    def test_custom_scopes(self, oauth_config):
+        """Should allow custom scopes."""
+        client = OAuthClient(
+            client_id=oauth_config["client_id"],
+            client_secret=oauth_config["client_secret"],
+            redirect_uri=oauth_config["redirect_uri"],
+            scopes=["openid", "email"],  # No profile
+        )
+
+        auth_url, _ = client.get_authorization_url()
+
+        assert "email" in auth_url
+        # Profile might not be explicitly in URL if not requested

@@ -16,9 +16,10 @@ import {
   SynthGroupDetailSkeleton,
 } from '@/components/synths/SynthGroupDetail';
 import { CreateSynthGroupModal } from '@/components/synths/CreateSynthGroupModal';
-import { Users, Plus, ChevronDown, ChevronRight, Layers } from 'lucide-react';
+import { Users, Plus, ChevronDown, ChevronRight, Layers, AlertCircle } from 'lucide-react';
 import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
 import { useSynthGroups, useSynthGroup } from '@/hooks/use-synth-groups';
+import { APIError } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import {
   Collapsible,
@@ -70,7 +71,7 @@ export default function Synths() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [groupsExpanded, setGroupsExpanded] = useState(true);
   const { data: groupsData, isLoading: groupsLoading, refetch } = useSynthGroups({ limit: 100 });
-  const { data: groupDetail, isLoading: detailLoading } = useSynthGroup(detailGroupId ?? '');
+  const { data: groupDetail, isLoading: detailLoading, error: detailError } = useSynthGroup(detailGroupId ?? '');
 
   const handleGroupSelect = (groupId: string) => {
     // Toggle selection: if already selected, deselect
@@ -214,6 +215,24 @@ export default function Synths() {
           </SheetHeader>
           {detailLoading ? (
             <SynthGroupDetailSkeleton />
+          ) : detailError ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <AlertCircle className="h-12 w-12 text-red-400 mb-4" />
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                {detailError instanceof APIError && detailError.status === 401
+                  ? 'Autenticação necessária'
+                  : detailError instanceof APIError && detailError.status === 403
+                    ? 'Acesso negado'
+                    : 'Erro ao carregar'}
+              </h3>
+              <p className="text-sm text-slate-500 max-w-xs">
+                {detailError instanceof APIError && detailError.status === 401
+                  ? 'Faça login para visualizar os detalhes deste grupo.'
+                  : detailError instanceof APIError && detailError.status === 403
+                    ? 'Você não tem permissão para acessar este grupo.'
+                    : 'Não foi possível carregar os detalhes do grupo. Tente novamente.'}
+              </p>
+            </div>
           ) : groupDetail ? (
             <SynthGroupDetailView group={groupDetail} />
           ) : null}

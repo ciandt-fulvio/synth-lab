@@ -1,64 +1,118 @@
-"""Whitelist validation for user authentication.
+"""Whitelist validation for email-based access control.
 
-This module provides whitelist validation to control which users can access the system.
-The whitelist supports:
-- Individual email addresses (e.g., "alice@example.com")
-- Domain wildcards (e.g., "@company.com" allows all emails from company.com)
+Parses and validates user emails against a whitelist that supports:
+- Exact email matches: user@example.com
+- Domain matches: @company.com (matches any email from that domain)
 
-Matching is case-insensitive and whitespace is stripped.
-
-Example:
-    >>> whitelist = ["alice@example.com", "@company.com"]
-    >>> is_whitelisted("alice@example.com", whitelist)
-    True
-    >>> is_whitelisted("bob@company.com", whitelist)
-    True
-    >>> is_whitelisted("eve@hacker.com", whitelist)
-    False
+Configuration via WHITELIST environment variable (comma-separated).
 """
+from typing import Set, Tuple
 
 
-def is_whitelisted(email: str, whitelist: list[str]) -> bool:
+def parse_whitelist(whitelist_str: str) -> Tuple[Set[str], Set[str]]:
+    """Parse whitelist string into email and domain sets.
+
+    Args:
+        whitelist_str: Comma-separated list of emails and domains.
+                      Example: "user@example.com,@company.com,admin@test.com"
+
+    Returns:
+        Tuple of (emails_set, domains_set) where:
+        - emails_set: Set of exact email addresses (lowercase)
+        - domains_set: Set of domain names without @ prefix (lowercase)
+
+    Examples:
+        >>> parse_whitelist("user@example.com,@company.com")
+        ({'user@example.com'}, {'company.com'})
+
+        >>> parse_whitelist("")
+        (set(), set())
+    """
+    if not whitelist_str or not whitelist_str.strip():
+        return (set(), set())
+
+    emails: Set[str] = set()
+    domains: Set[str] = set()
+
+    entries = [entry.strip() for entry in whitelist_str.split(",")]
+
+    for entry in entries:
+        if not entry:
+            continue
+
+        # Normalize to lowercase
+        entry_lower = entry.lower()
+
+        if entry_lower.startswith("@"):
+            # Domain pattern (remove @ prefix)
+            domain = entry_lower[1:]
+            if domain:
+                domains.add(domain)
+        else:
+            # Exact email
+            emails.add(entry_lower)
+
+    return (emails, domains)
+
+
+def is_whitelisted(email: str, emails: Set[str], domains: Set[str]) -> bool:
     """Check if an email is whitelisted.
 
     Args:
-        email: The email address to check
-        whitelist: List of whitelisted emails and/or domain wildcards (e.g., "@company.com")
+        email: Email address to check
+        emails: Set of whitelisted exact emails (from parse_whitelist)
+        domains: Set of whitelisted domains (from parse_whitelist)
 
     Returns:
-        True if the email is whitelisted, False otherwise
+        True if email matches whitelist, False otherwise
 
     Examples:
-        >>> is_whitelisted("alice@example.com", ["alice@example.com"])
+        >>> emails, domains = parse_whitelist("admin@example.com,@company.com")
+        >>> is_whitelisted("admin@example.com", emails, domains)
         True
-        >>> is_whitelisted("bob@company.com", ["@company.com"])
+
+        >>> is_whitelisted("user@company.com", emails, domains)
         True
-        >>> is_whitelisted("eve@hacker.com", ["alice@example.com"])
+
+        >>> is_whitelisted("hacker@evil.com", emails, domains)
         False
     """
-    # Normalize email (strip whitespace and lowercase)
-    email_normalized = email.strip().lower()
-
-    # Extract domain from email (e.g., "alice@company.com" -> "@company.com")
-    if "@" not in email_normalized:
+    if not email:
         return False
 
-    email_domain = "@" + email_normalized.split("@")[1]
+    # Normalize email to lowercase
+    email_lower = email.lower().strip()
 
-    # Check each whitelist entry
-    for entry in whitelist:
-        # Normalize entry (strip whitespace and lowercase)
-        entry_normalized = entry.strip().lower()
+    # Check exact email match
+    if email_lower in emails:
+        return True
 
-        # Check if it's a domain wildcard (starts with @)
-        if entry_normalized.startswith("@"):
-            # Match if the email's domain exactly matches the wildcard
-            if email_domain == entry_normalized:
-                return True
-        else:
-            # It's an individual email - check for exact match
-            if email_normalized == entry_normalized:
-                return True
+    # Check domain match
+    if "@" in email_lower:
+        domain = email_lower.split("@")[1]
+        if domain in domains:
+            return True
 
-    # No match found
     return False
+
+
+def load_whitelist_from_env() -> Tuple[Set[str], Set[str]]:
+    """Load and parse whitelist from WHITELIST environment variable.
+
+    Returns:
+        Tuple of (emails_set, domains_set)
+
+    Raises:
+        ValueError: If WHITELIST environment variable is not set
+    """
+    import os
+
+    whitelist_str = os.getenv("WHITELIST", "")
+    if not whitelist_str:
+        raise ValueError(
+            "WHITELIST environment variable is required. "
+            "Set it to a comma-separated list of emails and domains. "
+            "Example: WHITELIST=user@example.com,@company.com"
+        )
+
+    return parse_whitelist(whitelist_str)

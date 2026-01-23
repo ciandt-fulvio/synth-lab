@@ -62,20 +62,28 @@ def valid_config() -> dict:
 
 
 @pytest.fixture
-def client(db_session):
-    """Create test client with shared database session."""
-    # Create repository and service with the test session
-    repository = SynthGroupRepository(session=db_session)
-    service = SynthGroupService(repository=repository)
+def client(postgres_test_url: str, auth_token):
+    """Create test client with test database and authentication."""
+    import os
 
-    # Override service getter (use actual function name from router)
-    original_get_service = synth_groups_router.get_synth_group_service
-    synth_groups_router.get_synth_group_service = lambda: service
+    # Store original DATABASE_URL
+    original_db_url = os.environ.get("DATABASE_URL")
 
-    yield TestClient(app)
+    # Set DATABASE_URL to test database
+    os.environ["DATABASE_URL"] = postgres_test_url
 
-    # Restore original
-    synth_groups_router.get_synth_group_service = original_get_service
+    try:
+        # Create client (will use test database)
+        test_client = TestClient(app)
+        # Set auth cookie for all requests
+        test_client.cookies.set("auth_token", auth_token)
+        yield test_client
+    finally:
+        # Restore original DATABASE_URL
+        if original_db_url:
+            os.environ["DATABASE_URL"] = original_db_url
+        else:
+            os.environ.pop("DATABASE_URL", None)
 
 
 class TestCreateSynthGroupBasic:
