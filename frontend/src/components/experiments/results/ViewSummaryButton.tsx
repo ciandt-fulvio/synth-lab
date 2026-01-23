@@ -32,7 +32,7 @@ export function ViewSummaryButton({ experimentId }: ViewSummaryButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { data: availability, isLoading } = useDocumentAvailability(experimentId);
   const generateMutation = useGenerateDocument(experimentId, 'executive_summary');
-  const { data: markdown } = useDocumentMarkdown(experimentId, 'executive_summary', { enabled: isModalOpen });
+  const { data: markdown, isLoading: isLoadingMarkdown } = useDocumentMarkdown(experimentId, 'executive_summary', { enabled: isModalOpen });
 
   // Fetch insights to check if at least 4 are completed
   const { data: insightsData } = useQuery({
@@ -116,7 +116,7 @@ export function ViewSummaryButton({ experimentId }: ViewSummaryButtonProps) {
         documentType="executive_summary"
         markdownContent={markdown}
         status={summary?.status === 'generating' ? 'generating' : isAvailable ? 'completed' : 'pending'}
-        isLoading={generateMutation.isPending}
+        isLoading={generateMutation.isPending || isLoadingMarkdown}
       />
     </>
   );
