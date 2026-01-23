@@ -43,10 +43,13 @@ EXPECTED_TABLES = {
     "experiment_materials",
     "tags",
     "experiment_tags",
+    "users",
+    "experiment_shares",
+    "synth_group_shares",
 }
 
-# Current HEAD revision ID (drop_unused_sensitivity_and_region_tables)
-CURRENT_HEAD_REVISION = "e6b4ffd0b652"
+# Current HEAD revision ID (add_owner_id_columns)
+CURRENT_HEAD_REVISION = "a7b8c9d0e1f2"
 
 
 def get_alembic_config(database_url: str) -> Config:

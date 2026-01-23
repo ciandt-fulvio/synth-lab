@@ -290,7 +290,7 @@ make db-test
 ### "Migration pending"
 ```bash
 # Aplique migrations ao dev database
-DATABASE_URL="postgresql://synthlab:synthlab_dev@localhost:5432/synthlab" \
+DATABASE_URL="postgresql://synthlab:synthlab@localhost:5432/synthlab" \
   alembic -c src/synth_lab/alembic/alembic.ini upgrade head
 
 # Ou rode os testes (container de teste aplica automaticamente)

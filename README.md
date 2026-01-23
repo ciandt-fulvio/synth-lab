@@ -84,6 +84,153 @@ uv run uvicorn src.synth_lab.api.main:app --reload --host 0.0.0.0 --port 8000
 open http://localhost:8000/docs
 ```
 
+### 🔐 Autenticação e Controle de Acesso
+
+O SynthLab implementa autenticação via Google OAuth 2.0 com controle de acesso baseado em whitelist de emails/domínios.
+
+#### Configuração do Google OAuth
+
+1. **Criar Projeto no Google Cloud Console**:
+   - Acesse [Google Cloud Console](https://console.cloud.google.com/)
+   - Crie um novo projeto ou selecione um existente
+   - Ative a API "Google+ API" ou "People API"
+
+2. **Configurar OAuth Consent Screen**:
+   - Navegue para "APIs & Services" → "OAuth consent screen"
+   - Escolha "External" se for para uso público
+   - Preencha informações básicas (nome do app, email de suporte)
+   - Adicione escopos: `userinfo.email`, `userinfo.profile`, `openid`
+
+3. **Criar OAuth 2.0 Client ID**:
+   - Navegue para "APIs & Services" → "Credentials"
+   - Clique em "Create Credentials" → "OAuth client ID"
+   - Tipo: "Web application"
+   - Authorized redirect URIs:
+     - Desenvolvimento: `http://localhost:8000/auth/callback`
+     - Produção: `https://seu-dominio.com/auth/callback`
+   - Copie o **Client ID** e **Client Secret**
+
+#### Variáveis de Ambiente para Autenticação
+
+Adicione ao seu arquivo `.env`:
+
+```bash
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID=your_client_id_here.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your_client_secret_here
+OAUTH_REDIRECT_URI=http://localhost:8000/auth/callback
+
+# JWT Session Management
+JWT_SECRET_KEY=your_secret_key_min_32_chars_here
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Email/Domain Whitelist (comma-separated)
+# Examples:
+# - Specific emails: user1@example.com,user2@example.com
+# - Entire domain: @company.com
+# - Mixed: user@gmail.com,@yourcompany.com
+WHITELIST=user@example.com,@yourcompany.com
+
+# Session Secret (for OAuth state CSRF protection)
+SESSION_SECRET_KEY=your_session_secret_key_min_32_chars_here
+
+# Frontend URL (for OAuth callback redirect)
+FRONTEND_URL=http://localhost:5173
+
+# Environment (enables secure cookies in production)
+ENVIRONMENT=development  # or 'production'
+```
+
+#### Gerar Secrets Seguros
+
+```bash
+# Gerar JWT_SECRET_KEY (32+ caracteres)
+openssl rand -hex 32
+
+# Gerar SESSION_SECRET_KEY (32+ caracteres)
+openssl rand -hex 32
+```
+
+#### Configurar Whitelist
+
+A whitelist controla quais usuários podem acessar o sistema:
+
+```bash
+# Permitir emails específicos
+WHITELIST=alice@example.com,bob@example.com
+
+# Permitir domínio inteiro
+WHITELIST=@yourcompany.com
+
+# Misto: emails específicos + domínio
+WHITELIST=alice@gmail.com,bob@hotmail.com,@yourcompany.com
+```
+
+#### Primeiro Login
+
+1. Inicie o servidor: `uv run uvicorn src.synth_lab.api.main:app --reload`
+2. Acesse o frontend: `http://localhost:5173`
+3. Clique em "Login with Google"
+4. Autorize o aplicativo no Google
+5. Se seu email estiver na whitelist, você será autenticado
+6. Um token JWT será armazenado em cookie HTTP-only
+
+#### Migração de Dados (Para Deployments Existentes)
+
+Se você já tem experiments e synth_groups no banco de dados, execute o script de migração para atribuir ownership:
+
+```bash
+# Primeiro, obtenha o UUID do usuário que será o owner
+# (faça login uma vez e consulte a tabela users no banco)
+
+# Preview das mudanças (dry-run)
+export MIGRATION_OWNER_ID="550e8400-e29b-41d4-a716-446655440000"
+uv run python scripts/migrate_ownership.py --dry-run
+
+# Aplicar migração (após confirmar preview)
+uv run python scripts/migrate_ownership.py
+
+# Ou especificar owner via argumento
+uv run python scripts/migrate_ownership.py --owner-id "550e8400-e29b-41d4-a716-446655440000"
+```
+
+#### Endpoints de Autenticação
+
+```bash
+# Login (redireciona para Google OAuth)
+GET http://localhost:8000/auth/login
+
+# Callback (gerenciado automaticamente pelo Google)
+GET http://localhost:8000/auth/callback?code=...&state=...
+
+# Obter usuário atual
+GET http://localhost:8000/auth/me
+
+# Logout
+POST http://localhost:8000/auth/logout
+```
+
+#### Compartilhamento de Recursos
+
+Depois de autenticado, você pode compartilhar experiments e synth_groups com outros usuários:
+
+```bash
+# Compartilhar experiment (automaticamente compartilha synth_group associado)
+POST http://localhost:8000/auth/experiments/{experiment_id}/shares
+Body: {"user_id": "uuid-do-usuario", "permission_level": "viewer"}  # ou "editor"
+
+# Listar compartilhamentos de um experiment
+GET http://localhost:8000/auth/experiments/{experiment_id}/shares
+
+# Revogar acesso
+DELETE http://localhost:8000/auth/experiments/{experiment_id}/shares/{user_id}
+```
+
+Para documentação completa da API de autenticação e compartilhamento, veja:
+- **Contrato OpenAPI**: `specs/034-user-login/contracts/auth-api.yaml`
+- **Auditoria de Segurança**: `specs/034-user-login/SECURITY_AUDIT.md`
+
 ### 🐳 Docker Development (Recomendado)
 
 O SynthLab oferece ambientes Docker pré-configurados para desenvolvimento e testes:
@@ -678,7 +825,7 @@ uv run synthlab gensynth -n 18 --avatar --analyze all --benchmark
 **3. Análise Demográfica com PostgreSQL**
 ```bash
 # Conectar ao banco
-psql postgresql://synthlab:synthlab_dev@localhost:5432/synthlab
+psql postgresql://synthlab:synthlab@localhost:5432/synthlab
 
 # Distribuição por região (exemplo - schema pode variar)
 SELECT regiao, COUNT(*) as total FROM synths GROUP BY regiao ORDER BY total DESC;
@@ -695,7 +842,7 @@ SELECT * FROM synths WHERE renda_mensal > 10000 AND escolaridade = 'Superior com
 **4. Testes de UX/UI**
 ```bash
 # Conectar ao banco PostgreSQL
-psql postgresql://synthlab:synthlab_dev@localhost:5432/synthlab
+psql postgresql://synthlab:synthlab@localhost:5432/synthlab
 
 # Selecionar Synths com baixa alfabetização digital (exemplo - schema pode variar)
 SELECT * FROM synths WHERE alfabetizacao_digital < 40;
@@ -707,7 +854,7 @@ SELECT nome, idade, cidade FROM synths WHERE deficiencia_visual != 'nenhuma';
 **5. Segmentação de Mercado**
 ```bash
 # Conectar ao banco PostgreSQL
-psql postgresql://synthlab:synthlab_dev@localhost:5432/synthlab
+psql postgresql://synthlab:synthlab@localhost:5432/synthlab
 
 # Jovens da região Sudeste (exemplo - schema pode variar)
 SELECT * FROM synths WHERE idade BETWEEN 18 AND 35 AND regiao = 'Sudeste';

@@ -2467,7 +2467,7 @@ kill -9 <PID>
 ```bash
 # Verificar se DB existe
 # Conectar ao PostgreSQL
-psql postgresql://synthlab:synthlab_dev@localhost:5432/synthlab
+psql postgresql://synthlab:synthlab@localhost:5432/synthlab
 
 # Verificar tamanho do banco
 SELECT pg_size_pretty(pg_database_size('synthlab'));

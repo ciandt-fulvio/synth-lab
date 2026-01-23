@@ -24,6 +24,7 @@ export async function fetchAPI<T>(
   try {
     const response = await fetch(url, {
       ...options,
+      credentials: 'include',  // Send cookies with requests
       headers: {
         'Content-Type': 'application/json',
         ...options?.headers,

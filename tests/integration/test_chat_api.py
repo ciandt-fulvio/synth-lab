@@ -19,9 +19,11 @@ from synth_lab.models.synth import Demographics, SynthDetail
 
 
 @pytest.fixture
-def client():
-    """Create test client."""
-    return TestClient(app)
+def client(auth_token):
+    """Create test client with authentication."""
+    client = TestClient(app)
+    client.cookies.set("auth_token", auth_token)
+    return client
 
 
 @pytest.fixture

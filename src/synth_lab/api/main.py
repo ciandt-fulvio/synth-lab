@@ -10,9 +10,14 @@ References:
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from fastapi import FastAPI
+import os
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from loguru import logger
 
 from synth_lab.api.errors import register_exception_handlers
@@ -61,14 +66,30 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+# Configure rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # Configure CORS
+# Note: allow_origins=["*"] with allow_credentials=True is invalid
+# Browsers require explicit origins when credentials are enabled
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:8080,http://localhost:5173").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add session middleware for OAuth state management
+session_secret = os.getenv("SESSION_SECRET_KEY", "dev-secret-key-change-in-production")
+app.add_middleware(SessionMiddleware, secret_key=session_secret)
+
+# Add authentication middleware
+from synth_lab.infrastructure.middleware.auth_middleware import AuthenticationMiddleware
+app.add_middleware(AuthenticationMiddleware)
 
 # Register exception handlers
 register_exception_handlers(app)
@@ -94,6 +115,7 @@ async def root() -> dict:
 # Router imports
 from synth_lab.api.routers import (
     analysis,
+    auth,
     chat,
     documents,
     experiments,
@@ -108,6 +130,7 @@ from synth_lab.api.routers import (
 )
 
 # Register routers
+app.include_router(auth.router)  # Auth router has its own prefix /auth
 app.include_router(synths.router, prefix="/synths", tags=["synths"])
 app.include_router(chat.router, prefix="/synths", tags=["chat"])
 app.include_router(research.router, prefix="/research", tags=["research"])

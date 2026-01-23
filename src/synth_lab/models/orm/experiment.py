@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from synth_lab.models.orm.research import ResearchExecution
     from synth_lab.models.orm.synth import SynthGroup
     from synth_lab.models.orm.tag import ExperimentTag
+    from synth_lab.models.orm.user import User
 
 
 class Experiment(Base, TimestampMixin, SoftDeleteMixin):
@@ -66,11 +67,22 @@ class Experiment(Base, TimestampMixin, SoftDeleteMixin):
         server_default="grp_00000001"
     )
     scorecard_data: Mapped[dict[str, Any] | None] = mapped_column(MutableJSON, nullable=True)
+    owner_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
 
     # Relationships
     synth_group: Mapped["SynthGroup"] = relationship(
         "SynthGroup",
         foreign_keys=[synth_group_id],
+    )
+    owner: Mapped["User | None"] = relationship(
+        "User",
+        back_populates="owned_experiments",
+        foreign_keys=[owner_id],
     )
     analysis_run: Mapped["AnalysisRun | None"] = relationship(
         "AnalysisRun",

@@ -89,3 +89,67 @@ class TestSynthGroupEntity:
         group = SynthGroup(name="Test Group")
         data = group.model_dump(mode="json")
         assert isinstance(data["created_at"], str)
+
+
+# =============================================================================
+# US2 Tests: Ownership (T064)
+# =============================================================================
+
+
+class TestSynthGroupOwnership:
+    """Tests for synth_group ownership field - T064."""
+
+    def test_create_synth_group_with_owner_id(self) -> None:
+        """Should create synth_group with owner_id field.
+
+        US2 requirement: SynthGroups must have owner_id to track ownership.
+        """
+        from uuid import uuid4
+
+        owner_id = str(uuid4())
+        group = SynthGroup(
+            name="Owned Group",
+            owner_id=owner_id,
+        )
+
+        assert group.owner_id == owner_id
+
+    def test_create_synth_group_without_owner_id(self) -> None:
+        """Should allow synth_group creation without owner_id (defaults to None).
+
+        For backward compatibility with existing synth_groups.
+        """
+        group = SynthGroup(
+            name="Unowned Group",
+        )
+
+        assert group.owner_id is None
+
+    def test_owner_id_accepts_uuid_string(self) -> None:
+        """Should accept UUID string for owner_id."""
+        from uuid import uuid4
+
+        owner_id = str(uuid4())
+        group = SynthGroup(
+            name="Test Group",
+            owner_id=owner_id,
+        )
+
+        assert group.owner_id == owner_id
+        # Verify it's a valid UUID format
+        from uuid import UUID
+        UUID(group.owner_id)  # Should not raise
+
+    def test_owner_id_in_model_dump(self) -> None:
+        """Should include owner_id in model dump."""
+        from uuid import uuid4
+
+        owner_id = str(uuid4())
+        group = SynthGroup(
+            name="Test Group",
+            owner_id=owner_id,
+        )
+
+        data = group.model_dump()
+        assert "owner_id" in data
+        assert data["owner_id"] == owner_id

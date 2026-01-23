@@ -42,6 +42,13 @@ from synth_lab.models.orm import (
     SynthOutcome,
 )
 from synth_lab.models.orm.experiment import InterviewGuide
+from synth_lab.models.orm.user import User
+
+
+# Test user constants - must match tests/conftest.py
+TEST_USER_ID = "00000001-0000-0000-0000-000000000001"
+TEST_USER_EMAIL = "testuser@example.com"
+TEST_USER_GOOGLE_ID = "google-test-user-001"
 
 
 def seed_database(engine: Engine) -> None:
@@ -49,6 +56,7 @@ def seed_database(engine: Engine) -> None:
     Seed test database with realistic sample data.
 
     Creates:
+    - 1 test user (for authentication tests)
     - 1 primary experiment (delivery app scheduling feature)
     - 500 synth outcomes in analysis run
     - 6 research executions with transcripts
@@ -67,7 +75,10 @@ def seed_database(engine: Engine) -> None:
         # Clear existing data (in correct order due to FK constraints)
         _clear_existing_data(session)
 
-        # Seed in dependency order (synth_groups MUST come before experiment due to FK)
+        # Seed in dependency order:
+        # 1. User MUST come first (owner FK dependency)
+        # 2. SynthGroups MUST come before experiment due to FK
+        _seed_test_user(session)
         synth_groups = _seed_synth_groups(session)
         experiment = _seed_primary_experiment(session)
         synths = _seed_synths(session, synth_groups)
@@ -105,8 +116,36 @@ def _clear_existing_data(session: Session) -> None:
     session.query(InterviewGuide).delete()  # Must delete before Experiment (FK dependency)
     session.query(Experiment).delete()  # Must delete before SynthGroup (FK dependency)
     session.query(SynthGroup).delete()
+    session.query(User).delete()  # Clear users last (they own experiments/groups)
 
     session.commit()
+
+
+def _seed_test_user(session: Session) -> User:
+    """Seed test user for authentication tests.
+
+    Creates a single test user that matches the TEST_USER_ID in conftest.py.
+    This user is the owner of all seeded experiments and synth groups.
+    """
+    logger.debug("Seeding test user...")
+
+    base_time = datetime.now()
+
+    user = User(
+        id=TEST_USER_ID,
+        google_user_id=TEST_USER_GOOGLE_ID,
+        email=TEST_USER_EMAIL,
+        display_name="Test User",
+        profile_picture_url=None,
+        created_at=(base_time - timedelta(days=100)).isoformat(),
+        updated_at=(base_time - timedelta(days=1)).isoformat(),
+    )
+
+    session.add(user)
+    session.commit()
+
+    logger.debug(f"Created test user: {user.id}")
+    return user
 
 
 def _seed_primary_experiment(session: Session) -> Experiment:
@@ -125,6 +164,7 @@ def _seed_primary_experiment(session: Session) -> Experiment:
             "Inclui notificações e gestão de agenda no app."
         ),
         status="active",
+        owner_id=TEST_USER_ID,  # Assign to test user
         created_at=(base_time - timedelta(days=14)).isoformat(),
         updated_at=(base_time - timedelta(days=1)).isoformat(),
         scorecard_data={
@@ -169,24 +209,28 @@ def _seed_synth_groups(session: Session) -> list[SynthGroup]:
             id="grp_00000001",  # Default group ID used by experiments
             name="Default",
             description="Grupo padrão para synths sem grupo específico",
+            owner_id=TEST_USER_ID,  # Assign to test user
             created_at=(base_time - timedelta(days=90)).isoformat(),
         ),
         SynthGroup(
             id="grp_a1b2c3d4",  # Valid format: grp_[a-f0-9]{8}
             name="Usuários Frequentes",
             description="Usuários que pedem 3+ vezes por semana, alta familiaridade com app",
+            owner_id=TEST_USER_ID,  # Assign to test user
             created_at=(base_time - timedelta(days=60)).isoformat(),
         ),
         SynthGroup(
             id="grp_b2c3d4e5",  # Valid format: grp_[a-f0-9]{8}
             name="Profissionais Ocupados",
             description="Executivos e profissionais com rotina intensa, valorizam praticidade",
+            owner_id=TEST_USER_ID,  # Assign to test user
             created_at=(base_time - timedelta(days=60)).isoformat(),
         ),
         SynthGroup(
             id="grp_c3d4e5f6",  # Valid format: grp_[a-f0-9]{8}
             name="Famílias",
             description="Usuários que pedem para família, planejam refeições com antecedência",
+            owner_id=TEST_USER_ID,  # Assign to test user
             created_at=(base_time - timedelta(days=60)).isoformat(),
         ),
     ]

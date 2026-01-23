@@ -20,9 +20,9 @@ $(info 🐳 Using container runtime: $(CONTAINER_RUNTIME))
 
 # Database URLs
 # Dev: matches docker/.env.dev credentials (port 5432)
-DATABASE_URL := postgresql://synthlab:synthlab_dev@localhost:5432/synthlab
+DATABASE_URL := postgresql://synthlab:synthlab@localhost:5432/synthlab
 # Test: matches docker/.env.test credentials (port 5433, ephemeral container)
-DATABASE_URL_TEST := postgresql://synthlab_test:synthlab_test@localhost:5433/synthlab_test
+DATABASE_URL_TEST := postgresql://synthlab:synthlab@localhost:5433/synthlab
 
 # Alembic
 ALEMBIC_CONFIG := src/synth_lab/alembic/alembic.ini
@@ -113,7 +113,7 @@ test-db-up:
 	@$(CONTAINER_RUNTIME) compose -f docker/docker-compose.yml --profile test up postgres-test -d
 	@echo "⏳ Waiting for postgres-test to be healthy..."
 	@for i in 1 2 3 4 5 6 7 8 9 10; do \
-		$(CONTAINER_RUNTIME) exec synthlab-postgres-test pg_isready -U synthlab_test -d synthlab_test >/dev/null 2>&1 && break || sleep 1; \
+		$(CONTAINER_RUNTIME) exec synthlab-postgres-test pg_isready -U synthlab -d synthlab >/dev/null 2>&1 && break || sleep 1; \
 	done
 	@echo "✅ Test database ready at localhost:5433"
 
@@ -209,13 +209,13 @@ dev-up:
 	@echo "   Backend:  http://localhost:8000 (with hot reload)"
 	@echo "   Database: localhost:5432"
 	@echo ""
-	@$(CONTAINER_RUNTIME) compose -f $(COMPOSE_FILE) --profile dev up -d
+	@$(CONTAINER_RUNTIME) compose -f $(COMPOSE_FILE) --env-file docker/.env.dev --profile dev up -d
 	@echo ""
 	@echo "✅ Environment ready! Use 'make dev-logs-back e make dev-logs-front' to view logs"
 
 dev-down:
 	@echo "🛑 Stopping Docker development environment..."
-	@$(CONTAINER_RUNTIME) compose -f $(COMPOSE_FILE) --profile dev down
+	@$(CONTAINER_RUNTIME) compose -f $(COMPOSE_FILE) --env-file docker/.env.dev --profile dev down
 	@echo "✅ Done"
 
 dev-logs-back:

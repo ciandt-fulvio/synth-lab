@@ -186,6 +186,12 @@ class Experiment(BaseModel):
         description="ID of the synth group to use for research and explorations.",
     )
 
+    # Owner of this experiment (from user authentication)
+    owner_id: str | None = Field(
+        default=None,
+        description="UUID of the user who owns this experiment.",
+    )
+
     # Embedded scorecard (optional until filled)
     scorecard_data: ScorecardData | None = Field(
         default=None,

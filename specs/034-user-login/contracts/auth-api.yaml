@@ -137,11 +137,11 @@ paths:
                     type: string
                     example: Logged out successfully
 
-  /experiments/{experiment_id}/shares:
+  /auth/experiments/{experiment_id}/shares:
     get:
       tags: [sharing]
       summary: List experiment shares
-      description: Get all users who have access to this experiment
+      description: Get all users who have access to this experiment (owner only)
       security:
         - cookieAuth: []
       parameters:
@@ -150,16 +150,15 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
+            pattern: '^exp_[0-9]{8}$'
+            description: Experiment ID in format exp_NNNNNNNN
       responses:
         '200':
-          description: List of shares
+          description: List of shares with user information
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ExperimentShare'
+                $ref: '#/components/schemas/ShareListResponse'
         '403':
           description: Not authorized (not owner)
           content:
@@ -175,9 +174,10 @@ paths:
 
     post:
       tags: [sharing]
-      summary: Share experiment
+      summary: Share experiment with user
       description: |
         Grant another user access to this experiment. Automatically shares the associated synth_group.
+        Requires owner permission. Rate limited: 10 requests/minute.
       security:
         - cookieAuth: []
       parameters:
@@ -186,7 +186,8 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
+            pattern: '^exp_[0-9]{8}$'
+            description: Experiment ID
       requestBody:
         required: true
         content:
@@ -199,12 +200,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  experiment_share:
-                    $ref: '#/components/schemas/ExperimentShare'
-                  synth_group_share:
-                    $ref: '#/components/schemas/SynthGroupShare'
+                $ref: '#/components/schemas/ShareResponse'
         '400':
           description: Validation error
           content:
@@ -237,12 +233,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /experiments/{experiment_id}/shares/{user_id}:
+  /auth/experiments/{experiment_id}/shares/{user_id}:
     delete:
       tags: [sharing]
       summary: Revoke experiment access
       description: |
         Remove user's access to this experiment. Does NOT automatically revoke synth_group access.
+        Requires owner permission.
       security:
         - cookieAuth: []
       parameters:
@@ -251,16 +248,26 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
+            pattern: '^exp_[0-9]{8}$'
+            description: Experiment ID
         - name: user_id
           in: path
           required: true
           schema:
             type: string
             format: uuid
+            description: User ID to revoke access from
       responses:
-        '204':
-          description: Share deleted successfully
+        '200':
+          description: Share revoked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Access revoked for user {user_id}"
         '403':
           description: Not authorized (not owner)
           content:
@@ -274,11 +281,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /synth-groups/{synth_group_id}/shares:
+  /auth/synth-groups/{synth_group_id}/shares:
     get:
       tags: [sharing]
       summary: List synth_group shares
-      description: Get all users who have access to this synth_group
+      description: Get all users who have access to this synth_group (owner only)
       security:
         - cookieAuth: []
       parameters:
@@ -287,16 +294,15 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
+            pattern: '^grp_[a-f0-9]{8}$'
+            description: Synth group ID
       responses:
         '200':
-          description: List of shares
+          description: List of shares with user information
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/SynthGroupShare'
+                $ref: '#/components/schemas/ShareListResponse'
         '403':
           description: Not authorized (not owner)
           content:
@@ -312,8 +318,10 @@ paths:
 
     post:
       tags: [sharing]
-      summary: Share synth_group
-      description: Grant another user access to this synth_group independently of experiments
+      summary: Share synth_group with user
+      description: |
+        Grant another user access to this synth_group independently of experiments.
+        Requires owner permission. Does NOT automatically share associated experiments.
       security:
         - cookieAuth: []
       parameters:
@@ -322,7 +330,8 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
+            pattern: '^grp_[a-f0-9]{8}$'
+            description: Synth group ID
       requestBody:
         required: true
         content:
@@ -335,7 +344,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SynthGroupShare'
+                $ref: '#/components/schemas/ShareResponse'
         '400':
           description: Validation error
           content:
@@ -361,11 +370,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /synth-groups/{synth_group_id}/shares/{user_id}:
+  /auth/synth-groups/{synth_group_id}/shares/{user_id}:
     delete:
       tags: [sharing]
       summary: Revoke synth_group access
-      description: Remove user's access to this synth_group
+      description: |
+        Remove user's access to this synth_group. Requires owner permission.
+        Does NOT affect experiment shares.
       security:
         - cookieAuth: []
       parameters:
@@ -374,16 +385,26 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
+            pattern: '^grp_[a-f0-9]{8}$'
+            description: Synth group ID
         - name: user_id
           in: path
           required: true
           schema:
             type: string
             format: uuid
+            description: User ID to revoke access from
       responses:
-        '204':
-          description: Share deleted successfully
+        '200':
+          description: Share revoked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Access revoked for user {user_id}"
         '403':
           description: Not authorized (not owner)
           content:
@@ -447,18 +468,18 @@ components:
     ShareRequest:
       type: object
       required:
-        - user_email
+        - user_id
         - permission_level
       properties:
-        user_email:
+        user_id:
           type: string
-          format: email
-          description: Email of the user to share with
-          example: "colleague@example.com"
+          format: uuid
+          description: UUID of the user to share with
+          example: "550e8400-e29b-41d4-a716-446655440000"
         permission_level:
           type: string
           enum: [viewer, editor]
-          description: Level of access to grant
+          description: Level of access to grant (viewer = read-only, editor = read-write)
           example: "editor"
 
     ExperimentShare:
@@ -518,6 +539,71 @@ components:
           example: "2024-01-22T10:30:00Z"
         granted_by:
           $ref: '#/components/schemas/User'
+
+    ShareResponse:
+      type: object
+      required:
+        - share_id
+        - experiment_id
+        - user_id
+        - permission_level
+        - granted_at
+        - granted_by_id
+      properties:
+        share_id:
+          type: string
+          format: uuid
+          description: UUID of the share record
+        experiment_id:
+          type: string
+          description: Resource ID (experiment or synth_group)
+          example: "exp_12345678"
+        user_id:
+          type: string
+          format: uuid
+          description: UUID of user who received access
+        email:
+          type: string
+          format: email
+          nullable: true
+          description: Email of user who received access
+        display_name:
+          type: string
+          nullable: true
+          description: Display name of user who received access
+        profile_picture_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Profile picture URL of user who received access
+        permission_level:
+          type: string
+          enum: [viewer, editor]
+          description: Permission level granted
+        granted_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when access was granted
+        granted_by_id:
+          type: string
+          format: uuid
+          description: UUID of user who granted access
+
+    ShareListResponse:
+      type: object
+      required:
+        - experiment_id
+        - shares
+      properties:
+        experiment_id:
+          type: string
+          description: Resource ID (experiment or synth_group)
+          example: "exp_12345678"
+        shares:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShareResponse'
+          description: List of shares for this resource
 
     Error:
       type: object

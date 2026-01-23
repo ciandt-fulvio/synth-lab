@@ -45,7 +45,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-synthlab}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-synthlab_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-synthlab}
       POSTGRES_DB: ${POSTGRES_DB:-synthlab}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
@@ -69,7 +69,7 @@ services:
     profiles: ["dev"]
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-synthlab}:${POSTGRES_PASSWORD:-synthlab_dev}@postgres-dev:5432/${POSTGRES_DB:-synthlab}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-synthlab}:${POSTGRES_PASSWORD:-synthlab}@postgres-dev:5432/${POSTGRES_DB:-synthlab}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       PHOENIX_ENABLED: ${PHOENIX_ENABLED:-true}
       PHOENIX_COLLECTOR_ENDPOINT: ${PHOENIX_COLLECTOR_ENDPOINT:-http://localhost:6006}
@@ -81,6 +81,23 @@ services:
       BUCKET_ACCESS_KEY_ID: ${BUCKET_ACCESS_KEY_ID}
       BUCKET_SECRET_ACCESS_KEY: ${BUCKET_SECRET_ACCESS_KEY}
       REGION: ${REGION}
+      # JWT Authentication
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
+      SESSION_SECRET_KEY: ${SESSION_SECRET_KEY}
+      # Google OAuth
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      OAUTH_REDIRECT_URI: ${OAUTH_REDIRECT_URI}
+      # Access Control
+      WHITELIST: ${WHITELIST}
+      # Frontend URL
+      FRONTEND_URL: ${FRONTEND_URL}
+      # Environment
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      # CORS
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://localhost:5173}
     ports:
       - "8000:8000"
     volumes:
@@ -135,15 +152,15 @@ services:
     container_name: synthlab-postgres-test
     profiles: ["test"]
     environment:
-      POSTGRES_USER: synthlab_test
-      POSTGRES_PASSWORD: synthlab_test
-      POSTGRES_DB: synthlab_test
+      POSTGRES_USER: synthlab
+      POSTGRES_PASSWORD: synthlab
+      POSTGRES_DB: synthlab
     ports:
       - "5433:5432"
     volumes:
       - ./postgres/init-scripts:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U synthlab_test -d synthlab_test"]
+      test: ["CMD-SHELL", "pg_isready -U synthlab -d synthlab"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -159,7 +176,7 @@ services:
     container_name: synthlab-backend-test
     profiles: ["test"]
     environment:
-      DATABASE_URL: postgresql://synthlab_test:synthlab_test@postgres-test:5432/synthlab_test
+      DATABASE_URL: postgresql://synthlab:synthlab@postgres-test:5432/synthlab
       OPENAI_API_KEY: ${OPENAI_API_KEY:-dummy_key_for_testing}
       PHOENIX_ENABLED: "false"
       LOG_LEVEL: INFO
@@ -169,13 +186,21 @@ services:
       BUCKET_ACCESS_KEY_ID: ${BUCKET_ACCESS_KEY_ID}
       BUCKET_SECRET_ACCESS_KEY: ${BUCKET_SECRET_ACCESS_KEY}
       REGION: ${REGION}
+      # Authentication
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-test-secret-key-for-e2e-testing}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: ${JWT_REFRESH_TOKEN_EXPIRE_DAYS:-30}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-test-client-id}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-test-client-secret}
+      OAUTH_REDIRECT_URI: ${OAUTH_REDIRECT_URI:-http://localhost:8001/api/v1/auth/callback}
     # Override entrypoint to include test data seeding
     command: >
       sh -c "
       echo 'Running Alembic migrations...' &&
       alembic -c src/synth_lab/alembic/alembic.ini upgrade head &&
       echo 'Seeding test data...' &&
-      DATABASE_URL=postgresql://synthlab_test:synthlab_test@postgres-test:5432/synthlab_test uv run python -m tests.fixtures.seed_test &&
+      DATABASE_URL=postgresql://synthlab:synthlab@postgres-test:5432/synthlab uv run python -m tests.fixtures.seed_test &&
       echo 'Starting server...' &&
       exec uvicorn synth_lab.api.main:app --host 0.0.0.0 --port 8000
       "
