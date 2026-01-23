@@ -71,8 +71,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-synthlab}:${POSTGRES_PASSWORD:-synthlab}@postgres-dev:5432/${POSTGRES_DB:-synthlab}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      PHOENIX_ENABLED: ${PHOENIX_ENABLED:-true}
-      PHOENIX_COLLECTOR_ENDPOINT: ${PHOENIX_COLLECTOR_ENDPOINT:-http://localhost:6006}
+      PHOENIX_ENABLED: ${PHOENIX_ENABLED:-false}
+      PHOENIX_COLLECTOR_ENDPOINT: ${PHOENIX_COLLECTOR_ENDPOINT:-http://host.docker.internal:6006/v1/traces}
       LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
       WATCHFILES_FORCE_POLLING: "true"
       # S3 Storage (Railway Buckets)
