@@ -117,49 +117,85 @@ PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
 
 Database migration must be always done via Alembic. Tests use an isolated container (make test) which auto-applies migrations.
 
-## CI/CD Pipeline (Incremental Deploys)
+## CI/CD Pipeline (Local Pre-Push + Auto Deploy)
+
+### Setup (First Time Only)
+
+Configure o Git para usar os hooks locais:
+```bash
+# Configurar diretório de hooks
+git config core.hooksPath .githooks
+
+# Verificar configuração
+git config core.hooksPath
+
+# Login no GHCR (necessário para push de imagens)
+podman login ghcr.io
+# ou
+docker login ghcr.io
+# Fornecer: username=seu-github-username, password=seu-github-PAT-com-scope-write:packages
+```
+
+**Criar GitHub Personal Access Token**:
+1. Acesse: https://github.com/settings/tokens
+2. "Generate new token (classic)"
+3. Selecione scope: `write:packages` e `read:packages`
+4. Use o token como senha no `docker login`
 
 ### Overview
-O pipeline de CI/CD é dividido em dois workflows principais:
-1. **build-and-test.yml**: Detecção incremental de mudanças + build + testes
-2. **deploy-staging.yml**: Deploy de imagens pré-testadas para staging
+O pipeline de CI/CD é dividido em duas fases principais:
+1. **Pre-Push Hook (Local)**: Build + testes completos + push de imagens para GHCR
+2. **Deploy Staging (GitHub Actions)**: Deploy automático de imagens pré-testadas para staging
 
-### Workflow 1: Build and Test (Incremental)
+### Fase 1: Pre-Push Hook (Local)
 
-**Trigger**: Pull requests e pushes para `main`
+**Trigger**: `git push` para branch `main`
+
+**Localização**: `.githooks/pre-push`
 
 **Fluxo**:
 ```
-1. Detect Changes
-   ├─> Backend changed? (src/, tests/, pyproject.toml, Dockerfile.backend)
-   └─> Frontend changed? (frontend/src/, frontend/tests/, package.json, Dockerfile)
+1. Build Docker Images (Local)
+   ├─> Build backend image (synth-lab-api:commit-sha)
+   └─> Build frontend image (synth-lab-frontend:commit-sha)
 
-2. IF Backend Changed:
-   ├─> Build Docker image (backend)
-   ├─> Run full pytest suite
-   └─> Push image to GHCR (tag: commit SHA)
+2. Run Full Test Suite (Local)
+   └─> make test (todos os testes pytest)
 
-3. IF Frontend Changed (AND backend passed):
-   ├─> Build Docker image (frontend)
-   └─> Push image to GHCR (tag: commit SHA)
+3. Run E2E Tests (Local)
+   └─> make test-e2e (Playwright E2E tests)
 
-4. IF Frontend Changed (AND previous steps passed):
-   ├─> Start E2E environment with built images
-   └─> Run Playwright E2E tests
+4. Push Images to GHCR
+   ├─> Tag images com commit SHA
+   ├─> Push backend image para GHCR
+   └─> Push frontend image para GHCR
 
-5. Summary:
-   └─> Mark images as ready for staging if all tests passed
+5. Allow Push to Main
+   └─> Se todas as etapas passarem, permite o push
 ```
 
 **Benefícios**:
-- ⚡ Builds incrementais: só reconstrói o que mudou
-- 🎯 Testes focados: backend tests só rodam se backend mudou
-- 🚀 E2E tests só rodam se frontend mudou
-- 💾 Cache de layers Docker otimizado
+- ✅ Validação completa antes do push
+- 🚀 Deploy mais rápido (imagens já prontas)
+- 🔒 Garante que apenas código testado chegue ao remote
+- 💾 Imagens pré-construídas reutilizadas no deploy
 
-### Workflow 2: Deploy Staging
+**Como usar**:
+```bash
+# Push normal para main (hook executa automaticamente)
+git push origin main
 
-**Trigger**: Push para `main` (após build-and-test.yml passar)
+# Bypass do hook (não recomendado)
+git push origin main --no-verify
+```
+
+**Requisitos**:
+- Autenticação no GHCR (GitHub Personal Access Token com scope `write:packages`)
+- Login no GHCR: `podman login ghcr.io` ou `docker login ghcr.io`
+
+### Fase 2: Deploy Staging (GitHub Actions)
+
+**Trigger**: Push para `main` (após pre-push hook completar)
 
 **Fluxo**:
 ```
@@ -219,13 +255,21 @@ Os smoke tests em `frontend/tests/e2e/smoke/` são projetados para:
 - Se não houver experimentos: `test.skip()`
 - Se houver experimentos: verifica navegação básica
 
+### Workflow 3: Build and Test (Pull Requests)
+
+**Trigger**: Pull requests para `main`
+
+**Objetivo**: Validar mudanças antes do merge (detecção incremental)
+
+Este workflow roda automaticamente em PRs para validar mudanças antes do merge, com detecção incremental (só reconstrói o que mudou). Uma vez merged para main, o pre-push hook local assume o controle.
+
 ### Comandos Úteis
 
 ```bash
-# Forçar rebuild completo (ignora detecção de mudanças)
-gh workflow run build-and-test.yml
+# Testar localmente antes de fazer push (manual)
+make test && make test-e2e
 
-# Forçar deploy para staging (usa últimas imagens)
+# Forçar deploy para staging (usa últimas imagens do GHCR)
 gh workflow run deploy-staging.yml
 
 # Rodar smoke tests localmente contra staging
@@ -233,6 +277,12 @@ make test-smoke-staging
 
 # Rodar smoke tests localmente contra production
 make test-smoke-production
+
+# Ver status dos hooks
+git config core.hooksPath
+
+# Temporariamente desabilitar pre-push hook
+git push origin main --no-verify
 ```
 
 ### Promoção para Produção (Futuro)
