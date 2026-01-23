@@ -195,17 +195,17 @@ async def test_login(
 ):
     """Test-only endpoint to bypass OAuth for E2E tests.
 
-    Only available in test/development environments.
+    Only available in test/development/staging environments.
     Creates or retrieves a test user and sets auth cookie.
 
     Returns:
         User profile data
 
     Raises:
-        HTTPException: If not in test/development environment
+        HTTPException: If in production environment
     """
     environment = os.getenv("ENVIRONMENT", "development")
-    if environment not in ["test", "development"]:
+    if environment not in ["test", "development", "staging"]:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Not found",
