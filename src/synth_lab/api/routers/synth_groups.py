@@ -187,6 +187,7 @@ async def create_synth_group_with_config(
 
 @router.get("/list", response_model=PaginatedResponse[SynthGroupSummary])
 async def list_synth_groups(
+    current_user_id: str = Depends(get_current_user_id),
     limit: int = Query(default=50, ge=1, le=200, description="Maximum items per page"),
     offset: int = Query(default=0, ge=0, description="Number of items to skip"),
 ) -> PaginatedResponse[SynthGroupSummary]:

@@ -316,6 +316,7 @@ async def estimate_scorecard_from_text(
 
 @router.get("/list", response_model=PaginatedExperimentSummary)
 async def list_experiments(
+    current_user_id: str = Depends(get_current_user_id),
     limit: int = Query(default=50, ge=1, le=200, description="Maximum items per page"),
     offset: int = Query(default=0, ge=0, description="Number of items to skip"),
     search: str | None = Query(default=None, max_length=200, description="Search by name or hypothesis"),

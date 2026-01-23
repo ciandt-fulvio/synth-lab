@@ -5,7 +5,7 @@ Handles sharing of experiments and synth_groups between users.
 from typing import List, Optional
 from uuid import UUID
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from loguru import logger
 
 from synth_lab.domain.entities.share import ExperimentShare, SynthGroupShare, PermissionLevel
@@ -15,16 +15,16 @@ from synth_lab.repositories.share_repository import ShareRepository
 class SharingService:
     """Service for sharing resources between users."""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Session):
         """Initialize sharing service.
 
         Args:
-            db: SQLAlchemy async session
+            db: SQLAlchemy session
         """
         self.db = db
         self.share_repo = ShareRepository(db)
 
-    async def share_experiment(
+    def share_experiment(
         self,
         experiment_id: str,
         owner_id: str,
@@ -51,7 +51,7 @@ class SharingService:
         query = text("""
             SELECT owner_id, synth_group_id FROM experiments WHERE id = :experiment_id
         """)
-        result = await self.db.execute(query, {"experiment_id": experiment_id})
+        result = self.db.execute(query, {"experiment_id": experiment_id})
         row = result.fetchone()
 
         if not row:
@@ -66,12 +66,12 @@ class SharingService:
 
         # Check if target user exists
         user_query = text("SELECT id FROM users WHERE id = :user_id")
-        user_result = await self.db.execute(user_query, {"user_id": target_user_id})
+        user_result = self.db.execute(user_query, {"user_id": target_user_id})
         if not user_result.fetchone():
             raise ValueError(f"Target user {target_user_id} not found")
 
         # Check if share already exists
-        existing_share = await self.share_repo.get_experiment_share(
+        existing_share = self.share_repo.get_experiment_share(
             experiment_id, target_user_id
         )
         if existing_share:
@@ -80,7 +80,7 @@ class SharingService:
             )
 
         # Create experiment share
-        experiment_share = await self.share_repo.create_experiment_share(
+        experiment_share = self.share_repo.create_experiment_share(
             experiment_id=experiment_id,
             user_id=target_user_id,
             permission_level=permission_level,
@@ -96,7 +96,7 @@ class SharingService:
         synth_group_id = row[1]
         if synth_group_id:
             try:
-                await self.share_repo.create_synth_group_share(
+                self.share_repo.create_synth_group_share(
                     synth_group_id=synth_group_id,
                     user_id=target_user_id,
                     permission_level=permission_level,
@@ -115,7 +115,7 @@ class SharingService:
 
         return experiment_share
 
-    async def revoke_experiment_share(
+    def revoke_experiment_share(
         self,
         experiment_id: str,
         owner_id: str,
@@ -136,7 +136,7 @@ class SharingService:
         """
         # Validate experiment exists and user is owner
         query = text("SELECT owner_id FROM experiments WHERE id = :experiment_id")
-        result = await self.db.execute(query, {"experiment_id": experiment_id})
+        result = self.db.execute(query, {"experiment_id": experiment_id})
         row = result.fetchone()
 
         if not row:
@@ -146,7 +146,7 @@ class SharingService:
             raise ValueError(f"User {owner_id} is not the owner of experiment {experiment_id}")
 
         # Revoke share
-        revoked = await self.share_repo.revoke_experiment_share(experiment_id, target_user_id)
+        revoked = self.share_repo.revoke_experiment_share(experiment_id, target_user_id)
 
         if revoked:
             logger.info(
@@ -160,7 +160,7 @@ class SharingService:
 
         return revoked
 
-    async def list_experiment_shares(self, experiment_id: str, owner_id: str) -> List[dict]:
+    def list_experiment_shares(self, experiment_id: str, owner_id: str) -> List[dict]:
         """List all users who have access to an experiment.
 
         Args:
@@ -175,7 +175,7 @@ class SharingService:
         """
         # Validate experiment exists and user is owner
         query = text("SELECT owner_id FROM experiments WHERE id = :experiment_id")
-        result = await self.db.execute(query, {"experiment_id": experiment_id})
+        result = self.db.execute(query, {"experiment_id": experiment_id})
         row = result.fetchone()
 
         if not row:
@@ -185,7 +185,7 @@ class SharingService:
             raise ValueError(f"User {owner_id} is not the owner of experiment {experiment_id}")
 
         # Get shares with user information
-        shares = await self.share_repo.get_experiment_shares(experiment_id)
+        shares = self.share_repo.get_experiment_shares(experiment_id)
 
         # Enrich with user information
         result_list = []
@@ -194,7 +194,7 @@ class SharingService:
                 SELECT id, email, display_name, profile_picture_url
                 FROM users WHERE id = :user_id
             """)
-            user_result = await self.db.execute(user_query, {"user_id": share.user_id})
+            user_result = self.db.execute(user_query, {"user_id": share.user_id})
             user_row = user_result.fetchone()
 
             if user_row:
@@ -211,7 +211,7 @@ class SharingService:
 
         return result_list
 
-    async def share_synth_group(
+    def share_synth_group(
         self,
         synth_group_id: str,
         owner_id: str,
@@ -236,7 +236,7 @@ class SharingService:
         query = text("""
             SELECT owner_id FROM synth_groups WHERE id = :synth_group_id
         """)
-        result = await self.db.execute(query, {"synth_group_id": synth_group_id})
+        result = self.db.execute(query, {"synth_group_id": synth_group_id})
         row = result.fetchone()
 
         if not row:
@@ -251,12 +251,12 @@ class SharingService:
 
         # Check if target user exists
         user_query = text("SELECT id FROM users WHERE id = :user_id")
-        user_result = await self.db.execute(user_query, {"user_id": target_user_id})
+        user_result = self.db.execute(user_query, {"user_id": target_user_id})
         if not user_result.fetchone():
             raise ValueError(f"Target user {target_user_id} not found")
 
         # Check if share already exists
-        existing_shares = await self.share_repo.get_synth_group_shares(synth_group_id)
+        existing_shares = self.share_repo.get_synth_group_shares(synth_group_id)
         for share in existing_shares:
             if str(share.user_id) == target_user_id:
                 raise ValueError(
@@ -264,7 +264,7 @@ class SharingService:
                 )
 
         # Create synth_group share
-        synth_group_share = await self.share_repo.create_synth_group_share(
+        synth_group_share = self.share_repo.create_synth_group_share(
             synth_group_id=synth_group_id,
             user_id=target_user_id,
             permission_level=permission_level,
@@ -273,7 +273,7 @@ class SharingService:
 
         return synth_group_share
 
-    async def revoke_synth_group_share(
+    def revoke_synth_group_share(
         self,
         synth_group_id: str,
         owner_id: str,
@@ -294,7 +294,7 @@ class SharingService:
         """
         # Validate synth_group exists and user is owner
         query = text("SELECT owner_id FROM synth_groups WHERE id = :synth_group_id")
-        result = await self.db.execute(query, {"synth_group_id": synth_group_id})
+        result = self.db.execute(query, {"synth_group_id": synth_group_id})
         row = result.fetchone()
 
         if not row:
@@ -308,15 +308,15 @@ class SharingService:
             DELETE FROM synth_group_shares
             WHERE synth_group_id = :synth_group_id AND user_id = :user_id
         """)
-        result = await self.db.execute(query, {
+        result = self.db.execute(query, {
             "synth_group_id": synth_group_id,
             "user_id": target_user_id,
         })
-        await self.db.commit()
+        self.db.commit()
 
         return result.rowcount > 0
 
-    async def list_synth_group_shares(
+    def list_synth_group_shares(
         self,
         synth_group_id: str,
         owner_id: str,
@@ -335,7 +335,7 @@ class SharingService:
         """
         # Validate synth_group exists and user is owner
         query = text("SELECT owner_id FROM synth_groups WHERE id = :synth_group_id")
-        result = await self.db.execute(query, {"synth_group_id": synth_group_id})
+        result = self.db.execute(query, {"synth_group_id": synth_group_id})
         row = result.fetchone()
 
         if not row:
@@ -345,7 +345,7 @@ class SharingService:
             raise ValueError(f"User {owner_id} is not the owner of synth group {synth_group_id}")
 
         # Get shares with user information
-        shares = await self.share_repo.get_synth_group_shares(synth_group_id)
+        shares = self.share_repo.get_synth_group_shares(synth_group_id)
 
         # Enrich with user information
         result_list = []
@@ -354,7 +354,7 @@ class SharingService:
                 SELECT id, email, display_name, profile_picture_url
                 FROM users WHERE id = :user_id
             """)
-            user_result = await self.db.execute(user_query, {"user_id": share.user_id})
+            user_result = self.db.execute(user_query, {"user_id": share.user_id})
             user_row = user_result.fetchone()
 
             if user_row:

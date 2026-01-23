@@ -6,7 +6,7 @@ References:
     - SQLAlchemy 2.0 ORM: https://docs.sqlalchemy.org/en/20/orm/
 """
 import enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import ForeignKey, String, Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -60,10 +60,10 @@ class ExperimentShare(Base):
         nullable=False
     )
     granted_at: Mapped[str] = mapped_column(String(50), nullable=False)
-    granted_by_id: Mapped[str] = mapped_column(
+    granted_by_id: Mapped[Optional[str]] = mapped_column(
         String(36),
         ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=False
+        nullable=True
     )
 
     # Relationships
@@ -71,7 +71,7 @@ class ExperimentShare(Base):
         "User",
         foreign_keys=[user_id],
     )
-    granted_by: Mapped["User"] = relationship(
+    granted_by: Mapped[Optional["User"]] = relationship(
         "User",
         foreign_keys=[granted_by_id],
     )
@@ -116,10 +116,10 @@ class SynthGroupShare(Base):
         nullable=False
     )
     granted_at: Mapped[str] = mapped_column(String(50), nullable=False)
-    granted_by_id: Mapped[str] = mapped_column(
+    granted_by_id: Mapped[Optional[str]] = mapped_column(
         String(36),
         ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=False
+        nullable=True
     )
 
     # Relationships
@@ -127,7 +127,7 @@ class SynthGroupShare(Base):
         "User",
         foreign_keys=[user_id],
     )
-    granted_by: Mapped["User"] = relationship(
+    granted_by: Mapped[Optional["User"]] = relationship(
         "User",
         foreign_keys=[granted_by_id],
     )

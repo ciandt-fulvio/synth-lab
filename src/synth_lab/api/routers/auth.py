@@ -263,7 +263,7 @@ async def share_experiment(
     """
     try:
         permission_level = PermissionLevel(request_body.permission_level)
-        share = await sharing_service.share_experiment(
+        share = sharing_service.share_experiment(
             experiment_id=experiment_id,
             owner_id=current_user_id,
             target_user_id=request_body.user_id,
@@ -271,7 +271,7 @@ async def share_experiment(
         )
 
         # Get user info for response
-        shares_list = await sharing_service.list_experiment_shares(
+        shares_list = sharing_service.list_experiment_shares(
             experiment_id, current_user_id
         )
 
@@ -322,7 +322,7 @@ async def list_experiment_shares(
         HTTPException: If validation fails or user not authorized
     """
     try:
-        shares_list = await sharing_service.list_experiment_shares(
+        shares_list = sharing_service.list_experiment_shares(
             experiment_id, current_user_id
         )
 
@@ -370,7 +370,7 @@ async def revoke_experiment_share(
         HTTPException: If validation fails or user not authorized
     """
     try:
-        success = await sharing_service.revoke_experiment_share(
+        success = sharing_service.revoke_experiment_share(
             experiment_id=experiment_id,
             owner_id=current_user_id,
             target_user_id=user_id,
@@ -421,7 +421,7 @@ async def share_synth_group(
     """
     try:
         permission_level = PermissionLevel(request_body.permission_level)
-        share = await sharing_service.share_synth_group(
+        share = sharing_service.share_synth_group(
             synth_group_id=synth_group_id,
             owner_id=current_user_id,
             target_user_id=request_body.user_id,
@@ -429,7 +429,7 @@ async def share_synth_group(
         )
 
         # Get user info for response
-        shares_list = await sharing_service.list_synth_group_shares(
+        shares_list = sharing_service.list_synth_group_shares(
             synth_group_id, current_user_id
         )
 
@@ -483,7 +483,7 @@ async def list_synth_group_shares(
         HTTPException: If validation fails or user not authorized
     """
     try:
-        shares_list = await sharing_service.list_synth_group_shares(
+        shares_list = sharing_service.list_synth_group_shares(
             synth_group_id, current_user_id
         )
 
@@ -534,7 +534,7 @@ async def revoke_synth_group_share(
         HTTPException: If validation fails or user not authorized
     """
     try:
-        success = await sharing_service.revoke_synth_group_share(
+        success = sharing_service.revoke_synth_group_share(
             synth_group_id=synth_group_id,
             owner_id=current_user_id,
             target_user_id=user_id,

@@ -5,7 +5,7 @@ Handles CRUD operations for sharing relationships.
 from typing import List, Optional
 from uuid import UUID
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from datetime import datetime
 
 from synth_lab.domain.entities.share import ExperimentShare, SynthGroupShare, PermissionLevel
@@ -14,15 +14,15 @@ from synth_lab.domain.entities.share import ExperimentShare, SynthGroupShare, Pe
 class ShareRepository:
     """Repository for share data access operations."""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Session):
         """Initialize repository with database session.
 
         Args:
-            db: SQLAlchemy async session
+            db: SQLAlchemy session
         """
         self.db = db
 
-    async def create_experiment_share(
+    def create_experiment_share(
         self,
         experiment_id: str,
         user_id: str,
@@ -55,7 +55,7 @@ class ShareRepository:
             VALUES (:id, :experiment_id, :user_id, :permission_level, :granted_at, :granted_by_id)
         """)
 
-        await self.db.execute(query, {
+        self.db.execute(query, {
             "id": share.id,
             "experiment_id": share.experiment_id,
             "user_id": share.user_id,
@@ -63,11 +63,11 @@ class ShareRepository:
             "granted_at": share.granted_at,
             "granted_by_id": share.granted_by_id,
         })
-        await self.db.commit()
+        self.db.commit()
 
         return share
 
-    async def create_synth_group_share(
+    def create_synth_group_share(
         self,
         synth_group_id: str,
         user_id: str,
@@ -100,7 +100,7 @@ class ShareRepository:
             VALUES (:id, :synth_group_id, :user_id, :permission_level, :granted_at, :granted_by_id)
         """)
 
-        await self.db.execute(query, {
+        self.db.execute(query, {
             "id": share.id,
             "synth_group_id": share.synth_group_id,
             "user_id": share.user_id,
@@ -108,11 +108,11 @@ class ShareRepository:
             "granted_at": share.granted_at,
             "granted_by_id": share.granted_by_id,
         })
-        await self.db.commit()
+        self.db.commit()
 
         return share
 
-    async def get_experiment_shares(self, experiment_id: str) -> List[ExperimentShare]:
+    def get_experiment_shares(self, experiment_id: str) -> List[ExperimentShare]:
         """Get all shares for an experiment.
 
         Args:
@@ -127,7 +127,7 @@ class ShareRepository:
             WHERE experiment_id = :experiment_id
         """)
 
-        result = await self.db.execute(query, {"experiment_id": experiment_id})
+        result = self.db.execute(query, {"experiment_id": experiment_id})
         rows = result.fetchall()
 
         return [
@@ -142,7 +142,7 @@ class ShareRepository:
             for row in rows
         ]
 
-    async def get_synth_group_shares(self, synth_group_id: str) -> List[SynthGroupShare]:
+    def get_synth_group_shares(self, synth_group_id: str) -> List[SynthGroupShare]:
         """Get all shares for a synth group.
 
         Args:
@@ -157,7 +157,7 @@ class ShareRepository:
             WHERE synth_group_id = :synth_group_id
         """)
 
-        result = await self.db.execute(query, {"synth_group_id": synth_group_id})
+        result = self.db.execute(query, {"synth_group_id": synth_group_id})
         rows = result.fetchall()
 
         return [
@@ -172,7 +172,7 @@ class ShareRepository:
             for row in rows
         ]
 
-    async def revoke_experiment_share(self, experiment_id: str, user_id: str) -> bool:
+    def revoke_experiment_share(self, experiment_id: str, user_id: str) -> bool:
         """Revoke experiment access from user.
 
         Args:
@@ -187,15 +187,15 @@ class ShareRepository:
             WHERE experiment_id = :experiment_id AND user_id = :user_id
         """)
 
-        result = await self.db.execute(query, {
+        result = self.db.execute(query, {
             "experiment_id": experiment_id,
             "user_id": user_id,
         })
-        await self.db.commit()
+        self.db.commit()
 
         return result.rowcount > 0
 
-    async def get_experiment_share(
+    def get_experiment_share(
         self,
         experiment_id: str,
         user_id: str
@@ -215,7 +215,7 @@ class ShareRepository:
             WHERE experiment_id = :experiment_id AND user_id = :user_id
         """)
 
-        result = await self.db.execute(query, {
+        result = self.db.execute(query, {
             "experiment_id": experiment_id,
             "user_id": user_id,
         })

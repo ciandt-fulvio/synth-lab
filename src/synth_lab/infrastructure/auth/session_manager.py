@@ -5,7 +5,7 @@ authentication. Supports access tokens (short-lived) and refresh tokens
 (long-lived) for secure session management.
 """
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional, Any
 
 from jose import jwt, JWTError
@@ -77,16 +77,16 @@ class SessionManager:
 
         # Calculate expiration
         if expires_delta:
-            expire = datetime.utcnow() + expires_delta
+            expire = datetime.now(timezone.utc) + expires_delta
         else:
-            expire = datetime.utcnow() + timedelta(minutes=self.access_token_expire_minutes)
+            expire = datetime.now(timezone.utc) + timedelta(minutes=self.access_token_expire_minutes)
 
         # Build payload
         to_encode = {
             "sub": user_id,  # Subject (user ID)
             "email": email,
             "exp": expire,  # Expiration time
-            "iat": datetime.utcnow(),  # Issued at
+            "iat": datetime.now(timezone.utc),  # Issued at
         }
 
         # Add additional claims if provided
