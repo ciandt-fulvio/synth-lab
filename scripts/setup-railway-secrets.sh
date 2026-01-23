@@ -1,14 +1,23 @@
 #!/bin/bash
 # Setup Railway Environment Variables (Secrets)
-# Run: chmod +x scripts/setup-railway-secrets.sh && ./scripts/setup-railway-secrets.sh <environment> [service]
-# Examples:
-#   ./scripts/setup-railway-secrets.sh staging synth-lab-api
-#   ./scripts/setup-railway-secrets.sh production synth-lab-api
+#
+# Este script:
+# 1. Carrega credenciais do docker/.env.dev (secrets, API keys, etc.)
+# 2. Inspeciona o Railway para descobrir URLs dos serviços automaticamente
+# 3. Configura todas as variáveis no ambiente especificado
+# 4. Informa o que ainda precisa ser configurado manualmente
+#
+# Usage: ./scripts/setup-railway-secrets.sh <staging|production> <service-name>
+# Example: ./scripts/setup-railway-secrets.sh staging synth-lab-api
 
 set -e
 
 ENVIRONMENT=${1:-}
 SERVICE=${2:-}
+
+# ============================================================================
+# Validação de argumentos
+# ============================================================================
 
 if [ -z "$ENVIRONMENT" ]; then
     echo "❌ Erro: Ambiente é obrigatório"
@@ -18,15 +27,11 @@ if [ -z "$ENVIRONMENT" ]; then
     echo "Examples:"
     echo "  $0 staging synth-lab-api"
     echo "  $0 production synth-lab-api"
-    echo ""
-    echo "Para ver serviços disponíveis:"
-    echo "  railway status"
     exit 1
 fi
 
 if [ "$ENVIRONMENT" != "staging" ] && [ "$ENVIRONMENT" != "production" ]; then
     echo "❌ Erro: Ambiente deve ser 'staging' ou 'production'"
-    echo "Usage: $0 <staging|production> <service-name>"
     exit 1
 fi
 
@@ -35,39 +40,39 @@ if [ -z "$SERVICE" ]; then
     echo ""
     echo "Usage: $0 $ENVIRONMENT <service-name>"
     echo ""
-    echo "Para ver serviços disponíveis:"
-    echo "  railway status"
-    echo ""
-    echo "Exemplo:"
-    echo "  $0 $ENVIRONMENT synth-lab-api"
+    echo "Para ver serviços disponíveis: railway status"
     exit 1
 fi
 
-echo "🚂 Configurando Railway Secrets"
-echo "   Projeto: $(railway status 2>&1 | grep 'Project:' | cut -d: -f2 | xargs)"
-echo "   Ambiente: $ENVIRONMENT"
-echo "   Serviço: $SERVICE"
-echo ""
+# ============================================================================
+# Verificações do Railway CLI
+# ============================================================================
 
-# Verificar se está logado no Railway
+if ! command -v railway &> /dev/null; then
+    echo "❌ Erro: Railway CLI não instalado"
+    echo "Instale com: npm install -g @railway/cli"
+    exit 1
+fi
+
 if ! railway whoami &> /dev/null; then
     echo "❌ Erro: Você precisa estar logado no Railway CLI"
     echo "Execute: railway login"
     exit 1
 fi
 
-# Verificar se está linkado a um projeto
 if ! railway status &> /dev/null; then
     echo "❌ Erro: Você precisa estar linkado a um projeto Railway"
-    echo ""
-    echo "Execute um dos seguintes comandos:"
-    echo "  railway link                    # Para linkar a um projeto existente"
-    echo "  railway init                    # Para criar um novo projeto"
+    echo "Execute: railway link"
     exit 1
 fi
 
+echo "🚂 Configurando Railway Secrets"
+echo "   Ambiente: $ENVIRONMENT"
+echo "   Serviço: $SERVICE"
+echo ""
+
 # ============================================================================
-# Carregar TODOS os valores do .env.dev
+# Carregar credenciais do .env.dev (NÃO URLs)
 # ============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -76,52 +81,92 @@ ENV_FILE="$PROJECT_ROOT/docker/.env.dev"
 
 if [ ! -f "$ENV_FILE" ]; then
     echo "❌ Erro: Arquivo docker/.env.dev não encontrado!"
-    echo "   Esperado em: $ENV_FILE"
     exit 1
 fi
 
-echo "📂 Carregando valores de docker/.env.dev..."
+echo "📂 Carregando credenciais de docker/.env.dev..."
 
-# Carregar todas as variáveis do .env.dev (exceto comentários e linhas vazias)
-set -a  # Automatically export all variables
-source <(grep -v '^#' "$ENV_FILE" | grep -v '^$' | grep '=')
-set +a
+# Carregar APENAS credenciais (não URLs) do .env.dev
+while IFS='=' read -r key value; do
+    # Ignorar comentários e linhas vazias
+    [[ "$key" =~ ^#.*$ ]] && continue
+    [[ -z "$key" ]] && continue
 
-# ============================================================================
-# Sobrescrever valores específicos por ambiente
-# ============================================================================
+    # Ignorar variáveis de URL/endereço - serão descobertas via Railway
+    case "$key" in
+        DATABASE_URL|BACKEND_URL|FRONTEND_URL|OAUTH_REDIRECT_URI|CORS_ORIGINS|\
+        PHOENIX_COLLECTOR_ENDPOINT|API_HOST|API_PORT|VITE_*|POSTGRES_*)
+            continue
+            ;;
+    esac
 
-# URLs específicas por ambiente (Railway)
-if [ "$ENVIRONMENT" == "staging" ]; then
-    OAUTH_REDIRECT_URI="https://synth-lab-api-staging.up.railway.app/auth/callback"
-    CORS_ORIGINS="https://synth-lab-frontend-staging.up.railway.app"
-    FRONTEND_URL="https://synth-lab-frontend-staging.up.railway.app"
-    ENVIRONMENT_NAME="staging"
-    PHOENIX_ENABLED="false"
-else
-    OAUTH_REDIRECT_URI="https://synth-lab-api.up.railway.app/auth/callback"
-    CORS_ORIGINS="https://synth-lab-frontend.up.railway.app"
-    FRONTEND_URL="https://synth-lab-frontend.up.railway.app"
-    ENVIRONMENT_NAME="production"
-    PHOENIX_ENABLED="true"
-fi
-
-# OpenAI key - usar do ambiente se disponível (não está no .env.dev por segurança)
-OPENAI_KEY="${OPENAI_API_KEY:-}"
-if [ -z "$OPENAI_KEY" ]; then
-    echo "⚠️  OPENAI_API_KEY não definida no ambiente."
-    echo "   Defina antes de executar: export OPENAI_API_KEY=sk-..."
-    echo ""
-fi
+    # Exportar a variável
+    export "$key=$value"
+done < <(grep -v '^#' "$ENV_FILE" | grep -v '^$' | grep '=')
 
 # ============================================================================
-# Validar variáveis críticas
+# Inspecionar Railway para descobrir URLs dos serviços
 # ============================================================================
 
-echo "🔍 Validando variáveis..."
+echo "🔍 Inspecionando serviços no Railway..."
+
+# Função para obter domínio de um serviço
+get_service_domain() {
+    local svc_name="$1"
+    local env="$2"
+
+    # Tentar obter domínio via railway domain
+    local domain
+    domain=$(railway domain -s "$svc_name" -e "$env" 2>/dev/null | grep -oE 'https?://[^ ]+' | head -1) || true
+
+    if [ -n "$domain" ]; then
+        echo "$domain"
+        return 0
+    fi
+
+    # Fallback: construir URL padrão do Railway
+    # Formato: https://<service>-<environment>.up.railway.app
+    if [ "$env" == "production" ]; then
+        echo "https://${svc_name}.up.railway.app"
+    else
+        echo "https://${svc_name}-${env}.up.railway.app"
+    fi
+}
+
+# Descobrir URLs dos serviços
+BACKEND_SERVICE="synth-lab-api"
+FRONTEND_SERVICE="synth-lab-frontend"
+
+echo "   Buscando URL do backend ($BACKEND_SERVICE)..."
+BACKEND_URL=$(get_service_domain "$BACKEND_SERVICE" "$ENVIRONMENT")
+echo "   ✓ Backend: $BACKEND_URL"
+
+echo "   Buscando URL do frontend ($FRONTEND_SERVICE)..."
+FRONTEND_URL=$(get_service_domain "$FRONTEND_SERVICE" "$ENVIRONMENT")
+echo "   ✓ Frontend: $FRONTEND_URL"
+
+# Construir URLs derivadas
+OAUTH_REDIRECT_URI="${BACKEND_URL}/auth/callback"
+CORS_ORIGINS="$FRONTEND_URL"
+
+echo ""
+echo "📋 URLs descobertas automaticamente:"
+echo "   - BACKEND_URL: $BACKEND_URL"
+echo "   - FRONTEND_URL: $FRONTEND_URL"
+echo "   - OAUTH_REDIRECT_URI: $OAUTH_REDIRECT_URI"
+echo "   - CORS_ORIGINS: $CORS_ORIGINS"
+echo ""
+
+# ============================================================================
+# Validar variáveis obrigatórias
+# ============================================================================
+
+echo "🔍 Validando variáveis obrigatórias..."
 
 MISSING_VARS=()
+MISSING_MANUAL=()
 
+# Credenciais que devem vir do .env.dev
 [ -z "$GOOGLE_CLIENT_ID" ] && MISSING_VARS+=("GOOGLE_CLIENT_ID")
 [ -z "$GOOGLE_CLIENT_SECRET" ] && MISSING_VARS+=("GOOGLE_CLIENT_SECRET")
 [ -z "$JWT_SECRET_KEY" ] && MISSING_VARS+=("JWT_SECRET_KEY")
@@ -130,26 +175,42 @@ MISSING_VARS=()
 [ -z "$BUCKET_ACCESS_KEY_ID" ] && MISSING_VARS+=("BUCKET_ACCESS_KEY_ID")
 [ -z "$BUCKET_SECRET_ACCESS_KEY" ] && MISSING_VARS+=("BUCKET_SECRET_ACCESS_KEY")
 
+# OpenAI key - deve vir do ambiente (não está no .env.dev por segurança)
+OPENAI_KEY="${OPENAI_API_KEY:-}"
+if [ -z "$OPENAI_KEY" ]; then
+    MISSING_MANUAL+=("OPENAI_API_KEY (defina no ambiente: export OPENAI_API_KEY=sk-...)")
+fi
+
 if [ ${#MISSING_VARS[@]} -gt 0 ]; then
-    echo "❌ Erro: Variáveis obrigatórias não encontradas no .env.dev:"
+    echo "❌ Erro: Variáveis não encontradas no docker/.env.dev:"
     for var in "${MISSING_VARS[@]}"; do
         echo "   - $var"
     done
+    echo ""
+    echo "Adicione essas variáveis ao arquivo docker/.env.dev"
     exit 1
 fi
 
-echo "✅ Todas as variáveis obrigatórias encontradas"
+echo "✅ Todas as credenciais encontradas"
 echo ""
 
 # ============================================================================
-# Configurar secrets no Railway
+# Configurar variáveis no Railway
 # ============================================================================
 
-echo "📝 Configurando variáveis para $ENVIRONMENT..."
+echo "📝 Configurando variáveis no Railway ($ENVIRONMENT / $SERVICE)..."
 echo ""
+
+# Definir ENVIRONMENT_NAME baseado no ambiente
+if [ "$ENVIRONMENT" == "staging" ]; then
+    ENVIRONMENT_NAME="staging"
+    PHOENIX_ENABLED="false"
+else
+    ENVIRONMENT_NAME="production"
+    PHOENIX_ENABLED="true"
+fi
 
 railway variables \
-  --set "OPENAI_API_KEY=$OPENAI_KEY" \
   --set "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" \
   --set "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" \
   --set "OAUTH_REDIRECT_URI=$OAUTH_REDIRECT_URI" \
@@ -167,40 +228,69 @@ railway variables \
   --set "BUCKET_SECRET_ACCESS_KEY=$BUCKET_SECRET_ACCESS_KEY" \
   --set "REGION=${REGION:-auto}" \
   --set "PHOENIX_ENABLED=$PHOENIX_ENABLED" \
-  --set "LOG_LEVEL=${LOG_LEVEL:-INFO}" \
+  --set "LOG_LEVEL=INFO" \
   -e "$ENVIRONMENT" \
   -s "$SERVICE"
 
+# Configurar OPENAI_API_KEY se disponível
+if [ -n "$OPENAI_KEY" ]; then
+    railway variables --set "OPENAI_API_KEY=$OPENAI_KEY" -e "$ENVIRONMENT" -s "$SERVICE"
+fi
+
 # Phoenix endpoint apenas para production
 if [ "$ENVIRONMENT" == "production" ]; then
-    railway variables --set "PHOENIX_COLLECTOR_ENDPOINT=${PHOENIX_COLLECTOR_ENDPOINT:-http://localhost:6006}" -e "$ENVIRONMENT" -s "$SERVICE"
+    railway variables --set "PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006" -e "$ENVIRONMENT" -s "$SERVICE"
 fi
 
 echo ""
-echo "✅ Secrets configurados para $ENVIRONMENT!"
+echo "✅ Variáveis configuradas com sucesso!"
 echo ""
-echo "📊 Resumo dos valores configurados:"
-echo "   - Serviço: $SERVICE"
-echo "   - Ambiente: $ENVIRONMENT_NAME"
-echo "   - OPENAI_API_KEY: ${OPENAI_KEY:0:20}..."
-echo "   - GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:0:40}..."
-echo "   - JWT_SECRET_KEY: ${JWT_SECRET_KEY:0:20}..."
-echo "   - SESSION_SECRET_KEY: ${SESSION_SECRET_KEY:0:20}..."
-echo "   - BUCKET: $BUCKET"
-echo "   - OAUTH_REDIRECT_URI: $OAUTH_REDIRECT_URI"
-echo "   - CORS_ORIGINS: $CORS_ORIGINS"
-echo "   - FRONTEND_URL: $FRONTEND_URL"
-echo "   - WHITELIST: ${WHITELIST:-<não definida>}"
+
+# ============================================================================
+# Resumo e itens pendentes
+# ============================================================================
+
+echo "📊 Resumo da configuração:"
+echo "   ┌─────────────────────────────────────────────────────────────────┐"
+echo "   │ Serviço:        $SERVICE"
+echo "   │ Ambiente:       $ENVIRONMENT_NAME"
+echo "   │ Backend URL:    $BACKEND_URL"
+echo "   │ Frontend URL:   $FRONTEND_URL"
+echo "   │ CORS Origins:   $CORS_ORIGINS"
+echo "   │ OAuth Redirect: $OAUTH_REDIRECT_URI"
+echo "   └─────────────────────────────────────────────────────────────────┘"
+echo ""
+
+# Verificar DATABASE_URL
+echo "🔍 Verificando DATABASE_URL..."
+DB_URL=$(railway variables -e "$ENVIRONMENT" -s "$SERVICE" 2>/dev/null | grep "DATABASE_URL" || true)
+if [ -z "$DB_URL" ]; then
+    MISSING_MANUAL+=("DATABASE_URL (configure via Railway Dashboard: Link PostgreSQL service)")
+else
+    echo "   ✓ DATABASE_URL está configurada"
+fi
+
+# Listar itens que precisam de configuração manual
+if [ ${#MISSING_MANUAL[@]} -gt 0 ]; then
+    echo ""
+    echo "⚠️  AÇÃO NECESSÁRIA - Configure manualmente no Railway Dashboard:"
+    echo ""
+    for item in "${MISSING_MANUAL[@]}"; do
+        echo "   ❌ $item"
+    done
+    echo ""
+    echo "   Dashboard: https://railway.app"
+fi
+
+echo ""
+echo "📖 Para verificar todas as variáveis:"
+echo "   railway variables -e $ENVIRONMENT -s $SERVICE"
 echo ""
 
 if [ "$ENVIRONMENT" == "production" ]; then
     echo "🔴 ATENÇÃO: Ambiente de PRODUÇÃO!"
-    echo ""
-    echo "   Considere gerar novos valores para produção:"
+    echo "   Considere gerar novos valores de segurança:"
     echo "   - JWT_SECRET_KEY: openssl rand -hex 32"
     echo "   - SESSION_SECRET_KEY: openssl rand -hex 32"
     echo ""
 fi
-
-echo "📖 Para verificar: railway variables -e $ENVIRONMENT -s $SERVICE"
-echo "🔐 Para gerar secrets seguras: openssl rand -hex 32"
