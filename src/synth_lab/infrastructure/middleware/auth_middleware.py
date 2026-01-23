@@ -50,14 +50,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         # Get session token from cookie
         session_token = request.cookies.get("auth_token")
 
-        # Debug logging
-        logger.debug(f"[AuthMiddleware] Path: {request.url.path}")
-        logger.debug(f"[AuthMiddleware] All cookies: {dict(request.cookies)}")
-        logger.debug(f"[AuthMiddleware] Cookie header: {request.headers.get('cookie', 'NO COOKIE HEADER')}")
-
         if not session_token:
-            # No token provided
-            logger.debug(f"[AuthMiddleware] No session token found, returning 401")
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content={"detail": "Not authenticated"},
