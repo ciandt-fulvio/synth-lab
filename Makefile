@@ -27,8 +27,8 @@ DATABASE_URL_TEST := postgresql://synthlab:synthlab@localhost:5433/synthlab
 # Alembic
 ALEMBIC_CONFIG := src/synth_lab/alembic/alembic.ini
 
-# Phoenix tracing
-PHOENIX_ENABLED := true
+# Phoenix tracing (disabled by default, set PHOENIX_ENABLED=true to enable)
+PHOENIX_ENABLED := false
 LOG_LEVEL := DEBUG
 
 # =============================================================================

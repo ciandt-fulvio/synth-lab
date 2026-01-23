@@ -23,7 +23,7 @@ response = client.chat.completions.create(...)
 ```
 
 Expected output:
-- Traces visible in Phoenix UI at http://localhost:6006
+- Traces visible in Phoenix UI at http://host.docker.internal:6006
 - Each LLM call shows: latency, tokens, prompts, responses
 """
 
@@ -67,7 +67,7 @@ def setup_phoenix_tracing(
 
     Expected output:
         True (tracing enabled)
-        Logs: "Phoenix tracing enabled - Dashboard: http://localhost:6006"
+        Logs: "Phoenix tracing enabled - Dashboard: http://host.docker.internal:6006"
     """
     global _tracer_provider, _tracing_enabled
 
@@ -75,10 +75,10 @@ def setup_phoenix_tracing(
         logger.debug("Phoenix tracing already enabled")
         return True
 
-    # Get endpoint from env or use default
+    # Get endpoint from env or use default (host.docker.internal for Docker dev)
     endpoint = endpoint or os.getenv(
         "PHOENIX_COLLECTOR_ENDPOINT",
-        "http://127.0.0.1:6006/v1/traces",
+        "http://host.docker.internal:6006/v1/traces",
     )
 
     try:
@@ -117,7 +117,7 @@ def setup_phoenix_tracing(
             logger.debug("OpenAI Agents instrumentation not available")
 
         _tracing_enabled = True
-        logger.info("Phoenix tracing enabled - Dashboard: http://localhost:6006")
+        logger.info("Phoenix tracing enabled - Dashboard: http://host.docker.internal:6006")
         logger.debug(f"Traces sent to: {endpoint}")
         return True
 
@@ -158,7 +158,7 @@ def setup_phoenix_auto(project_name: str = "synth-lab") -> bool:
         )
 
         _tracing_enabled = True
-        logger.info("Phoenix tracing enabled (auto) - Dashboard: http://localhost:6006")
+        logger.info("Phoenix tracing enabled (auto) - Dashboard: http://host.docker.internal:6006")
         return True
 
     except ImportError as e:
