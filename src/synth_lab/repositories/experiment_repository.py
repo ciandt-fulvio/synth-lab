@@ -88,6 +88,7 @@ session: Session | None = None):
             description=experiment.description,
             synth_group_id=experiment.synth_group_id,
             scorecard_data=scorecard_dict,
+            owner_id=experiment.owner_id,
             status="active",
             created_at=experiment.created_at.isoformat(),
             updated_at=experiment.updated_at.isoformat() if experiment.updated_at else None)

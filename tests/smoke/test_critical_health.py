@@ -23,7 +23,16 @@ def _get_test_db_url() -> str:
     return os.getenv("DATABASE_URL")
 
 
+# Skip database tests if DATABASE_URL is not set
+_db_url = _get_test_db_url()
+_skip_db_tests = pytest.mark.skipif(
+    _db_url is None,
+    reason="DATABASE_URL not set - run with 'make test' for full smoke tests"
+)
+
+
 @pytest.mark.smoke
+@_skip_db_tests
 class TestDatabaseHealth:
     """Valida que banco de dados está acessível e configurado."""
 
@@ -176,6 +185,7 @@ class TestPhoenixTracing:
 
 
 @pytest.mark.smoke
+@_skip_db_tests
 class TestBasicCRUD:
     """Valida operações CRUD básicas no banco de dados."""
 

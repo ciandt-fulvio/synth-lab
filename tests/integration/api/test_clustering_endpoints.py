@@ -8,6 +8,7 @@ References:
     - Clustering Service: src/synth_lab/services/simulation/clustering_service.py
 """
 
+import os
 from unittest.mock import patch
 
 import numpy as np
@@ -15,6 +16,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from synth_lab.api.main import app
+
+
+# Skip tests if DATABASE_URL is not available (integration tests need real database)
+pytestmark = pytest.mark.skipif(
+    os.getenv("DATABASE_URL") is None,
+    reason="DATABASE_URL not set - run with 'make test' for integration tests"
+)
 from synth_lab.domain.entities import SynthOutcome
 from synth_lab.domain.entities.analysis_run import (
     AggregatedOutcomes,
@@ -34,9 +42,11 @@ from synth_lab.domain.entities.simulation_attributes import (
 
 
 @pytest.fixture
-def client():
-    """Create test client."""
-    return TestClient(app)
+def client(auth_token):
+    """Create test client with authentication."""
+    client = TestClient(app)
+    client.cookies.set("auth_token", auth_token)
+    return client
 
 
 @pytest.fixture

@@ -216,13 +216,13 @@ dev-up:
 	@echo "   Backend:  http://localhost:8000 (with hot reload)"
 	@echo "   Database: localhost:5432"
 	@echo ""
-	@$(CONTAINER_RUNTIME) compose -f $(COMPOSE_FILE) --profile dev up -d
+	@$(CONTAINER_RUNTIME) compose -f $(COMPOSE_FILE) --env-file docker/.env.dev --profile dev up -d
 	@echo ""
 	@echo "✅ Environment ready! Use 'make dev-logs-back e make dev-logs-front' to view logs"
 
 dev-down:
 	@echo "🛑 Stopping Docker development environment..."
-	@$(CONTAINER_RUNTIME) compose -f $(COMPOSE_FILE) --profile dev down
+	@$(CONTAINER_RUNTIME) compose -f $(COMPOSE_FILE) --env-file docker/.env.dev --profile dev down
 	@echo "✅ Done"
 
 dev-logs-back:

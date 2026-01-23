@@ -11,8 +11,9 @@ References:
 
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status, Request, Depends
 from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from synth_lab.api.schemas.synth_groups import (
     CreateSynthGroupRequest,
@@ -21,6 +22,8 @@ from synth_lab.api.schemas.synth_groups import (
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.repositories.synth_group_repository import SynthGroupSummary
 from synth_lab.services.synth_group_service import SynthGroupService
+from synth_lab.infrastructure.database_v2 import get_db_session
+from synth_lab.services.permission_service import PermissionService
 
 router = APIRouter()
 
@@ -78,8 +81,44 @@ def get_synth_group_service() -> SynthGroupService:
     return SynthGroupService()
 
 
+async def get_current_user_id(request: Request) -> str:
+    """Get current user ID from request state (set by auth middleware).
+
+    Args:
+        request: FastAPI request
+
+    Returns:
+        User ID from session
+
+    Raises:
+        HTTPException: If not authenticated
+    """
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
+    return user_id
+
+
+def get_permission_service(db: AsyncSession = Depends(get_db_session)) -> PermissionService:
+    """Get permission service instance.
+
+    Args:
+        db: Database session
+
+    Returns:
+        Configured PermissionService
+    """
+    return PermissionService(db)
+
+
 @router.post("", response_model=SynthGroupResponse, status_code=status.HTTP_201_CREATED)
-async def create_synth_group(data: SynthGroupCreate) -> SynthGroupResponse:
+async def create_synth_group(
+    data: SynthGroupCreate,
+    current_user_id: str = Depends(get_current_user_id),
+) -> SynthGroupResponse:
     """
     Create a new synth group.
 
@@ -87,7 +126,12 @@ async def create_synth_group(data: SynthGroupCreate) -> SynthGroupResponse:
     """
     service = get_synth_group_service()
     try:
-        group = service.create_group(name=data.name, description=data.description, group_id=data.id)
+        group = service.create_group(
+            name=data.name,
+            description=data.description,
+            group_id=data.id,
+            owner_id=current_user_id,
+        )
         return SynthGroupResponse(
             id=group.id,
             name=group.name,
@@ -106,6 +150,7 @@ async def create_synth_group(data: SynthGroupCreate) -> SynthGroupResponse:
 )
 async def create_synth_group_with_config(
     data: CreateSynthGroupRequest,
+    current_user_id: str = Depends(get_current_user_id),
 ) -> SynthGroupCreateResponse:
     """
     Create a new synth group with custom distribution configuration.
@@ -124,6 +169,7 @@ async def create_synth_group_with_config(
             name=data.name,
             description=data.description,
             config=config_dict,
+            owner_id=current_user_id,
         )
         return SynthGroupCreateResponse(
             id=group.id,
@@ -141,6 +187,7 @@ async def create_synth_group_with_config(
 
 @router.get("/list", response_model=PaginatedResponse[SynthGroupSummary])
 async def list_synth_groups(
+    current_user_id: str = Depends(get_current_user_id),
     limit: int = Query(default=50, ge=1, le=200, description="Maximum items per page"),
     offset: int = Query(default=0, ge=0, description="Number of items to skip"),
 ) -> PaginatedResponse[SynthGroupSummary]:
@@ -155,17 +202,30 @@ async def list_synth_groups(
 
 
 @router.get("/{group_id}", response_model=SynthGroupDetailResponse)
-async def get_synth_group(group_id: str) -> SynthGroupDetailResponse:
+async def get_synth_group(
+    group_id: str,
+    current_user_id: str = Depends(get_current_user_id),
+    permission_service: PermissionService = Depends(get_permission_service),
+) -> SynthGroupDetailResponse:
     """
     Get a synth group by ID with full details.
 
     Returns the synth group with list of synths.
     """
+    # First check if resource exists (404 before 403)
     service = get_synth_group_service()
     detail = service.get_group_detail(group_id)
     if detail is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"Synth group {group_id} not found"
+        )
+
+    # Then check if user has access to this synth group
+    has_access = permission_service.can_access_synth_group(current_user_id, group_id)
+    if not has_access:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this synth group",
         )
 
     # Convert synths to response format
@@ -193,16 +253,31 @@ async def get_synth_group(group_id: str) -> SynthGroupDetailResponse:
 
 
 @router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_synth_group(group_id: str) -> None:
+async def delete_synth_group(
+    group_id: str,
+    current_user_id: str = Depends(get_current_user_id),
+    permission_service: PermissionService = Depends(get_permission_service),
+) -> None:
     """
     Delete a synth group.
 
     Synths in the group will have their synth_group_id set to NULL.
     Returns 204 No Content on success.
     """
+    # First check if resource exists (404 before 403)
     service = get_synth_group_service()
-    deleted = service.delete_group(group_id)
-    if not deleted:
+    detail = service.get_group_detail(group_id)
+    if detail is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"Synth group {group_id} not found"
         )
+
+    # Then check if user can edit (delete) this synth group
+    can_edit = permission_service.can_edit_synth_group(current_user_id, group_id)
+    if not can_edit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to delete this synth group",
+        )
+
+    service.delete_group(group_id)

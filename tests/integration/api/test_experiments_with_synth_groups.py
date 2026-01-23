@@ -64,44 +64,28 @@ def valid_config() -> dict:
 
 
 @pytest.fixture
-def client(db_session):
-    """Create test client with shared database session."""
-    # Import routers to override services
-    from synth_lab.api.routers import experiments as experiments_router
-    from synth_lab.api.routers import synth_groups as synth_groups_router
-    from synth_lab.api.routers import synths as synths_router
-    from synth_lab.services.experiment_service import ExperimentService
-    from synth_lab.services.synth_group_service import SynthGroupService
-    from synth_lab.services.synth_service import SynthService
-    from synth_lab.repositories.experiment_repository import ExperimentRepository
-    from synth_lab.repositories.synth_group_repository import SynthGroupRepository
-    from synth_lab.repositories.synth_repository import SynthRepository
+def client(postgres_test_url: str, auth_token):
+    """Create test client with test database and authentication."""
+    import os
 
-    # Create services with test session
-    exp_repo = ExperimentRepository(session=db_session)
-    exp_service = ExperimentService(repository=exp_repo)
+    # Store original DATABASE_URL
+    original_db_url = os.environ.get("DATABASE_URL")
 
-    sg_repo = SynthGroupRepository(session=db_session)
-    sg_service = SynthGroupService(repository=sg_repo)
+    # Set DATABASE_URL to test database
+    os.environ["DATABASE_URL"] = postgres_test_url
 
-    synth_repo = SynthRepository(session=db_session)
-    synth_service = SynthService(synth_repo=synth_repo)
-
-    # Override service getters (use actual function names from routers)
-    original_exp_service = experiments_router.get_experiment_service
-    original_sg_service = synth_groups_router.get_synth_group_service
-    original_synth_service = synths_router.get_synth_service
-
-    experiments_router.get_experiment_service = lambda: exp_service
-    synth_groups_router.get_synth_group_service = lambda: sg_service
-    synths_router.get_synth_service = lambda: synth_service
-
-    yield TestClient(app)
-
-    # Restore originals
-    experiments_router.get_experiment_service = original_exp_service
-    synth_groups_router.get_synth_group_service = original_sg_service
-    synths_router.get_synth_service = original_synth_service
+    try:
+        # Create client (will use test database)
+        test_client = TestClient(app)
+        # Set auth cookie for all requests
+        test_client.cookies.set("auth_token", auth_token)
+        yield test_client
+    finally:
+        # Restore original DATABASE_URL
+        if original_db_url:
+            os.environ["DATABASE_URL"] = original_db_url
+        else:
+            os.environ.pop("DATABASE_URL", None)
 
 
 class TestExperimentsWithDefaultGroup:

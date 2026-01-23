@@ -84,7 +84,8 @@ DATABASE_URL="postgresql://synthlab:synthlab@localhost:5432/synthlab" python scr
 - Backend: `/tmp/synth-lab-backend.log`
 - Frontend: `/tmp/synth-lab-frontend.log`
 
-## Environment (.env)
+## Environment (.env.*)
+sempre use o .env.dev ou .env.test que está na pasta ./docker
 ```bash
 OPENAI_API_KEY=sk-...
 DATABASE_URL=postgresql://user:pass@localhost/synthlab

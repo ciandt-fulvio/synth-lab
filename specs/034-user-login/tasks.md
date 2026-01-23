@@ -43,8 +43,8 @@
 - [X] T005 Create Alembic migration for users table in migrations/versions/
 - [X] T006 [P] Create Alembic migration for experiment_shares table in migrations/versions/
 - [X] T007 [P] Create Alembic migration for synth_group_shares table in migrations/versions/
-- [ ] T008 [P] Create Alembic migration to add owner_id to experiments table in migrations/versions/
-- [ ] T009 [P] Create Alembic migration to add owner_id to synth_groups table in migrations/versions/
+- [X] T008 [P] Create Alembic migration to add owner_id to experiments table in migrations/versions/
+- [X] T009 [P] Create Alembic migration to add owner_id to synth_groups table in migrations/versions/
 - [ ] T010 Apply all migrations via `uv run alembic upgrade head`
 
 ### Infrastructure - Whitelist
@@ -82,30 +82,30 @@
 
 #### Unit Tests (Fast Battery < 5s)
 
-- [ ] T021 [P] [US1] Write unit test for User entity validation in tests/unit/test_user_entity.py (MUST FAIL)
-- [ ] T022 [P] [US1] Write unit test for UserRepository.create() in tests/unit/test_user_repository.py (MUST FAIL)
-- [ ] T023 [P] [US1] Write unit test for UserRepository.get_by_email() in tests/unit/test_user_repository.py (MUST FAIL)
-- [ ] T024 [P] [US1] Write unit test for UserRepository.get_by_google_id() in tests/unit/test_user_repository.py (MUST FAIL)
-- [ ] T025 [P] [US1] Write unit test for AuthService.create_user_from_google() in tests/unit/test_auth_service.py (MUST FAIL)
-- [ ] T026 [P] [US1] Write unit test for AuthService.validate_whitelist() in tests/unit/test_auth_service.py (MUST FAIL)
-- [ ] T027 [P] [US1] Write unit test for AuthService.handle_oauth_callback() in tests/unit/test_auth_service.py (MUST FAIL)
+- [X] T021 [P] [US1] Write unit test for User entity validation in tests/unit/test_user_entity.py (MUST FAIL)
+- [X] T022 [P] [US1] Write unit test for UserRepository.create() in tests/unit/test_user_repository.py (MUST FAIL)
+- [X] T023 [P] [US1] Write unit test for UserRepository.get_by_email() in tests/unit/test_user_repository.py (MUST FAIL)
+- [X] T024 [P] [US1] Write unit test for UserRepository.get_by_google_id() in tests/unit/test_user_repository.py (MUST FAIL)
+- [X] T025 [P] [US1] Write unit test for AuthService.create_user_from_google() in tests/unit/test_auth_service.py (MUST FAIL)
+- [X] T026 [P] [US1] Write unit test for AuthService.validate_whitelist() in tests/unit/test_auth_service.py (MUST FAIL)
+- [X] T027 [P] [US1] Write unit test for AuthService.handle_oauth_callback() in tests/unit/test_auth_service.py (MUST FAIL)
 
 #### Integration Tests (Slow Battery)
 
-- [ ] T028 [P] [US1] Write integration test for complete OAuth flow in tests/integration/test_auth_flow.py (MUST FAIL)
-- [ ] T029 [P] [US1] Write integration test for whitelist rejection in tests/integration/test_auth_flow.py (MUST FAIL)
-- [ ] T030 [P] [US1] Write integration test for domain whitelist match in tests/integration/test_auth_flow.py (MUST FAIL)
+- [X] T028 [P] [US1] Write integration test for complete OAuth flow in tests/integration/test_auth_flow.py (MUST FAIL)
+- [X] T029 [P] [US1] Write integration test for whitelist rejection in tests/integration/test_auth_flow.py (MUST FAIL)
+- [X] T030 [P] [US1] Write integration test for domain whitelist match in tests/integration/test_auth_flow.py (MUST FAIL)
 
 #### Contract Tests
 
-- [ ] T031 [P] [US1] Write contract test for GET /auth/login endpoint in tests/contract/test_auth_api.py (MUST FAIL)
-- [ ] T032 [P] [US1] Write contract test for GET /auth/callback endpoint in tests/contract/test_auth_api.py (MUST FAIL)
-- [ ] T033 [P] [US1] Write contract test for GET /auth/me endpoint in tests/contract/test_auth_api.py (MUST FAIL)
-- [ ] T034 [P] [US1] Write contract test for POST /auth/logout endpoint in tests/contract/test_auth_api.py (MUST FAIL)
+- [X] T031 [P] [US1] Write contract test for GET /auth/login endpoint in tests/contract/test_auth_api.py (MUST FAIL)
+- [X] T032 [P] [US1] Write contract test for GET /auth/callback endpoint in tests/contract/test_auth_api.py (MUST FAIL)
+- [X] T033 [P] [US1] Write contract test for GET /auth/me endpoint in tests/contract/test_auth_api.py (MUST FAIL)
+- [X] T034 [P] [US1] Write contract test for POST /auth/logout endpoint in tests/contract/test_auth_api.py (MUST FAIL)
 
 #### E2E Tests
 
-- [ ] T035 [US1] Write E2E test for full login flow in tests/e2e/test_login_flow.py (MUST FAIL)
+- [X] T035 [US1] Write E2E test for full login flow in tests/e2e/test_login_flow.py (MUST FAIL)
 
 ### Implementation for User Story 1 (ONLY AFTER ALL TESTS ARE WRITTEN AND FAILING)
 
@@ -113,49 +113,49 @@
 
 #### Backend - Domain Layer
 
-- [ ] T036 [US1] Implement User entity in src/synth_lab/domain/entities/user.py
-- [ ] T037 [US1] Implement UserRepository in src/synth_lab/repositories/user_repository.py
+- [X] T036 [US1] Implement User entity in src/synth_lab/domain/entities/user.py
+- [X] T037 [US1] Implement UserRepository in src/synth_lab/repositories/user_repository.py
 
 #### Backend - Service Layer
 
-- [ ] T038 [US1] Implement AuthService.create_user_from_google() in src/synth_lab/services/auth_service.py
-- [ ] T039 [US1] Implement AuthService.validate_whitelist() in src/synth_lab/services/auth_service.py
-- [ ] T040 [US1] Implement AuthService.handle_oauth_callback() in src/synth_lab/services/auth_service.py
-- [ ] T041 [US1] Implement AuthService.get_current_user() in src/synth_lab/services/auth_service.py
-- [ ] T042 [US1] Implement AuthService.logout() in src/synth_lab/services/auth_service.py
+- [X] T038 [US1] Implement AuthService.create_user_from_google() in src/synth_lab/services/auth_service.py
+- [X] T039 [US1] Implement AuthService.validate_whitelist() in src/synth_lab/services/auth_service.py
+- [X] T040 [US1] Implement AuthService.handle_oauth_callback() in src/synth_lab/services/auth_service.py
+- [X] T041 [US1] Implement AuthService.get_current_user() in src/synth_lab/services/auth_service.py
+- [X] T042 [US1] Implement AuthService.logout() in src/synth_lab/services/auth_service.py
 
 #### Backend - API Layer
 
-- [ ] T043 [US1] Implement GET /auth/login endpoint in src/synth_lab/api/routers/auth.py
-- [ ] T044 [US1] Implement GET /auth/callback endpoint in src/synth_lab/api/routers/auth.py
-- [ ] T045 [US1] Implement GET /auth/me endpoint in src/synth_lab/api/routers/auth.py
-- [ ] T046 [US1] Implement POST /auth/logout endpoint in src/synth_lab/api/routers/auth.py
-- [ ] T047 [US1] Register auth router in src/synth_lab/api/main.py
+- [X] T043 [US1] Implement GET /auth/login endpoint in src/synth_lab/api/routers/auth.py
+- [X] T044 [US1] Implement GET /auth/callback endpoint in src/synth_lab/api/routers/auth.py
+- [X] T045 [US1] Implement GET /auth/me endpoint in src/synth_lab/api/routers/auth.py
+- [X] T046 [US1] Implement POST /auth/logout endpoint in src/synth_lab/api/routers/auth.py
+- [X] T047 [US1] Register auth router in src/synth_lab/api/main.py
 
 #### Backend - Middleware
 
-- [ ] T048 [US1] Implement authentication middleware in src/synth_lab/infrastructure/middleware/auth_middleware.py
-- [ ] T049 [US1] Add auth middleware to FastAPI app in src/synth_lab/api/main.py
+- [X] T048 [US1] Implement authentication middleware in src/synth_lab/infrastructure/middleware/auth_middleware.py
+- [X] T049 [US1] Add auth middleware to FastAPI app in src/synth_lab/api/main.py
 
 #### Frontend - Services
 
-- [ ] T050 [P] [US1] Implement authService.login() in frontend/src/services/authService.ts
-- [ ] T051 [P] [US1] Implement authService.getCurrentUser() in frontend/src/services/authService.ts
-- [ ] T052 [P] [US1] Implement authService.logout() in frontend/src/services/authService.ts
+- [X] T050 [P] [US1] Implement authService.login() in frontend/src/services/authService.ts
+- [X] T051 [P] [US1] Implement authService.getCurrentUser() in frontend/src/services/authService.ts
+- [X] T052 [P] [US1] Implement authService.logout() in frontend/src/services/authService.ts
 
 #### Frontend - Hooks
 
-- [ ] T053 [US1] Implement useAuth hook in frontend/src/hooks/useAuth.ts
+- [X] T053 [US1] Implement useAuth hook in frontend/src/hooks/useAuth.ts
 
 #### Frontend - Components
 
-- [ ] T054 [P] [US1] Implement GoogleLoginButton component in frontend/src/components/auth/GoogleLoginButton.tsx
-- [ ] T055 [P] [US1] Implement ProtectedRoute component in frontend/src/components/auth/ProtectedRoute.tsx
+- [X] T054 [P] [US1] Implement GoogleLoginButton component in frontend/src/components/auth/GoogleLoginButton.tsx
+- [X] T055 [P] [US1] Implement ProtectedRoute component in frontend/src/components/auth/ProtectedRoute.tsx
 
 #### Frontend - Pages
 
-- [ ] T056 [US1] Implement LoginPage in frontend/src/pages/LoginPage.tsx
-- [ ] T057 [US1] Add routes for LoginPage and protected routes in frontend/src/App.tsx
+- [X] T056 [US1] Implement LoginPage in frontend/src/pages/LoginPage.tsx
+- [X] T057 [US1] Add routes for LoginPage and protected routes in frontend/src/App.tsx
 
 #### Validation
 
@@ -181,17 +181,17 @@
 
 #### Unit Tests (Fast Battery < 5s)
 
-- [ ] T063 [P] [US2] Write unit test for adding owner_id to Experiment entity in tests/unit/test_experiment_entity.py (MUST FAIL)
-- [ ] T064 [P] [US2] Write unit test for adding owner_id to SynthGroup entity in tests/unit/test_synth_group_entity.py (MUST FAIL)
-- [ ] T065 [P] [US2] Write unit test for PermissionService.can_access_experiment() in tests/unit/test_permission_service.py (MUST FAIL)
-- [ ] T066 [P] [US2] Write unit test for PermissionService.can_edit_experiment() in tests/unit/test_permission_service.py (MUST FAIL)
-- [ ] T067 [P] [US2] Write unit test for PermissionService.can_access_synth_group() in tests/unit/test_permission_service.py (MUST FAIL)
+- [X] T063 [P] [US2] Write unit test for adding owner_id to Experiment entity in tests/unit/test_experiment_entity.py (MUST FAIL)
+- [X] T064 [P] [US2] Write unit test for adding owner_id to SynthGroup entity in tests/unit/test_synth_group_entity.py (MUST FAIL)
+- [X] T065 [P] [US2] Write unit test for PermissionService.can_access_experiment() in tests/unit/test_permission_service.py (MUST FAIL)
+- [X] T066 [P] [US2] Write unit test for PermissionService.can_edit_experiment() in tests/unit/test_permission_service.py (MUST FAIL)
+- [X] T067 [P] [US2] Write unit test for PermissionService.can_access_synth_group() in tests/unit/test_permission_service.py (MUST FAIL)
 
 #### Integration Tests (Slow Battery)
 
-- [ ] T068 [P] [US2] Write integration test for creating experiment with owner in tests/integration/test_experiment_ownership.py (MUST FAIL)
-- [ ] T069 [P] [US2] Write integration test for creating synth_group with owner in tests/integration/test_synth_group_ownership.py (MUST FAIL)
-- [ ] T070 [P] [US2] Write integration test for permission checks on owned resources in tests/integration/test_permissions.py (MUST FAIL)
+- [X] T068 [P] [US2] Write integration test for creating experiment with owner in tests/integration/test_experiment_ownership.py (MUST FAIL)
+- [X] T069 [P] [US2] Write integration test for creating synth_group with owner in tests/integration/test_synth_group_ownership.py (MUST FAIL)
+- [X] T070 [P] [US2] Write integration test for permission checks on owned resources in tests/integration/test_permissions.py (MUST FAIL)
 
 ### Implementation for User Story 2 (ONLY AFTER ALL TESTS ARE WRITTEN AND FAILING)
 
@@ -199,22 +199,22 @@
 
 #### Backend - Domain Layer
 
-- [ ] T071 [US2] Add owner_id field to Experiment entity in src/synth_lab/domain/entities/experiment.py
-- [ ] T072 [US2] Add owner_id field to SynthGroup entity in src/synth_lab/domain/entities/synth_group.py
+- [X] T071 [US2] Add owner_id field to Experiment entity in src/synth_lab/domain/entities/experiment.py
+- [X] T072 [US2] Add owner_id field to SynthGroup entity in src/synth_lab/domain/entities/synth_group.py
 
 #### Backend - Service Layer
 
-- [ ] T073 [US2] Implement PermissionService.can_access_experiment() in src/synth_lab/services/permission_service.py
-- [ ] T074 [US2] Implement PermissionService.can_edit_experiment() in src/synth_lab/services/permission_service.py
-- [ ] T075 [US2] Implement PermissionService.can_access_synth_group() in src/synth_lab/services/permission_service.py
-- [ ] T076 [US2] Implement PermissionService.can_edit_synth_group() in src/synth_lab/services/permission_service.py
-- [ ] T077 [US2] Update ExperimentService to set owner_id on create in src/synth_lab/services/experiment_service.py
-- [ ] T078 [US2] Update SynthService to set owner_id on create in src/synth_lab/services/synth_service.py
+- [X] T073 [US2] Implement PermissionService.can_access_experiment() in src/synth_lab/services/permission_service.py
+- [X] T074 [US2] Implement PermissionService.can_edit_experiment() in src/synth_lab/services/permission_service.py
+- [X] T075 [US2] Implement PermissionService.can_access_synth_group() in src/synth_lab/services/permission_service.py
+- [X] T076 [US2] Implement PermissionService.can_edit_synth_group() in src/synth_lab/services/permission_service.py
+- [X] T077 [US2] Update ExperimentService to set owner_id on create in src/synth_lab/services/experiment_service.py
+- [X] T078 [US2] Update SynthGroupService to set owner_id on create in src/synth_lab/services/synth_group_service.py
 
 #### Backend - API Layer
 
-- [ ] T079 [US2] Add permission checks to experiment endpoints in src/synth_lab/api/routers/experiments.py
-- [ ] T080 [US2] Add permission checks to synth_group endpoints in src/synth_lab/api/routers/synths.py
+- [X] T079 [US2] Add permission checks to experiment endpoints in src/synth_lab/api/routers/experiments.py
+- [X] T080 [US2] Add permission checks to synth_group endpoints in src/synth_lab/api/routers/synth_groups.py
 
 #### Validation
 
@@ -238,29 +238,29 @@
 
 #### Unit Tests (Fast Battery < 5s)
 
-- [ ] T084 [P] [US3] Write unit test for ExperimentShare entity validation in tests/unit/test_experiment_share_entity.py (MUST FAIL)
-- [ ] T085 [P] [US3] Write unit test for SynthGroupShare entity validation in tests/unit/test_synth_group_share_entity.py (MUST FAIL)
-- [ ] T086 [P] [US3] Write unit test for ShareRepository.create_experiment_share() in tests/unit/test_share_repository.py (MUST FAIL)
-- [ ] T087 [P] [US3] Write unit test for ShareRepository.create_synth_group_share() in tests/unit/test_share_repository.py (MUST FAIL)
-- [ ] T088 [P] [US3] Write unit test for ShareRepository.revoke_experiment_share() in tests/unit/test_share_repository.py (MUST FAIL)
-- [ ] T089 [P] [US3] Write unit test for ShareRepository.get_experiment_shares() in tests/unit/test_share_repository.py (MUST FAIL)
-- [ ] T090 [P] [US3] Write unit test for PermissionService with shared experiments in tests/unit/test_permission_service.py (MUST FAIL)
-- [ ] T091 [P] [US3] Write unit test for share validation (no self-sharing) in tests/unit/test_share_repository.py (MUST FAIL)
-- [ ] T092 [P] [US3] Write unit test for share validation (whitelist check) in tests/unit/test_share_repository.py (MUST FAIL)
+- [X] T084 [P] [US3] Write unit test for ExperimentShare entity validation in tests/unit/test_experiment_share_entity.py (MUST FAIL)
+- [X] T085 [P] [US3] Write unit test for SynthGroupShare entity validation in tests/unit/test_synth_group_share_entity.py (MUST FAIL)
+- [X] T086 [P] [US3] Write unit test for ShareRepository.create_experiment_share() in tests/unit/test_share_repository.py (MUST FAIL)
+- [X] T087 [P] [US3] Write unit test for ShareRepository.create_synth_group_share() in tests/unit/test_share_repository.py (MUST FAIL)
+- [X] T088 [P] [US3] Write unit test for ShareRepository.revoke_experiment_share() in tests/unit/test_share_repository.py (MUST FAIL)
+- [X] T089 [P] [US3] Write unit test for ShareRepository.get_experiment_shares() in tests/unit/test_share_repository.py (MUST FAIL)
+- [X] T090 [P] [US3] Write unit test for PermissionService with shared experiments in tests/unit/test_permission_service.py (MUST FAIL)
+- [X] T091 [P] [US3] Write unit test for share validation (no self-sharing) in tests/unit/test_share_repository.py (MUST FAIL)
+- [X] T092 [P] [US3] Write unit test for share validation (whitelist check) in tests/unit/test_share_repository.py (MUST FAIL)
 
 #### Integration Tests (Slow Battery)
 
-- [ ] T093 [P] [US3] Write integration test for sharing experiment in tests/integration/test_sharing.py (MUST FAIL)
-- [ ] T094 [P] [US3] Write integration test for automatic synth_group sharing in tests/integration/test_sharing.py (MUST FAIL)
-- [ ] T095 [P] [US3] Write integration test for accessing shared experiment in tests/integration/test_sharing.py (MUST FAIL)
-- [ ] T096 [P] [US3] Write integration test for revoking experiment access in tests/integration/test_sharing.py (MUST FAIL)
-- [ ] T097 [P] [US3] Write integration test for whitelist validation on share in tests/integration/test_sharing.py (MUST FAIL)
+- [X] T093 [P] [US3] Write integration test for sharing experiment in tests/integration/test_sharing.py (MUST FAIL)
+- [X] T094 [P] [US3] Write integration test for automatic synth_group sharing in tests/integration/test_sharing.py (MUST FAIL)
+- [X] T095 [P] [US3] Write integration test for accessing shared experiment in tests/integration/test_sharing.py (MUST FAIL)
+- [X] T096 [P] [US3] Write integration test for revoking experiment access in tests/integration/test_sharing.py (MUST FAIL)
+- [X] T097 [P] [US3] Write integration test for whitelist validation on share in tests/integration/test_sharing.py (MUST FAIL)
 
 #### Contract Tests
 
-- [ ] T098 [P] [US3] Write contract test for POST /experiments/{id}/shares in tests/contract/test_sharing_api.py (MUST FAIL)
-- [ ] T099 [P] [US3] Write contract test for GET /experiments/{id}/shares in tests/contract/test_sharing_api.py (MUST FAIL)
-- [ ] T100 [P] [US3] Write contract test for DELETE /experiments/{id}/shares/{user_id} in tests/contract/test_sharing_api.py (MUST FAIL)
+- [X] T098 [P] [US3] Write contract test for POST /experiments/{id}/shares in tests/contract/test_sharing_api.py (MUST FAIL)
+- [X] T099 [P] [US3] Write contract test for GET /experiments/{id}/shares in tests/contract/test_sharing_api.py (MUST FAIL)
+- [X] T100 [P] [US3] Write contract test for DELETE /experiments/{id}/shares/{user_id} in tests/contract/test_sharing_api.py (MUST FAIL)
 
 ### Implementation for User Story 3 (ONLY AFTER ALL TESTS ARE WRITTEN AND FAILING)
 
@@ -268,31 +268,31 @@
 
 #### Backend - Domain Layer
 
-- [ ] T101 [P] [US3] Implement ExperimentShare entity in src/synth_lab/domain/entities/share.py
-- [ ] T102 [P] [US3] Implement SynthGroupShare entity in src/synth_lab/domain/entities/share.py
+- [X] T101 [P] [US3] Implement ExperimentShare entity in src/synth_lab/domain/entities/share.py
+- [X] T102 [P] [US3] Implement SynthGroupShare entity in src/synth_lab/domain/entities/share.py
 
 #### Backend - Repository Layer
 
-- [ ] T103 [US3] Implement ShareRepository.create_experiment_share() in src/synth_lab/repositories/share_repository.py
-- [ ] T104 [US3] Implement ShareRepository.create_synth_group_share() in src/synth_lab/repositories/share_repository.py
-- [ ] T105 [US3] Implement ShareRepository.get_experiment_shares() in src/synth_lab/repositories/share_repository.py
-- [ ] T106 [US3] Implement ShareRepository.get_synth_group_shares() in src/synth_lab/repositories/share_repository.py
-- [ ] T107 [US3] Implement ShareRepository.revoke_experiment_share() in src/synth_lab/repositories/share_repository.py
-- [ ] T108 [US3] Implement ShareRepository.get_experiment_share() in src/synth_lab/repositories/share_repository.py
+- [X] T103 [US3] Implement ShareRepository.create_experiment_share() in src/synth_lab/repositories/share_repository.py
+- [X] T104 [US3] Implement ShareRepository.create_synth_group_share() in src/synth_lab/repositories/share_repository.py
+- [X] T105 [US3] Implement ShareRepository.get_experiment_shares() in src/synth_lab/repositories/share_repository.py
+- [X] T106 [US3] Implement ShareRepository.get_synth_group_shares() in src/synth_lab/repositories/share_repository.py
+- [X] T107 [US3] Implement ShareRepository.revoke_experiment_share() in src/synth_lab/repositories/share_repository.py
+- [X] T108 [US3] Implement ShareRepository.get_experiment_share() in src/synth_lab/repositories/share_repository.py
 
 #### Backend - Service Layer
 
-- [ ] T109 [US3] Update PermissionService to check shares in can_access_experiment()
-- [ ] T110 [US3] Update PermissionService to check shares in can_edit_experiment()
-- [ ] T111 [US3] Implement share_experiment() with automatic synth_group sharing in src/synth_lab/services/auth_service.py or create sharing_service.py
-- [ ] T112 [US3] Implement revoke_experiment_share() in service layer
-- [ ] T113 [US3] Implement list_experiment_shares() in service layer
+- [X] T109 [US3] Update PermissionService to check shares in can_access_experiment()
+- [X] T110 [US3] Update PermissionService to check shares in can_edit_experiment()
+- [X] T111 [US3] Implement share_experiment() with automatic synth_group sharing in src/synth_lab/services/sharing_service.py
+- [X] T112 [US3] Implement revoke_experiment_share() in service layer
+- [X] T113 [US3] Implement list_experiment_shares() in service layer
 
 #### Backend - API Layer
 
-- [ ] T114 [US3] Implement POST /experiments/{id}/shares endpoint in src/synth_lab/api/routers/auth.py
-- [ ] T115 [US3] Implement GET /experiments/{id}/shares endpoint in src/synth_lab/api/routers/auth.py
-- [ ] T116 [US3] Implement DELETE /experiments/{id}/shares/{user_id} endpoint in src/synth_lab/api/routers/auth.py
+- [X] T114 [US3] Implement POST /experiments/{id}/shares endpoint in src/synth_lab/api/routers/auth.py
+- [X] T115 [US3] Implement GET /experiments/{id}/shares endpoint in src/synth_lab/api/routers/auth.py
+- [X] T116 [US3] Implement DELETE /experiments/{id}/shares/{user_id} endpoint in src/synth_lab/api/routers/auth.py
 
 #### Validation
 
@@ -317,20 +317,20 @@
 
 #### Unit Tests (Fast Battery < 5s)
 
-- [ ] T121 [P] [US4] Write unit test for independent synth_group sharing in tests/unit/test_share_repository.py (MUST FAIL)
-- [ ] T122 [P] [US4] Write unit test for PermissionService with shared synth_groups in tests/unit/test_permission_service.py (MUST FAIL)
+- [X] T121 [P] [US4] Write unit test for independent synth_group sharing in tests/unit/test_share_repository.py (MUST FAIL)
+- [X] T122 [P] [US4] Write unit test for PermissionService with shared synth_groups in tests/unit/test_permission_service.py (MUST FAIL)
 
 #### Integration Tests (Slow Battery)
 
-- [ ] T123 [P] [US4] Write integration test for sharing synth_group independently in tests/integration/test_sharing.py (MUST FAIL)
-- [ ] T124 [P] [US4] Write integration test for revoking synth_group access in tests/integration/test_sharing.py (MUST FAIL)
-- [ ] T125 [P] [US4] Write integration test for independent revocation (experiment vs synth_group) in tests/integration/test_sharing.py (MUST FAIL)
+- [X] T123 [P] [US4] Write integration test for sharing synth_group independently in tests/integration/test_sharing.py (MUST FAIL)
+- [X] T124 [P] [US4] Write integration test for revoking synth_group access in tests/integration/test_sharing.py (MUST FAIL)
+- [X] T125 [P] [US4] Write integration test for independent revocation (experiment vs synth_group) in tests/integration/test_sharing.py (MUST FAIL)
 
 #### Contract Tests
 
-- [ ] T126 [P] [US4] Write contract test for POST /synth-groups/{id}/shares in tests/contract/test_sharing_api.py (MUST FAIL)
-- [ ] T127 [P] [US4] Write contract test for GET /synth-groups/{id}/shares in tests/contract/test_sharing_api.py (MUST FAIL)
-- [ ] T128 [P] [US4] Write contract test for DELETE /synth-groups/{id}/shares/{user_id} in tests/contract/test_sharing_api.py (MUST FAIL)
+- [X] T126 [P] [US4] Write contract test for POST /synth-groups/{id}/shares in tests/contract/test_sharing_api.py (MUST FAIL)
+- [X] T127 [P] [US4] Write contract test for GET /synth-groups/{id}/shares in tests/contract/test_sharing_api.py (MUST FAIL)
+- [X] T128 [P] [US4] Write contract test for DELETE /synth-groups/{id}/shares/{user_id} in tests/contract/test_sharing_api.py (MUST FAIL)
 
 ### Implementation for User Story 4 (ONLY AFTER ALL TESTS ARE WRITTEN AND FAILING)
 
@@ -338,16 +338,16 @@
 
 #### Backend - Service Layer
 
-- [ ] T129 [US4] Update PermissionService to check synth_group shares in can_access_synth_group()
-- [ ] T130 [US4] Implement share_synth_group() independently in service layer
-- [ ] T131 [US4] Implement revoke_synth_group_share() in service layer
-- [ ] T132 [US4] Implement list_synth_group_shares() in service layer
+- [X] T129 [US4] Update PermissionService to check synth_group shares in can_access_synth_group()
+- [X] T130 [US4] Implement share_synth_group() independently in service layer
+- [X] T131 [US4] Implement revoke_synth_group_share() in service layer
+- [X] T132 [US4] Implement list_synth_group_shares() in service layer
 
 #### Backend - API Layer
 
-- [ ] T133 [US4] Implement POST /synth-groups/{id}/shares endpoint in src/synth_lab/api/routers/auth.py
-- [ ] T134 [US4] Implement GET /synth-groups/{id}/shares endpoint in src/synth_lab/api/routers/auth.py
-- [ ] T135 [US4] Implement DELETE /synth-groups/{id}/shares/{user_id} endpoint in src/synth_lab/api/routers/auth.py
+- [X] T133 [US4] Implement POST /synth-groups/{id}/shares endpoint in src/synth_lab/api/routers/auth.py
+- [X] T134 [US4] Implement GET /synth-groups/{id}/shares endpoint in src/synth_lab/api/routers/auth.py
+- [X] T135 [US4] Implement DELETE /synth-groups/{id}/shares/{user_id} endpoint in src/synth_lab/api/routers/auth.py
 
 #### Validation
 
@@ -364,10 +364,10 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T140 [P] Add error handling for OAuth failures with user-friendly messages
-- [ ] T141 [P] Add rate limiting to /auth/callback endpoint via slowapi
-- [ ] T142 [P] Add logging for all authentication attempts (success/failure)
-- [ ] T143 [P] Add logging for all sharing operations
+- [X] T140 [P] Add error handling for OAuth failures with user-friendly messages
+- [X] T141 [P] Add rate limiting to /auth/callback endpoint via slowapi
+- [X] T142 [P] Add logging for all authentication attempts (success/failure)
+- [X] T143 [P] Add logging for all sharing operations
 - [ ] T144 [P] Update API documentation in OpenAPI spec
 - [ ] T145 [P] Run complete test battery (all unit + integration + contract + e2e tests)
 - [ ] T146 [P] Verify quickstart.md instructions work end-to-end

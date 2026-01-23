@@ -115,6 +115,7 @@ class SynthGroupRepository(BaseRepository):
             description=group.description,
             created_at=group.created_at.isoformat(),
             config=config,
+            owner_id=group.owner_id,
         )
         self._add(orm_group)
         self._flush()
@@ -144,6 +145,7 @@ class SynthGroupRepository(BaseRepository):
             description=group.description,
             created_at=group.created_at.isoformat(),
             config=config,
+            owner_id=group.owner_id,
         )
         self._add(orm_group)
 
