@@ -333,7 +333,7 @@ export function DAGVisualization({
       </ReactFlow>
 
       {/* Simplified Legend - scope only */}
-      <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-lg border border-slate-200 p-3 text-xs shadow-lg">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm rounded-lg border border-slate-200 p-3 text-xs shadow-lg">
         <div className="font-semibold text-slate-700 mb-2">Variáveis</div>
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
