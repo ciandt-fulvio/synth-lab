@@ -470,5 +470,5 @@ async def update_node_positions(
         edges=[_edge_to_schema(e) for e in updated_dag.edges],
         version=updated_dag.version,
         created_at=updated_dag.created_at,
-        updated_at=updated_dag.updated_at,
+        updated_at=None,  # Entity doesn't have updated_at field
     )
