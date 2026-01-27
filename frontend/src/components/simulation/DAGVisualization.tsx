@@ -181,7 +181,7 @@ function dagToReactFlow(
     });
   }
 
-  // Create edges - animate only if connected to selected node
+  // Create edges - gray by default, highlight when connected to selected node
   const edges: RFEdge[] = dag.edges.map((edge) => {
     const edgeId = `${edge.source}-${edge.target}`;
     const isConnectedToSelection = selectedEdgeIds.has(edgeId);
@@ -190,16 +190,15 @@ function dagToReactFlow(
       id: edgeId,
       source: edge.source,
       target: edge.target,
-      type: 'default', // Changed from smoothstep to reduce overlap
-      animated: isConnectedToSelection && edge.relationship_type === 'causal',
+      type: 'default',
+      animated: isConnectedToSelection, // Animate only selected edges
       style: {
-        strokeWidth: isConnectedToSelection ? 2.5 : 2,
-        stroke: edge.relationship_type === 'causal' ? '#6366f1' : '#94a3b8',
-        opacity: isConnectedToSelection ? 1 : 0.6,
+        strokeWidth: 2, // Keep constant width
+        stroke: isConnectedToSelection ? '#f59e0b' : '#94a3b8', // Amber-500 when selected, gray otherwise
       },
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: edge.relationship_type === 'causal' ? '#6366f1' : '#94a3b8',
+        color: isConnectedToSelection ? '#f59e0b' : '#94a3b8',
       },
     };
   });
@@ -267,9 +266,9 @@ export function DAGVisualization({
             {
               ...params,
               type: 'default',
-              animated: true,
-              style: { strokeWidth: 2, stroke: '#6366f1' },
-              markerEnd: { type: MarkerType.ArrowClosed, color: '#6366f1' },
+              animated: false,
+              style: { strokeWidth: 2, stroke: '#94a3b8' },
+              markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8' },
             },
             eds
           )
@@ -290,21 +289,12 @@ export function DAGVisualization({
     [editable, onDeleteEdge]
   );
 
-  // Minimap colors by type
+  // Minimap colors by scope (user-level vs world-level)
   const getMinimapNodeColor = (node: Node) => {
     const variable = node.data?.variable as Variable | undefined;
     if (!variable) return '#94a3b8';
 
-    const typeColorMap: Record<string, string> = {
-      observable: '#3b82f6',
-      latent: '#a855f7',
-      friction: '#f59e0b',
-      failure: '#ef4444',
-      process: '#06b6d4',
-      temporal: '#10b981',
-    };
-
-    return typeColorMap[variable.variable_type] || '#94a3b8';
+    return variable.scope === 'user' ? '#4f46e5' : '#818cf8';
   };
 
   return (
@@ -325,7 +315,7 @@ export function DAGVisualization({
         defaultEdgeOptions={{
           type: 'default',
         }}
-        connectionLineStyle={{ strokeWidth: 2, stroke: '#6366f1' }}
+        connectionLineStyle={{ strokeWidth: 2, stroke: '#94a3b8' }}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#cbd5e1" />
 
@@ -342,37 +332,21 @@ export function DAGVisualization({
         />
       </ReactFlow>
 
-      {/* Updated Legend with actual types */}
+      {/* Simplified Legend - scope only */}
       <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-lg border border-slate-200 p-3 text-xs shadow-lg">
-        <div className="font-semibold text-slate-700 mb-2">Variable Types</div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm bg-blue-500" />
-            <span className="text-slate-600">Observable</span>
+        <div className="font-semibold text-slate-700 mb-2">Variáveis</div>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#4f46e5' }} />
+            <span className="text-slate-600">User-level</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm bg-purple-500" />
-            <span className="text-slate-600">Latent</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm bg-amber-500" />
-            <span className="text-slate-600">Friction</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm bg-red-500" />
-            <span className="text-slate-600">Failure</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm bg-cyan-500" />
-            <span className="text-slate-600">Process</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
-            <span className="text-slate-600">Temporal</span>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#818cf8' }} />
+            <span className="text-slate-600">World-level</span>
           </div>
         </div>
         <div className="mt-2 pt-2 border-t border-slate-200 text-[10px] text-slate-500">
-          Darker shade = user-level • Lighter = world-level
+          Clique em um nó para destacar conexões
         </div>
       </div>
     </div>
