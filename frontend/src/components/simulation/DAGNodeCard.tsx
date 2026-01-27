@@ -14,51 +14,30 @@ interface DAGNodeData {
 }
 
 /**
- * Get solid colors by variable type - NO transparency issues.
+ * Get colors by scope only - user-level vs world-level.
  */
-function getVariableColors(type: string, scope: string) {
-  let bg = '';
-  let border = '';
-  let text = 'text-white';
-
-  // Solid colors - world level
-  switch (type) {
-    case 'observable':
-      bg = scope === 'user' ? '#2563eb' : '#3b82f6'; // blue-600 : blue-500
-      border = scope === 'user' ? '#1d4ed8' : '#2563eb';
-      break;
-    case 'latent':
-      bg = scope === 'user' ? '#9333ea' : '#a855f7'; // purple-600 : purple-500
-      border = scope === 'user' ? '#7e22ce' : '#9333ea';
-      break;
-    case 'friction':
-      bg = scope === 'user' ? '#d97706' : '#f59e0b'; // amber-600 : amber-500
-      border = scope === 'user' ? '#b45309' : '#d97706';
-      break;
-    case 'failure':
-      bg = scope === 'user' ? '#dc2626' : '#ef4444'; // red-600 : red-500
-      border = scope === 'user' ? '#b91c1c' : '#dc2626';
-      break;
-    case 'process':
-      bg = scope === 'user' ? '#0891b2' : '#06b6d4'; // cyan-600 : cyan-500
-      border = scope === 'user' ? '#0e7490' : '#0891b2';
-      break;
-    case 'temporal':
-      bg = scope === 'user' ? '#059669' : '#10b981'; // emerald-600 : emerald-500
-      border = scope === 'user' ? '#047857' : '#059669';
-      break;
-    default:
-      bg = scope === 'user' ? '#475569' : '#64748b'; // slate-600 : slate-500
-      border = scope === 'user' ? '#334155' : '#475569';
+function getVariableColors(scope: string) {
+  if (scope === 'user') {
+    // User-level: darker indigo
+    return {
+      bg: '#4f46e5', // indigo-600
+      border: '#4338ca', // indigo-700
+      text: 'text-white',
+    };
+  } else {
+    // World-level: lighter indigo
+    return {
+      bg: '#818cf8', // indigo-400
+      border: '#6366f1', // indigo-500
+      text: 'text-white',
+    };
   }
-
-  return { bg, border, text };
 }
 
 function DAGNodeCardComponent({ data, selected }: NodeProps<DAGNodeData>) {
   const { variable } = data;
   const isSelected = selected || data.isSelected;
-  const colors = getVariableColors(variable.variable_type, variable.scope);
+  const colors = getVariableColors(variable.scope);
 
   return (
     <div
