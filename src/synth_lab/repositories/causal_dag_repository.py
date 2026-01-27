@@ -137,7 +137,7 @@ class CausalDAGRepository(BaseRepository):
         stmt = (
             select(CausalDAGORM)
             .where(CausalDAGORM.simulation_id == simulation_id)
-            .order_by(CausalDAGORM.version.desc())
+            .order_by(CausalDAGORM.version.desc(), CausalDAGORM.created_at.desc())
             .limit(1)
         )
         orm_dag = self.session.execute(stmt).scalar_one_or_none()
