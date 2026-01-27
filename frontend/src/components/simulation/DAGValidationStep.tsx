@@ -8,6 +8,7 @@
  */
 
 import { useNavigate } from 'react-router-dom';
+import { ReactFlowProvider } from 'reactflow';
 import { Button } from '@/components/ui/button';
 import { DAGVisualization } from '@/components/simulation/DAGVisualization';
 import { ArrowRight, Edit2, Loader2, Network, AlertTriangle } from 'lucide-react';
@@ -95,7 +96,9 @@ export function DAGValidationStep({
           <h3 className="text-sm font-medium text-slate-700">Grafo de Dependências</h3>
         </div>
         <div className="h-[400px]">
-          <DAGVisualization dag={dag} />
+          <ReactFlowProvider>
+            <DAGVisualization dag={dag} />
+          </ReactFlowProvider>
         </div>
       </div>
 

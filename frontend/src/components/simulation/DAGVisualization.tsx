@@ -8,7 +8,8 @@
  * - Color-coded by variable type
  */
 
-import { useCallback, useMemo, useEffect, useState, useRef } from 'react';
+import { useCallback, useMemo, useEffect, useState, useRef, FormEvent } from 'react';
+import { createPortal } from 'react-dom';
 import ReactFlow, {
   Node,
   Edge as RFEdge,
@@ -43,6 +44,7 @@ interface DAGVisualizationProps {
   dag: CausalDAG;
   editable?: boolean;
   onEditNode?: (variable: Variable) => void;
+  onAddNode?: (variable: Variable) => void;
   onDeleteNode?: (variableName: string) => void;
   onAddEdge?: (edge: Edge) => void;
   onDeleteEdge?: (source: string, target: string) => void;
@@ -197,9 +199,12 @@ function dagToReactFlow(
       target: edge.target,
       type: 'default',
       animated: isConnectedToSelection, // Animate only selected edges
+      selectable: editable, // Allow selection when editable
+      focusable: editable, // Allow keyboard focus when editable
       style: {
         strokeWidth: 2, // Keep constant width
         stroke: isConnectedToSelection ? '#f59e0b' : '#94a3b8', // Amber-500 when selected, gray otherwise
+        cursor: editable ? 'pointer' : 'default',
       },
       markerEnd: {
         type: MarkerType.ArrowClosed,
@@ -222,6 +227,7 @@ export function DAGVisualization({
   dag,
   editable = false,
   onEditNode,
+  onAddNode,
   onDeleteNode,
   onAddEdge,
   onDeleteEdge,
@@ -232,6 +238,10 @@ export function DAGVisualization({
   const { fitView } = useReactFlow();
   const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
   const savePositionsTimeout = useRef<NodeJS.Timeout>();
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newNodeName, setNewNodeName] = useState('');
+  const [newNodeScope, setNewNodeScope] = useState<'user' | 'world'>('user');
+  const [newNodeDescription, setNewNodeDescription] = useState('');
 
   // Convert DAG with selection state
   const { nodes: initialNodes, edges: initialEdges } = useMemo(
@@ -275,16 +285,46 @@ export function DAGVisualization({
     [onNodesChangeInternal, onSavePositions, nodes]
   );
 
-  // Update edges when selection changes
+  // Sync React Flow state when DAG changes (e.g., after add/remove node)
   useEffect(() => {
-    const { edges: updatedEdges } = dagToReactFlow(dag, selectedNodes, editable, onEditNode, onDeleteNode);
-    setEdges(updatedEdges);
-  }, [selectedNodes, dag, editable, onEditNode, onDeleteNode, setEdges]);
+    const { nodes: newNodes, edges: newEdges } = dagToReactFlow(
+      dag,
+      selectedNodes,
+      editable,
+      onEditNode,
+      onDeleteNode
+    );
+    setNodes(newNodes);
+    setEdges(newEdges);
+  }, [dag, editable, onEditNode, onDeleteNode, setNodes, setEdges]);
 
-  // Fit view on mount
+  // Update edge styles when node selection changes (for highlighting connected edges)
+  // Use functional update to preserve React Flow's internal selection state
+  useEffect(() => {
+    setEdges((currentEdges) =>
+      currentEdges.map((edge) => {
+        const isConnectedToSelection =
+          selectedNodes.includes(edge.source) || selectedNodes.includes(edge.target);
+        return {
+          ...edge,
+          animated: isConnectedToSelection,
+          style: {
+            ...edge.style,
+            stroke: isConnectedToSelection ? '#f59e0b' : '#94a3b8',
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: isConnectedToSelection ? '#f59e0b' : '#94a3b8',
+          },
+        };
+      })
+    );
+  }, [selectedNodes, setEdges]);
+
+  // Fit view on mount and when nodes change significantly
   useEffect(() => {
     setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 10);
-  }, [fitView, initialNodes]);
+  }, [fitView, dag.nodes.length]);
 
   // Track selection changes
   const onSelectionChange = useCallback(({ nodes }: OnSelectionChangeParams) => {
@@ -312,7 +352,9 @@ export function DAGVisualization({
               ...params,
               type: 'default',
               animated: false,
-              style: { strokeWidth: 2, stroke: '#94a3b8' },
+              selectable: true,
+              focusable: true,
+              style: { strokeWidth: 2, stroke: '#94a3b8', cursor: 'pointer' },
               markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8' },
             },
             eds
@@ -332,6 +374,35 @@ export function DAGVisualization({
       });
     },
     [editable, onDeleteEdge]
+  );
+
+  // Handle adding new node
+  const handleAddNode = useCallback(
+    (e: FormEvent) => {
+      e.preventDefault();
+      if (!newNodeName.trim()) return;
+
+      // Create new variable
+      const newVariable: Variable = {
+        name: newNodeName.trim().toLowerCase().replace(/\s+/g, '_'),
+        label: newNodeName.trim(),
+        variable_type: 'observable',
+        scope: newNodeScope,
+        description: newNodeDescription.trim() || '',
+        unit: null,
+        position_x: 200,
+        position_y: 200,
+      };
+
+      onAddNode?.(newVariable);
+
+      // Reset form
+      setNewNodeName('');
+      setNewNodeScope('user');
+      setNewNodeDescription('');
+      setShowAddDialog(false);
+    },
+    [newNodeName, newNodeScope, newNodeDescription, onAddNode]
   );
 
   // Minimap colors by scope (user-level vs world-level)
@@ -357,8 +428,17 @@ export function DAGVisualization({
         attributionPosition="bottom-left"
         minZoom={0.1}
         maxZoom={2}
+        deleteKeyCode={editable ? ['Delete', 'Backspace'] : null}
+        selectionKeyCode={editable ? 'Shift' : null}
+        multiSelectionKeyCode={editable ? 'Meta' : null}
+        selectNodesOnDrag={false}
+        edgesFocusable={editable}
+        elementsSelectable={editable}
         defaultEdgeOptions={{
           type: 'default',
+          selectable: editable,
+          focusable: editable,
+          interactionWidth: 20, // Make edges easier to click
         }}
         connectionLineStyle={{ strokeWidth: 2, stroke: '#94a3b8' }}
       >
@@ -390,10 +470,132 @@ export function DAGVisualization({
             <span className="text-slate-600">World-level</span>
           </div>
         </div>
-        <div className="mt-2 pt-2 border-t border-slate-200 text-[10px] text-slate-500">
-          Clique em um nó para destacar conexões
+        <div className="mt-2 pt-2 border-t border-slate-200 text-[10px] text-slate-500 space-y-0.5">
+          <div>Clique em um nó para destacar conexões</div>
+          {editable && (
+            <>
+              <div>Arraste entre nós para criar relação</div>
+              <div>Clique em uma relação e pressione Delete</div>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Add Node Button */}
+      {editable && onAddNode && (
+        <button
+          onClick={() => setShowAddDialog(true)}
+          className="absolute bottom-6 right-6 w-12 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105"
+          title="Adicionar variável"
+        >
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+      )}
+
+      {/* Add Node Dialog */}
+      {showAddDialog &&
+        createPortal(
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[99999]">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">
+                Nova Variável
+              </h3>
+
+              <form onSubmit={handleAddNode} className="space-y-4">
+                {/* Name */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Nome
+                  </label>
+                  <input
+                    type="text"
+                    value={newNodeName}
+                    onChange={(e) => setNewNodeName(e.target.value)}
+                    placeholder="Ex: taxa_conversao"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    autoFocus
+                    required
+                  />
+                </div>
+
+                {/* Scope */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Escopo
+                  </label>
+                  <div className="flex gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="scope"
+                        value="user"
+                        checked={newNodeScope === 'user'}
+                        onChange={() => setNewNodeScope('user')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#7c3aed' }} />
+                        <span className="text-sm text-slate-700">User-level</span>
+                      </div>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="scope"
+                        value="world"
+                        checked={newNodeScope === 'world'}
+                        onChange={() => setNewNodeScope('world')}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#06b6d4' }} />
+                        <span className="text-sm text-slate-700">World-level</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Descrição (opcional)
+                  </label>
+                  <textarea
+                    value={newNodeDescription}
+                    onChange={(e) => setNewNodeDescription(e.target.value)}
+                    placeholder="Descreva o que esta variável representa..."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                    rows={3}
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddDialog(false);
+                      setNewNodeName('');
+                      setNewNodeDescription('');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+                  >
+                    Adicionar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

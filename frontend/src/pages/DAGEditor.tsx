@@ -54,6 +54,31 @@ export default function DAGEditor() {
   const [showVersions, setShowVersions] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
 
+  const handleAddNode = (variable: Variable) => {
+    const toastId = toast.loading(`Analisando "${variable.label}" para adequar ao modelo...`, {
+      description: 'Gerando distribuição de probabilidade',
+    });
+    addNode(variable, {
+      onSuccess: () => {
+        toast.success(`Variável "${variable.label}" adicionada`, {
+          id: toastId,
+          description: 'Distribuição de probabilidade configurada',
+        });
+      },
+      onError: (error) => {
+        toast.error(`Erro ao adicionar "${variable.label}"`, {
+          id: toastId,
+          description: error instanceof Error ? error.message : 'Tente novamente',
+        });
+      },
+    });
+  };
+
+  const handleRemoveNode = (nodeName: string) => {
+    removeNode(nodeName);
+    toast.success('Variável removida');
+  };
+
   const handleAddEdge = (edge: Edge) => {
     addEdge(edge);
     toast.success('Relação adicionada');
@@ -151,7 +176,9 @@ export default function DAGEditor() {
         <ReactFlowProvider>
           <DAGVisualization
             dag={dag}
-            editable={false}
+            editable={true}
+            onAddNode={handleAddNode}
+            onDeleteNode={handleRemoveNode}
             onAddEdge={handleAddEdge}
             onDeleteEdge={handleRemoveEdge}
             onSavePositions={savePositions}

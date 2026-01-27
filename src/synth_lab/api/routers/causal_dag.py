@@ -8,7 +8,7 @@ References:
     - Data model: specs/035-causal-simulation/data-model.md
 """
 
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
 from sqlalchemy.orm import Session
 
@@ -34,8 +34,9 @@ from synth_lab.domain.entities.causal_dag import (
 )
 from synth_lab.infrastructure.database_v2 import get_db_session
 from synth_lab.repositories.causal_dag_repository import CausalDAGRepository
-from synth_lab.repositories.simulation_repository import SimulationRepository
+from synth_lab.repositories.hypothesis_repository import HypothesisRepository
 from synth_lab.services.simulation.dag_validator import DAGValidator
+from synth_lab.services.simulation.hypothesis_individual_service import HypothesisIndividualService
 
 router = APIRouter(prefix="/simulations", tags=["dag"])
 
@@ -191,6 +192,10 @@ async def update_dag(
             detail=f"DAG not found for simulation {simulation_id}",
         )
 
+    # Track new and removed nodes for hypothesis management
+    new_nodes = []
+    removed_node_ids = []
+
     # Apply updates
     if request.nodes is not None:
         # Full replacement of nodes
@@ -199,16 +204,22 @@ async def update_dag(
         # Incremental updates
         if request.add_nodes:
             for node_schema in request.add_nodes:
-                dag.nodes.append(_schema_to_variable(node_schema))
+                new_var = _schema_to_variable(node_schema)
+                dag.nodes.append(new_var)
+                new_nodes.append(new_var)
 
         if request.remove_nodes:
+            # Track removed variable IDs for hypothesis cleanup
+            for node in dag.nodes:
+                if node.name in request.remove_nodes:
+                    removed_node_ids.append(node.id)
+
             dag.nodes = [n for n in dag.nodes if n.name not in request.remove_nodes]
             # Also remove edges connected to removed nodes
             dag.edges = [
                 e
                 for e in dag.edges
-                if e.from_var not in request.remove_nodes
-                and e.to_var not in request.remove_nodes
+                if e.from_var not in request.remove_nodes and e.to_var not in request.remove_nodes
             ]
 
     if request.edges is not None:
@@ -222,22 +233,23 @@ async def update_dag(
 
         if request.remove_edges:
             remove_set = set(request.remove_edges)
-            dag.edges = [
-                e for e in dag.edges if (e.from_var, e.to_var) not in remove_set
-            ]
+            dag.edges = [e for e in dag.edges if (e.from_var, e.to_var) not in remove_set]
 
-    # Validate updated DAG
-    validator = DAGValidator()
-    validation = validator.validate(dag)
+    # Validate updated DAG (lenient mode for editing)
+    is_valid, validation_errors, validation_warnings = DAGValidator.validate(dag)
 
-    if not validation["valid"]:
+    if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
                 "message": "Invalid DAG structure",
-                "errors": validation["errors"],
+                "errors": [str(e) for e in validation_errors],
             },
         )
+
+    # Log warnings but allow operation
+    for warning in validation_warnings:
+        logger.warning(f"DAG validation warning: {warning}")
 
     # Increment version
     dag.version += 1
@@ -245,6 +257,35 @@ async def update_dag(
     # Save updated DAG
     updated_dag = dag_repo.update(dag)
     logger.info(f"Updated DAG for simulation {simulation_id} to version {dag.version}")
+
+    # Delete hypotheses for removed nodes
+    if removed_node_ids:
+        hypothesis_repo = HypothesisRepository(session=db)
+        deleted_count = hypothesis_repo.delete_by_variable_ids(simulation_id, removed_node_ids)
+        logger.info(f"Deleted {deleted_count} hypotheses for removed nodes")
+
+    # Create hypotheses for new nodes
+    if new_nodes:
+        hypothesis_service = HypothesisIndividualService()
+        hypothesis_repo = HypothesisRepository(session=db)
+        new_hypotheses = []
+
+        for new_var in new_nodes:
+            try:
+                hypothesis = hypothesis_service.quantify_variable(
+                    simulation_id=simulation_id,
+                    variable=new_var,
+                    context_dag=updated_dag,
+                )
+                new_hypotheses.append(hypothesis)
+                logger.info(f"Created hypothesis for new variable {new_var.name}")
+            except Exception as e:
+                logger.error(f"Failed to create hypothesis for {new_var.name}: {e}")
+                # Continue with other nodes even if one fails
+
+        if new_hypotheses:
+            hypothesis_repo.create_batch(new_hypotheses)
+            logger.info(f"Saved {len(new_hypotheses)} hypotheses for new nodes")
 
     return DAGResponse(
         id=updated_dag.id,
@@ -288,8 +329,7 @@ async def validate_dag(
         edges=[_schema_to_edge(e) for e in request.edges],
     )
 
-    validator = DAGValidator()
-    result = validator.validate(temp_dag)
+    is_valid, validation_errors, validation_warnings = DAGValidator.validate(temp_dag)
 
     # Check for orphan nodes (nodes without any connections)
     connected_nodes = set()
@@ -300,11 +340,14 @@ async def validate_dag(
     all_nodes = {n.name for n in temp_dag.nodes}
     orphan_nodes = list(all_nodes - connected_nodes)
 
+    # Check if any error is a cycle
+    has_cycles = any(e.error_type == "cycle" for e in validation_errors)
+
     return DAGValidationResponse(
-        valid=result["valid"],
-        errors=result["errors"],
-        warnings=result.get("warnings", []),
-        has_cycles=result.get("has_cycles", False),
+        valid=is_valid,
+        errors=[str(e) for e in validation_errors],
+        warnings=[str(w) for w in validation_warnings],
+        has_cycles=has_cycles,
         orphan_nodes=orphan_nodes,
     )
 

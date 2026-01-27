@@ -165,8 +165,15 @@ export function useAddNode() {
       node: Variable;
     }) => addNode(simulationId, node),
     onSuccess: (_, variables) => {
+      // Invalidate DAG and hypotheses (new hypothesis created for new node)
       queryClient.invalidateQueries({
         queryKey: queryKeys.dag.detail(variables.simulationId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.dag.versions(variables.simulationId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.hypotheses.list(variables.simulationId),
       });
     },
   });
@@ -193,8 +200,15 @@ export function useRemoveNode() {
       nodeName: string;
     }) => removeNode(simulationId, nodeName),
     onSuccess: (_, variables) => {
+      // Invalidate DAG and hypotheses (hypothesis deleted for removed node)
       queryClient.invalidateQueries({
         queryKey: queryKeys.dag.detail(variables.simulationId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.dag.versions(variables.simulationId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.hypotheses.list(variables.simulationId),
       });
     },
   });
@@ -334,8 +348,14 @@ export function useDAGEditor(simulationId: string) {
       updateMutation.mutate({ simulationId, request }),
     validateDAG: (request: DAGValidationRequest) =>
       validateMutation.mutate({ simulationId, request }),
-    addNode: (node: Variable) =>
-      addNodeMutation.mutate({ simulationId, node }),
+    addNode: (node: Variable, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) =>
+      addNodeMutation.mutate(
+        { simulationId, node },
+        {
+          onSuccess: options?.onSuccess,
+          onError: options?.onError,
+        }
+      ),
     removeNode: (nodeName: string) =>
       removeNodeMutation.mutate({ simulationId, nodeName }),
     addEdge: (edge: Edge) =>

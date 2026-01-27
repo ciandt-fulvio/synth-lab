@@ -22,11 +22,12 @@ from synth_lab.domain.entities.hypothesis import (
     HypothesisVersion,
     LogNormalParams,
     NormalParams,
-    Temporality,
     UniformParams,
 )
 from synth_lab.models.orm.simulation import (
     Hypothesis as HypothesisORM,
+)
+from synth_lab.models.orm.simulation import (
     HypothesisVersion as HypothesisVersionORM,
 )
 from synth_lab.repositories.base import BaseRepository
@@ -74,9 +75,7 @@ class HypothesisRepository(BaseRepository):
 
             # Serialize correlations to JSONB
             correlations_dict = (
-                [corr.model_dump() for corr in hyp.correlations]
-                if hyp.correlations
-                else None
+                [corr.model_dump() for corr in hyp.correlations] if hyp.correlations else None
             )
 
             orm_hyp = HypothesisORM(
@@ -125,9 +124,7 @@ class HypothesisRepository(BaseRepository):
 
         return [self._orm_to_entity(orm_hyp) for orm_hyp in orm_hypotheses]
 
-    def get_by_variable(
-        self, simulation_id: str, variable_name: str
-    ) -> Hypothesis | None:
+    def get_by_variable(self, simulation_id: str, variable_name: str) -> Hypothesis | None:
         """
         Get hypothesis for a specific variable.
 
@@ -194,6 +191,53 @@ class HypothesisRepository(BaseRepository):
             updated.append(self.update(hyp))
         return updated
 
+    def delete_by_variable_id(self, simulation_id: str, variable_id: str) -> bool:
+        """
+        Delete hypothesis for a specific variable.
+
+        Args:
+            simulation_id: Simulation ID
+            variable_id: Variable ID to delete hypothesis for
+
+        Returns:
+            True if deleted, False if not found
+        """
+        stmt = (
+            select(HypothesisORM)
+            .where(HypothesisORM.simulation_id == simulation_id)
+            .where(HypothesisORM.variable_id == variable_id)
+        )
+        orm_hyp = self.session.execute(stmt).scalar_one_or_none()
+
+        if orm_hyp is None:
+            return False
+
+        self.session.delete(orm_hyp)
+        self.session.commit()
+        return True
+
+    def delete_by_variable_ids(self, simulation_id: str, variable_ids: list[str]) -> int:
+        """
+        Delete hypotheses for multiple variables.
+
+        Args:
+            simulation_id: Simulation ID
+            variable_ids: List of variable IDs to delete hypotheses for
+
+        Returns:
+            Number of deleted hypotheses
+        """
+        from sqlalchemy import delete
+
+        stmt = (
+            delete(HypothesisORM)
+            .where(HypothesisORM.simulation_id == simulation_id)
+            .where(HypothesisORM.variable_id.in_(variable_ids))
+        )
+        result = self.session.execute(stmt)
+        self.session.commit()
+        return result.rowcount or 0
+
     def get_versions(self, simulation_id: str) -> list[dict]:
         """
         Get version history for simulation hypotheses.
@@ -221,9 +265,7 @@ class HypothesisRepository(BaseRepository):
             for idx, v in enumerate(reversed(list(versions)))
         ]
 
-    def get_at_version(
-        self, simulation_id: str, version: int
-    ) -> list[Hypothesis]:
+    def get_at_version(self, simulation_id: str, version: int) -> list[Hypothesis]:
         """
         Get hypotheses at a specific version.
 
@@ -327,9 +369,7 @@ class HypothesisRepository(BaseRepository):
         # Deserialize correlations
         correlations = []
         if orm.correlations:
-            correlations = [
-                Correlation(**corr_data) for corr_data in orm.correlations
-            ]
+            correlations = [Correlation(**corr_data) for corr_data in orm.correlations]
 
         return Hypothesis(
             id=orm.id,
@@ -342,9 +382,7 @@ class HypothesisRepository(BaseRepository):
             created_at=orm.created_at,
         )
 
-    def _version_orm_to_entity(
-        self, orm: HypothesisVersionORM
-    ) -> HypothesisVersion:
+    def _version_orm_to_entity(self, orm: HypothesisVersionORM) -> HypothesisVersion:
         """
         Convert version ORM model to domain entity.
 
