@@ -101,6 +101,25 @@ function DAGNodeCardComponent({ data, selected }: NodeProps<DAGNodeData>) {
         position={Position.Right}
         className="!w-3 !h-3 !bg-white !border-2 !border-slate-400"
       />
+
+      {/* Delete button - shows on hover when editable */}
+      {data.onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (confirm(`Remover variável "${variable.label}"?`)) {
+              data.onDelete?.(variable.name);
+            }
+          }}
+          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center shadow-lg"
+          style={{ opacity: showTooltip ? 1 : undefined }}
+          title="Remover variável"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      )}
     </div>
 
     {/* Tooltip rendered via portal - always on top */}

@@ -27,37 +27,42 @@ class DAGValidator:
     """
 
     @staticmethod
-    def validate(dag: CausalDAG) -> tuple[bool, list[ValidationError]]:
+    def validate(
+        dag: CausalDAG, strict: bool = False
+    ) -> tuple[bool, list[ValidationError], list[ValidationError]]:
         """
         Validate a causal DAG structure.
 
         Args:
             dag: CausalDAG entity to validate
+            strict: If True, treat warnings as errors (for final simulation run)
 
         Returns:
-            Tuple of (is_valid, validation_errors)
-            - is_valid: True if DAG passes all validation checks
-            - validation_errors: List of ValidationError objects
+            Tuple of (is_valid, errors, warnings)
+            - is_valid: True if DAG passes critical validation checks
+            - errors: Critical errors that block operations (cycles, invalid refs)
+            - warnings: Non-critical issues (orphan nodes, missing markers)
 
         Example:
             >>> dag = CausalDAG(...)
-            >>> is_valid, errors = DAGValidator.validate(dag)
+            >>> is_valid, errors, warnings = DAGValidator.validate(dag)
             >>> if not is_valid:
             ...     print(f"Validation failed: {errors}")
         """
         errors: list[ValidationError] = []
+        warnings: list[ValidationError] = []
 
         # Build NetworkX graph from DAG
         G = DAGValidator._build_networkx_graph(dag)
 
-        # Check 1: Detect cycles
+        # ERROR: Detect cycles (critical - blocks everything)
         if not nx.is_directed_acyclic_graph(G):
             try:
                 cycle = nx.find_cycle(G, orientation="original")
                 cycle_nodes = [edge[0] for edge in cycle]
                 errors.append(
                     ValidationError(
-                        error_type="cycle_detected",
+                        error_type="cycle",
                         description=f"DAG contains cycle: {' → '.join(cycle_nodes)}",
                         affected_nodes=cycle_nodes,
                     )
@@ -65,52 +70,7 @@ class DAGValidator:
             except nx.NetworkXNoCycle:
                 pass  # Should not happen if is_directed_acyclic_graph is False
 
-        # Check 2: Detect orphan nodes (disconnected components)
-        if not nx.is_weakly_connected(G):
-            components = list(nx.weakly_connected_components(G))
-            if len(components) > 1:
-                for component in components[1:]:  # Skip largest component
-                    errors.append(
-                        ValidationError(
-                            error_type="orphan_nodes",
-                            description=f"Disconnected component: {', '.join(component)}",
-                            affected_nodes=list(component),
-                        )
-                    )
-
-        # Check 3: Verify intervention variable exists
-        intervention_nodes = [
-            node.name for node in dag.nodes if node.is_intervention
-        ]
-        if len(intervention_nodes) == 0:
-            errors.append(
-                ValidationError(
-                    error_type="missing_intervention",
-                    description="No intervention variable marked (is_intervention=True)",
-                    affected_nodes=[],
-                )
-            )
-        elif len(intervention_nodes) > 1:
-            errors.append(
-                ValidationError(
-                    error_type="multiple_interventions",
-                    description=f"Multiple intervention variables: {', '.join(intervention_nodes)}",
-                    affected_nodes=intervention_nodes,
-                )
-            )
-
-        # Check 4: Verify at least one outcome variable exists
-        outcome_nodes = [node.name for node in dag.nodes if node.is_outcome]
-        if len(outcome_nodes) == 0:
-            errors.append(
-                ValidationError(
-                    error_type="missing_outcome",
-                    description="No outcome variable marked (is_outcome=True)",
-                    affected_nodes=[],
-                )
-            )
-
-        # Check 5: Verify all edge references point to valid nodes
+        # ERROR: Verify all edge references point to valid nodes (critical)
         node_names = {node.name for node in dag.nodes}
         for edge in dag.edges:
             if edge.from_var not in node_names:
@@ -130,8 +90,59 @@ class DAGValidator:
                     )
                 )
 
+        # WARNING: Detect orphan nodes (allowed during editing, issue for simulation)
+        if len(G.nodes()) > 0 and not nx.is_weakly_connected(G):
+            components = list(nx.weakly_connected_components(G))
+            if len(components) > 1:
+                for component in components[1:]:  # Skip largest component
+                    warning = ValidationError(
+                        error_type="orphan_nodes",
+                        description=f"Disconnected component: {', '.join(component)}",
+                        affected_nodes=list(component),
+                    )
+                    if strict:
+                        errors.append(warning)
+                    else:
+                        warnings.append(warning)
+
+        # WARNING: Verify intervention variable exists
+        intervention_nodes = [node.name for node in dag.nodes if node.is_intervention]
+        if len(intervention_nodes) == 0:
+            warning = ValidationError(
+                error_type="missing_intervention",
+                description="No intervention variable marked (is_intervention=True)",
+                affected_nodes=[],
+            )
+            if strict:
+                errors.append(warning)
+            else:
+                warnings.append(warning)
+        elif len(intervention_nodes) > 1:
+            warning = ValidationError(
+                error_type="multiple_interventions",
+                description=f"Multiple intervention variables: {', '.join(intervention_nodes)}",
+                affected_nodes=intervention_nodes,
+            )
+            if strict:
+                errors.append(warning)
+            else:
+                warnings.append(warning)
+
+        # WARNING: Verify at least one outcome variable exists
+        outcome_nodes = [node.name for node in dag.nodes if node.is_outcome]
+        if len(outcome_nodes) == 0:
+            warning = ValidationError(
+                error_type="missing_outcome",
+                description="No outcome variable marked (is_outcome=True)",
+                affected_nodes=[],
+            )
+            if strict:
+                errors.append(warning)
+            else:
+                warnings.append(warning)
+
         is_valid = len(errors) == 0
-        return is_valid, errors
+        return is_valid, errors, warnings
 
     @staticmethod
     def _build_networkx_graph(dag: CausalDAG) -> nx.DiGraph:

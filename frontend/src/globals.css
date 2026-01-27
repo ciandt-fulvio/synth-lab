@@ -520,6 +520,26 @@
   filter: drop-shadow(0 0 4px rgba(37, 99, 235, 0.6));
 }
 
+/* Selected edge - red highlight for deletion indication */
+.react-flow__edge.selected path {
+  stroke: #ef4444 !important;
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.6));
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #ef4444 !important;
+}
+
+/* Make edge easier to hover/select */
+.react-flow__edge {
+  cursor: pointer;
+}
+
+.react-flow__edge:hover path {
+  stroke-width: 3px !important;
+}
+
 @keyframes dashdraw {
   from {
     stroke-dashoffset: 10;
