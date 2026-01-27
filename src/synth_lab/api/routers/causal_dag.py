@@ -459,8 +459,8 @@ async def update_node_positions(
             node.position_x = pos.get("x")
             node.position_y = pos.get("y")
 
-    # Save without incrementing version
-    updated_dag = dag_repo.update(dag)
+    # Save in-place without incrementing version
+    updated_dag = dag_repo.update_in_place(dag)
     logger.info(f"Updated node positions for DAG {simulation_id}")
 
     return DAGResponse(

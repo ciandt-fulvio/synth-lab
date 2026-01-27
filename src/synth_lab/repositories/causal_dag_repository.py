@@ -204,7 +204,6 @@ class CausalDAGRepository(BaseRepository):
             assumptions=assumptions,
             risks=risks,
             created_at=orm.created_at,
-            updated_at=getattr(orm, "updated_at", None),
         )
 
     def update(self, dag: CausalDAG) -> CausalDAG:
@@ -334,5 +333,46 @@ class CausalDAGRepository(BaseRepository):
 
         if orm_dag is None:
             return None
+
+        return self._orm_to_entity(orm_dag)
+
+    def update_in_place(self, dag: CausalDAG) -> CausalDAG:
+        """
+        Update DAG in-place without creating a new version.
+
+        Use this for UI state updates like node positions that shouldn't
+        increment the version number.
+
+        Args:
+            dag: CausalDAG entity to update
+
+        Returns:
+            Updated DAG entity
+
+        Example:
+            >>> dag.nodes[0].position_x = 100
+            >>> updated = repo.update_in_place(dag)
+        """
+        # Get existing ORM instance
+        stmt = select(CausalDAGORM).where(CausalDAGORM.id == dag.id)
+        orm_dag = self.session.execute(stmt).scalar_one_or_none()
+
+        if orm_dag is None:
+            raise ValueError(f"DAG {dag.id} not found")
+
+        # Update JSONB fields in-place
+        orm_dag.nodes = [node.model_dump() for node in dag.nodes]
+        orm_dag.edges = [edge.model_dump() for edge in dag.edges]
+        orm_dag.assumptions = (
+            [assump.model_dump() for assump in dag.assumptions]
+            if dag.assumptions
+            else None
+        )
+        orm_dag.risks = (
+            [risk.model_dump() for risk in dag.risks] if dag.risks else None
+        )
+
+        self.session.commit()
+        self.session.refresh(orm_dag)
 
         return self._orm_to_entity(orm_dag)
