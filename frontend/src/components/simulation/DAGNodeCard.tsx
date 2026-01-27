@@ -18,17 +18,17 @@ interface DAGNodeData {
  */
 function getVariableColors(scope: string) {
   if (scope === 'user') {
-    // User-level: darker indigo
+    // User-level: violet
     return {
-      bg: '#4f46e5', // indigo-600
-      border: '#4338ca', // indigo-700
+      bg: '#7c3aed', // violet-600
+      border: '#6d28d9', // violet-700
       text: 'text-white',
     };
   } else {
-    // World-level: lighter indigo
+    // World-level: cyan
     return {
-      bg: '#818cf8', // indigo-400
-      border: '#6366f1', // indigo-500
+      bg: '#06b6d4', // cyan-500
+      border: '#0891b2', // cyan-600
       text: 'text-white',
     };
   }
@@ -87,7 +87,7 @@ function DAGNodeCardComponent({ data, selected }: NodeProps<DAGNodeData>) {
       {/* Hover tooltip - ALWAYS on top with portal-like behavior */}
       {variable.description && (
         <div
-          className="absolute left-full top-0 ml-4 hidden group-hover:block pointer-events-none"
+          className="absolute left-full top-[60%] ml-4 hidden group-hover:block pointer-events-none"
           style={{ zIndex: 9999 }}
         >
           <div className="bg-slate-900 text-white text-sm rounded-lg shadow-2xl p-4 max-w-sm border-2 border-slate-700">
