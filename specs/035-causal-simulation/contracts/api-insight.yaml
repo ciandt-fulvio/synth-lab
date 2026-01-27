@@ -1,0 +1,857 @@
+openapi: 3.1.0
+info:
+  title: Simulation Insights & Evidence API
+  description: API for retrieving simulation results, evidence, and actionable insights
+  version: 1.0.0
+
+paths:
+  /api/simulations/{simulation_id}/evidence:
+    get:
+      summary: Get simulation evidence
+      description: |
+        Retrieves aggregated evidence from simulation including outcome distributions,
+        variance analysis, failure modes, and behavioral clusters.
+      operationId: get_evidence
+      tags:
+        - Evidence
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: Evidence retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceResponse'
+              examples:
+                meal_subscription_evidence:
+                  summary: Meal subscription simulation evidence
+                  value:
+                    id: "evd_22222222"
+                    simulation_id: "sim_a1b2c3d4"
+                    outcome_distributions:
+                      adoption_rate:
+                        p5: 0.18
+                        p25: 0.25
+                        p50: 0.31
+                        p75: 0.37
+                        p95: 0.45
+                        mean: 0.31
+                        std: 0.08
+                    variance_explained:
+                      - variable_name: "delivery_reliability"
+                        variance_explained: 0.42
+                        rank: 1
+                      - variable_name: "brand_awareness"
+                        variance_explained: 0.28
+                        rank: 2
+                      - variable_name: "pricing"
+                        variance_explained: 0.18
+                        rank: 3
+                    correlation_matrix:
+                      delivery_reliability:
+                        adoption_rate: 0.65
+                      brand_awareness:
+                        adoption_rate: 0.51
+                      pricing:
+                        adoption_rate: -0.42
+                    failure_mode_count: 2
+                    cluster_count: 3
+                    created_at: "2026-01-26T10:03:30Z"
+        '404':
+          description: Simulation or evidence not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/simulations/{simulation_id}/evidence/failure-modes:
+    get:
+      summary: Get failure modes
+      description: Retrieves detected failure mode patterns from the simulation
+      operationId: get_failure_modes
+      tags:
+        - Evidence
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+        - name: severity
+          in: query
+          description: Filter by severity level
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
+      responses:
+        '200':
+          description: Failure modes retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FailureModeListResponse'
+              examples:
+                low_reliability_failure:
+                  summary: Delivery reliability failure mode
+                  value:
+                    simulation_id: "sim_a1b2c3d4"
+                    failure_modes:
+                      - id: "fm_33333333"
+                        pattern:
+                          delivery_reliability:
+                            operator: "<"
+                            value: 0.70
+                        outcome_threshold:
+                          adoption_rate:
+                            operator: "<"
+                            value: 0.20
+                        frequency: 0.85
+                        severity: "high"
+                        description: "When delivery reliability falls below 70%, adoption rate drops below 20% in 85% of simulated worlds"
+                        created_at: "2026-01-26T10:03:35Z"
+
+  /api/simulations/{simulation_id}/evidence/clusters:
+    get:
+      summary: Get behavioral clusters
+      description: Retrieves identified behavioral clusters from the simulation
+      operationId: get_clusters
+      tags:
+        - Evidence
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: Clusters retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterListResponse'
+              examples:
+                high_reliability_cluster:
+                  summary: High reliability + strong brand cluster
+                  value:
+                    simulation_id: "sim_a1b2c3d4"
+                    clusters:
+                      - id: "clust_44444444"
+                        cluster_number: 1
+                        centroid:
+                          delivery_reliability: 0.92
+                          brand_awareness: 0.68
+                        outcome_stats:
+                          adoption_rate:
+                            mean: 0.41
+                            std: 0.03
+                            p50: 0.42
+                        size: 127
+                        percentage: 0.254
+                        label: "High reliability + strong brand"
+                        created_at: "2026-01-26T10:03:40Z"
+
+  /api/simulations/{simulation_id}/insights:
+    get:
+      summary: Get simulation insights
+      description: Retrieves all generated insights with traceability to evidence
+      operationId: get_insights
+      tags:
+        - Insights
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+        - name: insight_type
+          in: query
+          description: Filter by insight type
+          schema:
+            type: string
+            enum: [key_driver, failure_mode, cluster_finding, recommendation]
+        - name: min_confidence
+          in: query
+          description: Minimum confidence level
+          schema:
+            type: string
+            enum: [low, medium, high]
+      responses:
+        '200':
+          description: Insights retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightListResponse'
+              examples:
+                key_driver_insight:
+                  summary: Delivery reliability as key driver
+                  value:
+                    simulation_id: "sim_a1b2c3d4"
+                    insights:
+                      - id: "ins_55555555"
+                        insight_type: "key_driver"
+                        title: "Delivery reliability is the primary driver of adoption"
+                        description: "Delivery reliability explains 42% of variance in adoption rates across simulated scenarios. Worlds with reliability above 85% show median adoption of 38% vs 22% for reliability below 70%."
+                        evidence_references:
+                          variance_explained_rank: 1
+                          failure_mode_ids: ["fm_33333333"]
+                          cluster_ids: ["clust_44444444"]
+                          affected_world_ids: ["world_11111111"]
+                        variable_references:
+                          - variable_id: "var_004"
+                            variable_name: "delivery_reliability"
+                            role: "driver"
+                          - variable_id: "var_005"
+                            variable_name: "adoption_rate"
+                            role: "outcome"
+                        statistical_support:
+                          correlation: 0.65
+                          variance_explained: 0.42
+                          sample_size: 500
+                        risk_assessment:
+                          assumptions: ["Linear relationship between reliability and adoption"]
+                          counterfactuals: ["Non-linear effects may exist at extreme values"]
+                          limitations: ["Simulated data, not real customer behavior"]
+                        recommended_actions:
+                          - action_type: "experiment"
+                            description: "A/B test delivery SLA guarantees (95% vs 85% on-time)"
+                            priority: "high"
+                          - action_type: "exclusion_criteria"
+                            description: "Avoid launching in regions with delivery reliability < 75%"
+                            priority: "medium"
+                        confidence: "high"
+                        created_at: "2026-01-26T10:04:00Z"
+
+  /api/simulations/{simulation_id}/insights/{insight_id}:
+    get:
+      summary: Get insight details
+      description: Retrieves detailed information about a specific insight
+      operationId: get_insight
+      tags:
+        - Insights
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+        - name: insight_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^ins_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: Insight retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightResponse'
+        '404':
+          description: Insight not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/simulations/{simulation_id}/insights/{insight_id}/trace:
+    get:
+      summary: Get insight trace (audit trail)
+      description: |
+        Traces insight back through evidence to specific variables, assumptions,
+        and simulation worlds. Enables "why did you recommend this?" questions.
+      operationId: trace_insight
+      tags:
+        - Insights
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+        - name: insight_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^ins_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: Trace retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightTraceResponse'
+              examples:
+                delivery_reliability_trace:
+                  summary: Trace for delivery reliability insight
+                  value:
+                    insight_id: "ins_55555555"
+                    simulation_id: "sim_a1b2c3d4"
+                    trace_path:
+                      - level: "insight"
+                        description: "Delivery reliability is the primary driver of adoption"
+                      - level: "evidence"
+                        description: "Variance explained: 42% (rank 1 of 5 variables)"
+                        reference_id: "evd_22222222"
+                      - level: "statistical_result"
+                        description: "Correlation: 0.65 (p < 0.001, n=500 worlds)"
+                      - level: "variable"
+                        description: "delivery_reliability (friction variable, world-scoped)"
+                        reference_id: "var_004"
+                      - level: "hypothesis"
+                        description: "Beta distribution (α=8.0, β=2.0), mean ~0.80"
+                        reference_id: "hyp_11111111"
+                      - level: "dag_assumption"
+                        description: "delivery_reliability → adoption_rate (moderating relationship)"
+                      - level: "affected_worlds"
+                        description: "127 worlds in high-reliability cluster"
+                        world_ids: ["world_11111111", "world_11111112"]
+                    reproducibility:
+                      random_seed: 42
+                      dag_version: 1
+                      hypothesis_version: 1
+
+  /api/simulations/{simulation_id}/audit-trail:
+    get:
+      summary: Get complete audit trail
+      description: |
+        Retrieves complete reproducibility record for simulation including
+        all inputs, LLM prompts, parameters, and execution metadata.
+      operationId: get_audit_trail
+      tags:
+        - Audit
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: Audit trail retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditTrailResponse'
+
+  /api/simulations/{simulation_id}/replay:
+    post:
+      summary: Replay simulation
+      description: |
+        Replays simulation using stored parameters and random seed to
+        produce identical results. Validates reproducibility.
+      operationId: replay_simulation
+      tags:
+        - Audit
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: Replay completed, results match original
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReplayResultResponse'
+        '400':
+          description: Replay results do not match original
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReplayMismatchResponse'
+
+components:
+  schemas:
+    OutcomeDistribution:
+      type: object
+      properties:
+        p5:
+          type: number
+          description: 5th percentile
+        p25:
+          type: number
+          description: 25th percentile
+        p50:
+          type: number
+          description: Median (50th percentile)
+        p75:
+          type: number
+          description: 75th percentile
+        p95:
+          type: number
+          description: 95th percentile
+        mean:
+          type: number
+          description: Mean value
+        std:
+          type: number
+          description: Standard deviation
+
+    VarianceContribution:
+      type: object
+      properties:
+        variable_name:
+          type: string
+        variance_explained:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Fraction of variance explained (0-1)
+        rank:
+          type: integer
+          minimum: 1
+          description: Rank by variance explained
+
+    EvidenceResponse:
+      type: object
+      required:
+        - id
+        - simulation_id
+        - outcome_distributions
+        - variance_explained
+        - correlation_matrix
+        - created_at
+      properties:
+        id:
+          type: string
+          pattern: '^evd_[a-f0-9]{8}$'
+        simulation_id:
+          type: string
+          pattern: '^sim_[a-f0-9]{8}$'
+        outcome_distributions:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/OutcomeDistribution'
+          description: Distributions for each outcome variable
+        variance_explained:
+          type: array
+          items:
+            $ref: '#/components/schemas/VarianceContribution'
+          description: Variables ranked by variance explained
+        correlation_matrix:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: number
+          description: Correlation between variables and outcomes
+        failure_mode_count:
+          type: integer
+          description: Number of failure modes detected
+        cluster_count:
+          type: integer
+          description: Number of behavioral clusters identified
+        created_at:
+          type: string
+          format: date-time
+
+    FailureModeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: '^fm_[a-f0-9]{8}$'
+        pattern:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              operator:
+                type: string
+                enum: ["<", "<=", ">", ">=", "=="]
+              value:
+                type: number
+          description: Conditional pattern defining failure
+        outcome_threshold:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              operator:
+                type: string
+              value:
+                type: number
+          description: Outcome threshold that defines failure
+        frequency:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Fraction of worlds matching pattern
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    FailureModeListResponse:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+          pattern: '^sim_[a-f0-9]{8}$'
+        failure_modes:
+          type: array
+          items:
+            $ref: '#/components/schemas/FailureModeResponse'
+
+    ClusterResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: '^clust_[a-f0-9]{8}$'
+        cluster_number:
+          type: integer
+        centroid:
+          type: object
+          additionalProperties:
+            type: number
+          description: Representative variable values
+        outcome_stats:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              mean:
+                type: number
+              std:
+                type: number
+              p50:
+                type: number
+          description: Outcome distributions for this cluster
+        size:
+          type: integer
+          description: Number of worlds in cluster
+        percentage:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Percentage of total worlds
+        label:
+          type: string
+          description: Human-readable cluster label
+        created_at:
+          type: string
+          format: date-time
+
+    ClusterListResponse:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+          pattern: '^sim_[a-f0-9]{8}$'
+        clusters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClusterResponse'
+
+    VariableReference:
+      type: object
+      properties:
+        variable_id:
+          type: string
+        variable_name:
+          type: string
+        role:
+          type: string
+          enum: [driver, mediator, confound, outcome]
+
+    StatisticalSupport:
+      type: object
+      properties:
+        correlation:
+          type: number
+          minimum: -1
+          maximum: 1
+          nullable: true
+        variance_explained:
+          type: number
+          minimum: 0
+          maximum: 1
+          nullable: true
+        sample_size:
+          type: integer
+          description: Number of worlds analyzed
+        p_value:
+          type: number
+          minimum: 0
+          maximum: 1
+          nullable: true
+
+    RiskAssessment:
+      type: object
+      properties:
+        assumptions:
+          type: array
+          items:
+            type: string
+        counterfactuals:
+          type: array
+          items:
+            type: string
+        limitations:
+          type: array
+          items:
+            type: string
+
+    RecommendedAction:
+      type: object
+      properties:
+        action_type:
+          type: string
+          enum: [experiment, rollout_strategy, exclusion_criteria, data_collection]
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high]
+
+    InsightResponse:
+      type: object
+      required:
+        - id
+        - simulation_id
+        - insight_type
+        - title
+        - description
+        - evidence_references
+        - variable_references
+        - statistical_support
+        - confidence
+        - created_at
+      properties:
+        id:
+          type: string
+          pattern: '^ins_[a-f0-9]{8}$'
+        simulation_id:
+          type: string
+          pattern: '^sim_[a-f0-9]{8}$'
+        insight_type:
+          type: string
+          enum: [key_driver, failure_mode, cluster_finding, recommendation]
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        evidence_references:
+          type: object
+          properties:
+            variance_explained_rank:
+              type: integer
+              nullable: true
+            failure_mode_ids:
+              type: array
+              items:
+                type: string
+            cluster_ids:
+              type: array
+              items:
+                type: string
+            affected_world_ids:
+              type: array
+              items:
+                type: string
+        variable_references:
+          type: array
+          items:
+            $ref: '#/components/schemas/VariableReference'
+        statistical_support:
+          $ref: '#/components/schemas/StatisticalSupport'
+        risk_assessment:
+          $ref: '#/components/schemas/RiskAssessment'
+          nullable: true
+        recommended_actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecommendedAction'
+          nullable: true
+        confidence:
+          type: string
+          enum: [low, medium, high]
+        created_at:
+          type: string
+          format: date-time
+
+    InsightListResponse:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+          pattern: '^sim_[a-f0-9]{8}$'
+        insights:
+          type: array
+          items:
+            $ref: '#/components/schemas/InsightResponse'
+
+    TraceStep:
+      type: object
+      properties:
+        level:
+          type: string
+          enum: [insight, evidence, statistical_result, variable, hypothesis, dag_assumption, affected_worlds]
+        description:
+          type: string
+        reference_id:
+          type: string
+          nullable: true
+        world_ids:
+          type: array
+          items:
+            type: string
+          nullable: true
+
+    InsightTraceResponse:
+      type: object
+      properties:
+        insight_id:
+          type: string
+          pattern: '^ins_[a-f0-9]{8}$'
+        simulation_id:
+          type: string
+          pattern: '^sim_[a-f0-9]{8}$'
+        trace_path:
+          type: array
+          items:
+            $ref: '#/components/schemas/TraceStep'
+          description: Traced path from insight back to assumptions
+        reproducibility:
+          type: object
+          properties:
+            random_seed:
+              type: integer
+            dag_version:
+              type: integer
+            hypothesis_version:
+              type: integer
+
+    LLMPromptRecord:
+      type: object
+      properties:
+        stage:
+          type: string
+          enum: [question_parsing, dag_generation, hypothesis_generation, insight_generation]
+        prompt:
+          type: string
+        response:
+          type: string
+        model:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    AuditTrailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: '^audit_[a-f0-9]{8}$'
+        simulation_id:
+          type: string
+          pattern: '^sim_[a-f0-9]{8}$'
+        question_hash:
+          type: string
+        dag_snapshot:
+          type: object
+          description: Complete DAG state
+        hypothesis_snapshot:
+          type: object
+          description: Complete hypotheses state
+        random_seed:
+          type: integer
+        llm_prompts:
+          type: array
+          items:
+            $ref: '#/components/schemas/LLMPromptRecord'
+        execution_metadata:
+          type: object
+          properties:
+            python_version:
+              type: string
+            numpy_version:
+              type: string
+            networkx_version:
+              type: string
+            start_time:
+              type: string
+              format: date-time
+            end_time:
+              type: string
+              format: date-time
+            total_duration_seconds:
+              type: number
+        created_at:
+          type: string
+          format: date-time
+
+    ReplayResultResponse:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+          pattern: '^sim_[a-f0-9]{8}$'
+        original_outcome:
+          type: object
+          description: Original outcome distributions
+        replayed_outcome:
+          type: object
+          description: Replayed outcome distributions
+        match:
+          type: boolean
+          description: Whether results match exactly
+        max_difference:
+          type: number
+          description: Maximum difference across all outcomes
+
+    ReplayMismatchResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+        mismatches:
+          type: array
+          items:
+            type: object
+            properties:
+              outcome_name:
+                type: string
+              original_value:
+                type: number
+              replayed_value:
+                type: number
+              difference:
+                type: number
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        error_code:
+          type: string
+          description: Machine-readable error code
+          nullable: true

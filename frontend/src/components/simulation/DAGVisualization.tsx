@@ -8,7 +8,7 @@
  * - Color-coded by variable type
  */
 
-import { useCallback, useMemo, useEffect, useState } from 'react';
+import { useCallback, useMemo, useEffect, useState, useRef } from 'react';
 import ReactFlow, {
   Node,
   Edge as RFEdge,
@@ -23,6 +23,7 @@ import ReactFlow, {
   BackgroundVariant,
   useReactFlow,
   OnSelectionChangeParams,
+  NodeChange,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { DAGNodeCard } from './DAGNodeCard';
@@ -46,6 +47,7 @@ interface DAGVisualizationProps {
   onAddEdge?: (edge: Edge) => void;
   onDeleteEdge?: (source: string, target: string) => void;
   onNodesChange?: (nodes: Variable[]) => void;
+  onSavePositions?: (positions: Record<string, { x: number; y: number }>) => void;
   height?: string | number;
 }
 
@@ -154,11 +156,14 @@ function dagToReactFlow(
   onEditNode?: (variable: Variable) => void,
   onDeleteNode?: (variableName: string) => void
 ): { nodes: Node[]; edges: RFEdge[] } {
-  // Create nodes - always draggable for better UX
+  // Create nodes - use saved positions if available, otherwise use {0,0} for layout
   const nodes: Node[] = dag.nodes.map((variable) => ({
     id: variable.name,
     type: 'dagNode',
-    position: { x: 0, y: 0 },
+    position: {
+      x: variable.position_x ?? 0,
+      y: variable.position_y ?? 0,
+    },
     data: {
       variable,
       onEdit: editable ? onEditNode : undefined,
@@ -203,9 +208,14 @@ function dagToReactFlow(
     };
   });
 
-  // Apply layout
-  const layoutedNodes = getHierarchicalLayout(nodes, edges);
-  return { nodes: layoutedNodes, edges };
+  // Apply layout only if nodes don't have saved positions
+  const hasSavedPositions = nodes.some(n => {
+    const variable = dag.nodes.find(v => v.name === n.id);
+    return variable?.position_x != null && variable?.position_y != null;
+  });
+
+  const finalNodes = hasSavedPositions ? nodes : getHierarchicalLayout(nodes, edges);
+  return { nodes: finalNodes, edges };
 }
 
 export function DAGVisualization({
@@ -216,10 +226,12 @@ export function DAGVisualization({
   onAddEdge,
   onDeleteEdge,
   onNodesChange,
+  onSavePositions,
   height = '100%',
 }: DAGVisualizationProps) {
   const { fitView } = useReactFlow();
   const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
+  const savePositionsTimeout = useRef<NodeJS.Timeout>();
 
   // Convert DAG with selection state
   const { nodes: initialNodes, edges: initialEdges } = useMemo(
@@ -229,6 +241,39 @@ export function DAGVisualization({
 
   const [nodes, setNodes, onNodesChangeInternal] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges);
+
+  // Handle node position changes with debounce
+  const handleNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      onNodesChangeInternal(changes);
+
+      // Check if any change is a position change
+      const hasPositionChange = changes.some(
+        (change) => change.type === 'position' && change.dragging === false
+      );
+
+      if (hasPositionChange && onSavePositions) {
+        // Clear existing timeout
+        if (savePositionsTimeout.current) {
+          clearTimeout(savePositionsTimeout.current);
+        }
+
+        // Debounce save (wait 1s after last move)
+        savePositionsTimeout.current = setTimeout(() => {
+          // Get current node positions
+          const positions: Record<string, { x: number; y: number }> = {};
+          nodes.forEach((node) => {
+            positions[node.id] = {
+              x: node.position.x,
+              y: node.position.y,
+            };
+          });
+          onSavePositions(positions);
+        }, 1000);
+      }
+    },
+    [onNodesChangeInternal, onSavePositions, nodes]
+  );
 
   // Update edges when selection changes
   useEffect(() => {
@@ -302,7 +347,7 @@ export function DAGVisualization({
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChangeInternal}
+        onNodesChange={handleNodesChange}
         onEdgesChange={editable ? onEdgesChangeInternal : undefined}
         onSelectionChange={onSelectionChange}
         onConnect={onConnect}

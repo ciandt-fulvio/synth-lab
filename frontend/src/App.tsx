@@ -10,6 +10,11 @@ import ExplorationDetail from "./pages/ExplorationDetail";
 import SimulationDetail from "./pages/SimulationDetail";
 import InterviewDetail from "./pages/InterviewDetail";
 import Synths from "./pages/Synths";
+import Simulations from "./pages/Simulations";
+import CausalSimulationDetail from "./pages/CausalSimulationDetail";
+import DAGEditor from "./pages/DAGEditor";
+import HypothesisEditor from "./pages/HypothesisEditor";
+import SimulationResults from "./pages/SimulationResults";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +36,11 @@ const App = () => (
           <Route path="/interviews/:execId" element={<ProtectedRoute><InterviewDetail /></ProtectedRoute>} />
           <Route path="/experiments/:expId/interviews/:execId" element={<ProtectedRoute><InterviewDetail /></ProtectedRoute>} />
           <Route path="/synths" element={<ProtectedRoute><Synths /></ProtectedRoute>} />
+          <Route path="/simulations" element={<ProtectedRoute><Simulations /></ProtectedRoute>} />
+          <Route path="/simulations/:id" element={<ProtectedRoute><CausalSimulationDetail /></ProtectedRoute>} />
+          <Route path="/simulations/:id/dag" element={<ProtectedRoute><DAGEditor /></ProtectedRoute>} />
+          <Route path="/simulations/:id/hypotheses" element={<ProtectedRoute><HypothesisEditor /></ProtectedRoute>} />
+          <Route path="/simulations/:id/results" element={<ProtectedRoute><SimulationResults /></ProtectedRoute>} />
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

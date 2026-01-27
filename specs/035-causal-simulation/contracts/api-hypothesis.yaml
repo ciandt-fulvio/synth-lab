@@ -1,0 +1,662 @@
+openapi: 3.1.0
+info:
+  title: Hypothesis API
+  description: API for managing hypothesis parameters and versioning for scenario planning
+  version: 1.0.0
+
+paths:
+  /api/simulations/{simulation_id}/hypotheses:
+    get:
+      summary: Get all hypotheses
+      description: Retrieves all hypothesis parameters for the current simulation
+      operationId: get_hypotheses
+      tags:
+        - Hypotheses
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: Hypotheses retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HypothesesResponse'
+              examples:
+                meal_subscription_hypotheses:
+                  summary: Meal subscription hypotheses
+                  value:
+                    simulation_id: "sim_a1b2c3d4"
+                    hypotheses:
+                      - id: "hyp_11111111"
+                        variable_id: "var_004"
+                        variable_name: "delivery_reliability"
+                        distribution_type: "beta"
+                        parameters:
+                          alpha: 8.0
+                          beta: 2.0
+                        correlations:
+                          - with_variable_id: "var_005"
+                            with_variable_name: "adoption_rate"
+                            correlation: 0.6
+                            rationale: "Higher reliability predicts higher adoption"
+                        temporality: null
+                        version: 1
+                      - id: "hyp_22222222"
+                        variable_id: "var_005"
+                        variable_name: "adoption_rate"
+                        distribution_type: "beta"
+                        parameters:
+                          alpha: 3.0
+                          beta: 7.0
+                        correlations: []
+                        temporality: null
+                        version: 1
+        '404':
+          description: Simulation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update hypotheses
+      description: |
+        Updates one or more hypothesis parameters.
+        Creates a new version if significant changes are made.
+        Optionally triggers re-simulation.
+      operationId: update_hypotheses
+      tags:
+        - Hypotheses
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HypothesesUpdate'
+            examples:
+              adjust_churn_range:
+                summary: Adjust churn rate to be more pessimistic
+                value:
+                  updates:
+                    - variable_id: "var_004"
+                      parameters:
+                        alpha: 2.0
+                        beta: 8.0
+                  re_simulate: true
+      responses:
+        '200':
+          description: Hypotheses updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HypothesesResponse'
+        '400':
+          description: Invalid hypothesis parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Simulation or variable not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/simulations/{simulation_id}/hypotheses/versions:
+    post:
+      summary: Save hypothesis version
+      description: |
+        Creates a named snapshot of current hypotheses and DAG state.
+        Enables scenario planning by preserving "Optimistic", "Pessimistic", "Realistic" cases.
+      operationId: save_hypothesis_version
+      tags:
+        - Hypotheses
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VersionCreate'
+            examples:
+              pessimistic_case:
+                summary: Save pessimistic scenario
+                value:
+                  name: "Pessimistic Case"
+                  description: "High friction, low delivery reliability, conservative adoption"
+      responses:
+        '201':
+          description: Version saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionResponse'
+              examples:
+                saved:
+                  value:
+                    id: "hv_abcdef12"
+                    simulation_id: "sim_a1b2c3d4"
+                    name: "Pessimistic Case"
+                    description: "High friction, low delivery reliability, conservative adoption"
+                    created_at: "2026-01-26T10:02:00Z"
+        '400':
+          description: Invalid version name or description
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: List hypothesis versions
+      description: Retrieves all saved hypothesis versions for this simulation
+      operationId: list_hypothesis_versions
+      tags:
+        - Hypotheses
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: List of versions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionListResponse'
+
+  /api/simulations/{simulation_id}/hypotheses/versions/{version_id}:
+    get:
+      summary: Load hypothesis version
+      description: Retrieves complete snapshot of hypotheses from a saved version
+      operationId: get_hypothesis_version
+      tags:
+        - Hypotheses
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+        - name: version_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^hv_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: Version retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionResponse'
+        '404':
+          description: Version not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Restore hypothesis version
+      description: |
+        Restores hypotheses and DAG to the state saved in this version.
+        Creates a new current version. Optionally triggers re-simulation.
+      operationId: restore_hypothesis_version
+      tags:
+        - Hypotheses
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+        - name: version_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^hv_[a-f0-9]{8}$'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                re_simulate:
+                  type: boolean
+                  default: true
+                  description: Whether to re-run simulation after restore
+      responses:
+        '200':
+          description: Version restored successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HypothesesResponse'
+        '404':
+          description: Version not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/simulations/{simulation_id}/hypotheses/compare:
+    get:
+      summary: Compare hypothesis versions
+      description: |
+        Compares two hypothesis versions showing parameter diffs and
+        outcome differences (if both have simulation results).
+      operationId: compare_hypothesis_versions
+      tags:
+        - Hypotheses
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+        - name: version_a
+          in: query
+          required: true
+          description: First version ID to compare
+          schema:
+            type: string
+            pattern: '^hv_[a-f0-9]{8}$'
+        - name: version_b
+          in: query
+          required: true
+          description: Second version ID to compare
+          schema:
+            type: string
+            pattern: '^hv_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: Comparison completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionComparisonResponse'
+              examples:
+                optimistic_vs_pessimistic:
+                  summary: Comparing optimistic vs pessimistic scenarios
+                  value:
+                    version_a:
+                      id: "hv_aaaa1111"
+                      name: "Optimistic Case"
+                    version_b:
+                      id: "hv_bbbb2222"
+                      name: "Pessimistic Case"
+                    parameter_diffs:
+                      - variable_name: "delivery_reliability"
+                        version_a_params:
+                          alpha: 9.0
+                          beta: 1.0
+                        version_b_params:
+                          alpha: 2.0
+                          beta: 8.0
+                        diff_magnitude: "large"
+                    outcome_diffs:
+                      - outcome_name: "adoption_rate"
+                        version_a_p50: 0.42
+                        version_b_p50: 0.22
+                        delta: -0.20
+                        delta_percent: -47.6
+        '404':
+          description: One or both versions not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    HypothesisResponse:
+      type: object
+      required:
+        - id
+        - variable_id
+        - variable_name
+        - distribution_type
+        - parameters
+        - version
+      properties:
+        id:
+          type: string
+          pattern: '^hyp_[a-f0-9]{8}$'
+        variable_id:
+          type: string
+          description: References DAG node ID
+        variable_name:
+          type: string
+          description: Cached variable name
+        distribution_type:
+          type: string
+          enum: [uniform, normal, beta, lognormal, bernoulli]
+        parameters:
+          type: object
+          description: Distribution-specific parameters
+          oneOf:
+            - $ref: '#/components/schemas/UniformParams'
+            - $ref: '#/components/schemas/NormalParams'
+            - $ref: '#/components/schemas/BetaParams'
+            - $ref: '#/components/schemas/LognormalParams'
+            - $ref: '#/components/schemas/BernoulliParams'
+        correlations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Correlation'
+        temporality:
+          type: object
+          nullable: true
+          description: Time-dependent behavior if applicable
+        version:
+          type: integer
+          minimum: 1
+
+    UniformParams:
+      type: object
+      required:
+        - low
+        - high
+      properties:
+        low:
+          type: number
+          description: Lower bound
+        high:
+          type: number
+          description: Upper bound
+
+    NormalParams:
+      type: object
+      required:
+        - mean
+        - std
+      properties:
+        mean:
+          type: number
+          description: Mean value
+        std:
+          type: number
+          description: Standard deviation
+          minimum: 0
+
+    BetaParams:
+      type: object
+      required:
+        - alpha
+        - beta
+      properties:
+        alpha:
+          type: number
+          description: Alpha parameter
+          minimum: 0.01
+        beta:
+          type: number
+          description: Beta parameter
+          minimum: 0.01
+
+    LognormalParams:
+      type: object
+      required:
+        - mean
+        - sigma
+      properties:
+        mean:
+          type: number
+          description: Mean of underlying normal
+        sigma:
+          type: number
+          description: Std of underlying normal
+          minimum: 0
+
+    BernoulliParams:
+      type: object
+      required:
+        - p
+      properties:
+        p:
+          type: number
+          description: Probability of success
+          minimum: 0
+          maximum: 1
+
+    Correlation:
+      type: object
+      required:
+        - with_variable_id
+        - with_variable_name
+        - correlation
+      properties:
+        with_variable_id:
+          type: string
+          description: Variable ID to correlate with
+        with_variable_name:
+          type: string
+          description: Variable name (cached)
+        correlation:
+          type: number
+          minimum: -1
+          maximum: 1
+          description: Correlation coefficient
+        rationale:
+          type: string
+          description: Why this correlation exists
+
+    HypothesesResponse:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+          pattern: '^sim_[a-f0-9]{8}$'
+        hypotheses:
+          type: array
+          items:
+            $ref: '#/components/schemas/HypothesisResponse'
+
+    HypothesisUpdate:
+      type: object
+      required:
+        - variable_id
+      properties:
+        variable_id:
+          type: string
+          description: Variable to update
+        distribution_type:
+          type: string
+          enum: [uniform, normal, beta, lognormal, bernoulli]
+          description: Change distribution type (optional)
+        parameters:
+          type: object
+          description: Updated parameters
+        correlations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Correlation'
+          description: Updated correlations
+
+    HypothesesUpdate:
+      type: object
+      required:
+        - updates
+      properties:
+        updates:
+          type: array
+          items:
+            $ref: '#/components/schemas/HypothesisUpdate'
+          description: List of hypothesis updates to apply
+        re_simulate:
+          type: boolean
+          default: false
+          description: Whether to trigger re-simulation
+
+    VersionCreate:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: User-provided version name
+          example: "Pessimistic Case"
+        description:
+          type: string
+          maxLength: 1000
+          description: User-provided description
+          example: "High friction, low delivery reliability"
+
+    VersionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: '^hv_[a-f0-9]{8}$'
+        simulation_id:
+          type: string
+          pattern: '^sim_[a-f0-9]{8}$'
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        snapshot:
+          type: object
+          description: Complete hypotheses snapshot
+          nullable: true
+        dag_snapshot:
+          type: object
+          description: Complete DAG snapshot
+          nullable: true
+
+    VersionSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: '^hv_[a-f0-9]{8}$'
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        hypothesis_count:
+          type: integer
+          description: Number of hypotheses in this version
+
+    VersionListResponse:
+      type: object
+      properties:
+        simulation_id:
+          type: string
+          pattern: '^sim_[a-f0-9]{8}$'
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/VersionSummary'
+
+    ParameterDiff:
+      type: object
+      properties:
+        variable_name:
+          type: string
+        version_a_params:
+          type: object
+          description: Parameters in version A
+        version_b_params:
+          type: object
+          description: Parameters in version B
+        diff_magnitude:
+          type: string
+          enum: [none, small, medium, large]
+          description: Magnitude of difference
+
+    OutcomeDiff:
+      type: object
+      properties:
+        outcome_name:
+          type: string
+        version_a_p50:
+          type: number
+          description: Median outcome in version A
+        version_b_p50:
+          type: number
+          description: Median outcome in version B
+        delta:
+          type: number
+          description: Absolute difference (B - A)
+        delta_percent:
+          type: number
+          description: Percentage difference
+
+    VersionComparisonResponse:
+      type: object
+      properties:
+        version_a:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+        version_b:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+        parameter_diffs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParameterDiff'
+          description: Differences in hypothesis parameters
+        outcome_diffs:
+          type: array
+          items:
+            $ref: '#/components/schemas/OutcomeDiff'
+          description: Differences in simulation outcomes
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        error_code:
+          type: string
+          description: Machine-readable error code
+          nullable: true

@@ -18,6 +18,7 @@ import os
 from typing import Any
 
 from loguru import logger
+from pydantic import BaseModel
 
 # =============================================================================
 # Model Capability Detection
@@ -379,6 +380,89 @@ class LLMClient:
             response_format={"type": "json_object"},
             **kwargs,
         )
+
+    def complete_structured[T: BaseModel](
+        self,
+        messages: list[dict[str, str]],
+        response_model: type[T],
+        model: str | None = None,
+        temperature: float = 1.0,
+        operation_name: str | None = None,
+        **kwargs: Any,
+    ) -> T:
+        """
+        Generate a structured completion using OpenAI's Structured Outputs.
+
+        Uses Pydantic model to guarantee the response adheres to the schema.
+        This prevents invalid enum values and missing required fields.
+
+        Args:
+            messages: List of message dicts with 'role' and 'content'.
+            response_model: Pydantic model class defining the response schema.
+            model: Model to use. Defaults to default_model.
+            temperature: Sampling temperature. Defaults to 1.0.
+            operation_name: Custom name for tracing span.
+            **kwargs: Additional OpenAI API parameters.
+
+        Returns:
+            T: Parsed response as instance of response_model.
+
+        Raises:
+            Exception: If all retries fail or parsing fails.
+
+        Example:
+            >>> class DAGResponse(BaseModel):
+            ...     variables: list[Variable]
+            ...     edges: list[Edge]
+            >>> dag = client.complete_structured(messages, DAGResponse)
+        """
+        model = model or self.default_model
+        self.logger.debug(
+            f"Structured completion: model={model}, schema={response_model.__name__}"
+        )
+
+        span_name = operation_name or f"LLM Structured: {model}"
+        with _tracer.start_as_current_span(
+            span_name,
+            attributes={
+                "openinference.span.kind": "LLM",
+                "model": model,
+                "message_count": len(messages),
+                "temperature": temperature,
+                "response_schema": response_model.__name__,
+            },
+        ) as span:
+
+            @self._create_retry_decorator()
+            def _call() -> T:
+                response = self.client.beta.chat.completions.parse(
+                    model=model,
+                    messages=messages,
+                    response_format=response_model,
+                    temperature=temperature,
+                    **kwargs,
+                )
+
+                # Track token usage
+                if response.usage:
+                    self._total_prompt_tokens += response.usage.prompt_tokens
+                    self._total_completion_tokens += response.usage.completion_tokens
+                    if span:
+                        span.set_attribute("prompt_tokens", response.usage.prompt_tokens)
+                        span.set_attribute("completion_tokens", response.usage.completion_tokens)
+
+                parsed = response.choices[0].message.parsed
+                if parsed is None:
+                    # Check for refusal
+                    refusal = response.choices[0].message.refusal
+                    if refusal:
+                        raise ValueError(f"Model refused to respond: {refusal}")
+                    raise ValueError("Model returned None for structured output")
+
+                self.logger.debug(f"Structured response parsed: {response_model.__name__}")
+                return parsed
+
+            return _call()
 
     def generate_image(
         self,
