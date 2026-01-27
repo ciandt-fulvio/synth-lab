@@ -8,7 +8,7 @@ References:
     - Data model: specs/035-causal-simulation/data-model.md
 """
 
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
 from sqlalchemy.orm import Session
 
@@ -37,31 +37,64 @@ router = APIRouter(prefix="/simulations", tags=["hypotheses"])
 
 def _hypothesis_to_schema(hyp: Hypothesis) -> HypothesisSchema:
     """Convert Hypothesis entity to schema."""
+    # Convert typed parameters to flat schema
+    params = hyp.parameters
+    dist_type = (
+        hyp.distribution_type.value
+        if hasattr(hyp.distribution_type, "value")
+        else str(hyp.distribution_type)
+    )
+
+    # Map typed parameter fields to flat schema
+    min_value = None
+    max_value = None
+    mean = None
+    std_dev = None
+    mode = None
+    alpha = None
+    beta = None
+
+    if dist_type == "uniform":
+        min_value = getattr(params, "low", getattr(params, "min", None))
+        max_value = getattr(params, "high", getattr(params, "max", None))
+    elif dist_type == "normal":
+        mean = getattr(params, "mean", None)
+        std_dev = getattr(params, "std", None)
+    elif dist_type == "beta":
+        alpha = getattr(params, "alpha", None)
+        beta = getattr(params, "beta", None)
+    elif dist_type == "lognormal":
+        mean = getattr(params, "mu", getattr(params, "mean", None))
+        std_dev = getattr(params, "sigma", None)
+    elif dist_type == "bernoulli":
+        # Bernoulli uses probability, map to mean for display
+        mean = getattr(params, "probability", getattr(params, "p", None))
+
     return HypothesisSchema(
         id=hyp.id,
         simulation_id=hyp.simulation_id,
-        variable_name=hyp.variable_name,
+        variable_name=hyp.variable_name or hyp.variable_id,
         parameters=DistributionParameters(
-            distribution_type=hyp.parameters.distribution_type.value,
-            min_value=hyp.parameters.min_value,
-            max_value=hyp.parameters.max_value,
-            mean=hyp.parameters.mean,
-            std_dev=hyp.parameters.std_dev,
-            mode=hyp.parameters.mode,
-            alpha=hyp.parameters.alpha,
-            beta=hyp.parameters.beta,
+            distribution_type=dist_type,
+            min_value=min_value,
+            max_value=max_value,
+            mean=mean,
+            std_dev=std_dev,
+            mode=mode,
+            alpha=alpha,
+            beta=beta,
         ),
         correlations=[
             CorrelationSchema(
-                target_variable=c.target_variable,
-                correlation_coefficient=c.correlation_coefficient,
-                relationship_type=c.relationship_type,
+                target_variable=c.with_variable_name,
+                correlation_coefficient=c.correlation,
+                relationship_type="linear",
             )
-            for c in hyp.correlations
+            for c in (hyp.correlations or [])
         ],
         version=hyp.version,
-        rationale=hyp.rationale,
-        sources=hyp.sources,
+        rationale=getattr(hyp, "rationale", None),
+        sources=getattr(hyp, "sources", []) or [],
         created_at=hyp.created_at,
     )
 
