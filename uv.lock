@@ -1128,6 +1128,15 @@ wheels = [
 ]
 
 [[package]]
+name = "networkx"
+version = "3.6.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6a/51/63fe664f3908c97be9d2e4f1158eb633317598cfa6e1fc14af5383f17512/networkx-3.6.1.tar.gz", hash = "sha256:26b7c357accc0c8cde558ad486283728b65b6a95d85ee1cd66bafab4c8168509", size = 2517025 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9e/c9/b2622292ea83fbb4ec318f5b9ab867d0a28ab43c5717bb85b0a5f6b3b0a4/networkx-3.6.1-py3-none-any.whl", hash = "sha256:d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762", size = 2068504 },
+]
+
+[[package]]
 name = "numba"
 version = "0.63.1"
 source = { registry = "https://pypi.org/simple" }
@@ -2485,6 +2494,7 @@ dependencies = [
     { name = "kneed" },
     { name = "loguru" },
     { name = "moviepy" },
+    { name = "networkx" },
     { name = "numba" },
     { name = "numpy" },
     { name = "openai" },
@@ -2503,6 +2513,7 @@ dependencies = [
     { name = "requests" },
     { name = "rich" },
     { name = "scikit-learn" },
+    { name = "scipy" },
     { name = "shap" },
     { name = "slowapi" },
     { name = "sqlalchemy" },
@@ -2537,6 +2548,7 @@ requires-dist = [
     { name = "kneed", specifier = ">=0.8.0" },
     { name = "loguru", specifier = ">=0.7.0" },
     { name = "moviepy", specifier = ">=1.0.3" },
+    { name = "networkx", specifier = ">=3.0" },
     { name = "numba", specifier = ">=0.61.0" },
     { name = "numpy", specifier = ">=1.26.0" },
     { name = "openai", specifier = ">=2.8.0" },
@@ -2561,6 +2573,7 @@ requires-dist = [
     { name = "rich", specifier = ">=13.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
     { name = "scikit-learn", specifier = ">=1.4.0" },
+    { name = "scipy", specifier = ">=1.11.0" },
     { name = "shap", specifier = ">=0.46.0" },
     { name = "slowapi", specifier = ">=0.1.9" },
     { name = "sqlalchemy", specifier = ">=2.0.0" },

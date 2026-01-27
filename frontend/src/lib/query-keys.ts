@@ -102,4 +102,27 @@ export const queryKeys = {
     detail: (experimentId: string, materialId: string) => ['materials', experimentId, materialId] as const,
     viewUrl: (experimentId: string, materialId: string) => ['materials', experimentId, materialId, 'view-url'] as const,
   },
+
+  // Causal Simulations
+  simulations: {
+    list: (options?: { status?: string; limit?: number }) => ['simulations', 'list', options] as const,
+    detail: (id: string) => ['simulations', 'detail', id] as const,
+    insights: (id: string) => ['simulations', 'insights', id] as const,
+    insightTrace: (insightId: string) => ['simulations', 'insight-trace', insightId] as const,
+    evidence: (id: string) => ['simulations', 'evidence', id] as const,
+    audit: (id: string) => ['simulations', 'audit', id] as const,
+  },
+
+  // Causal DAG
+  dag: {
+    detail: (simulationId: string) => ['dag', simulationId] as const,
+    versions: (simulationId: string) => ['dag', simulationId, 'versions'] as const,
+  },
+
+  // Hypotheses
+  hypotheses: {
+    list: (simulationId: string) => ['hypotheses', simulationId] as const,
+    detail: (hypothesisId: string) => ['hypotheses', 'detail', hypothesisId] as const,
+    versions: (simulationId: string) => ['hypotheses', simulationId, 'versions'] as const,
+  },
 };

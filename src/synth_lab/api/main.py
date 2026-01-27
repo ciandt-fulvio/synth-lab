@@ -116,14 +116,18 @@ async def root() -> dict:
 from synth_lab.api.routers import (
     analysis,
     auth,
+    causal_dag,
     chat,
     documents,
     experiments,
     exploration,
+    hypotheses,
     insights,
     materials,
     prfaq,
     research,
+    simulation_insights,
+    simulations,
     synth_groups,
     synths,
     tags,
@@ -143,6 +147,10 @@ app.include_router(materials.router, prefix="/experiments", tags=["materials"])
 app.include_router(tags.router, prefix="/tags", tags=["tags"])
 app.include_router(synth_groups.router, prefix="/synth-groups", tags=["synth-groups"])
 app.include_router(exploration.router, prefix="/explorations", tags=["explorations"])
+app.include_router(simulations.router)  # Simulations router has its own prefix /simulations
+app.include_router(simulation_insights.router)  # Insights router shares /simulations prefix
+app.include_router(causal_dag.router)  # DAG router shares /simulations prefix
+app.include_router(hypotheses.router)  # Hypotheses router shares /simulations prefix
 
 # Mount static files for generated images and documents
 # Images available at: /static/document/images/<filename>

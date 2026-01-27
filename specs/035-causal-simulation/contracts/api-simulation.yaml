@@ -1,0 +1,380 @@
+openapi: 3.1.0
+info:
+  title: Causal Simulation API
+  description: API for creating and managing causal simulations from natural language questions
+  version: 1.0.0
+
+paths:
+  /api/simulations:
+    post:
+      summary: Create simulation from question
+      description: |
+        Creates a new causal simulation from a natural language business question.
+        Initiates the complete pipeline: question parsing → DAG construction →
+        hypothesis generation → simulation → evidence → insights.
+      operationId: create_simulation
+      tags:
+        - Simulations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimulationCreate'
+            examples:
+              meal_subscription:
+                summary: Meal subscription adoption question
+                value:
+                  question_text: "What will be the adoption rate for a weekly meal subscription?"
+                  config:
+                    n_worlds: 500
+                    random_seed: 42
+      responses:
+        '201':
+          description: Simulation created and processing started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationResponse'
+              examples:
+                created:
+                  value:
+                    id: "sim_a1b2c3d4"
+                    question_text: "What will be the adoption rate for a weekly meal subscription?"
+                    status: "parsing"
+                    created_at: "2026-01-26T10:00:00Z"
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Question cannot be parsed into structured problem
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: List all simulations
+      description: Retrieves a paginated list of simulations with summary information
+      operationId: list_simulations
+      tags:
+        - Simulations
+      parameters:
+        - name: status
+          in: query
+          description: Filter by simulation status
+          schema:
+            type: string
+            enum: [parsing, dag_construction, hypothesis_generation, simulating, completed, failed]
+        - name: limit
+          in: query
+          description: Maximum number of results
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          description: Offset for pagination
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: List of simulations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationListResponse'
+
+  /api/simulations/{simulation_id}:
+    get:
+      summary: Get simulation details
+      description: Retrieves complete simulation details including problem decomposition
+      operationId: get_simulation
+      tags:
+        - Simulations
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: Simulation found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationResponse'
+              examples:
+                completed:
+                  value:
+                    id: "sim_a1b2c3d4"
+                    question_text: "What will be the adoption rate for a weekly meal subscription?"
+                    problem_decomposition:
+                      intervention: "Launch weekly meal subscription service"
+                      primary_outcome: "adoption_rate"
+                      secondary_outcomes: ["customer_lifetime_value", "churn_rate"]
+                      unit_of_analysis: "customer"
+                      time_horizon: "6 months"
+                      decision_type: "product_launch"
+                    status: "completed"
+                    created_at: "2026-01-26T10:00:00Z"
+                    completed_at: "2026-01-26T10:04:32Z"
+        '404':
+          description: Simulation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete simulation
+      description: Deletes simulation and all associated data (DAG, hypotheses, worlds, insights)
+      operationId: delete_simulation
+      tags:
+        - Simulations
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+      responses:
+        '204':
+          description: Simulation deleted successfully
+        '404':
+          description: Simulation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/simulations/{simulation_id}/status:
+    get:
+      summary: Get simulation status (polling endpoint)
+      description: |
+        Lightweight endpoint for polling simulation progress.
+        Returns current status and progress metrics without full details.
+      operationId: get_simulation_status
+      tags:
+        - Simulations
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: Current simulation status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationStatusResponse'
+              examples:
+                simulating:
+                  value:
+                    id: "sim_a1b2c3d4"
+                    status: "simulating"
+                    progress:
+                      current_step: "simulation_engine"
+                      worlds_completed: 250
+                      worlds_total: 500
+                      percent_complete: 50
+                      estimated_seconds_remaining: 60
+        '404':
+          description: Simulation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    SimulationCreate:
+      type: object
+      required:
+        - question_text
+      properties:
+        question_text:
+          type: string
+          maxLength: 2000
+          description: Natural language business question
+          example: "What will be the adoption rate for a weekly meal subscription?"
+        config:
+          $ref: '#/components/schemas/SimulationConfig'
+
+    SimulationConfig:
+      type: object
+      properties:
+        n_worlds:
+          type: integer
+          minimum: 100
+          maximum: 1000
+          default: 500
+          description: Number of simulated worlds to generate
+        random_seed:
+          type: integer
+          nullable: true
+          description: Random seed for reproducibility
+        auto_run:
+          type: boolean
+          default: true
+          description: Automatically run simulation after DAG/hypothesis generation
+
+    ProblemDecomposition:
+      type: object
+      required:
+        - intervention
+        - primary_outcome
+        - unit_of_analysis
+        - time_horizon
+        - decision_type
+      properties:
+        intervention:
+          type: string
+          description: What action or change is being evaluated
+          example: "Launch weekly meal subscription service"
+        primary_outcome:
+          type: string
+          description: Main metric of interest
+          example: "adoption_rate"
+        secondary_outcomes:
+          type: array
+          items:
+            type: string
+          description: Additional metrics to track
+          example: ["customer_lifetime_value", "churn_rate"]
+        unit_of_analysis:
+          type: string
+          description: Unit being analyzed (e.g., user, customer, transaction)
+          example: "customer"
+        time_horizon:
+          type: string
+          description: Time period for evaluation
+          example: "6 months"
+        decision_type:
+          type: string
+          description: Type of decision being made
+          example: "product_launch"
+
+    SimulationResponse:
+      type: object
+      required:
+        - id
+        - question_text
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          pattern: '^sim_[a-f0-9]{8}$'
+          example: "sim_a1b2c3d4"
+        question_text:
+          type: string
+          example: "What will be the adoption rate for a weekly meal subscription?"
+        problem_decomposition:
+          $ref: '#/components/schemas/ProblemDecomposition'
+          nullable: true
+        status:
+          type: string
+          enum: [parsing, dag_construction, hypothesis_generation, simulating, completed, failed]
+          description: Current processing status
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        error_message:
+          type: string
+          nullable: true
+          description: Error details if status is failed
+
+    SimulationSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: '^sim_[a-f0-9]{8}$'
+        question_text:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    SimulationListResponse:
+      type: object
+      properties:
+        simulations:
+          type: array
+          items:
+            $ref: '#/components/schemas/SimulationSummary'
+        total:
+          type: integer
+          description: Total number of simulations matching filter
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    SimulationStatusResponse:
+      type: object
+      required:
+        - id
+        - status
+      properties:
+        id:
+          type: string
+          pattern: '^sim_[a-f0-9]{8}$'
+        status:
+          type: string
+          enum: [parsing, dag_construction, hypothesis_generation, simulating, completed, failed]
+        progress:
+          type: object
+          nullable: true
+          properties:
+            current_step:
+              type: string
+              description: Current pipeline step
+            worlds_completed:
+              type: integer
+              description: Worlds simulated so far
+            worlds_total:
+              type: integer
+              description: Total worlds to simulate
+            percent_complete:
+              type: integer
+              minimum: 0
+              maximum: 100
+            estimated_seconds_remaining:
+              type: integer
+              nullable: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        error_code:
+          type: string
+          description: Machine-readable error code
+          nullable: true
