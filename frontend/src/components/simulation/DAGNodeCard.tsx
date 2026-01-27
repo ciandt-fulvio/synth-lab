@@ -110,7 +110,6 @@ function DAGNodeCardComponent({ data, selected }: NodeProps<DAGNodeData>) {
         style={{
           left: tooltipPosition.x,
           top: tooltipPosition.y,
-          transform: 'translateY(-60%)',
           zIndex: 99999,
         }}
       >
