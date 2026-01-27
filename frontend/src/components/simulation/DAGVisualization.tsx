@@ -294,7 +294,7 @@ export function DAGVisualization({
     const variable = node.data?.variable as Variable | undefined;
     if (!variable) return '#94a3b8';
 
-    return variable.scope === 'user' ? '#4f46e5' : '#818cf8';
+    return variable.scope === 'user' ? '#7c3aed' : '#06b6d4';
   };
 
   return (
@@ -337,11 +337,11 @@ export function DAGVisualization({
         <div className="font-semibold text-slate-700 mb-2">Variáveis</div>
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#4f46e5' }} />
+            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#7c3aed' }} />
             <span className="text-slate-600">User-level</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#818cf8' }} />
+            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#06b6d4' }} />
             <span className="text-slate-600">World-level</span>
           </div>
         </div>
