@@ -20,6 +20,7 @@ from synth_lab.domain.entities.causal_dag import (
     Controllability,
     Edge,
     RelationshipType,
+    StrengthEstimated,
     Variable,
     VariableScope,
     VariableType,
@@ -60,6 +61,10 @@ class SuggestedEdge(BaseModel):
     relationship_type: RelationshipType = Field(
         default=RelationshipType.CAUSAL,
         description="Type of causal relationship",
+    )
+    strength_estimated: StrengthEstimated = Field(
+        default=StrengthEstimated.HIGH,
+        description="Estimated strength of the causal effect: high or low",
     )
     rationale: str = Field(..., description="Why this relationship exists")
 
@@ -241,6 +246,11 @@ Com base no nome "{variable_name}" e no contexto do DAG, preencha os metadados d
 ### Sugestão de Arestas:
 Sugira relações causais plausíveis com as variáveis existentes. Use nomes EXATOS das variáveis existentes.
 
+Para cada aresta, informe:
+- `relationship_type`: causal, mediating, confounding ou moderating
+- `strength_estimated`: high (efeito forte) ou low (efeito fraco)
+- `rationale`: justificativa da relação
+
 Retorne APENAS o objeto JSON, sem texto adicional.
 """
 
@@ -286,6 +296,7 @@ Retorne APENAS o objeto JSON, sem texto adicional.
                         from_var=suggested.from_var,
                         to_var=suggested.to_var,
                         relationship_type=suggested.relationship_type,
+                        strength_estimated=suggested.strength_estimated,
                     )
                 )
 

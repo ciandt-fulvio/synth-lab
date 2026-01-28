@@ -31,6 +31,7 @@ from synth_lab.domain.entities.causal_dag import (
     Controllability,
     Edge,
     RelationshipType,
+    StrengthEstimated,
     Variable,
     VariableScope,
     VariableType,
@@ -65,6 +66,7 @@ def _edge_to_schema(edge: Edge) -> EdgeSchema:
         source=edge.from_var,  # Entity uses 'from_var' not 'source'
         target=edge.to_var,  # Entity uses 'to_var' not 'target'
         relationship_type=edge.relationship_type,  # Already a string due to use_enum_values
+        strength_estimated=edge.strength_estimated,  # Already a string due to use_enum_values
         strength=None,  # Entity doesn't have strength field
         description=None,  # Entity doesn't have description field
     )
@@ -107,6 +109,7 @@ def _schema_to_edge(schema: EdgeSchema) -> Edge:
         from_var=schema.source,  # Schema uses 'source', entity uses 'from_var'
         to_var=schema.target,  # Schema uses 'target', entity uses 'to_var'
         relationship_type=RelationshipType(schema.relationship_type),
+        strength_estimated=StrengthEstimated(schema.strength_estimated or "high"),
     )
 
 
@@ -597,7 +600,8 @@ async def enrich_variable(
             SuggestedEdgeSchema(
                 source=e.from_var,
                 target=e.to_var,
-                relationship_type=e.relationship_type.value,
+                relationship_type=e.relationship_type if isinstance(e.relationship_type, str) else e.relationship_type.value,
+                strength_estimated=e.strength_estimated if isinstance(e.strength_estimated, str) else e.strength_estimated.value,
                 rationale="Relação causal inferida pelo contexto do DAG",
             )
             for e in suggested_edges

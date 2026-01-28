@@ -51,6 +51,10 @@ class EdgeSchema(BaseModel):
         default="causal",
         description="Relationship type: causal, correlation",
     )
+    strength_estimated: str | None = Field(
+        default="high",
+        description="Estimated strength: high or low",
+    )
     strength: float | None = Field(
         default=None,
         ge=-1.0,
@@ -227,6 +231,10 @@ class SuggestedEdgeSchema(BaseModel):
     relationship_type: str = Field(
         default="causal",
         description="Relationship type",
+    )
+    strength_estimated: str = Field(
+        default="high",
+        description="Estimated strength: high or low",
     )
     rationale: str = Field(..., description="Why this edge is suggested")
 

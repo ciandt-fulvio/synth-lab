@@ -64,6 +64,13 @@ class RelationshipType(str, Enum):
     MODERATING = "moderating"  # Effect modifier
 
 
+class StrengthEstimated(str, Enum):
+    """Estimated strength of causal relationship."""
+
+    HIGH = "high"  # Strong causal effect expected
+    LOW = "low"  # Weak causal effect expected
+
+
 class ConfidenceLevel(str, Enum):
     """Confidence level for assumptions and risks."""
 
@@ -145,6 +152,7 @@ class Edge(BaseModel):
         from_var: Source variable ID
         to_var: Target variable ID
         relationship_type: Type of causal relationship
+        strength_estimated: Estimated strength of the causal effect (high/low)
     """
 
     from_var: str = Field(..., alias="from", description="Source variable ID")
@@ -154,6 +162,11 @@ class Edge(BaseModel):
     relationship_type: RelationshipType = Field(
         default=RelationshipType.CAUSAL,
         description="Type of causal relationship",
+    )
+
+    strength_estimated: StrengthEstimated = Field(
+        default=StrengthEstimated.HIGH,
+        description="Estimated strength of the causal effect",
     )
 
     class Config:
