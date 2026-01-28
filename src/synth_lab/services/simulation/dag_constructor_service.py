@@ -24,6 +24,7 @@ from synth_lab.domain.entities.causal_dag import (
     ImpactLevel,
     RelationshipType,
     Risk,
+    StrengthEstimated,
     Variable,
     VariableScope,
     VariableType,
@@ -60,6 +61,10 @@ class LLMEdge(BaseModel):
     relationship_type: RelationshipType = Field(
         default=RelationshipType.CAUSAL,
         description="Type of causal relationship: causal, mediating, confounding, or moderating",
+    )
+    strength_estimated: StrengthEstimated = Field(
+        default=StrengthEstimated.HIGH,
+        description="Estimated strength of the causal effect: high or low",
     )
 
     class Config:
@@ -287,6 +292,10 @@ Por favor, corrija esses problemas na nova resposta. Correções comuns:
 - `confounding`: Causa comum (C → A e C → B)
 - `moderating`: Modificador de efeito (M altera a força de A → B)
 
+**Força estimada da aresta**:
+- `high`: Efeito causal forte esperado (ex: preço → demanda)
+- `low`: Efeito causal fraco esperado (ex: cor_botao → conversao)
+
 **Requisitos**:
 - O DAG DEVE ser acíclico (sem ciclos)
 - Inclua 8-20 variáveis (mire em 12-15)
@@ -316,7 +325,8 @@ Por favor, corrija esses problemas na nova resposta. Correções comuns:
     {{
       "from": "var_001",
       "to": "var_002",
-      "relationship_type": "causal|mediating|confounding|moderating"
+      "relationship_type": "causal|mediating|confounding|moderating",
+      "strength_estimated": "high|low"
     }}
   ],
   "assumptions": [
@@ -385,6 +395,7 @@ Retorne APENAS o objeto JSON, sem texto ou formatação adicional.
                 from_var=name_mapping[e.from_var],
                 to_var=name_mapping[e.to_var],
                 relationship_type=e.relationship_type,
+                strength_estimated=e.strength_estimated,
             )
             for e in response.edges
         ]
