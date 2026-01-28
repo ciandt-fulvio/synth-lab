@@ -21,6 +21,9 @@ from synth_lab.api.schemas.causal_dag import (
     DAGValidationResponse,
     DAGVersionResponse,
     EdgeSchema,
+    SuggestedEdgeSchema,
+    VariableEnrichRequest,
+    VariableEnrichResponse,
     VariableSchema,
 )
 from synth_lab.domain.entities.causal_dag import (
@@ -37,6 +40,7 @@ from synth_lab.repositories.causal_dag_repository import CausalDAGRepository
 from synth_lab.repositories.hypothesis_repository import HypothesisRepository
 from synth_lab.services.simulation.dag_validator import DAGValidator
 from synth_lab.services.simulation.hypothesis_individual_service import HypothesisIndividualService
+from synth_lab.services.simulation.variable_enrichment_service import VariableEnrichmentService
 
 router = APIRouter(prefix="/simulations", tags=["dag"])
 
@@ -514,4 +518,88 @@ async def update_node_positions(
         version=updated_dag.version,
         created_at=updated_dag.created_at,
         updated_at=None,  # Entity doesn't have updated_at field
+    )
+
+
+@router.post(
+    "/{simulation_id}/dag/enrich-variable",
+    response_model=VariableEnrichResponse,
+    summary="Enrich variable metadata using LLM",
+    description="Generate type, scope, description, and suggested edges for a new variable",
+)
+async def enrich_variable(
+    simulation_id: str,
+    request: VariableEnrichRequest,
+    db: Session = Depends(get_db_session),
+) -> VariableEnrichResponse:
+    """
+    Enrich a variable with LLM-generated metadata.
+
+    This endpoint uses gpt-4o-mini to analyze the variable name in the context
+    of the existing DAG and suggests:
+    - Variable type (observable, latent, friction, etc.)
+    - Scope (world vs user level)
+    - Description in Portuguese
+    - Controllability level
+    - Whether it's an intervention or outcome
+    - Suggested causal edges to existing variables
+
+    This is designed to be called asynchronously when a user adds a node with
+    only a name, enriching the node metadata without blocking the UI.
+
+    Args:
+        simulation_id: Simulation ID for DAG context
+        request: Variable name and optional hints
+        db: Database session
+
+    Returns:
+        Enriched variable metadata with suggested edges
+
+    Example request:
+        {
+            "variable_name": "taxa_conversao",
+            "intervention_hint": "Novo sistema de checkout",
+            "outcome_hint": "Aumentar vendas"
+        }
+    """
+    dag_repo = CausalDAGRepository(session=db)
+    dag = dag_repo.get_by_simulation_id(simulation_id)
+
+    if dag is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"DAG not found for simulation {simulation_id}",
+        )
+
+    # Call enrichment service
+    enrichment_service = VariableEnrichmentService()
+    enriched_var, suggested_edges = enrichment_service.enrich(
+        variable_name=request.variable_name,
+        context_dag=dag,
+        intervention_hint=request.intervention_hint,
+        outcome_hint=request.outcome_hint,
+    )
+
+    logger.info(
+        f"Enriched variable {request.variable_name}: "
+        f"type={enriched_var.type.value}, {len(suggested_edges)} suggested edges"
+    )
+
+    return VariableEnrichResponse(
+        name=enriched_var.name,
+        variable_type=enriched_var.type.value,
+        scope=enriched_var.scope.value,
+        description=enriched_var.description,
+        controllability=enriched_var.controllability.value,
+        is_intervention=enriched_var.is_intervention,
+        is_outcome=enriched_var.is_outcome,
+        suggested_edges=[
+            SuggestedEdgeSchema(
+                source=e.from_var,
+                target=e.to_var,
+                relationship_type=e.relationship_type.value,
+                rationale="Relação causal inferida pelo contexto do DAG",
+            )
+            for e in suggested_edges
+        ],
     )

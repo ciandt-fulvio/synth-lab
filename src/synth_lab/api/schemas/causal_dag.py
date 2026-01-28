@@ -7,6 +7,7 @@ References:
 """
 
 from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -196,4 +197,51 @@ class DAGCompareResponse(BaseModel):
     modified_nodes: list[str] = Field(
         default_factory=list,
         description="Nodes with changed properties",
+    )
+
+
+# =============================================================================
+# Variable Enrichment Schemas
+# =============================================================================
+
+
+class VariableEnrichRequest(BaseModel):
+    """Request schema for variable enrichment."""
+
+    variable_name: str = Field(..., description="Name of the variable to enrich")
+    intervention_hint: str | None = Field(
+        default=None,
+        description="Intervention description for context",
+    )
+    outcome_hint: str | None = Field(
+        default=None,
+        description="Outcome description for context",
+    )
+
+
+class SuggestedEdgeSchema(BaseModel):
+    """Schema for a suggested edge from enrichment."""
+
+    source: str = Field(..., description="Source variable name")
+    target: str = Field(..., description="Target variable name")
+    relationship_type: str = Field(
+        default="causal",
+        description="Relationship type",
+    )
+    rationale: str = Field(..., description="Why this edge is suggested")
+
+
+class VariableEnrichResponse(BaseModel):
+    """Response schema for variable enrichment."""
+
+    name: str = Field(..., description="Variable name")
+    variable_type: str = Field(..., description="Inferred variable type")
+    scope: str = Field(..., description="Inferred scope")
+    description: str = Field(..., description="Generated description")
+    controllability: str = Field(..., description="Inferred controllability")
+    is_intervention: bool = Field(default=False, description="Is intervention variable")
+    is_outcome: bool = Field(default=False, description="Is outcome variable")
+    suggested_edges: list[SuggestedEdgeSchema] = Field(
+        default_factory=list,
+        description="Suggested relationships with existing variables",
     )
