@@ -97,7 +97,7 @@ class CausalDAGRepository(BaseRepository):
         # Create Variable ORM records for each node
         # This is required because hypotheses table has FK to variables table
         for node in dag.nodes:
-            # Map controllability enum to boolean
+            # Map controllability enum to boolean (for legacy 'controllable' field)
             # controllable = True if controllability is not 'none'
             controllable = (
                 node.controllability != "none"
@@ -105,13 +105,26 @@ class CausalDAGRepository(BaseRepository):
                 else node.controllability.value != "none"
             )
 
+            # Extract enum values as strings
+            def _extract_value(v):
+                return v if isinstance(v, str) else (v.value if hasattr(v, "value") else str(v))
+
             orm_variable = VariableORM(
                 id=node.id,
                 dag_id=orm_dag.id,
                 name=node.name,
-                type=node.type if isinstance(node.type, str) else node.type.value,
-                scope=node.scope if isinstance(node.scope, str) else node.scope.value,
-                controllable=controllable,
+                label=node.label if hasattr(node, "label") else node.name,
+                description=node.description,
+                type=_extract_value(node.type),
+                scope=_extract_value(node.scope),
+                controllability=_extract_value(node.controllability),
+                controllable=controllable,  # Legacy boolean field
+                is_intervention=node.is_intervention,
+                is_outcome=node.is_outcome,
+                is_critical_uncertainty=node.is_critical_uncertainty,
+                position_x=node.position_x,
+                position_y=node.position_y,
+                unit=node.unit if hasattr(node, "unit") else None,
             )
             self.session.add(orm_variable)
 

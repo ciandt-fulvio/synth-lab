@@ -25,6 +25,8 @@ from synth_lab.domain.entities.hypothesis import (
     Hypothesis,
     LogNormalParams,
     NormalParams,
+    ScenarioOption,
+    TriangularParams,
     UniformParams,
 )
 from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
@@ -134,19 +136,81 @@ class HypothesisParametrizerService:
         """
         # Serialize variables for prompt
         variables_summary = []
+        controllable_vars = []
         for var in dag.nodes:
             variables_summary.append(
-                f"- {var.id}: {var.name} ({var.type}, {var.scope}, {var.controllability})"
+                f"- {var.id}: {var.name} ({var.type}, {var.scope}, controllability={var.controllability})"
             )
+            # Track controllable variables
+            if var.controllability in ["high", "medium"]:
+                controllable_vars.append(f"  - {var.name} (controllability={var.controllability})")
 
         variables_text = "\n".join(variables_summary)
+        controllable_text = "\n".join(controllable_vars) if controllable_vars else "(Nenhuma variável controlável)"
 
         return f"""Você é um especialista em estatística quantificando variáveis com distribuições de probabilidade para simulação.
 
 **Variáveis para quantificar**:
 {variables_text}
 
-**Tarefa**: Para cada variável, sugira uma distribuição de probabilidade com parâmetros realistas.
+**Tarefa**: Para cada variável, sugira uma distribuição de probabilidade com parâmetros REALISTAS baseados em conhecimento de domínio.
+
+**IMPORTANTE**: NÃO use valores genéricos (50%, ranges 0-100, etc). Use seu conhecimento sobre o domínio para sugerir valores PROVÁVEIS e realistas.
+
+**EXEMPLOS DE RACIOCÍNIO** (few-shot learning):
+
+**Exemplo 1: Taxa de Conversão E-commerce**
+```
+Variável: "taxa_conversao" (taxa de visitantes que compram)
+Raciocínio: E-commerce típico tem conversão de 2-5% (cold traffic) ou 8-15% (warm traffic).
+Usar Beta(2, 18) resulta em média ~10%, concentrada entre 5-20%, o que é REALISTA para e-commerce.
+NÃO usar uniform(0, 1) ou Beta(5, 5) que daria média de 50% - irrealista!
+```
+Distribuição escolhida: Beta(alpha=2.0, beta=18.0)
+
+**Exemplo 2: Churn Mensal SaaS B2B**
+```
+Variável: "taxa_churn_mensal" (% de clientes que cancelam por mês)
+Raciocínio: SaaS B2B saudável tem churn de 3-7% ao mês. Churn muito baixo (<1%) é raro,
+churn alto (>15%) indica problemas sérios. Beta(1.5, 18.5) concentra em 5-8%, realista para B2B.
+NÃO usar ranges 0-100% ou mode=50% - isso não representa a realidade!
+```
+Distribuição escolhida: Beta(alpha=1.5, beta=18.5)
+
+**Exemplo 3: Ticket Médio de Produto**
+```
+Variável: "valor_ticket" (valor médio de compra em R$)
+Raciocínio: Produtos têm preço base típico (ex: R$50-80), com alguns valores mais altos (cauda longa).
+LogNormal(mean=4.0, sigma=0.6) gera distribuição com mediana ~R$55 e cauda até R$200-300.
+NÃO usar uniform(0, 1000) ou normal com range simétrico - valores monetários são assimétricos!
+```
+Distribuição escolhida: LogNormal(mean=4.0, sigma=0.6)
+
+**Exemplo 4: Tempo de Onboarding (dias)**
+```
+Variável: "tempo_onboarding" (dias para cliente completar setup)
+Raciocínio: Processo típico leva 5-10 dias, com mode em 7 dias. Extremos: mínimo 3 dias (power user),
+máximo 20 dias (casos complexos). Triangular(min=3, mode=7, max=20) reflete essa realidade.
+NÃO usar uniform(0, 100) ou mode=50 - onboarding não demora 50 dias tipicamente!
+```
+Cenários controláveis: "Simples" (min=3, mode=5, max=7), "Normal" (min=5, mode=7, max=12), "Complexo" (min=10, mode=15, max=20)
+
+**Exemplo 5: Probabilidade de Falha Técnica**
+```
+Variável: "falha_tecnica" (se ocorre falha no checkout)
+Raciocínio: Sistemas bem mantidos têm 98-99% uptime. Falhas ocorrem em ~1-3% das transações.
+Bernoulli(p=0.02) representa 2% de falhas, realista para e-commerce maduro.
+NÃO usar p=0.5 - isso significaria 50% de falhas, o que seria catastrófico!
+```
+Distribuição escolhida: Bernoulli(p=0.02)
+
+---
+
+**INSTRUÇÕES PARA SUAS HIPÓTESES**:
+1. **PENSE** no valor mais provável para cada variável baseado no domínio
+2. **JUSTIFIQUE** mentalmente por que aqueles ranges fazem sentido
+3. **EVITE** valores genéricos (50%, 0-100, distribuições simétricas quando não aplicável)
+4. **USE** conhecimento de benchmarks, realidade de mercado, física do problema
 
 **Distribuições disponíveis**:
 1. **uniform**: Uniforme(low, high) - Probabilidade igual em todo o intervalo
@@ -169,13 +233,56 @@ class HypothesisParametrizerService:
    - Use para: Eventos binários, resultados sim/não
    - Exemplo: {{\"type\": \"bernoulli\", \"params\": {{\"p\": 0.3}}}}
 
-**Diretrizes**:
-- Escolha a distribuição baseada no tipo de variável e domínio
-- Use valores de parâmetros realistas (ex: taxas de conversão 2-15%, não 50%)
-- Para taxas/percentuais, use distribuição beta limitada [0, 1]
-- Para valores monetários, use lognormal (apenas positiva)
-- Para resultados binários (modos de falha), use bernoulli
+**Diretrizes CRÍTICAS**:
+- **SEJA OPINIONATED**: Use conhecimento de domínio para sugerir valores PROVÁVEIS, não genéricos
+- **NÃO use 50% ou 0.5 como default**: Pense no valor real mais provável para aquela variável
+- **NÃO use ranges 0-100**: Use ranges realistas baseados no contexto (ex: taxa conversão 0.02-0.15, não 0-1)
+- **Distribuição Beta para taxas**: alpha e beta devem refletir assimetria realista (ex: Beta(2,18) para 10%, não Beta(5,5) para 50%)
+- **LogNormal para valores monetários**: mean e sigma devem gerar valores concentrados em faixa realista
+- **Bernoulli para eventos raros**: p deve ser baixo (<0.1) para falhas/eventos infrequentes
+- **Triangular para controláveis**: mode deve ser o valor ESPERADO no cenário base, não o meio aritmético
 - Sugira 1-3 correlações chave entre variáveis (apenas se causalmente significativas)
+
+**CENÁRIOS QUALITATIVOS** (para variáveis controláveis):
+Para variáveis com **controllability = high ou medium**, você DEVE gerar cenários qualitativos.
+Estas são as variáveis controláveis identificadas:
+{controllable_text}
+
+Para cada variável controlável, crie 2-4 cenários qualitativos com:
+- **value**: identificador interno (ex: "low", "medium", "high" ou "simple", "intermediate", "advanced")
+- **label**: rótulo descritivo CURTO em português, APENAS palavras qualitativas (ex: "Baixo", "Médio", "Alto")
+- **min_value**, **mode**, **max_value**: valores numéricos REALISTAS da distribuição triangular
+
+IMPORTANTE: Os labels devem ser APENAS palavras qualitativas, SEM faixas numéricas ou unidades.
+
+**Exemplos de cenários REALISTAS** (NOT generic!):
+
+**Taxa de desconto (percentual 0-1)**:
+- "Baixo": min=0.05, mode=0.08, max=0.12 (descontos de 5-12%)
+- "Médio": min=0.10, mode=0.15, max=0.20 (descontos de 10-20%)
+- "Alto": min=0.18, mode=0.25, max=0.35 (descontos de 18-35%)
+
+**Investimento em marketing (R$ milhares)**:
+- "Baixo": min=10, mode=15, max=25 (R$ 10-25k)
+- "Médio": min=20, mode=35, max=60 (R$ 20-60k)
+- "Alto": min=50, mode=80, max=120 (R$ 50-120k)
+
+**Tempo de entrega (dias)**:
+- "Rápido": min=1, mode=2, max=3 (1-3 dias)
+- "Normal": min=3, mode=5, max=7 (3-7 dias)
+- "Lento": min=7, mode=10, max=15 (7-15 dias)
+
+**Complexidade de interface (escala 0-10)**:
+- "Simples": min=2, mode=3, max=4 (muito intuitivo)
+- "Moderado": min=4, mode=6, max=7 (equilíbrio)
+- "Complexo": min=7, mode=8, max=9 (feature-rich)
+
+**REGRAS para cenários controláveis**:
+1. **NÃO use min=0, max=100, mode=50** - isso é genérico e irrealista
+2. **PENSE** no range realista para aquela variável específica
+3. O **mode** deve ser o valor ESPERADO naquele cenário, não o meio aritmético
+4. Os ranges podem se SOBREPOR (ex: "Médio" pode ir de 10-20, "Alto" de 18-35)
+5. O cenário do meio (ex: "medium") deve ser marcado como default (selected_scenario)
 
 **Formato de saída** (apenas JSON, sem markdown):
 {{
@@ -192,10 +299,44 @@ class HypothesisParametrizerService:
           "correlation": 0.6,
           "rationale": "Por que estas variáveis são correlacionadas"
         }}
-      ]
+      ],
+      "scenario_options": [  // OBRIGATÓRIO para variáveis com controllability=high/medium
+        {{
+          "value": "low",
+          "label": "Baixo",
+          "min_value": 0.05,
+          "mode": 0.08,
+          "max_value": 0.12
+        }},
+        {{
+          "value": "medium",
+          "label": "Médio",
+          "min_value": 0.10,
+          "mode": 0.15,
+          "max_value": 0.20
+        }},
+        {{
+          "value": "high",
+          "label": "Alto",
+          "min_value": 0.18,
+          "mode": 0.25,
+          "max_value": 0.35
+        }}
+      ],
+      "selected_scenario": "medium"  // Cenário padrão (geralmente o do meio)
     }}
   ]
 }}
+
+**LEMBRE-SE**: Cada variável tem seu próprio contexto. Use conhecimento de domínio para sugerir valores PROVÁVEIS e REALISTAS.
+NÃO caia na armadilha de usar valores genéricos (50%, 0-100, distribuições simétricas para tudo).
+
+**CHECKLIST FINAL antes de retornar**:
+✓ Nenhuma incerteza crítica tem mode=50 ou range 0-100?
+✓ Distribuições Beta têm alpha e beta que refletem assimetria realista?
+✓ Cenários controláveis têm ranges específicos do domínio, não genéricos?
+✓ Valores LogNormal geram ranges monetários realistas?
+✓ Probabilidades Bernoulli são baixas (<0.1) para eventos raros?
 
 Retorne APENAS o objeto JSON, sem texto ou formatação adicional.
 """
@@ -273,6 +414,25 @@ Retorne APENAS o objeto JSON, sem texto ou formatação adicional.
                     )
                 )
 
+            # Parse scenario options (for controllable variables)
+            scenario_options = None
+            selected_scenario = None
+            if "scenario_options" in hyp_data and hyp_data["scenario_options"]:
+                scenario_options = []
+                for scenario_data in hyp_data["scenario_options"]:
+                    scenario_options.append(
+                        ScenarioOption(
+                            value=scenario_data["value"],
+                            label=scenario_data["label"],
+                            distribution_params=TriangularParams(
+                                min_value=scenario_data["min_value"],
+                                mode=scenario_data["mode"],
+                                max_value=scenario_data["max_value"],
+                            ),
+                        )
+                    )
+                selected_scenario = hyp_data.get("selected_scenario")
+
             hypotheses.append(
                 Hypothesis(
                     simulation_id=simulation_id,
@@ -281,6 +441,8 @@ Retorne APENAS o objeto JSON, sem texto ou formatação adicional.
                     distribution_type=dist_type,
                     parameters=params,
                     correlations=correlations,
+                    scenario_options=scenario_options,
+                    selected_scenario=selected_scenario,
                 )
             )
 

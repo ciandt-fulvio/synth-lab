@@ -130,6 +130,11 @@ class Variable(BaseModel):
         default=False, description="True if this is a primary/secondary outcome"
     )
 
+    is_critical_uncertainty: bool = Field(
+        default=False,
+        description="True if this variable is a critical uncertainty that users should adjust",
+    )
+
     position_x: Optional[float] = Field(
         default=None, description="X coordinate for visualization (saved user position)"
     )
@@ -167,6 +172,13 @@ class Edge(BaseModel):
     strength_estimated: StrengthEstimated = Field(
         default=StrengthEstimated.HIGH,
         description="Estimated strength of the causal effect",
+    )
+
+    strength_user: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="User-defined relationship strength (0-1). Overrides strength_estimated when set.",
     )
 
     class Config:
