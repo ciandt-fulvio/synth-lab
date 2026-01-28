@@ -22,6 +22,7 @@ from synth_lab.api.schemas.hypothesis import (
     HypothesisUpdateRequest,
     HypothesisVersionCreateRequest,
     HypothesisVersionSchema,
+    ScenarioOptionSchema,
 )
 from synth_lab.domain.entities.hypothesis import (
     Correlation,
@@ -70,6 +71,23 @@ def _hypothesis_to_schema(hyp: Hypothesis) -> HypothesisSchema:
         # Bernoulli uses probability, map to mean for display
         mean = getattr(params, "probability", getattr(params, "p", None))
 
+    # Convert scenario options if present
+    scenario_options_schema = None
+    if hyp.scenario_options:
+        scenario_options_schema = [
+            ScenarioOptionSchema(
+                value=opt.value,
+                label=opt.label,
+                distribution_params=DistributionParameters(
+                    distribution_type="triangular",
+                    min_value=opt.distribution_params.min_value,
+                    max_value=opt.distribution_params.max_value,
+                    mode=opt.distribution_params.mode,
+                ),
+            )
+            for opt in hyp.scenario_options
+        ]
+
     return HypothesisSchema(
         id=hyp.id,
         simulation_id=hyp.simulation_id,
@@ -92,6 +110,8 @@ def _hypothesis_to_schema(hyp: Hypothesis) -> HypothesisSchema:
             )
             for c in (hyp.correlations or [])
         ],
+        scenario_options=scenario_options_schema,
+        selected_scenario=hyp.selected_scenario,
         version=hyp.version,
         rationale=getattr(hyp, "rationale", None),
         sources=getattr(hyp, "sources", []) or [],
@@ -205,6 +225,15 @@ async def update_hypotheses(
         if update.correlations is not None:
             hyp.correlations = [_schema_to_correlation(c) for c in update.correlations]
 
+        if update.selected_scenario is not None:
+            hyp.selected_scenario = update.selected_scenario
+            # If a scenario is selected, update parameters to match that scenario
+            if hyp.scenario_options:
+                for opt in hyp.scenario_options:
+                    if opt.value == update.selected_scenario:
+                        hyp.parameters = opt.distribution_params
+                        break
+
         if update.rationale:
             hyp.rationale = update.rationale
 
@@ -263,6 +292,15 @@ async def update_hypothesis(
 
     if request.correlations is not None:
         hypothesis.correlations = [_schema_to_correlation(c) for c in request.correlations]
+
+    if request.selected_scenario is not None:
+        hypothesis.selected_scenario = request.selected_scenario
+        # If a scenario is selected, update parameters to match that scenario
+        if hypothesis.scenario_options:
+            for opt in hypothesis.scenario_options:
+                if opt.value == request.selected_scenario:
+                    hypothesis.parameters = opt.distribution_params
+                    break
 
     if request.rationale:
         hypothesis.rationale = request.rationale

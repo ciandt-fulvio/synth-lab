@@ -133,6 +133,7 @@ export default function CausalSimulationDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [runResult, setRunResult] = useState<any>(null);
+  const [viewedStep, setViewedStep] = useState<string | null>(null);
 
   // Data hooks
   const { data: simulation, isLoading: isLoadingSimulation, refetch: refetchSimulation } = useSimulation(id || '');
@@ -141,14 +142,16 @@ export default function CausalSimulationDetail() {
       simulation?.status === 'awaiting_dag_validation' ||
       simulation?.status === 'awaiting_hypothesis_validation' ||
       simulation?.status === 'ready_to_run' ||
-      simulation?.status === 'completed'
+      simulation?.status === 'completed' ||
+      viewedStep === 'dag' // Enable when viewing DAG step
     ),
   });
   const { data: hypotheses, isLoading: isLoadingHypotheses } = useHypotheses(id || '', {
     enabled: !!id && (
       simulation?.status === 'awaiting_hypothesis_validation' ||
       simulation?.status === 'ready_to_run' ||
-      simulation?.status === 'completed'
+      simulation?.status === 'completed' ||
+      viewedStep === 'hypotheses' // Enable when viewing hypotheses step
     ),
   });
   const { data: insights, isLoading: isLoadingInsights } = useSimulationInsights(id || '', {
@@ -283,8 +286,73 @@ export default function CausalSimulationDetail() {
   const steps = getWizardSteps(simulation.status);
   const hasResults = !!runResult;
 
-  // Render content based on status
+  // Handle step click - navigate to that step
+  const handleStepClick = (stepId: string) => {
+    // Get the current step based on simulation status
+    const statusToStep: Record<string, string> = {
+      awaiting_question_validation: 'question',
+      awaiting_dag_validation: 'dag',
+      awaiting_hypothesis_validation: 'hypotheses',
+      ready_to_run: 'run',
+    };
+    const currentStepId = statusToStep[simulation.status];
+
+    // If clicking the current step, clear viewedStep to show current content
+    if (stepId === currentStepId) {
+      setViewedStep(null);
+    } else {
+      setViewedStep(stepId);
+    }
+  };
+
+  // Render content based on viewed step or current status
   const renderStepContent = () => {
+    // If viewing a previous step, render it in read-only mode
+    if (viewedStep) {
+      switch (viewedStep) {
+        case 'question':
+          return simulation.problem_decomposition ? (
+            <QuestionValidationStep
+              problemDecomposition={simulation.problem_decomposition}
+              onConfirm={() => {}}
+              onUpdate={async () => {}}
+              isConfirming={false}
+              isUpdating={false}
+              readOnly
+            />
+          ) : null;
+
+        case 'dag':
+          return (
+            <DAGValidationStep
+              simulationId={id!}
+              dag={dag || null}
+              isLoading={isLoadingDAG}
+              onConfirm={() => {}}
+              isConfirming={false}
+              readOnly
+            />
+          );
+
+        case 'hypotheses':
+          return (
+            <HypothesisValidationStep
+              simulationId={id!}
+              hypotheses={hypotheses || null}
+              dag={dag || null}
+              isLoading={isLoadingHypotheses}
+              onConfirm={() => {}}
+              isConfirming={false}
+              readOnly
+            />
+          );
+
+        default:
+          return null;
+      }
+    }
+
+    // Otherwise, render based on current status
     switch (simulation.status) {
       case 'awaiting_question_validation':
         return simulation.problem_decomposition ? (
@@ -313,6 +381,7 @@ export default function CausalSimulationDetail() {
           <HypothesisValidationStep
             simulationId={id!}
             hypotheses={hypotheses || null}
+            dag={dag || null}
             isLoading={isLoadingHypotheses}
             onConfirm={handleConfirmHypotheses}
             isConfirming={isConfirmingHypotheses}
@@ -500,7 +569,11 @@ export default function CausalSimulationDetail() {
 
           {/* Step Indicator (only show for wizard steps) */}
           {['awaiting_question_validation', 'awaiting_dag_validation', 'awaiting_hypothesis_validation', 'ready_to_run'].includes(simulation.status) && (
-            <StepIndicator steps={steps} />
+            <StepIndicator
+              steps={steps}
+              viewedStep={viewedStep}
+              onStepClick={handleStepClick}
+            />
           )}
         </section>
 

@@ -55,6 +55,10 @@ def _variable_to_schema(var: Variable) -> VariableSchema:
         scope=var.scope,  # Already a string due to use_enum_values
         description=var.description,
         unit=None,  # Entity doesn't have unit field
+        controllability=var.controllability,  # Already a string due to use_enum_values
+        is_intervention=var.is_intervention,
+        is_outcome=var.is_outcome,
+        is_critical_uncertainty=var.is_critical_uncertainty,
         position_x=var.position_x,
         position_y=var.position_y,
     )
@@ -68,6 +72,7 @@ def _edge_to_schema(edge: Edge) -> EdgeSchema:
         relationship_type=edge.relationship_type,  # Already a string due to use_enum_values
         strength_estimated=edge.strength_estimated,  # Already a string due to use_enum_values
         strength=None,  # Entity doesn't have strength field
+        strength_user=edge.strength_user,
         description=None,  # Entity doesn't have description field
     )
 
@@ -89,15 +94,23 @@ def _schema_to_variable(schema: VariableSchema) -> Variable:
     }
     var_type = type_mapping.get(schema.variable_type.lower(), VariableType.OBSERVABLE)
 
+    # Use provided controllability or default to MEDIUM
+    controllability = (
+        Controllability(schema.controllability)
+        if schema.controllability
+        else Controllability.MEDIUM
+    )
+
     return Variable(
         id=f"var_{schema.name}",  # Generate ID from name
         name=schema.name,
         type=var_type,
         scope=VariableScope(schema.scope),
         description=schema.description or "",
-        controllability=Controllability.MEDIUM,  # Default value
-        is_intervention=False,  # Default value
-        is_outcome=False,  # Default value
+        controllability=controllability,
+        is_intervention=schema.is_intervention,
+        is_outcome=schema.is_outcome,
+        is_critical_uncertainty=schema.is_critical_uncertainty,
         position_x=schema.position_x,
         position_y=schema.position_y,
     )
@@ -110,6 +123,7 @@ def _schema_to_edge(schema: EdgeSchema) -> Edge:
         to_var=schema.target,  # Schema uses 'target', entity uses 'to_var'
         relationship_type=RelationshipType(schema.relationship_type),
         strength_estimated=StrengthEstimated(schema.strength_estimated or "high"),
+        strength_user=schema.strength_user,
     )
 
 

@@ -20,6 +20,8 @@ interface DAGValidationStepProps {
   isLoading: boolean;
   onConfirm: () => void;
   isConfirming: boolean;
+  /** When true, hides edit/confirm buttons for reviewing completed steps */
+  readOnly?: boolean;
 }
 
 /**
@@ -31,6 +33,7 @@ export function DAGValidationStep({
   isLoading,
   onConfirm,
   isConfirming,
+  readOnly = false,
 }: DAGValidationStepProps) {
   const navigate = useNavigate();
 
@@ -62,15 +65,21 @@ export function DAGValidationStep({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Validar Modelo Causal</h2>
-          <p className="text-sm text-slate-600 mt-1">
-            Revise as relações de causa e efeito geradas. Você pode editar as variáveis e relações antes de continuar.
-          </p>
+          <h2 className="text-lg font-semibold text-slate-900">
+            {readOnly ? 'Modelo Causal' : 'Validar Modelo Causal'}
+          </h2>
+          {!readOnly && (
+            <p className="text-sm text-slate-600 mt-1">
+              Revise as relações de causa e efeito geradas. Você pode editar as variáveis e relações antes de continuar.
+            </p>
+          )}
         </div>
-        <Button variant="outline" size="sm" onClick={handleEditDAG}>
-          <Edit2 className="h-4 w-4 mr-1" />
-          Editar Modelo
-        </Button>
+        {!readOnly && (
+          <Button variant="outline" size="sm" onClick={handleEditDAG}>
+            <Edit2 className="h-4 w-4 mr-1" />
+            Editar Modelo
+          </Button>
+        )}
       </div>
 
       {/* DAG Summary */}
@@ -148,21 +157,23 @@ export function DAGValidationStep({
         </div>
       )}
 
-      <div className="flex justify-end pt-4 border-t">
-        <Button onClick={onConfirm} disabled={isConfirming} className="btn-primary">
-          {isConfirming ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Gerando Hipóteses...
-            </>
-          ) : (
-            <>
-              Confirmar e Gerar Hipóteses
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </>
-          )}
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="flex justify-end pt-4 border-t">
+          <Button onClick={onConfirm} disabled={isConfirming} className="btn-primary">
+            {isConfirming ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Gerando Hipóteses...
+              </>
+            ) : (
+              <>
+                Confirmar e Gerar Hipóteses
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </>
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

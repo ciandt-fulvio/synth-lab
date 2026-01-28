@@ -29,6 +29,8 @@ interface QuestionValidationStepProps {
   onUpdate: (update: Partial<ProblemDecomposition>) => Promise<void>;
   isConfirming: boolean;
   isUpdating: boolean;
+  /** When true, hides edit/confirm buttons for reviewing completed steps */
+  readOnly?: boolean;
 }
 
 const DECISION_TYPES = [
@@ -58,6 +60,7 @@ export function QuestionValidationStep({
   onUpdate,
   isConfirming,
   isUpdating,
+  readOnly = false,
 }: QuestionValidationStepProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState(problemDecomposition);
@@ -249,17 +252,21 @@ export function QuestionValidationStep({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-slate-900">
-          Validar Estruturação da Pergunta
+          {readOnly ? 'Estruturação da Pergunta' : 'Validar Estruturação da Pergunta'}
         </h2>
-        <Button variant="outline" size="sm" onClick={handleStartEdit}>
-          <Edit2 className="h-4 w-4 mr-1" />
-          Editar
-        </Button>
+        {!readOnly && (
+          <Button variant="outline" size="sm" onClick={handleStartEdit}>
+            <Edit2 className="h-4 w-4 mr-1" />
+            Editar
+          </Button>
+        )}
       </div>
 
-      <p className="text-sm text-slate-600">
-        Revise a estruturação abaixo. Após confirmar, o modelo causal será gerado automaticamente.
-      </p>
+      {!readOnly && (
+        <p className="text-sm text-slate-600">
+          Revise a estruturação abaixo. Após confirmar, o modelo causal será gerado automaticamente.
+        </p>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-1">
@@ -310,25 +317,27 @@ export function QuestionValidationStep({
         )}
       </div>
 
-      <div className="flex justify-end pt-4 border-t">
-        <Button
-          onClick={onConfirm}
-          disabled={isConfirming}
-          className="btn-primary"
-        >
-          {isConfirming ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Gerando Modelo...
-            </>
-          ) : (
-            <>
-              Confirmar e Gerar Modelo
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </>
-          )}
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="flex justify-end pt-4 border-t">
+          <Button
+            onClick={onConfirm}
+            disabled={isConfirming}
+            className="btn-primary"
+          >
+            {isConfirming ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Gerando Modelo...
+              </>
+            ) : (
+              <>
+                Confirmar e Gerar Modelo
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </>
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

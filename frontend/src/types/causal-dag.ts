@@ -17,6 +17,16 @@ export type VariableType = 'input' | 'intermediate' | 'output';
 export type VariableScope = 'world' | 'user';
 
 /**
+ * Controllability level for a variable.
+ */
+export type Controllability = 'none' | 'low' | 'medium' | 'high';
+
+/**
+ * Estimated strength of causal relationship.
+ */
+export type StrengthEstimated = 'high' | 'low';
+
+/**
  * Single DAG variable/node.
  */
 export interface Variable {
@@ -26,6 +36,10 @@ export interface Variable {
   scope: VariableScope;
   description?: string | null;
   unit?: string | null;
+  controllability?: Controllability | null;
+  is_intervention?: boolean;
+  is_outcome?: boolean;
+  is_critical_uncertainty?: boolean;
   position_x?: number | null;
   position_y?: number | null;
 }
@@ -42,7 +56,9 @@ export interface Edge {
   source: string;
   target: string;
   relationship_type: RelationshipType;
+  strength_estimated?: StrengthEstimated | null;
   strength?: number | null;
+  strength_user?: number | null;
   description?: string | null;
 }
 

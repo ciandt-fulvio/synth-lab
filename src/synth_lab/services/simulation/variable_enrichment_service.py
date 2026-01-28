@@ -49,6 +49,10 @@ class EnrichedVariable(BaseModel):
     controllability: Controllability = Field(..., description="Degree of control")
     is_intervention: bool = Field(default=False, description="Is intervention variable")
     is_outcome: bool = Field(default=False, description="Is outcome variable")
+    is_critical_uncertainty: bool = Field(
+        default=False,
+        description="True if this variable has high uncertainty and significant impact on outcomes"
+    )
 
 
 class SuggestedEdge(BaseModel):
@@ -242,6 +246,9 @@ Com base no nome "{variable_name}" e no contexto do DAG, preencha os metadados d
 ### Regras:
 - `is_intervention`: Marque como true APENAS se esta variável representa a intervenção principal do estudo
 - `is_outcome`: Marque como true APENAS se esta variável representa o resultado que queremos medir
+- `is_critical_uncertainty`: Marque como true se a variável tem ALTA INCERTEZA (difícil de estimar) E ALTO IMPACTO (influência significativa no resultado)
+  - Exemplos: variáveis latentes, fricções com alta variabilidade, modos de falha com probabilidade desconhecida
+  - NÃO marque: intervenção, resultado, ou variáveis observáveis com dados confiáveis
 
 ### Sugestão de Arestas:
 Sugira relações causais plausíveis com as variáveis existentes. Use nomes EXATOS das variáveis existentes.
@@ -275,6 +282,7 @@ Retorne APENAS o objeto JSON, sem texto adicional.
             controllability=enriched.controllability,
             is_intervention=enriched.is_intervention,
             is_outcome=enriched.is_outcome,
+            is_critical_uncertainty=enriched.is_critical_uncertainty,
         )
 
     def _response_to_edges(
@@ -319,6 +327,7 @@ Retorne APENAS o objeto JSON, sem texto adicional.
             controllability=Controllability.MEDIUM,
             is_intervention=False,
             is_outcome=False,
+            is_critical_uncertainty=False,
         )
 
 

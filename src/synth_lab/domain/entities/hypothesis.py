@@ -148,6 +148,33 @@ HypothesisParameters = Union[
 ]
 
 
+class TriangularParams(BaseModel):
+    """Parameters for triangular distribution (user-friendly scenarios)."""
+
+    min_value: float = Field(..., description="Minimum value")
+    mode: float = Field(..., description="Most likely value")
+    max_value: float = Field(..., description="Maximum value")
+
+
+class ScenarioOption(BaseModel):
+    """
+    User-friendly scenario option for controllable variables.
+
+    Attributes:
+        value: Internal value identifier (e.g., 'low', 'medium', 'high')
+        label: Display label (e.g., 'Econômico (R$29-39)')
+        distribution_params: Distribution parameters for this scenario
+    """
+
+    value: str = Field(..., description="Internal value identifier")
+
+    label: str = Field(..., description="Display label for the scenario")
+
+    distribution_params: TriangularParams = Field(
+        ..., description="Distribution parameters for this scenario"
+    )
+
+
 class Hypothesis(BaseModel):
     """
     Quantitative parametrization of a variable with distribution.
@@ -200,6 +227,16 @@ class Hypothesis(BaseModel):
 
     temporality: Optional[Temporality] = Field(
         default=None, description="Time-dependent behavior if applicable"
+    )
+
+    scenario_options: Optional[list[ScenarioOption]] = Field(
+        default=None,
+        description="Pre-defined scenario options for controllable variables",
+    )
+
+    selected_scenario: Optional[str] = Field(
+        default=None,
+        description="Currently selected scenario value (references ScenarioOption.value)",
     )
 
     version: int = Field(

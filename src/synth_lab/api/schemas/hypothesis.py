@@ -47,6 +47,17 @@ class DistributionParameters(BaseModel):
     )
 
 
+class ScenarioOptionSchema(BaseModel):
+    """Schema for a user-friendly scenario option."""
+
+    value: str = Field(..., description="Internal value identifier (e.g., 'low', 'medium', 'high')")
+    label: str = Field(..., description="Display label (e.g., 'Econômico (R$29-39)')")
+    distribution_params: DistributionParameters = Field(
+        ...,
+        description="Distribution parameters for this scenario",
+    )
+
+
 class CorrelationSchema(BaseModel):
     """Correlation with another variable."""
 
@@ -77,6 +88,14 @@ class HypothesisSchema(BaseModel):
         default_factory=list,
         description="Correlations with other variables",
     )
+    scenario_options: list[ScenarioOptionSchema] | None = Field(
+        default=None,
+        description="Pre-defined scenario options for controllable variables",
+    )
+    selected_scenario: str | None = Field(
+        default=None,
+        description="Currently selected scenario value",
+    )
     version: int = Field(default=1, description="Hypothesis version")
     rationale: str | None = Field(
         default=None,
@@ -99,6 +118,10 @@ class HypothesisUpdateRequest(BaseModel):
     correlations: list[CorrelationSchema] | None = Field(
         default=None,
         description="Updated correlations",
+    )
+    selected_scenario: str | None = Field(
+        default=None,
+        description="Selected scenario value (for controllable variables)",
     )
     rationale: str | None = Field(
         default=None,

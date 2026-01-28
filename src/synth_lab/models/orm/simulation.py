@@ -138,9 +138,18 @@ class Variable(Base):
         id: Unique identifier
         dag_id: Parent DAG ID
         name: Variable name
+        label: Display label
+        description: Detailed description
         type: Variable type (observable, latent, etc.)
         scope: Variable scope (world, user)
-        controllable: Whether variable is controllable
+        controllability: Degree of control (none, low, medium, high)
+        controllable: Legacy boolean field (deprecated, use controllability)
+        is_intervention: Whether this is the intervention variable
+        is_outcome: Whether this is an outcome variable
+        is_critical_uncertainty: Whether this is a critical uncertainty
+        position_x: X coordinate for visualization
+        position_y: Y coordinate for visualization
+        unit: Unit of measurement (optional)
     """
 
     __tablename__ = "variables"
@@ -152,11 +161,26 @@ class Variable(Base):
         nullable=False,
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    label: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     type: Mapped[str] = mapped_column(String(50), nullable=False)
     scope: Mapped[str] = mapped_column(String(50), nullable=False)
+    controllability: Mapped[str | None] = mapped_column(String(20), nullable=True)
     controllable: Mapped[bool] = mapped_column(
         nullable=False, server_default="false"
     )
+    is_intervention: Mapped[bool] = mapped_column(
+        nullable=False, server_default="false"
+    )
+    is_outcome: Mapped[bool] = mapped_column(
+        nullable=False, server_default="false"
+    )
+    is_critical_uncertainty: Mapped[bool] = mapped_column(
+        nullable=False, server_default="false"
+    )
+    position_x: Mapped[float | None] = mapped_column(Float, nullable=True)
+    position_y: Mapped[float | None] = mapped_column(Float, nullable=True)
+    unit: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     # Relationships
     dag: Mapped["CausalDAG"] = relationship(
@@ -179,11 +203,14 @@ class Hypothesis(Base):
         id: Unique identifier (hyp_[a-f0-9]{8})
         simulation_id: Parent simulation ID
         variable_id: Variable ID
+        variable_name: Variable name (denormalized for querying)
         distribution_type: Type of distribution
         distribution_params: Distribution parameters (JSONB)
         range_min: Minimum value
         range_max: Maximum value
         correlations: Correlations with other variables (JSONB)
+        scenario_options: Qualitative scenario options for controllable variables (JSONB)
+        selected_scenario: Currently selected scenario value
         created_at: Creation timestamp
     """
 
@@ -200,6 +227,7 @@ class Hypothesis(Base):
         ForeignKey("variables.id", ondelete="CASCADE"),
         nullable=False,
     )
+    variable_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     distribution_type: Mapped[str] = mapped_column(String(50), nullable=False)
     distribution_params: Mapped[dict] = mapped_column(
         MutableJSON, nullable=False
@@ -207,6 +235,8 @@ class Hypothesis(Base):
     range_min: Mapped[float | None] = mapped_column(Float, nullable=True)
     range_max: Mapped[float | None] = mapped_column(Float, nullable=True)
     correlations: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
+    scenario_options: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
+    selected_scenario: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default="now()"
     )

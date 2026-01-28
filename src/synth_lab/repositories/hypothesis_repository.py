@@ -78,15 +78,32 @@ class HypothesisRepository(BaseRepository):
                 [corr.model_dump() for corr in hyp.correlations] if hyp.correlations else None
             )
 
+            # Serialize scenario options to JSONB
+            scenario_options_dict = None
+            if hyp.scenario_options:
+                scenario_options_dict = [
+                    {
+                        "value": opt.value,
+                        "label": opt.label,
+                        "min_value": opt.distribution_params.min_value,
+                        "mode": opt.distribution_params.mode,
+                        "max_value": opt.distribution_params.max_value,
+                    }
+                    for opt in hyp.scenario_options
+                ]
+
             orm_hyp = HypothesisORM(
                 id=hyp.id,
                 simulation_id=hyp.simulation_id,
                 variable_id=hyp.variable_id,
+                variable_name=hyp.variable_name,
                 distribution_type=hyp.distribution_type.value
                 if isinstance(hyp.distribution_type, DistributionType)
                 else hyp.distribution_type,
                 distribution_params=params_dict,
                 correlations=correlations_dict,
+                scenario_options=scenario_options_dict,
+                selected_scenario=hyp.selected_scenario,
                 created_at=hyp.created_at,
             )
             orm_hypotheses.append(orm_hyp)
@@ -164,12 +181,30 @@ class HypothesisRepository(BaseRepository):
             raise ValueError(f"Hypothesis {hypothesis.id} not found")
 
         # Update fields
+        orm_hyp.variable_name = hypothesis.variable_name
         orm_hyp.distribution_params = hypothesis.parameters.model_dump()
         orm_hyp.correlations = (
             [corr.model_dump() for corr in hypothesis.correlations]
             if hypothesis.correlations
             else None
         )
+
+        # Update scenario options
+        if hypothesis.scenario_options:
+            orm_hyp.scenario_options = [
+                {
+                    "value": opt.value,
+                    "label": opt.label,
+                    "min_value": opt.distribution_params.min_value,
+                    "mode": opt.distribution_params.mode,
+                    "max_value": opt.distribution_params.max_value,
+                }
+                for opt in hypothesis.scenario_options
+            ]
+        else:
+            orm_hyp.scenario_options = None
+
+        orm_hyp.selected_scenario = hypothesis.selected_scenario
 
         self.session.commit()
         self.session.refresh(orm_hyp)
@@ -348,6 +383,8 @@ class HypothesisRepository(BaseRepository):
         Returns:
             Hypothesis domain entity
         """
+        from synth_lab.domain.entities.hypothesis import ScenarioOption, TriangularParams
+
         # Deserialize distribution type
         dist_type = DistributionType(orm.distribution_type)
 
@@ -371,14 +408,32 @@ class HypothesisRepository(BaseRepository):
         if orm.correlations:
             correlations = [Correlation(**corr_data) for corr_data in orm.correlations]
 
+        # Deserialize scenario options
+        scenario_options = None
+        if orm.scenario_options:
+            scenario_options = [
+                ScenarioOption(
+                    value=opt["value"],
+                    label=opt["label"],
+                    distribution_params=TriangularParams(
+                        min_value=opt["min_value"],
+                        mode=opt["mode"],
+                        max_value=opt["max_value"],
+                    ),
+                )
+                for opt in orm.scenario_options
+            ]
+
         return Hypothesis(
             id=orm.id,
             simulation_id=orm.simulation_id,
             variable_id=orm.variable_id,
-            variable_name="",  # Will be populated from variable lookup
+            variable_name=orm.variable_name or "",
             distribution_type=dist_type,
             parameters=params,
             correlations=correlations,
+            scenario_options=scenario_options,
+            selected_scenario=orm.selected_scenario,
             created_at=orm.created_at,
         )
 

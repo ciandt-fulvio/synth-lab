@@ -41,6 +41,15 @@ export interface Correlation {
 }
 
 /**
+ * Scenario option for controllable variables.
+ */
+export interface ScenarioOption {
+  value: string;
+  label: string;
+  distribution_params: DistributionParameters;
+}
+
+/**
  * Single hypothesis for a variable.
  */
 export interface Hypothesis {
@@ -49,6 +58,8 @@ export interface Hypothesis {
   variable_name: string;
   parameters: DistributionParameters;
   correlations: Correlation[];
+  scenario_options?: ScenarioOption[] | null;
+  selected_scenario?: string | null;
   version: number;
   rationale?: string | null;
   sources: string[];
@@ -61,6 +72,7 @@ export interface Hypothesis {
 export interface HypothesisUpdateRequest {
   parameters?: DistributionParameters;
   correlations?: Correlation[];
+  selected_scenario?: string;
   rationale?: string;
 }
 

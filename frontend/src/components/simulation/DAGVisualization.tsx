@@ -457,27 +457,17 @@ export function DAGVisualization({
         />
       </ReactFlow>
 
-      {/* Simplified Legend - scope only */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm rounded-lg border border-slate-200 p-3 text-xs shadow-lg">
-        <div className="font-semibold text-slate-700 mb-2">Variáveis</div>
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#7c3aed' }} />
+      {/* Legend - top right, compact */}
+      <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-lg border border-slate-200/80 px-3 py-2 text-xs shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#7c3aed' }} />
             <span className="text-slate-600">User-level</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#06b6d4' }} />
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#06b6d4' }} />
             <span className="text-slate-600">World-level</span>
           </div>
-        </div>
-        <div className="mt-2 pt-2 border-t border-slate-200 text-[10px] text-slate-500 space-y-0.5">
-          <div>Clique em um nó para destacar conexões</div>
-          {editable && (
-            <>
-              <div>Arraste entre nós para criar relação</div>
-              <div>Clique em uma relação e pressione Delete</div>
-            </>
-          )}
         </div>
       </div>
 

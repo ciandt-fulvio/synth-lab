@@ -32,6 +32,22 @@ class VariableSchema(BaseModel):
         default=None,
         description="Unit of measurement",
     )
+    controllability: str | None = Field(
+        default=None,
+        description="Controllability: none, low, medium, high",
+    )
+    is_intervention: bool = Field(
+        default=False,
+        description="Whether this is the intervention variable",
+    )
+    is_outcome: bool = Field(
+        default=False,
+        description="Whether this is an outcome variable",
+    )
+    is_critical_uncertainty: bool = Field(
+        default=False,
+        description="Whether this is a critical uncertainty for user adjustment",
+    )
     position_x: float | None = Field(
         default=None,
         description="X position for visualization",
@@ -60,6 +76,12 @@ class EdgeSchema(BaseModel):
         ge=-1.0,
         le=1.0,
         description="Edge strength (-1 to 1)",
+    )
+    strength_user: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="User-defined relationship strength (0-1). Overrides strength_estimated when set.",
     )
     description: str | None = Field(
         default=None,

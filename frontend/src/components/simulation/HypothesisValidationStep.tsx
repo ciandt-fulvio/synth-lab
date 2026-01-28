@@ -1,53 +1,169 @@
 /**
  * HypothesisValidationStep component for simulation wizard.
  *
- * Displays the generated hypotheses for user review with link to full editor.
+ * Orchestrates a 4-step wizard for hypothesis configuration:
+ *   1. Controllable Variables (Layer A)
+ *   2. Critical Uncertainties (Layer B)
+ *   3. Relationship Strength Editor
+ *   4. Structural Assumptions Summary
  *
  * References:
  *   - Spec: specs/035-causal-simulation/spec.md
  */
 
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { HypothesisTable } from '@/components/simulation/HypothesisTable';
-import { ArrowRight, Edit2, Loader2, BarChart3, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, AlertTriangle } from 'lucide-react';
+import {
+  HypothesisSubStepIndicator,
+  HypothesisSubStep,
+  ControllableVariablesStep,
+  CriticalUncertaintiesStep,
+  RelationshipStrengthEditor,
+  RelationshipStrength,
+  StructuralAssumptionsStep,
+  TriangularParams,
+} from './hypothesis';
 import type { Hypothesis } from '@/types/hypothesis';
+import type { CausalDAG, Variable, Edge } from '@/types/causal-dag';
 
 interface HypothesisValidationStepProps {
   simulationId: string;
   hypotheses: Hypothesis[] | null;
+  dag: CausalDAG | null;
   isLoading: boolean;
   onConfirm: () => void;
   isConfirming: boolean;
+  /** When true, hides edit/confirm buttons for reviewing completed steps */
+  readOnly?: boolean;
 }
 
 /**
- * Distribution type labels in Portuguese.
+ * Check if there are controllable variables in the DAG.
  */
-const DISTRIBUTION_LABELS: Record<string, string> = {
-  uniform: 'Uniforme',
-  normal: 'Normal',
-  beta: 'Beta',
-  lognormal: 'Log-Normal',
-  bernoulli: 'Bernoulli',
-};
+function hasControllableVariables(variables: Variable[]): boolean {
+  return variables.some(
+    (v) =>
+      v.controllability &&
+      ['high', 'medium'].includes(v.controllability) &&
+      !v.is_outcome
+  );
+}
 
 /**
- * Step component for validating the generated hypotheses.
+ * Check if there are critical uncertainties in the DAG.
+ */
+function hasCriticalUncertainties(variables: Variable[]): boolean {
+  return variables.some((v) => v.is_critical_uncertainty && !v.is_outcome);
+}
+
+/**
+ * Check if there are high-strength edges in the DAG.
+ */
+function hasHighStrengthEdges(edges: Edge[]): boolean {
+  return edges.some((e) => e.strength_estimated === 'high');
+}
+
+/**
+ * Step component for validating and configuring the generated hypotheses.
  */
 export function HypothesisValidationStep({
   simulationId,
   hypotheses,
+  dag,
   isLoading,
   onConfirm,
   isConfirming,
+  readOnly = false,
 }: HypothesisValidationStepProps) {
-  const navigate = useNavigate();
+  // Sub-step state
+  const [currentSubStep, setCurrentSubStep] = useState<HypothesisSubStep>(1);
+  const [completedSubSteps, setCompletedSubSteps] = useState<HypothesisSubStep[]>([]);
 
-  const handleEditHypotheses = () => {
-    navigate(`/simulations/${simulationId}/hypotheses`);
-  };
+  // Layer A: Scenario selections
+  const [scenarioSelections, setScenarioSelections] = useState<Record<string, string>>({});
 
+  // Layer B: Triangular parameters for critical uncertainties
+  const [uncertaintyParams, setUncertaintyParams] = useState<Record<string, TriangularParams>>({});
+
+  // Layer 3: Relationship strengths
+  const [relationshipStrengths, setRelationshipStrengths] = useState<
+    Record<string, RelationshipStrength>
+  >({});
+
+  // Extract variables and edges from DAG
+  const variables = useMemo(() => dag?.nodes || [], [dag]);
+  const edges = useMemo(() => dag?.edges || [], [dag]);
+
+  // Determine which steps to show based on data
+  const showControllables = useMemo(() => hasControllableVariables(variables), [variables]);
+  const showUncertainties = useMemo(() => hasCriticalUncertainties(variables), [variables]);
+  const showRelationships = useMemo(() => hasHighStrengthEdges(edges), [edges]);
+
+  // Calculate effective steps (skip empty ones)
+  const effectiveSteps = useMemo(() => {
+    const steps: HypothesisSubStep[] = [];
+    if (showControllables) steps.push(1);
+    if (showUncertainties) steps.push(2);
+    if (showRelationships) steps.push(3);
+    steps.push(4); // Summary is always shown
+    return steps;
+  }, [showControllables, showUncertainties, showRelationships]);
+
+  // Navigation handlers
+  const handleNext = useCallback(() => {
+    const currentIndex = effectiveSteps.indexOf(currentSubStep);
+    if (currentIndex < effectiveSteps.length - 1) {
+      // Mark current as completed
+      if (!completedSubSteps.includes(currentSubStep)) {
+        setCompletedSubSteps((prev) => [...prev, currentSubStep]);
+      }
+      setCurrentSubStep(effectiveSteps[currentIndex + 1]);
+    }
+  }, [currentSubStep, effectiveSteps, completedSubSteps]);
+
+  const handleBack = useCallback(() => {
+    const currentIndex = effectiveSteps.indexOf(currentSubStep);
+    if (currentIndex > 0) {
+      setCurrentSubStep(effectiveSteps[currentIndex - 1]);
+    }
+  }, [currentSubStep, effectiveSteps]);
+
+  const handleStepClick = useCallback(
+    (step: HypothesisSubStep) => {
+      if (effectiveSteps.includes(step) && (completedSubSteps.includes(step) || step <= currentSubStep)) {
+        setCurrentSubStep(step);
+      }
+    },
+    [effectiveSteps, completedSubSteps, currentSubStep]
+  );
+
+  // Data handlers
+  const handleScenarioChange = useCallback((variableName: string, scenario: string) => {
+    setScenarioSelections((prev) => ({ ...prev, [variableName]: scenario }));
+  }, []);
+
+  const handleUncertaintyChange = useCallback((variableName: string, params: TriangularParams) => {
+    setUncertaintyParams((prev) => ({ ...prev, [variableName]: params }));
+  }, []);
+
+  const handleRelationshipChange = useCallback(
+    (source: string, target: string, strength: RelationshipStrength) => {
+      const key = `${source}__${target}`;
+      setRelationshipStrengths((prev) => ({ ...prev, [key]: strength }));
+    },
+    []
+  );
+
+  // Final confirmation handler
+  const handleFinalConfirm = useCallback(() => {
+    // TODO: In a full implementation, we would save the scenario selections,
+    // uncertainty params, and relationship strengths to the backend before confirming.
+    // For now, we just call the parent's onConfirm.
+    onConfirm();
+  }, [onConfirm]);
+
+  // Loading state
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -56,6 +172,7 @@ export function HypothesisValidationStep({
     );
   }
 
+  // No hypotheses state
   if (!hypotheses || hypotheses.length === 0) {
     return (
       <div className="text-center py-12">
@@ -68,153 +185,93 @@ export function HypothesisValidationStep({
     );
   }
 
-  // Group by distribution type for summary
-  const distributionCounts = hypotheses.reduce((acc, h) => {
-    const distType = h.parameters?.distribution_type || 'unknown';
-    acc[distType] = (acc[distType] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const currentIndex = effectiveSteps.indexOf(currentSubStep);
+  const isFirstStep = currentIndex === 0;
+  const isLastStep = currentIndex === effectiveSteps.length - 1;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">Validar Hipóteses</h2>
+      {/* Header */}
+      <div>
+        <h2 className="text-lg font-semibold text-slate-900">
+          {readOnly ? 'Hipóteses' : 'Configurar Hipóteses'}
+        </h2>
+        {!readOnly && (
           <p className="text-sm text-slate-600 mt-1">
-            Revise as distribuições de probabilidade geradas. Você pode ajustar os parâmetros antes
-            de executar a simulação.
+            Configure as variáveis e relacionamentos antes de executar a simulação.
           </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={handleEditHypotheses}>
-          <Edit2 className="h-4 w-4 mr-1" />
-          Editar Hipóteses
-        </Button>
+        )}
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-slate-50 rounded-lg p-4 text-center">
-          <BarChart3 className="h-5 w-5 mx-auto text-indigo-600 mb-2" />
-          <p className="text-2xl font-bold text-slate-900">{hypotheses.length}</p>
-          <p className="text-xs text-slate-600">Variáveis</p>
-        </div>
-        {Object.entries(distributionCounts).slice(0, 3).map(([type, count]) => (
-          <div key={type} className="bg-slate-50 rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-slate-900">{count}</p>
-            <p className="text-xs text-slate-600">{DISTRIBUTION_LABELS[type] || type}</p>
-          </div>
-        ))}
+      {/* Sub-step indicator */}
+      <div className="py-4 border-y border-slate-100">
+        <HypothesisSubStepIndicator
+          currentStep={currentSubStep}
+          completedSteps={completedSubSteps}
+          onStepClick={readOnly ? undefined : handleStepClick}
+        />
       </div>
 
-      {/* Hypotheses Table Preview */}
-      <div className="border rounded-lg overflow-hidden">
-        <div className="p-4 border-b bg-slate-50">
-          <h3 className="text-sm font-medium text-slate-700">Distribuições de Probabilidade</h3>
-        </div>
-        <div className="max-h-[400px] overflow-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 sticky top-0">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium text-slate-700">Variável</th>
-                <th className="px-4 py-3 text-left font-medium text-slate-700">Distribuição</th>
-                <th className="px-4 py-3 text-left font-medium text-slate-700">Parâmetros</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {hypotheses.map((hypothesis) => {
-                const distType = hypothesis.parameters?.distribution_type || 'unknown';
-                return (
-                  <tr key={hypothesis.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3">
-                      <span className="font-medium text-slate-900">{hypothesis.variable_name}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="px-2 py-1 rounded bg-indigo-50 text-indigo-700 text-xs font-medium">
-                        {DISTRIBUTION_LABELS[distType] || distType}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {formatParameters(distType, hypothesis.parameters)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      {/* Step content */}
+      <div className="min-h-[400px]">
+        {currentSubStep === 1 && (
+          <ControllableVariablesStep
+            variables={variables}
+            hypotheses={hypotheses}
+            selections={scenarioSelections}
+            onChange={handleScenarioChange}
+            readOnly={readOnly}
+          />
+        )}
+
+        {currentSubStep === 2 && (
+          <CriticalUncertaintiesStep
+            variables={variables}
+            hypotheses={hypotheses}
+            params={uncertaintyParams}
+            onChange={handleUncertaintyChange}
+            readOnly={readOnly}
+          />
+        )}
+
+        {currentSubStep === 3 && (
+          <RelationshipStrengthEditor
+            edges={edges}
+            nodes={variables}
+            strengths={relationshipStrengths}
+            onChange={handleRelationshipChange}
+            readOnly={readOnly}
+          />
+        )}
+
+        {currentSubStep === 4 && (
+          <StructuralAssumptionsStep
+            variables={variables}
+            hypotheses={hypotheses}
+            onConfirm={handleFinalConfirm}
+            isConfirming={isConfirming}
+            readOnly={readOnly}
+          />
+        )}
       </div>
 
-      {/* Correlations Preview */}
-      {hypotheses.some((h) => h.correlations && h.correlations.length > 0) && (
-        <div className="border rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-slate-700 mb-3">Correlações Sugeridas</h3>
-          <div className="space-y-2">
-            {hypotheses
-              .filter((h) => h.correlations && h.correlations.length > 0)
-              .flatMap((h) =>
-                h.correlations!.map((corr, idx) => (
-                  <div
-                    key={`${h.id}-${idx}`}
-                    className="flex items-center gap-2 text-sm text-slate-600"
-                  >
-                    <span className="font-medium">{h.variable_name}</span>
-                    <span className="text-slate-400">↔</span>
-                    <span className="font-medium">{corr.with_variable_name}</span>
-                    <span
-                      className={`px-2 py-0.5 rounded text-xs font-medium ${
-                        corr.correlation > 0.5
-                          ? 'bg-green-100 text-green-700'
-                          : corr.correlation < -0.5
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-slate-100 text-slate-700'
-                      }`}
-                    >
-                      r = {corr.correlation.toFixed(2)}
-                    </span>
-                  </div>
-                ))
-              )}
-          </div>
+      {/* Navigation buttons (except on summary step which has its own confirm) */}
+      {!readOnly && currentSubStep !== 4 && (
+        <div className="flex justify-between pt-4 border-t">
+          <Button
+            variant="outline"
+            onClick={handleBack}
+            disabled={isFirstStep}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Anterior
+          </Button>
+          <Button onClick={handleNext}>
+            Próximo
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
         </div>
       )}
-
-      <div className="flex justify-end pt-4 border-t">
-        <Button onClick={onConfirm} disabled={isConfirming} className="btn-primary">
-          {isConfirming ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Confirmando...
-            </>
-          ) : (
-            <>
-              Confirmar Hipóteses
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </>
-          )}
-        </Button>
-      </div>
     </div>
   );
-}
-
-/**
- * Format distribution parameters for display.
- */
-function formatParameters(type: string, params: Record<string, number | string | null | undefined> | null): string {
-  if (!params) return '-';
-
-  switch (type) {
-    case 'uniform':
-      return `[${params.low?.toFixed(2) || 0}, ${params.high?.toFixed(2) || 1}]`;
-    case 'normal':
-      return `μ=${params.mean?.toFixed(2) || 0}, σ=${params.std?.toFixed(2) || 1}`;
-    case 'beta':
-      return `α=${params.alpha?.toFixed(1) || 1}, β=${params.beta?.toFixed(1) || 1}`;
-    case 'lognormal':
-      return `μ=${params.mean?.toFixed(2) || 0}, σ=${params.sigma?.toFixed(2) || 1}`;
-    case 'bernoulli':
-      return `p=${params.p?.toFixed(2) || 0.5}`;
-    default:
-      return JSON.stringify(params);
-  }
 }

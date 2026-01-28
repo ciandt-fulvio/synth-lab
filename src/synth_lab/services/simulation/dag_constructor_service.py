@@ -51,6 +51,10 @@ class LLMVariable(BaseModel):
     controllability: Controllability = Field(..., description="Degree of control")
     is_intervention: bool = Field(default=False, description="Is intervention variable")
     is_outcome: bool = Field(default=False, description="Is outcome variable")
+    is_critical_uncertainty: bool = Field(
+        default=False,
+        description="True if this variable has high uncertainty and significant impact on outcomes"
+    )
 
 
 class LLMEdge(BaseModel):
@@ -190,7 +194,7 @@ class DAGConstructorService:
                     dag = self._convert_to_dag(simulation_id, dag_response)
 
                     # Validate DAG structure (cycles, orphans, etc.)
-                    is_valid, errors = self.validator.validate(dag)
+                    is_valid, errors, _warnings = self.validator.validate(dag)
                     if not is_valid:
                         error_msgs = [err.description for err in errors]
                         validation_feedback = "; ".join(error_msgs)
@@ -286,6 +290,22 @@ Por favor, corrija esses problemas na nova resposta. Correções comuns:
 - `medium`: Moderadamente controlável (ex: estrategia_precos)
 - `high`: Totalmente controlável (ex: budget_marketing, disponibilidade_feature)
 
+**Incertezas Críticas** (`is_critical_uncertainty`):
+Marque como `true` se a variável atende AMBOS os critérios:
+1. **Alta Incerteza**: O valor ou distribuição é difícil de estimar com precisão (ex: variáveis latentes, fricções com alta variabilidade, modos de falha com probabilidade desconhecida)
+2. **Alto Impacto**: Tem influência significativa no resultado principal (direta ou indiretamente através de mediadores)
+
+Exemplos de incertezas críticas:
+- Variáveis **latentes** (ex: percepcao_facilidade, satisfacao_cliente) - não observáveis, alta incerteza
+- **Fricções** com alta variabilidade (ex: falhas_tecnicas, complexidade_cadastro) - difíceis de prever
+- **Modos de falha** com probabilidade desconhecida (ex: ficou_sem_estoque) - frequência incerta
+- Variáveis **temporais** difíceis de prever (ex: sazonalidade) - comportamento futuro incerto
+
+NÃO marque como incerteza crítica:
+- A variável de **intervenção** (é o que estamos controlando)
+- A variável de **resultado** (é o que estamos medindo)
+- Variáveis **observáveis** com dados históricos confiáveis (ex: preco fixo)
+
 **Tipos de arestas**:
 - `causal`: Efeito causal direto (A → B)
 - `mediating`: Variável que transmite o efeito (A → M → B)
@@ -318,7 +338,8 @@ Por favor, corrija esses problemas na nova resposta. Correções comuns:
       "description": "Descrição clara da variável em português",
       "controllability": "none|low|medium|high",
       "is_intervention": false,
-      "is_outcome": false
+      "is_outcome": false,
+      "is_critical_uncertainty": false
     }}
   ],
   "edges": [
@@ -384,6 +405,7 @@ Retorne APENAS o objeto JSON, sem texto ou formatação adicional.
                 controllability=v.controllability,
                 is_intervention=v.is_intervention,
                 is_outcome=v.is_outcome,
+                is_critical_uncertainty=v.is_critical_uncertainty,
             )
             for v in response.variables
         ]
