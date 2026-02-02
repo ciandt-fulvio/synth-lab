@@ -7,6 +7,9 @@ export type { HypothesisSubStep } from './HypothesisSubStepIndicator';
 
 export { ScenarioSelector } from './ScenarioSelector';
 
+export { ScenarioProfileSelector } from './ScenarioProfileSelector';
+export type { ScenarioProfile } from './ScenarioProfileSelector';
+
 export { ControllableVariablesStep } from './ControllableVariablesStep';
 
 export { TriangularSlider } from './TriangularSlider';
@@ -18,3 +21,8 @@ export { RelationshipStrengthEditor, strengthToNumeric } from './RelationshipStr
 export type { RelationshipStrength } from './RelationshipStrengthEditor';
 
 export { StructuralAssumptionsStep } from './StructuralAssumptionsStep';
+
+export { ClarificationQuestionsStep } from './ClarificationQuestionsStep';
+export type { ClarificationResponse } from './ClarificationQuestionsStep';
+
+export { HypothesisReviewStep } from './HypothesisReviewStep';

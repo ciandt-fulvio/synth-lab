@@ -22,6 +22,7 @@ from synth_lab.domain.entities.hypothesis import (
     HypothesisVersion,
     LogNormalParams,
     NormalParams,
+    Relevance,
     UniformParams,
 )
 from synth_lab.models.orm.simulation import (
@@ -101,6 +102,11 @@ class HypothesisRepository(BaseRepository):
                 if isinstance(hyp.distribution_type, DistributionType)
                 else hyp.distribution_type,
                 distribution_params=params_dict,
+                relevance=hyp.relevance.value
+                if isinstance(hyp.relevance, Relevance)
+                else (hyp.relevance or "medium"),
+                range_min=hyp.range_min,
+                range_max=hyp.range_max,
                 correlations=correlations_dict,
                 scenario_options=scenario_options_dict,
                 selected_scenario=hyp.selected_scenario,
@@ -183,6 +189,13 @@ class HypothesisRepository(BaseRepository):
         # Update fields
         orm_hyp.variable_name = hypothesis.variable_name
         orm_hyp.distribution_params = hypothesis.parameters.model_dump()
+        orm_hyp.relevance = (
+            hypothesis.relevance.value
+            if isinstance(hypothesis.relevance, Relevance)
+            else (hypothesis.relevance or "medium")
+        )
+        orm_hyp.range_min = hypothesis.range_min
+        orm_hyp.range_max = hypothesis.range_max
         orm_hyp.correlations = (
             [corr.model_dump() for corr in hypothesis.correlations]
             if hypothesis.correlations
@@ -400,6 +413,8 @@ class HypothesisRepository(BaseRepository):
             params = LogNormalParams(**params_data)
         elif dist_type == DistributionType.BERNOULLI:
             params = BernoulliParams(**params_data)
+        elif dist_type == DistributionType.TRIANGULAR:
+            params = TriangularParams(**params_data)
         else:
             raise ValueError(f"Unsupported distribution type: {dist_type}")
 
@@ -424,6 +439,12 @@ class HypothesisRepository(BaseRepository):
                 for opt in orm.scenario_options
             ]
 
+        # Deserialize relevance
+        try:
+            relevance = Relevance(orm.relevance) if orm.relevance else Relevance.MEDIUM
+        except ValueError:
+            relevance = Relevance.MEDIUM
+
         return Hypothesis(
             id=orm.id,
             simulation_id=orm.simulation_id,
@@ -431,6 +452,9 @@ class HypothesisRepository(BaseRepository):
             variable_name=orm.variable_name or "",
             distribution_type=dist_type,
             parameters=params,
+            relevance=relevance,
+            range_min=orm.range_min,
+            range_max=orm.range_max,
             correlations=correlations,
             scenario_options=scenario_options,
             selected_scenario=orm.selected_scenario,

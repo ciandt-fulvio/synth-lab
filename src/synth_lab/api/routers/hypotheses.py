@@ -13,6 +13,7 @@ from loguru import logger
 from sqlalchemy.orm import Session
 
 from synth_lab.api.schemas.hypothesis import (
+    ClarificationQuestionSchema,
     CorrelationSchema,
     DistributionParameters,
     HypothesesBulkUpdateRequest,
@@ -23,15 +24,25 @@ from synth_lab.api.schemas.hypothesis import (
     HypothesisVersionCreateRequest,
     HypothesisVersionSchema,
     ScenarioOptionSchema,
+    WizardClarifyRequest,
+    WizardClarifyResponse,
+    WizardInitRequest,
+    WizardInitResponse,
 )
 from synth_lab.domain.entities.hypothesis import (
     Correlation,
     DistributionType,
     Hypothesis,
     HypothesisParameters,
+    Relevance,
+    ScenarioProfile,
 )
 from synth_lab.infrastructure.database_v2 import get_db_session
+from synth_lab.repositories.causal_dag_repository import CausalDAGRepository
 from synth_lab.repositories.hypothesis_repository import HypothesisRepository
+from synth_lab.services.simulation.hypothesis_wizard_service import (
+    HypothesisWizardService,
+)
 
 router = APIRouter(prefix="/simulations", tags=["hypotheses"])
 
@@ -88,6 +99,11 @@ def _hypothesis_to_schema(hyp: Hypothesis) -> HypothesisSchema:
             for opt in hyp.scenario_options
         ]
 
+    # Get relevance as string
+    relevance_str = (
+        hyp.relevance.value if isinstance(hyp.relevance, Relevance) else (hyp.relevance or "medium")
+    )
+
     return HypothesisSchema(
         id=hyp.id,
         simulation_id=hyp.simulation_id,
@@ -102,6 +118,9 @@ def _hypothesis_to_schema(hyp: Hypothesis) -> HypothesisSchema:
             alpha=alpha,
             beta=beta,
         ),
+        relevance=relevance_str,
+        range_min=hyp.range_min,
+        range_max=hyp.range_max,
         correlations=[
             CorrelationSchema(
                 target_variable=c.with_variable_name,
@@ -315,6 +334,73 @@ async def update_hypothesis(
     return _hypothesis_to_schema(updated)
 
 
+@router.patch(
+    "/{simulation_id}/hypotheses/{hypothesis_id}",
+    response_model=HypothesisSchema,
+    summary="Partially update a hypothesis",
+    description="Update relevance, range, or other fields of a single hypothesis by ID",
+)
+async def patch_hypothesis(
+    simulation_id: str,
+    hypothesis_id: str,
+    request: HypothesisUpdateRequest,
+    db: Session = Depends(get_db_session),
+) -> HypothesisSchema:
+    """
+    Partially update a hypothesis (relevance, range, parameters).
+
+    Validates range_min <= range_max when both are provided.
+    """
+    hyp_repo = HypothesisRepository(session=db)
+
+    # Find hypothesis by ID
+    hypotheses = hyp_repo.get_by_simulation_id(simulation_id)
+    hypothesis = next((h for h in hypotheses if h.id == hypothesis_id), None)
+
+    if hypothesis is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Hypothesis {hypothesis_id} not found in simulation {simulation_id}",
+        )
+
+    # Validate range_min <= range_max
+    new_range_min = request.range_min if request.range_min is not None else hypothesis.range_min
+    new_range_max = request.range_max if request.range_max is not None else hypothesis.range_max
+    if new_range_min is not None and new_range_max is not None and new_range_min > new_range_max:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"range_min ({new_range_min}) must be <= range_max ({new_range_max})",
+        )
+
+    # Apply partial updates
+    if request.relevance is not None:
+        hypothesis.relevance = Relevance(request.relevance)
+
+    if request.range_min is not None:
+        hypothesis.range_min = request.range_min
+
+    if request.range_max is not None:
+        hypothesis.range_max = request.range_max
+
+    if request.parameters is not None:
+        hypothesis.parameters = _schema_to_parameters(request.parameters)
+
+    if request.correlations is not None:
+        hypothesis.correlations = [_schema_to_correlation(c) for c in request.correlations]
+
+    if request.selected_scenario is not None:
+        hypothesis.selected_scenario = request.selected_scenario
+
+    if request.rationale is not None:
+        hypothesis.rationale = request.rationale
+
+    hypothesis.version += 1
+    updated = hyp_repo.update(hypothesis)
+    logger.info(f"PATCH hypothesis {hypothesis_id}: version {updated.version}")
+
+    return _hypothesis_to_schema(updated)
+
+
 @router.post(
     "/{simulation_id}/hypotheses/versions",
     response_model=HypothesisVersionSchema,
@@ -516,3 +602,173 @@ async def compare_hypothesis_versions(
         parameter_changes=parameter_changes,
         correlation_changes=correlation_changes,
     )
+
+
+@router.post(
+    "/{simulation_id}/hypotheses/wizard/init",
+    response_model=WizardInitResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Initialize hypothesis wizard with scenario profile",
+    description="""
+    Generates baseline hypotheses for all DAG variables using the selected scenario profile
+    (Conservative/Realistic/Optimistic). Returns generated hypotheses and clarification questions.
+
+    Prerequisites:
+    - Simulation must exist
+    - CausalDAG must be validated and associated with simulation
+
+    Side effects:
+    - Creates/updates hypotheses in database
+    """,
+)
+def init_wizard(
+    simulation_id: str,
+    request: WizardInitRequest,
+    db: Session = Depends(get_db_session),
+) -> WizardInitResponse:
+    """
+    Initialize hypothesis wizard with scenario profile selection.
+
+    Args:
+        simulation_id: Simulation ID (format sim_XXXXXXXX)
+        request: Wizard init request with scenario_profile
+        db: Database session
+
+    Returns:
+        WizardInitResponse with generated hypotheses and clarification questions
+
+    Raises:
+        HTTPException 404: If simulation or DAG not found
+        HTTPException 400: If DAG is not validated
+        HTTPException 500: If hypothesis generation fails
+    """
+    logger.info(
+        "POST /simulations/{}/hypotheses/wizard/init - profile={}",
+        simulation_id,
+        request.scenario_profile,
+    )
+
+    # 1. Fetch CausalDAG for this simulation
+    dag_repo = CausalDAGRepository(session=db)
+    dag = dag_repo.get_by_simulation_id(simulation_id)
+
+    if not dag:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No DAG found for simulation {simulation_id}",
+        )
+
+    # 2. Validate DAG is ready
+    if not dag.is_validated:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="DAG must be validated before initializing wizard",
+        )
+
+    # 3. Convert scenario_profile string to enum
+    try:
+        scenario_profile = ScenarioProfile(request.scenario_profile)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Invalid scenario_profile: {request.scenario_profile}."
+                " Must be one of: conservative, realistic, optimistic"
+            ),
+        )
+
+    # 4. Initialize wizard service and generate hypotheses
+    wizard_service = HypothesisWizardService()
+
+    try:
+        result = wizard_service.init_wizard(
+            simulation_id=simulation_id,
+            dag=dag,
+            scenario_profile=scenario_profile,
+        )
+    except Exception as e:
+        logger.error(f"Failed to initialize wizard: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate hypotheses: {str(e)}",
+        )
+
+    # 5. Convert hypotheses to schemas
+    hypotheses_schemas = [_hypothesis_to_schema(h) for h in result["hypotheses"]]
+
+    # 6. Convert clarification questions to schemas
+    clarification_questions_schemas = [
+        ClarificationQuestionSchema(**q) for q in result["clarification_questions"]
+    ]
+
+    return WizardInitResponse(
+        hypotheses=hypotheses_schemas,
+        clarification_questions=clarification_questions_schemas,
+    )
+
+
+@router.post(
+    "/{simulation_id}/hypotheses/wizard/clarify",
+    response_model=WizardClarifyResponse,
+    summary="Apply clarification responses to refine hypotheses",
+    description="""
+    Apply user's clarification responses to adjust hypothesis distributions.
+
+    Takes qualitative responses ("more", "less", "equal", "dont_know") for
+    critical variables and adjusts their distributions accordingly.
+
+    Side effects:
+    - Updates existing hypotheses in database
+    """,
+)
+def clarify_wizard(
+    simulation_id: str,
+    request: WizardClarifyRequest,
+    db: Session = Depends(get_db_session),
+) -> WizardClarifyResponse:
+    """
+    Apply clarification responses to refine hypothesis distributions.
+
+    Args:
+        simulation_id: Simulation ID (format sim_XXXXXXXX)
+        request: Wizard clarify request with clarification responses
+        db: Database session
+
+    Returns:
+        WizardClarifyResponse with updated hypotheses
+
+    Raises:
+        HTTPException 404: If simulation or hypotheses not found
+        HTTPException 400: If clarifications are invalid
+        HTTPException 500: If update fails
+    """
+    logger.info(
+        f"POST /simulations/{simulation_id}/hypotheses/wizard/clarify - "
+        f"{len(request.responses)} responses"
+    )
+
+    # 1. Initialize wizard service
+    wizard_service = HypothesisWizardService()
+
+    # 2. Apply clarifications
+    try:
+        result = wizard_service.apply_clarifications(
+            simulation_id=simulation_id,
+            clarifications=[c.model_dump() for c in request.responses],
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
+    except Exception as e:
+        logger.error(f"Failed to apply clarifications: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update hypotheses: {str(e)}",
+        )
+
+    # 3. Convert hypotheses to schemas
+    hypotheses_schemas = [_hypothesis_to_schema(h) for h in result["hypotheses"]]
+
+    return WizardClarifyResponse(hypotheses=hypotheses_schemas)

@@ -109,6 +109,10 @@ PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
 - PostgreSQL 14+ (local container for dev/test, Railway PostgreSQL for prod) (033-docker-containerization)
 - Python 3.13+ (backend), TypeScript 5.5+ (frontend), React 18 (035-causal-simulation)
 - PostgreSQL 14+ with JSONB for DAG structures, hypothesis parameters, and simulation metadata (035-causal-simulation)
+- Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, React 18, TanStack Query, shadcn/ui (036-simplified-hypothesis-wizard)
+- PostgreSQL 14+ (existing tables: simulations, causal_dags, hypotheses, hypothesis_versions - no schema changes needed) (036-simplified-hypothesis-wizard)
+- Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, React 18, TanStack Query, shadcn/ui, ReactFlow (037-unified-dag-hypotheses)
+- PostgreSQL 14+ (existing tables: hypotheses +1 column, causal_dags unchanged) (037-unified-dag-hypotheses)
 
 ## Recent Changes
 - 028-exploration-summary: Added Python 3.13+ + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, Arize Phoenix

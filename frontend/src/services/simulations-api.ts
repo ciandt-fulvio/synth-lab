@@ -84,6 +84,22 @@ export interface SimulationResponse {
 }
 
 /**
+ * Clarification question from confirm-dag response.
+ */
+export interface ClarificationQuestion {
+  variable_name: string;
+  question_text: string;
+  criticality_score: number;
+}
+
+/**
+ * Response from confirm-dag with optional clarification questions.
+ */
+export interface ConfirmDAGResponse extends SimulationResponse {
+  clarification_questions: ClarificationQuestion[];
+}
+
+/**
  * Request schema for running a simulation.
  */
 export interface SimulationRunRequest {
@@ -221,11 +237,16 @@ export async function confirmQuestion(simulationId: string): Promise<SimulationR
  * Confirm DAG and generate hypotheses.
  *
  * @param simulationId - Simulation ID
- * @returns Simulation with updated status
+ * @param scenarioProfile - Optional scenario profile for wizard-based generation
+ * @returns Simulation with updated status and optional clarification questions
  */
-export async function confirmDAG(simulationId: string): Promise<SimulationResponse> {
-  return fetchAPI<SimulationResponse>(`/simulations/${simulationId}/confirm-dag`, {
+export async function confirmDAG(
+  simulationId: string,
+  scenarioProfile?: string
+): Promise<ConfirmDAGResponse> {
+  return fetchAPI<ConfirmDAGResponse>(`/simulations/${simulationId}/confirm-dag`, {
     method: 'POST',
+    body: scenarioProfile ? JSON.stringify({ scenario_profile: scenarioProfile }) : undefined,
   });
 }
 
@@ -350,4 +371,22 @@ export async function exportSimulationAudit(
   simulationId: string
 ): Promise<ExportResponse> {
   return fetchAPI<ExportResponse>(`/simulations/${simulationId}/audit/export`);
+}
+
+/**
+ * Partially update a hypothesis (relevance, range, etc).
+ */
+export async function updateHypothesis(
+  simulationId: string,
+  hypothesisId: string,
+  data: {
+    relevance?: string;
+    range_min?: number | null;
+    range_max?: number | null;
+  }
+): Promise<import('@/types/hypothesis').Hypothesis> {
+  return fetchAPI(`/simulations/${simulationId}/hypotheses/${hypothesisId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
 }

@@ -47,6 +47,7 @@ class DistributionType(str, Enum):
     BETA = "beta"  # Beta(alpha, beta) - bounded [0, 1]
     LOGNORMAL = "lognormal"  # LogNormal(mean, sigma) - positive values
     BERNOULLI = "bernoulli"  # Bernoulli(p) - binary outcomes
+    TRIANGULAR = "triangular"  # Triangular(min, mode, max) - three-point estimate
 
 
 class TemporalityType(str, Enum):
@@ -55,6 +56,31 @@ class TemporalityType(str, Enum):
     LINEAR = "linear"  # Linear growth/decay
     EXPONENTIAL = "exponential"  # Exponential growth/decay
     SEASONAL = "seasonal"  # Periodic seasonal patterns
+
+
+class Relevance(str, Enum):
+    """Relevância da variável para o resultado da simulação."""
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+class ScenarioProfile(str, Enum):
+    """Predefined scenario profiles for hypothesis generation wizard."""
+
+    CONSERVATIVE = "conservative"  # Worse-than-average outcomes, higher uncertainty
+    REALISTIC = "realistic"  # Market-average parameters (default)
+    OPTIMISTIC = "optimistic"  # Better-than-average outcomes, lower uncertainty
+
+
+class ResponseType(str, Enum):
+    """Qualitative response options for clarification questions."""
+
+    MORE = "more"  # Higher frequency/magnitude than expected
+    LESS = "less"  # Lower frequency/magnitude than expected
+    EQUAL = "equal"  # Matches expectation (profile default)
+    DONT_KNOW = "dont_know"  # High uncertainty, increase variance
 
 
 class UniformParams(BaseModel):
@@ -102,17 +128,11 @@ class Correlation(BaseModel):
         rationale: Explanation for this correlation
     """
 
-    with_variable_id: str = Field(
-        ..., description="ID of correlated variable"
-    )
+    with_variable_id: str = Field(..., description="ID of correlated variable")
 
-    with_variable_name: str = Field(
-        ..., description="Name of correlated variable (cached)"
-    )
+    with_variable_name: str = Field(..., description="Name of correlated variable (cached)")
 
-    correlation: float = Field(
-        ..., ge=-1, le=1, description="Correlation coefficient (-1 to 1)"
-    )
+    correlation: float = Field(..., ge=-1, le=1, description="Correlation coefficient (-1 to 1)")
 
     rationale: str = Field(..., description="Explanation for this correlation")
 
@@ -138,6 +158,14 @@ class Temporality(BaseModel):
         use_enum_values = True
 
 
+class TriangularParams(BaseModel):
+    """Parameters for triangular distribution (user-friendly scenarios)."""
+
+    min_value: float = Field(..., description="Minimum value")
+    mode: float = Field(..., description="Most likely value")
+    max_value: float = Field(..., description="Maximum value")
+
+
 # Type alias for hypothesis parameters union
 HypothesisParameters = Union[
     UniformParams,
@@ -145,15 +173,8 @@ HypothesisParameters = Union[
     BetaParams,
     LogNormalParams,
     BernoulliParams,
+    TriangularParams,
 ]
-
-
-class TriangularParams(BaseModel):
-    """Parameters for triangular distribution (user-friendly scenarios)."""
-
-    min_value: float = Field(..., description="Minimum value")
-    mode: float = Field(..., description="Most likely value")
-    max_value: float = Field(..., description="Maximum value")
 
 
 class ScenarioOption(BaseModel):
@@ -208,9 +229,7 @@ class Hypothesis(BaseModel):
 
     variable_name: str = Field(..., description="Cached for convenience")
 
-    distribution_type: DistributionType = Field(
-        ..., description="Type of probability distribution"
-    )
+    distribution_type: DistributionType = Field(..., description="Type of probability distribution")
 
     parameters: Union[
         UniformParams,
@@ -218,7 +237,23 @@ class Hypothesis(BaseModel):
         BetaParams,
         LogNormalParams,
         BernoulliParams,
+        TriangularParams,
     ] = Field(..., description="Distribution-specific parameters")
+
+    relevance: Relevance = Field(
+        default=Relevance.MEDIUM,
+        description="Variable relevance level for simulation outcome (low, medium, high)",
+    )
+
+    range_min: Optional[float] = Field(
+        default=None,
+        description="Lower bound for clamping distribution samples",
+    )
+
+    range_max: Optional[float] = Field(
+        default=None,
+        description="Upper bound for clamping distribution samples",
+    )
 
     correlations: list[Correlation] = Field(
         default_factory=list,
@@ -239,9 +274,7 @@ class Hypothesis(BaseModel):
         description="Currently selected scenario value (references ScenarioOption.value)",
     )
 
-    version: int = Field(
-        default=1, description="Version for hypothesis edits"
-    )
+    version: int = Field(default=1, description="Version for hypothesis edits")
 
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
@@ -308,9 +341,7 @@ class HypothesisVersion(BaseModel):
         description="User-provided description",
     )
 
-    snapshot: HypothesisSnapshot = Field(
-        ..., description="Complete state of all hypotheses"
-    )
+    snapshot: HypothesisSnapshot = Field(..., description="Complete state of all hypotheses")
 
     dag_snapshot: dict = Field(
         default_factory=dict,

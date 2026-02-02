@@ -7,6 +7,7 @@ References:
 """
 
 from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -84,6 +85,19 @@ class HypothesisSchema(BaseModel):
         ...,
         description="Distribution parameters",
     )
+    relevance: str = Field(
+        default="medium",
+        description="Variable relevance level: low, medium, or high",
+        pattern="^(low|medium|high)$",
+    )
+    range_min: float | None = Field(
+        default=None,
+        description="Lower bound for clamping distribution samples",
+    )
+    range_max: float | None = Field(
+        default=None,
+        description="Upper bound for clamping distribution samples",
+    )
     correlations: list[CorrelationSchema] = Field(
         default_factory=list,
         description="Correlations with other variables",
@@ -114,6 +128,19 @@ class HypothesisUpdateRequest(BaseModel):
     parameters: DistributionParameters | None = Field(
         default=None,
         description="Updated distribution parameters",
+    )
+    relevance: str | None = Field(
+        default=None,
+        description="Updated relevance level: low, medium, or high",
+        pattern="^(low|medium|high)$",
+    )
+    range_min: float | None = Field(
+        default=None,
+        description="Updated lower bound for clamping (null to clear)",
+    )
+    range_max: float | None = Field(
+        default=None,
+        description="Updated upper bound for clamping (null to clear)",
     )
     correlations: list[CorrelationSchema] | None = Field(
         default=None,
@@ -185,4 +212,68 @@ class HypothesisCompareResponse(BaseModel):
     correlation_changes: dict[str, dict] = Field(
         default_factory=dict,
         description="Correlation changes per variable",
+    )
+
+
+# ============================================================================
+# Wizard Schemas (Feature 036-simplified-hypothesis-wizard)
+# ============================================================================
+
+
+class WizardInitRequest(BaseModel):
+    """Request to initialize hypothesis wizard with scenario profile."""
+
+    scenario_profile: str = Field(
+        ...,
+        description="Scenario profile: conservative, realistic, or optimistic",
+        pattern="^(conservative|realistic|optimistic)$",
+    )
+
+
+class ClarificationQuestionSchema(BaseModel):
+    """Schema for a clarification question about a critical variable."""
+
+    variable_name: str = Field(..., description="Variable identifier from DAG")
+    question_text: str = Field(
+        ..., description="Plain-language question asking about frequency or magnitude"
+    )
+    criticality_score: float = Field(..., ge=0, description="Ranking score (impact × uncertainty)")
+
+
+class WizardInitResponse(BaseModel):
+    """Response from wizard initialization with hypotheses and clarification questions."""
+
+    hypotheses: list[HypothesisSchema] = Field(
+        ..., description="Generated hypotheses for all DAG variables"
+    )
+    clarification_questions: list[ClarificationQuestionSchema] = Field(
+        ...,
+        description="3-5 questions about critical variables (may be empty if low uncertainty)",
+    )
+
+
+class ClarificationResponseSchema(BaseModel):
+    """User response to a clarification question."""
+
+    variable_name: str = Field(..., description="Variable identifier from DAG")
+    response: str = Field(
+        ...,
+        description="Qualitative response: more, less, equal, or dont_know",
+        pattern="^(more|less|equal|dont_know)$",
+    )
+
+
+class WizardClarifyRequest(BaseModel):
+    """Request to apply clarification responses to hypotheses."""
+
+    responses: list[ClarificationResponseSchema] = Field(
+        ..., description="User responses to clarification questions (may be empty)"
+    )
+
+
+class WizardClarifyResponse(BaseModel):
+    """Response from applying clarifications with updated hypotheses."""
+
+    hypotheses: list[HypothesisSchema] = Field(
+        ..., description="Updated hypotheses with clarification adjustments applied"
     )

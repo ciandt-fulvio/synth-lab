@@ -1,73 +1,85 @@
 /**
- * DAGNodeCard - Compact causal DAG node with hover details.
+ * DAGNodeCard - Compact causal DAG node with click-to-edit.
+ *
+ * Replaces hover tooltips with click-to-open NodeDetailSheet.
+ * Color saturation varies by relevance level.
  */
 
-import { memo, useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import type { Variable } from '@/types/causal-dag';
 
+import type { Relevance } from '@/types/hypothesis';
+
 interface DAGNodeData {
   variable: Variable;
+  relevance?: Relevance;
   isSelected?: boolean;
   onEdit?: (variable: Variable) => void;
+  onEditNode?: (variable: Variable) => void;
   onDelete?: (variableName: string) => void;
 }
 
 /**
- * Get colors by scope only - user-level vs world-level.
+ * Saturation multiplier by relevance level.
+ * high=100%, medium=70%, low=40%
  */
-function getVariableColors(scope: string) {
+const RELEVANCE_SATURATION: Record<string, number> = {
+  high: 1.0,
+  medium: 0.7,
+  low: 0.4,
+};
+
+/**
+ * Get HSL node color based on scope and relevance.
+ *
+ * Base colors (full saturation):
+ * - user: HSL(263, 84%, 58%) — violet
+ * - world: HSL(189, 95%, 42%) — cyan
+ *
+ * Saturation is multiplied by relevance factor.
+ */
+export function getNodeColor(scope: string, relevance: string = 'high'): { bg: string; border: string; text: string } {
+  const satMult = RELEVANCE_SATURATION[relevance] ?? 1.0;
+
   if (scope === 'user') {
-    // User-level: violet
+    const sat = Math.round(84 * satMult);
     return {
-      bg: '#7c3aed', // violet-600
-      border: '#6d28d9', // violet-700
+      bg: `hsl(263, ${sat}%, 58%)`,
+      border: `hsl(263, ${sat}%, 48%)`,
       text: 'text-white',
     };
   } else {
-    // World-level: cyan
+    const sat = Math.round(95 * satMult);
     return {
-      bg: '#06b6d4', // cyan-500
-      border: '#0891b2', // cyan-600
+      bg: `hsl(189, ${sat}%, 42%)`,
+      border: `hsl(189, ${sat}%, 32%)`,
       text: 'text-white',
     };
   }
 }
 
 function DAGNodeCardComponent({ data, selected }: NodeProps<DAGNodeData>) {
-  const { variable } = data;
+  const { variable, relevance } = data;
   const isSelected = selected || data.isSelected;
-  const colors = getVariableColors(variable.scope);
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const cardRef = useRef<HTMLDivElement>(null);
+  const colors = getNodeColor(variable.scope, relevance || 'high');
 
-  useEffect(() => {
-    if (showTooltip && cardRef.current) {
-      const rect = cardRef.current.getBoundingClientRect();
-      setTooltipPosition({
-        x: rect.right + 16, // 16px margin
-        y: rect.top + rect.height * 0.6,
-      });
-    }
-  }, [showTooltip]);
+  const handleClick = () => {
+    data.onEditNode?.(variable);
+  };
 
   return (
-    <>
-      <div
-        ref={cardRef}
-        className={`
-          relative min-w-[200px] max-w-[260px] rounded-lg border-2 shadow-lg transition-all
-          ${isSelected ? 'ring-2 ring-yellow-400 ring-offset-2 scale-105' : 'hover:scale-105'}
-        `}
-        style={{
-          backgroundColor: colors.bg,
-          borderColor: colors.border,
-        }}
-        onMouseEnter={() => setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
-      >
+    <div
+      className={`
+        relative min-w-[200px] max-w-[260px] rounded-lg border-2 shadow-lg transition-all cursor-pointer
+        ${isSelected ? 'ring-2 ring-yellow-400 ring-offset-2 scale-105' : 'hover:scale-105'}
+      `}
+      style={{
+        backgroundColor: colors.bg,
+        borderColor: colors.border,
+      }}
+      onClick={handleClick}
+    >
       {/* Input handle - LEFT side for LR layout */}
       <Handle
         type="target"
@@ -81,7 +93,7 @@ function DAGNodeCardComponent({ data, selected }: NodeProps<DAGNodeData>) {
           {variable.label}
         </p>
 
-        {/* Type label - larger and clearer */}
+        {/* Type label */}
         <div className="flex items-center gap-1.5 mt-2">
           <div
             className={`w-1.5 h-1.5 rounded-full ${
@@ -112,7 +124,6 @@ function DAGNodeCardComponent({ data, selected }: NodeProps<DAGNodeData>) {
             }
           }}
           className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center shadow-lg"
-          style={{ opacity: showTooltip ? 1 : undefined }}
           title="Remover variável"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -121,33 +132,6 @@ function DAGNodeCardComponent({ data, selected }: NodeProps<DAGNodeData>) {
         </button>
       )}
     </div>
-
-    {/* Tooltip rendered via portal - always on top */}
-    {showTooltip && variable.description && createPortal(
-      <div
-        className="fixed pointer-events-none"
-        style={{
-          left: tooltipPosition.x,
-          top: tooltipPosition.y,
-          zIndex: 99999,
-        }}
-      >
-        <div className="bg-slate-900 text-white text-sm rounded-lg shadow-2xl p-4 max-w-sm border-2 border-slate-700">
-          <div className="font-bold mb-2 text-base text-white">{variable.label}</div>
-          <p className="text-slate-200 leading-relaxed">{variable.description}</p>
-          {variable.unit && (
-            <div className="mt-3 pt-3 border-t border-slate-700 text-slate-400 text-xs">
-              <span className="font-semibold">Unit:</span> {variable.unit}
-            </div>
-          )}
-          <div className="mt-2 text-[10px] text-slate-500 uppercase tracking-wide">
-            {variable.scope}-level • {variable.variable_type}
-          </div>
-        </div>
-      </div>,
-      document.body
-    )}
-  </>
   );
 }
 

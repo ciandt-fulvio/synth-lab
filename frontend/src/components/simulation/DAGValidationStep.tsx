@@ -7,16 +7,22 @@
  *   - Spec: specs/035-causal-simulation/spec.md
  */
 
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ReactFlowProvider } from 'reactflow';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { DAGVisualization } from '@/components/simulation/DAGVisualization';
+import { NodeDetailSheet } from '@/components/simulation/NodeDetailSheet';
 import { ArrowRight, Edit2, Loader2, Network, AlertTriangle } from 'lucide-react';
-import type { CausalDAG } from '@/types/causal-dag';
+import type { CausalDAG, Variable } from '@/types/causal-dag';
+import type { Hypothesis, Relevance } from '@/types/hypothesis';
+import { useUpdateHypothesis } from '@/hooks/use-simulations';
 
 interface DAGValidationStepProps {
   simulationId: string;
   dag: CausalDAG | null;
+  hypotheses?: Hypothesis[];
   isLoading: boolean;
   onConfirm: () => void;
   isConfirming: boolean;
@@ -30,12 +36,52 @@ interface DAGValidationStepProps {
 export function DAGValidationStep({
   simulationId,
   dag,
+  hypotheses,
   isLoading,
   onConfirm,
   isConfirming,
   readOnly = false,
 }: DAGValidationStepProps) {
   const navigate = useNavigate();
+  const [selectedVariable, setSelectedVariable] = useState<Variable | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const updateHypothesisMutation = useUpdateHypothesis();
+
+  const selectedHypothesis = hypotheses?.find(
+    (h) => h.variable_name === selectedVariable?.name
+  ) ?? null;
+
+  const handleEditNodeDetail = useCallback((variable: Variable) => {
+    setSelectedVariable(variable);
+    setSheetOpen(true);
+  }, []);
+
+  const handleSheetSave = useCallback(
+    (data: { relevance: Relevance; range_min: number | null; range_max: number | null }) => {
+      if (!selectedHypothesis) return;
+      updateHypothesisMutation.mutate(
+        {
+          simulationId,
+          hypothesisId: selectedHypothesis.id,
+          data: {
+            relevance: data.relevance,
+            range_min: data.range_min,
+            range_max: data.range_max,
+          },
+        },
+        {
+          onSuccess: () => {
+            setSheetOpen(false);
+            toast.success('Hipótese atualizada');
+          },
+          onError: (error) => {
+            toast.error('Erro ao salvar', { description: String(error) });
+          },
+        }
+      );
+    },
+    [selectedHypothesis, simulationId, updateHypothesisMutation]
+  );
 
   const handleEditDAG = () => {
     navigate(`/simulations/${simulationId}/dag`);
@@ -106,7 +152,11 @@ export function DAGValidationStep({
         </div>
         <div className="h-[400px]">
           <ReactFlowProvider>
-            <DAGVisualization dag={dag} />
+            <DAGVisualization
+              dag={dag}
+              hypotheses={hypotheses}
+              onEditNodeDetail={handleEditNodeDetail}
+            />
           </ReactFlowProvider>
         </div>
       </div>
@@ -174,6 +224,16 @@ export function DAGValidationStep({
           </Button>
         </div>
       )}
+
+      {/* Node detail sheet for editing relevance/range */}
+      <NodeDetailSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        variable={selectedVariable}
+        hypothesis={selectedHypothesis}
+        onSave={handleSheetSave}
+        isSaving={updateHypothesisMutation.isPending}
+      />
     </div>
   );
 }

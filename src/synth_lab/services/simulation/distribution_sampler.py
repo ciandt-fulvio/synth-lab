@@ -65,21 +65,33 @@ class DistributionSampler:
             ... )
             >>> samples = sampler.sample(hyp, n=500)
         """
+        # Validate range bounds
+        range_min = hypothesis.range_min
+        range_max = hypothesis.range_max
+        if range_min is not None and range_max is not None and range_min > range_max:
+            raise ValueError(f"range_min ({range_min}) must be <= range_max ({range_max})")
+
         dist_type = hypothesis.distribution_type
         params = hypothesis.parameters
 
         if dist_type == DistributionType.UNIFORM:
-            return self._sample_uniform(params, n)
+            samples = self._sample_uniform(params, n)
         elif dist_type == DistributionType.NORMAL:
-            return self._sample_normal(params, n)
+            samples = self._sample_normal(params, n)
         elif dist_type == DistributionType.BETA:
-            return self._sample_beta(params, n)
+            samples = self._sample_beta(params, n)
         elif dist_type == DistributionType.LOGNORMAL:
-            return self._sample_lognormal(params, n)
+            samples = self._sample_lognormal(params, n)
         elif dist_type == DistributionType.BERNOULLI:
-            return self._sample_bernoulli(params, n)
+            samples = self._sample_bernoulli(params, n)
         else:
             raise ValueError(f"Unsupported distribution type: {dist_type}")
+
+        # Apply range clamping if bounds are specified
+        if range_min is not None or range_max is not None:
+            samples = np.clip(samples, a_min=range_min, a_max=range_max)
+
+        return samples
 
     def _sample_uniform(self, params: UniformParams, n: int) -> np.ndarray:
         """
@@ -186,9 +198,7 @@ class DistributionSampler:
 
         # Generate correlated standard normal samples (Gaussian copula)
         mean = np.zeros(n_vars)
-        correlated_normals = self.rng.multivariate_normal(
-            mean, correlation_matrix, size=n
-        )
+        correlated_normals = self.rng.multivariate_normal(mean, correlation_matrix, size=n)
 
         # Transform to uniform [0, 1] via standard normal CDF
         uniform_samples = stats.norm.cdf(correlated_normals)
@@ -196,9 +206,7 @@ class DistributionSampler:
         # Transform uniform samples to target distributions via inverse CDF
         samples = np.zeros((n, n_vars))
         for i, hypothesis in enumerate(hypotheses):
-            samples[:, i] = self._inverse_cdf_transform(
-                uniform_samples[:, i], hypothesis
-            )
+            samples[:, i] = self._inverse_cdf_transform(uniform_samples[:, i], hypothesis)
 
         return samples
 
@@ -229,9 +237,7 @@ class DistributionSampler:
             return stats.beta.ppf(uniform_samples, a=params.alpha, b=params.beta)
 
         elif dist_type == DistributionType.LOGNORMAL:
-            return stats.lognorm.ppf(
-                uniform_samples, s=params.sigma, scale=np.exp(params.mean)
-            )
+            return stats.lognorm.ppf(uniform_samples, s=params.sigma, scale=np.exp(params.mean))
 
         elif dist_type == DistributionType.BERNOULLI:
             return (uniform_samples < params.p).astype(float)

@@ -108,6 +108,32 @@ class ProblemDecompositionUpdate(BaseModel):
     )
 
 
+class ConfirmDAGRequest(BaseModel):
+    """Request schema for confirming DAG with optional scenario profile."""
+
+    scenario_profile: str | None = Field(
+        default=None,
+        description="Scenario profile: conservative, realistic, or optimistic",
+    )
+
+
+class ClarificationQuestionOut(BaseModel):
+    """Clarification question in confirm-dag response."""
+
+    variable_name: str = Field(..., description="Variable identifier from DAG")
+    question_text: str = Field(..., description="Plain-language question")
+    criticality_score: float = Field(..., ge=0, description="Ranking score")
+
+
+class ConfirmDAGResponse(SimulationResponse):
+    """Response schema for confirm-dag with optional clarification questions."""
+
+    clarification_questions: list[ClarificationQuestionOut] = Field(
+        default_factory=list,
+        description="Clarification questions for critical variables (empty if no profile)",
+    )
+
+
 class SimulationRunRequest(BaseModel):
     """Request schema for running a simulation (optional parameters)."""
 

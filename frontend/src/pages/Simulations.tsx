@@ -1,7 +1,7 @@
 /**
  * Simulations page for causal simulation system.
  *
- * Main page for creating and managing causal simulations.
+ * Streamlined page with inline question input and clean simulation list.
  *
  * References:
  *   - Spec: specs/035-causal-simulation/spec.md
@@ -11,11 +11,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
-import { QuestionInput } from '@/components/simulation/QuestionInput';
-import { useSimulations } from '@/hooks/use-simulations';
-import { Button } from '@/components/ui/button';
+import { useSimulations, useCreateSimulation } from '@/hooks/use-simulations';
 import { StatusBadge } from '@/components/shared/StatusBadge';
-import { PlayCircle, Trash2, Eye, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import {
+  Loader2,
+  Sparkles,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  ChevronRight,
+  FlaskConical,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 /**
@@ -48,7 +54,7 @@ const SIMULATION_STATUS_CONFIG = {
     icon: Clock,
   },
   awaiting_hypothesis_validation: {
-    label: 'Validar Hipóteses',
+    label: 'Refinamento',
     variant: 'warning' as const,
     icon: Clock,
   },
@@ -74,123 +80,138 @@ const SIMULATION_STATUS_CONFIG = {
   },
 };
 
+const PLACEHOLDER_EXAMPLES = [
+  'Qual será a taxa de adoção de um serviço de assinatura semanal de refeições?',
+  'Quantos usuários vão converter do plano gratuito para o pago no Q1?',
+  'Qual é a receita esperada do lançamento de uma nova feature premium?',
+];
+
 /**
  * Simulations page component.
  */
 export default function Simulations() {
   const navigate = useNavigate();
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [question, setQuestion] = useState('');
+  const [placeholderIdx] = useState(() => Math.floor(Math.random() * PLACEHOLDER_EXAMPLES.length));
   const { data: simulations, isLoading } = useSimulations({ limit: 50 });
+  const { mutate: createSimulation, isPending: isCreating } = useCreateSimulation();
 
-  const handleSimulationCreated = (simulationId: string) => {
-    setShowCreateForm(false);
-    // Navigate to simulation detail page
-    navigate(`/simulations/${simulationId}`);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = question.trim();
+    if (trimmed.length < 10) {
+      toast.error('Pergunta muito curta', {
+        description: 'A pergunta deve ter pelo menos 10 caracteres.',
+      });
+      return;
+    }
+
+    createSimulation(
+      { question_text: trimmed, random_seed: 42, n_worlds: 500 },
+      {
+        onSuccess: (data) => {
+          toast.success('Simulação criada');
+          navigate(`/simulations/${data.id}`);
+        },
+        onError: (error) => {
+          toast.error('Erro ao criar simulação', {
+            description: error.message || 'Tente novamente.',
+          });
+        },
+      }
+    );
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
-      <SynthLabHeader
-        subtitle="Simulações Causais"
-        backTo="/"
-      />
+      <SynthLabHeader subtitle="Simulações Causais" backTo="/" />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Create simulation section */}
-        <section className="card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-section-title">Criar Nova Simulação</h2>
-              <p className="text-sm text-slate-600 mt-1">
-                Transforme perguntas de negócio em projeções acionáveis
-              </p>
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {/* Compact question input */}
+        <form onSubmit={handleSubmit} className="card p-3">
+          <div className="flex items-center gap-3">
+            <div className="icon-box-light flex-shrink-0">
+              <Sparkles className="h-4 w-4" />
             </div>
-            <Button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              variant={showCreateForm ? 'outline' : 'default'}
-              className={showCreateForm ? 'btn-secondary' : 'btn-primary'}
+            <input
+              type="text"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder={PLACEHOLDER_EXAMPLES[placeholderIdx]}
+              disabled={isCreating}
+              className="flex-1 text-sm bg-transparent border-none outline-none placeholder:text-slate-400 text-slate-900 disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={isCreating || question.trim().length < 10}
+              className="btn-primary px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {showCreateForm ? 'Cancelar' : 'Nova Simulação'}
-            </Button>
+              {isCreating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Simular'
+              )}
+            </button>
           </div>
-
-          {showCreateForm && (
-            <div className="pt-4 border-t border-slate-200">
-              <QuestionInput
-                onSimulationCreated={handleSimulationCreated}
-                randomSeed={42}
-                nWorlds={500}
-              />
-            </div>
-          )}
-        </section>
+        </form>
 
         {/* Simulations list */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-section-title">Suas Simulações</h2>
-            {simulations && simulations.length > 0 && (
-              <p className="text-sm text-slate-600">{simulations.length} simulação(ões)</p>
-            )}
+        {isLoading ? (
+          <div className="card p-8 text-center text-slate-500">
+            <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+            <p className="text-sm">Carregando...</p>
           </div>
-
-          {isLoading ? (
-            <div className="card p-8 text-center text-slate-500">
-              Carregando simulações...
+        ) : !simulations || simulations.length === 0 ? (
+          <div className="card p-12 text-center">
+            <div className="icon-box-neutral mx-auto mb-4 w-fit">
+              <FlaskConical className="h-6 w-6" />
             </div>
-          ) : !simulations || simulations.length === 0 ? (
-            <div className="card p-8 text-center text-slate-500">
-              <p>Nenhuma simulação ainda.</p>
-              <p className="text-sm mt-2">Crie sua primeira simulação para começar.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4">
+            <p className="text-sm font-medium text-slate-700 mb-1">Nenhuma simulação ainda</p>
+            <p className="text-xs text-slate-500">
+              Digite uma pergunta de negócio acima para criar sua primeira simulação.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider px-1">
+              {simulations.length} simulação{simulations.length !== 1 ? 'ões' : ''}
+            </p>
+            <div className="space-y-1">
               {simulations.map((simulation) => (
-                <div key={simulation.id} className="card-hover p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <StatusBadge
-                          status={simulation.status}
-                          config={SIMULATION_STATUS_CONFIG}
-                        />
-                        <span className="text-xs text-slate-500">
-                          {new Date(simulation.created_at).toLocaleString()}
-                        </span>
-                      </div>
-                      <h3 className="text-card-title mb-2">{simulation.question_text}</h3>
+                <button
+                  key={simulation.id}
+                  type="button"
+                  onClick={() => navigate(`/simulations/${simulation.id}`)}
+                  className="w-full text-left card-hover p-4 flex items-center gap-4 group"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-900 truncate">
+                      {simulation.question_text}
+                    </p>
+                    <div className="flex items-center gap-3 mt-1.5">
+                      <StatusBadge
+                        status={simulation.status}
+                        config={SIMULATION_STATUS_CONFIG}
+                      />
+                      <span className="text-xs text-slate-400">
+                        {new Date(simulation.created_at).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: 'short',
+                        })}
+                      </span>
                       {simulation.problem_decomposition && (
-                        <div className="text-sm text-slate-600 space-y-1">
-                          <p>
-                            <strong>Resultado:</strong>{' '}
-                            {simulation.problem_decomposition.primary_outcome}
-                          </p>
-                          {simulation.problem_decomposition.secondary_outcomes?.length > 0 && (
-                            <p>
-                              <strong>Secundários:</strong>{' '}
-                              {simulation.problem_decomposition.secondary_outcomes.join(', ')}
-                            </p>
-                          )}
-                        </div>
+                        <span className="text-xs text-slate-400 hidden sm:inline truncate max-w-[200px]">
+                          {simulation.problem_decomposition.primary_outcome}
+                        </span>
                       )}
                     </div>
-
-                    <div className="flex items-center gap-2 ml-4">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(`/simulations/${simulation.id}`)}
-                        className="btn-ghost-icon"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </div>
                   </div>
-                </div>
+                  <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-slate-500 flex-shrink-0 transition-colors" />
+                </button>
               ))}
             </div>
-          )}
-        </section>
+          </div>
+        )}
       </main>
     </div>
   );

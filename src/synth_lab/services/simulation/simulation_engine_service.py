@@ -94,13 +94,18 @@ class SimulationEngineService:
         ):
             try:
                 # Validate DAG
-                is_valid, errors = self.validator.validate(dag)
+                is_valid, errors, _warnings = self.validator.validate(dag)
                 if not is_valid:
                     error_msgs = [err.description for err in errors]
                     raise ValueError(f"Invalid DAG: {'; '.join(error_msgs)}")
 
                 # Get topological order for causal propagation
-                topo_order = self.validator.get_topological_order(dag)
+                # Note: topo_order returns variable names (not IDs)
+                topo_order_names = self.validator.get_topological_order(dag)
+
+                # Convert names to IDs for consistent lookups
+                name_to_id = {v.name: v.id for v in dag.nodes}
+                topo_order = [name_to_id[name] for name in topo_order_names]
 
                 # Create hypothesis lookup
                 hyp_map = {h.variable_id: h for h in hypotheses}

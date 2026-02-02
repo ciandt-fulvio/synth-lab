@@ -104,13 +104,9 @@ class HypothesisParametrizerService:
                 llm_response = json.loads(llm_response_str)
 
                 # Convert to Hypothesis entities
-                hypotheses = self._parse_hypotheses_response(
-                    simulation_id, dag, llm_response
-                )
+                hypotheses = self._parse_hypotheses_response(simulation_id, dag, llm_response)
 
-                self.logger.info(
-                    f"Successfully quantified {len(hypotheses)} hypotheses"
-                )
+                self.logger.info(f"Successfully quantified {len(hypotheses)} hypotheses")
 
                 return hypotheses
 
@@ -124,12 +120,15 @@ class HypothesisParametrizerService:
                 self.logger.error(error_msg)
                 raise ValueError(error_msg) from e
 
-    def _build_parametrization_prompt(self, dag: CausalDAG) -> str:
+    def _build_parametrization_prompt(
+        self, dag: CausalDAG, scenario_profile: str | None = None
+    ) -> str:
         """
         Build prompt for hypothesis parametrization.
 
         Args:
             dag: Causal DAG with variables
+            scenario_profile: Optional scenario profile hint (conservative/realistic/optimistic)
 
         Returns:
             Formatted prompt string
@@ -146,7 +145,9 @@ class HypothesisParametrizerService:
                 controllable_vars.append(f"  - {var.name} (controllability={var.controllability})")
 
         variables_text = "\n".join(variables_summary)
-        controllable_text = "\n".join(controllable_vars) if controllable_vars else "(Nenhuma variável controlável)"
+        controllable_text = (
+            "\n".join(controllable_vars) if controllable_vars else "(Nenhuma variável controlável)"
+        )
 
         return f"""Você é um especialista em estatística quantificando variáveis com distribuições de probabilidade para simulação.
 
@@ -330,6 +331,7 @@ IMPORTANTE: Os labels devem ser APENAS palavras qualitativas, SEM faixas numéri
 
 **LEMBRE-SE**: Cada variável tem seu próprio contexto. Use conhecimento de domínio para sugerir valores PROVÁVEIS e REALISTAS.
 NÃO caia na armadilha de usar valores genéricos (50%, 0-100, distribuições simétricas para tudo).
+{self._get_scenario_profile_hint(scenario_profile)}
 
 **CHECKLIST FINAL antes de retornar**:
 ✓ Nenhuma incerteza crítica tem mode=50 ou range 0-100?
@@ -340,6 +342,28 @@ NÃO caia na armadilha de usar valores genéricos (50%, 0-100, distribuições s
 
 Retorne APENAS o objeto JSON, sem texto ou formatação adicional.
 """
+
+    def _get_scenario_profile_hint(self, scenario_profile: str | None) -> str:
+        """Return contextual hint for LLM based on scenario profile."""
+        if not scenario_profile:
+            return ""
+        hints = {
+            "conservative": (
+                "\n**CONTEXTO DO CENÁRIO**: O usuário selecionou um perfil CONSERVADOR. "
+                "Gere valores baseline REALISTAS (não conservadores) - os ajustes conservadores "
+                "serão aplicados depois. Foque na melhor estimativa de mercado."
+            ),
+            "realistic": (
+                "\n**CONTEXTO DO CENÁRIO**: O usuário selecionou um perfil REALISTA. "
+                "Gere valores que representem a melhor estimativa de mercado."
+            ),
+            "optimistic": (
+                "\n**CONTEXTO DO CENÁRIO**: O usuário selecionou um perfil OTIMISTA. "
+                "Gere valores baseline REALISTAS (não otimistas) - ajustes otimistas "
+                "serão aplicados depois. Foque na melhor estimativa de mercado."
+            ),
+        }
+        return hints.get(scenario_profile, "")
 
     def _parse_hypotheses_response(
         self, simulation_id: str, dag: CausalDAG, response: dict[str, Any]
@@ -369,8 +393,7 @@ Retorne APENAS o objeto JSON, sem texto ou formatação adicional.
                 dist_type = DistributionType(raw_dist_type)
             except ValueError:
                 self.logger.warning(
-                    f"Unsupported distribution type '{raw_dist_type}', "
-                    f"falling back to uniform"
+                    f"Unsupported distribution type '{raw_dist_type}', falling back to uniform"
                 )
                 dist_type = DistributionType.UNIFORM
 
@@ -390,6 +413,12 @@ Retorne APENAS o objeto JSON, sem texto ou formatação adicional.
                 params = LogNormalParams(**params_data)
             elif dist_type == DistributionType.BERNOULLI:
                 params = BernoulliParams(**params_data)
+            elif dist_type == DistributionType.TRIANGULAR:
+                params = TriangularParams(
+                    min_value=params_data.get("min_value", params_data.get("low", 0.0)),
+                    mode=params_data.get("mode", params_data.get("peak", 0.5)),
+                    max_value=params_data.get("max_value", params_data.get("high", 1.0)),
+                )
             else:
                 # This shouldn't happen due to fallback above
                 params = UniformParams(low=0.0, high=1.0)
@@ -402,9 +431,7 @@ Retorne APENAS o objeto JSON, sem texto ou formatação adicional.
             correlations = []
             for corr_data in hyp_data.get("correlations", []):
                 corr_var_name = corr_data["with_variable_name"]
-                actual_corr_id = name_to_id.get(
-                    corr_var_name, corr_data["with_variable_id"]
-                )
+                actual_corr_id = name_to_id.get(corr_var_name, corr_data["with_variable_id"])
                 correlations.append(
                     Correlation(
                         with_variable_id=actual_corr_id,

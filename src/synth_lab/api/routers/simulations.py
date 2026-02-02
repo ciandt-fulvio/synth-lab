@@ -14,6 +14,8 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from synth_lab.api.schemas.simulation import (
+    ConfirmDAGRequest,
+    ConfirmDAGResponse,
     ProblemDecompositionUpdate,
     SimulationCreate,
     SimulationResponse,
@@ -126,6 +128,7 @@ async def create_simulation(
         )
     except Exception as e:
         import traceback
+
         logger.error(f"Unexpected error creating simulation: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(
@@ -384,11 +387,17 @@ async def confirm_question(
         simulation.status = SimulationStatus.DAG_CONSTRUCTION
         simulation = sim_repo.update(simulation)
 
-        # Generate DAG
+        # Generate DAG + hypotheses in single unified LLM call
         dag_service = DAGConstructorService()
-        dag = dag_service.generate(simulation.id, simulation.problem_decomposition)
+        hyp_repo = HypothesisRepository(session=db)
+        dag, hypotheses = dag_service.generate(simulation.id, simulation.problem_decomposition)
         dag = dag_repo.create(dag)
         logger.info(f"Generated DAG with {len(dag.nodes)} variables")
+
+        # Persist hypotheses
+        if hypotheses:
+            hyp_repo.create_batch(hypotheses)
+            logger.info(f"Persisted {len(hypotheses)} hypotheses")
 
         # Update status to awaiting DAG validation
         simulation.status = SimulationStatus.AWAITING_DAG_VALIDATION
@@ -423,23 +432,28 @@ async def confirm_question(
 
 @router.post(
     "/{simulation_id}/confirm-dag",
-    response_model=SimulationResponse,
+    response_model=ConfirmDAGResponse,
     summary="Confirm DAG and generate hypotheses",
     description="Confirm the causal DAG and proceed to generate hypothesis parameters",
 )
 async def confirm_dag(
     simulation_id: str,
+    request: ConfirmDAGRequest | None = None,
     db: Session = Depends(get_db_session),
-) -> SimulationResponse:
+) -> ConfirmDAGResponse:
     """
     Confirm DAG validation and generate hypotheses.
 
+    If scenario_profile is provided, uses HypothesisWizardService for profile-aware
+    generation with clarification questions. Otherwise uses standard parametrizer.
+
     Args:
         simulation_id: Simulation ID
+        request: Optional request with scenario_profile
         db: Database session
 
     Returns:
-        Simulation with updated status (awaiting_hypothesis_validation)
+        Simulation with updated status and optional clarification questions
 
     Raises:
         HTTPException: If simulation not found, wrong status, or hypothesis generation fails
@@ -475,17 +489,34 @@ async def confirm_dag(
         simulation.status = SimulationStatus.HYPOTHESIS_GENERATION
         simulation = sim_repo.update(simulation)
 
-        # Generate hypotheses
-        hypothesis_service = HypothesisParametrizerService()
-        hypotheses = hypothesis_service.quantify(simulation.id, dag)
-        hypotheses = hyp_repo.create_batch(hypotheses)
-        logger.info(f"Quantified {len(hypotheses)} hypotheses")
+        clarification_questions = []
+        scenario_profile = request.scenario_profile if request else None
+
+        if scenario_profile:
+            # Use wizard service with scenario profile
+            from synth_lab.domain.entities.hypothesis import ScenarioProfile
+            from synth_lab.services.simulation.hypothesis_wizard_service import (
+                HypothesisWizardService,
+            )
+
+            profile_enum = ScenarioProfile(scenario_profile)
+            wizard_service = HypothesisWizardService(repository=hyp_repo)
+            result = wizard_service.init_wizard(simulation.id, dag, profile_enum)
+            n_hyps = len(result["hypotheses"])
+            logger.info(f"Wizard generated {n_hyps} hypotheses with profile {scenario_profile}")
+            clarification_questions = result.get("clarification_questions", [])
+        else:
+            # Standard parametrizer (backward compatible)
+            hypothesis_service = HypothesisParametrizerService()
+            hypotheses = hypothesis_service.quantify(simulation.id, dag)
+            hypotheses = hyp_repo.create_batch(hypotheses)
+            logger.info(f"Quantified {len(hypotheses)} hypotheses")
 
         # Update status to awaiting hypothesis validation
         simulation.status = SimulationStatus.AWAITING_HYPOTHESIS_VALIDATION
         simulation = sim_repo.update(simulation)
 
-        return SimulationResponse(
+        return ConfirmDAGResponse(
             id=simulation.id,
             question_text=simulation.question_text,
             problem_decomposition=simulation.problem_decomposition,
@@ -493,6 +524,14 @@ async def confirm_dag(
             random_seed=simulation.random_seed,
             n_worlds=simulation.n_worlds,
             created_at=simulation.created_at,
+            clarification_questions=[
+                {
+                    "variable_name": q["variable_name"],
+                    "question_text": q["question_text"],
+                    "criticality_score": q["criticality_score"],
+                }
+                for q in clarification_questions
+            ],
         )
 
     except HTTPException:
@@ -627,7 +666,7 @@ async def run_simulation(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Cannot run simulation when status is {simulation.status}. "
-                       f"Simulation must be in 'ready_to_run' status.",
+                f"Simulation must be in 'ready_to_run' status.",
             )
 
         # Update status
@@ -663,15 +702,11 @@ async def run_simulation(
 
         # Calculate evidence
         evidence_service = EvidenceCalculatorService()
-        evidence, failure_modes, clusters = evidence_service.aggregate(
-            simulation_id, dag, worlds
-        )
+        evidence, failure_modes, clusters = evidence_service.aggregate(simulation_id, dag, worlds)
 
         # Generate insights
         insight_service = InsightGeneratorService()
-        insights = insight_service.synthesize(
-            simulation_id, dag, evidence, failure_modes, clusters
-        )
+        insights = insight_service.synthesize(simulation_id, dag, evidence, failure_modes, clusters)
 
         # Persist insights
         insights = insight_repo.create_batch(insights)
@@ -681,8 +716,7 @@ async def run_simulation(
         simulation = sim_repo.update(simulation)
 
         logger.info(
-            f"Simulation {simulation_id} completed: {len(worlds)} worlds, "
-            f"{len(insights)} insights"
+            f"Simulation {simulation_id} completed: {len(worlds)} worlds, {len(insights)} insights"
         )
 
         return SimulationRunResponse(

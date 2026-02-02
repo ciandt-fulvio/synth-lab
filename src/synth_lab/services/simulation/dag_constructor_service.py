@@ -30,6 +30,16 @@ from synth_lab.domain.entities.causal_dag import (
     VariableType,
     generate_dag_id,
 )
+from synth_lab.domain.entities.hypothesis import (
+    BernoulliParams,
+    BetaParams,
+    DistributionType,
+    Hypothesis,
+    LogNormalParams,
+    NormalParams,
+    Relevance,
+    UniformParams,
+)
 from synth_lab.domain.entities.simulation import ProblemDecomposition
 from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
@@ -53,7 +63,7 @@ class LLMVariable(BaseModel):
     is_outcome: bool = Field(default=False, description="Is outcome variable")
     is_critical_uncertainty: bool = Field(
         default=False,
-        description="True if this variable has high uncertainty and significant impact on outcomes"
+        description="True if this variable has high uncertainty and significant impact on outcomes",
     )
 
 
@@ -91,6 +101,20 @@ class LLMRisk(BaseModel):
     mitigation: str = Field(..., description="How to address this risk")
 
 
+class LLMHypothesis(BaseModel):
+    """Hypothesis in unified LLM response — distribution + relevance + range."""
+
+    variable_name: str = Field(..., description="Variable name (must match a variable in the DAG)")
+    distribution_type: str = Field(
+        ...,
+        description="Distribution type: normal, uniform, beta, lognormal, bernoulli",
+    )
+    parameters: dict = Field(..., description="Distribution-specific parameters")
+    relevance: str = Field(default="medium", description="Variable relevance: low, medium, or high")
+    range_min: float | None = Field(default=None, description="Optional lower bound for clamping")
+    range_max: float | None = Field(default=None, description="Optional upper bound for clamping")
+
+
 class DAGResponse(BaseModel):
     """
     Complete DAG response from LLM.
@@ -99,19 +123,29 @@ class DAGResponse(BaseModel):
     the response adheres to the schema - no invalid enum values possible.
     """
 
-    variables: list[LLMVariable] = Field(
-        ..., description="List of 8-20 variables in the DAG"
-    )
+    variables: list[LLMVariable] = Field(..., description="List of 8-20 variables in the DAG")
     edges: list[LLMEdge] = Field(..., description="Causal relationships between variables")
-    assumptions: list[LLMAssumption] = Field(
-        ..., description="2-3 modeling assumptions"
-    )
+    assumptions: list[LLMAssumption] = Field(..., description="2-3 modeling assumptions")
     risks: list[LLMRisk] = Field(..., description="2-3 identified risks/uncertainties")
+
+
+class UnifiedDAGResponse(DAGResponse):
+    """
+    Extended DAG response that includes hypotheses alongside DAG structure.
+
+    Single LLM call generates both DAG and distribution hypotheses.
+    """
+
+    hypotheses: list[LLMHypothesis] = Field(
+        default_factory=list,
+        description="Distribution hypotheses for each variable (one per variable)",
+    )
+
 
 _tracer = get_tracer("dag-constructor-service")
 
-# Model for DAG generation (needs reasoning for causal relationships)
-DAG_MODEL = "gpt-4o"
+# Model for unified DAG + hypothesis generation
+DAG_MODEL = "gpt-4o-mini"
 
 # Maximum retry attempts for DAG generation
 MAX_DAG_RETRIES = 2
@@ -138,16 +172,17 @@ class DAGConstructorService:
 
     def generate(
         self, simulation_id: str, problem: ProblemDecomposition
-    ) -> CausalDAG:
+    ) -> tuple[CausalDAG, list[Hypothesis]]:
         """
-        Generate causal DAG from problem decomposition.
+        Generate causal DAG and hypotheses from problem decomposition in a single LLM call.
 
         Args:
             simulation_id: Parent simulation ID
             problem: Structured problem decomposition
 
         Returns:
-            CausalDAG with validated structure (8-20 variables, no cycles)
+            Tuple of (CausalDAG, list[Hypothesis]) — DAG with validated structure
+            and distribution hypotheses for all variables.
 
         Raises:
             ValueError: If DAG generation fails or validation fails
@@ -155,15 +190,15 @@ class DAGConstructorService:
         Example:
             >>> constructor = DAGConstructorService()
             >>> problem = ProblemDecomposition(...)
-            >>> dag = constructor.generate("sim_12345678", problem)
-            >>> print(f"Generated {len(dag.nodes)} variables")
+            >>> dag, hypotheses = constructor.generate("sim_12345678", problem)
+            >>> print(f"Generated {len(dag.nodes)} variables, {len(hypotheses)} hypotheses")
         """
         span_name = f"DAGConstructor | {problem.intervention[:40]}..."
         with _tracer.start_as_current_span(
             span_name,
             attributes={
                 SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
-                "operation.type": "dag_generation",
+                "operation.type": "unified_dag_generation",
                 "llm.model": DAG_MODEL,
                 "simulation.id": simulation_id,
                 "problem.intervention": problem.intervention,
@@ -175,23 +210,23 @@ class DAGConstructorService:
 
             for attempt in range(MAX_DAG_RETRIES + 1):
                 try:
-                    # Build prompt for DAG generation (include feedback if retry)
+                    # Build unified prompt for DAG + hypotheses generation
                     prompt = self._build_dag_prompt(problem, validation_feedback)
 
-                    # Call LLM with Structured Outputs - guarantees valid schema
+                    # Call LLM with Structured Outputs — single call for DAG + hypotheses
                     self.logger.info(
-                        f"Generating DAG for intervention: {problem.intervention[:60]}"
+                        f"Generating unified DAG+hypotheses for: {problem.intervention[:60]}"
                         + (f" (attempt {attempt + 1})" if attempt > 0 else "")
                     )
-                    dag_response = self.llm.complete_structured(
+                    unified_response = self.llm.complete_structured(
                         messages=[{"role": "user", "content": prompt}],
-                        response_model=DAGResponse,
+                        response_model=UnifiedDAGResponse,
                         model=DAG_MODEL,
-                        operation_name=f"DAG Generation | {problem.intervention[:30]}",
+                        operation_name=f"Unified DAG+Hyp | {problem.intervention[:30]}",
                     )
 
                     # Convert structured response to CausalDAG entity
-                    dag = self._convert_to_dag(simulation_id, dag_response)
+                    dag = self._convert_to_dag(simulation_id, unified_response)
 
                     # Validate DAG structure (cycles, orphans, etc.)
                     is_valid, errors, _warnings = self.validator.validate(dag)
@@ -207,12 +242,22 @@ class DAGConstructorService:
                     dag.is_validated = True
                     dag.validation_errors = None
 
-                    self.logger.info(
-                        f"Successfully generated DAG: {len(dag.nodes)} variables, "
-                        f"{len(dag.edges)} edges"
+                    # Convert LLM hypotheses to domain entities with fallback
+                    variable_names = [v.name for v in dag.nodes]
+                    variable_id_map = {v.name: v.id for v in dag.nodes}
+                    hypotheses = self._convert_llm_hypotheses_to_entities(
+                        simulation_id=simulation_id,
+                        llm_hypotheses=unified_response.hypotheses,
+                        variable_names=variable_names,
+                        variable_id_map=variable_id_map,
                     )
 
-                    return dag
+                    self.logger.info(
+                        f"Successfully generated DAG: {len(dag.nodes)} variables, "
+                        f"{len(dag.edges)} edges, {len(hypotheses)} hypotheses"
+                    )
+
+                    return dag, hypotheses
 
                 except ValueError:
                     raise  # Re-raise validation errors after retries exhausted
@@ -225,6 +270,122 @@ class DAGConstructorService:
             error_msg = f"DAG generation failed after {MAX_DAG_RETRIES + 1} attempts: {last_error}"
             self.logger.error(error_msg)
             raise ValueError(error_msg) from last_error
+
+    def _convert_llm_hypotheses_to_entities(
+        self,
+        simulation_id: str,
+        llm_hypotheses: list[LLMHypothesis],
+        variable_names: list[str],
+        variable_id_map: dict[str, str],
+    ) -> list[Hypothesis]:
+        """
+        Convert LLM hypotheses to Hypothesis domain entities with fallback for missing variables.
+
+        Args:
+            simulation_id: Parent simulation ID
+            llm_hypotheses: LLM-generated hypotheses
+            variable_names: All variable names from DAG
+            variable_id_map: Mapping from variable name to DAG variable ID
+
+        Returns:
+            List of Hypothesis entities (one per variable, with fallbacks)
+        """
+        # Index LLM hypotheses by variable name
+        hyp_by_name: dict[str, LLMHypothesis] = {}
+        for llm_hyp in llm_hypotheses:
+            hyp_by_name[llm_hyp.variable_name] = llm_hyp
+
+        hypotheses: list[Hypothesis] = []
+        for var_name in variable_names:
+            var_id = variable_id_map.get(var_name, var_name)
+            llm_hyp = hyp_by_name.get(var_name)
+
+            if llm_hyp is not None:
+                # Convert LLM hypothesis to entity
+                hyp = self._parse_single_llm_hypothesis(simulation_id, var_id, var_name, llm_hyp)
+            else:
+                # Fallback: uniform distribution, medium relevance, no range
+                self.logger.warning(
+                    f"No hypothesis from LLM for variable '{var_name}', "
+                    "using fallback (uniform, medium relevance)"
+                )
+                hyp = Hypothesis(
+                    simulation_id=simulation_id,
+                    variable_id=var_id,
+                    variable_name=var_name,
+                    distribution_type=DistributionType.UNIFORM,
+                    parameters=UniformParams(low=0.0, high=1.0),
+                    relevance=Relevance.MEDIUM,
+                )
+            hypotheses.append(hyp)
+
+        return hypotheses
+
+    def _parse_single_llm_hypothesis(
+        self,
+        simulation_id: str,
+        variable_id: str,
+        variable_name: str,
+        llm_hyp: LLMHypothesis,
+    ) -> Hypothesis:
+        """Parse a single LLMHypothesis into a Hypothesis domain entity."""
+        # Parse distribution type with fallback
+        try:
+            dist_type = DistributionType(llm_hyp.distribution_type)
+        except ValueError:
+            self.logger.warning(
+                f"Unsupported distribution type '{llm_hyp.distribution_type}' "
+                f"for variable '{variable_name}', falling back to uniform"
+            )
+            dist_type = DistributionType.UNIFORM
+
+        # Parse parameters based on distribution type
+        params_data = llm_hyp.parameters
+        if dist_type == DistributionType.UNIFORM:
+            params = UniformParams(
+                low=params_data.get("low", 0.0),
+                high=params_data.get("high", 1.0),
+            )
+        elif dist_type == DistributionType.NORMAL:
+            params = NormalParams(
+                mean=params_data.get("mean", 0.0),
+                std=params_data.get("std", 1.0),
+            )
+        elif dist_type == DistributionType.BETA:
+            params = BetaParams(
+                alpha=params_data.get("alpha", 1.0),
+                beta=params_data.get("beta", 1.0),
+            )
+        elif dist_type == DistributionType.LOGNORMAL:
+            params = LogNormalParams(
+                mean=params_data.get("mean", 0.0),
+                sigma=params_data.get("sigma", 1.0),
+            )
+        elif dist_type == DistributionType.BERNOULLI:
+            params = BernoulliParams(
+                p=params_data.get("p", 0.5),
+            )
+        else:
+            # Fallback for any unhandled type
+            params = UniformParams(low=0.0, high=1.0)
+            dist_type = DistributionType.UNIFORM
+
+        # Parse relevance with fallback
+        try:
+            relevance = Relevance(llm_hyp.relevance)
+        except ValueError:
+            relevance = Relevance.MEDIUM
+
+        return Hypothesis(
+            simulation_id=simulation_id,
+            variable_id=variable_id,
+            variable_name=variable_name,
+            distribution_type=dist_type,
+            parameters=params,
+            relevance=relevance,
+            range_min=llm_hyp.range_min,
+            range_max=llm_hyp.range_max,
+        )
 
     def _build_dag_prompt(
         self, problem: ProblemDecomposition, validation_feedback: str | None = None
@@ -258,7 +419,7 @@ Por favor, corrija esses problemas na nova resposta. Correções comuns:
 **Problema**:
 - Intervenção: {problem.intervention}
 - Resultado Principal: {problem.primary_outcome}
-- Resultados Secundários: {', '.join(problem.secondary_outcomes) if problem.secondary_outcomes else 'Nenhum'}
+- Resultados Secundários: {", ".join(problem.secondary_outcomes) if problem.secondary_outcomes else "Nenhum"}
 - Unidade de Análise: {problem.unit_of_analysis}
 - Horizonte de Tempo: {problem.time_horizon}
 - Tipo de Decisão: {problem.decision_type}
@@ -363,15 +524,52 @@ NÃO marque como incerteza crítica:
       "impact": "low|medium|high",
       "mitigation": "Como endereçar este risco"
     }}
+  ],
+  "hypotheses": [
+    {{
+      "variable_name": "nome_variavel",
+      "distribution_type": "normal|uniform|beta|lognormal|bernoulli",
+      "parameters": {{}},
+      "relevance": "low|medium|high",
+      "range_min": null,
+      "range_max": null
+    }}
   ]
 }}
+
+**HIPÓTESES DE DISTRIBUIÇÃO** (campo `hypotheses`):
+Para CADA variável do DAG, gere uma hipótese de distribuição de probabilidade.
+
+**Distribuições disponíveis**:
+- **uniform**: {{\"low\": 0.0, \"high\": 1.0}} — quando não há informação prévia
+- **normal**: {{\"mean\": 50.0, \"std\": 10.0}} — métricas com tendência central
+- **beta**: {{\"alpha\": 2.0, \"beta\": 8.0}} — taxas e percentuais (bounded [0,1])
+- **lognormal**: {{\"mean\": 4.0, \"sigma\": 0.6}} — valores monetários, durações
+- **bernoulli**: {{\"p\": 0.02}} — eventos binários (sim/não)
+
+**Relevância** (`relevance`):
+- `high`: Variável com alto impacto no resultado — a simulação é muito sensível a essa variável
+- `medium`: Impacto moderado — influencia o resultado mas não é dominante
+- `low`: Impacto baixo — variável contextual, pouca influência no resultado
+
+**Range** (`range_min`, `range_max`):
+- Limites opcionais para clamping dos samples. Use `null` se não aplicável.
+- Exemplo: preço nunca negativo → range_min=0; taxa nunca acima de 100% → range_max=1.0
+
+**EXEMPLOS DE HIPÓTESES REALISTAS**:
+
+Taxa de conversão: Beta(alpha=2, beta=18), relevance=high, range_min=0, range_max=1
+Valor ticket: LogNormal(mean=4.0, sigma=0.6), relevance=medium, range_min=0
+Taxa churn: Beta(alpha=1.5, beta=18.5), relevance=high, range_min=0, range_max=1
+Falha técnica: Bernoulli(p=0.02), relevance=low
+Investimento marketing: Normal(mean=50000, std=15000), relevance=medium, range_min=0
+
+**IMPORTANTE**: Use valores REALISTAS baseados no domínio, NÃO genéricos (50%, 0-100).
 
 Retorne APENAS o objeto JSON, sem texto ou formatação adicional.
 """
 
-    def _convert_to_dag(
-        self, simulation_id: str, response: DAGResponse
-    ) -> CausalDAG:
+    def _convert_to_dag(self, simulation_id: str, response: DAGResponse) -> CausalDAG:
         """
         Convert structured LLM response to CausalDAG entity.
 
