@@ -22,6 +22,10 @@ import {
 import { ArrowRight, Edit2, Loader2, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ProblemDecomposition } from '@/services/simulations-api';
+import {
+  ScenarioProfileSelector,
+  type ScenarioProfile,
+} from '@/components/simulation/hypothesis/ScenarioProfileSelector';
 
 interface QuestionValidationStepProps {
   problemDecomposition: ProblemDecomposition;
@@ -31,6 +35,10 @@ interface QuestionValidationStepProps {
   isUpdating: boolean;
   /** When true, hides edit/confirm buttons for reviewing completed steps */
   readOnly?: boolean;
+  /** Selected scenario profile */
+  scenarioProfile?: ScenarioProfile;
+  /** Callback when scenario profile changes */
+  onScenarioProfileChange?: (profile: ScenarioProfile) => void;
 }
 
 const DECISION_TYPES = [
@@ -61,6 +69,8 @@ export function QuestionValidationStep({
   isConfirming,
   isUpdating,
   readOnly = false,
+  scenarioProfile,
+  onScenarioProfileChange,
 }: QuestionValidationStepProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState(problemDecomposition);
@@ -316,6 +326,14 @@ export function QuestionValidationStep({
           </div>
         )}
       </div>
+
+      {!readOnly && scenarioProfile && onScenarioProfileChange && (
+        <ScenarioProfileSelector
+          value={scenarioProfile}
+          onChange={onScenarioProfileChange}
+          disabled={isConfirming}
+        />
+      )}
 
       {!readOnly && (
         <div className="flex justify-end pt-4 border-t">

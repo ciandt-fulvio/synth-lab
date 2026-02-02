@@ -121,9 +121,9 @@ export function getWizardSteps(simulationStatus: string): Step[] {
     awaiting_dag_validation: 1,
     hypothesis_generation: 2,
     awaiting_hypothesis_validation: 2,
-    ready_to_run: 3,
-    simulating: 3,
-    completed: 4,
+    ready_to_run: 2,
+    simulating: 2,
+    completed: 3,
     failed: -1,
   };
 
@@ -132,10 +132,10 @@ export function getWizardSteps(simulationStatus: string): Step[] {
   const isProcessing = processingStatuses.includes(simulationStatus);
 
   const steps: Step[] = [
-    { id: 'question', label: 'Pergunta', status: 'pending' },
+    { id: 'question', label: 'Pergunta & Cenário', status: 'pending' },
     { id: 'dag', label: 'Modelo Causal', status: 'pending' },
-    { id: 'hypotheses', label: 'Hipóteses', status: 'pending' },
-    { id: 'run', label: 'Simulação', status: 'pending' },
+    { id: 'refinement', label: 'Refinamento', status: 'pending' },
+    { id: 'results', label: 'Resultados', status: 'pending' },
   ];
 
   return steps.map((step, idx) => {

@@ -1,0 +1,240 @@
+openapi: 3.0.3
+info:
+  title: Unified DAG & Hypothesis Generation API
+  description: |
+    API contracts for unified DAG + hypothesis generation, relevance-driven
+    visualization, and drawer-based node editing.
+  version: 1.0.0
+  contact:
+    name: synth-lab Development Team
+
+servers:
+  - url: http://localhost:8000/api
+    description: Local development
+  - url: https://staging.synth-lab.com/api
+    description: Staging environment
+
+paths:
+  /simulations/{simulation_id}/confirm-question:
+    post:
+      summary: Confirm question and generate DAG + hypotheses (unified)
+      description: |
+        Generates the causal DAG AND distribution hypotheses in a single LLM call
+        using gpt-4o-mini. This replaces the previous two-step approach (DAG generation
+        + hypothesis parametrization).
+
+        Returns simulation with DAG and hypotheses ready for validation.
+
+        Side effects:
+        - Creates CausalDAG in database
+        - Creates Hypothesis records (with relevance and range) in database
+        - Updates simulation status to AWAITING_DAG_VALIDATION
+      operationId: confirmQuestionUnified
+      tags:
+        - Simulations
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+      responses:
+        '200':
+          description: DAG + hypotheses generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationResponse'
+        '404':
+          description: Simulation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Simulation not in correct status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /simulations/{simulation_id}/hypotheses/{hypothesis_id}:
+    patch:
+      summary: Update hypothesis relevance and/or range
+      description: |
+        Updates a single hypothesis's relevance level and/or range bounds.
+        Used by the node detail drawer for per-variable fine-tuning.
+
+        Only provided fields are updated (partial update).
+      operationId: updateHypothesis
+      tags:
+        - Hypotheses
+      parameters:
+        - name: simulation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^sim_[a-f0-9]{8}$'
+        - name: hypothesis_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^hyp_[a-f0-9]{8}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HypothesisUpdateRequest'
+            examples:
+              change_relevance:
+                summary: Change relevance to high
+                value:
+                  relevance: high
+              set_range:
+                summary: Set range bounds
+                value:
+                  range_min: 0
+                  range_max: 100
+              full_update:
+                summary: Update relevance and range
+                value:
+                  relevance: low
+                  range_min: 10
+                  range_max: 50
+      responses:
+        '200':
+          description: Hypothesis updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hypothesis'
+        '404':
+          description: Hypothesis not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error (e.g., range_min > range_max)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: range_min must be less than or equal to range_max
+
+components:
+  schemas:
+    HypothesisUpdateRequest:
+      type: object
+      properties:
+        relevance:
+          $ref: '#/components/schemas/Relevance'
+        range_min:
+          type: number
+          format: float
+          nullable: true
+          description: Lower bound for clamping (null to remove)
+        range_max:
+          type: number
+          format: float
+          nullable: true
+          description: Upper bound for clamping (null to remove)
+      description: Partial update — only provided fields are changed
+
+    Relevance:
+      type: string
+      enum:
+        - low
+        - medium
+        - high
+      description: |
+        Variable relevance level:
+        - high: Critical to simulation outcome (100% saturation)
+        - medium: Contributes to outcome (70% saturation)
+        - low: Minor influence (40% saturation)
+
+    Hypothesis:
+      type: object
+      required:
+        - id
+        - simulation_id
+        - variable_name
+        - distribution_type
+        - distribution_params
+        - relevance
+        - created_at
+      properties:
+        id:
+          type: string
+          pattern: '^hyp_[a-f0-9]{8}$'
+          example: hyp_a1b2c3d4
+        simulation_id:
+          type: string
+          example: sim_12345678
+        variable_id:
+          type: string
+          nullable: true
+        variable_name:
+          type: string
+          example: conversion_rate
+        distribution_type:
+          type: string
+          enum: [normal, uniform, beta, lognormal, bernoulli, triangular]
+        distribution_params:
+          type: object
+          description: Type-specific parameters
+        relevance:
+          $ref: '#/components/schemas/Relevance'
+        range_min:
+          type: number
+          format: float
+          nullable: true
+          example: 0.0
+        range_max:
+          type: number
+          format: float
+          nullable: true
+          example: 1.0
+        correlations:
+          type: array
+          nullable: true
+          items:
+            type: object
+        scenario_options:
+          type: array
+          nullable: true
+          items:
+            type: object
+        selected_scenario:
+          type: string
+          nullable: true
+        version:
+          type: integer
+          default: 1
+        created_at:
+          type: string
+          format: date-time
+
+    SimulationResponse:
+      type: object
+      description: Full simulation response (existing schema, hypotheses now included after generation)
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          example: Simulation sim_12345678 not found
+
+tags:
+  - name: Simulations
+    description: Simulation lifecycle endpoints
+  - name: Hypotheses
+    description: Hypothesis management and editing

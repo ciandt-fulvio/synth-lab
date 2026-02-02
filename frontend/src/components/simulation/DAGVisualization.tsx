@@ -29,6 +29,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { DAGNodeCard } from './DAGNodeCard';
 import type { CausalDAG, Variable, Edge } from '@/types/causal-dag';
+import type { Hypothesis } from '@/types/hypothesis';
 
 const nodeTypes = {
   dagNode: DAGNodeCard,
@@ -42,6 +43,7 @@ const NODE_SPACING = 120; // Spacing between nodes in same level (vertical)
 
 interface DAGVisualizationProps {
   dag: CausalDAG;
+  hypotheses?: Hypothesis[];
   editable?: boolean;
   onEditNode?: (variable: Variable) => void;
   onAddNode?: (variable: Variable) => void;
@@ -50,6 +52,7 @@ interface DAGVisualizationProps {
   onDeleteEdge?: (source: string, target: string) => void;
   onNodesChange?: (nodes: Variable[]) => void;
   onSavePositions?: (positions: Record<string, { x: number; y: number }>) => void;
+  onEditNodeDetail?: (variable: Variable) => void;
   height?: string | number;
 }
 
@@ -156,7 +159,9 @@ function dagToReactFlow(
   selectedNodes: string[],
   editable: boolean,
   onEditNode?: (variable: Variable) => void,
-  onDeleteNode?: (variableName: string) => void
+  onDeleteNode?: (variableName: string) => void,
+  relevanceMap?: Record<string, string>,
+  onEditNodeDetail?: (variable: Variable) => void,
 ): { nodes: Node[]; edges: RFEdge[] } {
   // Create nodes - use saved positions if available, otherwise use {0,0} for layout
   const nodes: Node[] = dag.nodes.map((variable) => ({
@@ -168,7 +173,9 @@ function dagToReactFlow(
     },
     data: {
       variable,
+      relevance: relevanceMap?.[variable.name] || 'high',
       onEdit: editable ? onEditNode : undefined,
+      onEditNode: onEditNodeDetail,
       onDelete: editable ? onDeleteNode : undefined,
     },
     draggable: true, // Always allow dragging
@@ -225,6 +232,7 @@ function dagToReactFlow(
 
 export function DAGVisualization({
   dag,
+  hypotheses,
   editable = false,
   onEditNode,
   onAddNode,
@@ -233,6 +241,7 @@ export function DAGVisualization({
   onDeleteEdge,
   onNodesChange,
   onSavePositions,
+  onEditNodeDetail,
   height = '100%',
 }: DAGVisualizationProps) {
   const { fitView } = useReactFlow();
@@ -243,10 +252,21 @@ export function DAGVisualization({
   const [newNodeScope, setNewNodeScope] = useState<'user' | 'world'>('user');
   const [newNodeDescription, setNewNodeDescription] = useState('');
 
+  // Build relevance map from hypotheses
+  const relevanceMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (hypotheses) {
+      hypotheses.forEach((hyp) => {
+        map[hyp.variable_name] = hyp.relevance;
+      });
+    }
+    return map;
+  }, [hypotheses]);
+
   // Convert DAG with selection state
   const { nodes: initialNodes, edges: initialEdges } = useMemo(
-    () => dagToReactFlow(dag, selectedNodes, editable, onEditNode, onDeleteNode),
-    [dag, selectedNodes, editable, onEditNode, onDeleteNode]
+    () => dagToReactFlow(dag, selectedNodes, editable, onEditNode, onDeleteNode, relevanceMap, onEditNodeDetail),
+    [dag, selectedNodes, editable, onEditNode, onDeleteNode, relevanceMap, onEditNodeDetail]
   );
 
   const [nodes, setNodes, onNodesChangeInternal] = useNodesState(initialNodes);
@@ -292,11 +312,13 @@ export function DAGVisualization({
       selectedNodes,
       editable,
       onEditNode,
-      onDeleteNode
+      onDeleteNode,
+      relevanceMap,
+      onEditNodeDetail,
     );
     setNodes(newNodes);
     setEdges(newEdges);
-  }, [dag, editable, onEditNode, onDeleteNode, setNodes, setEdges]);
+  }, [dag, editable, onEditNode, onDeleteNode, relevanceMap, onEditNodeDetail, setNodes, setEdges]);
 
   // Update edge styles when node selection changes (for highlighting connected edges)
   // Use functional update to preserve React Flow's internal selection state
@@ -457,16 +479,35 @@ export function DAGVisualization({
         />
       </ReactFlow>
 
-      {/* Legend - top right, compact */}
-      <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-lg border border-slate-200/80 px-3 py-2 text-xs shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#7c3aed' }} />
-            <span className="text-slate-600">User-level</span>
+      {/* Legend - polished top right positioning */}
+      <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md rounded-xl border border-slate-300/60 shadow-lg overflow-hidden">
+        {/* Header */}
+        <div className="px-4 py-2 bg-gradient-to-r from-slate-50/80 to-white/80 border-b border-slate-200/60">
+          <div className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
+            Variable Scope
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: '#06b6d4' }} />
-            <span className="text-slate-600">World-level</span>
+        </div>
+
+        {/* Legend items */}
+        <div className="px-4 py-3 flex flex-col gap-2.5">
+          <div className="flex items-center gap-2.5 group">
+            <div
+              className="w-3.5 h-3.5 rounded-md shadow-sm ring-1 ring-inset ring-white/20 transition-transform group-hover:scale-110"
+              style={{ backgroundColor: '#7c3aed' }}
+            />
+            <span className="text-[13px] font-medium text-slate-700 tracking-tight">
+              User-level
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2.5 group">
+            <div
+              className="w-3.5 h-3.5 rounded-md shadow-sm ring-1 ring-inset ring-white/20 transition-transform group-hover:scale-110"
+              style={{ backgroundColor: '#06b6d4' }}
+            />
+            <span className="text-[13px] font-medium text-slate-700 tracking-tight">
+              World-level
+            </span>
           </div>
         </div>
       </div>

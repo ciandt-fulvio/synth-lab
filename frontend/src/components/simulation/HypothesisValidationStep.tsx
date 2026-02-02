@@ -12,8 +12,9 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Loader2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, AlertTriangle, Wand2 } from 'lucide-react';
 import {
   HypothesisSubStepIndicator,
   HypothesisSubStep,
@@ -76,6 +77,8 @@ export function HypothesisValidationStep({
   isConfirming,
   readOnly = false,
 }: HypothesisValidationStepProps) {
+  const navigate = useNavigate();
+
   // Sub-step state
   const [currentSubStep, setCurrentSubStep] = useState<HypothesisSubStep>(1);
   const [completedSubSteps, setCompletedSubSteps] = useState<HypothesisSubStep[]>([]);
@@ -192,14 +195,27 @@ export function HypothesisValidationStep({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-lg font-semibold text-slate-900">
-          {readOnly ? 'Hipóteses' : 'Configurar Hipóteses'}
-        </h2>
-        {!readOnly && (
-          <p className="text-sm text-slate-600 mt-1">
-            Configure as variáveis e relacionamentos antes de executar a simulação.
-          </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">
+            {readOnly ? 'Hipóteses' : 'Configurar Hipóteses'}
+          </h2>
+          {!readOnly && (
+            <p className="text-sm text-slate-600 mt-1">
+              Configure as variáveis e relacionamentos antes de executar a simulação.
+            </p>
+          )}
+        </div>
+        {!readOnly && dag?.is_validated && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/simulations/${simulationId}/wizard`)}
+            className="flex items-center gap-2"
+          >
+            <Wand2 className="h-4 w-4" />
+            Wizard Simplificado
+          </Button>
         )}
       </div>
 

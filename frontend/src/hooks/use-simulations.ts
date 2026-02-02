@@ -24,6 +24,7 @@ import {
   listSimulations,
   replaySimulation,
   runSimulation,
+  updateHypothesis,
   updateProblemDecomposition,
   type AuditTrailResponse,
   type ExportResponse,
@@ -35,6 +36,7 @@ import {
   type SimulationResponse,
   type SimulationRunRequest,
   type SimulationRunResponse,
+  type ConfirmDAGResponse,
   type SimulationStatus,
 } from '@/services/simulations-api';
 
@@ -179,10 +181,16 @@ export function useConfirmDAG() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (simulationId: string) => confirmDAG(simulationId),
-    onSuccess: (_, simulationId) => {
+    mutationFn: ({
+      simulationId,
+      scenarioProfile,
+    }: {
+      simulationId: string;
+      scenarioProfile?: string;
+    }) => confirmDAG(simulationId, scenarioProfile),
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.simulations.detail(simulationId),
+        queryKey: queryKeys.simulations.detail(variables.simulationId),
       });
     },
   });
@@ -405,5 +413,30 @@ export function useReplaySimulation() {
 export function useExportAudit() {
   return useMutation({
     mutationFn: (simulationId: string) => exportSimulationAudit(simulationId),
+  });
+}
+
+/**
+ * Hook to partially update a hypothesis (relevance, range).
+ *
+ * Invalidates simulation query on success to refresh DAG visualization.
+ */
+export function useUpdateHypothesis() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      simulationId,
+      hypothesisId,
+      data,
+    }: {
+      simulationId: string;
+      hypothesisId: string;
+      data: { relevance?: string; range_min?: number | null; range_max?: number | null };
+    }) => updateHypothesis(simulationId, hypothesisId, data),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.simulationDetail(variables.simulationId),
+      });
+    },
   });
 }

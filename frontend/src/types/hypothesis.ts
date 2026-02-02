@@ -52,11 +52,16 @@ export interface ScenarioOption {
 /**
  * Single hypothesis for a variable.
  */
+export type Relevance = 'low' | 'medium' | 'high';
+
 export interface Hypothesis {
   id: string;
   simulation_id: string;
   variable_name: string;
   parameters: DistributionParameters;
+  relevance: Relevance;
+  range_min?: number | null;
+  range_max?: number | null;
   correlations: Correlation[];
   scenario_options?: ScenarioOption[] | null;
   selected_scenario?: string | null;

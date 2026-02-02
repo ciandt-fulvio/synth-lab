@@ -1,11 +1,15 @@
 /**
  * CausalSimulationDetail page for viewing and managing causal simulations.
  *
- * Implements a wizard flow for simulation creation with intermediate validations.
+ * Implements a simplified 4-step wizard flow:
+ * 1. Pergunta & Cenário
+ * 2. Modelo Causal
+ * 3. Refinamento & Execução
+ * 4. Resultados
  *
  * References:
  *   - Spec: specs/035-causal-simulation/spec.md
- *   - Components: components/simulation/
+ *   - Spec: specs/036-simplified-hypothesis-wizard/spec.md
  */
 
 import { useState } from 'react';
@@ -15,8 +19,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { StepIndicator, getWizardSteps } from '@/components/simulation/StepIndicator';
 import { QuestionValidationStep } from '@/components/simulation/QuestionValidationStep';
 import { DAGValidationStep } from '@/components/simulation/DAGValidationStep';
-import { HypothesisValidationStep } from '@/components/simulation/HypothesisValidationStep';
-import { ReadyToRunStep } from '@/components/simulation/ReadyToRunStep';
+import { RefinementStep } from '@/components/simulation/RefinementStep';
 import { PercentileChart } from '@/components/simulation/PercentileChart';
 import {
   useSimulation,
@@ -30,6 +33,7 @@ import {
 } from '@/hooks/use-simulations';
 import { useDAG } from '@/hooks/use-dag';
 import { useHypotheses } from '@/hooks/use-hypotheses';
+import { applyClarifications } from '@/services/hypothesis-wizard-api';
 import { Button } from '@/components/ui/button';
 import {
   Trash2,
@@ -43,6 +47,9 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import type { ScenarioProfile } from '@/components/simulation/hypothesis/ScenarioProfileSelector';
+import type { ClarificationQuestion } from '@/services/simulations-api';
+import type { ClarificationResponse } from '@/components/simulation/hypothesis/ClarificationQuestionsStep';
 
 /**
  * Status badge configuration for simulations.
@@ -74,7 +81,7 @@ const SIMULATION_STATUS_CONFIG = {
     icon: Clock,
   },
   awaiting_hypothesis_validation: {
-    label: 'Validar Hipóteses',
+    label: 'Refinamento',
     variant: 'warning' as const,
     icon: Clock,
   },
@@ -134,6 +141,8 @@ export default function CausalSimulationDetail() {
   const navigate = useNavigate();
   const [runResult, setRunResult] = useState<any>(null);
   const [viewedStep, setViewedStep] = useState<string | null>(null);
+  const [scenarioProfile, setScenarioProfile] = useState<ScenarioProfile>('realistic');
+  const [clarificationQuestions, setClarificationQuestions] = useState<ClarificationQuestion[]>([]);
 
   // Data hooks
   const { data: simulation, isLoading: isLoadingSimulation, refetch: refetchSimulation } = useSimulation(id || '');
@@ -143,15 +152,17 @@ export default function CausalSimulationDetail() {
       simulation?.status === 'awaiting_hypothesis_validation' ||
       simulation?.status === 'ready_to_run' ||
       simulation?.status === 'completed' ||
-      viewedStep === 'dag' // Enable when viewing DAG step
+      viewedStep === 'dag'
     ),
   });
   const { data: hypotheses, isLoading: isLoadingHypotheses } = useHypotheses(id || '', {
     enabled: !!id && (
+      simulation?.status === 'awaiting_dag_validation' ||
       simulation?.status === 'awaiting_hypothesis_validation' ||
       simulation?.status === 'ready_to_run' ||
       simulation?.status === 'completed' ||
-      viewedStep === 'hypotheses' // Enable when viewing hypotheses step
+      viewedStep === 'dag' ||
+      viewedStep === 'refinement'
     ),
   });
   const { data: insights, isLoading: isLoadingInsights } = useSimulationInsights(id || '', {
@@ -160,7 +171,7 @@ export default function CausalSimulationDetail() {
 
   // Mutation hooks
   const { mutate: confirmQuestion, isPending: isConfirmingQuestion } = useConfirmQuestion();
-  const { mutate: confirmDAG, isPending: isConfirmingDAG } = useConfirmDAG();
+  const { mutate: confirmDAGMutation, isPending: isConfirmingDAG } = useConfirmDAG();
   const { mutate: confirmHypotheses, isPending: isConfirmingHypotheses } = useConfirmHypotheses();
   const { mutateAsync: updateProblemDecomposition, isPending: isUpdatingProblem } = useUpdateProblemDecomposition();
   const { mutate: runSimulation, isPending: isRunning } = useRunSimulation();
@@ -184,32 +195,37 @@ export default function CausalSimulationDetail() {
 
   const handleConfirmDAG = () => {
     if (!id) return;
-    confirmDAG(id, {
-      onSuccess: () => {
-        toast.success('Hipóteses geradas com sucesso');
-        refetchSimulation();
-      },
-      onError: (error) => {
-        toast.error('Erro ao gerar hipóteses', {
-          description: error.message || 'Por favor, tente novamente.',
-        });
-      },
-    });
+    confirmDAGMutation(
+      { simulationId: id, scenarioProfile },
+      {
+        onSuccess: (data) => {
+          const questions = data.clarification_questions || [];
+          setClarificationQuestions(questions);
+          toast.success('Hipóteses geradas com sucesso');
+          refetchSimulation();
+        },
+        onError: (error) => {
+          toast.error('Erro ao gerar hipóteses', {
+            description: error.message || 'Por favor, tente novamente.',
+          });
+        },
+      }
+    );
   };
 
-  const handleConfirmHypotheses = () => {
+  const handleClarify = async (responses: ClarificationResponse[]) => {
     if (!id) return;
-    confirmHypotheses(id, {
-      onSuccess: () => {
-        toast.success('Simulação pronta para execução');
-        refetchSimulation();
-      },
-      onError: (error) => {
-        toast.error('Erro ao confirmar hipóteses', {
-          description: error.message || 'Por favor, tente novamente.',
-        });
-      },
-    });
+    try {
+      await applyClarifications(id, {
+        responses: responses.map((r) => ({
+          variable_name: r.variable_name,
+          response: r.response,
+        })),
+      });
+      toast.success('Respostas aplicadas com sucesso');
+    } catch (error) {
+      toast.error('Erro ao aplicar respostas');
+    }
   };
 
   const handleUpdateProblemDecomposition = async (update: any) => {
@@ -218,25 +234,35 @@ export default function CausalSimulationDetail() {
     refetchSimulation();
   };
 
-  const handleRun = () => {
+  const handleRun = async () => {
     if (!id) return;
-    runSimulation(
-      { simulationId: id },
-      {
-        onSuccess: (data) => {
-          setRunResult(data);
-          toast.success('Simulação concluída', {
-            description: `Gerados ${data.n_worlds} mundos e ${data.n_insights} insights.`,
-          });
-          refetchSimulation();
-        },
-        onError: (error) => {
-          toast.error('Simulação falhou', {
-            description: error.message || 'Por favor, tente novamente.',
-          });
-        },
-      }
-    );
+    // First confirm hypotheses, then run
+    confirmHypotheses(id, {
+      onSuccess: () => {
+        runSimulation(
+          { simulationId: id },
+          {
+            onSuccess: (data) => {
+              setRunResult(data);
+              toast.success('Simulação concluída', {
+                description: `Gerados ${data.n_worlds} mundos e ${data.n_insights} insights.`,
+              });
+              refetchSimulation();
+            },
+            onError: (error) => {
+              toast.error('Simulação falhou', {
+                description: error.message || 'Por favor, tente novamente.',
+              });
+            },
+          }
+        );
+      },
+      onError: (error) => {
+        toast.error('Erro ao confirmar hipóteses', {
+          description: error.message || 'Por favor, tente novamente.',
+        });
+      },
+    });
   };
 
   const handleDelete = () => {
@@ -286,18 +312,16 @@ export default function CausalSimulationDetail() {
   const steps = getWizardSteps(simulation.status);
   const hasResults = !!runResult;
 
-  // Handle step click - navigate to that step
+  // Handle step click
   const handleStepClick = (stepId: string) => {
-    // Get the current step based on simulation status
     const statusToStep: Record<string, string> = {
       awaiting_question_validation: 'question',
       awaiting_dag_validation: 'dag',
-      awaiting_hypothesis_validation: 'hypotheses',
-      ready_to_run: 'run',
+      awaiting_hypothesis_validation: 'refinement',
+      ready_to_run: 'refinement',
     };
     const currentStepId = statusToStep[simulation.status];
 
-    // If clicking the current step, clear viewedStep to show current content
     if (stepId === currentStepId) {
       setViewedStep(null);
     } else {
@@ -327,20 +351,8 @@ export default function CausalSimulationDetail() {
             <DAGValidationStep
               simulationId={id!}
               dag={dag || null}
+              hypotheses={hypotheses || undefined}
               isLoading={isLoadingDAG}
-              onConfirm={() => {}}
-              isConfirming={false}
-              readOnly
-            />
-          );
-
-        case 'hypotheses':
-          return (
-            <HypothesisValidationStep
-              simulationId={id!}
-              hypotheses={hypotheses || null}
-              dag={dag || null}
-              isLoading={isLoadingHypotheses}
               onConfirm={() => {}}
               isConfirming={false}
               readOnly
@@ -352,7 +364,7 @@ export default function CausalSimulationDetail() {
       }
     }
 
-    // Otherwise, render based on current status
+    // Render based on current status
     switch (simulation.status) {
       case 'awaiting_question_validation':
         return simulation.problem_decomposition ? (
@@ -362,6 +374,8 @@ export default function CausalSimulationDetail() {
             onUpdate={handleUpdateProblemDecomposition}
             isConfirming={isConfirmingQuestion}
             isUpdating={isUpdatingProblem}
+            scenarioProfile={scenarioProfile}
+            onScenarioProfileChange={setScenarioProfile}
           />
         ) : null;
 
@@ -370,6 +384,7 @@ export default function CausalSimulationDetail() {
           <DAGValidationStep
             simulationId={id!}
             dag={dag || null}
+            hypotheses={hypotheses || undefined}
             isLoading={isLoadingDAG}
             onConfirm={handleConfirmDAG}
             isConfirming={isConfirmingDAG}
@@ -377,25 +392,17 @@ export default function CausalSimulationDetail() {
         );
 
       case 'awaiting_hypothesis_validation':
-        return (
-          <HypothesisValidationStep
-            simulationId={id!}
-            hypotheses={hypotheses || null}
-            dag={dag || null}
-            isLoading={isLoadingHypotheses}
-            onConfirm={handleConfirmHypotheses}
-            isConfirming={isConfirmingHypotheses}
-          />
-        );
-
       case 'ready_to_run':
         return (
-          <ReadyToRunStep
+          <RefinementStep
+            simulationId={id!}
             simulation={simulation}
-            dag={dag || null}
             hypotheses={hypotheses || null}
+            dag={dag || null}
+            clarificationQuestions={clarificationQuestions}
+            onClarify={handleClarify}
             onRun={handleRun}
-            isRunning={isRunning}
+            isRunning={isRunning || isConfirmingHypotheses}
           />
         );
 
@@ -487,12 +494,15 @@ export default function CausalSimulationDetail() {
             )}
           </>
         ) : (
-          <ReadyToRunStep
+          <RefinementStep
+            simulationId={id!}
             simulation={simulation}
-            dag={dag || null}
             hypotheses={hypotheses || null}
+            dag={dag || null}
+            clarificationQuestions={[]}
+            onClarify={() => {}}
             onRun={handleRun}
-            isRunning={isRunning}
+            isRunning={isRunning || isConfirmingHypotheses}
           />
         );
 
@@ -526,7 +536,7 @@ export default function CausalSimulationDetail() {
           <div className="card p-8 text-center">
             <XCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
             <h3 className="text-lg font-semibold text-slate-900 mb-2">Simulação Falhou</h3>
-            <p className="text-sm text-slate-600">{simulation.error_message || 'Erro desconhecido'}</p>
+            <p className="text-sm text-slate-600">{(simulation as any).error_message || 'Erro desconhecido'}</p>
           </div>
         );
 

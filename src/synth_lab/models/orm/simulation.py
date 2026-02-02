@@ -234,6 +234,9 @@ class Hypothesis(Base):
     )
     range_min: Mapped[float | None] = mapped_column(Float, nullable=True)
     range_max: Mapped[float | None] = mapped_column(Float, nullable=True)
+    relevance: Mapped[str] = mapped_column(
+        String(10), nullable=False, server_default="medium"
+    )
     correlations: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
     scenario_options: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)
     selected_scenario: Mapped[str | None] = mapped_column(String(255), nullable=True)
