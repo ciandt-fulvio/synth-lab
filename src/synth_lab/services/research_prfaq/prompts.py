@@ -62,7 +62,7 @@ Data de hoje: {today}
 
 **Subtítulo**: Descreva QUEM é o cliente e QUAIS benefícios ele obtém. Seja específico sobre o segmento de clientes — grandes produtos são adaptados para necessidades específicas. Por exemplo, se estiver projetando um carro, decida: você está atendendo (a) profissionais solteiros urbanos com menos de 35 anos em apartamentos, ou (b) famílias suburbanas com mais de 35 anos, renda dupla, 3 filhos, um cachorro e necessidades de carona? A precisão do cliente é crítica.
 
-**Parágrafo de Resumo**: Comece com cidade, veículo de mídia e data de lançamento. Forneça um resumo do produto e seus benefícios. A data de lançamento deve ser significativa e realista.
+**Parágrafo de Resumo**: Comece com cidade, veículo de mídia e data de lançamento. Forneça um resumo do produto e seus benefícios. A data de lançamento deve estar entre 3 e 9 meses a partir de hoje — isso garante um horizonte realista para desenvolvimento e go-to-market, nem tão curto que seja impossível, nem tão longo que perca urgência.
 
 **Parágrafo do Problema**: Descreva o(s) problema(s) que seu produto resolve DO PONTO DE VISTA DO CLIENTE. Identifique o problema com um grande Mercado Total Endereçável (TAM = número de clientes × disposição para pagar). Nem todos os problemas valem a pena resolver.
 
