@@ -1,4 +1,4 @@
-.PHONY: help install setup-hooks gensynth phoenix kill validate-ui test test-fast test-e2e test-e2e-docker test-e2e-docker-up test-e2e-docker-down test-e2e-docker-logs test-e2e-seed test-smoke-staging test-smoke-production lint-format update-docs clean dev-up dev-down dev-logs-back dev-logs-front db-migrate
+.PHONY: help install setup-hooks gensynth phoenix kill validate-ui test test-fast test-e2e test-e2e-docker test-e2e-docker-up test-e2e-docker-down test-e2e-docker-logs test-e2e-seed test-smoke-staging test-smoke-production lint-format update-docs clean dev-up dev-down dev-logs-back dev-logs-front db-migrate ensure-container-runtime
 
 # =============================================================================
 # Configuration
@@ -17,6 +17,28 @@ else
 endif
 
 $(info 🐳 Using container runtime: $(CONTAINER_RUNTIME))
+
+# =============================================================================
+# Podman Machine Management (macOS only)
+# =============================================================================
+
+# Check if Podman machine is running (returns empty if not using podman or if running)
+PODMAN_MACHINE_RUNNING := $(shell if [ "$(CONTAINER_RUNTIME)" = "podman" ]; then podman machine info --format "{{.Host.MachineState}}" 2>/dev/null | grep -q "Running" && echo "yes" || echo "no"; else echo "yes"; fi)
+
+# Start Podman machine if needed (only for Podman on macOS)
+.PHONY: ensure-container-runtime
+ensure-container-runtime:
+ifeq ($(CONTAINER_RUNTIME),podman)
+ifeq ($(PODMAN_MACHINE_RUNNING),no)
+	@echo "🔧 Podman machine not running. Starting it..."
+	@podman machine start || (echo "❌ Failed to start Podman machine. Try: podman machine init && podman machine start" && exit 1)
+	@echo "✅ Podman machine started"
+else
+	@echo "✅ Podman machine already running"
+endif
+else
+	@true
+endif
 
 # Database URLs
 # Dev: matches docker/.env.dev credentials (port 5432)
@@ -108,7 +130,7 @@ kill:
 # =============================================================================
 
 # Start test database container (ephemeral, no persistent data)
-test-db-up:
+test-db-up: ensure-container-runtime
 	@echo "🐘 Starting test database container..."
 	@$(CONTAINER_RUNTIME) compose -f docker/docker-compose.yml --profile test up postgres-test -d
 	@echo "⏳ Waiting for postgres-test to be healthy..."
@@ -135,7 +157,7 @@ test-fast: test-db-up
 # E2E Tests via Docker (isolated environment)
 test-e2e: test-e2e-docker
 
-test-e2e-docker:
+test-e2e-docker: ensure-container-runtime
 	@echo "🎭 Running E2E tests (isolated environment)..."
 	@echo "   Frontend: http://localhost:8091"
 	@echo "   Backend:  http://localhost:8001"
@@ -210,7 +232,7 @@ clean:
 # Docker compose file location
 COMPOSE_FILE := docker/docker-compose.yml
 
-dev-up:
+dev-up: ensure-container-runtime
 	@echo "🐳 Starting Docker development environment..."
 	@echo "   Frontend: http://localhost:8080 (with HMR)"
 	@echo "   Backend:  http://localhost:8000 (with hot reload)"
