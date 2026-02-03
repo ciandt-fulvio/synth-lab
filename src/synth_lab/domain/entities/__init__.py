@@ -44,7 +44,6 @@ from synth_lab.domain.entities.cluster_result import (
     RadarChart,
     SuggestedCut,
 )
-from synth_lab.domain.entities.executive_summary import ExecutiveSummary
 from synth_lab.domain.entities.experiment import (
     Experiment,
     ScorecardData,
@@ -119,7 +118,6 @@ __all__ = [
     "generate_analysis_id",
     # AI-Generated Insights (new in 023-quantitative-ai-insights)
     "ChartInsight",
-    "ExecutiveSummary",
     # Chart data (analysis)
     "AttributeCorrelation",
     "AttributeCorrelationChart",

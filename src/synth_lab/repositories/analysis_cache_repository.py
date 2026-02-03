@@ -21,7 +21,6 @@ from sqlalchemy.orm import Session
 
 from synth_lab.domain.entities.analysis_cache import AnalysisCache, CacheKeys
 from synth_lab.domain.entities.chart_insight import ChartInsight
-from synth_lab.domain.entities.executive_summary import ExecutiveSummary
 from synth_lab.models.orm.analysis import AnalysisCache as AnalysisCacheORM
 from synth_lab.repositories.base import BaseRepository
 
@@ -278,34 +277,6 @@ session: Session | None = None):
                     # Skip invalid insight entries
                     continue
         return insights
-
-    def store_executive_summary(self, summary: ExecutiveSummary) -> ExecutiveSummary:
-        """
-        Store an executive summary in the cache.
-
-        Args:
-            summary: ExecutiveSummary entity to store.
-
-        Returns:
-            Stored summary.
-        """
-        self.save(summary.analysis_id, CacheKeys.EXECUTIVE_SUMMARY, summary.to_cache_json())
-        return summary
-
-    def get_executive_summary(self, analysis_id: str) -> ExecutiveSummary | None:
-        """
-        Get the executive summary from the cache.
-
-        Args:
-            analysis_id: Analysis ID.
-
-        Returns:
-            ExecutiveSummary if found, None otherwise.
-        """
-        cache = self.get(analysis_id, CacheKeys.EXECUTIVE_SUMMARY)
-        if cache is None:
-            return None
-        return ExecutiveSummary.from_cache_json(cache.data)
 
     def _get_insight_cache_key(self, chart_type: str) -> str:
         """
