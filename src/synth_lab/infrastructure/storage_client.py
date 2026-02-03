@@ -142,6 +142,11 @@ def check_object_exists(object_key: str) -> bool:
 
     Returns:
         True if object exists, False otherwise
+
+    Note:
+        Returns False for both 404 (Not Found) and 403 (Forbidden) errors.
+        S3-compatible storage like Railway Buckets may return 403 when an
+        object doesn't exist if the bucket policy doesn't allow ListBucket.
     """
     s3 = get_s3_client()
 
@@ -149,7 +154,10 @@ def check_object_exists(object_key: str) -> bool:
         s3.head_object(Bucket=BUCKET_NAME, Key=object_key)
         return True
     except ClientError as e:
-        if e.response["Error"]["Code"] == "404":
+        error_code = e.response["Error"]["Code"]
+        # Both 404 and 403 indicate the object is not accessible
+        # 403 can occur when bucket doesn't allow ListBucket permission
+        if error_code in ("404", "403"):
             return False
         logger.error(f"Error checking object {object_key}: {e}")
         raise

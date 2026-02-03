@@ -349,6 +349,17 @@ class ExplorationPRFAQGeneratorService:
                 presigned_urls=materials_urls,
             )
 
+        # Calculate launch date (3-9 months from now, pick ~6 months as middle ground)
+        from datetime import datetime, timedelta
+
+        launch_date = datetime.now() + timedelta(days=180)  # ~6 months
+        month_names = {
+            1: "janeiro", 2: "fevereiro", 3: "março", 4: "abril",
+            5: "maio", 6: "junho", 7: "julho", 8: "agosto",
+            9: "setembro", 10: "outubro", 11: "novembro", 12: "dezembro"
+        }
+        launch_date_str = f"{launch_date.day} de {month_names[launch_date.month]} de {launch_date.year}"
+
         return f"""Você é um Product Manager da Amazon escrevendo um Press Release / FAQ (PRFAQ) no estilo Working Backwards.
 
 ## CONTEXTO
@@ -384,7 +395,7 @@ Use o formato abaixo:
 
 **Não use colchetes no output final.** Os colchetes abaixo são apenas instruções - substitua pelo conteúdo real.
 
-SÃO PAULO, SP, 15 de fevereiro de 2026 — Anunciamos hoje o lançamento do [Nome do Produto], uma solução inovadora que [benefício principal em uma frase]. Esta atualização foi projetada especificamente para [público-alvo] que [contexto/situação].
+SÃO PAULO, SP, {launch_date_str} — Anunciamos hoje o lançamento do [Nome do Produto], uma solução inovadora que [benefício principal em uma frase]. Esta atualização foi projetada especificamente para [público-alvo] que [contexto/situação].
 
 O [Nome do Produto] oferece [característica 1], [característica 2] e [característica 3], proporcionando uma experiência significativamente melhorada. Com base em extensos testes, a nova versão alcançou {final_rate:.0%} de taxa de sucesso, representando um avanço importante para usuários que anteriormente enfrentavam [principais fricções].
 
@@ -456,6 +467,7 @@ R: [Mencione trade-offs identificados - ex: se complexidade aumentou, como isso 
 - Seja específico sobre funcionalidades e benefícios
 - Invente nomes, citações e contextos realistas
 - **NUNCA deixe colchetes [] no texto final** - substitua tudo por conteúdo real
+- A data de lançamento deve estar entre 3 e 9 meses a partir de hoje (horizonte realista para desenvolvimento e go-to-market)
 - Tom: profissional, entusiasmado mas credível
 - Idioma: português do Brasil"""
 
