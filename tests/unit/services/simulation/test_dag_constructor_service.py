@@ -9,25 +9,21 @@ References:
     - Implementation: synth_lab/services/simulation/dag_constructor_service.py
 """
 
-import pytest
-
 from synth_lab.domain.entities.hypothesis import (
     DistributionType,
-    Hypothesis,
     Relevance,
 )
 from synth_lab.services.simulation.dag_constructor_service import (
-    DAGResponse,
     LLMAssumption,
     LLMEdge,
     LLMRisk,
     LLMVariable,
 )
 
-
 # ============================================================================
 # Fixtures
 # ============================================================================
+
 
 def _make_llm_variables() -> list[LLMVariable]:
     """Create sample LLM variables for testing."""
@@ -67,8 +63,22 @@ def _make_llm_variables() -> list[LLMVariable]:
 
 def _make_llm_edges() -> list[LLMEdge]:
     return [
-        LLMEdge(**{"from": "var_001", "to": "var_002", "relationship_type": "causal", "strength_estimated": "high"}),
-        LLMEdge(**{"from": "var_001", "to": "var_003", "relationship_type": "causal", "strength_estimated": "low"}),
+        LLMEdge(
+            **{
+                "from": "var_001",
+                "to": "var_002",
+                "relationship_type": "causal",
+                "strength_estimated": "high",
+            }
+        ),
+        LLMEdge(
+            **{
+                "from": "var_001",
+                "to": "var_003",
+                "relationship_type": "causal",
+                "strength_estimated": "low",
+            }
+        ),
     ]
 
 
@@ -88,6 +98,7 @@ def _make_llm_risks() -> list[LLMRisk]:
 # T014: UnifiedDAGResponse schema parsing
 # ============================================================================
 
+
 class TestUnifiedDAGResponseParsing:
     """T014: Test UnifiedDAGResponse Pydantic schema parsing."""
 
@@ -102,7 +113,8 @@ class TestUnifiedDAGResponseParsing:
             LLMHypothesis(
                 variable_name="preco",
                 distribution_type="normal",
-                parameters={"mean": 50.0, "std": 10.0},
+                mean=50.0,
+                std=10.0,
                 relevance="high",
                 range_min=10.0,
                 range_max=100.0,
@@ -110,7 +122,8 @@ class TestUnifiedDAGResponseParsing:
             LLMHypothesis(
                 variable_name="demanda",
                 distribution_type="beta",
-                parameters={"alpha": 2.0, "beta": 8.0},
+                alpha=2.0,
+                beta=8.0,
                 relevance="medium",
             ),
         ]
@@ -147,6 +160,7 @@ class TestUnifiedDAGResponseParsing:
 # T015: Fallback for missing hypotheses
 # ============================================================================
 
+
 class TestFallbackMissingHypotheses:
     """T015: Fallback when LLM response is missing hypotheses for some variables."""
 
@@ -167,7 +181,8 @@ class TestFallbackMissingHypotheses:
             LLMHypothesis(
                 variable_name="preco",
                 distribution_type="normal",
-                parameters={"mean": 50.0, "std": 10.0},
+                mean=50.0,
+                std=10.0,
                 relevance="high",
             ),
         ]
@@ -179,7 +194,11 @@ class TestFallbackMissingHypotheses:
             simulation_id="sim_00000001",
             llm_hypotheses=llm_hypotheses,
             variable_names=var_names,
-            variable_id_map={"preco": "dag_001_var_001", "demanda": "dag_001_var_002", "satisfacao": "dag_001_var_003"},
+            variable_id_map={
+                "preco": "dag_001_var_001",
+                "demanda": "dag_001_var_002",
+                "satisfacao": "dag_001_var_003",
+            },
         )
 
         assert len(hypotheses) == 3
@@ -201,6 +220,7 @@ class TestFallbackMissingHypotheses:
 # T016: _convert_llm_hypotheses_to_entities mapping
 # ============================================================================
 
+
 class TestConvertLLMHypotheses:
     """T016: Test mapping LLMHypothesis → Hypothesis domain entity."""
 
@@ -217,7 +237,8 @@ class TestConvertLLMHypotheses:
             LLMHypothesis(
                 variable_name="preco",
                 distribution_type="lognormal",
-                parameters={"mean": 4.0, "sigma": 0.6},
+                mean=4.0,
+                sigma=0.6,
                 relevance="low",
                 range_min=5.0,
                 range_max=500.0,
@@ -256,7 +277,8 @@ class TestConvertLLMHypotheses:
             LLMHypothesis(
                 variable_name="taxa",
                 distribution_type="beta",
-                parameters={"alpha": 2.0, "beta": 8.0},
+                alpha=2.0,
+                beta=8.0,
                 relevance="medium",
             ),
         ]
@@ -282,13 +304,13 @@ class TestConvertLLMHypotheses:
 
         service = DAGConstructorService.__new__(DAGConstructorService)
         import logging
+
         service.logger = logging.getLogger("test")
 
         llm_hypotheses = [
             LLMHypothesis(
                 variable_name="x",
-                distribution_type="gamma",  # unsupported
-                parameters={"shape": 2.0, "scale": 1.0},
+                distribution_type="gamma",  # unsupported — falls back to uniform
                 relevance="medium",
             ),
         ]

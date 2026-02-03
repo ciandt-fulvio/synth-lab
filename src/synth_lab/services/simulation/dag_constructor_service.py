@@ -102,17 +102,38 @@ class LLMRisk(BaseModel):
 
 
 class LLMHypothesis(BaseModel):
-    """Hypothesis in unified LLM response — distribution + relevance + range."""
+    """Hypothesis in unified LLM response — distribution + relevance + range.
+
+    Parameters are flattened as optional fields to satisfy OpenAI's structured
+    output requirement (additionalProperties: false). Only the relevant fields
+    for the chosen distribution_type should be populated by the LLM.
+    """
 
     variable_name: str = Field(..., description="Variable name (must match a variable in the DAG)")
     distribution_type: str = Field(
         ...,
         description="Distribution type: normal, uniform, beta, lognormal, bernoulli",
     )
-    parameters: dict = Field(..., description="Distribution-specific parameters")
     relevance: str = Field(default="medium", description="Variable relevance: low, medium, or high")
     range_min: float | None = Field(default=None, description="Optional lower bound for clamping")
     range_max: float | None = Field(default=None, description="Optional upper bound for clamping")
+
+    # Flattened distribution parameters (populate based on distribution_type)
+    # Normal distribution
+    mean: float | None = Field(default=None, description="Mean for normal/lognormal distribution")
+    std: float | None = Field(
+        default=None, description="Standard deviation for normal distribution"
+    )
+    # Uniform distribution
+    low: float | None = Field(default=None, description="Lower bound for uniform distribution")
+    high: float | None = Field(default=None, description="Upper bound for uniform distribution")
+    # Beta distribution
+    alpha: float | None = Field(default=None, description="Alpha parameter for beta distribution")
+    beta: float | None = Field(default=None, description="Beta parameter for beta distribution")
+    # LogNormal distribution
+    sigma: float | None = Field(default=None, description="Sigma for lognormal distribution")
+    # Bernoulli distribution
+    p: float | None = Field(default=None, description="Probability for bernoulli distribution")
 
 
 class DAGResponse(BaseModel):
@@ -339,31 +360,30 @@ class DAGConstructorService:
             )
             dist_type = DistributionType.UNIFORM
 
-        # Parse parameters based on distribution type
-        params_data = llm_hyp.parameters
+        # Parse parameters from flattened fields based on distribution type
         if dist_type == DistributionType.UNIFORM:
             params = UniformParams(
-                low=params_data.get("low", 0.0),
-                high=params_data.get("high", 1.0),
+                low=llm_hyp.low if llm_hyp.low is not None else 0.0,
+                high=llm_hyp.high if llm_hyp.high is not None else 1.0,
             )
         elif dist_type == DistributionType.NORMAL:
             params = NormalParams(
-                mean=params_data.get("mean", 0.0),
-                std=params_data.get("std", 1.0),
+                mean=llm_hyp.mean if llm_hyp.mean is not None else 0.0,
+                std=llm_hyp.std if llm_hyp.std is not None else 1.0,
             )
         elif dist_type == DistributionType.BETA:
             params = BetaParams(
-                alpha=params_data.get("alpha", 1.0),
-                beta=params_data.get("beta", 1.0),
+                alpha=llm_hyp.alpha if llm_hyp.alpha is not None else 1.0,
+                beta=llm_hyp.beta if llm_hyp.beta is not None else 1.0,
             )
         elif dist_type == DistributionType.LOGNORMAL:
             params = LogNormalParams(
-                mean=params_data.get("mean", 0.0),
-                sigma=params_data.get("sigma", 1.0),
+                mean=llm_hyp.mean if llm_hyp.mean is not None else 0.0,
+                sigma=llm_hyp.sigma if llm_hyp.sigma is not None else 1.0,
             )
         elif dist_type == DistributionType.BERNOULLI:
             params = BernoulliParams(
-                p=params_data.get("p", 0.5),
+                p=llm_hyp.p if llm_hyp.p is not None else 0.5,
             )
         else:
             # Fallback for any unhandled type
@@ -529,23 +549,27 @@ NÃO marque como incerteza crítica:
     {{
       "variable_name": "nome_variavel",
       "distribution_type": "normal|uniform|beta|lognormal|bernoulli",
-      "parameters": {{}},
       "relevance": "low|medium|high",
       "range_min": null,
-      "range_max": null
+      "range_max": null,
+      "mean": null, "std": null,
+      "low": null, "high": null,
+      "alpha": null, "beta": null,
+      "sigma": null, "p": null
     }}
   ]
 }}
 
 **HIPÓTESES DE DISTRIBUIÇÃO** (campo `hypotheses`):
 Para CADA variável do DAG, gere uma hipótese de distribuição de probabilidade.
+Os parâmetros são campos separados (não aninhados) — preencha apenas os campos relevantes para o distribution_type escolhido.
 
-**Distribuições disponíveis**:
-- **uniform**: {{\"low\": 0.0, \"high\": 1.0}} — quando não há informação prévia
-- **normal**: {{\"mean\": 50.0, \"std\": 10.0}} — métricas com tendência central
-- **beta**: {{\"alpha\": 2.0, \"beta\": 8.0}} — taxas e percentuais (bounded [0,1])
-- **lognormal**: {{\"mean\": 4.0, \"sigma\": 0.6}} — valores monetários, durações
-- **bernoulli**: {{\"p\": 0.02}} — eventos binários (sim/não)
+**Distribuições disponíveis e seus parâmetros**:
+- **uniform**: low, high — quando não há informação prévia
+- **normal**: mean, std — métricas com tendência central
+- **beta**: alpha, beta — taxas e percentuais (bounded [0,1])
+- **lognormal**: mean, sigma — valores monetários, durações
+- **bernoulli**: p — eventos binários (sim/não)
 
 **Relevância** (`relevance`):
 - `high`: Variável com alto impacto no resultado — a simulação é muito sensível a essa variável
@@ -556,13 +580,15 @@ Para CADA variável do DAG, gere uma hipótese de distribuição de probabilidad
 - Limites opcionais para clamping dos samples. Use `null` se não aplicável.
 - Exemplo: preço nunca negativo → range_min=0; taxa nunca acima de 100% → range_max=1.0
 
-**EXEMPLOS DE HIPÓTESES REALISTAS**:
+**EXEMPLOS DE HIPÓTESES** (apenas campos relevantes preenchidos):
 
-Taxa de conversão: Beta(alpha=2, beta=18), relevance=high, range_min=0, range_max=1
-Valor ticket: LogNormal(mean=4.0, sigma=0.6), relevance=medium, range_min=0
-Taxa churn: Beta(alpha=1.5, beta=18.5), relevance=high, range_min=0, range_max=1
-Falha técnica: Bernoulli(p=0.02), relevance=low
-Investimento marketing: Normal(mean=50000, std=15000), relevance=medium, range_min=0
+```json
+{{"variable_name": "taxa_conversao", "distribution_type": "beta", "alpha": 2.0, "beta": 18.0, "relevance": "high", "range_min": 0, "range_max": 1}}
+{{"variable_name": "valor_ticket", "distribution_type": "lognormal", "mean": 4.0, "sigma": 0.6, "relevance": "medium", "range_min": 0}}
+{{"variable_name": "taxa_churn", "distribution_type": "beta", "alpha": 1.5, "beta": 18.5, "relevance": "high", "range_min": 0, "range_max": 1}}
+{{"variable_name": "falha_tecnica", "distribution_type": "bernoulli", "p": 0.02, "relevance": "low"}}
+{{"variable_name": "investimento_marketing", "distribution_type": "normal", "mean": 50000, "std": 15000, "relevance": "medium", "range_min": 0}}
+```
 
 **IMPORTANTE**: Use valores REALISTAS baseados no domínio, NÃO genéricos (50%, 0-100).
 
