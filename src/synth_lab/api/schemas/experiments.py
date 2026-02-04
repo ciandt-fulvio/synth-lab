@@ -17,6 +17,78 @@ from synth_lab.domain.entities.synth_group import DEFAULT_SYNTH_GROUP_ID
 from synth_lab.models.pagination import PaginationMeta
 
 # =============================================================================
+# Feature Mechanisms Schemas (new in 038-mechanism-based-simulation)
+# =============================================================================
+
+
+class FeatureMechanismsInput(BaseModel):
+    """Input schema for feature mechanisms (all optional, default 0.0)."""
+
+    irreversibility: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Degree to which actions are permanent/irreversible.",
+        examples=[0.9],
+    )
+
+    network_effect: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Degree to which value depends on others using it.",
+        examples=[0.7],
+    )
+
+    institutional_trust: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Degree to which feature requires trust in institution.",
+        examples=[0.8],
+    )
+
+    habit_displacement: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Degree to which feature replaces existing habits.",
+        examples=[0.4],
+    )
+
+    learning_curve: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Degree to which feature requires learning new skills.",
+        examples=[0.5],
+    )
+
+    social_visibility: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Degree to which usage is visible to others.",
+        examples=[0.3],
+    )
+
+
+class FeatureMechanismsOutput(BaseModel):
+    """Output schema for feature mechanisms."""
+
+    irreversibility: float = Field(description="Degree to which actions are permanent/irreversible.")
+    network_effect: float = Field(description="Degree to which value depends on others using it.")
+    institutional_trust: float = Field(
+        description="Degree to which feature requires trust in institution."
+    )
+    habit_displacement: float = Field(description="Degree to which feature replaces existing habits.")
+    learning_curve: float = Field(
+        description="Degree to which feature requires learning new skills."
+    )
+    social_visibility: float = Field(description="Degree to which usage is visible to others.")
+
+
+# =============================================================================
 # Scorecard Schemas (Embedded in Experiment)
 # =============================================================================
 
@@ -88,6 +160,17 @@ class ScorecardDataSchema(BaseModel):
         default_factory=list,
         description="Impact hypotheses from LLM analysis.")
 
+    # Feature mechanisms (new in 038-mechanism-based-simulation)
+    mechanisms: FeatureMechanismsInput | None = Field(
+        default=None,
+        description="Structural mechanisms of the feature for simulation.",
+    )
+
+    feature_types: list[str] = Field(
+        default_factory=list,
+        description="Category tags for the feature (e.g., 'financial', 'social', 'utility').",
+    )
+
 
 class ScorecardEstimateResponse(BaseModel):
     """Response from AI scorecard estimation."""
@@ -147,6 +230,18 @@ class ExperimentCreate(BaseModel):
         default=None,
         description="Optional embedded scorecard data.")
 
+    # Feature mechanisms (new in 038-mechanism-based-simulation)
+    mechanisms: FeatureMechanismsInput | None = Field(
+        default=None,
+        description="Optional feature mechanisms. If provided alongside scorecard_data, "
+        "will be merged into scorecard_data.mechanisms.",
+    )
+
+    feature_types: list[str] = Field(
+        default_factory=list,
+        description="Category tags for the feature (e.g., 'financial', 'social', 'utility').",
+    )
+
 
 class ExperimentUpdate(BaseModel):
     """Schema for updating an experiment."""
@@ -169,6 +264,17 @@ class ExperimentUpdate(BaseModel):
     synth_group_id: str | None = Field(
         default=None,
         description="ID of the synth group to use for this experiment.")
+
+    # Feature mechanisms (new in 038-mechanism-based-simulation)
+    mechanisms: FeatureMechanismsInput | None = Field(
+        default=None,
+        description="Feature mechanisms to update. Merges with existing scorecard_data.",
+    )
+
+    feature_types: list[str] | None = Field(
+        default=None,
+        description="Category tags for the feature.",
+    )
 
 
 # =============================================================================
@@ -247,6 +353,15 @@ class ExperimentResponse(BaseModel):
     scorecard_data: ScorecardDataSchema | None = Field(
         default=None,
         description="Embedded scorecard data.")
+    # Feature mechanisms (new in 038-mechanism-based-simulation)
+    mechanisms: FeatureMechanismsOutput | None = Field(
+        default=None,
+        description="Feature mechanisms extracted from scorecard_data for convenience.",
+    )
+    feature_types: list[str] = Field(
+        default_factory=list,
+        description="Category tags for the feature.",
+    )
     has_scorecard: bool = Field(default=False, description="Whether scorecard is filled.")
     has_interview_guide: bool = Field(
         default=False, description="Whether interview guide is configured."
@@ -269,6 +384,10 @@ class ExperimentSummary(BaseModel):
     has_analysis: bool = Field(default=False, description="Whether analysis exists.")
     has_interview_guide: bool = Field(
         default=False, description="Whether interview guide is configured."
+    )
+    # Feature mechanisms (new in 038-mechanism-based-simulation)
+    has_mechanisms: bool = Field(
+        default=False, description="Whether feature mechanisms are defined."
     )
     interview_count: int = Field(default=0, description="Number of linked interviews.")
     tags: list[str] = Field(default_factory=list, description="Tag names associated with this experiment.")
