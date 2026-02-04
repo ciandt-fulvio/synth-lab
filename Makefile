@@ -1,4 +1,4 @@
-.PHONY: help install setup-hooks gensynth phoenix kill validate-ui test test-fast test-e2e test-e2e-docker test-e2e-docker-up test-e2e-docker-down test-e2e-docker-logs test-e2e-seed test-smoke-staging test-smoke-production lint-format update-docs clean dev-up dev-down dev-logs-back dev-logs-front db-migrate ensure-container-runtime
+.PHONY: help install setup-hooks gensynth phoenix phoenix-ui kill validate-ui test test-fast test-e2e test-e2e-docker test-e2e-docker-up test-e2e-docker-down test-e2e-docker-logs test-e2e-seed test-smoke-staging test-smoke-production lint-format update-docs clean dev-up dev-down dev-logs-back dev-logs-front db-migrate ensure-container-runtime
 
 # =============================================================================
 # Configuration
@@ -77,7 +77,8 @@ help:
 	@echo "  make test-smoke-production Run smoke tests against Production (Railway)"
 	@echo ""
 	@echo "Observability:"
-	@echo "  make phoenix       Start Phoenix tracing UI (http://localhost:6006)"
+	@echo "  make phoenix       Start Phoenix tracing UI (standalone, http://localhost:6006)"
+	@echo "  make phoenix-ui    Open Phoenix UI in browser (for Docker dev environment)"
 	@echo ""
 	@echo "Database:"
 	@echo "  make db-migrate    Create migration: make db-migrate MSG='description'"
@@ -117,6 +118,10 @@ gensynth:
 phoenix:
 	@echo "Phoenix: http://127.0.0.1:6006"
 	@exec uv run python -m phoenix.server.main serve
+
+phoenix-ui:
+	@echo "🔍 Opening Phoenix UI at http://localhost:6006"
+	@open http://localhost:6006 || xdg-open http://localhost:6006 || echo "Please open http://localhost:6006 in your browser"
 
 kill:
 	@echo "Killing processes on ports 8000, 8080, 6006..."

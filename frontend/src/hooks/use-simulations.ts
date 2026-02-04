@@ -435,7 +435,7 @@ export function useUpdateHypothesis() {
     }) => updateHypothesis(simulationId, hypothesisId, data),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.simulationDetail(variables.simulationId),
+        queryKey: queryKeys.simulations.detail(variables.simulationId),
       });
     },
   });

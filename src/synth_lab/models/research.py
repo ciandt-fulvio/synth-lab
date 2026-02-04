@@ -124,7 +124,7 @@ class ResearchExecuteRequest(BaseModel):
     )
     model: str = Field(default="gpt-4o-mini", description="LLM model to use")
     skip_interviewee_review: bool = Field(
-        default=True,
+        default=False,
         description="Skip interviewee response reviewer for faster execution",
     )
 

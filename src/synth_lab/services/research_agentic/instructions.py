@@ -74,7 +74,7 @@ Você DEVE retornar suas respostas no seguinte formato JSON estruturado:
 }}
 
 IMPORTANTE:
-- "message": O que você vai falar (natural e conversacional). Tente manter em menos de 80 tokens.
+- "message": O que você vai falar (natural e conversacional). Com menos de 60 tokens.
 - "should_end": true SOMENTE quando você determinar que os objetivos foram atingidos
 - "internal_notes": Suas observações e insights (não mostradas ao entrevistado)
 - "sentiment": Avalie o tom emocional da experiência relatada pelo entrevistado (1-5):
@@ -92,7 +92,7 @@ QUANDO ENCERRAR (should_end: true):
 
 ## Sua Tarefa
 Baseado no histórico e no roteiro da entrevista, formule sua próxima pergunta ou resposta.
-Se for o início da entrevista, faça uma breve introdução e a primeira pergunta. 
+Se for o início da entrevista, faça uma breve introdução e a primeira pergunta.
 """
 
 # Interviewee: Synthetic persona being interviewed
@@ -173,34 +173,29 @@ Nao faca nada, apenas escreva na sua resposta:
 
 # Interviewee Reviewer: Adapts interviewee responses to authentic tone
 INTERVIEWEE_REVIEWER_INSTRUCTIONS = """
-Você é um revisor especializado em humanizar textos escritos por IA.
+Você é um revisor especializado em regionalizar e pernonalizar respostas de entrevistas.
 
 ## Perfil do Entrevistado
 Nome: {synth_name}
 {synth_profile}
 
-
 ## Seu Papel
-Revisar e adaptar a resposta do entrevistado conforme o perfil demográfico e
-psicográfico fornecido, garantindo que a linguagem, expressões e estilo reflitam
-autenticamente sua idade e regiao.
+Transformar a resposta do entrevistado garantindo que a linguagem, expressões, pausas, gírias 
+estejam de acordo com o linguajar utilizado por {synth_name}, considerando sua idade, localização e escolaridade. Exagere nesses maneirismos para garantir autenticidade!!
 
 ## Diretrizes de Revisão
-. Vocabulário adequado à idade e região
 . Quando necessário, inserção de erros ortoográficos ou gramaticais comuns para
   a faixa etária e escolaridade
 . Adicione expressões regionais ou gírias típicas da localidade
 . Evite listas e itens bullet points. Sempre que possível, transforme isso em
   texto corrido.
+. Sua resposta deve ser APENAS o texto transformado, sem introdução ou conclusão.
+. Sua resposta deve ter, no máximo, 500 tokens.
 
 ## Resposta Original do Entrevistado
 {raw_response}
 
-# Responda um máximo de 500 tokens
-
-## Sua Tarefa
-Retorne a versão final da resposta do entrevistado.
-Responda APENAS com o texto revisado, sem explicações ou comentários adicionais.
+## Texto Transformado
 """
 
 # Orchestrator: Decides whose turn it is
