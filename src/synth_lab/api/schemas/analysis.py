@@ -154,6 +154,74 @@ class CutDendrogramRequest(BaseModel):
 
 
 # =============================================================================
+# Mechanism Explanation Schemas (038-mechanism-based-simulation)
+# =============================================================================
+
+
+class ExplainSegmentRequest(BaseModel):
+    """
+    Request body for explaining segment behavior via mechanism×sensitivity interactions.
+
+    Reference: specs/038-mechanism-based-simulation/spec.md
+    """
+
+    synth_ids: list[str] = Field(
+        min_length=1,
+        description="List of synth IDs that define the segment to explain.",
+    )
+    compare_to_population: bool = Field(
+        default=True,
+        description="Whether to compare segment to full population or just show absolute values.",
+    )
+
+
+class InteractionContributionResponse(BaseModel):
+    """Single mechanism × sensitivity interaction contribution."""
+
+    mechanism: str = Field(description="Mechanism name (e.g., 'irreversibility').")
+    sensitivity: str = Field(description="Sensitivity name (e.g., 'risk_aversion').")
+    product: float = Field(description="Interaction product (mechanism × sensitivity).")
+
+
+class DifferentiatingFactorResponse(BaseModel):
+    """Factor that differentiates segment from population."""
+
+    interaction: InteractionContributionResponse = Field(
+        description="The mechanism×sensitivity interaction."
+    )
+    segment_avg: float = Field(description="Average interaction value in the segment.")
+    population_avg: float = Field(description="Average interaction value in the population.")
+    delta: float = Field(description="Difference (segment_avg - population_avg).")
+
+
+class SegmentExplanationResponse(BaseModel):
+    """
+    Response for segment explanation via mechanism×sensitivity interactions.
+
+    Reference: specs/038-mechanism-based-simulation/spec.md
+    """
+
+    segment_size: int = Field(description="Number of synths in the segment.")
+    segment_avg_success: float = Field(
+        ge=0.0,
+        le=1.0,
+        description="Average success rate of the segment.",
+    )
+    population_avg_success: float = Field(
+        ge=0.0,
+        le=1.0,
+        description="Average success rate of the full population.",
+    )
+    top_differentiating_factors: list[DifferentiatingFactorResponse] = Field(
+        default_factory=list,
+        description="Top factors differentiating this segment from population (sorted by delta magnitude).",
+    )
+    explanation_text: str = Field(
+        description="Human-readable explanation of segment differences.",
+    )
+
+
+# =============================================================================
 # Validation
 # =============================================================================
 
@@ -255,6 +323,66 @@ if __name__ == "__main__":
         pass  # Expected
     except Exception as e:
         all_validation_failures.append(f"Unexpected error for invalid n_clusters: {e}")
+
+    # Test 11: ExplainSegmentRequest with synth_ids
+    total_tests += 1
+    try:
+        req = ExplainSegmentRequest(synth_ids=["synth_1", "synth_2"])
+        if len(req.synth_ids) != 2 or req.compare_to_population is not True:
+            all_validation_failures.append("ExplainSegmentRequest values incorrect")
+    except Exception as e:
+        all_validation_failures.append(f"ExplainSegmentRequest creation failed: {e}")
+
+    # Test 12: ExplainSegmentRequest reject empty synth_ids
+    total_tests += 1
+    try:
+        ExplainSegmentRequest(synth_ids=[])
+        all_validation_failures.append("Should reject empty synth_ids")
+    except ValueError:
+        pass  # Expected
+    except Exception as e:
+        all_validation_failures.append(f"Unexpected error for empty synth_ids: {e}")
+
+    # Test 13: SegmentExplanationResponse creation
+    total_tests += 1
+    try:
+        resp = SegmentExplanationResponse(
+            segment_size=10,
+            segment_avg_success=0.65,
+            population_avg_success=0.50,
+            top_differentiating_factors=[
+                DifferentiatingFactorResponse(
+                    interaction=InteractionContributionResponse(
+                        mechanism="irreversibility",
+                        sensitivity="risk_aversion",
+                        product=0.72,
+                    ),
+                    segment_avg=0.72,
+                    population_avg=0.45,
+                    delta=0.27,
+                )
+            ],
+            explanation_text="High risk-averse users show 27% stronger response to irreversibility.",
+        )
+        if resp.segment_size != 10 or resp.segment_avg_success != 0.65:
+            all_validation_failures.append("SegmentExplanationResponse values incorrect")
+        if len(resp.top_differentiating_factors) != 1:
+            all_validation_failures.append("SegmentExplanationResponse factors incorrect")
+    except Exception as e:
+        all_validation_failures.append(f"SegmentExplanationResponse creation failed: {e}")
+
+    # Test 14: InteractionContributionResponse
+    total_tests += 1
+    try:
+        contrib = InteractionContributionResponse(
+            mechanism="network_effect",
+            sensitivity="social_dependency",
+            product=0.56,
+        )
+        if contrib.mechanism != "network_effect" or contrib.product != 0.56:
+            all_validation_failures.append("InteractionContributionResponse values incorrect")
+    except Exception as e:
+        all_validation_failures.append(f"InteractionContributionResponse creation failed: {e}")
 
     # Final validation result
     if all_validation_failures:
