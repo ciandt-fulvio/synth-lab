@@ -37,6 +37,19 @@ services:
   # DEVELOPMENT PROFILE SERVICES
   # ===========================================================================
 
+  # Phoenix for observability (LLM tracing)
+  phoenix-dev:
+    image: arizephoenix/phoenix:latest
+    container_name: synthlab-phoenix-dev
+    profiles: ["dev"]
+    restart: unless-stopped
+    ports:
+      - "6006:6006"
+    environment:
+      PHOENIX_PORT: "6006"
+    networks:
+      - synthlab-dev
+
   # PostgreSQL for development (with persistent volume)
   postgres-dev:
     image: postgres:14-alpine
@@ -71,8 +84,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-synthlab}:${POSTGRES_PASSWORD:-synthlab}@postgres-dev:5432/${POSTGRES_DB:-synthlab}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      PHOENIX_ENABLED: ${PHOENIX_ENABLED:-false}
-      PHOENIX_COLLECTOR_ENDPOINT: ${PHOENIX_COLLECTOR_ENDPOINT:-http://host.docker.internal:6006/v1/traces}
+      PHOENIX_ENABLED: ${PHOENIX_ENABLED:-true}
+      PHOENIX_COLLECTOR_ENDPOINT: ${PHOENIX_COLLECTOR_ENDPOINT:-http://phoenix-dev:6006/v1/traces}
       LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
       WATCHFILES_FORCE_POLLING: "true"
       # S3 Storage (Railway Buckets)
@@ -106,6 +119,8 @@ services:
     depends_on:
       postgres-dev:
         condition: service_healthy
+      phoenix-dev:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
