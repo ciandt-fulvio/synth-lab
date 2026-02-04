@@ -52,6 +52,7 @@ export const queryKeys = {
     pdpComparison: (experimentId: string) => ['analysis', experimentId, 'pdp-comparison'] as const,
     insights: (experimentId: string) => ['analysis', experimentId, 'insights'] as const,
     sankeyFlow: (experimentId: string) => ['analysis', experimentId, 'sankey-flow'] as const,
+    segmentExplanation: (experimentId: string, synthIds: string[]) => ['analysis', experimentId, 'segment-explanation', synthIds] as const,
   },
 
   // Simulation (simulation-based, legacy)

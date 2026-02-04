@@ -1399,6 +1399,104 @@ async def get_analysis_pdp_comparison(
 
 
 # =============================================================================
+# Mechanism-Based Segment Explanation (038-mechanism-based-simulation)
+# =============================================================================
+
+
+class SegmentExplanationResponse(BaseModel):
+    """Response for segment explanation via mechanism×sensitivity interactions."""
+
+    segment_size: int = Field(description="Number of synths in the segment.")
+    segment_avg_success: float = Field(description="Average success rate of the segment.")
+    population_avg_success: float = Field(description="Average success rate of the population.")
+    top_differentiating_factors: list[dict] = Field(
+        default_factory=list,
+        description="Top factors differentiating this segment from population.",
+    )
+    explanation_text: str = Field(description="Human-readable explanation.")
+
+
+class ExplainSegmentRequestBody(BaseModel):
+    """Request body for explaining segment behavior."""
+
+    synth_ids: list[str] = Field(
+        min_length=1, description="List of synth IDs that define the segment."
+    )
+    compare_to_population: bool = Field(
+        default=True, description="Whether to compare segment to full population."
+    )
+
+
+@router.post(
+    "/{experiment_id}/analysis/explain-segment",
+    response_model=SegmentExplanationResponse)
+async def explain_segment(
+    experiment_id: str,
+    request: ExplainSegmentRequestBody,
+) -> SegmentExplanationResponse:
+    """
+    Explain why a segment of synths behaves differently via mechanism×sensitivity interactions.
+
+    Returns top differentiating factors and human-readable explanation text.
+
+    Reference: specs/038-mechanism-based-simulation/spec.md
+    """
+    from synth_lab.services.analysis.explanation_service import (
+        explain_segment as explain_segment_service,
+    )
+
+    service = get_analysis_service()
+    outcome_repo = get_outcome_repository()
+
+    analysis = service.get_analysis(experiment_id)
+    if analysis is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No analysis found for experiment {experiment_id}")
+
+    if analysis.status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Analysis must be completed (status: {analysis.status})")
+
+    outcomes, _ = outcome_repo.get_outcomes(analysis.id)
+    if not outcomes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No outcomes available for this analysis")
+
+    # Convert to list of dicts for the service
+    outcomes_dicts = [o.model_dump() for o in outcomes]
+
+    result = explain_segment_service(
+        synth_outcomes=outcomes_dicts,
+        segment_synth_ids=request.synth_ids,
+        compare_to_population=request.compare_to_population,
+    )
+
+    # Convert dataclass to response
+    return SegmentExplanationResponse(
+        segment_size=result.segment_size,
+        segment_avg_success=result.segment_avg_success,
+        population_avg_success=result.population_avg_success,
+        top_differentiating_factors=[
+            {
+                "interaction": {
+                    "mechanism": f.interaction.mechanism,
+                    "sensitivity": f.interaction.sensitivity,
+                    "product": f.interaction.product,
+                },
+                "segment_avg": f.segment_avg,
+                "population_avg": f.population_avg,
+                "delta": f.delta,
+            }
+            for f in result.top_differentiating_factors
+        ],
+        explanation_text=result.explanation_text,
+    )
+
+
+# =============================================================================
 # Validation
 # =============================================================================
 
