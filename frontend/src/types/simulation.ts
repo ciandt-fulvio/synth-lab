@@ -2,6 +2,81 @@
 // TypeScript types for simulation analysis results
 
 // =============================================================================
+// Feature Mechanisms (038-mechanism-based-simulation)
+// =============================================================================
+
+/** Feature mechanism intensities for simulation */
+export interface FeatureMechanisms {
+  /** Degree to which actions are permanent/irreversible [0,1] */
+  irreversibility: number;
+  /** Degree to which value depends on others using it [0,1] */
+  network_effect: number;
+  /** Degree to which feature requires trust in institution [0,1] */
+  institutional_trust: number;
+  /** Degree to which feature replaces existing habits [0,1] */
+  habit_displacement: number;
+  /** Degree to which feature requires learning new skills [0,1] */
+  learning_curve: number;
+  /** Degree to which usage is visible to others [0,1] */
+  social_visibility: number;
+}
+
+/** User sensitivities for mechanism interactions */
+export interface UserSensitivities {
+  /** Sensitivity to irreversible actions (0=risk-seeking, 1=risk-averse) */
+  risk_aversion: number;
+  /** Importance of others using the feature (0=independent, 1=follower) */
+  social_dependency: number;
+  /** Trust in institutions (0=distrustful, 1=trusting) */
+  institutional_trust_level: number;
+  /** Ease of changing habits (0=rigid, 1=adaptable) */
+  habit_plasticity: number;
+  /** Tolerance for learning effort (0=impatient, 1=patient) */
+  learning_tolerance: number;
+  /** Influenced by social visibility (0=independent, 1=conformist) */
+  social_influence: number;
+}
+
+/** Single mechanism × sensitivity interaction contribution */
+export interface InteractionContribution {
+  /** Name of the mechanism (e.g., 'irreversibility') */
+  mechanism: string;
+  /** Name of the sensitivity (e.g., 'risk_aversion') */
+  sensitivity: string;
+  /** mechanism_value × sensitivity_value */
+  product: number;
+}
+
+/** Emergent explanation stored in synth outcome */
+export interface EmergentExplanation {
+  /** Top mechanism×sensitivity interactions sorted by product */
+  top_contributors: InteractionContribution[];
+  /** Change to perceived risk from mechanisms */
+  perceived_risk_delta: number;
+  /** Change to initial effort from mechanisms */
+  initial_effort_delta: number;
+}
+
+/** Segment explanation response from API */
+export interface SegmentExplanation {
+  /** Number of synths in the segment */
+  segment_size: number;
+  /** Average success rate of the segment */
+  segment_avg_success: number;
+  /** Average success rate of the full population */
+  population_avg_success: number;
+  /** Top factors differentiating this segment from population */
+  top_differentiating_factors: Array<{
+    interaction: InteractionContribution;
+    segment_avg: number;
+    population_avg: number;
+    delta: number;
+  }>;
+  /** Human-readable explanation of segment differences */
+  explanation_text: string;
+}
+
+// =============================================================================
 // Phase 1: Overview Charts (Try vs Success, Distribution)
 // =============================================================================
 

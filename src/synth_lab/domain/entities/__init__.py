@@ -63,6 +63,10 @@ from synth_lab.domain.entities.experiment_material import (
 from synth_lab.domain.entities.experiment import (
     ScorecardDimension as ExperimentScorecardDimension,
 )
+from synth_lab.domain.entities.emergent_state import (
+    EmergentState,
+    InteractionContribution,
+)
 from synth_lab.domain.entities.explainability import (
     PDPComparison,
     PDPPoint,
@@ -71,6 +75,7 @@ from synth_lab.domain.entities.explainability import (
     ShapExplanation,
     ShapSummary,
 )
+from synth_lab.domain.entities.feature_mechanisms import FeatureMechanisms
 from synth_lab.domain.entities.feature_scorecard import (
     FeatureScorecard,
     ScorecardDimension,
@@ -92,6 +97,7 @@ from synth_lab.domain.entities.simulation_attributes import (
     SimulationLatentTraits,
     SimulationObservables,
 )
+from synth_lab.domain.entities.user_sensitivities import UserSensitivities
 from synth_lab.domain.entities.simulation_context import SimulationContext
 from synth_lab.domain.entities.simulation_run import (
     SimulationConfig,
@@ -153,6 +159,9 @@ __all__ = [
     "RadarAxis",
     "RadarChart",
     "SuggestedCut",
+    # Emergent state (new in 038-mechanism-based-simulation)
+    "EmergentState",
+    "InteractionContribution",
     # Experiment (updated in v7 - embedded scorecard)
     "Experiment",
     "ExperimentScorecardDimension",
@@ -175,6 +184,8 @@ __all__ = [
     "ShapContribution",
     "ShapExplanation",
     "ShapSummary",
+    # Feature mechanisms (new in 038-mechanism-based-simulation)
+    "FeatureMechanisms",
     # Feature scorecard (legacy)
     "FeatureScorecard",
     "ScorecardDimension",
@@ -207,4 +218,6 @@ __all__ = [
     # Synth outcome (updated in v7 - uses analysis_id)
     "SynthOutcome",
     "generate_outcome_id",
+    # User sensitivities (new in 038-mechanism-based-simulation)
+    "UserSensitivities",
 ]
