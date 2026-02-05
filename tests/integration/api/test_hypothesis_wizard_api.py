@@ -45,7 +45,7 @@ def client(postgres_test_url: str, auth_token):
 
 
 @pytest.fixture
-def simulation_with_validated_dag(db_session, test_user_id):
+def simulation_with_validated_dag(db_session):
     """Create a simulation with a validated DAG for wizard testing."""
     from synth_lab.domain.entities.causal_dag import (
         CausalDAG,
@@ -58,19 +58,19 @@ def simulation_with_validated_dag(db_session, test_user_id):
 
     # 1. Create simulation in database
     simulation = SimulationORM(
-        id="sim_wizard01",
-        owner_id=test_user_id,
-        name="Wizard Test Simulation",
-        description="Test simulation for wizard",
-        status="active",
+        id="sim_00000001",
+        question="What is the impact of cost changes on profit?",
+        status="parsing",
+        random_seed=42,
+        n_worlds=500,
     )
     db_session.add(simulation)
     db_session.flush()
 
     # 2. Create and persist a validated DAG
     dag = CausalDAG(
-        id="dag_wizard01",
-        simulation_id="sim_wizard01",
+        id="dag_00000001",
+        simulation_id="sim_00000001",
         nodes=[
             DAGVariable(
                 id="var_revenue",
@@ -241,7 +241,7 @@ def test_wizard_init_optimistic_profile(client, simulation_with_validated_dag):
         assert "distribution_type" in hyp["parameters"]
 
 
-def test_wizard_init_missing_dag(client, db_session, test_user_id):
+def test_wizard_init_missing_dag(client, db_session):
     """
     Test error case: Initialize wizard without DAG.
 
@@ -251,11 +251,11 @@ def test_wizard_init_missing_dag(client, db_session, test_user_id):
     """
     # Create simulation without DAG
     simulation = SimulationORM(
-        id="sim_nodag01",
-        owner_id=test_user_id,
-        name="No DAG Simulation",
-        description="Test simulation without DAG",
-        status="active",
+        id="sim_00000002",
+        question="Test simulation without DAG",
+        status="parsing",
+        random_seed=42,
+        n_worlds=500,
     )
     db_session.add(simulation)
     db_session.commit()
@@ -271,7 +271,7 @@ def test_wizard_init_missing_dag(client, db_session, test_user_id):
     assert "No DAG found" in response.json()["detail"]
 
 
-def test_wizard_init_unvalidated_dag(client, db_session, test_user_id):
+def test_wizard_init_unvalidated_dag(client, db_session):
     """
     Test error case: Initialize wizard with unvalidated DAG.
 
@@ -290,19 +290,19 @@ def test_wizard_init_unvalidated_dag(client, db_session, test_user_id):
 
     # Create simulation
     simulation = SimulationORM(
-        id="sim_unvalid",
-        owner_id=test_user_id,
-        name="Unvalidated DAG Simulation",
-        description="Test simulation with unvalidated DAG",
-        status="active",
+        id="sim_00000003",
+        question="Test simulation with unvalidated DAG",
+        status="parsing",
+        random_seed=42,
+        n_worlds=500,
     )
     db_session.add(simulation)
     db_session.flush()
 
     # Create unvalidated DAG
     dag = CausalDAG(
-        id="dag_unvalid",
-        simulation_id="sim_unvalid",
+        id="dag_00000002",
+        simulation_id="sim_00000003",
         nodes=[
             DAGVariable(
                 id="var_test",
@@ -326,7 +326,7 @@ def test_wizard_init_unvalidated_dag(client, db_session, test_user_id):
 
     # Call wizard init endpoint
     response = client.post(
-        "/simulations/sim_unvalid/hypotheses/wizard/init",
+        f"/simulations/{simulation.id}/hypotheses/wizard/init",
         json={"scenario_profile": "realistic"},
     )
 
