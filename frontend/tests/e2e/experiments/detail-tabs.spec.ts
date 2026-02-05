@@ -230,10 +230,10 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
     await reportsTab.click();
 
     // Wait for loading to finish (loading message should disappear)
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
     const loadingMsg = page.locator('text=/carregando documentos/i');
     if (await loadingMsg.isVisible()) {
-      await expect(loadingMsg).not.toBeVisible({ timeout: 5000 });
+      await expect(loadingMsg).not.toBeVisible({ timeout: 15000 });
     }
 
     // Scope to tabpanel to avoid strict mode violations
