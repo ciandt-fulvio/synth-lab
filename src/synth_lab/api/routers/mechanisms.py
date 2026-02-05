@@ -9,10 +9,11 @@ References:
     - Service: services/narrative_service.py
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from loguru import logger
 from sqlalchemy.orm import Session
 
+from synth_lab.api.routers.experiments import get_current_user_id
 from synth_lab.api.schemas.mechanisms import (
     CreateMechanismRequest,
     CreateOptionRequest,
@@ -86,6 +87,7 @@ def _feature_type_to_schema(ft: FeatureType) -> FeatureTypeSchema:
     description="Retrieve all mechanism definitions with their options for dropdown rendering",
 )
 async def list_mechanisms(
+    current_user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db_session),
 ) -> MechanismListResponse:
     """
@@ -95,6 +97,7 @@ async def list_mechanisms(
     to know available mechanisms.
 
     Args:
+        current_user_id: Authenticated user ID
         db: Database session
 
     Returns:
@@ -122,6 +125,7 @@ async def list_mechanisms(
     description="Retrieve all feature types with their amplified mechanisms",
 )
 async def list_feature_types(
+    current_user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db_session),
 ) -> FeatureTypeListResponse:
     """
@@ -131,6 +135,7 @@ async def list_feature_types(
     and which mechanisms they amplify.
 
     Args:
+        current_user_id: Authenticated user ID
         db: Database session
 
     Returns:
@@ -165,6 +170,7 @@ experiments_router = APIRouter(prefix="/experiments", tags=["mechanisms"])
 )
 async def generate_narrative(
     request: GenerateNarrativeRequest,
+    current_user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db_session),
 ) -> GenerateNarrativeResponse:
     """
@@ -176,6 +182,7 @@ async def generate_narrative(
 
     Args:
         request: Feature details (name, hypothesis, description)
+        current_user_id: Authenticated user ID
         db: Database session
 
     Returns:
