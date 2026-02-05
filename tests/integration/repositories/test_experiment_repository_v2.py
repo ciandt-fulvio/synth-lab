@@ -9,6 +9,7 @@ References:
     - ORM Models: synth_lab.models.orm
 """
 
+import os
 import pytest
 from datetime import datetime
 from sqlalchemy import create_engine
@@ -24,12 +25,13 @@ from synth_lab.repositories.experiment_repository import ExperimentRepository
 
 @pytest.fixture(scope="function")
 def engine():
-    """Create an in-memory PostgreSQL engine for testing.
+    """Create a PostgreSQL engine for testing.
 
-    Note: Uses PostgreSQL for fast in-memory testing.
-    Production uses PostgreSQL.
+    Uses DATABASE_URL from environment (set by make test) or defaults to test database.
+    Production and tests both use PostgreSQL for compatibility (JSONB support).
     """
-    engine = create_engine("sql" + "ite:///:memory:", echo=False)
+    database_url = os.getenv("DATABASE_URL", "postgresql://synthlab:synthlab@localhost:5433/synthlab")
+    engine = create_engine(database_url, echo=False)
     Base.metadata.create_all(engine)
     yield engine
     Base.metadata.drop_all(engine)

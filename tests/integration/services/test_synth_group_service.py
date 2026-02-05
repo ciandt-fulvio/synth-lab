@@ -9,6 +9,7 @@ References:
     - Spec: specs/030-custom-synth-groups/spec.md
 """
 
+import os
 import pytest
 from datetime import datetime
 from sqlalchemy import create_engine
@@ -23,8 +24,13 @@ from synth_lab.services.synth_group_service import SynthGroupService
 
 @pytest.fixture(scope="function")
 def engine():
-    """Create an in-memory SQLite engine for testing."""
-    engine = create_engine("sqlite:///:memory:", echo=False)
+    """Create a PostgreSQL engine for testing.
+
+    Uses DATABASE_URL from environment (set by make test) or defaults to test database.
+    Production and tests both use PostgreSQL for compatibility (JSONB support).
+    """
+    database_url = os.getenv("DATABASE_URL", "postgresql://synthlab:synthlab@localhost:5433/synthlab")
+    engine = create_engine(database_url, echo=False)
     Base.metadata.create_all(engine)
     yield engine
     Base.metadata.drop_all(engine)
