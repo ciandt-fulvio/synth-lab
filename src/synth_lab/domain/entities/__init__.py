@@ -76,6 +76,16 @@ from synth_lab.domain.entities.explainability import (
     ShapSummary,
 )
 from synth_lab.domain.entities.feature_mechanisms import FeatureMechanisms
+from synth_lab.domain.entities.feature_type import FeatureType, generate_feature_type_id
+from synth_lab.domain.entities.mechanism_definition import (
+    MechanismDefinition,
+    MechanismOption,
+    generate_mechanism_definition_id,
+)
+from synth_lab.domain.entities.narrative_response import (
+    NarrativeResponse,
+    SelectedMechanism,
+)
 from synth_lab.domain.entities.feature_scorecard import (
     FeatureScorecard,
     ScorecardDimension,
@@ -186,6 +196,9 @@ __all__ = [
     "ShapSummary",
     # Feature mechanisms (new in 038-mechanism-based-simulation)
     "FeatureMechanisms",
+    # Feature types (new in 039-narrative-mechanism-config)
+    "FeatureType",
+    "generate_feature_type_id",
     # Feature scorecard (legacy)
     "FeatureScorecard",
     "ScorecardDimension",
@@ -220,4 +233,10 @@ __all__ = [
     "generate_outcome_id",
     # User sensitivities (new in 038-mechanism-based-simulation)
     "UserSensitivities",
+    # Mechanism configuration (new in 039-narrative-mechanism-config)
+    "MechanismDefinition",
+    "MechanismOption",
+    "generate_mechanism_definition_id",
+    "NarrativeResponse",
+    "SelectedMechanism",
 ]

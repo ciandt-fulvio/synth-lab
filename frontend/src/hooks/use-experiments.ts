@@ -23,12 +23,14 @@ import {
   estimateScorecardForExperiment,
   estimateScorecardFromText,
   runAnalysis,
+  updateExperimentMechanisms,
   type ExperimentsListParams,
   type ScorecardEstimateRequest,
   type RunAnalysisRequest,
 } from '@/services/experiments-api';
 import type { ExperimentCreate, ExperimentUpdate, ScorecardCreate } from '@/types/experiment';
 import type { InterviewCreateRequest } from '@/types/research';
+import type { FeatureMechanisms } from '@/types/simulation';
 
 /**
  * Hook to fetch paginated list of experiments with search and sort.
@@ -309,6 +311,28 @@ export function useRunAnalysis() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.experimentDetail(variables.experimentId),
       });
+    },
+  });
+}
+
+/**
+ * Hook to update feature mechanisms for an experiment.
+ *
+ * Updates only the mechanisms field in the experiment's scorecard_data.
+ * Reference: specs/038-mechanism-based-simulation
+ */
+export function useUpdateExperimentMechanisms() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, mechanisms }: { id: string; mechanisms: FeatureMechanisms }) =>
+      updateExperimentMechanisms(id, mechanisms),
+    onSuccess: (_, variables) => {
+      // Invalidate experiment detail to reflect updated mechanisms
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.experimentDetail(variables.id),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.experimentsList });
     },
   });
 }
