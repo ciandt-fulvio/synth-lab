@@ -1,4 +1,4 @@
-.PHONY: help install setup-hooks gensynth phoenix phoenix-ui kill validate-ui test test-fast test-e2e test-e2e-docker test-e2e-docker-up test-e2e-docker-down test-e2e-docker-logs test-e2e-seed test-smoke-staging test-smoke-production lint-format update-docs clean dev-up dev-down dev-logs-back dev-logs-front db-migrate ensure-container-runtime
+.PHONY: help install setup-hooks gensynth phoenix phoenix-ui kill validate-ui test test-fast test-e2e test-e2e-docker test-e2e-docker-up test-e2e-docker-down test-e2e-docker-logs test-e2e-seed test-smoke-staging test-smoke-production lint-format update-docs clean clean-images dev-up dev-down dev-logs-back dev-logs-front db-migrate ensure-container-runtime
 
 # =============================================================================
 # Configuration
@@ -230,6 +230,10 @@ clean:
 	rm -rf .pytest_cache .ruff_cache .mypy_cache __pycache__ htmlcov dist build *.egg-info
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name "*.pyc" -delete 2>/dev/null || true
+
+clean-images:
+	@echo "🧹 Cleaning old Docker/Podman images..."
+	@./scripts/clean-old-images.sh
 
 # =============================================================================
 # Docker Development Environment
