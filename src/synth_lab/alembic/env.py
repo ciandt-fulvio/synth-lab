@@ -32,6 +32,18 @@ from synth_lab.models.orm import (  # noqa: F401
     ExperimentDocument,
     ExperimentMaterial,
 )
+# Import auth/sharing models
+from synth_lab.models.orm.user import User  # noqa: F401
+from synth_lab.models.orm.share import ExperimentShare, SynthGroupShare  # noqa: F401
+# Import simulation models
+from synth_lab.models.orm.simulation import (  # noqa: F401
+    Simulation, CausalDAG, Hypothesis, HypothesisVersion,
+    Variable, SimulatedWorld, AuditTrail,
+)
+# Import mechanism configuration models (039)
+from synth_lab.infrastructure.database import (  # noqa: F401
+    MechanismDefinitionORM, MechanismOptionORM, FeatureTypeORM,
+)
 
 # This is the Alembic Config object
 config = context.config
