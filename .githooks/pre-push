@@ -329,12 +329,16 @@ do
         fi
     fi
 
-    # Push backend image only if backend changed
-    if [ "$BACKEND_CHANGED" = true ]; then
+    # Push backend image (always push, even if just tagging existing)
+    # The workflow needs an image with the commit SHA, even for config-only changes
+    if [ "$BACKEND_CHANGED" = true ] || $CONTAINER_RUNTIME image exists synth-lab-api:$COMMIT_SHA 2>/dev/null; then
         echo -e "${BLUE}  Pushing backend image...${NC}"
+
+        # Tag for GHCR
         $CONTAINER_RUNTIME tag "synth-lab-api:$COMMIT_SHA" "$GHCR_BACKEND_IMAGE:$COMMIT_SHA"
         $CONTAINER_RUNTIME tag "synth-lab-api:$COMMIT_SHA" "$GHCR_BACKEND_IMAGE:latest"
 
+        # Push both tags
         if ! $CONTAINER_RUNTIME push "$GHCR_BACKEND_IMAGE:$COMMIT_SHA"; then
             echo -e "${RED}❌ Failed to push backend image${NC}"
             exit 1
@@ -343,19 +347,28 @@ do
             echo -e "${RED}❌ Failed to push backend image (latest tag)${NC}"
             exit 1
         fi
-        echo -e "${GREEN}  ✅ Backend image pushed${NC}"
+
+        if [ "$BACKEND_CHANGED" = true ]; then
+            echo -e "${GREEN}  ✅ Backend image pushed (rebuilt)${NC}"
+        else
+            echo -e "${GREEN}  ✅ Backend image pushed (retagged from existing)${NC}"
+        fi
     else
-        echo -e "${CYAN}  ⏭️  Skipping backend push (no changes)${NC}"
-        echo -e "${GREEN}  ✅ Backend push skipped (using existing image)${NC}"
+        echo -e "${YELLOW}  ⚠️  No backend image found to push${NC}"
+        exit 1
     fi
     echo ""
 
-    # Push frontend image only if frontend changed
-    if [ "$FRONTEND_CHANGED" = true ]; then
+    # Push frontend image (always push, even if just tagging existing)
+    # The workflow needs an image with the commit SHA, even for config-only changes
+    if [ "$FRONTEND_CHANGED" = true ] || $CONTAINER_RUNTIME image exists synth-lab-frontend:$COMMIT_SHA 2>/dev/null; then
         echo -e "${BLUE}  Pushing frontend image...${NC}"
+
+        # Tag for GHCR
         $CONTAINER_RUNTIME tag "synth-lab-frontend:$COMMIT_SHA" "$GHCR_FRONTEND_IMAGE:$COMMIT_SHA"
         $CONTAINER_RUNTIME tag "synth-lab-frontend:$COMMIT_SHA" "$GHCR_FRONTEND_IMAGE:latest"
 
+        # Push both tags
         if ! $CONTAINER_RUNTIME push "$GHCR_FRONTEND_IMAGE:$COMMIT_SHA"; then
             echo -e "${RED}❌ Failed to push frontend image${NC}"
             exit 1
@@ -364,10 +377,15 @@ do
             echo -e "${RED}❌ Failed to push frontend image (latest tag)${NC}"
             exit 1
         fi
-        echo -e "${GREEN}  ✅ Frontend image pushed${NC}"
+
+        if [ "$FRONTEND_CHANGED" = true ]; then
+            echo -e "${GREEN}  ✅ Frontend image pushed (rebuilt)${NC}"
+        else
+            echo -e "${GREEN}  ✅ Frontend image pushed (retagged from existing)${NC}"
+        fi
     else
-        echo -e "${CYAN}  ⏭️  Skipping frontend push (no changes)${NC}"
-        echo -e "${GREEN}  ✅ Frontend push skipped (using existing image)${NC}"
+        echo -e "${YELLOW}  ⚠️  No frontend image found to push${NC}"
+        exit 1
     fi
     echo ""
 
