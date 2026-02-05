@@ -81,9 +81,10 @@ do
     echo ""
 
     # ========================================================================
-    # Step 2: Run Full Test Suite
+    # Step 2: Run Full Test Suite (Smart Mode)
     # ========================================================================
-    echo -e "${YELLOW}[2/5] 🧪 Running full test suite...${NC}"
+    echo -e "${YELLOW}[2/5] 🧪 Running full test suite (smart mode)...${NC}"
+    echo -e "${BLUE}   Strategy: Failed tests first (fail-fast), then full suite${NC}"
     echo ""
 
     if ! make test; then
@@ -100,9 +101,10 @@ do
     echo ""
 
     # ========================================================================
-    # Step 3: Run E2E Tests
+    # Step 3: Run E2E Tests (Smart Mode)
     # ========================================================================
-    echo -e "${YELLOW}[3/5] 🎭 Running E2E tests...${NC}"
+    echo -e "${YELLOW}[3/5] 🎭 Running E2E tests (smart mode)...${NC}"
+    echo -e "${BLUE}   Strategy: Failed tests first (fail-fast), then full suite${NC}"
     echo ""
 
     if ! make test-e2e; then

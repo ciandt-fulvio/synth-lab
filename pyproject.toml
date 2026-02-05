@@ -86,3 +86,22 @@ ignore = []
 
 [tool.ruff.lint.per-file-ignores]
 "src/synth_lab/services/simulation/dag_constructor_service.py" = ["E501"]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks integration tests",
+    "smoke: marks smoke tests (critical paths only)",
+    "contract: marks API contract tests",
+    "schema: marks schema validation tests",
+    "requires_postgres: marks tests requiring PostgreSQL",
+    "real_api: marks tests that make REAL API calls (OpenAI, S3, etc) - incurs costs",
+    "e2e: marks end-to-end tests",
+]
+# Default test discovery patterns
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+# Asyncio mode
+asyncio_mode = "auto"

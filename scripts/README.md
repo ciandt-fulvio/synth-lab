@@ -1,267 +1,192 @@
-# 🔐 Scripts de Configuração de Secrets
+# Scripts Directory
 
-Guia rápido para configurar secrets no GitHub e Railway.
+Automation scripts for development, testing, and deployment.
 
-## 📋 Pré-requisitos
+## Testing Scripts (⭐ Smart Execution)
 
-### GitHub CLI
+### Smart Test Runners
+
+These scripts provide intelligent test execution with failure prioritization:
+
+**run-tests-smart.sh** - Backend test runner
 ```bash
-# Verificar se está instalado
-gh --version
-
-# Fazer login
-gh auth login
-
-# Verificar autenticação
-gh auth status
+./scripts/run-tests-smart.sh
+# Or via Makefile
+make test
 ```
 
-### Railway CLI
+**run-e2e-tests-smart.sh** - E2E test runner
 ```bash
-# Verificar se está instalado
-railway --version
-
-# Fazer login
-railway login
-
-# Verificar autenticação
-railway whoami
+./scripts/run-e2e-tests-smart.sh
+# Or via Makefile
+make test-e2e
 ```
 
-## 🚀 Uso Rápido
+**How it works**:
+1. Runs previously failed tests first (fail-fast: stops on first failure)
+2. If all pass, runs full suite (no fail-fast: discovers all issues)
+3. Provides 40-50% faster feedback during development
 
-### 1️⃣ GitHub Secrets
-
+**validate-smart-tests.sh** - Validates smart test configuration
 ```bash
-# Opção A: Passar valores via variáveis de ambiente (RECOMENDADO)
-OPENAI_API_KEY=sk-proj-xxx \
-RAILWAY_API_TOKEN=your-token \
-RAILWAY_PROJECT_ID=your-project-id \
-DATABASE_STAGING_URL=postgresql://... \
-DATABASE_PRODUCTION_URL=postgresql://... \
-STAGING_FRONTEND_URL=https://your-frontend-staging.railway.app \
-STAGING_BACKEND_URL=https://your-backend-staging.railway.app \
+./scripts/validate-smart-tests.sh
+```
+
+📖 **Documentation**: `docs/smart-test-execution.md`
+
+### Environment Management
+
+**compose-e2e.sh** - Docker Compose wrapper for E2E environment
+```bash
+./scripts/compose-e2e.sh up-detached  # Start environment
+./scripts/compose-e2e.sh down         # Stop environment
+./scripts/compose-e2e.sh logs         # View logs
+```
+
+Features:
+- Auto-detects Docker/Podman
+- Incremental rebuild (only changed services)
+- Cleanup helpers for Podman
+
+## Git Workflow Scripts
+
+**merge-to-main.sh** - Safe merge helper with preview
+```bash
+./scripts/merge-to-main.sh <branch-name>
+```
+
+Features:
+- Pre-merge validation (uncommitted changes, branch exists)
+- Commit preview before merge
+- Interactive confirmation
+- Push reminder (where pre-push hook will run)
+
+**pre-push-hook.sh** - Automated validation before pushing to main
+```bash
+# Runs automatically on: git push origin main
+# Bypass: git push origin main --no-verify
+```
+
+Steps:
+1. Build Docker images
+2. Run backend tests (smart mode)
+3. Run E2E tests (smart mode)
+4. Push images to GHCR
+5. Allow push if all pass
+
+**test-pre-push-hook.sh** - Diagnose pre-push hook issues
+```bash
+./scripts/test-pre-push-hook.sh
+```
+
+📖 **Documentation**: See `CLAUDE.md` (Git Workflow & Merge section)
+
+## Development Scripts
+
+**auto-update-docs.sh** - Update documentation from commits
+```bash
+./scripts/auto-update-docs.sh --last-commit
+```
+
+**auto-update-tests.sh** - Generate tests from code changes
+```bash
+./scripts/auto-update-tests.sh
+```
+
+## Infrastructure Scripts
+
+**docker-entrypoint-backend.sh** - Backend container entrypoint
+- Waits for PostgreSQL health check
+- Runs Alembic migrations
+- Starts FastAPI with Uvicorn
+
+**railway-deploy-image.sh** - Deploy pre-built images to Railway
+```bash
+./scripts/railway-deploy-image.sh backend <commit-sha>
+./scripts/railway-deploy-image.sh frontend <commit-sha>
+```
+
+**setup-github-secrets.sh** - Configure GitHub Actions secrets
+```bash
 ./scripts/setup-github-secrets.sh
-
-# Opção B: Exportar variáveis e executar
-export OPENAI_API_KEY=sk-proj-xxx
-export RAILWAY_API_TOKEN=your-token
-# ... outras variáveis
-./scripts/setup-github-secrets.sh
-
-# Opção C: Editar o script diretamente (NÃO RECOMENDADO)
-# Substitua os placeholders e execute
-./scripts/setup-github-secrets.sh
 ```
 
-**Verificar:**
+**setup-railway-secrets.sh** - Configure Railway environment variables
 ```bash
-gh secret list
-gh variable list
+./scripts/setup-railway-secrets.sh <environment> <service>
 ```
 
----
+📖 **Documentation**: `scripts/SECRETS_SETUP.md`
 
-### 2️⃣ Railway Secrets
+## Installation Scripts
 
-**IMPORTANTE:** Primeiro você precisa linkar o projeto Railway.
-
+**install-hooks.sh** - Configure Git hooks
 ```bash
-# Linkar ao projeto
-railway link
-
-# Verificar status e ver serviços disponíveis
-railway status
-# Output exemplo:
-#   Project: sunny-caring
-#   Environment: staging
-#   Service: None
+./scripts/install-hooks.sh
+# Or via Makefile
+make setup-hooks
 ```
 
-Depois de linkado, você precisa especificar o **serviço** onde as variáveis serão configuradas:
+## Best Practices
+
+### 1. Always Use Smart Test Runners
+
+During development, use Makefile commands that leverage smart execution:
 
 ```bash
-# Para STAGING (pode usar valores do docker/.env.dev)
-./scripts/setup-railway-secrets.sh staging synth-lab-api
+# ✅ Good - Uses smart mode
+make test
+make test-e2e
 
-# Para PRODUCTION (DEVE passar valores novos e seguros)
-OPENAI_API_KEY=sk-proj-xxx \
-JWT_SECRET_KEY=$(openssl rand -hex 32) \
-SESSION_SECRET_KEY=$(openssl rand -hex 32) \
-GOOGLE_CLIENT_SECRET=GOCSPX-xxx \
-BUCKET=your-production-bucket \
-BUCKET_ACCESS_KEY_ID=tid_xxx \
-BUCKET_SECRET_ACCESS_KEY=tsec_xxx \
-OAUTH_REDIRECT_URI=https://api.yourapp.com/auth/callback \
-CORS_ORIGINS=https://yourapp.com \
-WHITELIST=admin@yourcompany.com,@yourcompany.com \
-./scripts/setup-railway-secrets.sh production synth-lab-api
+# ❌ Avoid - Bypasses optimization
+uv run pytest
+cd frontend && npm run test:e2e
 ```
 
-**Verificar:**
+### 2. Use Merge Helper for Branches
+
 ```bash
-railway variables -e staging
-railway variables -e production
+# ✅ Good - Safe with preview
+./scripts/merge-to-main.sh 039-feature-name
 
-# Ver em formato KV (chave=valor)
-railway variables --kv -e staging
+# ❌ Risky - Manual merge without checks
+git checkout main && git merge 039-feature-name
 ```
 
----
+### 3. Let Pre-Push Hook Run
 
-## 🔑 Gerando Secrets Seguras
+The pre-push hook catches issues locally before CI:
 
-### JWT e Session Keys
 ```bash
-# Gerar JWT Secret Key
-openssl rand -hex 32
+# ✅ Good - Full validation locally
+git push origin main
 
-# Gerar Session Secret Key
-openssl rand -hex 32
+# ⚠️ Use sparingly - Bypasses validation
+git push origin main --no-verify
 ```
 
-### Railway API Token
-1. Acesse: https://railway.app/account/tokens
-2. Click "Create Token"
-3. Nomeie: "GitHub Actions CI/CD"
-4. Copie o token (mostrado apenas uma vez!)
+### 4. Validate After Changes
 
-### Railway Project ID
+After modifying test configuration:
+
 ```bash
-# Ver informações do projeto
-railway status
-
-# Ou visite Railway Dashboard > Settings > Project ID
+./scripts/validate-smart-tests.sh
 ```
 
-### Database URLs
-Railway provisiona automaticamente:
-1. Railway Dashboard > Environment (staging/production)
-2. Click "+ New" > "Database" > "PostgreSQL"
-3. Aguarde provisionamento
-4. Copie `DATABASE_URL` de Variables
+## Quick Reference
 
----
+| Task | Command | Time Saved |
+|------|---------|------------|
+| Backend tests (dev) | `make test` | ~40% faster |
+| E2E tests (dev) | `make test-e2e` | ~50% faster |
+| Merge branch | `./scripts/merge-to-main.sh <branch>` | Prevents errors |
+| Validate setup | `./scripts/validate-smart-tests.sh` | Catches issues |
+| Push to main | `git push origin main` | Auto-validated |
 
-## 🐛 Troubleshooting
+## Documentation Index
 
-### GitHub: "gh: command not found"
-```bash
-# macOS
-brew install gh
-
-# Ubuntu/Debian
-sudo apt install gh
-
-# Ver outros: https://github.com/cli/cli#installation
-```
-
-### GitHub: "authentication required"
-```bash
-gh auth login
-# Siga as instruções no terminal
-```
-
-### Railway: "command not found"
-```bash
-# macOS
-brew install railway
-
-# npm (qualquer SO)
-npm install -g @railway/cli
-
-# Ver outros: https://docs.railway.app/develop/cli#installation
-```
-
-### Railway: "No service linked"
-```bash
-# Linkar ao projeto
-railway link
-
-# Selecionar/criar serviço
-railway service
-
-# Verificar status
-railway status
-```
-
-### Railway: "environment not found"
-```bash
-# Listar ambientes disponíveis
-railway environment
-
-# Criar novo ambiente (via Dashboard)
-# Railway Dashboard > Environments > New Environment
-```
-
-### Railway: Variáveis não aparecem após configurar
-```bash
-# Forçar redeploy para aplicar variáveis
-railway up -e staging
-
-# Verificar variáveis configuradas
-railway variables -e staging
-```
-
----
-
-## 📖 Documentação Completa
-
-Para documentação detalhada, veja:
-- [docs/SECRETS_SETUP.md](../docs/SECRETS_SETUP.md) - Guia completo de secrets
-
-## ⚠️ Segurança
-
-### ✅ Fazer
-- Usar variáveis de ambiente para passar secrets
-- Gerar novos JWT/Session keys para produção
-- Usar credenciais OAuth específicas para produção
-- Verificar valores antes de aplicar em produção
-- Manter `.env.dev` no `.gitignore`
-
-### ❌ Nunca
-- Commitar secrets no git
-- Reusar secrets de dev em produção
-- Compartilhar secrets em canais públicos
-- Logar secrets no console
-- Editar scripts com valores reais e commitar
-
----
-
-## 📝 Checklist Rápido
-
-### GitHub Actions
-- [ ] `OPENAI_API_KEY` configurada
-- [ ] `RAILWAY_API_TOKEN` configurada
-- [ ] `RAILWAY_PROJECT_ID` configurada
-- [ ] `DATABASE_STAGING_URL` configurada
-- [ ] `DATABASE_PRODUCTION_URL` configurada
-- [ ] `STAGING_FRONTEND_URL` configurada (variable)
-- [ ] `STAGING_BACKEND_URL` configurada (variable)
-
-### Railway Staging
-- [ ] Projeto linkado (`railway link`)
-- [ ] Serviço selecionado (se necessário)
-- [ ] Script executado (`./scripts/setup-railway-secrets.sh staging`)
-- [ ] Variáveis verificadas (`railway variables -e staging`)
-
-### Railway Production
-- [ ] Gerado novo `JWT_SECRET_KEY` (`openssl rand -hex 32`)
-- [ ] Gerado novo `SESSION_SECRET_KEY` (`openssl rand -hex 32`)
-- [ ] Configurado `GOOGLE_CLIENT_SECRET` de produção
-- [ ] Configurado bucket S3 de produção
-- [ ] Ajustado `WHITELIST` para usuários autorizados
-- [ ] Configurado URLs corretas (OAUTH_REDIRECT_URI, CORS_ORIGINS)
-- [ ] Script executado com valores de produção
-- [ ] Variáveis verificadas (`railway variables -e production`)
-- [ ] Deploy testado
-
----
-
-## 🔗 Links Úteis
-
-- [GitHub CLI Docs](https://cli.github.com/manual/)
-- [Railway CLI Docs](https://docs.railway.app/develop/cli)
-- [Railway API Tokens](https://railway.app/account/tokens)
-- [OpenAI API Keys](https://platform.openai.com/api-keys)
-- [Google Cloud Console](https://console.cloud.google.com/)
+- **Smart Testing**: `docs/smart-test-execution.md`
+- **Git Workflow**: `CLAUDE.md` (Git Workflow & Merge section)
+- **Pre-Push Hook**: `docs/testing-pre-push-hook.md`
+- **CI/CD Pipeline**: `CLAUDE.md` (CI/CD Pipeline section)
+- **Secrets Setup**: `scripts/SECRETS_SETUP.md`

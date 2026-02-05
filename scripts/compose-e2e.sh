@@ -131,8 +131,10 @@ cleanup_podman() {
 
 case "$COMMAND" in
     up)
-        # Full test workflow: start containers, run tests, stop containers
-        echo "Starting E2E environment (profile: $COMPOSE_PROFILE)..."
+        # Deprecated: Use up-detached and run tests separately for better control
+        echo -e "${YELLOW}⚠️  'up' command is deprecated. Use 'make test-e2e' instead.${NC}"
+        echo -e "${YELLOW}   This command now behaves like 'up-detached' (starts environment only).${NC}"
+        echo ""
 
         # Pre-cleanup for Podman to handle orphaned pods/containers
         if [ "$RUNTIME" = "podman" ]; then
@@ -157,16 +159,11 @@ case "$COMMAND" in
         echo "Waiting for services to be ready..."
         sleep 10
 
-        # Run Playwright tests from host
-        echo "Running Playwright tests..."
-        cd frontend && TEST_ENV=docker npm run test:e2e
-        TEST_EXIT_CODE=$?
-
-        # Return to root directory
-        cd ..
-
-        # Return test exit code
-        exit $TEST_EXIT_CODE
+        echo ""
+        echo -e "${GREEN}✅ E2E environment ready!${NC}"
+        echo -e "${BLUE}   Run tests with: ./scripts/run-e2e-tests-smart.sh${NC}"
+        echo -e "${BLUE}   Or use: make test-e2e${NC}"
+        echo ""
         ;;
 
     up-detached)

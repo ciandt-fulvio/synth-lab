@@ -69,10 +69,10 @@ help:
 	@echo "  make dev-logs-back  View backend logs"
 	@echo "  make dev-logs-front View frontend logs"
 	@echo ""
-	@echo "Testing:"
-	@echo "  make test               Run unit/integration tests (requires dev-up)"
+	@echo "Testing (Smart Mode - runs failed tests first):"
+	@echo "  make test               Run unit/integration tests (smart mode)"
 	@echo "  make test-fast          Run fast anti-regression tests (~30s)"
-	@echo "  make test-e2e           Run E2E tests (isolated Docker environment)"
+	@echo "  make test-e2e           Run E2E tests (smart mode, isolated Docker)"
 	@echo "  make test-smoke-staging Run smoke tests against Staging (Railway)"
 	@echo "  make test-smoke-production Run smoke tests against Production (Railway)"
 	@echo ""
@@ -151,7 +151,7 @@ test-db-down:
 
 test: test-db-up
 	@echo "🧪 Running tests against isolated test database (port 5433)..."
-	DATABASE_URL="$(DATABASE_URL_TEST)" uv run pytest
+	@DATABASE_URL="$(DATABASE_URL_TEST)" ./scripts/run-tests-smart.sh
 	@$(MAKE) test-db-down
 
 test-fast: test-db-up
@@ -168,8 +168,9 @@ test-e2e-docker: ensure-container-runtime
 	@echo "   Backend:  http://localhost:8001"
 	@echo "   Database: localhost:5433"
 	@echo ""
-	@./scripts/compose-e2e.sh up; \
-	exit_code=$$?; \
+	@./scripts/compose-e2e.sh up-detached; \
+	exit_code=0; \
+	./scripts/run-e2e-tests-smart.sh || exit_code=$$?; \
 	./scripts/compose-e2e.sh down; \
 	exit $$exit_code
 

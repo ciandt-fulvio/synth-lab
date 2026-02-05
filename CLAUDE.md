@@ -27,7 +27,14 @@ frontend/src/
 ```bash
 # Backend
 uv run uvicorn synth_lab.api.main:app --reload
-pytest tests/
+
+# Testing (see docs/testing-strategy.md for details)
+pytest                    # Fast tests only (excludes real API calls)
+pytest -m "not slow"      # Explicitly exclude slow tests
+pytest -m integration     # Only integration tests (mocked APIs)
+pytest -m "real_api"      # Only smoke tests with real APIs (costs money!)
+
+# Code quality
 ruff check . && ruff format .
 
 # Frontend
@@ -149,6 +156,14 @@ DATABASE_URL="postgresql://synthlab:synthlab@localhost:5432/synthlab" python scr
 - **Service**: Lógica de negócio, prompts LLM, orquestração
 - **Repository**: Queries SQL parametrizadas (`?` placeholders)
 - **LLM calls**: DEVEM usar `_tracer.start_as_current_span()`
+
+### Testing (CRITICAL)
+- **Default**: SEMPRE mock LLM calls em testes (fast, free, deterministic)
+- **Integration tests**: Mock OpenAI/S3/HTTP, real database only
+- **Smoke tests**: 1 teste "hello world" real por serviço externo (CI only)
+- **Markers**: Use pytest markers (`integration`, `real_api`, `slow`)
+- **Fixtures**: Use centralized mocks from `tests/fixtures/llm_mocks.py`
+- **Documentation**: `docs/testing-strategy.md`
 
 ### Frontend
 - **Pages**: Compõem componentes + usam hooks
