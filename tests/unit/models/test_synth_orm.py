@@ -9,6 +9,7 @@ References:
     - Data Model: specs/027-postgresql-migration/data-model.md
 """
 
+import os
 import pytest
 from datetime import datetime
 from sqlalchemy import create_engine
@@ -20,8 +21,12 @@ from synth_lab.models.orm.synth import Synth, SynthGroup
 
 @pytest.fixture(scope="function")
 def engine():
-    """Create an in-memory PostgreSQL engine for testing."""
-    engine = create_engine("sql" + "ite:///:memory:", echo=False)
+    """Create a PostgreSQL engine for testing.
+
+    Uses DATABASE_URL from environment (set by make test) or defaults to test database.
+    Production and tests both use PostgreSQL for compatibility (JSONB support)."""
+    database_url = os.getenv("DATABASE_URL", "postgresql://synthlab:synthlab@localhost:5433/synthlab")
+    engine = create_engine(database_url, echo=False)
     Base.metadata.create_all(engine)
     yield engine
     Base.metadata.drop_all(engine)
