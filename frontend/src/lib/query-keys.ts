@@ -126,4 +126,10 @@ export const queryKeys = {
     detail: (hypothesisId: string) => ['hypotheses', 'detail', hypothesisId] as const,
     versions: (simulationId: string) => ['hypotheses', simulationId, 'versions'] as const,
   },
+
+  // Mechanisms (039-narrative-mechanism-config)
+  mechanisms: {
+    list: () => ['mechanisms'] as const,
+    featureTypes: () => ['mechanisms', 'feature-types'] as const,
+  },
 };

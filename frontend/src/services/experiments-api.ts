@@ -19,6 +19,7 @@ import type {
   ScorecardEstimateResponse,
   AnalysisSummary,
 } from '@/types/experiment';
+import type { FeatureMechanisms } from '@/types/simulation';
 import type { InterviewCreateRequest, ResearchExecuteResponse } from '@/types/research';
 
 /**
@@ -92,6 +93,22 @@ export async function updateExperiment(
 export async function deleteExperiment(id: string): Promise<void> {
   return fetchAPI<void>(`/experiments/${id}`, {
     method: 'DELETE',
+  });
+}
+
+/**
+ * Update feature mechanisms for an experiment.
+ *
+ * Updates only the mechanisms field in the experiment's scorecard_data.
+ * Reference: specs/038-mechanism-based-simulation
+ */
+export async function updateExperimentMechanisms(
+  id: string,
+  mechanisms: FeatureMechanisms
+): Promise<ExperimentDetail> {
+  return fetchAPI<ExperimentDetail>(`/experiments/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ mechanisms }),
   });
 }
 

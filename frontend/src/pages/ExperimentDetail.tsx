@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useExperiment, useRunAnalysis, useDeleteExperiment } from '@/hooks/use-experiments';
+import { useExperiment, useRunAnalysis, useDeleteExperiment, useUpdateExperimentMechanisms } from '@/hooks/use-experiments';
 import { useExplorations } from '@/hooks/use-exploration';
 import { NewInterviewFromExperimentDialog } from '@/components/experiments/NewInterviewFromExperimentDialog';
 import { AnalysisPhaseTabs, type AnalysisPhaseId } from '@/components/experiments/AnalysisPhaseTabs';
@@ -47,6 +47,7 @@ import { useDocuments } from '@/hooks/use-documents';
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   MessageSquare,
   MessageCircle,
   Plus,
@@ -61,11 +62,15 @@ import {
   Users,
   Paperclip,
   FileText,
+  Cog,
+  Check,
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
 import { TagSelector } from '@/components/experiments/TagSelector';
+import { MechanismEditor, DEFAULT_MECHANISMS, hasMechanisms } from '@/components/experiments/MechanismEditor';
+import type { FeatureMechanisms } from '@/types/simulation';
 
 // =============================================================================
 // Scorecard Slider Component (Read-only)
@@ -141,6 +146,9 @@ export default function ExperimentDetail() {
   const [interviewPage, setInterviewPage] = useState(0);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isNewExplorationOpen, setIsNewExplorationOpen] = useState(false);
+  const [isMechanismEditorOpen, setIsMechanismEditorOpen] = useState(false);
+  const [localMechanisms, setLocalMechanisms] = useState<FeatureMechanisms>(DEFAULT_MECHANISMS);
+  const [mechanismsChanged, setMechanismsChanged] = useState(false);
 
   // Tab underline animation state
   // Initialize activeTab from query param 'tab' if present, otherwise default to 'analysis'
@@ -184,6 +192,15 @@ export default function ExperimentDetail() {
   const { data: experiment, isLoading, isError, error } = useExperiment(id ?? '');
   const runAnalysisMutation = useRunAnalysis();
   const deleteMutation = useDeleteExperiment();
+  const updateMechanismsMutation = useUpdateExperimentMechanisms();
+
+  // Sync local mechanisms with experiment data
+  useEffect(() => {
+    if (experiment?.scorecard_data?.mechanisms) {
+      setLocalMechanisms(experiment.scorecard_data.mechanisms);
+      setMechanismsChanged(false);
+    }
+  }, [experiment?.scorecard_data?.mechanisms]);
   const { data: explorations, isLoading: isLoadingExplorations } = useExplorations(id ?? '');
   const { data: materials, refetch: refetchMaterials } = useMaterials(id ?? '');
   const { data: documents } = useDocuments(id ?? '');
@@ -226,6 +243,31 @@ export default function ExperimentDetail() {
 
   const handleExplorationSuccess = (explorationId: string) => {
     navigate(`/experiments/${id}/explorations/${explorationId}`);
+  };
+
+  const handleMechanismsChange = (newMechanisms: FeatureMechanisms) => {
+    setLocalMechanisms(newMechanisms);
+    setMechanismsChanged(true);
+  };
+
+  const handleSaveMechanisms = () => {
+    if (!id) return;
+    updateMechanismsMutation.mutate(
+      { id, mechanisms: localMechanisms },
+      {
+        onSuccess: () => {
+          toast.success('Mecanismos atualizados com sucesso');
+          setMechanismsChanged(false);
+        },
+        onError: (error) => {
+          const message =
+            error instanceof Error
+              ? error.message
+              : 'Erro desconhecido ao atualizar mecanismos';
+          toast.error(message);
+        },
+      }
+    );
   };
 
   // Loading state
@@ -367,6 +409,77 @@ export default function ExperimentDetail() {
             )}
           </div>
         </div>
+
+        {/* Mechanism Editor Section - Collapsible */}
+        {hasScorecard && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 overflow-hidden">
+            {/* Collapsible Header */}
+            <button
+              onClick={() => setIsMechanismEditorOpen(!isMechanismEditorOpen)}
+              className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg text-white shadow-md">
+                  <Cog className="h-4 w-4" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-semibold text-slate-900">Mecanismos da Feature</h3>
+                  <p className="text-sm text-slate-500">
+                    {hasMechanisms(localMechanisms)
+                      ? 'Mecanismos configurados'
+                      : 'Configure mecanismos para simulação avançada'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {hasMechanisms(localMechanisms) && (
+                  <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200">
+                    {Object.values(localMechanisms).filter((v) => v > 0).length} ativos
+                  </Badge>
+                )}
+                <ChevronDown
+                  className={`h-5 w-5 text-slate-400 transition-transform duration-200 ${
+                    isMechanismEditorOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </div>
+            </button>
+
+            {/* Collapsible Content */}
+            {isMechanismEditorOpen && (
+              <div className="px-6 pb-6 border-t border-slate-100">
+                <div className="pt-4">
+                  <MechanismEditor
+                    value={localMechanisms}
+                    onChange={handleMechanismsChange}
+                    disabled={updateMechanismsMutation.isPending}
+                  />
+
+                  {/* Save Button */}
+                  <div className="mt-6 flex items-center justify-end gap-3">
+                    {mechanismsChanged && (
+                      <span className="text-sm text-amber-600">
+                        Alterações não salvas
+                      </span>
+                    )}
+                    <Button
+                      onClick={handleSaveMechanisms}
+                      disabled={!mechanismsChanged || updateMechanismsMutation.isPending}
+                      className="btn-primary"
+                    >
+                      {updateMechanismsMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4 mr-2" />
+                      )}
+                      Salvar Mecanismos
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Main Tabs Section */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

@@ -10,6 +10,7 @@
  */
 
 import type { PaginationMeta } from './common';
+import type { FeatureMechanisms } from './simulation';
 
 // =============================================================================
 // Scorecard Types (Embedded)
@@ -51,6 +52,10 @@ export interface ScorecardData {
   justification?: string;
   /** Impact hypotheses */
   impact_hypotheses?: string[];
+  /** Feature mechanisms for simulation (038-mechanism-based-simulation) */
+  mechanisms?: FeatureMechanisms;
+  /** Category tags for the feature */
+  feature_types?: string[];
 }
 
 // =============================================================================
@@ -179,6 +184,8 @@ export interface ExperimentUpdate {
   hypothesis?: string;
   /** Additional context, links, references (max 2000 chars) */
   description?: string;
+  /** Feature mechanisms for simulation (038-mechanism-based-simulation) */
+  mechanisms?: FeatureMechanisms;
 }
 
 // =============================================================================
