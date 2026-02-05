@@ -57,8 +57,8 @@ test.describe('Experiments - List & Filters @critical @experiments', () => {
     const searchInput = page.getByPlaceholder(/buscar por nome ou hipótese/i);
     await expect(searchInput).toBeVisible();
 
-    // Digita termo de busca
-    await searchInput.fill('checkout');
+    // Digita termo de busca (usar termo que existe no seed atual)
+    await searchInput.fill('delivery');
     await page.waitForTimeout(500); // Aguarda debounce da busca
 
     // Verifica que há resultados filtrados
@@ -69,10 +69,10 @@ test.describe('Experiments - List & Filters @critical @experiments', () => {
     const count = await cards.count();
 
     if (count > 0) {
-      // Pelo menos um card deve conter o termo "checkout" no título ou descrição
+      // Pelo menos um card deve conter o termo "delivery" no título ou descrição
       const firstCard = cards.first();
       const cardText = await firstCard.textContent();
-      expect(cardText?.toLowerCase()).toContain('checkout');
+      expect(cardText?.toLowerCase()).toContain('delivery');
     }
 
     // Limpa busca
