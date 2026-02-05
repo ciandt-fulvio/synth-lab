@@ -5,12 +5,11 @@ and mechanism configuration tables (039-narrative-mechanism-config).
 """
 from sqlalchemy import String, Column, ForeignKey, Enum as SQLEnum, Integer, Numeric, Text, DateTime, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
 
-
-Base = declarative_base()
+from synth_lab.models.orm.base import Base
 
 
 class PermissionLevel(str, enum.Enum):
