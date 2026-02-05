@@ -1,19 +1,31 @@
 # Deploy Staging - Automatic on main push
 #
-# Flow: [Images already built by build-and-test.yml] → Reset DB → Migrate → Seed → Deploy → Smoke Tests
+# Two deployment modes:
 #
-# Uses "Build Once, Deploy Anywhere" pattern:
-#   1. Uses pre-built and pre-tested images from GHCR (tagged with commit SHA)
-#   2. Reset staging database (ephemeral environment)
-#   3. Migrate database to latest schema
-#   4. Seed database (ONLY if synth_groups table is empty)
-#   5. Deploy images to Railway staging
-#   6. Run smoke tests to validate deployment
+# 1. NORMAL DEPLOY (default - on every push to main):
+#    - Migrate DB (apply new migrations only)
+#    - Seed DB (conditional - only if synth_groups is empty)
+#    - Deploy images to Railway
+#    - Run smoke tests
 #
-# The same images can then be promoted to production.
+# 2. FRESH START (manual - via workflow_dispatch with fresh_start=true):
+#    - Reset DB (DROP all tables)
+#    - Migrate DB (recreate from scratch)
+#    - Seed DB (always, since DB is empty)
+#    - Deploy images to Railway
+#    - Run smoke tests
 #
-# IMPORTANT: Staging database is EPHEMERAL - it gets reset on every deploy.
-# Do not store important data in staging environment.
+# Usage:
+#   - Normal deploy: git push origin main
+#   - Fresh start: gh workflow run deploy-staging.yml -f fresh_start=true
+#
+# Database Management Strategy:
+#   - Migrations are ADDITIVE (handled by Alembic) - safe to run multiple times
+#   - Container entrypoint does NOT run migrations (workflow handles this)
+#   - Seeding is CONDITIONAL (checks if synth_groups is empty first)
+#
+# IMPORTANT: Only use fresh start when you need to completely reset the database.
+# Normal deploys should use migrations which preserve existing data.
 
 name: Deploy Staging
 
@@ -22,6 +34,12 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      fresh_start:
+        description: 'Fresh start: Drop all tables and recreate from scratch'
+        required: false
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
@@ -31,11 +49,19 @@ env:
 
 jobs:
   # ============================================================================
-  # Stage 1: Reset Staging Database
+  # Stage 1: Reset Staging Database (Optional - Fresh Start Only)
+  # ============================================================================
+  # This job only runs when:
+  # - Manually triggered with fresh_start=true
+  # - First time deployment (no existing schema)
+  #
+  # For normal deploys, we skip reset and only run migrations (which are additive).
   # ============================================================================
   reset-staging-db:
     name: Reset Staging DB
     runs-on: ubuntu-latest
+    # Only run reset on fresh start (manual trigger with input)
+    if: github.event.inputs.fresh_start == 'true'
 
     steps:
       - name: Checkout code
@@ -77,10 +103,16 @@ jobs:
   # ============================================================================
   # Stage 2: Run Migrations on Staging DB
   # ============================================================================
+  # This job ALWAYS runs to ensure the database schema is up to date.
+  # - If fresh_start=true: runs after reset
+  # - If fresh_start=false: runs independently (migrations are additive)
+  # ============================================================================
   migrate-staging:
     name: Migrate Staging DB
     runs-on: ubuntu-latest
+    # Run after reset if fresh start, otherwise run independently
     needs: reset-staging-db
+    if: always() && (needs.reset-staging-db.result == 'success' || needs.reset-staging-db.result == 'skipped')
 
     steps:
       - name: Checkout code
@@ -150,6 +182,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Verify backend image exists in GHCR
+        run: |
+          echo "Verifying backend image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ env.IMAGE_TAG }}"
+
+          # Try to inspect the image using docker
+          if docker pull "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ env.IMAGE_TAG }}"; then
+            echo "✅ Backend image found in GHCR"
+            docker images | grep synth-lab-api | head -5
+          else
+            echo "❌ Backend image NOT found in GHCR"
+            echo "Expected tag: ${{ env.IMAGE_TAG }}"
+            echo ""
+            echo "This usually means the pre-push hook didn't run or failed."
+            echo "The pre-push hook should build and push images before allowing the push."
+            exit 1
+          fi
+
       - name: Deploy backend image to Railway
         env:
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
@@ -169,6 +218,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Verify frontend image exists in GHCR
+        run: |
+          echo "Verifying frontend image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ env.IMAGE_TAG }}"
+
+          # Try to inspect the image using docker
+          if docker pull "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ env.IMAGE_TAG }}"; then
+            echo "✅ Frontend image found in GHCR"
+            docker images | grep synth-lab-frontend | head -5
+          else
+            echo "❌ Frontend image NOT found in GHCR"
+            echo "Expected tag: ${{ env.IMAGE_TAG }}"
+            echo ""
+            echo "This usually means the pre-push hook didn't run or failed."
+            echo "The pre-push hook should build and push images before allowing the push."
+            exit 1
+          fi
+
       - name: Deploy frontend image to Railway
         env:
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
@@ -180,7 +246,11 @@ jobs:
             staging
 
       - name: Wait for Railway deployments to stabilize
-        run: sleep 120  # Wait 2 minutes for Railway to pull images and start containers
+        run: |
+          echo "Waiting for Railway to pull images and start containers..."
+          echo "This can take 3-5 minutes for large images..."
+          sleep 180  # Wait 3 minutes for Railway to pull images and start containers
+          echo "✅ Initial wait completed, now checking health endpoint..."
 
   # ============================================================================
   # Stage 5: Run Smoke Tests on Staging (deploy validation only)
@@ -207,9 +277,9 @@ jobs:
           echo "Waiting for staging backend to be healthy..."
           echo "Testing URL: ${{ vars.STAGING_BACKEND_URL }}/health"
 
-          # Try for up to 10 minutes (60 attempts x 10s)
-          for i in {1..60}; do
-            echo "Attempt $i/60: Checking backend health..."
+          # Try for up to 5 minutes (30 attempts x 10s)
+          for i in {1..30}; do
+            echo "Attempt $i/30: Checking backend health..."
 
             # Try to get health endpoint with verbose output on failure
             if curl -sf "${{ vars.STAGING_BACKEND_URL }}/health" > /dev/null 2>&1; then
@@ -227,7 +297,7 @@ jobs:
           done
 
           echo ""
-          echo "❌ Backend did not become healthy after 10 minutes"
+          echo "❌ Backend did not become healthy after 5 minutes"
           echo "Last attempt details:"
           curl -v "${{ vars.STAGING_BACKEND_URL }}/health" || true
           exit 1

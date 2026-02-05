@@ -136,6 +136,51 @@ fi
 echo "Service ID: $SERVICE_ID"
 
 # =============================================================================
+# Verify Image Exists in Registry
+# =============================================================================
+
+echo "Verifying image exists in registry..."
+
+# Extract registry, image name, and tag
+REGISTRY_URL=$(echo "$IMAGE_URL" | cut -d'/' -f1)
+IMAGE_PATH=$(echo "$IMAGE_URL" | cut -d':' -f1)
+IMAGE_TAG=$(echo "$IMAGE_URL" | cut -d':' -f2)
+
+echo "  Registry: $REGISTRY_URL"
+echo "  Image:    $IMAGE_PATH"
+echo "  Tag:      $IMAGE_TAG"
+
+# Try to pull the image to verify it exists
+# Use skopeo if available (doesn't require downloading the full image)
+if command -v skopeo &> /dev/null; then
+    echo "  Using skopeo to verify image..."
+    if ! skopeo inspect "docker://$IMAGE_URL" &> /dev/null; then
+        echo "Error: Image $IMAGE_URL does not exist in registry"
+        echo "Available tags can be checked with: podman search $IMAGE_PATH --list-tags"
+        exit 1
+    fi
+    echo "  ✅ Image verified in registry"
+elif command -v podman &> /dev/null; then
+    echo "  Using podman to verify image..."
+    if ! podman pull "$IMAGE_URL" &> /dev/null; then
+        echo "Error: Image $IMAGE_URL does not exist in registry or cannot be pulled"
+        echo "Available tags can be checked with: podman search $IMAGE_PATH --list-tags"
+        exit 1
+    fi
+    echo "  ✅ Image verified in registry"
+elif command -v docker &> /dev/null; then
+    echo "  Using docker to verify image..."
+    if ! docker pull "$IMAGE_URL" &> /dev/null; then
+        echo "Error: Image $IMAGE_URL does not exist in registry or cannot be pulled"
+        exit 1
+    fi
+    echo "  ✅ Image verified in registry"
+else
+    echo "  ⚠️  Warning: Cannot verify image (no container runtime found)"
+    echo "  Proceeding anyway..."
+fi
+
+# =============================================================================
 # Update Service Image
 # =============================================================================
 
@@ -151,7 +196,15 @@ EOF
 )
 
 UPDATE_RESPONSE=$(railway_graphql "$UPDATE_QUERY")
-echo "Service image updated successfully"
+
+# Check if update was successful
+if echo "$UPDATE_RESPONSE" | jq -e '.data.serviceInstanceUpdate' > /dev/null 2>&1; then
+    echo "✅ Service image updated successfully"
+else
+    echo "❌ Failed to update service image"
+    echo "Response: $UPDATE_RESPONSE"
+    exit 1
+fi
 
 # =============================================================================
 # Trigger Redeploy

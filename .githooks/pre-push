@@ -1,13 +1,19 @@
 #!/bin/bash
 #
-# Git pre-push hook: Build, test, and push Docker images before pushing to main
+# Git pre-push hook: Intelligent build, test, and push Docker images before pushing to main
 #
 # This hook runs when pushing to main and ensures:
-# 1. Docker images are built successfully
-# 2. All tests pass (make test)
-# 3. E2E tests pass (make test-e2e)
+# 1. Docker images are built only if their source files changed
+# 2. Tests run only if relevant code changed
+# 3. E2E tests run only if backend or frontend changed
 # 4. Images are pushed to GHCR
 # 5. Only then allows the push to main
+#
+# Change detection:
+# - Backend changes: src/, pyproject.toml, Dockerfile.backend, alembic/, scripts/
+# - Frontend changes: frontend/src/, frontend/package.json, frontend/Dockerfile
+# - Docs only: docs/, README.md, *.md (skips tests but ensures build works)
+# - Config changes: docker/, .env.*, Makefile (runs everything)
 #
 # To bypass (not recommended): git push --no-verify
 
@@ -18,6 +24,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Get the current branch
@@ -37,7 +44,7 @@ do
 
     echo ""
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
-    echo -e "${BLUE}🚀 Pre-Push Validation for main${NC}"
+    echo -e "${BLUE}🚀 Pre-Push Validation for main (Smart Mode)${NC}"
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     echo ""
 
@@ -47,9 +54,83 @@ do
     echo ""
 
     # ========================================================================
-    # Step 1: Build Docker Images
+    # Step 0: Detect Changes
     # ========================================================================
-    echo -e "${YELLOW}[1/5] 🐳 Building Docker images...${NC}"
+    echo -e "${CYAN}[0/5] 🔍 Detecting changes since origin/main...${NC}"
+    echo ""
+
+    # Fetch latest main to compare (silent)
+    git fetch origin main --quiet 2>/dev/null || true
+
+    # Get list of changed files
+    CHANGED_FILES=$(git diff --name-only origin/main...HEAD 2>/dev/null || git diff --name-only HEAD~1...HEAD)
+
+    # Detect what changed
+    BACKEND_CHANGED=false
+    FRONTEND_CHANGED=false
+    DOCS_ONLY=true
+    CONFIG_CHANGED=false
+
+    if [ -z "$CHANGED_FILES" ]; then
+        echo -e "${YELLOW}  ⚠️  No changes detected (comparing with origin/main)${NC}"
+        echo -e "${YELLOW}  Running full validation to be safe...${NC}"
+        BACKEND_CHANGED=true
+        FRONTEND_CHANGED=true
+        DOCS_ONLY=false
+    else
+        echo -e "${BLUE}  Changed files:${NC}"
+        while IFS= read -r file; do
+            echo "    - $file"
+
+            # Backend changes
+            if [[ "$file" =~ ^(src/|tests/|pyproject\.toml|uv\.lock|Dockerfile\.backend|alembic/|scripts/seed_database\.py) ]]; then
+                BACKEND_CHANGED=true
+                DOCS_ONLY=false
+            fi
+
+            # Frontend changes
+            if [[ "$file" =~ ^frontend/(src/|tests/|package\.json|package-lock\.json|Dockerfile) ]]; then
+                FRONTEND_CHANGED=true
+                DOCS_ONLY=false
+            fi
+
+            # Config changes (run everything)
+            if [[ "$file" =~ ^(docker/|\.env\.|Makefile|\.github/) ]]; then
+                CONFIG_CHANGED=true
+                DOCS_ONLY=false
+            fi
+
+            # Non-doc changes
+            if [[ ! "$file" =~ \.(md|txt)$ ]] && [[ ! "$file" =~ ^docs/ ]]; then
+                DOCS_ONLY=false
+            fi
+        done <<< "$CHANGED_FILES"
+    fi
+
+    echo ""
+    echo -e "${CYAN}  📊 Change Summary:${NC}"
+    echo -e "    Backend changed:  $([ "$BACKEND_CHANGED" = true ] && echo -e "${YELLOW}YES${NC}" || echo -e "${GREEN}NO${NC}")"
+    echo -e "    Frontend changed: $([ "$FRONTEND_CHANGED" = true ] && echo -e "${YELLOW}YES${NC}" || echo -e "${GREEN}NO${NC}")"
+    echo -e "    Config changed:   $([ "$CONFIG_CHANGED" = true ] && echo -e "${YELLOW}YES${NC}" || echo -e "${GREEN}NO${NC}")"
+    echo -e "    Docs only:        $([ "$DOCS_ONLY" = true ] && echo -e "${GREEN}YES${NC}" || echo -e "${YELLOW}NO${NC}")"
+    echo ""
+
+    # Config changes affect how tests run, but don't require rebuilding images
+    # Only rebuild if actual source code changed
+    if [ "$CONFIG_CHANGED" = true ]; then
+        if [ "$BACKEND_CHANGED" = false ] && [ "$FRONTEND_CHANGED" = false ]; then
+            echo -e "${YELLOW}  ℹ️  Config changed but no code changes - using existing images${NC}"
+            echo -e "${YELLOW}  ℹ️  Will run full test suite (config may affect test behavior)${NC}"
+            DOCS_ONLY=false  # Force tests to run
+        else
+            echo -e "${YELLOW}  ⚠️  Config AND code changed - full rebuild and validation${NC}"
+        fi
+    fi
+
+    # If docs only, skip tests but still verify images exist
+    if [ "$DOCS_ONLY" = true ]; then
+        echo -e "${GREEN}  ℹ️  Only docs changed - will skip tests and builds${NC}"
+    fi
     echo ""
 
     # Detect container runtime
@@ -62,89 +143,185 @@ do
         exit 1
     fi
 
-    # Build backend image
-    echo -e "${BLUE}  Building backend image...${NC}"
-    if ! $CONTAINER_RUNTIME build -t synth-lab-api:$COMMIT_SHA -t synth-lab-api:latest -f Dockerfile.backend .; then
-        echo -e "${RED}❌ Backend image build failed!${NC}"
-        exit 1
+    # Extract GitHub username for GHCR (used in multiple places)
+    GITHUB_USER=$(git config --get remote.origin.url | sed -n 's#.*/\([^/]*\)/[^/]*\.git#\1#p' | tr '[:upper:]' '[:lower:]')
+    if [ -z "$GITHUB_USER" ]; then
+        GITHUB_USER=$(git config user.name | tr -d ' ' | tr '[:upper:]' '[:lower:]')
     fi
-    echo -e "${GREEN}  ✅ Backend image built${NC}"
-    echo ""
-
-    # Build frontend image
-    echo -e "${BLUE}  Building frontend image...${NC}"
-    if ! $CONTAINER_RUNTIME build -t synth-lab-frontend:$COMMIT_SHA -t synth-lab-frontend:latest -f frontend/Dockerfile --build-arg VITE_API_URL=http://localhost:8001 frontend/; then
-        echo -e "${RED}❌ Frontend image build failed!${NC}"
-        exit 1
-    fi
-    echo -e "${GREEN}  ✅ Frontend image built${NC}"
-    echo ""
-
-    # ========================================================================
-    # Step 2: Run Full Test Suite (Smart Mode)
-    # ========================================================================
-    echo -e "${YELLOW}[2/5] 🧪 Running full test suite (smart mode)...${NC}"
-    echo -e "${BLUE}   Strategy: Failed tests first (fail-fast), then full suite${NC}"
-    echo ""
-
-    if ! make test; then
-        echo ""
-        echo -e "${RED}❌ Tests failed!${NC}"
-        echo -e "${RED}   Fix the failing tests before pushing to main.${NC}"
-        echo ""
-        echo -e "   To bypass this check (not recommended):"
-        echo -e "   git push --no-verify"
-        echo ""
-        exit 1
-    fi
-    echo -e "${GREEN}✅ All tests passed${NC}"
-    echo ""
-
-    # ========================================================================
-    # Step 3: Run E2E Tests (Smart Mode)
-    # ========================================================================
-    echo -e "${YELLOW}[3/5] 🎭 Running E2E tests (smart mode)...${NC}"
-    echo -e "${BLUE}   Strategy: Failed tests first (fail-fast), then full suite${NC}"
-    echo ""
-
-    if ! make test-e2e; then
-        echo ""
-        echo -e "${RED}❌ E2E tests failed!${NC}"
-        echo -e "${RED}   Fix the failing tests before pushing to main.${NC}"
-        echo ""
-        echo -e "   To bypass this check (not recommended):"
-        echo -e "   git push --no-verify"
-        echo ""
-        exit 1
-    fi
-    echo -e "${GREEN}✅ E2E tests passed${NC}"
-    echo ""
-
-    # ========================================================================
-    # Step 4: Push Images to GHCR
-    # ========================================================================
-    echo -e "${YELLOW}[4/5] 📦 Pushing images to GitHub Container Registry...${NC}"
-    echo ""
-
-    # Get GitHub username from git config
-    GITHUB_USER=$(git config user.name | tr '[:upper:]' '[:lower:]')
     REGISTRY="ghcr.io"
     GHCR_BACKEND_IMAGE="$REGISTRY/$GITHUB_USER/synth-lab-api"
     GHCR_FRONTEND_IMAGE="$REGISTRY/$GITHUB_USER/synth-lab-frontend"
+
+    # ========================================================================
+    # Step 1: Build Docker Images (Smart)
+    # ========================================================================
+    echo -e "${YELLOW}[1/5] 🐳 Building Docker images (smart mode)...${NC}"
+    echo ""
+
+    # Build backend image only if backend changed
+    if [ "$BACKEND_CHANGED" = true ]; then
+        echo -e "${BLUE}  Building backend image...${NC}"
+
+        # Pull latest image for cache (ignore errors if not found)
+        echo -e "${BLUE}  Attempting to pull cache from GHCR...${NC}"
+        if $CONTAINER_RUNTIME pull "$GHCR_BACKEND_IMAGE:latest" 2>/dev/null; then
+            echo -e "${GREEN}  ✅ Cache image pulled${NC}"
+            # Build with cache (faster - reuses unchanged layers)
+            if ! $CONTAINER_RUNTIME build \
+                --cache-from "$GHCR_BACKEND_IMAGE:latest" \
+                -t synth-lab-api:$COMMIT_SHA \
+                -t synth-lab-api:latest \
+                -f Dockerfile.backend .; then
+                echo -e "${RED}❌ Backend image build failed!${NC}"
+                exit 1
+            fi
+        else
+            echo -e "${YELLOW}  ⚠️  No cache available (first build or not logged in)${NC}"
+            # Build without cache
+            if ! $CONTAINER_RUNTIME build \
+                -t synth-lab-api:$COMMIT_SHA \
+                -t synth-lab-api:latest \
+                -f Dockerfile.backend .; then
+                echo -e "${RED}❌ Backend image build failed!${NC}"
+                exit 1
+            fi
+        fi
+        echo -e "${GREEN}  ✅ Backend image built${NC}"
+    else
+        echo -e "${CYAN}  ⏭️  Skipping backend build (no changes)${NC}"
+        # Tag existing latest image with current commit SHA for consistency
+        if $CONTAINER_RUNTIME image exists synth-lab-api:latest 2>/dev/null; then
+            $CONTAINER_RUNTIME tag synth-lab-api:latest synth-lab-api:$COMMIT_SHA
+            echo -e "${GREEN}  ✅ Using existing backend image${NC}"
+        fi
+    fi
+    echo ""
+
+    # Build frontend image only if frontend changed
+    if [ "$FRONTEND_CHANGED" = true ]; then
+        echo -e "${BLUE}  Building frontend image...${NC}"
+
+        # Pull latest image for cache (ignore errors if not found)
+        echo -e "${BLUE}  Attempting to pull cache from GHCR...${NC}"
+        if $CONTAINER_RUNTIME pull "$GHCR_FRONTEND_IMAGE:latest" 2>/dev/null; then
+            echo -e "${GREEN}  ✅ Cache image pulled${NC}"
+            # Build with cache (faster - reuses unchanged layers)
+            if ! $CONTAINER_RUNTIME build \
+                --cache-from "$GHCR_FRONTEND_IMAGE:latest" \
+                -t synth-lab-frontend:$COMMIT_SHA \
+                -t synth-lab-frontend:latest \
+                -f frontend/Dockerfile \
+                --build-arg VITE_API_URL=http://localhost:8001 \
+                frontend/; then
+                echo -e "${RED}❌ Frontend image build failed!${NC}"
+                exit 1
+            fi
+        else
+            echo -e "${YELLOW}  ⚠️  No cache available (first build or not logged in)${NC}"
+            # Build without cache
+            if ! $CONTAINER_RUNTIME build \
+                -t synth-lab-frontend:$COMMIT_SHA \
+                -t synth-lab-frontend:latest \
+                -f frontend/Dockerfile \
+                --build-arg VITE_API_URL=http://localhost:8001 \
+                frontend/; then
+                echo -e "${RED}❌ Frontend image build failed!${NC}"
+                exit 1
+            fi
+        fi
+        echo -e "${GREEN}  ✅ Frontend image built${NC}"
+    else
+        echo -e "${CYAN}  ⏭️  Skipping frontend build (no changes)${NC}"
+        # Tag existing latest image with current commit SHA for consistency
+        if $CONTAINER_RUNTIME image exists synth-lab-frontend:latest 2>/dev/null; then
+            $CONTAINER_RUNTIME tag synth-lab-frontend:latest synth-lab-frontend:$COMMIT_SHA
+            echo -e "${GREEN}  ✅ Using existing frontend image${NC}"
+        fi
+    fi
+    echo ""
+
+    # ========================================================================
+    # Step 2: Run Unit Tests (Smart)
+    # ========================================================================
+    echo -e "${YELLOW}[2/5] 🧪 Running unit tests (smart mode)...${NC}"
+    echo ""
+
+    # Skip tests if only docs changed
+    if [ "$DOCS_ONLY" = true ]; then
+        echo -e "${CYAN}  ⏭️  Skipping unit tests (docs only change)${NC}"
+        echo -e "${GREEN}  ✅ Tests skipped (safe)${NC}"
+    elif [ "$BACKEND_CHANGED" = true ]; then
+        echo -e "${BLUE}  Running backend unit tests...${NC}"
+        echo -e "${BLUE}  Strategy: Failed tests first (fail-fast), then full suite${NC}"
+        echo ""
+
+        if ! make test; then
+            echo ""
+            echo -e "${RED}❌ Tests failed!${NC}"
+            echo -e "${RED}   Fix the failing tests before pushing to main.${NC}"
+            echo ""
+            echo -e "   To bypass this check (not recommended):"
+            echo -e "   git push --no-verify"
+            echo ""
+            exit 1
+        fi
+        echo -e "${GREEN}  ✅ All tests passed${NC}"
+    else
+        echo -e "${CYAN}  ⏭️  Skipping unit tests (backend unchanged)${NC}"
+        echo -e "${GREEN}  ✅ Tests skipped (safe)${NC}"
+    fi
+    echo ""
+
+    # ========================================================================
+    # Step 3: Run E2E Tests (Smart)
+    # ========================================================================
+    echo -e "${YELLOW}[3/5] 🎭 Running E2E tests (smart mode)...${NC}"
+    echo ""
+
+    # Skip E2E if only docs changed
+    if [ "$DOCS_ONLY" = true ]; then
+        echo -e "${CYAN}  ⏭️  Skipping E2E tests (docs only change)${NC}"
+        echo -e "${GREEN}  ✅ E2E tests skipped (safe)${NC}"
+    elif [ "$BACKEND_CHANGED" = true ] || [ "$FRONTEND_CHANGED" = true ]; then
+        echo -e "${BLUE}  Running E2E tests (integration between frontend & backend)...${NC}"
+        echo -e "${BLUE}  Strategy: Failed tests first (fail-fast), then full suite${NC}"
+        echo ""
+
+        if ! make test-e2e; then
+            echo ""
+            echo -e "${RED}❌ E2E tests failed!${NC}"
+            echo -e "${RED}   Fix the failing tests before pushing to main.${NC}"
+            echo ""
+            echo -e "   To bypass this check (not recommended):"
+            echo -e "   git push --no-verify"
+            echo ""
+            exit 1
+        fi
+        echo -e "${GREEN}  ✅ E2E tests passed${NC}"
+    else
+        echo -e "${CYAN}  ⏭️  Skipping E2E tests (no frontend/backend changes)${NC}"
+        echo -e "${GREEN}  ✅ E2E tests skipped (safe)${NC}"
+    fi
+    echo ""
+
+    # ========================================================================
+    # Step 4: Push Images to GHCR (Smart)
+    # ========================================================================
+    echo -e "${YELLOW}[4/5] 📦 Pushing images to GitHub Container Registry (smart mode)...${NC}"
+    echo ""
 
     echo -e "${BLUE}  Registry: $REGISTRY${NC}"
     echo -e "${BLUE}  Backend:  $GHCR_BACKEND_IMAGE:$COMMIT_SHA${NC}"
     echo -e "${BLUE}  Frontend: $GHCR_FRONTEND_IMAGE:$COMMIT_SHA${NC}"
     echo ""
 
-    # Check if logged in to GHCR (using GitHub token from environment or credential helper)
+    # Check if logged in to GHCR
     if ! $CONTAINER_RUNTIME login $REGISTRY --get-login 2>/dev/null | grep -q .; then
         echo -e "${YELLOW}⚠️  Not logged in to GHCR. Attempting to log in...${NC}"
         echo -e "${BLUE}  You may need to provide a GitHub Personal Access Token with 'write:packages' scope.${NC}"
         echo -e "${BLUE}  Create one at: https://github.com/settings/tokens${NC}"
         echo ""
 
-        # Try to log in (will prompt for username and token)
         if ! $CONTAINER_RUNTIME login $REGISTRY; then
             echo -e "${RED}❌ Failed to log in to GHCR${NC}"
             echo -e "${YELLOW}  You can skip image push by using: git push --no-verify${NC}"
@@ -152,36 +329,46 @@ do
         fi
     fi
 
-    # Tag and push backend image
-    echo -e "${BLUE}  Pushing backend image...${NC}"
-    $CONTAINER_RUNTIME tag synth-lab-api:$COMMIT_SHA $GHCR_BACKEND_IMAGE:$COMMIT_SHA
-    $CONTAINER_RUNTIME tag synth-lab-api:$COMMIT_SHA $GHCR_BACKEND_IMAGE:latest
+    # Push backend image only if backend changed
+    if [ "$BACKEND_CHANGED" = true ]; then
+        echo -e "${BLUE}  Pushing backend image...${NC}"
+        $CONTAINER_RUNTIME tag "synth-lab-api:$COMMIT_SHA" "$GHCR_BACKEND_IMAGE:$COMMIT_SHA"
+        $CONTAINER_RUNTIME tag "synth-lab-api:$COMMIT_SHA" "$GHCR_BACKEND_IMAGE:latest"
 
-    if ! $CONTAINER_RUNTIME push $GHCR_BACKEND_IMAGE:$COMMIT_SHA; then
-        echo -e "${RED}❌ Failed to push backend image${NC}"
-        exit 1
+        if ! $CONTAINER_RUNTIME push "$GHCR_BACKEND_IMAGE:$COMMIT_SHA"; then
+            echo -e "${RED}❌ Failed to push backend image${NC}"
+            exit 1
+        fi
+        if ! $CONTAINER_RUNTIME push "$GHCR_BACKEND_IMAGE:latest"; then
+            echo -e "${RED}❌ Failed to push backend image (latest tag)${NC}"
+            exit 1
+        fi
+        echo -e "${GREEN}  ✅ Backend image pushed${NC}"
+    else
+        echo -e "${CYAN}  ⏭️  Skipping backend push (no changes)${NC}"
+        echo -e "${GREEN}  ✅ Backend push skipped (using existing image)${NC}"
     fi
-    if ! $CONTAINER_RUNTIME push $GHCR_BACKEND_IMAGE:latest; then
-        echo -e "${RED}❌ Failed to push backend image (latest tag)${NC}"
-        exit 1
-    fi
-    echo -e "${GREEN}  ✅ Backend image pushed${NC}"
     echo ""
 
-    # Tag and push frontend image
-    echo -e "${BLUE}  Pushing frontend image...${NC}"
-    $CONTAINER_RUNTIME tag synth-lab-frontend:$COMMIT_SHA $GHCR_FRONTEND_IMAGE:$COMMIT_SHA
-    $CONTAINER_RUNTIME tag synth-lab-frontend:$COMMIT_SHA $GHCR_FRONTEND_IMAGE:latest
+    # Push frontend image only if frontend changed
+    if [ "$FRONTEND_CHANGED" = true ]; then
+        echo -e "${BLUE}  Pushing frontend image...${NC}"
+        $CONTAINER_RUNTIME tag "synth-lab-frontend:$COMMIT_SHA" "$GHCR_FRONTEND_IMAGE:$COMMIT_SHA"
+        $CONTAINER_RUNTIME tag "synth-lab-frontend:$COMMIT_SHA" "$GHCR_FRONTEND_IMAGE:latest"
 
-    if ! $CONTAINER_RUNTIME push $GHCR_FRONTEND_IMAGE:$COMMIT_SHA; then
-        echo -e "${RED}❌ Failed to push frontend image${NC}"
-        exit 1
+        if ! $CONTAINER_RUNTIME push "$GHCR_FRONTEND_IMAGE:$COMMIT_SHA"; then
+            echo -e "${RED}❌ Failed to push frontend image${NC}"
+            exit 1
+        fi
+        if ! $CONTAINER_RUNTIME push "$GHCR_FRONTEND_IMAGE:latest"; then
+            echo -e "${RED}❌ Failed to push frontend image (latest tag)${NC}"
+            exit 1
+        fi
+        echo -e "${GREEN}  ✅ Frontend image pushed${NC}"
+    else
+        echo -e "${CYAN}  ⏭️  Skipping frontend push (no changes)${NC}"
+        echo -e "${GREEN}  ✅ Frontend push skipped (using existing image)${NC}"
     fi
-    if ! $CONTAINER_RUNTIME push $GHCR_FRONTEND_IMAGE:latest; then
-        echo -e "${RED}❌ Failed to push frontend image (latest tag)${NC}"
-        exit 1
-    fi
-    echo -e "${GREEN}  ✅ Frontend image pushed${NC}"
     echo ""
 
     # ========================================================================
@@ -189,15 +376,38 @@ do
     # ========================================================================
     echo -e "${YELLOW}[5/5] 📋 Summary${NC}"
     echo ""
-    echo -e "${GREEN}✅ Docker images built successfully${NC}"
-    echo -e "${GREEN}✅ All tests passed${NC}"
-    echo -e "${GREEN}✅ E2E tests passed${NC}"
-    echo -e "${GREEN}✅ Images pushed to GHCR${NC}"
+
+    if [ "$DOCS_ONLY" = true ]; then
+        echo -e "${GREEN}✅ Documentation updated (tests skipped)${NC}"
+        echo -e "${GREEN}✅ Docker images verified${NC}"
+    else
+        if [ "$BACKEND_CHANGED" = true ]; then
+            echo -e "${GREEN}✅ Backend image built and tested${NC}"
+        else
+            echo -e "${CYAN}⏭️  Backend unchanged (skipped)${NC}"
+        fi
+
+        if [ "$FRONTEND_CHANGED" = true ]; then
+            echo -e "${GREEN}✅ Frontend image built and tested${NC}"
+        else
+            echo -e "${CYAN}⏭️  Frontend unchanged (skipped)${NC}"
+        fi
+
+        if [ "$BACKEND_CHANGED" = true ] || [ "$FRONTEND_CHANGED" = true ]; then
+            echo -e "${GREEN}✅ All tests passed${NC}"
+        fi
+    fi
+
+    echo -e "${GREEN}✅ Images pushed to GHCR (if changed)${NC}"
     echo ""
-    echo -e "${BLUE}Images available at:${NC}"
-    echo -e "  - $GHCR_BACKEND_IMAGE:$COMMIT_SHA"
-    echo -e "  - $GHCR_FRONTEND_IMAGE:$COMMIT_SHA"
-    echo ""
+
+    if [ "$BACKEND_CHANGED" = true ] || [ "$FRONTEND_CHANGED" = true ]; then
+        echo -e "${BLUE}Images available at:${NC}"
+        [ "$BACKEND_CHANGED" = true ] && echo -e "  - $GHCR_BACKEND_IMAGE:$COMMIT_SHA"
+        [ "$FRONTEND_CHANGED" = true ] && echo -e "  - $GHCR_FRONTEND_IMAGE:$COMMIT_SHA"
+        echo ""
+    fi
+
     echo -e "${GREEN}🚀 Ready to push to main!${NC}"
     echo -e "${BLUE}   Deploy to staging will start automatically after push.${NC}"
     echo ""

@@ -195,6 +195,10 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-dummy_key_for_testing}
       PHOENIX_ENABLED: "false"
       LOG_LEVEL: INFO
+      # Enable migrations in entrypoint for E2E (Railway handles this via workflow)
+      RUN_MIGRATIONS: "true"
+      # Enable E2E database seeding (uses tests.fixtures.seed_test)
+      SEED_E2E_DATABASE: "true"
       # Database pool configuration for E2E tests with high concurrency
       # Playwright runs 200+ tests in parallel, each making multiple requests
       # With WORKERS=20: pool_size=80, max_overflow=160, total=240 connections

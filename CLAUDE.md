@@ -100,6 +100,46 @@ git push origin main
    ```
 
 3. **docs/testing-pre-push-hook.md** - Documentação completa do hook
+4. **docs/pre-push-hook-smart-mode.md** - Documentação do smart mode
+
+### 🚀 Smart Mode (Otimização Automática)
+
+O pre-push hook agora usa **detecção inteligente de mudanças** para otimizar builds e testes:
+
+**Como funciona:**
+- Detecta quais arquivos mudaram desde `origin/main`
+- Classifica mudanças: backend, frontend, docs, config
+- Pula builds/testes desnecessários de forma segura
+- Usa cache do GHCR para acelerar builds
+
+**Economia de tempo:**
+- Apenas docs: ~5 segundos (antes: 5-10 min) → 98% mais rápido
+- Apenas backend: ~2-3 min (antes: 5-10 min) → 60% mais rápido
+- Apenas frontend: ~2-3 min (antes: 5-10 min) → 60% mais rápido
+- Config mudou: 5-10 min (full validation, sem skip)
+
+**Exemplo de saída:**
+```
+🔍 Detecting changes since origin/main...
+  Changed files:
+    - src/synth_lab/services/experiment_service.py
+    - tests/services/test_experiment_service.py
+
+📊 Change Summary:
+  Backend changed:  YES
+  Frontend changed: NO
+  Config changed:   NO
+  Docs only:        NO
+
+✅ Building backend image (with GHCR cache)
+⏭️  Skipping frontend build (no changes)
+✅ Running unit tests
+✅ Running E2E tests
+✅ Pushing backend image to GHCR
+⏭️  Skipping frontend push (no changes)
+```
+
+**Ver documentação completa:** `docs/pre-push-hook-smart-mode.md`
 
 ### ⚠️ Troubleshooting
 

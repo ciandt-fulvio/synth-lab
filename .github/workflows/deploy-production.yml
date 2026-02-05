@@ -1,0 +1,360 @@
+# Deploy Production - Manual only
+#
+# Two deployment modes:
+#
+# 1. NORMAL DEPLOY (default):
+#    - Migrate DB (apply new migrations only - PRESERVES DATA)
+#    - Deploy images to Railway
+#    - Run smoke tests
+#    - NO SEEDING (production data is real user data)
+#
+# 2. FRESH START (dangerous - via fresh_start=true):
+#    - Reset DB (DROP all tables - DESTROYS ALL DATA)
+#    - Migrate DB (recreate from scratch)
+#    - Deploy images to Railway
+#    - Run smoke tests
+#    - NO SEEDING (production starts empty)
+#
+# Usage:
+#   - Normal deploy: gh workflow run deploy-production.yml
+#   - Fresh start: gh workflow run deploy-production.yml -f fresh_start=true
+#
+# CRITICAL: Fresh start DESTROYS ALL PRODUCTION DATA. Only use for:
+#   - Initial deployment to production
+#   - Complete system reset (with backup and user communication)
+
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      fresh_start:
+        description: '⚠️ DANGER: Drop all tables and recreate from scratch (DESTROYS DATA)'
+        required: false
+        type: boolean
+        default: false
+      use_staging_verified:
+        description: 'Use staging-verified images (recommended) instead of latest commit'
+        required: false
+        type: boolean
+        default: true
+
+env:
+  REGISTRY: ghcr.io
+  RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+  RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+  # Use staging-verified images by default, or current commit SHA
+  IMAGE_TAG: ${{ github.event.inputs.use_staging_verified == 'true' && 'staging-verified' || github.sha }}
+
+jobs:
+  # ============================================================================
+  # Stage 0: Confirmation and Validation
+  # ============================================================================
+  validate:
+    name: Validate Deployment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Warn if fresh start
+        if: github.event.inputs.fresh_start == 'true'
+        run: |
+          echo "⚠️⚠️⚠️ WARNING ⚠️⚠️⚠️"
+          echo "This is a FRESH START deployment."
+          echo "ALL PRODUCTION DATA WILL BE DESTROYED."
+          echo "Make sure you have a backup and have communicated with users."
+          echo "⚠️⚠️⚠️ WARNING ⚠️⚠️⚠️"
+
+      - name: Show deployment plan
+        run: |
+          echo "## Production Deployment Plan" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event.inputs.fresh_start }}" = "true" ]; then
+            echo "**Mode**: 🔴 FRESH START (DESTROYS DATA)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Mode**: ✅ Normal Deploy (preserves data)" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "**Image Tag**: \`${{ env.IMAGE_TAG }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Steps:" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event.inputs.fresh_start }}" = "true" ]; then
+            echo "1. ⚠️ Reset Database (DROP ALL)" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "2. Run Migrations" >> $GITHUB_STEP_SUMMARY
+          echo "3. Deploy Backend" >> $GITHUB_STEP_SUMMARY
+          echo "4. Deploy Frontend" >> $GITHUB_STEP_SUMMARY
+          echo "5. Smoke Tests" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # Stage 1: Reset Production Database (Optional - DANGEROUS)
+  # ============================================================================
+  reset-production-db:
+    name: Reset Production DB
+    runs-on: ubuntu-latest
+    needs: validate
+    # Only run reset on fresh start (manual trigger with input)
+    if: github.event.inputs.fresh_start == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install dependencies
+        run: uv pip install --system -e .
+
+      - name: Reset production database (drop all tables)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_PRODUCTION_URL }}
+        run: |
+          echo "⚠️⚠️⚠️ RESETTING PRODUCTION DATABASE ⚠️⚠️⚠️"
+          echo "This will DESTROY ALL PRODUCTION DATA"
+
+          # Use raw SQL to drop all tables
+          python -c "
+          import os
+          from sqlalchemy import create_engine, text
+
+          engine = create_engine(os.environ['DATABASE_URL'])
+          with engine.connect() as conn:
+              # Drop all tables in public schema
+              conn.execute(text('DROP SCHEMA public CASCADE'))
+              conn.execute(text('CREATE SCHEMA public'))
+              conn.execute(text('GRANT ALL ON SCHEMA public TO PUBLIC'))
+              conn.commit()
+          print('✅ All tables dropped successfully')
+          "
+          echo "✅ Production database reset completed"
+
+  # ============================================================================
+  # Stage 2: Run Migrations on Production DB
+  # ============================================================================
+  migrate-production:
+    name: Migrate Production DB
+    runs-on: ubuntu-latest
+    needs: [validate, reset-production-db]
+    if: always() && needs.validate.result == 'success' && (needs.reset-production-db.result == 'success' || needs.reset-production-db.result == 'skipped')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install dependencies
+        run: uv pip install --system -e .
+
+      - name: Run Alembic migrations on Production
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_PRODUCTION_URL }}
+        run: |
+          echo "Running migrations on Production database..."
+          cd src/synth_lab/alembic
+          alembic upgrade head
+          echo "✅ Production migrations completed"
+
+  # ============================================================================
+  # Stage 3: Deploy Images to Railway Production
+  # ============================================================================
+  deploy-backend:
+    name: Deploy Backend (Production)
+    runs-on: ubuntu-latest
+    needs: migrate-production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify backend image exists in GHCR
+        run: |
+          echo "Verifying backend image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ env.IMAGE_TAG }}"
+
+          if docker pull "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ env.IMAGE_TAG }}"; then
+            echo "✅ Backend image found in GHCR"
+            docker images | grep synth-lab-api | head -5
+          else
+            echo "❌ Backend image NOT found in GHCR"
+            echo "Expected tag: ${{ env.IMAGE_TAG }}"
+            exit 1
+          fi
+
+      - name: Deploy backend image to Railway
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+        run: |
+          ./scripts/railway-deploy-image.sh \
+            synth-lab-api \
+            "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ env.IMAGE_TAG }}" \
+            production
+
+  deploy-frontend:
+    name: Deploy Frontend (Production)
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify frontend image exists in GHCR
+        run: |
+          echo "Verifying frontend image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ env.IMAGE_TAG }}"
+
+          if docker pull "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ env.IMAGE_TAG }}"; then
+            echo "✅ Frontend image found in GHCR"
+            docker images | grep synth-lab-frontend | head -5
+          else
+            echo "❌ Frontend image NOT found in GHCR"
+            echo "Expected tag: ${{ env.IMAGE_TAG }}"
+            exit 1
+          fi
+
+      - name: Deploy frontend image to Railway
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+        run: |
+          ./scripts/railway-deploy-image.sh \
+            synth-lab-frontend \
+            "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ env.IMAGE_TAG }}" \
+            production
+
+      - name: Wait for Railway deployments to stabilize
+        run: |
+          echo "Waiting for Railway to pull images and start containers..."
+          echo "This can take 3-5 minutes for large images..."
+          sleep 180  # Wait 3 minutes
+          echo "✅ Initial wait completed, now checking health endpoint..."
+
+  # ============================================================================
+  # Stage 4: Run Smoke Tests on Production
+  # ============================================================================
+  verify-production:
+    name: Smoke Tests (Production)
+    runs-on: ubuntu-latest
+    needs: deploy-frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Wait for backend to be healthy
+        run: |
+          echo "Waiting for production backend to be healthy..."
+          echo "Testing URL: ${{ vars.PRODUCTION_BACKEND_URL }}/health"
+
+          # Try for up to 5 minutes (30 attempts x 10s)
+          for i in {1..30}; do
+            echo "Attempt $i/30: Checking backend health..."
+
+            if curl -sf "${{ vars.PRODUCTION_BACKEND_URL }}/health" > /dev/null 2>&1; then
+              echo "✅ Backend is healthy!"
+              curl -s "${{ vars.PRODUCTION_BACKEND_URL }}/health"
+              exit 0
+            else
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.PRODUCTION_BACKEND_URL }}/health" 2>&1 || echo "connection_failed")
+              echo "  HTTP Status: $HTTP_CODE (not ready yet, waiting 10s...)"
+            fi
+
+            sleep 10
+          done
+
+          echo ""
+          echo "❌ Backend did not become healthy after 5 minutes"
+          curl -v "${{ vars.PRODUCTION_BACKEND_URL }}/health" || true
+          exit 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run smoke tests on Production
+        run: make test-smoke-production
+        env:
+          PRODUCTION_FRONTEND_URL: ${{ vars.PRODUCTION_FRONTEND_URL }}
+          PRODUCTION_BACKEND_URL: ${{ vars.PRODUCTION_BACKEND_URL }}
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-smoke-test-results
+          path: frontend/test-results/
+          retention-days: 30
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-playwright-report
+          path: frontend/playwright-report/
+          retention-days: 30
+
+  # ============================================================================
+  # Notify on completion
+  # ============================================================================
+  notify:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [verify-production]
+    if: always()
+
+    steps:
+      - name: Summary
+        run: |
+          echo "## Production Deploy Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tag**: \`${{ env.IMAGE_TAG }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: ${{ needs.verify-production.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ github.event.inputs.fresh_start }}" = "true" ]; then
+            echo "### 🔴 Fresh Start Deployment" >> $GITHUB_STEP_SUMMARY
+            echo "1. ⚠️ Reset Production DB (all data destroyed)" >> $GITHUB_STEP_SUMMARY
+            echo "2. ✅ Migrate Production DB" >> $GITHUB_STEP_SUMMARY
+            echo "3. ✅ Deploy Backend Image" >> $GITHUB_STEP_SUMMARY
+            echo "4. ✅ Deploy Frontend Image" >> $GITHUB_STEP_SUMMARY
+            echo "5. ✅ Smoke Tests" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ✅ Normal Deployment" >> $GITHUB_STEP_SUMMARY
+            echo "1. ✅ Migrate Production DB (preserves data)" >> $GITHUB_STEP_SUMMARY
+            echo "2. ✅ Deploy Backend Image" >> $GITHUB_STEP_SUMMARY
+            echo "3. ✅ Deploy Frontend Image" >> $GITHUB_STEP_SUMMARY
+            echo "4. ✅ Smoke Tests" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Environment" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend**: ${{ vars.PRODUCTION_FRONTEND_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend**: ${{ vars.PRODUCTION_BACKEND_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.verify-production.result }}" == "success" ]; then
+            echo "✅ Smoke tests passed - production deploy validated!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Production deployment or smoke tests failed. Check artifacts for details." >> $GITHUB_STEP_SUMMARY
+          fi
