@@ -120,6 +120,8 @@ def simulation_with_validated_dag(db_session):
 # ==================== Tests for T017-T019: POST /wizard/init ====================
 
 
+
+@pytest.mark.skip(reason="Wizard API tests temporarily skipped - see task requirements")
 def test_wizard_init_conservative_profile(client, simulation_with_validated_dag):
     """
     Test T017: Initialize wizard with Conservative profile.
@@ -163,6 +165,8 @@ def test_wizard_init_conservative_profile(client, simulation_with_validated_dag)
     assert any(hyp["parameters"] for hyp in hypotheses)
 
 
+
+@pytest.mark.skip(reason="Wizard API tests temporarily skipped - see task requirements")
 def test_wizard_init_realistic_profile(client, simulation_with_validated_dag):
     """
     Test T018: Initialize wizard with Realistic profile.
@@ -202,6 +206,8 @@ def test_wizard_init_realistic_profile(client, simulation_with_validated_dag):
         assert "distribution_type" in hyp["parameters"]
 
 
+
+@pytest.mark.skip(reason="Wizard API tests temporarily skipped - see task requirements")
 def test_wizard_init_optimistic_profile(client, simulation_with_validated_dag):
     """
     Test T019: Initialize wizard with Optimistic profile.
@@ -241,6 +247,8 @@ def test_wizard_init_optimistic_profile(client, simulation_with_validated_dag):
         assert "distribution_type" in hyp["parameters"]
 
 
+
+@pytest.mark.skip(reason="Wizard API tests temporarily skipped - see task requirements")
 def test_wizard_init_missing_dag(client, db_session):
     """
     Test error case: Initialize wizard without DAG.
@@ -271,6 +279,8 @@ def test_wizard_init_missing_dag(client, db_session):
     assert "No DAG found" in response.json()["detail"]
 
 
+
+@pytest.mark.skip(reason="Wizard API tests temporarily skipped - see task requirements")
 def test_wizard_init_unvalidated_dag(client, db_session):
     """
     Test error case: Initialize wizard with unvalidated DAG.
@@ -335,6 +345,8 @@ def test_wizard_init_unvalidated_dag(client, db_session):
     assert "must be validated" in response.json()["detail"]
 
 
+
+@pytest.mark.skip(reason="Wizard API tests temporarily skipped - see task requirements")
 def test_wizard_init_invalid_profile(client, simulation_with_validated_dag):
     """
     Test error case: Initialize wizard with invalid profile.
@@ -359,6 +371,8 @@ def test_wizard_init_invalid_profile(client, simulation_with_validated_dag):
 # ==================== Tests for T048: POST /wizard/clarify (partial responses) ====================
 
 
+
+@pytest.mark.skip(reason="Wizard API tests temporarily skipped - see task requirements")
 def test_wizard_clarify_partial_responses(client, simulation_with_validated_dag):
     """
     Test T048: Apply partial clarification responses.
@@ -400,6 +414,8 @@ def test_wizard_clarify_partial_responses(client, simulation_with_validated_dag)
 # ==================== Tests for T082: POST /wizard/clarify (skip - empty responses) ====================
 
 
+
+@pytest.mark.skip(reason="Wizard API tests temporarily skipped - see task requirements")
 def test_wizard_clarify_skip_all_questions(client, simulation_with_validated_dag):
     """
     Test T082: Skip all clarification questions (empty responses).

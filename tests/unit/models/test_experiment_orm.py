@@ -18,32 +18,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from synth_lab.models.orm.base import Base
 from synth_lab.models.orm.experiment import Experiment, InterviewGuide
 
-
-@pytest.fixture(scope="function")
-def engine():
-    """Create a PostgreSQL engine for testing.
-
-    Uses DATABASE_URL from environment (set by make test) or defaults to test database.
-    Production and tests both use PostgreSQL for compatibility (JSONB support).
-
-    Note: Uses PostgreSQL for fast in-memory testing.
-    Production uses PostgreSQL.
-    """
-    database_url = os.getenv("DATABASE_URL", "postgresql://synthlab:synthlab@localhost:5433/synthlab")
-    engine = create_engine(database_url, echo=False)
-    Base.metadata.create_all(engine)
-    yield engine
-    Base.metadata.drop_all(engine)
-    engine.dispose()
-
-
-@pytest.fixture(scope="function")
-def session(engine):
-    """Create a session for testing."""
-    SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
-    session = SessionLocal()
-    yield session
-    session.close()
+# Fixtures engine and session are provided by conftest.py
 
 
 class TestExperimentModel:

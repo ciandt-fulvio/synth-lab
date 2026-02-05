@@ -48,8 +48,8 @@ EXPECTED_TABLES = {
     "synth_group_shares",
 }
 
-# Current HEAD revision ID (add_mechanism_tables)
-CURRENT_HEAD_REVISION = "d9653ccb9a1a"
+# Current HEAD revision ID (fix_resolve_schema_divergence)
+CURRENT_HEAD_REVISION = "21d9e0896964"
 
 
 def get_alembic_config(database_url: str) -> Config:

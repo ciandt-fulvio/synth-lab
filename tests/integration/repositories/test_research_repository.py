@@ -28,6 +28,13 @@ from synth_lab.repositories.research_repository import (
 )
 
 
+# Fixture aliases from global conftest
+@pytest.fixture(scope="function")
+def session(db_session):
+    """Alias for db_session from global conftest."""
+    return db_session
+
+
 @pytest.fixture(scope="module")
 def research_db_engine(test_database_url: str):
     """

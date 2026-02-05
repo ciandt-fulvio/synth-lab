@@ -9,13 +9,11 @@ References:
     - ORM Models: synth_lab.models.orm.synth
 """
 
-import os
 import pytest
 from datetime import datetime, timezone
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
-from synth_lab.models.orm.base import Base
 from synth_lab.models.orm.synth import SynthGroup as SynthGroupORM, Synth as SynthORM
 from synth_lab.domain.entities.synth_group import (
     SynthGroup,
@@ -27,27 +25,17 @@ from synth_lab.repositories.synth_group_repository import SynthGroupRepository
 
 
 @pytest.fixture(scope="function")
-def engine():
-    """Create a PostgreSQL engine for testing.
+def session(db_session):
+    """Use db_session with SAVEPOINT isolation from global conftest.
 
-    Uses DATABASE_URL from environment (set by make test) or defaults to test database.
-    Production and tests both use PostgreSQL for compatibility (JSONB support).
+    Cleans synth_groups and related data so tests start with an empty state.
+    All changes are rolled back after each test, so seed data is preserved.
     """
-    database_url = os.getenv("DATABASE_URL", "postgresql://synthlab:synthlab@localhost:5433/synthlab")
-    engine = create_engine(database_url, echo=False)
-    Base.metadata.create_all(engine)
-    yield engine
-    Base.metadata.drop_all(engine)
-    engine.dispose()
-
-
-@pytest.fixture(scope="function")
-def session(engine):
-    """Create a session for testing."""
-    SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
-    session = SessionLocal()
-    yield session
-    session.close()
+    # TRUNCATE CASCADE removes all data from synth_groups and any table
+    # that has a FK reference to it (experiments, synths, etc.)
+    db_session.execute(text("TRUNCATE synth_groups, synths, experiments CASCADE"))
+    db_session.flush()
+    return db_session
 
 
 @pytest.fixture(scope="function")

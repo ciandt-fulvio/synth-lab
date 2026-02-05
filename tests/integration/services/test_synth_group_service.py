@@ -9,13 +9,11 @@ References:
     - Spec: specs/030-custom-synth-groups/spec.md
 """
 
-import os
 import pytest
-from datetime import datetime
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from datetime import datetime, timezone
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
-from synth_lab.models.orm.base import Base
 from synth_lab.models.orm.synth import Synth as SynthORM
 from synth_lab.models.pagination import PaginationParams
 from synth_lab.repositories.synth_group_repository import SynthGroupRepository
@@ -23,27 +21,15 @@ from synth_lab.services.synth_group_service import SynthGroupService
 
 
 @pytest.fixture(scope="function")
-def engine():
-    """Create a PostgreSQL engine for testing.
+def session(db_session):
+    """Use db_session with SAVEPOINT isolation from global conftest.
 
-    Uses DATABASE_URL from environment (set by make test) or defaults to test database.
-    Production and tests both use PostgreSQL for compatibility (JSONB support).
+    Cleans synth_groups and related data so tests start with an empty state.
+    All changes are rolled back after each test, so seed data is preserved.
     """
-    database_url = os.getenv("DATABASE_URL", "postgresql://synthlab:synthlab@localhost:5433/synthlab")
-    engine = create_engine(database_url, echo=False)
-    Base.metadata.create_all(engine)
-    yield engine
-    Base.metadata.drop_all(engine)
-    engine.dispose()
-
-
-@pytest.fixture(scope="function")
-def session(engine):
-    """Create a session for testing."""
-    SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
-    session = SessionLocal()
-    yield session
-    session.close()
+    db_session.execute(text("TRUNCATE synth_groups, synths, experiments CASCADE"))
+    db_session.flush()
+    return db_session
 
 
 @pytest.fixture(scope="function")

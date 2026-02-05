@@ -9,13 +9,11 @@ References:
     - ORM Models: synth_lab.models.orm
 """
 
-import os
 import pytest
 from datetime import datetime
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
-from synth_lab.models.orm.base import Base
 from synth_lab.models.orm.experiment import Experiment as ExperimentORM
 from synth_lab.models.orm.analysis import AnalysisRun as AnalysisRunORM
 from synth_lab.domain.entities.experiment import Experiment, ScorecardData, ScorecardDimension
@@ -24,27 +22,11 @@ from synth_lab.repositories.experiment_repository import ExperimentRepository
 
 
 @pytest.fixture(scope="function")
-def engine():
-    """Create a PostgreSQL engine for testing.
-
-    Uses DATABASE_URL from environment (set by make test) or defaults to test database.
-    Production and tests both use PostgreSQL for compatibility (JSONB support).
-    """
-    database_url = os.getenv("DATABASE_URL", "postgresql://synthlab:synthlab@localhost:5433/synthlab")
-    engine = create_engine(database_url, echo=False)
-    Base.metadata.create_all(engine)
-    yield engine
-    Base.metadata.drop_all(engine)
-    engine.dispose()
-
-
-@pytest.fixture(scope="function")
-def session(engine):
-    """Create a session for testing."""
-    SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
-    session = SessionLocal()
-    yield session
-    session.close()
+def session(db_session):
+    """db_session with clean experiments table for exact count assertions."""
+    db_session.execute(text("TRUNCATE experiments CASCADE"))
+    db_session.flush()
+    return db_session
 
 
 @pytest.fixture(scope="function")
