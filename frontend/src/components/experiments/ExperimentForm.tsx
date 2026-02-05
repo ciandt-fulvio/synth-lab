@@ -1,12 +1,12 @@
 /**
  * ExperimentForm component (Refactored).
  *
- * Two-step form for creating/editing experiments with embedded scorecard sliders.
+ * Two-step form for creating/editing experiments with narrative mechanism configuration.
  * Step 1: Basic info (name, hypothesis, description)
- * Step 2: Scorecard sliders with LLM estimation
+ * Step 2: Narrative-based mechanism configuration via LLM (039-narrative-mechanism-config)
  *
  * References:
- *   - Spec: specs/019-experiment-refactor/spec.md
+ *   - Spec: specs/039-narrative-mechanism-config/spec.md
  *   - Types: src/types/experiment.ts
  */
 
@@ -15,7 +15,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import {
   Select,
   SelectContent,
@@ -23,11 +22,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Sparkles, ArrowRight, ArrowLeft, Users } from 'lucide-react';
-import { useEstimateScorecardFromText } from '@/hooks/use-experiments';
+import { Loader2, ArrowRight, Users } from 'lucide-react';
 import { useSynthGroups } from '@/hooks/use-synth-groups';
-import { useToast } from '@/hooks/use-toast';
+import { NarrativeStep } from './NarrativeStep';
 import type { ExperimentCreate, ExperimentUpdate, ScorecardData } from '@/types/experiment';
+import type { MechanismValues } from '@/types/mechanisms';
+import type { FeatureMechanisms } from '@/types/simulation';
 
 interface ExperimentFormProps {
   /** Initial values for edit mode */
@@ -38,7 +38,7 @@ interface ExperimentFormProps {
   onCancel: () => void;
   /** Whether the form is submitting */
   isSubmitting?: boolean;
-  /** Whether to show scorecard sliders (default: true for new experiments) */
+  /** Whether to show narrative mechanism configuration (default: true for new experiments) */
   showScorecard?: boolean;
 }
 
@@ -49,26 +49,20 @@ interface FormErrors {
   synth_group_id?: string;
 }
 
-interface ScorecardSliders {
-  complexity: number;
-  initial_effort: number;
-  perceived_risk: number;
-  time_to_value: number;
+/**
+ * Convert MechanismValues to FeatureMechanisms format for storage.
+ * Maps mechanism keys to scorecard_data.mechanisms structure.
+ */
+function mechanismValuesToFeatureMechanisms(values: MechanismValues): FeatureMechanisms {
+  return {
+    irreversibility: values.irreversibility ?? 0.5,
+    network_effect: values.network_effect ?? 0.5,
+    institutional_trust: values.institutional_trust ?? 0.5,
+    habit_displacement: values.habit_displacement ?? 0.5,
+    learning_curve: values.learning_curve ?? 0.5,
+    social_visibility: values.social_visibility ?? 0.5,
+  };
 }
-
-const DIMENSION_LABELS = {
-  complexity: 'Complexidade',
-  initial_effort: 'Esforço Inicial',
-  perceived_risk: 'Risco Percebido',
-  time_to_value: 'Tempo até Valor',
-} as const;
-
-const DIMENSION_DESCRIPTIONS = {
-  complexity: '0 = simples, 1 = complexo',
-  initial_effort: '0 = imediato, 1 = muito esforço',
-  perceived_risk: '0 = seguro, 1 = arriscado',
-  time_to_value: '0 = imediato, 1 = demorado',
-} as const;
 
 export function ExperimentForm({
   initialData,
@@ -77,11 +71,9 @@ export function ExperimentForm({
   isSubmitting = false,
   showScorecard = true,
 }: ExperimentFormProps) {
-  const { toast } = useToast();
-  const estimateMutation = useEstimateScorecardFromText();
   const { data: synthGroupsData, isLoading: isLoadingSynthGroups } = useSynthGroups();
 
-  // Step management (1 = basic info, 2 = scorecard)
+  // Step management (1 = basic info, 2 = narrative mechanism config)
   const [step, setStep] = useState(1);
 
   const [name, setName] = useState(initialData?.name ?? '');
@@ -90,23 +82,9 @@ export function ExperimentForm({
   const [selectedSynthGroupId, setSelectedSynthGroupId] = useState<string>('');
   const [errors, setErrors] = useState<FormErrors>({});
 
-  // Initialize sliders from existing scorecard or defaults
-  const [sliders, setSliders] = useState<ScorecardSliders>(() => {
-    if (initialData?.scorecard_data) {
-      return {
-        complexity: initialData.scorecard_data.complexity.score,
-        initial_effort: initialData.scorecard_data.initial_effort.score,
-        perceived_risk: initialData.scorecard_data.perceived_risk.score,
-        time_to_value: initialData.scorecard_data.time_to_value.score,
-      };
-    }
-    return {
-      complexity: 0.5,
-      initial_effort: 0.5,
-      perceived_risk: 0.5,
-      time_to_value: 0.5,
-    };
-  });
+  // Store mechanism values from narrative step (T028)
+  const [mechanismValues, setMechanismValues] = useState<MechanismValues | null>(null);
+  const [inferredTypes, setInferredTypes] = useState<string[]>([]);
 
   const validateStep1 = (): boolean => {
     const newErrors: FormErrors = {};
@@ -149,44 +127,15 @@ export function ExperimentForm({
     setStep(1);
   };
 
-  const handleEstimate = async () => {
-    try {
-      const estimate = await estimateMutation.mutateAsync({
-        name: name.trim(),
-        hypothesis: hypothesis.trim(),
-        description: description.trim() || undefined,
-      });
+  /**
+   * Handle continue from NarrativeStep.
+   * Stores mechanism values and submits the form (T028).
+   */
+  const handleNarrativeContinue = async (values: MechanismValues, types: string[]) => {
+    setMechanismValues(values);
+    setInferredTypes(types);
 
-      // Update sliders with AI estimates
-      setSliders({
-        complexity: estimate.complexity.score,
-        initial_effort: estimate.initial_effort.score,
-        perceived_risk: estimate.perceived_risk.score,
-        time_to_value: estimate.time_to_value.score,
-      });
-
-      toast({
-        title: 'Estimativa gerada',
-        description: 'Os valores foram atualizados com base na análise de IA.',
-      });
-    } catch (err) {
-      toast({
-        title: 'Erro na estimativa',
-        description: err instanceof Error ? err.message : 'Erro desconhecido',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleSliderChange = (dimension: keyof ScorecardSliders, value: number[]) => {
-    setSliders((prev) => ({
-      ...prev,
-      [dimension]: value[0],
-    }));
-  };
-
-  const handleSubmit = async () => {
-    // Build experiment data with embedded scorecard
+    // Build experiment data with narrative-based mechanism configuration
     const experimentData: ExperimentCreate = {
       name: name.trim(),
       hypothesis: hypothesis.trim(),
@@ -194,17 +143,32 @@ export function ExperimentForm({
       synth_group_id: selectedSynthGroupId,
     };
 
-    // Include scorecard data if showing sliders
-    if (showScorecard) {
-      experimentData.scorecard_data = {
-        feature_name: name.trim(),
-        description_text: hypothesis.trim(),
-        complexity: { score: sliders.complexity },
-        initial_effort: { score: sliders.initial_effort },
-        perceived_risk: { score: sliders.perceived_risk },
-        time_to_value: { score: sliders.time_to_value },
-      };
-    }
+    // Include scorecard data with mechanisms (T028)
+    experimentData.scorecard_data = {
+      feature_name: name.trim(),
+      description_text: hypothesis.trim(),
+      // Default scorecard dimensions (can be refined later)
+      complexity: { score: 0.5 },
+      initial_effort: { score: 0.5 },
+      perceived_risk: { score: 0.5 },
+      time_to_value: { score: 0.5 },
+      // Store mechanism values from narrative configuration
+      mechanisms: mechanismValuesToFeatureMechanisms(values),
+      // Store inferred feature types
+      feature_types: types,
+    };
+
+    await onSubmit(experimentData);
+  };
+
+  const handleSubmit = async () => {
+    // Build experiment data without scorecard (for single-step form)
+    const experimentData: ExperimentCreate = {
+      name: name.trim(),
+      hypothesis: hypothesis.trim(),
+      description: description.trim() || undefined,
+      synth_group_id: selectedSynthGroupId,
+    };
 
     await onSubmit(experimentData);
   };
@@ -433,100 +397,16 @@ export function ExperimentForm({
         </div>
       )}
 
-      {/* Step 2: Scorecard Sliders */}
+      {/* Step 2: Narrative Mechanism Configuration (039-narrative-mechanism-config) */}
       {step === 2 && (
-        <div className="space-y-4">
-          <div className="text-center mb-2">
-            <h3 className="font-medium text-gray-900">Scorecard</h3>
-            <p className="text-sm text-gray-500">
-              Ajuste os valores ou use IA para estimar
-            </p>
-          </div>
-
-          {/* Sliders for each dimension */}
-          {(Object.keys(DIMENSION_LABELS) as Array<keyof ScorecardSliders>).map((dimension) => (
-            <div key={dimension} className="space-y-1">
-              <div className="flex items-center justify-between">
-                <Label htmlFor={dimension} className="text-sm">
-                  {DIMENSION_LABELS[dimension]}
-                </Label>
-                <span className="text-sm font-mono text-gray-600">
-                  {sliders[dimension].toFixed(2)}
-                </span>
-              </div>
-              <Slider
-                id={dimension}
-                min={0}
-                max={1}
-                step={0.05}
-                value={[sliders[dimension]]}
-                onValueChange={(value) => handleSliderChange(dimension, value)}
-                disabled={isSubmitting || estimateMutation.isPending}
-                className="w-full"
-              />
-              <p className="text-xs text-gray-400">{DIMENSION_DESCRIPTIONS[dimension]}</p>
-            </div>
-          ))}
-
-          {/* Action buttons */}
-          <div className="flex justify-between gap-2 pt-4">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={handlePrevStep}
-              disabled={isSubmitting || estimateMutation.isPending}
-              className="btn-ghost-icon"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onCancel}
-                disabled={isSubmitting || estimateMutation.isPending}
-                className="btn-secondary"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="button"
-                onClick={handleEstimate}
-                disabled={isSubmitting || estimateMutation.isPending}
-                className="btn-primary"
-              >
-                {estimateMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Estimando...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Estimar com IA
-                  </>
-                )}
-              </Button>
-              <Button
-                type="button"
-                onClick={async () => await handleSubmit()}
-                disabled={isSubmitting || estimateMutation.isPending}
-                className="btn-primary"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  'Salvar'
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
+        <NarrativeStep
+          name={name.trim()}
+          hypothesis={hypothesis.trim()}
+          description={description.trim() || undefined}
+          onContinue={handleNarrativeContinue}
+          onBack={handlePrevStep}
+          isSubmitting={isSubmitting}
+        />
       )}
     </div>
   );

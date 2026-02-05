@@ -52,6 +52,7 @@ export const queryKeys = {
     pdpComparison: (experimentId: string) => ['analysis', experimentId, 'pdp-comparison'] as const,
     insights: (experimentId: string) => ['analysis', experimentId, 'insights'] as const,
     sankeyFlow: (experimentId: string) => ['analysis', experimentId, 'sankey-flow'] as const,
+    segmentExplanation: (experimentId: string, synthIds: string[]) => ['analysis', experimentId, 'segment-explanation', synthIds] as const,
   },
 
   // Simulation (simulation-based, legacy)
@@ -124,5 +125,11 @@ export const queryKeys = {
     list: (simulationId: string) => ['hypotheses', simulationId] as const,
     detail: (hypothesisId: string) => ['hypotheses', 'detail', hypothesisId] as const,
     versions: (simulationId: string) => ['hypotheses', simulationId, 'versions'] as const,
+  },
+
+  // Mechanisms (039-narrative-mechanism-config)
+  mechanisms: {
+    list: () => ['mechanisms'] as const,
+    featureTypes: () => ['mechanisms', 'feature-types'] as const,
   },
 };

@@ -7,11 +7,16 @@ Monte Carlo feature impact simulations.
 References:
     - Spec: specs/016-feature-impact-simulation/spec.md
     - Data model: specs/016-feature-impact-simulation/data-model.md
+    - Sensitivities: specs/038-mechanism-based-simulation/spec.md
 """
+
+from __future__ import annotations
 
 from typing import Self
 
 from pydantic import BaseModel, Field, model_validator
+
+from synth_lab.domain.entities.user_sensitivities import UserSensitivities
 
 
 class SimulationObservables(BaseModel):
@@ -103,6 +108,12 @@ class SimulationAttributes(BaseModel):
 
     observables: SimulationObservables
     latent_traits: SimulationLatentTraits
+
+    # User sensitivities (new in 038-mechanism-based-simulation)
+    sensitivities: UserSensitivities | None = Field(
+        default=None,
+        description="User sensitivities for mechanism interactions. Defaults to neutral (0.5) values.",
+    )
 
     @model_validator(mode="after")
     def validate_all_values_in_range(self) -> Self:

@@ -124,6 +124,7 @@ from synth_lab.api.routers import (
     hypotheses,
     insights,
     materials,
+    mechanisms,
     prfaq,
     research,
     simulation_insights,
@@ -151,6 +152,8 @@ app.include_router(simulations.router)  # Simulations router has its own prefix 
 app.include_router(simulation_insights.router)  # Insights router shares /simulations prefix
 app.include_router(causal_dag.router)  # DAG router shares /simulations prefix
 app.include_router(hypotheses.router)  # Hypotheses router shares /simulations prefix
+app.include_router(mechanisms.router)  # Mechanisms router has /mechanisms prefix
+app.include_router(mechanisms.experiments_router)  # Narrative generation under /experiments
 
 # Mount static files for generated images and documents
 # Images available at: /static/document/images/<filename>

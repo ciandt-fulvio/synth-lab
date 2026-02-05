@@ -6,13 +6,18 @@ Defines models for feature scorecards used in impact simulations.
 References:
     - Spec: specs/016-feature-impact-simulation/spec.md
     - Data model: specs/016-feature-impact-simulation/data-model.md
+    - Mechanisms: specs/038-mechanism-based-simulation/spec.md
 """
+
+from __future__ import annotations
 
 import secrets
 from datetime import datetime, timezone
 from typing import Self
 
 from pydantic import BaseModel, Field, model_validator
+
+from synth_lab.domain.entities.feature_mechanisms import FeatureMechanisms
 
 
 def generate_scorecard_id() -> str:
@@ -135,6 +140,17 @@ class FeatureScorecard(BaseModel):
     impact_hypotheses: list[str] = Field(
         default_factory=list,
         description="LLM-generated hypotheses about impact on synth groups.",
+    )
+
+    # Feature mechanisms (new in 038-mechanism-based-simulation)
+    mechanisms: FeatureMechanisms | None = Field(
+        default=None,
+        description="Structural mechanisms of the feature for simulation.",
+    )
+
+    feature_types: list[str] = Field(
+        default_factory=list,
+        description="Category tags for the feature (e.g., 'financial', 'social', 'utility').",
     )
 
     # Metadata

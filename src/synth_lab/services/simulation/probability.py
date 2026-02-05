@@ -2,7 +2,7 @@
 Probability calculations for Monte Carlo simulation.
 
 Functions for calculating attempt and success probabilities based on
-user state and feature scorecard.
+user state and feature scorecard, with optional mechanism-based emergent states.
 
 Functions:
 - sigmoid(): Logistic sigmoid function
@@ -13,6 +13,7 @@ Functions:
 References:
     - Spec: specs/016-feature-impact-simulation/spec.md
     - Research: specs/016-feature-impact-simulation/research.md
+    - Mechanisms: specs/038-mechanism-based-simulation/spec.md
 
 Sample usage:
     from synth_lab.services.simulation.probability import calculate_p_attempt, sample_outcome
@@ -27,15 +28,25 @@ Expected output:
     outcome: "did_not_try", "failed", or "success"
 """
 
-from typing import Literal
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from numpy.random import Generator
 
 from synth_lab.services.simulation.sample_state import UserState
 
+if TYPE_CHECKING:
+    from synth_lab.domain.entities.emergent_state import EmergentState
+
 # Type alias for outcomes
 Outcome = Literal["did_not_try", "failed", "success"]
+
+
+def _clamp(value: float, min_val: float = 0.0, max_val: float = 1.0) -> float:
+    """Clamp value to [min_val, max_val] range."""
+    return max(min_val, min(max_val, value))
 
 
 def sigmoid(x: float) -> float:
@@ -64,23 +75,30 @@ def sigmoid(x: float) -> float:
 
 def calculate_p_attempt(
     user_state: UserState,
-    scorecard_scores: dict[str, float]) -> float:
+    scorecard_scores: dict[str, float],
+    emergent_state: EmergentState | None = None,
+) -> float:
     """
     Calculate probability that user attempts the feature.
 
     Formula:
         logit = w_motivation * motivation
               + w_trust * trust
-              - w_risk * perceived_risk
-              - w_effort * initial_effort
+              - w_risk * effective_perceived_risk
+              - w_effort * effective_initial_effort
               + w_explore * explores
               + intercept
 
         P(attempt) = sigmoid(logit)
 
+    When emergent_state is provided, effective scores include mechanism deltas:
+        - effective_perceived_risk = perceived_risk + perceived_risk_delta + trust_barrier
+        - effective_initial_effort = initial_effort (social_barrier affects complexity)
+
     Args:
         user_state: Sampled user state
         scorecard_scores: Dict with perceived_risk, initial_effort scores
+        emergent_state: Optional emergent state from mechanism×sensitivity interactions
 
     Returns:
         float: Probability of attempt in [0, 1]
@@ -89,6 +107,7 @@ def calculate_p_attempt(
         - Higher motivation and trust increase attempt probability
         - Higher risk and effort decrease attempt probability
         - Explorers are more likely to attempt
+        - Mechanism interactions can increase effective risk/effort
     """
     # Extract user state
     motivation = user_state.motivation
@@ -98,6 +117,18 @@ def calculate_p_attempt(
     # Extract scorecard scores (0 = best, 1 = worst)
     perceived_risk = scorecard_scores.get("perceived_risk", 0.5)
     initial_effort = scorecard_scores.get("initial_effort", 0.5)
+
+    # Apply emergent state deltas if provided
+    if emergent_state is not None:
+        # Add perceived_risk_delta and trust_barrier to perceived_risk
+        perceived_risk = _clamp(
+            perceived_risk
+            + emergent_state.perceived_risk_delta
+            + emergent_state.trust_barrier
+        )
+        # Social barrier affects discovery/attempt indirectly
+        # (network effects make features harder to discover)
+        perceived_risk = _clamp(perceived_risk + emergent_state.social_barrier * 0.5)
 
     # Weights (from research.md calibration)
     w_motivation = 2.0
@@ -122,22 +153,29 @@ def calculate_p_attempt(
 
 def calculate_p_success(
     user_state: UserState,
-    scorecard_scores: dict[str, float]) -> float:
+    scorecard_scores: dict[str, float],
+    emergent_state: EmergentState | None = None,
+) -> float:
     """
     Calculate probability of success given user attempted.
 
     Formula:
         logit = w_capability * capability
               + w_friction * friction_tolerance
-              - w_complexity * complexity
-              - w_ttv * time_to_value
+              - w_complexity * effective_complexity
+              - w_ttv * effective_time_to_value
               + intercept
 
         P(success|attempt) = sigmoid(logit)
 
+    When emergent_state is provided, effective scores include mechanism deltas:
+        - effective_complexity = complexity + social_barrier (network effects)
+        - effective_time_to_value = time_to_value + initial_effort_delta
+
     Args:
         user_state: Sampled user state
         scorecard_scores: Dict with complexity, time_to_value scores
+        emergent_state: Optional emergent state from mechanism×sensitivity interactions
 
     Returns:
         float: Probability of success in [0, 1]
@@ -145,6 +183,7 @@ def calculate_p_success(
     Notes:
         - Higher capability and friction tolerance increase success
         - Higher complexity and time_to_value decrease success
+        - Mechanism interactions can increase effective complexity/effort
     """
     # Extract user state
     capability = user_state.capability
@@ -153,6 +192,13 @@ def calculate_p_success(
     # Extract scorecard scores (0 = best, 1 = worst)
     complexity = scorecard_scores.get("complexity", 0.5)
     time_to_value = scorecard_scores.get("time_to_value", 0.5)
+
+    # Apply emergent state deltas if provided
+    if emergent_state is not None:
+        # Social barrier increases effective complexity (network effects)
+        complexity = _clamp(complexity + emergent_state.social_barrier)
+        # Initial effort delta increases effective time_to_value
+        time_to_value = _clamp(time_to_value + emergent_state.initial_effort_delta)
 
     # Weights (from research.md calibration)
     w_capability = 2.5
@@ -206,13 +252,16 @@ def sample_outcome(
 
 def calculate_outcome_probabilities(
     user_state: UserState,
-    scorecard_scores: dict[str, float]) -> dict[str, float]:
+    scorecard_scores: dict[str, float],
+    emergent_state: EmergentState | None = None,
+) -> dict[str, float]:
     """
     Calculate exact outcome probabilities (no sampling).
 
     Args:
         user_state: Sampled user state
         scorecard_scores: Dict with all dimension scores
+        emergent_state: Optional emergent state from mechanism×sensitivity interactions
 
     Returns:
         Dict with p_did_not_try, p_failed, p_success
@@ -223,8 +272,8 @@ def calculate_outcome_probabilities(
         - p_success = p_attempt * p_success
         - Sum should equal 1.0
     """
-    p_attempt = calculate_p_attempt(user_state, scorecard_scores)
-    p_success_given_attempt = calculate_p_success(user_state, scorecard_scores)
+    p_attempt = calculate_p_attempt(user_state, scorecard_scores, emergent_state)
+    p_success_given_attempt = calculate_p_success(user_state, scorecard_scores, emergent_state)
 
     p_did_not_try = 1.0 - p_attempt
     p_failed = p_attempt * (1.0 - p_success_given_attempt)
@@ -427,6 +476,63 @@ if __name__ == "__main__":
             print(f"Test 7 PASSED: Explores increases p_attempt ({p_no:.3f} -> {p_yes:.3f})")
     except Exception as e:
         all_validation_failures.append(f"Explores effect test failed: {e}")
+
+    # Test 8: Emergent state decreases p_attempt (SC-001 variance test)
+    total_tests += 1
+    try:
+        from synth_lab.domain.entities.emergent_state import EmergentState
+
+        scorecard = {"perceived_risk": 0.3, "initial_effort": 0.3, "complexity": 0.3, "time_to_value": 0.3}
+        state = UserState(
+            capability=0.5,
+            trust=0.5,
+            friction_tolerance=0.5,
+            explores=False,
+            motivation=0.5)
+
+        # Without emergent state
+        p_attempt_base = calculate_p_attempt(state, scorecard, None)
+        p_success_base = calculate_p_success(state, scorecard, None)
+
+        # With high emergent state (simulating high-mechanism feature)
+        high_emergent = EmergentState(
+            perceived_risk_delta=0.5,
+            initial_effort_delta=0.4,
+            trust_barrier=0.3,
+            social_barrier=0.4,
+            top_contributors=[],
+            raw_interactions={},
+        )
+        p_attempt_high = calculate_p_attempt(state, scorecard, high_emergent)
+        p_success_high = calculate_p_success(state, scorecard, high_emergent)
+
+        # Emergent state should decrease probabilities
+        if p_attempt_high >= p_attempt_base:
+            all_validation_failures.append(
+                f"Emergent state should decrease p_attempt: {p_attempt_high} >= {p_attempt_base}"
+            )
+        if p_success_high >= p_success_base:
+            all_validation_failures.append(
+                f"Emergent state should decrease p_success: {p_success_high} >= {p_success_base}"
+            )
+
+        # SC-001: Must show >15% variance
+        variance_attempt = abs(p_attempt_base - p_attempt_high)
+        variance_success = abs(p_success_base - p_success_high)
+
+        if variance_attempt < 0.15 and variance_success < 0.15:
+            all_validation_failures.append(
+                f"Emergent state should create >15% variance: "
+                f"attempt={variance_attempt:.3f}, success={variance_success:.3f}"
+            )
+        else:
+            print(
+                f"Test 8 PASSED: Emergent state creates variance "
+                f"(attempt: {p_attempt_base:.3f}->{p_attempt_high:.3f}, "
+                f"success: {p_success_base:.3f}->{p_success_high:.3f})"
+            )
+    except Exception as e:
+        all_validation_failures.append(f"Emergent state test failed: {e}")
 
     # Final result
     print()

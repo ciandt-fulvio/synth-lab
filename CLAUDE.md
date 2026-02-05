@@ -35,6 +35,82 @@ cd frontend && npm run dev
 npm run lint
 ```
 
+## Git Workflow & Merge (CRITICAL - ALWAYS FOLLOW)
+
+### 🚨 REGRA FUNDAMENTAL: MERGE = LOCAL, PUSH = REMOTE
+
+**IMPORTANTE**: `git merge` é LOCAL (não envia nada). `git push` é REMOTO (envia para GitHub).
+O **pre-push hook** (testes E2E) SÓ roda no `git push`, NÃO no `git merge`.
+
+### 📋 Quando o Usuário Pedir "Merge" ou "Mergear Branch"
+
+**SEMPRE use o script helper**:
+```bash
+./scripts/merge-to-main.sh <branch-name>
+```
+
+**NUNCA** faça merge manual diretamente. O script garante:
+- ✅ Verificações de segurança (mudanças não commitadas, branch existe)
+- ✅ Atualização da main antes do merge
+- ✅ Preview dos commits que serão mergeados
+- ✅ Confirmação antes de executar
+- ✅ Lembrete para fazer push (onde o pre-push hook rodará)
+
+### 🔄 Fluxo Completo de Merge
+
+```bash
+# 1. Usuario pede: "merge a branch 039 na main"
+# 2. Claude executa:
+./scripts/merge-to-main.sh 039-narrative-mechanism-config
+
+# O script faz:
+#   - Checkout main
+#   - Pull latest
+#   - Mostra preview
+#   - Faz merge (LOCAL - nada enviado ainda!)
+#   - Pergunta se quer fazer push
+
+# 3. Quando fizer push (manual ou pelo script):
+git push origin main
+# ↑ PRE-PUSH HOOK RODA AQUI:
+#   - Build Docker images
+#   - make test (testes unitários)
+#   - make test-e2e (testes E2E)
+#   - Push de imagens para GHCR
+#   - Permite push se tudo passar
+```
+
+### 📊 Scripts Disponíveis
+
+1. **scripts/merge-to-main.sh** - Helper para merge (USE SEMPRE)
+   ```bash
+   ./scripts/merge-to-main.sh <branch-name>
+   ```
+
+2. **scripts/test-pre-push-hook.sh** - Diagnóstico do pre-push hook
+   ```bash
+   ./scripts/test-pre-push-hook.sh
+   ```
+
+3. **docs/testing-pre-push-hook.md** - Documentação completa do hook
+
+### ⚠️ Troubleshooting
+
+Se o usuário disser "fiz merge mas os testes não rodaram":
+1. Pergunte: "Você fez push depois do merge?"
+2. Explique: "Merge é local, testes só rodam no push"
+3. Solução: `git push origin main`
+
+Se precisar verificar status:
+```bash
+# Ver se há commits locais não enviados
+git status
+git log origin/main..main --oneline
+
+# Ver branches não mergeadas
+git branch --no-merged main
+```
+
 ## Container Management (CRITICAL)
 
 ⚠️ **NUNCA execute comandos destrutivos em massa:**
@@ -113,6 +189,10 @@ PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
 - PostgreSQL 14+ (existing tables: simulations, causal_dags, hypotheses, hypothesis_versions - no schema changes needed) (036-simplified-hypothesis-wizard)
 - Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, React 18, TanStack Query, shadcn/ui, ReactFlow (037-unified-dag-hypotheses)
 - PostgreSQL 14+ (existing tables: hypotheses +1 column, causal_dags unchanged) (037-unified-dag-hypotheses)
+- Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, NumPy (simulation), React 18, TanStack Query (038-mechanism-based-simulation)
+- PostgreSQL 14+ (JSONB for scorecard_data, simulation_attributes) (038-mechanism-based-simulation)
+- Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK (gpt-4o-mini), React 18, TanStack Query, shadcn/ui (039-narrative-mechanism-config)
+- PostgreSQL 14+ (novas tabelas para mecanismos/opções, JSONB para narrativa gerada) (039-narrative-mechanism-config)
 
 ## Recent Changes
 - 028-exploration-summary: Added Python 3.13+ + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, Arize Phoenix
@@ -152,6 +232,35 @@ docker login ghcr.io
 O pipeline de CI/CD é dividido em duas fases principais:
 1. **Pre-Push Hook (Local)**: Build + testes completos + push de imagens para GHCR
 2. **Deploy Staging (GitHub Actions)**: Deploy automático de imagens pré-testadas para staging
+
+### 🚀 Fluxo Completo: Merge → Railway Staging (AUTOMÁTICO)
+
+```
+Você: ./scripts/merge-to-main.sh <branch>
+  ↓
+Merge LOCAL (não envia nada)
+  ↓
+git push origin main
+  ↓
+PRE-PUSH HOOK (5-10 min):
+  ├─> Build images
+  ├─> Testes unitários
+  ├─> Testes E2E
+  └─> Push images GHCR
+  ↓
+GITHUB ACTIONS (10-15 min):
+  ├─> Reset staging DB
+  ├─> Migrate DB
+  ├─> Seed DB (se vazio)
+  ├─> Deploy backend → Railway
+  ├─> Deploy frontend → Railway
+  ├─> Smoke tests
+  └─> Tag :staging-verified
+  ↓
+✅ Deploy completo em staging!
+```
+
+**IMPORTANTE**: Deploy para Railway é AUTOMÁTICO após push para main. Você NÃO precisa fazer nada manualmente no Railway.
 
 ### Fase 1: Pre-Push Hook (Local)
 

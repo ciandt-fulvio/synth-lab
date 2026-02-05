@@ -2,6 +2,7 @@
 Monte Carlo simulation engine for feature impact simulation.
 
 Executes N synths x M executions simulation and aggregates results.
+Supports mechanism-based simulations via emergent state calculations.
 
 Classes:
 - MonteCarloEngine: Main simulation engine
@@ -9,6 +10,7 @@ Classes:
 References:
     - Spec: specs/016-feature-impact-simulation/spec.md
     - Research: specs/016-feature-impact-simulation/research.md
+    - Mechanisms: specs/038-mechanism-based-simulation/spec.md
 
 Sample usage:
     from synth_lab.services.simulation.engine import MonteCarloEngine
@@ -21,18 +23,28 @@ Expected output:
     SimulationResults with outcomes per synth and aggregated outcomes
 """
 
+from __future__ import annotations
+
 import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
 from synth_lab.domain.entities import FeatureScorecard, Scenario
+from synth_lab.domain.entities.emergent_state import EmergentState
+from synth_lab.domain.entities.feature_mechanisms import FeatureMechanisms
+from synth_lab.domain.entities.user_sensitivities import UserSensitivities
+from synth_lab.services.simulation.mechanism_interaction import calculate_emergent_state
 from synth_lab.services.simulation.probability import (
     calculate_p_attempt,
     calculate_p_success,
-    sample_outcome)
+    sample_outcome,
+)
 from synth_lab.services.simulation.sample_state import sample_user_state
+
+if TYPE_CHECKING:
+    pass
 
 
 @dataclass
@@ -122,6 +134,13 @@ class MonteCarloEngine:
             "task_criticality": scenario.task_criticality,
         }
 
+        # Extract mechanisms from scorecard if available (038-mechanism-based-simulation)
+        mechanisms: FeatureMechanisms | None = None
+        if scorecard.mechanisms is not None:
+            mechanisms = scorecard.mechanisms
+        elif hasattr(scorecard, "mechanisms") and scorecard.mechanisms:
+            mechanisms = scorecard.mechanisms
+
         # Run simulation for each synth
         synth_outcomes: list[SynthOutcomeResult] = []
         total_did_not_try = 0.0
@@ -142,17 +161,50 @@ class MonteCarloEngine:
                     "exploration_prob": 0.5,
                 }
 
+            # Extract sensitivities if available (038-mechanism-based-simulation)
+            sensitivities: UserSensitivities | None = None
+            sens_dict = sim_attrs.get("sensitivities")
+            if sens_dict:
+                sensitivities = UserSensitivities(**sens_dict)
+
+            # Calculate emergent state if mechanisms and sensitivities are available
+            emergent_state: EmergentState | None = None
+            if mechanisms is not None and sensitivities is not None:
+                emergent_state = calculate_emergent_state(mechanisms, sensitivities)
+            elif mechanisms is not None:
+                # Use default neutral sensitivities if synth doesn't have them
+                sensitivities = UserSensitivities()
+                emergent_state = calculate_emergent_state(mechanisms, sensitivities)
+
             # Run M executions
             outcomes = self._run_synth_executions(
                 latent_traits=latent_traits,
                 scorecard_scores=scorecard_scores,
                 scenario=scenario_dict,
-                n_executions=n_executions)
+                n_executions=n_executions,
+                emergent_state=emergent_state,
+            )
 
             # Calculate rates with 3 decimal precision
             did_not_try_rate = round(outcomes["did_not_try"] / n_executions, 3)
             failed_rate = round(outcomes["failed"] / n_executions, 3)
             success_rate = round(outcomes["success"] / n_executions, 3)
+
+            # Build synth_attributes including emergent explanation if available
+            result_attrs = dict(sim_attrs)
+            if emergent_state is not None:
+                result_attrs["emergent_explanation"] = {
+                    "top_contributors": [
+                        {
+                            "mechanism": c.mechanism,
+                            "sensitivity": c.sensitivity,
+                            "product": c.product,
+                        }
+                        for c in emergent_state.top_contributors
+                    ],
+                    "perceived_risk_delta": emergent_state.perceived_risk_delta,
+                    "initial_effort_delta": emergent_state.initial_effort_delta,
+                }
 
             synth_outcomes.append(
                 SynthOutcomeResult(
@@ -160,7 +212,8 @@ class MonteCarloEngine:
                     did_not_try_rate=did_not_try_rate,
                     failed_rate=failed_rate,
                     success_rate=success_rate,
-                    synth_attributes=sim_attrs)
+                    synth_attributes=result_attrs,
+                )
             )
 
             # Accumulate for aggregation
@@ -190,7 +243,9 @@ class MonteCarloEngine:
         latent_traits: dict[str, float],
         scorecard_scores: dict[str, float],
         scenario: dict[str, float],
-        n_executions: int) -> dict[str, int]:
+        n_executions: int,
+        emergent_state: EmergentState | None = None,
+    ) -> dict[str, int]:
         """
         Run M executions for a single synth.
 
@@ -199,6 +254,7 @@ class MonteCarloEngine:
             scorecard_scores: Feature scorecard scores
             scenario: Scenario modifiers
             n_executions: Number of executions
+            emergent_state: Optional emergent state from mechanism×sensitivity interactions
 
         Returns:
             Dict with outcome counts: did_not_try, failed, success
@@ -211,11 +267,12 @@ class MonteCarloEngine:
                 latent_traits=latent_traits,
                 scenario=scenario,
                 sigma=self.sigma,
-                rng=self.rng)
+                rng=self.rng,
+            )
 
-            # Calculate probabilities
-            p_attempt = calculate_p_attempt(user_state, scorecard_scores)
-            p_success = calculate_p_success(user_state, scorecard_scores)
+            # Calculate probabilities with emergent state if available
+            p_attempt = calculate_p_attempt(user_state, scorecard_scores, emergent_state)
+            p_success = calculate_p_success(user_state, scorecard_scores, emergent_state)
 
             # Sample outcome
             outcome = sample_outcome(p_attempt, p_success, self.rng)
@@ -442,6 +499,107 @@ if __name__ == "__main__":
             )
     except Exception as e:
         all_validation_failures.append(f"Capability effect test failed: {e}")
+
+    # Test 7: Mechanism-based simulation produces different results (SC-001)
+    total_tests += 1
+    try:
+        # Create scorecard with mechanisms
+        mech_scorecard = FeatureScorecard(
+            identification=ScorecardIdentification(
+                feature_name="High Mechanism Feature",
+                use_scenario="Test",
+            ),
+            description_text="Test",
+            complexity=ScorecardDimension(score=0.4),
+            initial_effort=ScorecardDimension(score=0.3),
+            perceived_risk=ScorecardDimension(score=0.2),
+            time_to_value=ScorecardDimension(score=0.5),
+            mechanisms=FeatureMechanisms(
+                irreversibility=0.9,
+                network_effect=0.7,
+                institutional_trust=0.8,
+            ),
+        )
+
+        # Synths with different sensitivities
+        high_sens_synths = [
+            {
+                "id": f"high_sens_{i}",
+                "simulation_attributes": {
+                    "latent_traits": {
+                        "capability_mean": 0.5,
+                        "trust_mean": 0.5,
+                        "friction_tolerance_mean": 0.5,
+                        "exploration_prob": 0.5,
+                    },
+                    "sensitivities": {
+                        "risk_aversion": 0.9,
+                        "social_dependency": 0.2,
+                        "institutional_trust_level": 0.3,
+                        "habit_plasticity": 0.5,
+                        "learning_tolerance": 0.5,
+                        "social_influence": 0.5,
+                    },
+                },
+            }
+            for i in range(20)
+        ]
+
+        low_sens_synths = [
+            {
+                "id": f"low_sens_{i}",
+                "simulation_attributes": {
+                    "latent_traits": {
+                        "capability_mean": 0.5,
+                        "trust_mean": 0.5,
+                        "friction_tolerance_mean": 0.5,
+                        "exploration_prob": 0.5,
+                    },
+                    "sensitivities": {
+                        "risk_aversion": 0.1,
+                        "social_dependency": 0.8,
+                        "institutional_trust_level": 0.9,
+                        "habit_plasticity": 0.5,
+                        "learning_tolerance": 0.5,
+                        "social_influence": 0.5,
+                    },
+                },
+            }
+            for i in range(20)
+        ]
+
+        engine = MonteCarloEngine(seed=42)
+        high_sens_results = engine.run_simulation(
+            high_sens_synths, mech_scorecard, test_scenario, n_executions=100
+        )
+        engine = MonteCarloEngine(seed=42)
+        low_sens_results = engine.run_simulation(
+            low_sens_synths, mech_scorecard, test_scenario, n_executions=100
+        )
+
+        variance = abs(high_sens_results.aggregated_success - low_sens_results.aggregated_success)
+
+        # SC-001: Must show >15% variance
+        if variance < 0.15:
+            all_validation_failures.append(
+                f"Mechanism simulation should show >15% variance: {variance:.3f} "
+                f"(high_sens={high_sens_results.aggregated_success:.3f}, "
+                f"low_sens={low_sens_results.aggregated_success:.3f})"
+            )
+        else:
+            print(
+                f"Test 7 PASSED: Mechanism simulation variance {variance:.3f} "
+                f"(high_sens={high_sens_results.aggregated_success:.3f}, "
+                f"low_sens={low_sens_results.aggregated_success:.3f})"
+            )
+
+        # Verify emergent_explanation is in synth_attributes
+        first_outcome = high_sens_results.synth_outcomes[0]
+        if "emergent_explanation" not in first_outcome.synth_attributes:
+            all_validation_failures.append("emergent_explanation should be in synth_attributes")
+
+    except Exception as e:
+        all_validation_failures.append(f"Mechanism simulation test failed: {e}")
 
     # Final result
     print()
