@@ -32,19 +32,8 @@ export default function OAuthCallback() {
       return;
     }
 
-    // Set cookie locally (same domain as frontend)
-    // httponly=false to allow JavaScript to set it
-    // secure=true in production, samesite=lax
-    const isProduction = window.location.hostname.includes('production');
-    const cookieOptions = [
-      `auth_token=${token}`,
-      'path=/',
-      'max-age=28800', // 8 hours
-      'samesite=lax',
-      isProduction ? 'secure' : '',
-    ].filter(Boolean).join('; ');
-
-    document.cookie = cookieOptions;
+    // Save token to localStorage (works across domains)
+    localStorage.setItem('auth_token', token);
 
     // Redirect to home
     toast.success('Logged in successfully');

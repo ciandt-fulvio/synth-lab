@@ -47,8 +47,13 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         if self._is_public_path(request.url.path):
             return await call_next(request)
 
-        # Get session token from cookie
-        session_token = request.cookies.get("auth_token")
+        # Get session token from Authorization header or cookie
+        # Priority: Authorization header (cross-domain) > cookie (same-domain dev)
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            session_token = auth_header[7:]
+        else:
+            session_token = request.cookies.get("auth_token")
 
         if not session_token:
             return JSONResponse(

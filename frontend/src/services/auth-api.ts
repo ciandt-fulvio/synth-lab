@@ -42,9 +42,10 @@ export async function getCurrentUser(): Promise<User | null> {
 /**
  * Logout current user.
  *
- * Clears session cookie.
+ * Clears localStorage token and server session cookie.
  */
 export async function logout(): Promise<void> {
+  localStorage.removeItem('auth_token');
   await fetchAPI("/auth/logout", {
     method: "POST",
   });
