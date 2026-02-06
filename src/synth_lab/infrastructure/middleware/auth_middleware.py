@@ -43,6 +43,10 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         Returns:
             Response from next middleware or error response
         """
+        # Let CORS preflight requests through (OPTIONS)
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
         # Check if path requires authentication
         if self._is_public_path(request.url.path):
             return await call_next(request)
