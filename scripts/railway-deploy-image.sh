@@ -192,6 +192,7 @@ fi
 echo "Triggering redeployment for: $IMAGE_URL"
 echo "  Railway will re-pull the image tag from GHCR..."
 
+# First try serviceInstanceRedeploy (fast, works if service has previous deployment)
 DEPLOY_QUERY=$(cat <<EOF
 {
     "query": "mutation { serviceInstanceRedeploy(serviceId: \"$SERVICE_ID\", environmentId: \"$ENVIRONMENT_ID\") }"
@@ -199,8 +200,22 @@ DEPLOY_QUERY=$(cat <<EOF
 EOF
 )
 
-DEPLOY_RESPONSE=$(railway_graphql "$DEPLOY_QUERY")
-echo "✅ Deployment triggered successfully"
+if DEPLOY_RESPONSE=$(railway_graphql "$DEPLOY_QUERY" 2>/dev/null); then
+    echo "✅ Redeployment triggered successfully"
+else
+    # Fallback: update image source and trigger deploy (for first-time deployments)
+    echo "⚠️  Redeploy failed (likely first deployment). Updating image source..."
+
+    UPDATE_QUERY=$(cat <<EOF
+{
+    "query": "mutation { serviceInstanceUpdate(serviceId: \"$SERVICE_ID\", environmentId: \"$ENVIRONMENT_ID\", input: { source: { image: \"$IMAGE_URL\" } }) }"
+}
+EOF
+)
+
+    UPDATE_RESPONSE=$(railway_graphql "$UPDATE_QUERY")
+    echo "✅ Image source updated and deployment triggered"
+fi
 
 # =============================================================================
 # Summary
