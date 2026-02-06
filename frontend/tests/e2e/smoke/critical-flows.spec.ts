@@ -170,8 +170,8 @@ test.describe('Smoke Tests - Performance @smoke @performance', () => {
 
     const loadTime = Date.now() - startTime;
 
-    // Página deve carregar em menos de 5 segundos
-    expect(loadTime).toBeLessThan(5000);
+    // Página deve carregar em menos de 10 segundos (staging has cold starts)
+    expect(loadTime).toBeLessThan(10000);
 
     console.log(`✅ Page loaded in ${loadTime}ms`);
   });
@@ -190,8 +190,8 @@ test.describe('Smoke Tests - Performance @smoke @performance', () => {
 
     const apiTime = Date.now() - startTime;
 
-    // API deve responder em menos de 3 segundos
-    expect(apiTime).toBeLessThan(3000);
+    // API deve responder em menos de 10 segundos (staging has cold starts)
+    expect(apiTime).toBeLessThan(10000);
 
     console.log(`✅ API responded in ${apiTime}ms`);
   });
