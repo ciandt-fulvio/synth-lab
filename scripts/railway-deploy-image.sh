@@ -181,36 +181,16 @@ else
 fi
 
 # =============================================================================
-# Update Service Image
-# =============================================================================
-
-echo "Updating service image to: $IMAGE_URL"
-
-# Note: The service must be configured with "Docker Image" source in Railway UI
-# This mutation updates the image URL for image-based services
-UPDATE_QUERY=$(cat <<EOF
-{
-    "query": "mutation { serviceInstanceUpdate(serviceId: \"$SERVICE_ID\", environmentId: \"$ENVIRONMENT_ID\", input: { source: { image: \"$IMAGE_URL\" } }) }"
-}
-EOF
-)
-
-UPDATE_RESPONSE=$(railway_graphql "$UPDATE_QUERY")
-
-# Check if update was successful
-if echo "$UPDATE_RESPONSE" | jq -e '.data.serviceInstanceUpdate' > /dev/null 2>&1; then
-    echo "✅ Service image updated successfully"
-else
-    echo "❌ Failed to update service image"
-    echo "Response: $UPDATE_RESPONSE"
-    exit 1
-fi
-
-# =============================================================================
 # Trigger Redeploy
 # =============================================================================
+# Strategy: Railway service is configured with a fixed :staging tag in the UI.
+# The pre-push hook pushes updated images with the :staging tag to GHCR.
+# We just trigger a redeploy so Railway re-pulls the :staging tag (now updated).
+# This avoids issues with the serviceInstanceUpdate mutation not properly
+# changing the image URL via GraphQL API.
 
-echo "Triggering deployment..."
+echo "Triggering redeployment for: $IMAGE_URL"
+echo "  Railway will re-pull the image tag from GHCR..."
 
 DEPLOY_QUERY=$(cat <<EOF
 {
@@ -220,7 +200,7 @@ EOF
 )
 
 DEPLOY_RESPONSE=$(railway_graphql "$DEPLOY_QUERY")
-echo "Deployment triggered successfully"
+echo "✅ Deployment triggered successfully"
 
 # =============================================================================
 # Summary
