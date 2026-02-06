@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 
 export default function LoginPage() {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
@@ -27,8 +27,8 @@ export default function LoginPage() {
         </CardContent>
       </Card>
       {import.meta.env.VITE_COMMIT_SHA && (
-        <p className="mt-4 text-xs text-gray-400 font-mono">
-          v{import.meta.env.VITE_COMMIT_SHA.slice(0, 6)}
+        <p className="mt-3 text-[10px] text-gray-300 font-mono">
+          v.{import.meta.env.VITE_COMMIT_SHA.slice(0, 7)}
         </p>
       )}
     </div>
