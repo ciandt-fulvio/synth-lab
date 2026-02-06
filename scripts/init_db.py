@@ -12,7 +12,7 @@ Usage:
     uv run python scripts/init_db.py
 
 References:
-    - Schema definition: docs/database_model.md
+    - Schema definition: docs/database.md
     - Migrations: src/synth_lab/alembic/versions/
 """
 

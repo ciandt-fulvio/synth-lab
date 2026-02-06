@@ -6,7 +6,7 @@ experiment data (name, hypothesis, description).
 
 References:
     - Spec: specs/018-experiment-hub/spec.md (US4)
-    - Architecture: docs/arquitetura.md (LLM in services with tracing)
+    - Architecture: docs/architecture.md (LLM in services with tracing)
 
 Sample usage:
     from synth_lab.services.scorecard_estimator import ScorecardEstimator

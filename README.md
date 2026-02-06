@@ -265,7 +265,7 @@ make test-e2e-docker-down  # Para e limpa o ambiente
 - ✅ Migrações Alembic aplicadas automaticamente
 - ✅ Isolamento de transações (SAVEPOINT) por teste
 
-> 📖 Para documentação detalhada, veja [Docker Development Guide](docs/docker-development.md)
+> 📖 Para documentação detalhada, veja [Deployment Guide](docs/deployment.md)
 
 ### 🚀 CI/CD Pipeline
 
@@ -694,11 +694,11 @@ synth-lab/
 ### Documentação Principal
 
 - **[Requisitos](docs/requisitos.md)**: Requisitos funcionais e não-funcionais do projeto
-- **[Arquitetura](docs/arquitetura.md)**: Arquitetura em 3 camadas (Interface → Service → Database)
-- **[Modelo de Dados](docs/database_model.md)**: Esquema completo do banco de dados PostgreSQL
-- **[API REST](docs/api.md)**: Documentação completa dos 17 endpoints REST
-- **[CLI](docs/cli.md)**: Guia completo da interface de linha de comando
-- **[Camada de Serviços](docs/services.md)**: Documentação da lógica de negócio
+- **[Arquitetura](docs/architecture.md)**: Arquitetura backend + frontend
+- **[API REST](docs/api.md)**: Referência dos endpoints REST
+- **[Banco de Dados](docs/database.md)**: Schema PostgreSQL
+- **[Deploy e CI/CD](docs/deployment.md)**: Pipeline, Railway, Docker
+- **[Testes](docs/testing.md)**: Estratégia de testes e pre-push hook
 
 ### Especificações Técnicas
 

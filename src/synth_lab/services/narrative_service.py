@@ -7,7 +7,7 @@ placeholders that can be configured via inline dropdowns.
 References:
     - Spec: specs/039-narrative-mechanism-config/spec.md
     - Research: specs/039-narrative-mechanism-config/research.md (RQ-001, RQ-002)
-    - Architecture: docs/arquitetura.md (LLM in services with tracing)
+    - Architecture: docs/architecture.md (LLM in services with tracing)
 
 Sample usage:
     from synth_lab.services.narrative_service import NarrativeService

@@ -7,7 +7,7 @@ and interview history as context.
 References:
     - LLM Client: src/synth_lab/infrastructure/llm_client.py
     - Research Repository: src/synth_lab/repositories/research_repository.py
-    - Architecture: docs/arquitetura.md (LLM calls must use Phoenix tracing)
+    - Architecture: docs/architecture.md (LLM calls must use Phoenix tracing)
 """
 
 from datetime import datetime

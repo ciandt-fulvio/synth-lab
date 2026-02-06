@@ -32,7 +32,7 @@ make test-e2e
 ./scripts/validate-smart-tests.sh
 ```
 
-📖 **Documentation**: `docs/smart-test-execution.md`
+📖 **Documentation**: `docs/testing.md`
 
 ### Environment Management
 
@@ -185,7 +185,7 @@ After modifying test configuration:
 
 ## Documentation Index
 
-- **Smart Testing**: `docs/smart-test-execution.md`
+- **Smart Testing**: `docs/testing.md`
 - **Git Workflow**: `CLAUDE.md` (Git Workflow & Merge section)
 - **Pre-Push Hook**: `docs/testing-pre-push-hook.md`
 - **CI/CD Pipeline**: `CLAUDE.md` (CI/CD Pipeline section)

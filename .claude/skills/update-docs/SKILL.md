@@ -21,9 +21,9 @@ make update-docs
 ## O que faz
 
 **Router mudou** → Atualiza `docs/api.md`
-**Service mudou** → Atualiza `docs/arquitetura.md`
-**Model mudou** → Atualiza `docs/database_model.md`
-**Frontend mudou** → Atualiza `docs/arquitetura_front.md`
+**Service mudou** → Atualiza `docs/architecture.md`
+**Model mudou** → Atualiza `docs/database.md`
+**Frontend mudou** → Atualiza `docs/architecture.md`
 
 ## Templates de Prompts
 
@@ -54,7 +54,7 @@ IMPORTANTE:
 ### Architecture Docs Update
 
 ```
-Atualizar docs/arquitetura.md para refletir mudanças no service '{service_class}' ({service_file}).
+Atualizar docs/architecture.md para refletir mudanças no service '{service_class}' ({service_file}).
 
 Verifique e atualize:
 1. O service está listado na seção 'Service Layer'?
@@ -76,7 +76,7 @@ IMPORTANTE:
 ### Database Model Docs Update
 
 ```
-Atualizar docs/database_model.md para refletir mudanças no model ORM ({model_file}).
+Atualizar docs/database.md para refletir mudanças no model ORM ({model_file}).
 
 Classes detectadas: {classes}
 
@@ -96,7 +96,7 @@ IMPORTANTE:
 ### Frontend Docs Update (Pages)
 
 ```
-Atualizar docs/arquitetura_front.md para refletir mudanças na página '{page_name}' ({page_file}).
+Atualizar docs/architecture.md para refletir mudanças na página '{page_name}' ({page_file}).
 
 Página: {page_name}
 Rota inferida: {route}
@@ -116,7 +116,7 @@ IMPORTANTE:
 ### Frontend Docs Update (Hooks)
 
 ```
-Atualizar docs/arquitetura_front.md para refletir mudanças no hook '{hook_name}' ({hook_file}).
+Atualizar docs/architecture.md para refletir mudanças no hook '{hook_name}' ({hook_file}).
 
 Hook: {hook_name}
 
@@ -178,11 +178,11 @@ graph TD
 
 **Backend:**
 - ✅ `docs/api.md` - Quando routers mudam
-- ✅ `docs/arquitetura.md` - Quando services mudam
-- ✅ `docs/database_model.md` - Quando models ORM mudam
+- ✅ `docs/architecture.md` - Quando services mudam
+- ✅ `docs/database.md` - Quando models ORM mudam
 
 **Frontend:**
-- ✅ `docs/arquitetura_front.md` - Quando pages/hooks mudam
+- ✅ `docs/architecture.md` - Quando pages/hooks mudam
 
 **NÃO atualizados automaticamente:**
 - ❌ `CLAUDE.md` - Regras e convenções (manual)
@@ -241,7 +241,7 @@ git commit -m "feat: add email notification service"
 ⚙️  Services modificados detectados
 ...
 
-# 4. Claude Code atualiza docs/arquitetura.md
+# 4. Claude Code atualiza docs/architecture.md
 # Adiciona EmailService na seção de services
 # Documenta responsabilidades
 # Atualiza diagrama de camadas

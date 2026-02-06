@@ -128,7 +128,7 @@ detect_service_changes() {
     if [ -n "$service_class" ]; then
         local prompt
         prompt=$(cat <<EOF
-Atualizar docs/arquitetura.md para refletir mudanças no service '$service_class' ($service_file).
+Atualizar docs/architecture.md para refletir mudanças no service '$service_class' ($service_file).
 
 Verifique e atualize:
 1. O service está listado na seção 'Service Layer'?
@@ -151,7 +151,7 @@ EOF
 
         PROMPTS+=("$prompt")
         PROMPT_TYPES+=("architecture")
-        DOC_FILES+=("docs/arquitetura.md")
+        DOC_FILES+=("docs/architecture.md")
     fi
 }
 
@@ -166,7 +166,7 @@ detect_model_changes() {
     if [ -n "$classes" ]; then
         local prompt
         prompt=$(cat <<EOF
-Atualizar docs/database_model.md para refletir mudanças no model ORM ($model_file).
+Atualizar docs/database.md para refletir mudanças no model ORM ($model_file).
 
 Classes detectadas: $(echo "$classes" | tr '\n' ', ')
 
@@ -187,7 +187,7 @@ EOF
 
         PROMPTS+=("$prompt")
         PROMPT_TYPES+=("database")
-        DOC_FILES+=("docs/database_model.md")
+        DOC_FILES+=("docs/database.md")
     fi
 }
 
@@ -201,7 +201,7 @@ detect_page_changes() {
 
     local prompt
     prompt=$(cat <<EOF
-Atualizar docs/arquitetura_front.md para refletir mudanças na página '$page_name' ($page_file).
+Atualizar docs/architecture.md para refletir mudanças na página '$page_name' ($page_file).
 
 Página: $page_name
 Rota inferida: /$route (verifique no código se está correta)
@@ -222,7 +222,7 @@ EOF
 
     PROMPTS+=("$prompt")
     PROMPT_TYPES+=("frontend")
-    DOC_FILES+=("docs/arquitetura_front.md")
+    DOC_FILES+=("docs/architecture.md")
 }
 
 # Função: detecta mudanças em hooks do frontend
@@ -232,7 +232,7 @@ detect_hook_changes() {
 
     local prompt
     prompt=$(cat <<EOF
-Atualizar docs/arquitetura_front.md para refletir mudanças no hook '$hook_name' ($hook_file).
+Atualizar docs/architecture.md para refletir mudanças no hook '$hook_name' ($hook_file).
 
 Hook: $hook_name
 
@@ -252,7 +252,7 @@ EOF
 
     PROMPTS+=("$prompt")
     PROMPT_TYPES+=("frontend")
-    DOC_FILES+=("docs/arquitetura_front.md")
+    DOC_FILES+=("docs/architecture.md")
 }
 
 # Analisa arquivos e gera prompts

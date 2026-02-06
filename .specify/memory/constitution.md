@@ -91,8 +91,7 @@ Code MUST prioritize simplicity and maintainability.
 ### VII. Architecture - NON-NEGOTIABLE
 
 Architecture rules are defined in:
-- **Backend**: [`docs/arquitetura.md`](../../docs/arquitetura.md)
-- **Frontend**: [`docs/arquitetura_front.md`](../../docs/arquitetura_front.md)
+- **Arquitetura**: [`docs/architecture.md`](../../docs/architecture.md)
 - **Quick Reference**: [`CLAUDE.md`](../../CLAUDE.md)
 
 **Backend Rules:**

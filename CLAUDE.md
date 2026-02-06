@@ -28,7 +28,7 @@ frontend/src/
 # Backend
 uv run uvicorn synth_lab.api.main:app --reload
 
-# Testing (see docs/testing-strategy.md for details)
+# Testing (see docs/testing.md for details)
 pytest                    # Fast tests only (excludes real API calls)
 pytest -m "not slow"      # Explicitly exclude slow tests
 pytest -m integration     # Only integration tests (mocked APIs)
@@ -100,7 +100,7 @@ git push origin main
    ```
 
 3. **docs/testing-pre-push-hook.md** - Documentação completa do hook
-4. **docs/pre-push-hook-smart-mode.md** - Documentação do smart mode
+4. **docs/testing.md** - Documentação de testes e smart mode
 
 ### 🚀 Smart Mode (Otimização Automática)
 
@@ -139,7 +139,7 @@ O pre-push hook agora usa **detecção inteligente de mudanças** para otimizar 
 ⏭️  Skipping frontend push (no changes)
 ```
 
-**Ver documentação completa:** `docs/pre-push-hook-smart-mode.md`
+**Ver documentação completa:** `docs/testing.md`
 
 ### ⚠️ Troubleshooting
 
@@ -203,7 +203,7 @@ DATABASE_URL="postgresql://synthlab:synthlab@localhost:5432/synthlab" python scr
 - **Smoke tests**: 1 teste "hello world" real por serviço externo (CI only)
 - **Markers**: Use pytest markers (`integration`, `real_api`, `slow`)
 - **Fixtures**: Use centralized mocks from `tests/fixtures/llm_mocks.py`
-- **Documentation**: `docs/testing-strategy.md`
+- **Documentation**: `docs/testing.md`
 
 ### Frontend
 - **Pages**: Compõem componentes + usam hooks
@@ -224,8 +224,11 @@ PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
 ```
 
 ## Architecture Docs
-- Backend: `docs/arquitetura.md`
-- Frontend: `docs/arquitetura_front.md`
+- Arquitetura: `docs/architecture.md`
+- API: `docs/api.md`
+- Banco de dados: `docs/database.md`
+- Deploy e CI/CD: `docs/deployment.md`
+- Testes: `docs/testing.md`
 
 ## Active Technologies
 - Python 3.13+ + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, Arize Phoenix (028-exploration-summary)

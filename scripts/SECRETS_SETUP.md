@@ -208,7 +208,7 @@ railway variables -e staging
 ## 📖 Documentação Completa
 
 Para documentação detalhada, veja:
-- [docs/SECRETS_SETUP.md](../docs/SECRETS_SETUP.md) - Guia completo de secrets
+- [docs/deployment.md](../docs/deployment.md) - Guia completo de secrets
 
 ## ⚠️ Segurança
 
