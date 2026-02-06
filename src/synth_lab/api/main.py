@@ -5,6 +5,8 @@ Main application with lifespan events, CORS configuration, and router registrati
 
 References:
     - FastAPI docs: https://fastapi.tiangolo.com/
+
+Note: Images built for linux/amd64 platform for Railway deployment.
 """
 
 from contextlib import asynccontextmanager
