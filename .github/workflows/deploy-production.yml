@@ -26,6 +26,10 @@
 name: Deploy Production
 
 on:
+  workflow_run:
+    workflows: ["Deploy Staging"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       fresh_start:
@@ -48,11 +52,44 @@ env:
 
 jobs:
   # ============================================================================
-  # Stage 0: Confirmation and Validation
+  # Stage 0: Check Staging Status (Gate)
+  # ============================================================================
+  check-staging-status:
+    name: Check Staging Status
+    runs-on: ubuntu-latest
+    outputs:
+      smoke_tests_passed: ${{ steps.check.outputs.passed }}
+    steps:
+      - name: Check if staging smoke tests passed
+        id: check
+        run: |
+          # Only check if triggered by workflow_run
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            # workflow_run.conclusion is 'success' only if ALL jobs passed
+            # including smoke tests
+            if [ "${{ github.event.workflow_run.conclusion }}" = "success" ]; then
+              echo "passed=true" >> $GITHUB_OUTPUT
+              echo "✅ Staging smoke tests passed - proceeding to production"
+            else
+              echo "passed=false" >> $GITHUB_OUTPUT
+              echo "❌ Staging validation failed - blocking production deploy"
+              exit 1
+            fi
+          else
+            # Manual trigger via workflow_dispatch
+            echo "passed=true" >> $GITHUB_OUTPUT
+            echo "ℹ️  Manual trigger - skipping staging status check"
+          fi
+
+  # ============================================================================
+  # Stage 1: Confirmation and Validation
   # ============================================================================
   validate:
     name: Validate Deployment
     runs-on: ubuntu-latest
+    needs: check-staging-status
+    # Only run validate (and all downstream jobs) if staging passed
+    if: needs.check-staging-status.outputs.smoke_tests_passed == 'true'
 
     steps:
       - name: Warn if fresh start

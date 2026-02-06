@@ -1,0 +1,125 @@
+# Build Images - Native AMD64 Build on GitHub Actions
+#
+# This workflow builds Docker images natively on AMD64 GitHub runners
+# (no QEMU emulation, no crashes, fast and reliable).
+#
+# Trigger: push to main
+#
+# Strategy:
+# - Build backend and frontend in parallel
+# - Use Docker layer caching from GHCR for faster builds
+# - Tag with :staging, :commit-sha, and :latest
+# - Skip tests (already ran in pre-push hook locally)
+#
+# Next step: Deploy Staging workflow will be triggered automatically
+
+name: Build Images
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-backend:
+    name: Build Backend Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.backend
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:staging
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:latest
+          cache-to: type=inline
+
+  build-frontend:
+    name: Build Frontend Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:staging
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:latest
+          cache-to: type=inline
+          build-args: |
+            VITE_API_URL=${{ vars.STAGING_BACKEND_URL }}
+
+  notify:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    if: always()
+
+    steps:
+      - name: Summary
+        run: |
+          echo "## Build Images Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Status" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: ${{ needs.build-backend.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: ${{ needs.build-frontend.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Docker Images" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:staging" >> $GITHUB_STEP_SUMMARY
+          echo "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:staging" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.build-backend.result }}" == "success" ] && [ "${{ needs.build-frontend.result }}" == "success" ]; then
+            echo "✅ Images built successfully - Deploy Staging will start automatically" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Build failed - check logs for details" >> $GITHUB_STEP_SUMMARY
+          fi

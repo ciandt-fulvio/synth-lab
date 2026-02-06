@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-# Git pre-push hook: Intelligent build, test, and push Docker images before pushing to main
+# Git pre-push hook: Intelligent build and test before pushing to main
 #
 # This hook runs when pushing to main and ensures:
-# 1. Docker images are built only if their source files changed
+# 1. Docker images are built locally (for testing only)
 # 2. Tests run only if relevant code changed
 # 3. E2E tests run only if backend or frontend changed
-# 4. Images are pushed to GHCR
-# 5. Only then allows the push to main
+# 4. Only then allows the push to main
+# 5. GitHub Actions will build AMD64 images natively (no QEMU)
 #
 # Change detection:
 # - Backend changes: src/, pyproject.toml, Dockerfile.backend, alembic/, scripts/
@@ -309,104 +309,9 @@ do
     echo ""
 
     # ========================================================================
-    # Step 4: Push Images to GHCR (Smart)
+    # Step 4: Summary
     # ========================================================================
-    echo -e "${YELLOW}[4/5] 📦 Pushing images to GitHub Container Registry (smart mode)...${NC}"
-    echo ""
-
-    echo -e "${BLUE}  Registry: $REGISTRY${NC}"
-    echo -e "${BLUE}  Backend:  $GHCR_BACKEND_IMAGE:$COMMIT_SHA${NC}"
-    echo -e "${BLUE}  Frontend: $GHCR_FRONTEND_IMAGE:$COMMIT_SHA${NC}"
-    echo ""
-
-    # Check if logged in to GHCR
-    if ! $CONTAINER_RUNTIME login $REGISTRY --get-login 2>/dev/null | grep -q .; then
-        echo -e "${YELLOW}⚠️  Not logged in to GHCR. Attempting to log in...${NC}"
-        echo -e "${BLUE}  You may need to provide a GitHub Personal Access Token with 'write:packages' scope.${NC}"
-        echo -e "${BLUE}  Create one at: https://github.com/settings/tokens${NC}"
-        echo ""
-
-        if ! $CONTAINER_RUNTIME login $REGISTRY; then
-            echo -e "${RED}❌ Failed to log in to GHCR${NC}"
-            echo -e "${YELLOW}  You can skip image push by using: git push --no-verify${NC}"
-            exit 1
-        fi
-    fi
-
-    # Push backend image (always push, even if just tagging existing)
-    # The workflow needs an image with the commit SHA, even for config-only changes
-    if [ "$BACKEND_CHANGED" = true ] || $CONTAINER_RUNTIME image exists synth-lab-api:$COMMIT_SHA 2>/dev/null; then
-        echo -e "${BLUE}  Pushing backend image...${NC}"
-
-        # Tag for GHCR (commit SHA, latest, and staging)
-        $CONTAINER_RUNTIME tag "synth-lab-api:$COMMIT_SHA" "$GHCR_BACKEND_IMAGE:$COMMIT_SHA"
-        $CONTAINER_RUNTIME tag "synth-lab-api:$COMMIT_SHA" "$GHCR_BACKEND_IMAGE:latest"
-        $CONTAINER_RUNTIME tag "synth-lab-api:$COMMIT_SHA" "$GHCR_BACKEND_IMAGE:staging"
-
-        # Push all tags
-        if ! $CONTAINER_RUNTIME push "$GHCR_BACKEND_IMAGE:$COMMIT_SHA"; then
-            echo -e "${RED}❌ Failed to push backend image${NC}"
-            exit 1
-        fi
-        if ! $CONTAINER_RUNTIME push "$GHCR_BACKEND_IMAGE:latest"; then
-            echo -e "${RED}❌ Failed to push backend image (latest tag)${NC}"
-            exit 1
-        fi
-        if ! $CONTAINER_RUNTIME push "$GHCR_BACKEND_IMAGE:staging"; then
-            echo -e "${RED}❌ Failed to push backend image (staging tag)${NC}"
-            exit 1
-        fi
-
-        if [ "$BACKEND_CHANGED" = true ]; then
-            echo -e "${GREEN}  ✅ Backend image pushed (rebuilt)${NC}"
-        else
-            echo -e "${GREEN}  ✅ Backend image pushed (retagged from existing)${NC}"
-        fi
-    else
-        echo -e "${YELLOW}  ⚠️  No backend image found to push${NC}"
-        exit 1
-    fi
-    echo ""
-
-    # Push frontend image (always push, even if just tagging existing)
-    # The workflow needs an image with the commit SHA, even for config-only changes
-    if [ "$FRONTEND_CHANGED" = true ] || $CONTAINER_RUNTIME image exists synth-lab-frontend:$COMMIT_SHA 2>/dev/null; then
-        echo -e "${BLUE}  Pushing frontend image...${NC}"
-
-        # Tag for GHCR (commit SHA, latest, and staging)
-        $CONTAINER_RUNTIME tag "synth-lab-frontend:$COMMIT_SHA" "$GHCR_FRONTEND_IMAGE:$COMMIT_SHA"
-        $CONTAINER_RUNTIME tag "synth-lab-frontend:$COMMIT_SHA" "$GHCR_FRONTEND_IMAGE:latest"
-        $CONTAINER_RUNTIME tag "synth-lab-frontend:$COMMIT_SHA" "$GHCR_FRONTEND_IMAGE:staging"
-
-        # Push all tags
-        if ! $CONTAINER_RUNTIME push "$GHCR_FRONTEND_IMAGE:$COMMIT_SHA"; then
-            echo -e "${RED}❌ Failed to push frontend image${NC}"
-            exit 1
-        fi
-        if ! $CONTAINER_RUNTIME push "$GHCR_FRONTEND_IMAGE:latest"; then
-            echo -e "${RED}❌ Failed to push frontend image (latest tag)${NC}"
-            exit 1
-        fi
-        if ! $CONTAINER_RUNTIME push "$GHCR_FRONTEND_IMAGE:staging"; then
-            echo -e "${RED}❌ Failed to push frontend image (staging tag)${NC}"
-            exit 1
-        fi
-
-        if [ "$FRONTEND_CHANGED" = true ]; then
-            echo -e "${GREEN}  ✅ Frontend image pushed (rebuilt)${NC}"
-        else
-            echo -e "${GREEN}  ✅ Frontend image pushed (retagged from existing)${NC}"
-        fi
-    else
-        echo -e "${YELLOW}  ⚠️  No frontend image found to push${NC}"
-        exit 1
-    fi
-    echo ""
-
-    # ========================================================================
-    # Step 5: Summary
-    # ========================================================================
-    echo -e "${YELLOW}[5/5] 📋 Summary${NC}"
+    echo -e "${YELLOW}[4/4] 📋 Summary${NC}"
     echo ""
 
     if [ "$DOCS_ONLY" = true ]; then
@@ -430,26 +335,16 @@ do
         fi
     fi
 
-    echo -e "${GREEN}✅ Images pushed to GHCR (if changed)${NC}"
-    echo ""
-
-    if [ "$BACKEND_CHANGED" = true ] || [ "$FRONTEND_CHANGED" = true ]; then
-        echo -e "${BLUE}Images available at:${NC}"
-        [ "$BACKEND_CHANGED" = true ] && echo -e "  - $GHCR_BACKEND_IMAGE:$COMMIT_SHA"
-        [ "$FRONTEND_CHANGED" = true ] && echo -e "  - $GHCR_FRONTEND_IMAGE:$COMMIT_SHA"
-        echo ""
-    fi
-
     echo -e "${GREEN}🚀 Ready to push to main!${NC}"
-    echo -e "${BLUE}   Deploy to staging will start automatically after push.${NC}"
+    echo -e "${BLUE}   GitHub Actions will build AMD64 images and deploy to staging.${NC}"
     echo ""
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     echo ""
 
     # ========================================================================
-    # Step 6: Clean Old Images (Automatic Cleanup)
+    # Step 5: Clean Old Images (Automatic Cleanup)
     # ========================================================================
-    echo -e "${CYAN}[6/6] 🧹 Cleaning old Docker images...${NC}"
+    echo -e "${CYAN}[5/5] 🧹 Cleaning old Docker images...${NC}"
     echo ""
     echo -e "${BLUE}  Keeping only: latest + 3 most recent commit SHAs${NC}"
     echo -e "${BLUE}  Removing: old tags and orphaned images${NC}"

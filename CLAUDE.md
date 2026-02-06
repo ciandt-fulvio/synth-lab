@@ -258,7 +258,7 @@ PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
 
 Database migration must be always done via Alembic. Tests use an isolated container (make test) which auto-applies migrations.
 
-## CI/CD Pipeline (Local Pre-Push + Auto Deploy)
+## CI/CD Pipeline (Build Once, Deploy Everywhere)
 
 ### Setup (First Time Only)
 
@@ -269,26 +269,17 @@ git config core.hooksPath .githooks
 
 # Verificar configuração
 git config core.hooksPath
-
-# Login no GHCR (necessário para push de imagens)
-podman login ghcr.io
-# ou
-docker login ghcr.io
-# Fornecer: username=seu-github-username, password=seu-github-PAT-com-scope-write:packages
 ```
 
-**Criar GitHub Personal Access Token**:
-1. Acesse: https://github.com/settings/tokens
-2. "Generate new token (classic)"
-3. Selecione scope: `write:packages` e `read:packages`
-4. Use o token como senha no `docker login`
+**Não é mais necessário login no GHCR localmente** - o build e push de imagens agora acontece no GitHub Actions (AMD64 nativo, sem QEMU).
 
 ### Overview
-O pipeline de CI/CD é dividido em duas fases principais:
-1. **Pre-Push Hook (Local)**: Build + testes completos + push de imagens para GHCR
-2. **Deploy Staging (GitHub Actions)**: Deploy automático de imagens pré-testadas para staging
+O pipeline de CI/CD é dividido em três fases principais:
+1. **Pre-Push Hook (Local)**: Build local (para testes) + testes completos
+2. **Build Images (GitHub Actions)**: Build nativo AMD64 + push para GHCR
+3. **Deploy Staging → Production (GitHub Actions)**: Deploy automático
 
-### 🚀 Fluxo Completo: Merge → Railway Staging (AUTOMÁTICO)
+### 🚀 Fluxo Completo: Merge → Staging → Production (AUTOMÁTICO)
 
 ```
 Você: ./scripts/merge-to-main.sh <branch>
@@ -297,14 +288,16 @@ Merge LOCAL (não envia nada)
   ↓
 git push origin main
   ↓
-PRE-PUSH HOOK (5-10 min):
-  ├─> Build images
+PRE-PUSH HOOK (2-5 min):
+  ├─> Build images (local, para testes)
   ├─> Testes unitários
-  ├─> Testes E2E
-  └─> Push images GHCR
+  └─> Testes E2E
   ↓
-GITHUB ACTIONS (10-15 min):
-  ├─> Reset staging DB
+BUILD IMAGES (5 min):
+  ├─> Build AMD64 nativo (backend + frontend em paralelo)
+  └─> Push images GHCR (:staging, :sha, :latest)
+  ↓
+DEPLOY STAGING (10 min):
   ├─> Migrate DB
   ├─> Seed DB (se vazio)
   ├─> Deploy backend → Railway
@@ -312,10 +305,19 @@ GITHUB ACTIONS (10-15 min):
   ├─> Smoke tests
   └─> Tag :staging-verified
   ↓
-✅ Deploy completo em staging!
+DEPLOY PRODUCTION (5 min) - AUTO se smoke tests passaram:
+  ├─> Migrate DB (seguro, não dropa)
+  ├─> Deploy backend → Railway
+  ├─> Deploy frontend → Railway
+  └─> Smoke tests
+  ↓
+✅ Deploy completo em staging e production!
 ```
 
-**IMPORTANTE**: Deploy para Railway é AUTOMÁTICO após push para main. Você NÃO precisa fazer nada manualmente no Railway.
+**IMPORTANTE**:
+- Deploy para staging é AUTOMÁTICO após build
+- Deploy para production é AUTOMÁTICO se smoke tests staging passarem
+- Imagens são buildadas nativamente (AMD64) no GitHub Actions, não localmente
 
 ### Fase 1: Pre-Push Hook (Local)
 
@@ -325,7 +327,7 @@ GITHUB ACTIONS (10-15 min):
 
 **Fluxo**:
 ```
-1. Build Docker Images (Local)
+1. Build Docker Images (Local - para testes apenas)
    ├─> Build backend image (synth-lab-api:commit-sha)
    └─> Build frontend image (synth-lab-frontend:commit-sha)
 
@@ -335,20 +337,14 @@ GITHUB ACTIONS (10-15 min):
 3. Run E2E Tests (Local)
    └─> make test-e2e (Playwright E2E tests)
 
-4. Push Images to GHCR
-   ├─> Tag images com commit SHA
-   ├─> Push backend image para GHCR
-   └─> Push frontend image para GHCR
-
-5. Allow Push to Main
+4. Allow Push to Main
    └─> Se todas as etapas passarem, permite o push
 ```
 
 **Benefícios**:
 - ✅ Validação completa antes do push
-- 🚀 Deploy mais rápido (imagens já prontas)
 - 🔒 Garante que apenas código testado chegue ao remote
-- 💾 Imagens pré-construídas reutilizadas no deploy
+- ⚡ Rápido (~2-5 min, sem push de imagens)
 
 **Como usar**:
 ```bash
@@ -359,18 +355,43 @@ git push origin main
 git push origin main --no-verify
 ```
 
-**Requisitos**:
-- Autenticação no GHCR (GitHub Personal Access Token com scope `write:packages`)
-- Login no GHCR: `podman login ghcr.io` ou `docker login ghcr.io`
+**Não requer**: Login no GHCR (build local é apenas para testes)
 
-### Fase 2: Deploy Staging (GitHub Actions)
+### Fase 2: Build Images (GitHub Actions)
 
-**Trigger**: Push para `main` (após pre-push hook completar)
+**Trigger**: Push para `main` (após pre-push hook permitir)
+
+**Workflow**: `build-images.yml`
 
 **Fluxo**:
 ```
-1. Reset Staging DB
-   └─> DROP SCHEMA public CASCADE (limpa tudo)
+1. Build Backend (AMD64 nativo, sem QEMU)
+   ├─> Build com Docker Buildx
+   ├─> Layer cache do GHCR
+   └─> Push: :staging, :commit-sha, :latest
+
+2. Build Frontend (AMD64 nativo, em paralelo)
+   ├─> Build com Docker Buildx
+   ├─> Layer cache do GHCR
+   └─> Push: :staging, :commit-sha, :latest
+```
+
+**Benefícios**:
+- 🚀 Build nativo AMD64 (GitHub runners, sem QEMU)
+- ⚡ Builds em paralelo (backend + frontend)
+- 📦 Layer cache para builds mais rápidos
+- ✅ Sem crashes (QEMU era instável no Mac ARM)
+
+### Fase 3: Deploy Staging (GitHub Actions)
+
+**Trigger**: Automático após `build-images.yml` completar com sucesso
+
+**Workflow**: `deploy-staging.yml`
+
+**Fluxo**:
+```
+1. Check Build Status (Gate)
+   └─> Só continua se build-images passou
 
 2. Migrate Staging DB
    └─> alembic upgrade head (aplica migrations)
@@ -380,10 +401,10 @@ git push origin main --no-verify
    └─> Preserva dados existentes se houver
 
 4. Deploy Backend
-   └─> Railway deploy com imagem GHCR:commit-sha
+   └─> Railway deploy com imagem GHCR:staging
 
 5. Deploy Frontend
-   └─> Railway deploy com imagem GHCR:commit-sha
+   └─> Railway deploy com imagem GHCR:staging
 
 6. Smoke Tests
    └─> Playwright tests críticos (não dependem de dados específicos)
@@ -393,10 +414,41 @@ git push origin main --no-verify
 ```
 
 **Características**:
-- 🔄 Usa imagens pré-buildadas e pré-testadas
+- 🔄 Usa imagens pré-buildadas nativamente
 - 🗄️ Seed condicional: não recria dados se já existirem
 - ✅ Smoke tests não dependem de dados específicos do seed
-- 🏷️ Images são tagadas como "staging-verified" para promoção
+- 🏷️ Images são tagadas como "staging-verified" para produção
+- ⚡ Trigger automático (workflow_run)
+
+### Fase 4: Deploy Production (GitHub Actions)
+
+**Trigger**: Automático após `deploy-staging.yml` completar com sucesso (smoke tests passaram)
+
+**Workflow**: `deploy-production.yml`
+
+**Fluxo**:
+```
+1. Check Staging Status (Gate)
+   └─> Só continua se smoke tests staging passaram
+
+2. Migrate Production DB
+   └─> alembic upgrade head (SEGURO, não dropa tabelas)
+
+3. Deploy Backend
+   └─> Railway deploy com imagem GHCR:staging
+
+4. Deploy Frontend
+   └─> Railway deploy com imagem GHCR:staging
+
+5. Smoke Tests Production
+   └─> Validação final em produção
+```
+
+**Características**:
+- 🔒 Gate de qualidade: só deploya se staging passou
+- 🗄️ Migrations seguras (não dropa dados)
+- ⚡ Trigger automático (workflow_run)
+- 🛑 Pode ser desabilitado (remover workflow_run, manter workflow_dispatch)
 
 ### Seed Condicional
 
@@ -439,8 +491,9 @@ Este workflow roda automaticamente em PRs para validar mudanças antes do merge,
 # Testar localmente antes de fazer push (manual)
 make test && make test-e2e
 
-# Forçar deploy para staging (usa últimas imagens do GHCR)
-gh workflow run deploy-staging.yml
+# Ver workflows em execução
+gh run list --limit 10
+gh run watch  # acompanhar workflow atual
 
 # Rodar smoke tests localmente contra staging
 make test-smoke-staging
@@ -453,14 +506,32 @@ git config core.hooksPath
 
 # Temporariamente desabilitar pre-push hook
 git push origin main --no-verify
+
+# Deploy manual para staging (bypass build-images)
+gh workflow run deploy-staging.yml
+
+# Deploy manual para production (bypass auto-deploy)
+gh workflow run deploy-production.yml
+
+# Desabilitar auto-deploy para production (emergência)
+# Remover workflow_run trigger de deploy-production.yml
 ```
 
-### Promoção para Produção (Futuro)
+### Rollback e Troubleshooting
 
-As imagens tagadas como `staging-verified` podem ser promovidas para produção:
 ```bash
-# Exemplo de promoção (quando workflow de prod estiver pronto)
-docker pull ghcr.io/owner/synth-lab-api:staging-verified
-docker tag ghcr.io/owner/synth-lab-api:staging-verified ghcr.io/owner/synth-lab-api:production
-docker push ghcr.io/owner/synth-lab-api:production
+# Ver imagens disponíveis no GHCR
+docker search ghcr.io/<owner>/synth-lab-api
+
+# Rollback no Railway (via Railway CLI)
+railway rollback --environment production
+
+# Rollback manual (re-deploy imagem anterior)
+gh workflow run deploy-production.yml
+
+# Verificar logs de build
+gh run view <run-id> --log
+
+# Verificar se smoke tests passaram
+gh run list --workflow=deploy-staging.yml --limit 5
 ```

@@ -3,7 +3,7 @@
 # Clean Old Docker Images Script
 #
 # Strategy:
-# 1. Keep only essential tags: latest + 2 most recent commit SHAs
+# 1. Keep only essential tags: latest + 1 most recent commit SHA
 # 2. Remove all other tags (old commits, duplicates, orphans)
 # 3. Remove dangling/orphaned images
 #
@@ -87,10 +87,10 @@ clean_repository_tags() {
         echo -e "${GREEN}  Keeping ${latest_count} :latest tag(s)${NC}"
     fi
 
-    # Keep only the 3 most recent commit SHA tags
+    # Keep only the 1 most recent commit SHA tag
     if [ -n "$commit_tags" ]; then
         local commit_count=$(echo "$commit_tags" | wc -l | tr -d ' ')
-        local keep_commit_count=3
+        local keep_commit_count=1
 
         if [ $commit_count -le $keep_commit_count ]; then
             kept=$((kept + commit_count))
