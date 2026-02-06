@@ -204,30 +204,58 @@ jobs:
           echo "✅ Production migrations completed"
 
   # ============================================================================
-  # Stage 3: Deploy Images to Railway Production
+  # Stage 3a: Retag Images as :production in GHCR
+  # ============================================================================
+  # Railway is configured with :production tag. We retag staging-verified → production
+  # so that serviceInstanceRedeploy pulls the updated :production image.
+  retag-production:
+    name: Retag Images as Production
+    runs-on: ubuntu-latest
+    needs: migrate-production
+    if: always() && needs.migrate-production.result == 'success'
+    permissions:
+      packages: write
+
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Retag backend image as production
+        run: |
+          SRC="${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ env.IMAGE_TAG }}"
+          DST="${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:production"
+          echo "Retagging: $SRC → $DST"
+          docker pull "$SRC"
+          docker tag "$SRC" "$DST"
+          docker push "$DST"
+          echo "✅ Backend image tagged as :production"
+
+      - name: Retag frontend image as production
+        run: |
+          SRC="${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ env.IMAGE_TAG }}"
+          DST="${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:production"
+          echo "Retagging: $SRC → $DST"
+          docker pull "$SRC"
+          docker tag "$SRC" "$DST"
+          docker push "$DST"
+          echo "✅ Frontend image tagged as :production"
+
+  # ============================================================================
+  # Stage 3b: Deploy Images to Railway Production
   # ============================================================================
   deploy-backend:
     name: Deploy Backend (Production)
     runs-on: ubuntu-latest
-    needs: migrate-production
-    if: always() && needs.migrate-production.result == 'success'
+    needs: retag-production
+    if: always() && needs.retag-production.result == 'success'
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Verify backend image exists in GHCR
-        run: |
-          echo "Verifying backend image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ env.IMAGE_TAG }}"
-
-          if docker pull "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ env.IMAGE_TAG }}"; then
-            echo "✅ Backend image found in GHCR"
-            docker images | grep synth-lab-api | head -5
-          else
-            echo "❌ Backend image NOT found in GHCR"
-            echo "Expected tag: ${{ env.IMAGE_TAG }}"
-            exit 1
-          fi
 
       - name: Deploy backend image to Railway
         env:
@@ -236,31 +264,18 @@ jobs:
         run: |
           ./scripts/railway-deploy-image.sh \
             synth-lab-api \
-            "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:${{ env.IMAGE_TAG }}" \
+            "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-api:production" \
             production
 
   deploy-frontend:
     name: Deploy Frontend (Production)
     runs-on: ubuntu-latest
-    needs: [migrate-production, deploy-backend]
+    needs: [retag-production, deploy-backend]
     if: always() && needs.deploy-backend.result == 'success'
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Verify frontend image exists in GHCR
-        run: |
-          echo "Verifying frontend image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ env.IMAGE_TAG }}"
-
-          if docker pull "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ env.IMAGE_TAG }}"; then
-            echo "✅ Frontend image found in GHCR"
-            docker images | grep synth-lab-frontend | head -5
-          else
-            echo "❌ Frontend image NOT found in GHCR"
-            echo "Expected tag: ${{ env.IMAGE_TAG }}"
-            exit 1
-          fi
 
       - name: Deploy frontend image to Railway
         env:
@@ -269,7 +284,7 @@ jobs:
         run: |
           ./scripts/railway-deploy-image.sh \
             synth-lab-frontend \
-            "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ env.IMAGE_TAG }}" \
+            "${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:production" \
             production
 
       - name: Wait for Railway deployments to stabilize
