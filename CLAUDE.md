@@ -262,276 +262,170 @@ Database migration must be always done via Alembic. Tests use an isolated contai
 
 ### Setup (First Time Only)
 
-Configure o Git para usar os hooks locais:
 ```bash
 # Configurar diretório de hooks
 git config core.hooksPath .githooks
-
-# Verificar configuração
-git config core.hooksPath
 ```
 
-**Não é mais necessário login no GHCR localmente** - o build e push de imagens agora acontece no GitHub Actions (AMD64 nativo, sem QEMU).
+**Não é necessário login no GHCR localmente** — build e push de imagens AMD64 acontece no GitHub Actions.
 
-### Overview
-O pipeline de CI/CD é dividido em três fases principais:
-1. **Pre-Push Hook (Local)**: Build local (para testes) + testes completos
-2. **Build Images (GitHub Actions)**: Build nativo AMD64 + push para GHCR
-3. **Deploy Staging → Production (GitHub Actions)**: Deploy automático
+### Arquitetura do Pipeline
 
-### 🚀 Fluxo Completo: Merge → Staging → Production (AUTOMÁTICO)
+O CI/CD separa responsabilidades entre local e cloud:
+
+| Fase | Onde | O que faz | Tempo |
+|------|------|-----------|-------|
+| **Pre-Push Hook** | Local (Mac ARM64) | Build nativo + testes unitários + E2E | ~2-5 min |
+| **Build Images** | GitHub Actions (AMD64) | Build nativo AMD64 + push GHCR | ~3-5 min |
+| **Deploy Staging** | GitHub Actions | Migrate + seed + deploy Railway + smoke tests | ~8-10 min |
+| **Deploy Production** | GitHub Actions | Migrate + retag + deploy Railway + smoke tests | ~8-10 min |
+
+**Total: ~20-30 min (push → production)**
+
+### Fluxo Completo (AUTOMÁTICO)
 
 ```
-Você: ./scripts/merge-to-main.sh <branch>
-  ↓
-Merge LOCAL (não envia nada)
-  ↓
 git push origin main
   ↓
-PRE-PUSH HOOK (2-5 min):
-  ├─> Build images (local, para testes)
-  ├─> Testes unitários
-  └─> Testes E2E
+PRE-PUSH HOOK (local, ARM64 nativo):
+  ├─ Build images (ARM64, para testes locais apenas)
+  ├─ make test (unitários)
+  └─ make test-e2e (Playwright)
   ↓
-BUILD IMAGES (5 min):
-  ├─> Build AMD64 nativo (backend + frontend em paralelo)
-  └─> Push images GHCR (:staging, :sha, :latest)
+BUILD IMAGES (.github/workflows/build-images.yml):
+  ├─ Build backend AMD64 nativo (Docker Buildx + GHCR cache)
+  ├─ Build frontend AMD64 nativo (em paralelo)
+  └─ Push tags: :staging, :commit-sha, :latest
   ↓
-DEPLOY STAGING (10 min):
-  ├─> Migrate DB
-  ├─> Seed DB (se vazio)
-  ├─> Deploy backend → Railway
-  ├─> Deploy frontend → Railway
-  ├─> Smoke tests
-  └─> Tag :staging-verified
+DEPLOY STAGING (.github/workflows/deploy-staging.yml):
+  ├─ Migrate DB (alembic upgrade head)
+  ├─ Seed DB (condicional — só se synth_groups vazia)
+  ├─ Deploy backend → Railway (:staging)
+  ├─ Deploy frontend → Railway (:staging)
+  ├─ Smoke tests (staging: com auth via test-login)
+  └─ Tag images como :staging-verified
   ↓
-DEPLOY PRODUCTION (5 min) - AUTO se smoke tests passaram:
-  ├─> Migrate DB (seguro, não dropa)
-  ├─> Deploy backend → Railway
-  ├─> Deploy frontend → Railway
-  └─> Smoke tests
-  ↓
-✅ Deploy completo em staging e production!
+DEPLOY PRODUCTION (.github/workflows/deploy-production.yml):
+  ├─ Gate: só roda se staging smoke tests passaram
+  ├─ Migrate DB (seguro, não dropa)
+  ├─ Retag :staging-verified → :production no GHCR
+  ├─ Deploy backend → Railway (:production)
+  ├─ Deploy frontend → Railway (:production)
+  └─ Smoke tests (production: sem auth, apenas health checks)
 ```
 
-**IMPORTANTE**:
-- Deploy para staging é AUTOMÁTICO após build
-- Deploy para production é AUTOMÁTICO se smoke tests staging passarem
-- Imagens são buildadas nativamente (AMD64) no GitHub Actions, não localmente
+### Decisões Importantes de Arquitetura
 
-### Fase 1: Pre-Push Hook (Local)
+1. **Build local é ARM64 nativo** (sem `--platform linux/amd64`, sem QEMU)
+   - Imagens locais servem APENAS para rodar testes no Mac
+   - Imagens AMD64 para Railway são buildadas no GitHub Actions
+   - Isso evita crashes de QEMU que aconteciam com emulação ARM→AMD64
 
-**Trigger**: `git push` para branch `main`
+2. **Railway usa Docker Image source** (não Dockerfile)
+   - Deploy via GraphQL API (`serviceInstanceRedeploy`)
+   - Script: `scripts/railway-deploy-image.sh`
+   - **Não existe `railway.toml`** — foi removido pois Railway não builda do repo
 
-**Localização**: `.githooks/pre-push`
+3. **Production retag** — staging-verified → production
+   - Production Railway está configurado com tag `:production`
+   - O workflow retag copia `:staging-verified` → `:production` no GHCR
+   - Depois dispara `serviceInstanceRedeploy` no Railway
 
-**Fluxo**:
-```
-1. Build Docker Images (Local - para testes apenas)
-   ├─> Build backend image (synth-lab-api:commit-sha)
-   └─> Build frontend image (synth-lab-frontend:commit-sha)
-
-2. Run Full Test Suite (Local)
-   └─> make test (todos os testes pytest)
-
-3. Run E2E Tests (Local)
-   └─> make test-e2e (Playwright E2E tests)
-
-4. Allow Push to Main
-   └─> Se todas as etapas passarem, permite o push
-```
-
-**Benefícios**:
-- ✅ Validação completa antes do push
-- 🔒 Garante que apenas código testado chegue ao remote
-- ⚡ Rápido (~2-5 min, sem push de imagens)
-
-**Como usar**:
-```bash
-# Push normal para main (hook executa automaticamente)
-git push origin main
-
-# Bypass do hook (não recomendado)
-git push origin main --no-verify
-```
-
-**Não requer**: Login no GHCR (build local é apenas para testes)
-
-### Fase 2: Build Images (GitHub Actions)
-
-**Trigger**: Push para `main` (após pre-push hook permitir)
-
-**Workflow**: `build-images.yml`
-
-**Fluxo**:
-```
-1. Build Backend (AMD64 nativo, sem QEMU)
-   ├─> Build com Docker Buildx
-   ├─> Layer cache do GHCR
-   └─> Push: :staging, :commit-sha, :latest
-
-2. Build Frontend (AMD64 nativo, em paralelo)
-   ├─> Build com Docker Buildx
-   ├─> Layer cache do GHCR
-   └─> Push: :staging, :commit-sha, :latest
-```
-
-**Benefícios**:
-- 🚀 Build nativo AMD64 (GitHub runners, sem QEMU)
-- ⚡ Builds em paralelo (backend + frontend)
-- 📦 Layer cache para builds mais rápidos
-- ✅ Sem crashes (QEMU era instável no Mac ARM)
-
-### Fase 3: Deploy Staging (GitHub Actions)
-
-**Trigger**: Automático após `build-images.yml` completar com sucesso
-
-**Workflow**: `deploy-staging.yml`
-
-**Fluxo**:
-```
-1. Check Build Status (Gate)
-   └─> Só continua se build-images passou
-
-2. Migrate Staging DB
-   └─> alembic upgrade head (aplica migrations)
-
-3. Seed Staging DB (Conditional)
-   └─> Executa APENAS se synth_groups estiver vazia
-   └─> Preserva dados existentes se houver
-
-4. Deploy Backend
-   └─> Railway deploy com imagem GHCR:staging
-
-5. Deploy Frontend
-   └─> Railway deploy com imagem GHCR:staging
-
-6. Smoke Tests
-   └─> Playwright tests críticos (não dependem de dados específicos)
-
-7. Tag Verified
-   └─> Tag images como "staging-verified" se smoke tests passaram
-```
-
-**Características**:
-- 🔄 Usa imagens pré-buildadas nativamente
-- 🗄️ Seed condicional: não recria dados se já existirem
-- ✅ Smoke tests não dependem de dados específicos do seed
-- 🏷️ Images são tagadas como "staging-verified" para produção
-- ⚡ Trigger automático (workflow_run)
-
-### Fase 4: Deploy Production (GitHub Actions)
-
-**Trigger**: Automático após `deploy-staging.yml` completar com sucesso (smoke tests passaram)
-
-**Workflow**: `deploy-production.yml`
-
-**Fluxo**:
-```
-1. Check Staging Status (Gate)
-   └─> Só continua se smoke tests staging passaram
-
-2. Migrate Production DB
-   └─> alembic upgrade head (SEGURO, não dropa tabelas)
-
-3. Deploy Backend
-   └─> Railway deploy com imagem GHCR:staging
-
-4. Deploy Frontend
-   └─> Railway deploy com imagem GHCR:staging
-
-5. Smoke Tests Production
-   └─> Validação final em produção
-```
-
-**Características**:
-- 🔒 Gate de qualidade: só deploya se staging passou
-- 🗄️ Migrations seguras (não dropa dados)
-- ⚡ Trigger automático (workflow_run)
-- 🛑 Pode ser desabilitado (remover workflow_run, manter workflow_dispatch)
-
-### Seed Condicional
-
-O script `scripts/seed_database.py` agora verifica se a tabela `synth_groups` tem dados:
-- **Se vazia**: executa seed completo
-- **Se tem dados**: pula seed e preserva dados existentes
-
-```bash
-# Exemplo de uso
-DATABASE_URL="postgresql://..." python scripts/seed_database.py
-
-# Saída se dados já existem:
-# ℹ️  Database already contains data (synth_groups table not empty)
-# ✅ Seed skipped - data already exists
-```
+4. **Smoke tests diferem por ambiente**:
+   - **Staging**: testes completos com auth (usa `/auth/test-login` backdoor)
+   - **Production**: apenas testes públicos sem auth (`public-health.spec.ts`)
+   - Configurado em `frontend/playwright.config.ts` via `isProduction`
 
 ### Smoke Tests
 
-Os smoke tests em `frontend/tests/e2e/smoke/` são projetados para:
-- ✅ Funcionar com ou sem dados no banco
-- ✅ Apenas verificar estrutura e funcionalidade básica
-- ❌ **NÃO** criar ou modificar dados
-- ❌ **NÃO** depender de IDs ou nomes específicos
+**Staging** (`frontend/tests/e2e/smoke/critical-flows.spec.ts`):
+- Com autenticação via test-login
+- Testa navegação, criação de experimentos, etc.
+- Não depende de dados específicos (usa `test.skip()` se vazio)
 
-**Exemplo**: `ST005 - Experiment detail loads`
-- Se não houver experimentos: `test.skip()`
-- Se houver experimentos: verifica navegação básica
+**Production** (`frontend/tests/e2e/smoke/public-health.spec.ts`):
+- Sem autenticação (sem backdoor em prod)
+- PUB001: Backend health check
+- PUB002: Frontend carrega HTML
+- PUB004: Sem erros 5xx em endpoints públicos
+- PUB005: Backend responde em < 3s
+- PUB006: Frontend carrega em < 5s
 
-### Workflow 3: Build and Test (Pull Requests)
+### Version Tracking
 
-**Trigger**: Pull requests para `main`
+O endpoint `/health` retorna versão e ambiente:
+```json
+{
+  "status": "healthy",
+  "service": "synth-lab-api",
+  "version": "commit-sha-aqui",
+  "environment": "staging|production|local"
+}
+```
 
-**Objetivo**: Validar mudanças antes do merge (detecção incremental)
+Para verificar que deploy funcionou:
+```bash
+curl -s https://synth-lab-api-staging.up.railway.app/health | jq
+curl -s https://synth-lab-api-production.up.railway.app/health | jq
+# Comparar "version" com: git rev-parse HEAD
+```
 
-Este workflow roda automaticamente em PRs para validar mudanças antes do merge, com detecção incremental (só reconstrói o que mudou). Uma vez merged para main, o pre-push hook local assume o controle.
+### Seed Condicional
+
+O script `scripts/seed_database.py` verifica se `synth_groups` tem dados:
+- **Se vazia**: executa seed completo
+- **Se tem dados**: pula seed e preserva dados existentes
 
 ### Comandos Úteis
 
 ```bash
-# Testar localmente antes de fazer push (manual)
+# Testar localmente
 make test && make test-e2e
 
-# Ver workflows em execução
+# Acompanhar pipeline no GitHub
 gh run list --limit 10
-gh run watch  # acompanhar workflow atual
+gh run watch                    # acompanhar workflow atual
+gh run view <run-id> --log-failed  # ver logs de falha
 
-# Rodar smoke tests localmente contra staging
+# Smoke tests locais contra ambientes remotos
 make test-smoke-staging
-
-# Rodar smoke tests localmente contra production
 make test-smoke-production
 
-# Ver status dos hooks
-git config core.hooksPath
-
-# Temporariamente desabilitar pre-push hook
-git push origin main --no-verify
-
-# Deploy manual para staging (bypass build-images)
+# Deploy manual (bypass automação)
 gh workflow run deploy-staging.yml
-
-# Deploy manual para production (bypass auto-deploy)
 gh workflow run deploy-production.yml
 
-# Desabilitar auto-deploy para production (emergência)
-# Remover workflow_run trigger de deploy-production.yml
+# Deploy production com fresh start (DESTROI DADOS)
+gh workflow run deploy-production.yml -f fresh_start=true
+
+# Verificar versão deployada
+curl -s https://synth-lab-api-production.up.railway.app/health | jq .version
 ```
 
-### Rollback e Troubleshooting
+### Rollback
 
 ```bash
-# Ver imagens disponíveis no GHCR
-docker search ghcr.io/<owner>/synth-lab-api
+# Opção 1: Re-deploy staging-verified para production
+gh workflow run deploy-production.yml -f use_staging_verified=true
 
-# Rollback no Railway (via Railway CLI)
+# Opção 2: Railway rollback (via Railway CLI)
 railway rollback --environment production
 
-# Rollback manual (re-deploy imagem anterior)
-gh workflow run deploy-production.yml
-
-# Verificar logs de build
-gh run view <run-id> --log
-
-# Verificar se smoke tests passaram
-gh run list --workflow=deploy-staging.yml --limit 5
+# Desabilitar auto-deploy para production (emergência)
+# → Remover workflow_run trigger de deploy-production.yml
+# → Usar workflow_dispatch para deploys manuais
 ```
+
+### GitHub Secrets e Variables Necessários
+
+**Secrets**:
+- `RAILWAY_API_TOKEN` — Token da API Railway
+- `RAILWAY_PROJECT_ID` — ID do projeto Railway
+- `DATABASE_STAGING_URL` — URL do Postgres staging
+- `DATABASE_PRODUCTION_URL` — URL do Postgres production
+
+**Variables (não secretas)**:
+- `STAGING_BACKEND_URL` — `https://synth-lab-api-staging.up.railway.app`
+- `STAGING_FRONTEND_URL` — `https://synth-lab-frontend-staging.up.railway.app`
+- `PRODUCTION_BACKEND_URL` — `https://synth-lab-api-production.up.railway.app`
+- `PRODUCTION_FRONTEND_URL` — `https://synth-lab-frontend-production.up.railway.app`

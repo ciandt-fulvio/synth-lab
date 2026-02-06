@@ -20,7 +20,7 @@ export interface User {
  * Redirect to Google OAuth login flow.
  */
 export async function login(): Promise<void> {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+  const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
   window.location.href = `${backendUrl}/auth/login`;
 }
 
