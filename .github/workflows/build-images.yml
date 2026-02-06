@@ -96,6 +96,7 @@ jobs:
           cache-to: type=inline
           build-args: |
             VITE_API_URL=${{ vars.STAGING_BACKEND_URL }}
+            VITE_COMMIT_SHA=${{ github.sha }}
 
   notify:
     name: Build Summary

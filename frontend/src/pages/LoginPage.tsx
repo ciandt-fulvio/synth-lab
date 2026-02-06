@@ -26,6 +26,11 @@ export default function LoginPage() {
           </p>
         </CardContent>
       </Card>
+      {import.meta.env.VITE_COMMIT_SHA && (
+        <p className="mt-4 text-xs text-gray-400 font-mono">
+          v{import.meta.env.VITE_COMMIT_SHA.slice(0, 6)}
+        </p>
+      )}
     </div>
   );
 }

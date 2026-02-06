@@ -4,7 +4,9 @@ FROM node:20-slim AS builder
 
 # Accept build arguments for Vite environment variables
 ARG VITE_API_URL
+ARG VITE_COMMIT_SHA
 ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_COMMIT_SHA=${VITE_COMMIT_SHA}
 
 WORKDIR /app
 
