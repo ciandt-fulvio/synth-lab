@@ -29,6 +29,9 @@ setup('authenticate', async ({ page, request }) => {
   if (testEnv === 'staging') {
     backendUrl = process.env.STAGING_BACKEND_URL || 'https://synth-lab-api-staging.up.railway.app';
     frontendUrl = process.env.STAGING_FRONTEND_URL || 'https://synth-lab-frontend-staging.up.railway.app';
+  } else if (testEnv === 'production') {
+    backendUrl = process.env.PRODUCTION_BACKEND_URL || 'https://synth-lab-api-production.up.railway.app';
+    frontendUrl = process.env.PRODUCTION_FRONTEND_URL || 'https://synth-lab-frontend-production.up.railway.app';
   } else if (testEnv === 'docker') {
     backendUrl = 'http://localhost:8001';
     frontendUrl = 'http://localhost:8091';
@@ -91,19 +94,30 @@ setup('authenticate', async ({ page, request }) => {
     },
   ]);
 
-  // Step 4: Navigate to frontend
-  await page.goto(frontendUrl, { waitUntil: 'networkidle' });
+  // Step 4: Navigate and verify (or skip for remote environments)
+  // Remote environments (staging/production) have cross-origin issues with
+  // browser cookie verification. The API token is valid (verified above),
+  // so we skip browser-based verification and rely on the route handler
+  // in fixtures.ts to inject the cookie for actual tests.
+  const isRemoteEnv = testEnv === 'staging' || testEnv === 'production';
 
-  // Step 5: Verify authentication worked
-  const isLoginPage = await page.locator('text=Sign in with Google').isVisible({ timeout: 5000 }).catch(() => false);
+  if (isRemoteEnv) {
+    console.log(`⏭️  Skipping browser auth verification for ${testEnv} (cross-origin)`);
+    console.log(`   Token obtained via API - fixtures.ts route handler will inject cookie`);
+  } else {
+    await page.goto(frontendUrl, { waitUntil: 'networkidle' });
 
-  if (isLoginPage) {
-    throw new Error('Authentication failed - still on login page');
+    // Verify authentication worked
+    const isLoginPage = await page.locator('text=Sign in with Google').isVisible({ timeout: 5000 }).catch(() => false);
+
+    if (isLoginPage) {
+      throw new Error('Authentication failed - still on login page');
+    }
+
+    console.log(`✅ Authentication verified - main app loaded`);
   }
 
-  console.log(`✅ Authentication verified - main app loaded`);
-
-  // Step 6: Save state (note: the route handler doesn't persist, so tests need it too)
+  // Save state (note: the route handler doesn't persist, so tests need it too)
   // We save the auth token in storageState for tests to use
   await page.context().storageState({ path: authFile });
 

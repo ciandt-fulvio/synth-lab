@@ -23,6 +23,9 @@ function getBackendUrl(): string {
   if (testEnv === 'staging') {
     return process.env.STAGING_BACKEND_URL || 'https://synth-lab-api-staging.up.railway.app';
   }
+  if (testEnv === 'production') {
+    return process.env.PRODUCTION_BACKEND_URL || 'https://synth-lab-api-production.up.railway.app';
+  }
   return testEnv === 'docker' ? 'http://localhost:8001' : 'http://localhost:8000';
 }
 
