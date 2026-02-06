@@ -68,7 +68,13 @@ async def get_current_user_id(request: Request) -> str:
     Raises:
         HTTPException: If not authenticated or session invalid
     """
-    session_token = request.cookies.get("auth_token")
+    # Check Authorization header first (cross-domain), then cookie (same-domain dev)
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        session_token = auth_header[7:]
+    else:
+        session_token = request.cookies.get("auth_token")
+
     if not session_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -279,7 +285,13 @@ async def get_me(
     Raises:
         HTTPException: If not authenticated
     """
-    session_token = request.cookies.get("auth_token")
+    # Check Authorization header first (cross-domain), then cookie (same-domain dev)
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        session_token = auth_header[7:]
+    else:
+        session_token = request.cookies.get("auth_token")
+
     if not session_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
