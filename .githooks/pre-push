@@ -182,7 +182,6 @@ do
             echo -e "${GREEN}  ✅ Cache image pulled${NC}"
             # Build with cache (faster - reuses unchanged layers)
             if ! $CONTAINER_RUNTIME build \
-                --platform linux/amd64 \
                 --cache-from "$GHCR_BACKEND_IMAGE:latest" \
                 -t synth-lab-api:$COMMIT_SHA \
                 -t synth-lab-api:latest \
@@ -194,7 +193,6 @@ do
             echo -e "${YELLOW}  ⚠️  No cache available (first build or not logged in)${NC}"
             # Build without cache
             if ! $CONTAINER_RUNTIME build \
-                --platform linux/amd64 \
                 -t synth-lab-api:$COMMIT_SHA \
                 -t synth-lab-api:latest \
                 -f Dockerfile.backend .; then
@@ -223,7 +221,6 @@ do
             echo -e "${GREEN}  ✅ Cache image pulled${NC}"
             # Build with cache (faster - reuses unchanged layers)
             if ! $CONTAINER_RUNTIME build \
-                --platform linux/amd64 \
                 --cache-from "$GHCR_FRONTEND_IMAGE:latest" \
                 -t synth-lab-frontend:$COMMIT_SHA \
                 -t synth-lab-frontend:latest \
@@ -237,7 +234,6 @@ do
             echo -e "${YELLOW}  ⚠️  No cache available (first build or not logged in)${NC}"
             # Build without cache
             if ! $CONTAINER_RUNTIME build \
-                --platform linux/amd64 \
                 -t synth-lab-frontend:$COMMIT_SHA \
                 -t synth-lab-frontend:latest \
                 -f frontend/Dockerfile \
