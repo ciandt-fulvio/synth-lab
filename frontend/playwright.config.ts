@@ -33,6 +33,7 @@ const ENVIRONMENTS = {
 const testEnv = (process.env.TEST_ENV || 'local') as keyof typeof ENVIRONMENTS;
 const baseURL = process.env.BASE_URL || ENVIRONMENTS[testEnv] || ENVIRONMENTS.local;
 const isLocal = testEnv === 'local' && !process.env.BASE_URL;
+const isProduction = testEnv === 'production';
 
 console.log(`🎭 Playwright running against: ${baseURL} (environment: ${testEnv})`);
 
@@ -53,24 +54,30 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
 
-  projects: [
-    // Setup project - runs first to authenticate
-    {
-      name: 'setup',
-      testMatch: /.*\.setup\.ts/,
-    },
-
-    // Main test project - depends on setup for authentication
-    {
-      name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-        // Use authenticated state from setup
-        storageState: './playwright/.auth/user.json',
-      },
-      dependencies: ['setup'],
-    },
-  ],
+  projects: isProduction
+    ? [
+        // Production: public smoke tests only (no auth backdoor)
+        {
+          name: 'chromium',
+          use: { ...devices['Desktop Chrome'] },
+          testMatch: /smoke\/public-health\.spec\.ts/,
+        },
+      ]
+    : [
+        // Non-production: full auth setup + all tests
+        {
+          name: 'setup',
+          testMatch: /.*\.setup\.ts/,
+        },
+        {
+          name: 'chromium',
+          use: {
+            ...devices['Desktop Chrome'],
+            storageState: './playwright/.auth/user.json',
+          },
+          dependencies: ['setup'],
+        },
+      ],
 
   // Only start local dev server when testing locally (not for docker or remote envs)
   ...(isLocal && {

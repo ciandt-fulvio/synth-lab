@@ -100,7 +100,14 @@ register_exception_handlers(app)
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def health_check() -> dict:
     """Health check endpoint. Supports both GET and HEAD for wait-on compatibility."""
-    return {"status": "healthy", "service": "synth-lab-api"}
+    import os
+
+    return {
+        "status": "healthy",
+        "service": "synth-lab-api",
+        "version": os.environ.get("COMMIT_SHA", "unknown"),
+        "environment": os.environ.get("ENVIRONMENT", "local"),
+    }
 
 
 @app.get("/")

@@ -9,6 +9,7 @@
 set -e
 
 COMPOSE_FILE="docker/docker-compose.yml"
+ENV_FILE="docker/.env.test"
 COMPOSE_PROFILE="test"
 COMMAND="${1:-up}"
 
@@ -150,9 +151,9 @@ case "$COMMAND" in
 
         # Start containers
         if [ "$RUNTIME" = "podman" ]; then
-            $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" up $BUILD_FLAG -d --force-recreate
+            $COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --profile "$COMPOSE_PROFILE" up $BUILD_FLAG -d --force-recreate
         else
-            $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" up $BUILD_FLAG -d
+            $COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --profile "$COMPOSE_PROFILE" up $BUILD_FLAG -d
         fi
 
         # Wait for services to be healthy
@@ -182,9 +183,9 @@ case "$COMMAND" in
         fi
 
         if [ "$RUNTIME" = "podman" ]; then
-            $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" up $BUILD_FLAG -d --force-recreate
+            $COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --profile "$COMPOSE_PROFILE" up $BUILD_FLAG -d --force-recreate
         else
-            $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" up $BUILD_FLAG -d
+            $COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --profile "$COMPOSE_PROFILE" up $BUILD_FLAG -d
         fi
         ;;
 
@@ -192,15 +193,15 @@ case "$COMMAND" in
         echo "Stopping E2E environment..."
         if [ "$RUNTIME" = "podman" ]; then
             # Podman: try compose down first, then use cleanup function
-            $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" down -v 2>/dev/null || true
+            $COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --profile "$COMPOSE_PROFILE" down -v 2>/dev/null || true
             cleanup_podman
         else
-            $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" down -v
+            $COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --profile "$COMPOSE_PROFILE" down -v
         fi
         ;;
 
     logs)
-        $COMPOSE_CMD -f "$COMPOSE_FILE" --profile "$COMPOSE_PROFILE" logs -f
+        $COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --profile "$COMPOSE_PROFILE" logs -f
         ;;
 
     *)

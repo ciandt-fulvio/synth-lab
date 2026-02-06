@@ -39,6 +39,10 @@ COPY data/ /usr/local/lib/python3.13/data/
 # Make entrypoint script executable
 RUN chmod +x scripts/docker-entrypoint-backend.sh
 
+# Embed commit SHA for version tracking
+ARG COMMIT_SHA=unknown
+ENV COMMIT_SHA=${COMMIT_SHA}
+
 # Expose port
 EXPOSE 8000
 
