@@ -51,19 +51,30 @@ setup('authenticate', async ({ page, request }) => {
   const user = await loginResponse.json();
   console.log(`✅ Test login successful: ${user.email}`);
 
-  // Extract auth_token from Set-Cookie header
-  const setCookieHeader = loginResponse.headers()['set-cookie'];
-  if (!setCookieHeader) {
-    throw new Error('No Set-Cookie header in response');
-  }
+  // Extract auth_token:
+  // - For staging/production: token is in response body (user.token)
+  // - For development: token is in Set-Cookie header
+  let authTokenValue: string;
 
-  const cookieMatch = setCookieHeader.match(/auth_token=([^;]+)/);
-  if (!cookieMatch) {
-    throw new Error('auth_token not found in Set-Cookie header');
-  }
+  if (user.token) {
+    // Staging/Production: token in response body
+    authTokenValue = user.token;
+    console.log(`🍪 Got auth token from response body (length: ${authTokenValue.length})`);
+  } else {
+    // Development: token in Set-Cookie header
+    const setCookieHeader = loginResponse.headers()['set-cookie'];
+    if (!setCookieHeader) {
+      throw new Error('No Set-Cookie header in response');
+    }
 
-  const authTokenValue = cookieMatch[1];
-  console.log(`🍪 Got auth token (length: ${authTokenValue.length})`);
+    const cookieMatch = setCookieHeader.match(/auth_token=([^;]+)/);
+    if (!cookieMatch) {
+      throw new Error('auth_token not found in Set-Cookie header');
+    }
+
+    authTokenValue = cookieMatch[1];
+    console.log(`🍪 Got auth token from Set-Cookie header (length: ${authTokenValue.length})`);
+  }
 
   // Step 2: Route handler to inject cookie into all backend requests
   // This ensures the cookie is always sent, regardless of browser cookie policy

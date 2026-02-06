@@ -170,27 +170,29 @@ async def callback(
             detail=f"OAuth authentication failed: {str(e)}",
         )
 
-    # Set session cookie
+    # Redirect to frontend with token
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
     environment = os.getenv("ENVIRONMENT", "development")
-    is_secure = environment in ["production", "staging"]
 
-    # Use SameSite=None for cross-domain cookies in production/staging
-    # Use SameSite=Lax for localhost (development)
-    samesite_policy = "none" if environment in ["production", "staging"] else "lax"
-
-    response = RedirectResponse(url=frontend_url, status_code=status.HTTP_302_FOUND)
-    response.set_cookie(
-        key="auth_token",
-        value=session_token,
-        httponly=True,
-        secure=is_secure,
-        samesite=samesite_policy,
-        max_age=480 * 60,  # 8 hours
-        path="/",  # Explicit path for cookie
-    )
-
-    return response
+    # For local development: set cookie directly (same domain via proxy)
+    # For staging/production: send token in URL for frontend to set
+    if environment == "development":
+        response = RedirectResponse(url=frontend_url, status_code=status.HTTP_302_FOUND)
+        response.set_cookie(
+            key="auth_token",
+            value=session_token,
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            max_age=480 * 60,  # 8 hours
+            path="/",
+        )
+        return response
+    else:
+        # Staging/Production: redirect to frontend with token in URL
+        # Frontend will set the cookie locally
+        redirect_url = f"{frontend_url}/auth/callback?token={session_token}"
+        return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
 
 
 @router.post("/test-login")
@@ -241,22 +243,27 @@ async def test_login(
         email=user.email,
     )
 
-    # Set auth cookie
-    is_secure = environment in ["production", "staging"]
-    samesite_policy = "none" if environment in ["production", "staging"] else "lax"
-    response.set_cookie(
-        key="auth_token",
-        value=session_token,
-        httponly=True,
-        secure=is_secure,
-        samesite=samesite_policy,
-        max_age=480 * 60,  # 8 hours
-        path="/",
-    )
-
-    logger.debug(f"[/auth/test-login] Set auth cookie for test user {user.id}")
-
-    return user.to_dict()
+    # Set auth cookie (for staging/production, return token in response body)
+    if environment in ["production", "staging"]:
+        # For staging/production with separate domains, return token
+        # Frontend will set cookie locally via document.cookie
+        return {
+            **user.to_dict(),
+            "token": session_token,
+        }
+    else:
+        # For development (same domain via proxy), set cookie directly
+        response.set_cookie(
+            key="auth_token",
+            value=session_token,
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            max_age=480 * 60,  # 8 hours
+            path="/",
+        )
+        logger.debug(f"[/auth/test-login] Set auth cookie for test user {user.id}")
+        return user.to_dict()
 
 
 @router.get("/me")

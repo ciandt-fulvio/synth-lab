@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import LoginPage from "./pages/LoginPage";
+import OAuthCallback from "./pages/OAuthCallback";
 import ExperimentDetail from "./pages/ExperimentDetail";
 import ExplorationDetail from "./pages/ExplorationDetail";
 import SimulationDetail from "./pages/SimulationDetail";
@@ -27,6 +28,7 @@ const App = () => (
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/callback" element={<OAuthCallback />} />
 
           {/* Protected Routes */}
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
