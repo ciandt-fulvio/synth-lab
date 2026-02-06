@@ -6,7 +6,7 @@
  * This is needed because browsers don't send cookies with cross-origin
  * requests from localhost:8091 to localhost:8001.
  */
-import { test as base, Page, BrowserContext } from '@playwright/test';
+import { test as base, Page, BrowserContext, APIRequestContext } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -52,19 +52,50 @@ function getAuthToken(): string | null {
   }
 }
 
+// Check if running against a remote environment (cross-origin)
+function isRemoteEnv(): boolean {
+  const testEnv = process.env.TEST_ENV || 'local';
+  return testEnv === 'staging' || testEnv === 'production';
+}
+
 // Extend the base test to add auth route handler
 export const test = base.extend<{ authPage: Page }>({
   // Override the page fixture to add auth route handler
-  page: async ({ page }, use) => {
+  page: async ({ page, request }, use) => {
     const authToken = getAuthToken();
     const backendUrl = getBackendUrl();
 
     if (authToken) {
-      // Install route handler to inject auth cookie into all backend requests
-      await page.route(`${backendUrl}/**`, async (route, req) => {
-        const headers = { ...req.headers(), cookie: `auth_token=${authToken}` };
-        await route.continue({ headers });
-      });
+      if (isRemoteEnv()) {
+        // For remote environments, bypass browser CORS by fetching server-side
+        // and returning the response via route.fulfill()
+        await page.route(`${backendUrl}/**`, async (route, req) => {
+          try {
+            const response = await request.fetch(req.url(), {
+              method: req.method(),
+              headers: { ...req.headers(), cookie: `auth_token=${authToken}` },
+              data: req.postData() ?? undefined,
+            });
+            await route.fulfill({
+              status: response.status(),
+              headers: Object.fromEntries(
+                Object.entries(response.headers()).filter(
+                  ([key]) => !key.toLowerCase().startsWith('access-control')
+                )
+              ),
+              body: Buffer.from(await response.body()),
+            });
+          } catch (error) {
+            await route.abort('failed');
+          }
+        });
+      } else {
+        // For local/docker, simple cookie injection works (same origin)
+        await page.route(`${backendUrl}/**`, async (route, req) => {
+          const headers = { ...req.headers(), cookie: `auth_token=${authToken}` };
+          await route.continue({ headers });
+        });
+      }
     }
 
     await use(page);
