@@ -79,7 +79,7 @@ def parse_typescript_interface(file_path: Path, interface_name: str) -> set[str]
     return fields
 
 
-@pytest.mark.contract
+@pytest.mark.contract_live
 class TestOpenAPITypeScriptSync:
     """Valida sincronização entre OpenAPI (backend) e TypeScript (frontend)."""
 

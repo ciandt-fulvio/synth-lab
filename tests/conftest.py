@@ -244,6 +244,10 @@ def pytest_configure(config):
         "markers",
         "integration: mark test as integration test requiring database"
     )
+    config.addinivalue_line(
+        "markers",
+        "contract_live: mark API contract tests requiring a running backend"
+    )
 
 
 def _ensure_test_database_setup():

@@ -93,6 +93,7 @@ markers = [
     "integration: marks integration tests",
     "smoke: marks smoke tests (critical paths only)",
     "contract: marks API contract tests",
+    "contract_live: marks API contract tests requiring a running backend",
     "schema: marks schema validation tests",
     "requires_postgres: marks tests requiring PostgreSQL",
     "real_api: marks tests that make REAL API calls (OpenAI, S3, etc) - incurs costs",

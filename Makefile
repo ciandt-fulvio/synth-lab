@@ -154,10 +154,15 @@ test: test-db-up
 	@DATABASE_URL="$(DATABASE_URL_TEST)" ./scripts/run-tests-smart.sh
 	@$(MAKE) test-db-down
 
+test-quick: test-db-up
+	@echo "⚡ Running quick pre-commit tests (smoke + contract)..."
+	@echo ""
+	DATABASE_URL="$(DATABASE_URL_TEST)" uv run pytest -m "smoke or contract" --maxfail=5 -q --tb=short
+
 test-fast: test-db-up
 	@echo "🚀 Running fast anti-regression tests..."
 	@echo ""
-	DATABASE_URL="$(DATABASE_URL_TEST)" uv run pytest -m "smoke or contract or schema" --maxfail=5 -q --tb=short
+	DATABASE_URL="$(DATABASE_URL_TEST)" uv run pytest -m "smoke or contract or contract_live or schema" --maxfail=5 -q --tb=short
 
 # E2E Tests via Docker (isolated environment)
 test-e2e: test-e2e-docker

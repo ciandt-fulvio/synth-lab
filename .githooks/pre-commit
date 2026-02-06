@@ -10,7 +10,7 @@ echo "Running fast tests before commit..."
 echo ""
 
 # Run fast unit tests
-if ! make test-fast; then
+if ! make test-quick; then
     echo ""
     echo "❌ Pre-commit tests failed!"
     echo "   Fix the failing tests before committing."
