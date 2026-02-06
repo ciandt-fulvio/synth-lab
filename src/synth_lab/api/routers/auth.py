@@ -172,7 +172,12 @@ async def callback(
 
     # Set session cookie
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-    is_secure = os.getenv("ENVIRONMENT", "development") == "production"
+    environment = os.getenv("ENVIRONMENT", "development")
+    is_secure = environment in ["production", "staging"]
+
+    # Use SameSite=None for cross-domain cookies in production/staging
+    # Use SameSite=Lax for localhost (development)
+    samesite_policy = "none" if environment in ["production", "staging"] else "lax"
 
     response = RedirectResponse(url=frontend_url, status_code=status.HTTP_302_FOUND)
     response.set_cookie(
@@ -180,7 +185,7 @@ async def callback(
         value=session_token,
         httponly=True,
         secure=is_secure,
-        samesite="lax",
+        samesite=samesite_policy,
         max_age=480 * 60,  # 8 hours
         path="/",  # Explicit path for cookie
     )
@@ -237,13 +242,14 @@ async def test_login(
     )
 
     # Set auth cookie
-    is_secure = environment == "production"
+    is_secure = environment in ["production", "staging"]
+    samesite_policy = "none" if environment in ["production", "staging"] else "lax"
     response.set_cookie(
         key="auth_token",
         value=session_token,
         httponly=True,
         secure=is_secure,
-        samesite="lax",
+        samesite=samesite_policy,
         max_age=480 * 60,  # 8 hours
         path="/",
     )

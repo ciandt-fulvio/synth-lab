@@ -280,9 +280,9 @@ export function CreateSynthGroupModal({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="100">100 synths</SelectItem>
-                    <SelectItem value="300">300 synths</SelectItem>
                     <SelectItem value="500">500 synths</SelectItem>
+                    <SelectItem value="1000">1000 synths</SelectItem>
+                    <SelectItem value="2000">2000 synths</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

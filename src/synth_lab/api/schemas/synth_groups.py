@@ -13,10 +13,9 @@ References:
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from synth_lab.models.pagination import PaginationMeta
-
 
 # =============================================================================
 # Distribution Configuration Schemas
@@ -187,7 +186,7 @@ class GroupDistributions(BaseModel):
 class GroupConfig(BaseModel):
     """Complete group configuration for synth generation."""
 
-    n_synths: Annotated[int, Field(ge=1, le=1000)] = Field(
+    n_synths: Annotated[int, Field(ge=1, le=2000)] = Field(
         default=500,
         description="Number of synths to generate",
     )
