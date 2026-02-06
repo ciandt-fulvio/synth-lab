@@ -52,7 +52,7 @@ echo ""
 # Function to clean tags for a specific repository
 clean_repository_tags() {
     local repo_pattern=$1
-    local keep_tags=3  # Keep latest + 2 most recent commit SHAs
+    local keep_tags=4  # Keep latest + 3 most recent commit SHAs
 
     echo -e "${YELLOW}Cleaning repository: ${repo_pattern}${NC}"
 
@@ -87,10 +87,10 @@ clean_repository_tags() {
         echo -e "${GREEN}  Keeping ${latest_count} :latest tag(s)${NC}"
     fi
 
-    # Keep only the 2 most recent commit SHA tags
+    # Keep only the 3 most recent commit SHA tags
     if [ -n "$commit_tags" ]; then
         local commit_count=$(echo "$commit_tags" | wc -l | tr -d ' ')
-        local keep_commit_count=2
+        local keep_commit_count=3
 
         if [ $commit_count -le $keep_commit_count ]; then
             kept=$((kept + commit_count))

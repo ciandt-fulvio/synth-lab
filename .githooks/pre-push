@@ -432,6 +432,24 @@ do
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     echo ""
 
+    # ========================================================================
+    # Step 6: Clean Old Images (Automatic Cleanup)
+    # ========================================================================
+    echo -e "${CYAN}[6/6] 🧹 Cleaning old Docker images...${NC}"
+    echo ""
+    echo -e "${BLUE}  Keeping only: latest + 3 most recent commit SHAs${NC}"
+    echo -e "${BLUE}  Removing: old tags and orphaned images${NC}"
+    echo ""
+
+    # Run cleanup script (suppress detailed output, show only summary)
+    if ./scripts/clean-old-images.sh 2>&1 | grep -E "(Total image tags:|Cleaned:|Removed|✅ Cleanup complete)"; then
+        echo ""
+        echo -e "${GREEN}✅ Image cleanup complete${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Image cleanup skipped or failed (non-critical)${NC}"
+    fi
+    echo ""
+
 done
 
 exit 0
