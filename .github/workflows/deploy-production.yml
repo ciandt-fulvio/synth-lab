@@ -204,19 +204,23 @@ jobs:
           echo "✅ Production migrations completed"
 
   # ============================================================================
-  # Stage 3a: Retag Images as :production in GHCR
+  # Stage 3a: Build Production Images in GHCR
   # ============================================================================
-  # Railway is configured with :production tag. We retag staging-verified → production
-  # so that serviceInstanceRedeploy pulls the updated :production image.
-  retag-production:
-    name: Retag Images as Production
+  # Backend: retag staging-verified → production (no env-specific build args)
+  # Frontend: must rebuild with VITE_API_URL for production (baked into JS at build time)
+  build-production-images:
+    name: Build Production Images
     runs-on: ubuntu-latest
     needs: migrate-production
     if: always() && needs.migrate-production.result == 'success'
     permissions:
+      contents: read
       packages: write
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -235,13 +239,19 @@ jobs:
           docker buildx imagetools create --tag "$DST" "$SRC"
           echo "✅ Backend image tagged as :production"
 
-      - name: Retag frontend image as production
-        run: |
-          SRC="${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:${{ env.IMAGE_TAG }}"
-          DST="${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:production"
-          echo "Retagging: $SRC → $DST"
-          docker buildx imagetools create --tag "$DST" "$SRC"
-          echo "✅ Frontend image tagged as :production"
+      - name: Build and push frontend for production
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:production
+          build-args: |
+            VITE_API_URL=${{ vars.PRODUCTION_BACKEND_URL }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:latest
+          cache-to: type=inline
 
   # ============================================================================
   # Stage 3b: Deploy Images to Railway Production
@@ -249,8 +259,8 @@ jobs:
   deploy-backend:
     name: Deploy Backend (Production)
     runs-on: ubuntu-latest
-    needs: retag-production
-    if: always() && needs.retag-production.result == 'success'
+    needs: build-production-images
+    if: always() && needs.build-production-images.result == 'success'
 
     steps:
       - name: Checkout code
@@ -269,7 +279,7 @@ jobs:
   deploy-frontend:
     name: Deploy Frontend (Production)
     runs-on: ubuntu-latest
-    needs: [retag-production, deploy-backend]
+    needs: [build-production-images, deploy-backend]
     if: always() && needs.deploy-backend.result == 'success'
 
     steps:
