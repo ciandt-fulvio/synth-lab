@@ -204,20 +204,25 @@ EOF
 )
 
 if UPDATE_RESPONSE=$(railway_graphql "$UPDATE_QUERY" 2>/dev/null); then
-    echo "✅ Image source updated and deployment triggered"
+    echo "✅ Image source updated"
 else
-    echo "⚠️  serviceInstanceUpdate failed, falling back to redeploy..."
+    echo "⚠️  serviceInstanceUpdate failed, continuing with redeploy..."
+fi
 
-    DEPLOY_QUERY=$(cat <<EOF
+# Always trigger redeploy to force Railway to re-pull the image.
+# serviceInstanceUpdate alone may not trigger a new deployment if the
+# image URL string is unchanged (e.g. :production tag reused).
+echo "Triggering redeploy to force image re-pull..."
+
+DEPLOY_QUERY=$(cat <<EOF
 {
     "query": "mutation { serviceInstanceRedeploy(serviceId: \"$SERVICE_ID\", environmentId: \"$ENVIRONMENT_ID\") }"
 }
 EOF
 )
 
-    DEPLOY_RESPONSE=$(railway_graphql "$DEPLOY_QUERY")
-    echo "✅ Redeployment triggered successfully"
-fi
+DEPLOY_RESPONSE=$(railway_graphql "$DEPLOY_QUERY")
+echo "✅ Redeployment triggered successfully"
 
 # =============================================================================
 # Summary
