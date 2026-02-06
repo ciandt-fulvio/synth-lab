@@ -251,8 +251,7 @@ jobs:
           build-args: |
             VITE_API_URL=${{ vars.PRODUCTION_BACKEND_URL }}
             VITE_COMMIT_SHA=${{ github.sha }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/synth-lab-frontend:latest
-          cache-to: type=inline
+          no-cache: true
 
   # ============================================================================
   # Stage 3b: Deploy Images to Railway Production
