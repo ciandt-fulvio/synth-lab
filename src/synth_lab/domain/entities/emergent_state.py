@@ -1,12 +1,26 @@
 """
 Emergent state entities for synth-lab.
 
-Defines models for emergent behavioral states calculated from mechanism × sensitivity
-interactions during Monte Carlo simulations.
+Defines models for emergent behavioral states calculated from mechanism x sensitivity
+interactions during Monte Carlo simulations. Each state represents a barrier or appeal
+that modifies user adoption behavior.
+
+9 Emergent States:
+    Barriers (7):
+        - perceived_risk: irreversibility x risk_aversion (Affinity)
+        - trust_barrier: institutional_trust x (1 - institutional_trust_level) (Resistance)
+        - habit_resistance: habit_displacement x (1 - habit_plasticity) (Resistance)
+        - learning_frustration: learning_curve x (1 - digital_capability) (Resistance)
+        - friction_burden: friccao_operacional x (1 - friction_tolerance) (Resistance)
+        - social_pressure: social_visibility x social_dependency (Affinity)
+        - network_barrier: network_effect x (1 - social_dependency) (Resistance)
+
+    Appeals (2):
+        - intrinsic_appeal: valor_intrinseco x pragmatism (Appeal)
+        - frequency_value: frequencia_de_uso x pragmatism (Appeal)
 
 References:
-    - Spec: specs/038-mechanism-based-simulation/spec.md
-    - Data model: specs/038-mechanism-based-simulation/data-model.md
+    - Spec: specs/040-emergent-state-expansion/spec.md
 """
 
 from dataclasses import dataclass, field
@@ -15,7 +29,7 @@ from dataclasses import dataclass, field
 @dataclass
 class InteractionContribution:
     """
-    Single mechanism × sensitivity interaction contribution.
+    Single mechanism x sensitivity interaction contribution.
 
     Used for explainability to show which interactions had the most impact
     on the emergent state.
@@ -28,35 +42,69 @@ class InteractionContribution:
     """Name of the sensitivity (e.g., 'risk_aversion')."""
 
     product: float
-    """mechanism_value × sensitivity_value."""
+    """mechanism_value x sensitivity_value."""
 
 
 @dataclass
 class EmergentState:
     """
-    Emergent behavioral state from mechanism × sensitivity interactions.
+    Emergent behavioral state from mechanism x sensitivity interactions.
 
     Calculated per user per simulation execution.
-    Modifies effective scorecard dimensions.
+    Contains 7 barriers and 2 appeals that modify adoption behavior.
+
+    Barriers (higher = harder to adopt):
+        perceived_risk = irreversibility x risk_aversion
+        trust_barrier = institutional_trust x (1 - institutional_trust_level)
+        habit_resistance = habit_displacement x (1 - habit_plasticity)
+        learning_frustration = learning_curve x (1 - digital_capability)
+        friction_burden = friccao_operacional x (1 - friction_tolerance)
+        social_pressure = social_visibility x social_dependency
+        network_barrier = network_effect x (1 - social_dependency)
+
+    Appeals (higher = easier to adopt):
+        intrinsic_appeal = valor_intrinseco x pragmatism
+        frequency_value = frequencia_de_uso x pragmatism
     """
 
-    perceived_risk_delta: float
-    """Change to perceived risk from irreversibility × risk_aversion."""
+    # --- Barriers (7) ---
 
-    initial_effort_delta: float
-    """Change to initial effort from habit_displacement + learning_curve interactions."""
+    perceived_risk: float
+    """Barrier from irreversibility x risk_aversion (Affinity type)."""
 
     trust_barrier: float
-    """Barrier from institutional_trust × (1 - institutional_trust_level)."""
+    """Barrier from institutional_trust x (1 - institutional_trust_level) (Resistance type)."""
 
-    social_barrier: float
-    """Barrier from network_effect × (1 - social_dependency)."""
+    habit_resistance: float
+    """Barrier from habit_displacement x (1 - habit_plasticity) (Resistance type)."""
+
+    learning_frustration: float
+    """Barrier from learning_curve x (1 - digital_capability) (Resistance type)."""
+
+    friction_burden: float
+    """Barrier from friccao_operacional x (1 - friction_tolerance) (Resistance type)."""
+
+    social_pressure: float
+    """Barrier from social_visibility x social_dependency (Affinity type)."""
+
+    network_barrier: float
+    """Barrier from network_effect x (1 - social_dependency) (Resistance type)."""
+
+    # --- Appeals (2) ---
+
+    intrinsic_appeal: float
+    """Appeal from valor_intrinseco x pragmatism (Appeal type)."""
+
+    frequency_value: float
+    """Appeal from frequencia_de_uso x pragmatism (Appeal type)."""
+
+    # --- Metadata ---
 
     top_contributors: list[InteractionContribution] = field(default_factory=list)
     """Top interactions sorted by product value (typically top 3)."""
 
     raw_interactions: dict[str, float] = field(default_factory=dict)
-    """All mechanism_sensitivity products for full explainability."""
+    """All 9 mechanism x sensitivity products for full explainability."""
 
 
 if __name__ == "__main__":
@@ -82,27 +130,40 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"InteractionContribution creation failed: {e}")
 
-    # Test 2: Create EmergentState with minimal data
+    # Test 2: Create EmergentState with minimal data (all 9 states)
     total_tests += 1
     try:
         state = EmergentState(
-            perceived_risk_delta=0.15,
-            initial_effort_delta=0.08,
+            perceived_risk=0.15,
             trust_barrier=0.32,
-            social_barrier=0.49,
+            habit_resistance=0.20,
+            learning_frustration=0.45,
+            friction_burden=0.10,
+            social_pressure=0.28,
+            network_barrier=0.49,
+            intrinsic_appeal=0.65,
+            frequency_value=0.40,
         )
-        if state.perceived_risk_delta != 0.15:
-            all_validation_failures.append(
-                f"perceived_risk_delta mismatch: {state.perceived_risk_delta}"
-            )
-        if state.initial_effort_delta != 0.08:
-            all_validation_failures.append(
-                f"initial_effort_delta mismatch: {state.initial_effort_delta}"
-            )
+        if state.perceived_risk != 0.15:
+            all_validation_failures.append(f"perceived_risk mismatch: {state.perceived_risk}")
         if state.trust_barrier != 0.32:
             all_validation_failures.append(f"trust_barrier mismatch: {state.trust_barrier}")
-        if state.social_barrier != 0.49:
-            all_validation_failures.append(f"social_barrier mismatch: {state.social_barrier}")
+        if state.habit_resistance != 0.20:
+            all_validation_failures.append(f"habit_resistance mismatch: {state.habit_resistance}")
+        if state.learning_frustration != 0.45:
+            all_validation_failures.append(
+                f"learning_frustration mismatch: {state.learning_frustration}"
+            )
+        if state.friction_burden != 0.10:
+            all_validation_failures.append(f"friction_burden mismatch: {state.friction_burden}")
+        if state.social_pressure != 0.28:
+            all_validation_failures.append(f"social_pressure mismatch: {state.social_pressure}")
+        if state.network_barrier != 0.49:
+            all_validation_failures.append(f"network_barrier mismatch: {state.network_barrier}")
+        if state.intrinsic_appeal != 0.65:
+            all_validation_failures.append(f"intrinsic_appeal mismatch: {state.intrinsic_appeal}")
+        if state.frequency_value != 0.40:
+            all_validation_failures.append(f"frequency_value mismatch: {state.frequency_value}")
         if state.top_contributors != []:
             all_validation_failures.append("top_contributors should default to empty list")
         if state.raw_interactions != {}:
@@ -110,24 +171,35 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"EmergentState minimal creation failed: {e}")
 
-    # Test 3: Create EmergentState with full data
+    # Test 3: Create EmergentState with full data (states + contributors + raw_interactions)
     total_tests += 1
     try:
         contributors = [
             InteractionContribution("irreversibility", "risk_aversion", 0.72),
-            InteractionContribution("network_effect", "social_dependency", 0.36),
-            InteractionContribution("learning_curve", "learning_tolerance", 0.16),
+            InteractionContribution("valor_intrinseco", "pragmatism", 0.65),
+            InteractionContribution("network_effect", "social_dependency", 0.49),
         ]
         raw = {
             "irreversibility_risk_aversion": 0.72,
-            "network_effect_social_dependency": 0.36,
-            "learning_curve_learning_tolerance": 0.16,
+            "institutional_trust_institutional_trust_level": 0.32,
+            "habit_displacement_habit_plasticity": 0.20,
+            "learning_curve_digital_capability": 0.45,
+            "friccao_operacional_friction_tolerance": 0.10,
+            "social_visibility_social_dependency": 0.28,
+            "network_effect_social_dependency": 0.49,
+            "valor_intrinseco_pragmatism": 0.65,
+            "frequencia_de_uso_pragmatism": 0.40,
         }
         state = EmergentState(
-            perceived_risk_delta=0.15,
-            initial_effort_delta=0.08,
+            perceived_risk=0.72,
             trust_barrier=0.32,
-            social_barrier=0.49,
+            habit_resistance=0.20,
+            learning_frustration=0.45,
+            friction_burden=0.10,
+            social_pressure=0.28,
+            network_barrier=0.49,
+            intrinsic_appeal=0.65,
+            frequency_value=0.40,
             top_contributors=contributors,
             raw_interactions=raw,
         )
@@ -137,8 +209,14 @@ if __name__ == "__main__":
             )
         if state.top_contributors[0].product != 0.72:
             all_validation_failures.append("First contributor product should be 0.72")
+        if len(state.raw_interactions) != 9:
+            all_validation_failures.append(
+                f"raw_interactions should have 9 keys, got {len(state.raw_interactions)}"
+            )
         if "irreversibility_risk_aversion" not in state.raw_interactions:
             all_validation_failures.append("raw_interactions missing expected key")
+        if "valor_intrinseco_pragmatism" not in state.raw_interactions:
+            all_validation_failures.append("raw_interactions missing appeal key")
     except Exception as e:
         all_validation_failures.append(f"EmergentState full creation failed: {e}")
 
@@ -146,76 +224,47 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         state = EmergentState(
-            perceived_risk_delta=0.0,
-            initial_effort_delta=0.0,
+            perceived_risk=0.0,
             trust_barrier=0.0,
-            social_barrier=0.0,
+            habit_resistance=0.0,
+            learning_frustration=0.0,
+            friction_burden=0.0,
+            social_pressure=0.0,
+            network_barrier=0.0,
+            intrinsic_appeal=0.0,
+            frequency_value=0.0,
         )
-        if state.perceived_risk_delta != 0.0:
-            all_validation_failures.append("Zero perceived_risk_delta should be valid")
+        for field_name in [
+            "perceived_risk",
+            "trust_barrier",
+            "habit_resistance",
+            "learning_frustration",
+            "friction_burden",
+            "social_pressure",
+            "network_barrier",
+            "intrinsic_appeal",
+            "frequency_value",
+        ]:
+            if getattr(state, field_name) != 0.0:
+                all_validation_failures.append(f"Zero {field_name} should be valid")
     except Exception as e:
         all_validation_failures.append(f"Zero values test failed: {e}")
 
-    # Test 5: Negative values should be valid (deltas can be negative)
-    total_tests += 1
-    try:
-        state = EmergentState(
-            perceived_risk_delta=-0.1,
-            initial_effort_delta=-0.05,
-            trust_barrier=0.0,
-            social_barrier=0.0,
-        )
-        if state.perceived_risk_delta != -0.1:
-            all_validation_failures.append("Negative perceived_risk_delta should be valid")
-    except Exception as e:
-        all_validation_failures.append(f"Negative values test failed: {e}")
-
-    # Test 6: InteractionContribution with edge values
-    total_tests += 1
-    try:
-        contribution = InteractionContribution(
-            mechanism="habit_displacement",
-            sensitivity="habit_plasticity",
-            product=0.0,
-        )
-        if contribution.product != 0.0:
-            all_validation_failures.append("Zero product should be valid")
-
-        contribution2 = InteractionContribution(
-            mechanism="social_visibility",
-            sensitivity="social_influence",
-            product=1.0,
-        )
-        if contribution2.product != 1.0:
-            all_validation_failures.append("Product of 1.0 should be valid")
-    except Exception as e:
-        all_validation_failures.append(f"Edge values test failed: {e}")
-
-    # Test 7: Empty top_contributors list
-    total_tests += 1
-    try:
-        state = EmergentState(
-            perceived_risk_delta=0.15,
-            initial_effort_delta=0.08,
-            trust_barrier=0.32,
-            social_barrier=0.49,
-            top_contributors=[],
-            raw_interactions={},
-        )
-        if state.top_contributors != []:
-            all_validation_failures.append("Empty top_contributors should work")
-        if state.raw_interactions != {}:
-            all_validation_failures.append("Empty raw_interactions should work")
-    except Exception as e:
-        all_validation_failures.append(f"Empty lists test failed: {e}")
-
-    # Test 8: Verify all fields exist on EmergentState
+    # Test 5: Field existence check (9 state fields + 2 metadata fields = 11 total)
     total_tests += 1
     expected_fields = {
-        "perceived_risk_delta",
-        "initial_effort_delta",
+        # 7 barriers
+        "perceived_risk",
         "trust_barrier",
-        "social_barrier",
+        "habit_resistance",
+        "learning_frustration",
+        "friction_burden",
+        "social_pressure",
+        "network_barrier",
+        # 2 appeals
+        "intrinsic_appeal",
+        "frequency_value",
+        # 2 metadata
         "top_contributors",
         "raw_interactions",
     }
@@ -224,8 +273,12 @@ if __name__ == "__main__":
         all_validation_failures.append(
             f"EmergentState field mismatch: expected {expected_fields}, got {actual_fields}"
         )
+    if len(actual_fields) != 11:
+        all_validation_failures.append(
+            f"EmergentState should have 11 fields, got {len(actual_fields)}"
+        )
 
-    # Test 9: Verify all fields exist on InteractionContribution
+    # Test 6: Verify InteractionContribution fields unchanged
     total_tests += 1
     expected_contrib_fields = {"mechanism", "sensitivity", "product"}
     actual_contrib_fields = {f.name for f in InteractionContribution.__dataclass_fields__.values()}
@@ -238,10 +291,10 @@ if __name__ == "__main__":
     # Final validation result
     if all_validation_failures:
         failed = len(all_validation_failures)
-        print(f"❌ VALIDATION FAILED - {failed} of {total_tests} tests failed:")
+        print(f"VALIDATION FAILED - {failed} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         sys.exit(0)

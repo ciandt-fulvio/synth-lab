@@ -5,7 +5,7 @@ Defines models for feature structural mechanisms that interact with user
 sensitivities to produce emergent behavioral states in simulations.
 
 References:
-    - Spec: specs/038-mechanism-based-simulation/spec.md
+    - Spec: specs/040-mechanism-expansion/spec.md
     - Data model: specs/038-mechanism-based-simulation/data-model.md
 """
 
@@ -23,6 +23,9 @@ class FeatureMechanisms(BaseModel):
     - habit_displacement: Replaces existing habits (0=additive, 1=replacement)
     - learning_curve: Requires learning new skills (0=intuitive, 1=complex)
     - social_visibility: Usage is visible to others (0=private, 1=public)
+    - valor_intrinseco: Real improvement in user's life (0=cosmetic, 1=transformative)
+    - friccao_operacional: Operational friction/steps/errors in usage (0=none, 1=extreme)
+    - frequencia_de_uso: Expected usage frequency (0=rare, 1=daily or more)
 
     Default value of 0.0 represents mechanism not present.
     """
@@ -33,40 +36,53 @@ class FeatureMechanisms(BaseModel):
         le=1.0,
         description="Degree to which actions are permanent/irreversible",
     )
-
     network_effect: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
         description="Degree to which value depends on others using it",
     )
-
     institutional_trust: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
         description="Degree to which feature requires trust in institution",
     )
-
     habit_displacement: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
         description="Degree to which feature replaces existing habits",
     )
-
     learning_curve: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
         description="Degree to which feature requires learning new skills",
     )
-
     social_visibility: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
         description="Degree to which usage is visible to others",
+    )
+    valor_intrinseco: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Real improvement in user's life (0=cosmetic, 1=transformative)",
+    )
+    friccao_operacional: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Operational friction/steps/errors in usage (0=none, 1=extreme)",
+    )
+    frequencia_de_uso: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Expected usage frequency (0=rare, 1=daily or more)",
     )
 
     def has_any_mechanism(self) -> bool:
@@ -79,33 +95,70 @@ class FeatureMechanisms(BaseModel):
                 self.habit_displacement > 0,
                 self.learning_curve > 0,
                 self.social_visibility > 0,
+                self.valor_intrinseco > 0,
+                self.friccao_operacional > 0,
+                self.frequencia_de_uso > 0,
             ]
         )
 
 
+ALL_9_FIELDS = {
+    "irreversibility",
+    "network_effect",
+    "institutional_trust",
+    "habit_displacement",
+    "learning_curve",
+    "social_visibility",
+    "valor_intrinseco",
+    "friccao_operacional",
+    "frequencia_de_uso",
+}
+
 if __name__ == "__main__":
     import sys
 
-    all_validation_failures: list[str] = []
+    failures: list[str] = []
     total_tests = 0
 
-    # Test 1: Create FeatureMechanisms with defaults (all zeros)
+    # Test 1: Default creation (all 0.0)
     total_tests += 1
     try:
-        mechanisms = FeatureMechanisms()
-        if mechanisms.irreversibility != 0.0:
-            all_validation_failures.append(
-                f"irreversibility default should be 0.0: {mechanisms.irreversibility}"
-            )
-        if mechanisms.has_any_mechanism():
-            all_validation_failures.append("has_any_mechanism should be False for defaults")
+        m = FeatureMechanisms()
+        for f in ALL_9_FIELDS:
+            if getattr(m, f) != 0.0:
+                failures.append(f"{f} default should be 0.0, got {getattr(m, f)}")
+        if m.has_any_mechanism():
+            failures.append("has_any_mechanism should be False for defaults")
     except Exception as e:
-        all_validation_failures.append(f"Default FeatureMechanisms creation failed: {e}")
+        failures.append(f"Default creation failed: {e}")
 
-    # Test 2: Create FeatureMechanisms with all values set
+    # Test 2: Full creation with all 9 values
     total_tests += 1
     try:
-        mechanisms = FeatureMechanisms(
+        vals = dict(
+            irreversibility=0.9,
+            network_effect=0.7,
+            institutional_trust=0.8,
+            habit_displacement=0.4,
+            learning_curve=0.5,
+            social_visibility=0.3,
+            valor_intrinseco=0.6,
+            friccao_operacional=0.2,
+            frequencia_de_uso=0.85,
+        )
+        m = FeatureMechanisms(**vals)
+        for k, v in vals.items():
+            if getattr(m, k) != v:
+                failures.append(f"{k} mismatch: expected {v}, got {getattr(m, k)}")
+        if not m.has_any_mechanism():
+            failures.append("has_any_mechanism should be True with all values set")
+    except Exception as e:
+        failures.append(f"Full creation failed: {e}")
+
+    # Test 3: Backward compat - only original 6 fields, new fields default 0.0
+    total_tests += 1
+    try:
+        m = FeatureMechanisms(
             irreversibility=0.9,
             network_effect=0.7,
             institutional_trust=0.8,
@@ -113,106 +166,116 @@ if __name__ == "__main__":
             learning_curve=0.5,
             social_visibility=0.3,
         )
-        if mechanisms.irreversibility != 0.9:
-            all_validation_failures.append(f"irreversibility mismatch: {mechanisms.irreversibility}")
-        if mechanisms.network_effect != 0.7:
-            all_validation_failures.append(f"network_effect mismatch: {mechanisms.network_effect}")
-        if not mechanisms.has_any_mechanism():
-            all_validation_failures.append("has_any_mechanism should be True")
+        for f in ("valor_intrinseco", "friccao_operacional", "frequencia_de_uso"):
+            if getattr(m, f) != 0.0:
+                failures.append(f"Backward compat: {f} should default to 0.0, got {getattr(m, f)}")
     except Exception as e:
-        all_validation_failures.append(f"FeatureMechanisms with values failed: {e}")
+        failures.append(f"Backward compatibility test failed: {e}")
 
-    # Test 3: Reject value below 0
+    # Test 4: Reject value below 0 (original field)
     total_tests += 1
     try:
         FeatureMechanisms(irreversibility=-0.1)
-        all_validation_failures.append("Should reject negative irreversibility")
+        failures.append("Should reject negative irreversibility")
     except ValueError:
-        pass  # Expected
-    except Exception as e:
-        all_validation_failures.append(f"Unexpected error for negative value: {e}")
+        pass
 
-    # Test 4: Reject value above 1
+    # Test 5: Reject value above 1 (original field)
     total_tests += 1
     try:
         FeatureMechanisms(network_effect=1.5)
-        all_validation_failures.append("Should reject network_effect > 1")
+        failures.append("Should reject network_effect > 1")
     except ValueError:
-        pass  # Expected
-    except Exception as e:
-        all_validation_failures.append(f"Unexpected error for value > 1: {e}")
+        pass
 
-    # Test 5: Edge case - boundary values (0.0 and 1.0)
+    # Test 6: Reject new field below 0
     total_tests += 1
     try:
-        mechanisms = FeatureMechanisms(
+        FeatureMechanisms(valor_intrinseco=-0.5)
+        failures.append("Should reject negative valor_intrinseco")
+    except ValueError:
+        pass
+
+    # Test 7: Reject new field above 1
+    total_tests += 1
+    try:
+        FeatureMechanisms(frequencia_de_uso=2.0)
+        failures.append("Should reject frequencia_de_uso > 1")
+    except ValueError:
+        pass
+
+    # Test 8: Boundary values (0.0 and 1.0 accepted)
+    total_tests += 1
+    try:
+        m = FeatureMechanisms(
             irreversibility=0.0,
             network_effect=1.0,
             institutional_trust=0.0,
             habit_displacement=1.0,
             learning_curve=0.0,
             social_visibility=1.0,
+            valor_intrinseco=0.0,
+            friccao_operacional=1.0,
+            frequencia_de_uso=0.0,
         )
-        if mechanisms.irreversibility != 0.0:
-            all_validation_failures.append("0.0 should be accepted")
-        if mechanisms.network_effect != 1.0:
-            all_validation_failures.append("1.0 should be accepted")
-        if not mechanisms.has_any_mechanism():
-            all_validation_failures.append("has_any_mechanism should be True with some 1.0 values")
+        if m.network_effect != 1.0:
+            failures.append("1.0 should be accepted for network_effect")
+        if m.friccao_operacional != 1.0:
+            failures.append("1.0 should be accepted for friccao_operacional")
+        if not m.has_any_mechanism():
+            failures.append("has_any_mechanism should be True with some 1.0 values")
     except Exception as e:
-        all_validation_failures.append(f"Boundary values test failed: {e}")
+        failures.append(f"Boundary values test failed: {e}")
 
-    # Test 6: has_any_mechanism with single non-zero value
+    # Test 9: has_any_mechanism detects each new field individually
     total_tests += 1
     try:
-        mechanisms = FeatureMechanisms(learning_curve=0.1)
-        if not mechanisms.has_any_mechanism():
-            all_validation_failures.append("has_any_mechanism should be True with learning_curve=0.1")
+        for field, val in [
+            ("valor_intrinseco", 0.1),
+            ("friccao_operacional", 0.3),
+            ("frequencia_de_uso", 0.5),
+        ]:
+            m = FeatureMechanisms(**{field: val})
+            if not m.has_any_mechanism():
+                failures.append(f"has_any_mechanism should be True with {field}={val}")
     except Exception as e:
-        all_validation_failures.append(f"Single non-zero test failed: {e}")
+        failures.append(f"has_any_mechanism new fields test failed: {e}")
 
-    # Test 7: Model dump produces valid dict
+    # Test 10: model_dump has all 9 fields with correct values
     total_tests += 1
     try:
-        mechanisms = FeatureMechanisms(
-            irreversibility=0.9,
-            network_effect=0.7,
-        )
-        dump = mechanisms.model_dump()
-        if "irreversibility" not in dump:
-            all_validation_failures.append("model_dump missing irreversibility")
-        if dump["irreversibility"] != 0.9:
-            all_validation_failures.append("model_dump irreversibility value mismatch")
-        if dump["network_effect"] != 0.7:
-            all_validation_failures.append("model_dump network_effect value mismatch")
-        if dump["institutional_trust"] != 0.0:
-            all_validation_failures.append("model_dump institutional_trust should default to 0.0")
+        m = FeatureMechanisms(irreversibility=0.9, network_effect=0.7, valor_intrinseco=0.6)
+        dump = m.model_dump()
+        if set(dump.keys()) != ALL_9_FIELDS:
+            failures.append(f"model_dump keys mismatch: {set(dump.keys())} != {ALL_9_FIELDS}")
+        checks = {
+            "irreversibility": 0.9,
+            "network_effect": 0.7,
+            "valor_intrinseco": 0.6,
+            "institutional_trust": 0.0,
+            "friccao_operacional": 0.0,
+            "frequencia_de_uso": 0.0,
+        }
+        for k, expected in checks.items():
+            if dump[k] != expected:
+                failures.append(f"model_dump {k}: expected {expected}, got {dump[k]}")
     except Exception as e:
-        all_validation_failures.append(f"model_dump test failed: {e}")
+        failures.append(f"model_dump test failed: {e}")
 
-    # Test 8: All 6 mechanism fields exist
+    # Test 11: Field count is exactly 9
     total_tests += 1
-    expected_fields = {
-        "irreversibility",
-        "network_effect",
-        "institutional_trust",
-        "habit_displacement",
-        "learning_curve",
-        "social_visibility",
-    }
     actual_fields = set(FeatureMechanisms.model_fields.keys())
-    if expected_fields != actual_fields:
-        all_validation_failures.append(
-            f"Field mismatch: expected {expected_fields}, got {actual_fields}"
-        )
+    if actual_fields != ALL_9_FIELDS:
+        failures.append(f"Field set mismatch: expected {ALL_9_FIELDS}, got {actual_fields}")
+    if len(actual_fields) != 9:
+        failures.append(f"Field count should be 9, got {len(actual_fields)}")
 
-    # Final validation result
-    if all_validation_failures:
-        failed = len(all_validation_failures)
-        print(f"❌ VALIDATION FAILED - {failed} of {total_tests} tests failed:")
-        for failure in all_validation_failures:
-            print(f"  - {failure}")
+    # Final result
+    if failures:
+        print(f"VALIDATION FAILED - {len(failures)} of {total_tests} tests failed:")
+        for f in failures:
+            print(f"  - {f}")
         sys.exit(1)
     else:
-        print(f"✅ VALIDATION PASSED - All {total_tests} tests produced expected results")
+        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         sys.exit(0)

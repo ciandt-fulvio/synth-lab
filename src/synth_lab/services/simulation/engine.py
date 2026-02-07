@@ -1,6 +1,11 @@
 """
 Monte Carlo simulation engine for feature impact simulation.
 
+.. deprecated:: 040-mechanism-sensitivity-update
+    This module is replaced by ``feature_monte_carlo.py`` which implements
+    the new Beta-sampled mechanism + emergent state probability model.
+    Kept for reference and backward compatibility. Do not use for new code.
+
 Executes N synths x M executions simulation and aggregates results.
 Supports mechanism-based simulations via emergent state calculations.
 
@@ -8,7 +13,8 @@ Classes:
 - MonteCarloEngine: Main simulation engine
 
 References:
-    - Spec: specs/016-feature-impact-simulation/spec.md
+    - Spec: specs/016-feature-impact-simulation/spec.md (original)
+    - Superseded by: specs/040-mechanism-sensitivity-update/spec.md
     - Research: specs/016-feature-impact-simulation/research.md
     - Mechanisms: specs/038-mechanism-based-simulation/spec.md
 
@@ -284,9 +290,7 @@ class MonteCarloEngine:
 if __name__ == "__main__":
     import sys
 
-    from synth_lab.domain.entities import (
-        ScorecardDimension,
-        ScorecardIdentification)
+    from synth_lab.domain.entities import ScorecardDimension, ScorecardIdentification
 
     print("=== Monte Carlo Engine Validation ===\n")
 
@@ -537,8 +541,9 @@ if __name__ == "__main__":
                         "social_dependency": 0.2,
                         "institutional_trust_level": 0.3,
                         "habit_plasticity": 0.5,
-                        "learning_tolerance": 0.5,
-                        "social_influence": 0.5,
+                        "friction_tolerance": 0.5,
+                        "pragmatism": 0.5,
+                        "digital_capability": 0.5,
                     },
                 },
             }
@@ -560,8 +565,9 @@ if __name__ == "__main__":
                         "social_dependency": 0.8,
                         "institutional_trust_level": 0.9,
                         "habit_plasticity": 0.5,
-                        "learning_tolerance": 0.5,
-                        "social_influence": 0.5,
+                        "friction_tolerance": 0.5,
+                        "pragmatism": 0.5,
+                        "digital_capability": 0.5,
                     },
                 },
             }

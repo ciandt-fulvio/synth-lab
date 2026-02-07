@@ -1,17 +1,23 @@
 """
 Mechanism interaction service for synth-lab.
 
+.. deprecated:: 040-mechanism-sensitivity-update
+    This module is replaced by ``emergent_calculator.py`` which implements
+    the new 9-state emergent model (7 barriers + 2 appeals). Kept for
+    reference and backward compatibility. Do not use for new code.
+
 Calculates emergent behavioral states from mechanism × sensitivity interactions.
 These emergent states modify effective scorecard dimensions during simulation.
 
 References:
-    - Spec: specs/038-mechanism-based-simulation/spec.md
+    - Spec: specs/038-mechanism-based-simulation/spec.md (original)
+    - Superseded by: specs/040-mechanism-sensitivity-update/spec.md
     - Data model: specs/038-mechanism-based-simulation/data-model.md
 
-Interaction Formula:
+Original Interaction Formula (4 deltas):
     perceived_risk_delta = irreversibility × risk_aversion
     initial_effort_delta = habit_displacement × (1 - habit_plasticity)
-                         + learning_curve × (1 - learning_tolerance)
+                         + learning_curve × (1 - digital_capability)
     trust_barrier = institutional_trust × (1 - institutional_trust_level)
     social_barrier = network_effect × (1 - social_dependency)
 """
@@ -20,15 +26,14 @@ from synth_lab.domain.entities.emergent_state import EmergentState, InteractionC
 from synth_lab.domain.entities.feature_mechanisms import FeatureMechanisms
 from synth_lab.domain.entities.user_sensitivities import UserSensitivities
 
-
 # Mechanism-sensitivity interaction pairs
 INTERACTION_PAIRS = [
     ("irreversibility", "risk_aversion"),
     ("network_effect", "social_dependency"),
     ("institutional_trust", "institutional_trust_level"),
     ("habit_displacement", "habit_plasticity"),
-    ("learning_curve", "learning_tolerance"),
-    ("social_visibility", "social_influence"),
+    ("learning_curve", "digital_capability"),
+    ("social_visibility", "social_dependency"),
 ]
 
 
@@ -77,7 +82,7 @@ def calculate_emergent_state(
 
     initial_effort_delta = (
         mechanisms.habit_displacement * (1 - sensitivities.habit_plasticity)
-        + mechanisms.learning_curve * (1 - sensitivities.learning_tolerance)
+        + mechanisms.learning_curve * (1 - sensitivities.digital_capability)
     )
 
     trust_barrier = mechanisms.institutional_trust * (1 - sensitivities.institutional_trust_level)
@@ -217,8 +222,9 @@ if __name__ == "__main__":
             social_dependency=0.3,
             institutional_trust_level=0.6,
             habit_plasticity=0.5,
-            learning_tolerance=0.7,
-            social_influence=0.4,
+            digital_capability=0.7,
+            pragmatism=0.5,
+            friction_tolerance=0.5,
         )
         state = calculate_emergent_state(mechanisms, sensitivities)
 
@@ -271,7 +277,7 @@ if __name__ == "__main__":
         sensitivities = UserSensitivities(
             risk_aversion=0.9,  # 0.9 × 0.9 = 0.81
             social_dependency=0.1,  # 0.3 × 0.9 = 0.27
-            learning_tolerance=0.3,  # 0.5 × 0.7 = 0.35
+            digital_capability=0.3,  # 0.5 × 0.7 = 0.35
         )
         state = calculate_emergent_state(mechanisms, sensitivities)
 
@@ -339,7 +345,7 @@ if __name__ == "__main__":
         sensitivities = UserSensitivities(
             risk_aversion=1.0,
             habit_plasticity=0.0,
-            learning_tolerance=0.0,
+            digital_capability=0.0,
         )
         state = calculate_emergent_state(mechanisms, sensitivities)
 
@@ -375,8 +381,8 @@ if __name__ == "__main__":
             "network_effect_social_dependency",
             "institutional_trust_institutional_trust_level",
             "habit_displacement_habit_plasticity",
-            "learning_curve_learning_tolerance",
-            "social_visibility_social_influence",
+            "learning_curve_digital_capability",
+            "social_visibility_social_dependency",
         }
         actual_keys = set(state.raw_interactions.keys())
 
@@ -391,11 +397,11 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         mechanisms = FeatureMechanisms(habit_displacement=0.6, learning_curve=0.4)
-        sensitivities = UserSensitivities(habit_plasticity=0.2, learning_tolerance=0.3)
+        sensitivities = UserSensitivities(habit_plasticity=0.2, digital_capability=0.3)
         state = calculate_emergent_state(mechanisms, sensitivities)
 
         # habit_displacement × (1 - habit_plasticity) = 0.6 × 0.8 = 0.48
-        # learning_curve × (1 - learning_tolerance) = 0.4 × 0.7 = 0.28
+        # learning_curve × (1 - digital_capability) = 0.4 × 0.7 = 0.28
         # Total = 0.48 + 0.28 = 0.76
         expected_effort = 0.76
         if abs(state.initial_effort_delta - expected_effort) > 0.001:
