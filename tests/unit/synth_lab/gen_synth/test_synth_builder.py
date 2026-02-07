@@ -124,13 +124,13 @@ def test_assemble_synth_timestamps(config_data):
 
 
 def test_assemble_synth_version(config_data):
-    """Test that version is set correctly to v2.3.0."""
+    """Test that version is set correctly to v3.0.0."""
     synth = synth_builder.assemble_synth(config_data)
 
     assert "version" in synth
     assert isinstance(synth["version"], str)
-    # Version should be v2.3.0 for schema with observables
-    assert synth["version"] == "2.3.0", f"Expected version 2.3.0, got {synth['version']}"
+    # Version bumped to v3.0.0 for mechanism-sensitivity model
+    assert synth["version"] == "3.0.0", f"Expected version 3.0.0, got {synth['version']}"
 
 
 def test_assemble_synth_link_photo(config_data):

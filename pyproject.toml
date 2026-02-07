@@ -50,6 +50,7 @@ dependencies = [
     "python-jose>=3.5.0",
     "slowapi>=0.1.9",
     "itsdangerous>=2.0.0",
+    "pyyaml>=6.0.0",
 ]
 
 [project.optional-dependencies]

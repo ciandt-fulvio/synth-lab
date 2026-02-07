@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://synthlab.com/schemas/synth/v2.3.0",
+  "$id": "https://synthlab.com/schemas/synth/v3.0.0",
   "title": "Synth (Synthetic Persona)",
   "description": "Schema completo para persona sintética brasileira com atributos demográficos, psicográficos, deficiências e observables para simulação. Baseado em distribuições reais do IBGE Censo 2022, PNAD 2023, PNS 2019.",
   "type": "object",
@@ -256,6 +256,74 @@
         }
       },
       "required": ["digital_literacy", "similar_tool_experience", "motor_ability", "time_availability", "domain_expertise"]
+    },
+    "sensitivities": {
+      "type": "object",
+      "description": "User sensitivities derived from demographics via YAML rules (v3.0.0+). Used by emergent state calculator for mechanism-sensitivity interactions.",
+      "properties": {
+        "risk_aversion": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Aversion to irreversible actions"
+        },
+        "social_dependency": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Need for social validation"
+        },
+        "institutional_trust_level": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Trust in institutions"
+        },
+        "habit_plasticity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Flexibility to change routines"
+        },
+        "friction_tolerance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Tolerance for complex processes"
+        },
+        "pragmatism": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Focus on utility vs hedonic"
+        },
+        "digital_capability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Digital technical ability"
+        },
+        "_meta": {
+          "type": "object",
+          "description": "Derivation metadata",
+          "properties": {
+            "derivation_version": {
+              "type": "string",
+              "description": "Version of the derivation algorithm"
+            },
+            "config_name": {
+              "type": "string",
+              "description": "Name of the YAML config used"
+            },
+            "applied_rules": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "List of rules that were applied during derivation"
+            }
+          }
+        }
+      },
+      "required": ["risk_aversion", "social_dependency", "institutional_trust_level", "habit_plasticity", "friction_tolerance", "pragmatism", "digital_capability"]
     }
   },
   "required": ["id", "nome", "descricao", "link_photo", "created_at", "version", "demografia", "psicografia", "deficiencias", "observables"]

@@ -41,6 +41,7 @@ from synth_lab.gen_synth.simulation_attributes import (
     generate_observables_correlated,
 )
 from synth_lab.gen_synth.utils import gerar_id
+from synth_lab.services.sensitivity_deriver import derive_sensitivities
 
 
 def assemble_synth(
@@ -114,12 +115,15 @@ def assemble_synth(
         "descricao": "",  # Placeholder, will be filled after
         "link_photo": link_photo,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "version": "2.3.0",  # Bumped version for observables-only model
+        "version": "3.0.0",  # Bumped version for mechanism-sensitivity model
         "demografia": demografia,
         "psicografia": psicografia,
         "deficiencias": deficiencias,
         "observables": observables.model_dump(),
     }
+
+    # 7b. Derive sensitivities from demographics
+    synth["sensitivities"] = derive_sensitivities(synth)
 
     # 8. Derive description (needs complete synth)
     descricao = derivations.derive_description(synth)
@@ -236,12 +240,15 @@ def assemble_synth_with_config(
         "descricao": "",
         "link_photo": link_photo,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "version": "2.3.0",
+        "version": "3.0.0",
         "demografia": demografia,
         "psicografia": psicografia,
         "deficiencias": deficiencias,
         "observables": observables.model_dump(),
     }
+
+    # 7b. Derive sensitivities from demographics
+    synth["sensitivities"] = derive_sensitivities(synth)
 
     # 8. Derive description
     descricao = derivations.derive_description(synth)
@@ -288,6 +295,7 @@ if __name__ == "__main__":
             "psicografia",
             "deficiencias",
             "observables",
+            "sensitivities",
         ]
 
         missing_fields = [f for f in required_fields if f not in synth]
@@ -407,7 +415,45 @@ if __name__ == "__main__":
         else:
             print(f"✓ Observables complete: 5 attributes (dl={dl:.3f})")
 
-    # Test 7: Verify derivations
+    # Test 7: Verify sensitivities structure
+    total_tests += 1
+    if "synth" in locals():
+        sens = synth.get("sensitivities", {})
+        sens_failures = []
+
+        required_sens = [
+            "risk_aversion",
+            "social_dependency",
+            "institutional_trust_level",
+            "habit_plasticity",
+            "friction_tolerance",
+            "pragmatism",
+            "digital_capability",
+        ]
+        missing_sens = [f for f in required_sens if f not in sens]
+        if missing_sens:
+            sens_failures.append(f"Missing sensitivities: {missing_sens}")
+
+        # Verify all values in [0, 1]
+        for field in required_sens:
+            value = sens.get(field)
+            if value is not None and not 0.0 <= value <= 1.0:
+                sens_failures.append(f"Sensitivity {field} out of range: {value}")
+
+        # Verify metadata
+        meta = sens.get("_meta", {})
+        if not meta:
+            sens_failures.append("Missing _meta in sensitivities")
+        elif "config_name" not in meta or "applied_rules" not in meta:
+            sens_failures.append(f"Incomplete _meta: {meta}")
+
+        if sens_failures:
+            all_validation_failures.extend(sens_failures)
+        else:
+            ra = sens.get("risk_aversion", 0)
+            print(f"✓ Sensitivities complete: 7 fields (risk_aversion={ra:.3f})")
+
+    # Test 8: Verify derivations
     total_tests += 1
     if "synth" in locals():
         derivation_failures = []
@@ -422,7 +468,7 @@ if __name__ == "__main__":
         else:
             print("✓ Derivations correct: description, photo link")
 
-    # Test 8: Generate batch of 3 synths to verify uniqueness
+    # Test 9: Generate batch of 3 synths to verify uniqueness
     total_tests += 1
     try:
         synths_batch = [assemble_synth(config) for _ in range(3)]
@@ -442,7 +488,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Batch generation: Failed - {e}")
 
-    # Test 9: Validate generated synth against schema
+    # Test 10: Validate generated synth against schema
     total_tests += 1
     if "synth" in locals():
         try:

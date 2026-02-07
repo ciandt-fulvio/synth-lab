@@ -21,7 +21,7 @@ sensitivities:
       - condition:
           field: "demografia.escolaridade"
           operator: "in"
-          value: ["ensino superior completo", "pós-graduação"]
+          value: ["Superior completo", "Pós-graduação"]
         adjustment: -0.05
         reason: "Maior escolaridade → menor aversão"
 
@@ -46,7 +46,7 @@ sensitivities:
       - condition:
           field: "demografia.escolaridade"
           operator: "in"
-          value: ["ensino superior completo", "pós-graduação"]
+          value: ["Superior completo", "Pós-graduação"]
         adjustment: 0.05
         reason: "Mais escolaridade → mais confiança institucional"
 
@@ -94,7 +94,7 @@ sensitivities:
       - condition:
           field: "demografia.escolaridade"
           operator: "in"
-          value: ["ensino superior completo", "pós-graduação"]
+          value: ["Superior completo", "Pós-graduação"]
         adjustment: 0.05
         reason: "Mais escolaridade → mais pragmatismo"
 
@@ -111,7 +111,7 @@ sensitivities:
       - condition:
           field: "demografia.escolaridade"
           operator: "in"
-          value: ["ensino superior completo", "pós-graduação"]
+          value: ["Superior completo", "Pós-graduação"]
         adjustment: 0.10
         reason: "Mais escolaridade → mais digital"
       - condition:
