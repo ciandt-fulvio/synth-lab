@@ -82,8 +82,13 @@ if __name__ == "__main__":
     import sys
 
     ALL_FIELDS = [
-        "risk_aversion", "social_dependency", "institutional_trust_level",
-        "habit_plasticity", "friction_tolerance", "pragmatism", "digital_capability",
+        "risk_aversion",
+        "social_dependency",
+        "institutional_trust_level",
+        "habit_plasticity",
+        "friction_tolerance",
+        "pragmatism",
+        "digital_capability",
     ]
 
     all_validation_failures: list[str] = []
@@ -104,15 +109,21 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         values = {
-            "risk_aversion": 0.8, "social_dependency": 0.3,
-            "institutional_trust_level": 0.6, "habit_plasticity": 0.4,
-            "friction_tolerance": 0.7, "pragmatism": 0.9, "digital_capability": 0.2,
+            "risk_aversion": 0.8,
+            "social_dependency": 0.3,
+            "institutional_trust_level": 0.6,
+            "habit_plasticity": 0.4,
+            "friction_tolerance": 0.7,
+            "pragmatism": 0.9,
+            "digital_capability": 0.2,
         }
         sensitivities = UserSensitivities(**values)
         for field, expected in values.items():
             actual = getattr(sensitivities, field)
             if actual != expected:
-                all_validation_failures.append(f"{field} mismatch: expected {expected}, got {actual}")
+                all_validation_failures.append(
+                    f"{field} mismatch: expected {expected}, got {actual}"
+                )
     except Exception as e:
         all_validation_failures.append(f"UserSensitivities with values failed: {e}")
 
@@ -140,9 +151,13 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         boundary = {
-            "risk_aversion": 0.0, "social_dependency": 1.0,
-            "institutional_trust_level": 0.0, "habit_plasticity": 1.0,
-            "friction_tolerance": 0.0, "pragmatism": 1.0, "digital_capability": 0.0,
+            "risk_aversion": 0.0,
+            "social_dependency": 1.0,
+            "institutional_trust_level": 0.0,
+            "habit_plasticity": 1.0,
+            "friction_tolerance": 0.0,
+            "pragmatism": 1.0,
+            "digital_capability": 0.0,
         }
         sensitivities = UserSensitivities(**boundary)
         for field, expected in boundary.items():
@@ -158,9 +173,13 @@ if __name__ == "__main__":
         sensitivities = UserSensitivities(risk_aversion=0.8, social_dependency=0.3)
         dump = sensitivities.model_dump()
         expected_dump = {
-            "risk_aversion": 0.8, "social_dependency": 0.3,
-            "institutional_trust_level": 0.5, "habit_plasticity": 0.5,
-            "friction_tolerance": 0.5, "pragmatism": 0.5, "digital_capability": 0.5,
+            "risk_aversion": 0.8,
+            "social_dependency": 0.3,
+            "institutional_trust_level": 0.5,
+            "habit_plasticity": 0.5,
+            "friction_tolerance": 0.5,
+            "pragmatism": 0.5,
+            "digital_capability": 0.5,
         }
         for field, expected in expected_dump.items():
             if dump.get(field) != expected:
@@ -184,14 +203,19 @@ if __name__ == "__main__":
     try:
         sensitivities = UserSensitivities(risk_aversion=0.9, friction_tolerance=0.2)
         checks = {
-            "risk_aversion": 0.9, "friction_tolerance": 0.2,
-            "social_dependency": 0.5, "habit_plasticity": 0.5,
-            "pragmatism": 0.5, "digital_capability": 0.5,
+            "risk_aversion": 0.9,
+            "friction_tolerance": 0.2,
+            "social_dependency": 0.5,
+            "habit_plasticity": 0.5,
+            "pragmatism": 0.5,
+            "digital_capability": 0.5,
         }
         for field, expected in checks.items():
             actual = getattr(sensitivities, field)
             if actual != expected:
-                all_validation_failures.append(f"Partial: {field} should be {expected}, got {actual}")
+                all_validation_failures.append(
+                    f"Partial: {field} should be {expected}, got {actual}"
+                )
     except Exception as e:
         all_validation_failures.append(f"Partial construction test failed: {e}")
 
