@@ -262,11 +262,11 @@ def generate_observables(
     motor_ability = motor_ability_from_disability(motora_tipo)
 
     return SimulationObservables(
-        digital_literacy=digital_literacy,
-        similar_tool_experience=similar_tool_experience,
-        motor_ability=motor_ability,
-        time_availability=time_availability,
-        domain_expertise=domain_expertise,
+        digital_literacy=round(digital_literacy, 3),
+        similar_tool_experience=round(similar_tool_experience, 3),
+        motor_ability=round(motor_ability, 3),
+        time_availability=round(time_availability, 3),
+        domain_expertise=round(domain_expertise, 3),
     )
 
 
@@ -382,11 +382,11 @@ def generate_observables_correlated(
     domain_expertise = max(0.0, min(1.0, domain_expertise))
 
     return SimulationObservables(
-        digital_literacy=digital_literacy,
-        similar_tool_experience=similar_tool_experience,
-        motor_ability=motor_ability,
-        time_availability=time_availability,
-        domain_expertise=domain_expertise,
+        digital_literacy=round(digital_literacy, 3),
+        similar_tool_experience=round(similar_tool_experience, 3),
+        motor_ability=round(motor_ability, 3),
+        time_availability=round(time_availability, 3),
+        domain_expertise=round(domain_expertise, 3),
     )
 
 
