@@ -19,6 +19,12 @@ export interface FeatureMechanisms {
   learning_curve: number;
   /** Degree to which usage is visible to others [0,1] */
   social_visibility: number;
+  /** Real improvement in user's life (0=cosmetic, 1=transformative) [0,1] */
+  valor_intrinseco: number;
+  /** Operational friction/steps/errors in usage (0=none, 1=extreme) [0,1] */
+  friccao_operacional: number;
+  /** Expected usage frequency (0=rare, 1=daily or more) [0,1] */
+  frequencia_de_uso: number;
 }
 
 /** User sensitivities for mechanism interactions */

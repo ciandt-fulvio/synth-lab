@@ -1,5 +1,5 @@
 // frontend/src/components/experiments/MechanismEditor.tsx
-// Editor component for feature mechanisms with 6 sliders
+// Editor component for feature mechanisms with 9 sliders
 
 import { Info } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
@@ -57,6 +57,24 @@ const MECHANISM_CONFIGS: MechanismConfig[] = [
     description: 'Grau em que o uso é visível para outros',
     example: 'Compra em grupo, posts públicos',
   },
+  {
+    key: 'valor_intrinseco',
+    label: 'Valor Intrínseco',
+    description: 'Grau em que a feature melhora a vida real do usuário',
+    example: 'Agendamento automático, alerta de fraude',
+  },
+  {
+    key: 'friccao_operacional',
+    label: 'Fricção Operacional',
+    description: 'Grau de fricção, etapas ou erros no uso cotidiano',
+    example: 'Múltiplas confirmações, timeout, erros frequentes',
+  },
+  {
+    key: 'frequencia_de_uso',
+    label: 'Frequência de Uso',
+    description: 'Frequência esperada de uso da feature',
+    example: 'Diário (saldo), mensal (extrato), raro (portabilidade)',
+  },
 ];
 
 interface MechanismEditorProps {
@@ -71,7 +89,7 @@ interface MechanismEditorProps {
 /**
  * Editor component for feature mechanisms.
  *
- * Displays 6 sliders for mechanism values [0, 1] with descriptions
+ * Displays 9 sliders for mechanism values [0, 1] with descriptions
  * and examples to help PMs understand each mechanism.
  */
 export function MechanismEditor({ value, onChange, disabled = false }: MechanismEditorProps) {
@@ -170,6 +188,9 @@ export const DEFAULT_MECHANISMS: FeatureMechanisms = {
   habit_displacement: 0,
   learning_curve: 0,
   social_visibility: 0,
+  valor_intrinseco: 0,
+  friccao_operacional: 0,
+  frequencia_de_uso: 0,
 };
 
 /** Check if mechanisms have any non-zero values */

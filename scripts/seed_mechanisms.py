@@ -109,6 +109,42 @@ MECHANISM_DEFINITIONS = [
             {"label": "totalmente público", "value": 1.00, "display_order": 5},
         ],
     },
+    {
+        "key": "valor_intrinseco",
+        "label_pt": "Valor Intrínseco",
+        "description": "Grau em que a feature melhora a vida real do usuário",
+        "options": [
+            {"label": "cosmético", "value": 0.00, "display_order": 1},
+            {"label": "conveniência menor", "value": 0.25, "display_order": 2},
+            {"label": "melhoria moderada", "value": 0.50, "display_order": 3},
+            {"label": "melhoria significativa", "value": 0.75, "display_order": 4},
+            {"label": "transformador", "value": 1.00, "display_order": 5},
+        ],
+    },
+    {
+        "key": "friccao_operacional",
+        "label_pt": "Fricção Operacional",
+        "description": "Grau de fricção/etapas/erros no uso cotidiano",
+        "options": [
+            {"label": "sem fricção", "value": 0.00, "display_order": 1},
+            {"label": "fricção mínima", "value": 0.25, "display_order": 2},
+            {"label": "fricção moderada", "value": 0.50, "display_order": 3},
+            {"label": "fricção significativa", "value": 0.75, "display_order": 4},
+            {"label": "fricção extrema", "value": 1.00, "display_order": 5},
+        ],
+    },
+    {
+        "key": "frequencia_de_uso",
+        "label_pt": "Frequência de Uso",
+        "description": "Frequência esperada de uso da feature",
+        "options": [
+            {"label": "raríssimo", "value": 0.00, "display_order": 1},
+            {"label": "ocasional", "value": 0.25, "display_order": 2},
+            {"label": "semanal", "value": 0.50, "display_order": 3},
+            {"label": "quase diário", "value": 0.75, "display_order": 4},
+            {"label": "diário ou mais", "value": 1.00, "display_order": 5},
+        ],
+    },
 ]
 
 FEATURE_TYPES = [
