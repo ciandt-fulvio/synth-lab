@@ -1,0 +1,122 @@
+version: "1.0"
+description: "Calibração default para população brasileira"
+
+sensitivities:
+  risk_aversion:
+    description: "Aversão a ações irreversíveis"
+    base: 0.60
+    rules:
+      - condition:
+          field: "demografia.idade"
+          operator: ">="
+          value: 60
+        adjustment: 0.10
+        reason: "Idosos são mais conservadores"
+      - condition:
+          field: "demografia.idade"
+          operator: "<="
+          value: 25
+        adjustment: -0.05
+        reason: "Jovens são mais aventureiros"
+      - condition:
+          field: "demografia.escolaridade"
+          operator: "in"
+          value: ["ensino superior completo", "pós-graduação"]
+        adjustment: -0.05
+        reason: "Maior escolaridade → menor aversão"
+
+  social_dependency:
+    description: "Necessidade de validação social"
+    base: 0.50
+    rules:
+      - condition: {field: "demografia.idade", operator: "<=", value: 30}
+        adjustment: 0.10
+        reason: "Jovens mais dependentes socialmente"
+      - condition: {field: "demografia.idade", operator: ">=", value: 55}
+        adjustment: -0.05
+        reason: "Mais velhos são mais independentes"
+
+  institutional_trust_level:
+    description: "Confiança em instituições"
+    base: 0.50
+    rules:
+      - condition: {field: "demografia.idade", operator: ">=", value: 50}
+        adjustment: 0.10
+        reason: "Mais velhos confiam mais em instituições"
+      - condition:
+          field: "demografia.escolaridade"
+          operator: "in"
+          value: ["ensino superior completo", "pós-graduação"]
+        adjustment: 0.05
+        reason: "Mais escolaridade → mais confiança institucional"
+
+  habit_plasticity:
+    description: "Flexibilidade para mudar rotinas"
+    base: 0.55
+    rules:
+      - condition: {field: "demografia.idade", operator: "<=", value: 30}
+        adjustment: 0.10
+        reason: "Jovens mudam hábitos com facilidade"
+      - condition: {field: "demografia.idade", operator: ">=", value: 60}
+        adjustment: -0.15
+        reason: "Idosos são mais rígidos"
+
+  friction_tolerance:
+    description: "Tolerância a processos complexos"
+    base: 0.50
+    rules:
+      - condition: {field: "demografia.idade", operator: "<=", value: 30}
+        adjustment: 0.05
+        reason: "Jovens toleram mais fricção"
+      - condition: {field: "demografia.idade", operator: ">=", value: 60}
+        adjustment: -0.10
+        reason: "Idosos toleram menos fricção"
+      - condition:
+          field: "composicao_familiar.tipo"
+          operator: "contains"
+          value: "monoparental"
+        adjustment: -0.05
+        reason: "Pais solo têm menos paciência"
+      - condition:
+          field: "deficiencias.motora.tipo"
+          operator: "in"
+          value: ["moderada", "severa"]
+        adjustment: -0.10
+        reason: "Deficiência motora reduz tolerância"
+
+  pragmatism:
+    description: "Foco em utilidade vs hedônico"
+    base: 0.55
+    rules:
+      - condition: {field: "demografia.idade", operator: ">=", value: 35}
+        adjustment: 0.05
+        reason: "Adultos são mais pragmáticos"
+      - condition:
+          field: "demografia.escolaridade"
+          operator: "in"
+          value: ["ensino superior completo", "pós-graduação"]
+        adjustment: 0.05
+        reason: "Mais escolaridade → mais pragmatismo"
+
+  digital_capability:
+    description: "Habilidade técnica digital"
+    base: 0.50
+    rules:
+      - condition: {field: "demografia.idade", operator: "<=", value: 30}
+        adjustment: 0.15
+        reason: "Nativos digitais"
+      - condition: {field: "demografia.idade", operator: ">=", value: 60}
+        adjustment: -0.20
+        reason: "Idosos têm menor capacidade digital"
+      - condition:
+          field: "demografia.escolaridade"
+          operator: "in"
+          value: ["ensino superior completo", "pós-graduação"]
+        adjustment: 0.10
+        reason: "Mais escolaridade → mais digital"
+      - condition:
+          field: "deficiencias.visual.tipo"
+          operator: "in"
+          value: ["moderada", "severa"]
+        adjustment: -0.10
+        reason: "Deficiência visual impacta capacidade digital"
