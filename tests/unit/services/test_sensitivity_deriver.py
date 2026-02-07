@@ -284,21 +284,29 @@ class TestDeriveSensitivities:
             assert name in result, f"Missing sensitivity key: {name}"
 
     def test_derive_missing_demographics_defaults(self):
-        """GIVEN empty dict WHEN deriving THEN all 7 values present at base values."""
-        result = derive_sensitivities({})
-        # With no demographics, no rules fire; values should be base
-        assert result["risk_aversion"] == pytest.approx(0.60)
-        assert result["social_dependency"] == pytest.approx(0.50)
-        assert result["institutional_trust_level"] == pytest.approx(0.50)
-        assert result["habit_plasticity"] == pytest.approx(0.55)
-        assert result["friction_tolerance"] == pytest.approx(0.50)
-        assert result["pragmatism"] == pytest.approx(0.55)
-        assert result["digital_capability"] == pytest.approx(0.50)
+        """GIVEN empty dict WHEN deriving N times THEN averages converge to base means."""
+        n_samples = 50
+        avgs = {key: 0.0 for key in ALL_7_SENSITIVITIES}
+        for i in range(n_samples):
+            result = derive_sensitivities({}, seed=i)
+            for key in ALL_7_SENSITIVITIES:
+                avgs[key] += result[key]
+        for key in ALL_7_SENSITIVITIES:
+            avgs[key] /= n_samples
+
+        # Averages should converge to base values
+        assert avgs["risk_aversion"] == pytest.approx(0.60, abs=0.05)
+        assert avgs["social_dependency"] == pytest.approx(0.50, abs=0.05)
+        assert avgs["institutional_trust_level"] == pytest.approx(0.50, abs=0.05)
+        assert avgs["habit_plasticity"] == pytest.approx(0.55, abs=0.05)
+        assert avgs["friction_tolerance"] == pytest.approx(0.50, abs=0.05)
+        assert avgs["pragmatism"] == pytest.approx(0.55, abs=0.05)
+        assert avgs["digital_capability"] == pytest.approx(0.50, abs=0.05)
 
     def test_derive_young_tech_professional(self):
         """GIVEN young (25) with higher education WHEN deriving.
 
-        Checks lower risk_aversion and higher digital_capability.
+        Checks risk_aversion near mean=0.50 and digital_capability near mean=0.75.
         """
         synth_data = {
             "demografia": {
@@ -306,21 +314,18 @@ class TestDeriveSensitivities:
                 "escolaridade": "Superior completo",
             },
         }
-        result = derive_sensitivities(synth_data)
+        result = derive_sensitivities(synth_data, seed=42)
 
-        # risk_aversion: base=0.60, age<=25 → -0.05, escolaridade in [superior, pos] → -0.05 = 0.50
-        assert result["risk_aversion"] == pytest.approx(0.50)
-        assert result["risk_aversion"] < 0.60  # Below base
+        # risk_aversion: base=0.60, age<=25 → -0.05, education → -0.05 → mean=0.50
+        assert result["risk_aversion"] == pytest.approx(0.50, abs=0.2)
 
-        # digital_capability: base=0.50, age<=30 -> +0.15,
-        # escolaridade in [superior, pos] -> +0.10 = 0.75
-        assert result["digital_capability"] == pytest.approx(0.75)
-        assert result["digital_capability"] > 0.50  # Above base
+        # digital_capability: base=0.50, age<=30 → +0.15, education → +0.10 → mean=0.75
+        assert result["digital_capability"] == pytest.approx(0.75, abs=0.2)
 
     def test_derive_elderly_with_disabilities(self):
         """GIVEN elderly (65) with fundamental education and motor disability.
 
-        Checks high risk_aversion and low digital_capability.
+        Checks values are Beta-sampled around expected means.
         """
         synth_data = {
             "demografia": {
@@ -331,33 +336,29 @@ class TestDeriveSensitivities:
                 "motora": {"tipo": "moderada"},
             },
         }
-        result = derive_sensitivities(synth_data)
+        result = derive_sensitivities(synth_data, seed=42)
 
-        # risk_aversion: base=0.60, age>=60 → +0.10 = 0.70
-        assert result["risk_aversion"] == pytest.approx(0.70)
-        assert result["risk_aversion"] > 0.60
+        # risk_aversion: base=0.60, age>=60 → +0.10 → mean=0.70
+        assert result["risk_aversion"] == pytest.approx(0.70, abs=0.2)
 
-        # digital_capability: base=0.50, age>=60 → -0.20 = 0.30
-        assert result["digital_capability"] == pytest.approx(0.30)
-        assert result["digital_capability"] < 0.50
+        # digital_capability: base=0.50, age>=60 → -0.20 → mean=0.30
+        assert result["digital_capability"] == pytest.approx(0.30, abs=0.2)
 
-        # habit_plasticity: base=0.55, age>=60 → -0.15 = 0.40
-        assert result["habit_plasticity"] == pytest.approx(0.40)
-        assert result["habit_plasticity"] < 0.55
+        # habit_plasticity: base=0.55, age>=60 → -0.15 → mean=0.40
+        assert result["habit_plasticity"] == pytest.approx(0.40, abs=0.2)
 
-        # friction_tolerance: base=0.50, age>=60 → -0.10, deficiencia motora → -0.10 = 0.30
-        assert result["friction_tolerance"] == pytest.approx(0.30)
+        # friction_tolerance: base=0.50, age>=60 → -0.10, motora → -0.10 → mean=0.30
+        assert result["friction_tolerance"] == pytest.approx(0.30, abs=0.2)
 
     def test_derive_single_parent(self):
-        """GIVEN single parent (monoparental) WHEN deriving THEN friction_tolerance < base."""
+        """GIVEN single parent WHEN deriving THEN friction_tolerance near mean=0.45."""
         synth_data = {
             "composicao_familiar": {"tipo": "monoparental"},
         }
-        result = derive_sensitivities(synth_data)
+        result = derive_sensitivities(synth_data, seed=42)
 
-        # friction_tolerance: base=0.50, monoparental contains "monoparental" → -0.05 = 0.45
-        assert result["friction_tolerance"] == pytest.approx(0.45)
-        assert result["friction_tolerance"] < 0.50
+        # friction_tolerance: base=0.50, monoparental → -0.05 → mean=0.45
+        assert result["friction_tolerance"] == pytest.approx(0.45, abs=0.2)
 
     def test_derive_values_clamped(self):
         """GIVEN extreme adjustments WHEN deriving THEN all values clamped between 0.0 and 1.0."""
@@ -431,16 +432,26 @@ class TestAgeSensitivities:
         ],
     )
     def test_risk_aversion_increases_with_age(self, age_younger, age_older):
-        """GIVEN two ages WHEN deriving THEN risk_aversion is >= for older person."""
+        """GIVEN two ages WHEN deriving N times THEN avg risk_aversion is >= for older."""
         younger_data = {"demografia": {"idade": age_younger}}
         older_data = {"demografia": {"idade": age_older}}
 
-        younger_result = derive_sensitivities(younger_data)
-        older_result = derive_sensitivities(older_data)
+        n_samples = 50
+        younger_avg = (
+            sum(
+                derive_sensitivities(younger_data, seed=i)["risk_aversion"]
+                for i in range(n_samples)
+            )
+            / n_samples
+        )
+        older_avg = (
+            sum(derive_sensitivities(older_data, seed=i)["risk_aversion"] for i in range(n_samples))
+            / n_samples
+        )
 
-        assert older_result["risk_aversion"] >= younger_result["risk_aversion"], (
-            f"risk_aversion should be >= for age {age_older} ({older_result['risk_aversion']}) "
-            f"vs age {age_younger} ({younger_result['risk_aversion']})"
+        assert older_avg >= younger_avg, (
+            f"avg risk_aversion should be >= for age {age_older} ({older_avg:.3f}) "
+            f"vs age {age_younger} ({younger_avg:.3f})"
         )
 
     @pytest.mark.parametrize(
@@ -459,18 +470,29 @@ class TestAgeSensitivities:
         ],
     )
     def test_digital_capability_decreases_with_age(self, age_younger, age_older):
-        """GIVEN two ages WHEN deriving THEN digital_capability is <= for older person."""
+        """GIVEN two ages WHEN deriving N times THEN avg digital_capability is <= for older."""
         younger_data = {"demografia": {"idade": age_younger}}
         older_data = {"demografia": {"idade": age_older}}
 
-        younger_result = derive_sensitivities(younger_data)
-        older_result = derive_sensitivities(older_data)
+        n_samples = 50
+        younger_avg = (
+            sum(
+                derive_sensitivities(younger_data, seed=i)["digital_capability"]
+                for i in range(n_samples)
+            )
+            / n_samples
+        )
+        older_avg = (
+            sum(
+                derive_sensitivities(older_data, seed=i)["digital_capability"]
+                for i in range(n_samples)
+            )
+            / n_samples
+        )
 
-        assert older_result["digital_capability"] <= younger_result["digital_capability"], (
-            f"digital_capability should be <= for age {age_older} "
-            f"({older_result['digital_capability']}) "
-            f"vs age {age_younger} "
-            f"({younger_result['digital_capability']})"
+        assert older_avg <= younger_avg, (
+            f"avg digital_capability should be <= for age {age_older} ({older_avg:.3f}) "
+            f"vs age {age_younger} ({younger_avg:.3f})"
         )
 
     @pytest.mark.parametrize(
@@ -507,55 +529,64 @@ class TestEducationSensitivities:
         ],
     )
     def test_education_affects_risk_aversion(self, escolaridade, expected_adjustment):
-        """GIVEN education level WHEN deriving THEN risk_aversion adjusted."""
+        """GIVEN education level WHEN deriving N times THEN avg risk_aversion adjusted."""
         synth_data = {
             "demografia": {"idade": 40, "escolaridade": escolaridade},
         }
-        result = derive_sensitivities(synth_data)
-        base_result = derive_sensitivities({"demografia": {"idade": 40}})
+
+        n_samples = 50
+        avg = (
+            sum(derive_sensitivities(synth_data, seed=i)["risk_aversion"] for i in range(n_samples))
+            / n_samples
+        )
+        base_avg = (
+            sum(
+                derive_sensitivities({"demografia": {"idade": 40}}, seed=i)["risk_aversion"]
+                for i in range(n_samples)
+            )
+            / n_samples
+        )
 
         if expected_adjustment:
-            # Higher education should lower risk_aversion (adjustment = -0.05)
-            assert result["risk_aversion"] < base_result["risk_aversion"]
+            assert avg < base_avg
         else:
-            # No education-based adjustment
-            assert result["risk_aversion"] == pytest.approx(base_result["risk_aversion"])
+            assert avg == pytest.approx(base_avg, abs=0.05)
 
     def test_high_education_boosts_digital_capability(self):
-        """GIVEN high education at age 40 WHEN deriving THEN digital_capability > base."""
+        """GIVEN high education at age 40 WHEN deriving THEN digital_capability near mean=0.60."""
         synth_data = {
             "demografia": {
                 "idade": 40,
                 "escolaridade": "Superior completo",
             },
         }
-        result = derive_sensitivities(synth_data)
-        # base=0.50, education → +0.10 = 0.60
-        assert result["digital_capability"] == pytest.approx(0.60)
+        result = derive_sensitivities(synth_data, seed=42)
+        # base=0.50, education → +0.10 → mean=0.60
+        assert result["digital_capability"] == pytest.approx(0.60, abs=0.2)
 
     def test_high_education_boosts_institutional_trust(self):
-        """GIVEN high education at age 40 WHEN deriving THEN institutional_trust_level > base."""
+        """GIVEN high education at age 40 WHEN deriving THEN institutional_trust near mean=0.55."""
         synth_data = {
             "demografia": {
                 "idade": 40,
                 "escolaridade": "Superior completo",
             },
         }
-        result = derive_sensitivities(synth_data)
-        # base=0.50, education → +0.05 = 0.55
-        assert result["institutional_trust_level"] == pytest.approx(0.55)
+        result = derive_sensitivities(synth_data, seed=42)
+        # base=0.50, education → +0.05 → mean=0.55
+        assert result["institutional_trust_level"] == pytest.approx(0.55, abs=0.2)
 
     def test_high_education_boosts_pragmatism(self):
-        """GIVEN high education at age 40 WHEN deriving THEN pragmatism > base."""
+        """GIVEN high education at age 40 WHEN deriving THEN pragmatism near mean=0.65."""
         synth_data = {
             "demografia": {
                 "idade": 40,
                 "escolaridade": "Superior completo",
             },
         }
-        result = derive_sensitivities(synth_data)
-        # base=0.55, age>=35 → +0.05, education → +0.05 = 0.65
-        assert result["pragmatism"] == pytest.approx(0.65)
+        result = derive_sensitivities(synth_data, seed=42)
+        # base=0.55, age>=35 → +0.05, education → +0.05 → mean=0.65
+        assert result["pragmatism"] == pytest.approx(0.65, abs=0.2)
 
 
 # ==================== Disability-based tests ====================
@@ -565,28 +596,54 @@ class TestDisabilitySensitivities:
     """Tests verifying disability impacts on sensitivities."""
 
     def test_motor_disability_reduces_friction_tolerance(self):
-        """GIVEN moderate motor disability WHEN deriving THEN friction_tolerance < base."""
+        """GIVEN motor disability WHEN deriving N times THEN avg friction_tolerance < base."""
         synth_data = {
             "demografia": {"idade": 40},
             "deficiencias": {"motora": {"tipo": "moderada"}},
         }
-        result = derive_sensitivities(synth_data)
-        base_result = derive_sensitivities({"demografia": {"idade": 40}})
 
-        # friction_tolerance: motor disability → -0.10
-        assert result["friction_tolerance"] < base_result["friction_tolerance"]
+        n_samples = 50
+        avg = (
+            sum(
+                derive_sensitivities(synth_data, seed=i)["friction_tolerance"]
+                for i in range(n_samples)
+            )
+            / n_samples
+        )
+        base_avg = (
+            sum(
+                derive_sensitivities({"demografia": {"idade": 40}}, seed=i)["friction_tolerance"]
+                for i in range(n_samples)
+            )
+            / n_samples
+        )
+
+        assert avg < base_avg
 
     def test_visual_disability_reduces_digital_capability(self):
-        """GIVEN moderate visual disability WHEN deriving THEN digital_capability < base."""
+        """GIVEN visual disability WHEN deriving N times THEN avg digital_capability < base."""
         synth_data = {
             "demografia": {"idade": 40},
             "deficiencias": {"visual": {"tipo": "moderada"}},
         }
-        result = derive_sensitivities(synth_data)
-        base_result = derive_sensitivities({"demografia": {"idade": 40}})
 
-        # digital_capability: visual disability → -0.10
-        assert result["digital_capability"] < base_result["digital_capability"]
+        n_samples = 50
+        avg = (
+            sum(
+                derive_sensitivities(synth_data, seed=i)["digital_capability"]
+                for i in range(n_samples)
+            )
+            / n_samples
+        )
+        base_avg = (
+            sum(
+                derive_sensitivities({"demografia": {"idade": 40}}, seed=i)["digital_capability"]
+                for i in range(n_samples)
+            )
+            / n_samples
+        )
+
+        assert avg < base_avg
 
     @pytest.mark.parametrize(
         "severity",
@@ -594,21 +651,36 @@ class TestDisabilitySensitivities:
         ids=["moderate", "severe"],
     )
     def test_motor_disability_severity_triggers(self, severity):
-        """GIVEN motor disability of severity WHEN deriving THEN reduced."""
+        """GIVEN motor disability of severity WHEN deriving THEN near mean=0.40."""
         synth_data = {
             "demografia": {"idade": 40},
             "deficiencias": {"motora": {"tipo": severity}},
         }
-        result = derive_sensitivities(synth_data)
-        # base=0.50 at age 40, motor disability → -0.10 = 0.40
-        assert result["friction_tolerance"] == pytest.approx(0.40)
+        result = derive_sensitivities(synth_data, seed=42)
+        # base=0.50 at age 40, motor disability → -0.10 → mean=0.40
+        assert result["friction_tolerance"] == pytest.approx(0.40, abs=0.2)
 
     def test_mild_motor_disability_does_not_trigger(self):
-        """GIVEN mild motor disability WHEN deriving THEN friction_tolerance stays at base."""
+        """GIVEN mild motor disability WHEN deriving N times THEN avg same as base."""
         synth_data = {
             "demografia": {"idade": 40},
             "deficiencias": {"motora": {"tipo": "leve"}},
         }
-        result = derive_sensitivities(synth_data)
-        base_result = derive_sensitivities({"demografia": {"idade": 40}})
-        assert result["friction_tolerance"] == pytest.approx(base_result["friction_tolerance"])
+
+        n_samples = 50
+        avg = (
+            sum(
+                derive_sensitivities(synth_data, seed=i)["friction_tolerance"]
+                for i in range(n_samples)
+            )
+            / n_samples
+        )
+        base_avg = (
+            sum(
+                derive_sensitivities({"demografia": {"idade": 40}}, seed=i)["friction_tolerance"]
+                for i in range(n_samples)
+            )
+            / n_samples
+        )
+
+        assert avg == pytest.approx(base_avg, abs=0.05)

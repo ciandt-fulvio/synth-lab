@@ -205,14 +205,13 @@ class TestSimulationSensitivityIntegration:
         )
 
     def test_deterministic_sensitivities_produce_consistent_results(self):
-        """Same demographics -> same sensitivities. Same seed -> same simulation.
+        """Same demographics + same seed -> same sensitivities. Same seed -> same simulation.
 
         Verifies:
-        1. derive_sensitivities is deterministic (no randomness).
-        2. run_simulation with same seed produces identical results.
+        1. derive_sensitivities with same seed is deterministic.
+        2. run_simulation with pre-computed sensitivities + same seed produces identical results.
         """
-        synth_data = {
-            "id": "deterministic",
+        demo_data = {
             "demografia": {
                 "idade": 40,
                 "escolaridade": "Superior completo",
@@ -220,9 +219,9 @@ class TestSimulationSensitivityIntegration:
             },
         }
 
-        # Derive sensitivities twice -> should be identical
-        derived_1 = derive_sensitivities(synth_data)
-        derived_2 = derive_sensitivities(synth_data)
+        # Derive sensitivities twice with same seed -> should be identical
+        derived_1 = derive_sensitivities(demo_data, seed=42)
+        derived_2 = derive_sensitivities(demo_data, seed=42)
 
         sensitivity_fields = [
             "risk_aversion",
@@ -239,6 +238,12 @@ class TestSimulationSensitivityIntegration:
                 f"{derived_1[field]} != {derived_2[field]}"
             )
 
+        # Pre-compute sensitivities so simulation is fully deterministic
+        synth_with_sens = {
+            "id": "deterministic",
+            "sensitivities": {k: v for k, v in derived_1.items() if k != "_meta"},
+        }
+
         # Run simulation twice with same seed -> should be identical
         mechanisms = FeatureMechanisms(
             irreversibility=0.6,
@@ -247,8 +252,8 @@ class TestSimulationSensitivityIntegration:
             habit_displacement=0.3,
         )
 
-        results_1 = run_simulation([synth_data], mechanisms, n_executions=300, seed=42)
-        results_2 = run_simulation([synth_data], mechanisms, n_executions=300, seed=42)
+        results_1 = run_simulation([synth_with_sens], mechanisms, n_executions=300, seed=42)
+        results_2 = run_simulation([synth_with_sens], mechanisms, n_executions=300, seed=42)
 
         assert results_1.outcomes[0].adoption_rate == results_2.outcomes[0].adoption_rate, (
             f"Same seed should produce same adoption_rate: "

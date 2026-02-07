@@ -34,8 +34,13 @@ Expected output:
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import yaml
 from loguru import logger
+
+# Beta distribution concentration parameter.
+# Higher values produce tighter distributions around the mean.
+BETA_STRENGTH: int = 15
 
 # 7 expected sensitivity keys
 SENSITIVITY_KEYS = [
@@ -168,21 +173,32 @@ def evaluate_condition(condition: dict, synth_data: dict) -> bool:
     return False
 
 
-def derive_sensitivities(synth_data: dict, config_name: str = "default") -> dict:
+def derive_sensitivities(
+    synth_data: dict,
+    config_name: str = "default",
+    seed: int | None = None,
+) -> dict:
     """Derive 7 sensitivities from synth demographic data using YAML rules.
 
-    For each sensitivity, starts with the base value defined in YAML,
-    then applies all matching rule adjustments. Final value is clamped
-    to [0.0, 1.0].
+    For each sensitivity:
+        1. Start with base value from YAML.
+        2. Apply all matching rule adjustments.
+        3. Clamp mean to [0.01, 0.99].
+        4. Sample from Beta(mean * BETA_STRENGTH, (1-mean) * BETA_STRENGTH).
+
+    The sampled value becomes the synth's fixed sensitivity, capturing
+    individual variation around the demographic mean.
 
     Args:
         synth_data: Full synth data dict (with demografia, composicao_familiar, etc.).
         config_name: Which YAML config to load.
+        seed: Random seed for reproducibility (None for random).
 
     Returns:
         Dict with 7 sensitivity float values and a _meta dict containing
         derivation_version, config_name, and applied_rules.
     """
+    rng = np.random.default_rng(seed)
     rules_data = load_sensitivity_rules(config_name)
     sensitivities_config = rules_data.get("sensitivities", {})
     version = rules_data.get("version", "unknown")
@@ -193,19 +209,22 @@ def derive_sensitivities(synth_data: dict, config_name: str = "default") -> dict
     for key in SENSITIVITY_KEYS:
         sens_config = sensitivities_config.get(key, {})
         base = float(sens_config.get("base", 0.5))
-        value = base
+        mean = base
 
         for rule in sens_config.get("rules", []):
             condition = rule.get("condition", {})
             if evaluate_condition(condition, synth_data):
                 adjustment = float(rule.get("adjustment", 0.0))
                 reason = rule.get("reason", "no reason")
-                value += adjustment
+                mean += adjustment
                 applied_rules.append(reason)
                 logger.debug(f"{key}: +{adjustment} ({reason})")
 
-        # Clamp to [0.0, 1.0]
-        result[key] = round(max(0.0, min(1.0, value)), 4)
+        # Clamp mean, then sample from Beta distribution
+        mean = max(0.01, min(0.99, mean))
+        alpha = mean * BETA_STRENGTH
+        beta = (1.0 - mean) * BETA_STRENGTH
+        result[key] = round(float(rng.beta(alpha, beta)), 4)
 
     result["_meta"] = {
         "derivation_version": str(version),
@@ -328,87 +347,65 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Test 3 (evaluate_condition): {e}")
 
-    # ---- Test 4: Derive sensitivities for 25-year-old tech professional ----
+    # ---- Test 4: Derive sensitivities with seed=42 for young tech ----
     total_tests += 1
     try:
         young_tech = {
             "demografia": {"idade": 25, "escolaridade": "ensino superior completo"},
         }
-        result = derive_sensitivities(young_tech)
+        result = derive_sensitivities(young_tech, seed=42)
 
-        # Young person: lower risk_aversion than base (0.60)
-        if result["risk_aversion"] >= 0.60:
-            all_validation_failures.append(
-                f"Test 4: 25yo risk_aversion should be < 0.60, got {result['risk_aversion']}"
-            )
-        # Young person: higher digital_capability than base (0.50)
-        if result["digital_capability"] <= 0.50:
-            all_validation_failures.append(
-                f"Test 4: 25yo digital_capability should be > 0.50, "
-                f"got {result['digital_capability']}"
-            )
-        # Young person: higher social_dependency (base 0.50 + 0.10)
-        if result["social_dependency"] != 0.60:
-            all_validation_failures.append(
-                f"Test 4: 25yo social_dependency expected 0.60, got {result['social_dependency']}"
-            )
-        # All 7 keys present
+        # All 7 keys present and in valid range
         for key in SENSITIVITY_KEYS:
             if key not in result:
                 all_validation_failures.append(f"Test 4: Missing key '{key}'")
+            elif not (0.0 <= result[key] <= 1.0):
+                all_validation_failures.append(f"Test 4: {key}={result[key]} out of [0,1]")
     except Exception as e:
         all_validation_failures.append(f"Test 4 (young tech): {e}")
 
-    # ---- Test 5: Derive sensitivities for 65-year-old ----
+    # ---- Test 5: Same seed produces same results (deterministic) ----
     total_tests += 1
     try:
-        elderly = {
-            "demografia": {"idade": 65, "escolaridade": "ensino fundamental"},
-            "deficiencias": {"visual": {"tipo": "moderada"}},
+        synth = {"demografia": {"idade": 40, "escolaridade": "ensino superior completo"}}
+        r1 = derive_sensitivities(synth, seed=42)
+        r2 = derive_sensitivities(synth, seed=42)
+        for key in SENSITIVITY_KEYS:
+            if r1[key] != r2[key]:
+                all_validation_failures.append(
+                    f"Test 5: Same seed not deterministic for {key}: {r1[key]} != {r2[key]}"
+                )
+    except Exception as e:
+        all_validation_failures.append(f"Test 5 (determinism): {e}")
+
+    # ---- Test 6: Averages converge to base means (no demographics) ----
+    total_tests += 1
+    try:
+        n = 100
+        avgs = {k: 0.0 for k in SENSITIVITY_KEYS}
+        for i in range(n):
+            res = derive_sensitivities({}, seed=i)
+            for k in SENSITIVITY_KEYS:
+                avgs[k] += res[k]
+        for k in SENSITIVITY_KEYS:
+            avgs[k] /= n
+
+        if len(derive_sensitivities({}, seed=0)["_meta"]["applied_rules"]) != 0:
+            all_validation_failures.append("Test 6: Empty synth should have 0 applied rules")
+
+        # Check averages are close to base means
+        expected_bases = {
+            "risk_aversion": 0.60, "social_dependency": 0.50,
+            "institutional_trust_level": 0.50, "habit_plasticity": 0.55,
+            "friction_tolerance": 0.50, "pragmatism": 0.55, "digital_capability": 0.50,
         }
-        result = derive_sensitivities(elderly)
-
-        # Elderly: higher risk_aversion (base 0.60 + 0.10 = 0.70)
-        if result["risk_aversion"] != 0.70:
-            all_validation_failures.append(
-                f"Test 5: 65yo risk_aversion expected 0.70, got {result['risk_aversion']}"
-            )
-        # Elderly: lower habit_plasticity (base 0.55 - 0.15 = 0.40)
-        if result["habit_plasticity"] != 0.40:
-            all_validation_failures.append(
-                f"Test 5: 65yo habit_plasticity expected 0.40, got {result['habit_plasticity']}"
-            )
-        # Elderly + visual disability: lower digital_capability (base 0.50 - 0.20 - 0.10 = 0.20)
-        if result["digital_capability"] != 0.20:
-            all_validation_failures.append(
-                f"Test 5: 65yo digital_capability expected 0.20, got {result['digital_capability']}"
-            )
+        for k, base in expected_bases.items():
+            if abs(avgs[k] - base) > 0.05:
+                all_validation_failures.append(
+                    f"Test 6: avg {k}={avgs[k]:.4f} too far from base {base}"
+                )
     except Exception as e:
-        all_validation_failures.append(f"Test 5 (elderly): {e}")
-
-    # ---- Test 6: Missing demographics defaults to base values ----
-    total_tests += 1
-    try:
-        empty_synth: dict[str, Any] = {}
-        result = derive_sensitivities(empty_synth)
-
-        # With no data, no rules match, so values should be base
-        if result["risk_aversion"] != 0.60:
-            all_validation_failures.append(
-                f"Test 6: Empty synth risk_aversion expected 0.60, got {result['risk_aversion']}"
-            )
-        if result["social_dependency"] != 0.50:
-            all_validation_failures.append(
-                f"Test 6: Empty synth social_dependency expected 0.50, "
-                f"got {result['social_dependency']}"
-            )
-        if len(result["_meta"]["applied_rules"]) != 0:
-            all_validation_failures.append(
-                f"Test 6: Empty synth should have 0 applied rules, "
-                f"got {len(result['_meta']['applied_rules'])}"
-            )
-    except Exception as e:
-        all_validation_failures.append(f"Test 6 (empty synth): {e}")
+        all_validation_failures.append(f"Test 6 (averages): {e}")
 
     # ---- Test 7: Values clamped to [0, 1] ----
     total_tests += 1
