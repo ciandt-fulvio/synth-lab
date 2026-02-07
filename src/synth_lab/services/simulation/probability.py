@@ -1,6 +1,11 @@
 """
 Probability calculations for Monte Carlo simulation.
 
+.. deprecated:: 040-mechanism-sensitivity-update
+    This module is replaced by ``feature_monte_carlo.py`` which uses
+    emergent states and Bernoulli sampling for adoption probability.
+    Kept for reference and backward compatibility. Do not use for new code.
+
 Functions for calculating attempt and success probabilities based on
 user state and feature scorecard, with optional mechanism-based emergent states.
 

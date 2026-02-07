@@ -1,6 +1,11 @@
 """
 User state sampling for Monte Carlo simulation.
 
+.. deprecated:: 040-mechanism-sensitivity-update
+    This module is replaced by ``feature_monte_carlo.py`` which uses
+    Beta-sampled mechanisms instead of latent trait sampling.
+    Kept for reference and backward compatibility. Do not use for new code.
+
 Samples user state from latent traits with noise and scenario modifiers.
 
 Functions:
