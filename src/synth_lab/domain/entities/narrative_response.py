@@ -46,9 +46,9 @@ class NarrativeResponse(BaseModel):
     )
     selected_mechanisms: list[SelectedMechanism] = Field(
         ...,
-        min_length=2,
-        max_length=4,
-        description="Mechanisms selected as relevant (2-4)",
+        min_length=3,
+        max_length=5,
+        description="Mechanisms selected as relevant (3-5)",
     )
     excluded_mechanisms: list[str] = Field(
         default_factory=list,

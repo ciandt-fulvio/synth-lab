@@ -110,7 +110,7 @@ MECHANISM_DEFINITIONS = [
         ],
     },
     {
-        "key": "valor_intrinseco",
+        "key": "intrinsic_value",
         "label_pt": "Valor Intrínseco",
         "description": "Grau em que a feature melhora a vida real do usuário",
         "options": [
@@ -122,7 +122,7 @@ MECHANISM_DEFINITIONS = [
         ],
     },
     {
-        "key": "friccao_operacional",
+        "key": "operational_friction",
         "label_pt": "Fricção Operacional",
         "description": "Grau de fricção/etapas/erros no uso cotidiano",
         "options": [
@@ -134,7 +134,7 @@ MECHANISM_DEFINITIONS = [
         ],
     },
     {
-        "key": "frequencia_de_uso",
+        "key": "frequency_of_use",
         "label_pt": "Frequência de Uso",
         "description": "Frequência esperada de uso da feature",
         "options": [

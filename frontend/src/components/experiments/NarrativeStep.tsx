@@ -257,20 +257,6 @@ export function NarrativeStep({
         mechanismsData?.mechanisms &&
         !isLoading && (
           <div className="p-4 rounded-lg border border-slate-200 bg-white shadow-sm">
-            {/* Inferred types badge */}
-            {narrativeResponse.inferred_types.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
-                {narrativeResponse.inferred_types.map((type) => (
-                  <span
-                    key={type}
-                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700"
-                  >
-                    {type}
-                  </span>
-                ))}
-              </div>
-            )}
-
             <NarrativeMechanismEditor
               narrativeTemplate={narrativeResponse.narrative_template}
               selectedMechanisms={narrativeResponse.selected_mechanisms}

@@ -223,31 +223,107 @@ class NarrativeService:
 ## Tarefa
 Analise a feature descrita e:
 1. Infira os tipos aplicáveis (1-3 dos disponíveis acima)
-2. Selecione mecanismos relevantes (2-4 de {len(mechanisms)} possíveis)
+2. Selecione mecanismos relevantes (exatamente 3-5 de {len(mechanisms)} possíveis). Em especial,
+considere os mecanismos de intrinsic_value, operational_friction, e frequency_of_use,
+pois em geral sao sempre importantes (obviamente, se nao fizer sentido, não use).
+Por outro lado, usar só esses 3 não gera diferenciação, então use mais outros mecanismos também.
+IMPORTANTE: Você DEVE retornar entre 3 e 5 mecanismos (não menos que 3, não mais que 5).
 3. Gere narrativa em português com placeholders {{{{mechanism_key}}}}
 4. Para cada mecanismo, escolha a opção default mais adequada
 
 ## Feature para Análise
 {feature_desc}
 
-## Instruções Importantes
+## CRÍTICO: Regras de Fluidez Textual
+
+### Princípio Fundamental
+Você DEVE escrever o texto AO REDOR das opções disponíveis, não encaixar placeholders em texto pré-escrito.
+ANTES de escrever cada frase, consulte as opções disponíveis e construa uma estrutura gramatical que funcione com TODAS as opções.
+
+### Processo de Escrita (OBRIGATÓRIO)
+1. Escolha um mecanismo para incluir na narrativa
+2. LEIA TODAS as opções disponíveis para esse mecanismo
+3. Identifique a função gramatical das opções (substantivo, adjetivo, verbo)
+4. Construa a frase de forma que o placeholder se encaixe NATURALMENTE
+5. Teste mentalmente: substitua o placeholder por cada opção — todas devem fazer sentido
+
+### Padrões Linguísticos Recomendados
+
+**Para mecanismos de frequência (frequency_of_use):**
+ATENÇÃO: As opções deste mecanismo são ADVÉRBIOS (diariamente, semanalmente, mensalmente) ou ADJETIVOS (diário, semanal, mensal).
+
+- ✅ PERFEITO: "usuários precisam acessar a funcionalidade {{{{frequency_of_use}}}}"
+  → "acessar diariamente", "acessar semanalmente" (advérbio após verbo)
+- ✅ PERFEITO: "a funcionalidade exige interação {{{{frequency_of_use}}}}"
+  → "interação diária", "interação semanal" (adjetivo após substantivo)
+- ✅ PERFEITO: "usuários utilizam o sistema {{{{frequency_of_use}}}}"
+  → "utilizam diariamente", "utilizam semanalmente" (advérbio após verbo)
+- ❌ PÉSSIMO: "requer um {{{{frequency_of_use}}}}"
+  → "requer um diariamente" (não faz sentido - advérbio após artigo)
+- ❌ PÉSSIMO: "exigindo um {{{{frequency_of_use}}}} de uso"
+  → "exigindo um diário de uso" (estrutura gramatical incorreta)
+
+**Para mecanismos de fricção (operational_friction):**
+ATENÇÃO: As opções deste mecanismo são ADJETIVOS COMPOSTOS (sem fricção, de baixa fricção, etc).
+
+- ✅ PERFEITO: "a operação é {{{{operational_friction}}}}"
+  → "a operação é sem fricção", "a operação é de baixa fricção" (adjetivo predicativo)
+- ✅ PERFEITO: "oferece uma experiência {{{{operational_friction}}}}"
+  → "experiência sem fricção", "experiência de alta fricção" (adjetivo após substantivo)
+- ✅ PERFEITO: "o processo se mostra {{{{operational_friction}}}}"
+  → "se mostra sem fricção", "se mostra de média fricção" (adjetivo predicativo)
+- ❌ PÉSSIMO: "tornando a operação {{{{operational_friction}}}}"
+  → "tornando a operação sem fricção" (INCOMPLETO - falta continuação!)
+  CORRETO seria: "tornando a operação {{{{operational_friction}}}} para o usuário"
+- ❌ PÉSSIMO: "a operação oferece {{{{operational_friction}}}}"
+  → "oferece sem fricção" (verbo 'oferecer' não combina com adjetivo diretamente)
+
+**Para mecanismos de confiança (institutional_trust):**
+- ✅ BOM: "a funcionalidade {{{{institutional_trust}}}} na instituição"
+  → "requer confiança básica", "exige confiança total" (todas fluem)
+- ✅ BOM: "depende de {{{{institutional_trust}}}} do usuário"
+  → "depende de confiança básica", "depende de confiança total" (todas fluem)
+- ❌ ERRADO: "a confiança é {{{{institutional_trust}}}}"
+  → "a confiança é requer confiança básica" (não faz sentido)
+
+**Para mecanismos de hábito (habit_displacement):**
+- ✅ BOM: "usuários precisam de {{{{habit_displacement}}}} para adotar"
+  → "de ajuste mínimo", "de mudança de rotina" (todas fluem)
+- ✅ BOM: "a adoção exige {{{{habit_displacement}}}}"
+  → "exige ajuste mínimo", "exige mudança de rotina" (todas fluem)
+- ❌ ERRADO: "usuários desenvolvam nova rotina, uma vez que {{{{habit_displacement}}}}"
+  → "uma vez que ajuste mínimo" (não faz sentido)
+
+### VERIFICAÇÃO ANTI-ERRO (Execute ANTES de retornar)
+
+Para CADA frase com placeholder, verifique:
+
+1. **NUNCA termine frase com placeholder incompleto**
+   ❌ "tornando a operação {{{{operational_friction}}}}" (FALTA continuação!)
+   ✅ "tornando a operação {{{{operational_friction}}}} para todos" (completo)
+
+2. **NUNCA use artigo + placeholder de advérbio**
+   ❌ "requer um {{{{frequency_of_use}}}}" (artigo não combina com advérbio)
+   ✅ "requer acesso {{{{frequency_of_use}}}}" (sem artigo)
+
+3. **NUNCA use verbo inadequado + placeholder de adjetivo**
+   ❌ "oferece {{{{operational_friction}}}}" (verbo 'oferecer' não combina)
+   ✅ "é {{{{operational_friction}}}}" ou "oferece experiência {{{{operational_friction}}}}"
+
+### Verificação Final (OBRIGATÓRIA)
+Antes de retornar a narrativa, para CADA placeholder:
+1. Substitua mentalmente por TODAS as opções disponíveis
+2. Se qualquer substituição soar estranha ou gramaticalmente incorreta, REESCREVA a frase
+3. Leia a frase completa em voz alta (mentalmente) - deve soar natural
+4. Confirme que não há frases incompletas ou truncadas
+
+### Instruções de Formatação
 - Narrativa deve ser texto contínuo e natural em português (2-4 frases)
 - Use placeholders {{{{key}}}} (ex: {{{{irreversibility}}}})
 - Cada placeholder aparece uma única vez na narrativa
 - Escolha opções default adequadas ao contexto
 - Exclua mecanismos não relevantes para esta feature
-
-## Regras de Posicionamento dos Placeholders (CRÍTICO)
-O placeholder DEVE ser um elemento gramatical da frase (adjetivo, substantivo).
-Nunca coloque o placeholder após conjunções explicativas como "uma vez que", "pois", "porque".
-
-ERRADO: "usuários desenvolvam nova rotina, uma vez que {{{{habit_displacement}}}}"
-CERTO: "usuários precisam de um {{{{habit_displacement}}}} para adotar esta feature"
-
-ERRADO: "a transação é segura, o que implica que {{{{institutional_trust}}}}"
-CERTO: "esta funcionalidade {{{{institutional_trust}}}} na instituição financeira"
-
-O placeholder substitui uma descrição, não é a explicação de algo anterior.
+- NUNCA use conjunções explicativas antes de placeholders ("pois", "porque", "uma vez que")
 
 Retorne JSON: inferred_types, narrative_template, selected_mechanisms, excluded_mechanisms."""
 
