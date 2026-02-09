@@ -58,9 +58,8 @@ session: Session | None = None):
             id=outcome.id,
             analysis_id=outcome.analysis_id,
             synth_id=outcome.synth_id,
-            did_not_try_rate=outcome.did_not_try_rate,
-            failed_rate=outcome.failed_rate,
-            success_rate=outcome.success_rate,
+            adopted_rate=outcome.adopted_rate,
+            not_adopted_rate=outcome.not_adopted_rate,
             synth_attributes=outcome.synth_attributes.model_dump())
         self._add(orm_outcome)
         self._flush()
@@ -84,9 +83,8 @@ session: Session | None = None):
                 id=outcome.id,
                 analysis_id=outcome.analysis_id,
                 synth_id=outcome.synth_id,
-                did_not_try_rate=outcome.did_not_try_rate,
-                failed_rate=outcome.failed_rate,
-                success_rate=outcome.success_rate,
+                adopted_rate=outcome.adopted_rate,
+                not_adopted_rate=outcome.not_adopted_rate,
                 synth_attributes=outcome.synth_attributes.model_dump())
             self._add(orm_outcome)
         self._flush()
@@ -215,22 +213,20 @@ session: Session | None = None):
             analysis_id: The analysis run ID.
 
         Returns:
-            Dict with avg_success_rate, avg_did_not_try_rate, synth_count.
+            Dict with avg_adopted_rate, avg_not_adopted_rate, synth_count.
             None if no outcomes found.
         """
         stmt = select(
-            sqlfunc.avg(SynthOutcomeORM.success_rate).label("avg_success_rate"),
-            sqlfunc.avg(SynthOutcomeORM.did_not_try_rate).label("avg_did_not_try_rate"),
-            sqlfunc.avg(SynthOutcomeORM.failed_rate).label("avg_failed_rate"),
+            sqlfunc.avg(SynthOutcomeORM.adopted_rate).label("avg_adopted_rate"),
+            sqlfunc.avg(SynthOutcomeORM.not_adopted_rate).label("avg_not_adopted_rate"),
             sqlfunc.count().label("synth_count")).where(SynthOutcomeORM.analysis_id == analysis_id)
         result = self.session.execute(stmt).one_or_none()
         if result is None or result.synth_count == 0:
             return None
 
         return {
-            "avg_success_rate": result.avg_success_rate,
-            "avg_did_not_try_rate": result.avg_did_not_try_rate,
-            "avg_failed_rate": result.avg_failed_rate,
+            "avg_adopted_rate": result.avg_adopted_rate,
+            "avg_not_adopted_rate": result.avg_not_adopted_rate,
             "synth_count": result.synth_count,
         }
     def get_latest_outcome_for_synth(self, synth_id: str) -> SynthOutcome | None:
@@ -274,9 +270,8 @@ session: Session | None = None):
             id=row["id"],
             analysis_id=row["analysis_id"],
             synth_id=row["synth_id"],
-            did_not_try_rate=row["did_not_try_rate"],
-            failed_rate=row["failed_rate"],
-            success_rate=row["success_rate"],
+            adopted_rate=row["adopted_rate"],
+            not_adopted_rate=row["not_adopted_rate"],
             synth_attributes=synth_attrs)
 
     # =========================================================================
@@ -298,9 +293,8 @@ session: Session | None = None):
             id=orm_outcome.id,
             analysis_id=orm_outcome.analysis_id,
             synth_id=orm_outcome.synth_id,
-            did_not_try_rate=orm_outcome.did_not_try_rate,
-            failed_rate=orm_outcome.failed_rate,
-            success_rate=orm_outcome.success_rate,
+            adopted_rate=orm_outcome.adopted_rate,
+            not_adopted_rate=orm_outcome.not_adopted_rate,
             synth_attributes=synth_attrs)
 
 
@@ -355,9 +349,8 @@ if __name__ == "__main__":
             outcome = SynthOutcome(
                 analysis_id=analysis.id,
                 synth_id="synth_001",
-                did_not_try_rate=0.22,
-                failed_rate=0.38,
-                success_rate=0.40,
+                adopted_rate=0.60,
+                not_adopted_rate=0.40,
                 synth_attributes=sample_attrs)
             result = outcome_repo.create(outcome)
             if result.id != outcome.id:
@@ -385,9 +378,8 @@ if __name__ == "__main__":
                 SynthOutcome(
                     analysis_id=analysis.id,
                     synth_id=f"synth_{i:03d}",
-                    did_not_try_rate=0.20,
-                    failed_rate=0.30,
-                    success_rate=0.50,
+                    adopted_rate=0.50,
+                    not_adopted_rate=0.50,
                     synth_attributes=sample_attrs)
                 for i in range(2, 12)  # 10 more outcomes
             ]
@@ -430,9 +422,8 @@ if __name__ == "__main__":
             test_outcome = SynthOutcome(
                 analysis_id=analysis.id,
                 synth_id="synth_test",
-                did_not_try_rate=0.25,
-                failed_rate=0.35,
-                success_rate=0.40,
+                adopted_rate=0.60,
+                not_adopted_rate=0.40,
                 synth_attributes=sample_attrs)
             outcome_repo.create(test_outcome)
 
@@ -441,8 +432,8 @@ if __name__ == "__main__":
                 all_validation_failures.append("get_by_synth_and_analysis returned None")
             elif retrieved.synth_id != "synth_test":
                 all_validation_failures.append(f"synth_id mismatch: {retrieved.synth_id}")
-            elif retrieved.success_rate != 0.40:
-                all_validation_failures.append(f"success_rate mismatch: {retrieved.success_rate}")
+            elif retrieved.adopted_rate != 0.60:
+                all_validation_failures.append(f"adopted_rate mismatch: {retrieved.adopted_rate}")
         except Exception as e:
             all_validation_failures.append(f"Get by synth and analysis failed: {e}")
 

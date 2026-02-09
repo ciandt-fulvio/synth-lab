@@ -49,29 +49,18 @@ def sample_outcomes():
         friction = 0.2 + np.random.rand() * 0.6
         exploration = 0.3 + np.random.rand() * 0.4
 
-        # Success rate depends on capability and trust with some noise
-        base_success = 0.3 * capability + 0.4 * trust + 0.2 * friction + 0.1 * exploration
+        # Adopted rate depends on capability and trust with some noise
+        base_adopted = 0.3 * capability + 0.4 * trust + 0.2 * friction + 0.1 * exploration
         noise = np.random.randn() * 0.1
-        success_rate = np.clip(base_success + noise, 0.05, 0.95)
-
-        failed_rate = np.clip(
-            0.5 - 0.3 * capability - 0.2 * trust + np.random.randn() * 0.1, 0.05, 0.5
-        )
-        did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
-
-        # Normalize
-        total = success_rate + failed_rate + did_not_try_rate
-        success_rate /= total
-        failed_rate /= total
-        did_not_try_rate /= total
+        adopted_rate = np.clip(base_adopted + noise, 0.05, 0.95)
+        not_adopted_rate = 1.0 - adopted_rate
 
         outcomes.append(
             SynthOutcome(
                 synth_id=f"synth_{i:03d}",
                 analysis_id="ana_12345678",
-                success_rate=success_rate,
-                failed_rate=failed_rate,
-                did_not_try_rate=did_not_try_rate,
+                adopted_rate=adopted_rate,
+                not_adopted_rate=not_adopted_rate,
                 synth_attributes=SimulationAttributes(
                     observables=SimulationObservables(
                         digital_literacy=0.3 + np.random.rand() * 0.5,
@@ -117,8 +106,8 @@ class TestShapEndpoints:
 
         assert data["experiment_id"] == experiment_id
         assert data["synth_id"] == "synth_010"
-        assert "predicted_success_rate" in data
-        assert "actual_success_rate" in data
+        assert "predicted_adopted_rate" in data
+        assert "actual_adopted_rate" in data
         assert "baseline_prediction" in data
         assert "contributions" in data
         assert "explanation_text" in data
@@ -448,9 +437,8 @@ class TestExplainabilityEdgeCases:
             SynthOutcome(
                 synth_id=f"synth_{i:03d}",
                 analysis_id="ana_12345678",
-                success_rate=0.5,
-                failed_rate=0.3,
-                did_not_try_rate=0.2,
+                adopted_rate=0.50,
+                not_adopted_rate=0.50,
                 synth_attributes=SimulationAttributes(
                     observables=SimulationObservables(
                         digital_literacy=0.5,

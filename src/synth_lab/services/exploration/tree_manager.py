@@ -79,9 +79,8 @@ class TreeManager:
         # Extract simulation results from analysis
         outcomes = analysis_run.aggregated_outcomes
         simulation_results = SimulationResults(
-            success_rate=outcomes.success_rate,
-            fail_rate=outcomes.failed_rate,
-            did_not_try_rate=outcomes.did_not_try_rate)
+            adopted_rate=outcomes.adopted_rate,
+            not_adopted_rate=outcomes.not_adopted_rate)
 
         # Create root node
         root_node = ScenarioNode(
@@ -94,7 +93,7 @@ class TreeManager:
         self.repository.create_node(root_node)
         self.logger.info(
             f"Created root node {root_node.id} for exploration {exploration.id} "
-            f"with success_rate={simulation_results.success_rate:.2%}"
+            f"with adopted_rate={simulation_results.adopted_rate:.2%}"
         )
 
         return root_node
@@ -217,7 +216,7 @@ if __name__ == "__main__":
             INSERT INTO analysis_runs (id, experiment_id, config, status, aggregated_outcomes, started_at)
             VALUES ('ana_87654321', 'exp_12345678', '{}', 'completed', ?, datetime('now'))
             """,
-            ('{"success_rate":0.25,"fail_rate":0.45,"did_not_try_rate":0.30}'))
+            ('{"adopted_rate":0.25,"not_adopted_rate":0.75}'))
 
         # Create experiment and analysis objects
         experiment = Experiment(
@@ -238,9 +237,8 @@ if __name__ == "__main__":
             id="ana_87654321",
             experiment_id="exp_12345678",
             aggregated_outcomes=AggregatedOutcomes(
-                success_rate=0.25,
-                failed_rate=0.45,
-                did_not_try_rate=0.30))
+                adopted_rate=0.25,
+                not_adopted_rate=0.75))
 
         exploration = Exploration(
             experiment_id="exp_12345678",
@@ -260,9 +258,9 @@ if __name__ == "__main__":
                 all_validation_failures.append(
                     f"Complexity mismatch: {root.scorecard_params.complexity}"
                 )
-            if abs(root.simulation_results.success_rate - 0.25) > 0.001:
+            if abs(root.simulation_results.adopted_rate - 0.25) > 0.001:
                 all_validation_failures.append(
-                    f"Success rate mismatch: {root.simulation_results.success_rate}"
+                    f"Adopted rate mismatch: {root.simulation_results.adopted_rate}"
                 )
         except Exception as e:
             all_validation_failures.append(f"Create root node failed: {e}")
@@ -280,9 +278,8 @@ if __name__ == "__main__":
                 parent=root,
                 proposal=proposal,
                 simulation_results=SimulationResults(
-                    success_rate=0.32,
-                    fail_rate=0.40,
-                    did_not_try_rate=0.28))
+                    adopted_rate=0.32,
+                    not_adopted_rate=0.68))
             if child.depth != 1:
                 all_validation_failures.append(f"Child depth should be 1: {child.depth}")
             if child.parent_id != root.id:

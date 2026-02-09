@@ -29,9 +29,8 @@ class ExtremeSynth(BaseModel):
         ...,
         description="Category: worst_failure, best_success, or unexpected",
     )
-    success_rate: float = Field(..., description="Success rate (0-1)")
-    failed_rate: float = Field(..., description="Failed rate (0-1)")
-    did_not_try_rate: float = Field(..., description="Did not try rate (0-1)")
+    adopted_rate: float = Field(..., description="Adopted rate (0-1)")
+    not_adopted_rate: float = Field(..., description="Not adopted rate (0-1)")
     profile_summary: str = Field(..., description="Human-readable summary of synth profile")
     interview_questions: list[str] = Field(
         ..., description="Suggested questions for qualitative interview"
@@ -67,9 +66,8 @@ class OutlierSynth(BaseModel):
         description="Type: unexpected_failure, unexpected_success, or atypical_profile",
     )
     anomaly_score: float = Field(..., description="Anomaly score from Isolation Forest (-1 to 1)")
-    success_rate: float = Field(..., description="Success rate (0-1)")
-    failed_rate: float = Field(..., description="Failed rate (0-1)")
-    did_not_try_rate: float = Field(..., description="Did not try rate (0-1)")
+    adopted_rate: float = Field(..., description="Adopted rate (0-1)")
+    not_adopted_rate: float = Field(..., description="Not adopted rate (0-1)")
     explanation: str = Field(..., description="Explanation of why this synth is an outlier")
     capability_mean: float = Field(..., description="Capability mean value")
     trust_mean: float = Field(..., description="Trust mean value")

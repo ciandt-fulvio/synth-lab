@@ -304,7 +304,7 @@ Para CADA frase com placeholder, verifique:
 
 2. **NUNCA use artigo + placeholder de advérbio**
    ❌ "requer um {{{{frequency_of_use}}}}" (artigo não combina com advérbio)
-   ✅ "requer acesso {{{{frequency_of_use}}}}" (sem artigo)
+   ✅ "provavelmente usado {{{{frequency_of_use}}}}" (sem artigo)
 
 3. **NUNCA use verbo inadequado + placeholder de adjetivo**
    ❌ "oferece {{{{operational_friction}}}}" (verbo 'oferecer' não combina)

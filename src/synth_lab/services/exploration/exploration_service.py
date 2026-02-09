@@ -99,7 +99,7 @@ class ExplorationService:
 
         Args:
             experiment_id: ID of the source experiment.
-            goal_value: Target success_rate to achieve (0-1).
+            goal_value: Target adopted_rate to achieve (0-1).
             beam_width: Number of scenarios to keep per iteration.
             max_depth: Maximum depth of exploration tree.
             max_llm_calls: Maximum LLM calls allowed.
@@ -149,7 +149,7 @@ class ExplorationService:
         self.exploration_repo.create_exploration(exploration)
         self.logger.info(
             f"Created exploration {exploration.id} for experiment {experiment_id} "
-            f"with goal success_rate >= {goal_value:.0%}"
+            f"with goal adopted_rate >= {goal_value:.0%}"
         )
 
         # Create root node from baseline
@@ -157,14 +157,14 @@ class ExplorationService:
 
         # Update exploration stats
         exploration.total_nodes = 1
-        root_success_rate = root_node.get_success_rate()
-        if root_success_rate is not None:
-            exploration.best_success_rate = root_success_rate
+        root_adopted_rate = root_node.get_adopted_rate()
+        if root_adopted_rate is not None:
+            exploration.best_adopted_rate = root_adopted_rate
 
             # Check if goal already achieved
-            if exploration.goal.is_achieved(root_success_rate):
+            if exploration.goal.is_achieved(root_adopted_rate):
                 self.logger.info(
-                    f"Goal already achieved at start! success_rate={root_success_rate:.2%}"
+                    f"Goal already achieved at start! adopted_rate={root_adopted_rate:.2%}"
                 )
                 root_node.mark_winner()
                 self.exploration_repo.update_node_status(root_node.id, NodeStatus.WINNER)
@@ -236,25 +236,25 @@ class ExplorationService:
 
         # Build path steps with deltas
         steps = []
-        prev_success_rate = 0.0
+        prev_adopted_rate = 0.0
         for node in path:
-            success_rate = node.get_success_rate() or 0.0
-            delta = success_rate - prev_success_rate
+            adopted_rate = node.get_adopted_rate() or 0.0
+            delta = adopted_rate - prev_adopted_rate
 
             steps.append({
                 "depth": node.depth,
                 "action": node.action_applied,
                 "category": node.action_category,
                 "rationale": node.rationale,
-                "success_rate": success_rate,
-                "delta_success_rate": delta,
+                "adopted_rate": adopted_rate,
+                "delta_adopted_rate": delta,
             })
-            prev_success_rate = success_rate
+            prev_adopted_rate = adopted_rate
 
         root = path[0] if path else None
-        root_success = root.get_success_rate() if root else 0.0
-        winner_success = winner.get_success_rate() or 0.0
-        total_improvement = winner_success - root_success
+        root_adopted = root.get_adopted_rate() if root else 0.0
+        winner_adopted = winner.get_adopted_rate() or 0.0
+        total_improvement = winner_adopted - root_adopted
 
         return {
             "exploration_id": exploration_id,
@@ -316,8 +316,8 @@ class ExplorationService:
             exploration.current_depth = result.iteration_number
             exploration.total_nodes += result.nodes_created
             exploration.total_llm_calls += result.llm_calls_made
-            if result.best_success_rate > (exploration.best_success_rate or 0.0):
-                exploration.best_success_rate = result.best_success_rate
+            if result.best_adopted_rate > (exploration.best_adopted_rate or 0.0):
+                exploration.best_adopted_rate = result.best_adopted_rate
 
             # Check termination
             if result.goal_achieved:
@@ -402,9 +402,8 @@ if __name__ == "__main__":
             experiment_id=experiment.id,
             status="completed",
             aggregated_outcomes=AggregatedOutcomes(
-                success_rate=0.25,
-                failed_rate=0.45,
-                did_not_try_rate=0.30))
+                adopted_rate=0.25,
+                not_adopted_rate=0.75))
         analysis_repo.create(analysis)
 
         # Test 2: Start exploration successfully
@@ -419,9 +418,9 @@ if __name__ == "__main__":
                 all_validation_failures.append(f"Status should be RUNNING: {exploration.status}")
             if exploration.total_nodes != 1:
                 all_validation_failures.append(f"Should have 1 node: {exploration.total_nodes}")
-            if exploration.best_success_rate != 0.25:
+            if exploration.best_adopted_rate != 0.25:
                 all_validation_failures.append(
-                    f"Best success_rate should be 0.25: {exploration.best_success_rate}"
+                    f"Best adopted_rate should be 0.25: {exploration.best_adopted_rate}"
                 )
         except Exception as e:
             all_validation_failures.append(f"Start exploration failed: {e}")
@@ -497,9 +496,8 @@ if __name__ == "__main__":
                 experiment_id=exp_high.id,
                 status="completed",
                 aggregated_outcomes=AggregatedOutcomes(
-                    success_rate=0.50,  # Already > 0.40
-                    failed_rate=0.30,
-                    did_not_try_rate=0.20))
+                    adopted_rate=0.50,  # Already > 0.40
+                    not_adopted_rate=0.50))
             analysis_repo.create(ana_high)
 
             expl_high = service.start_exploration(exp_high.id, goal_value=0.40)

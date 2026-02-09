@@ -57,9 +57,8 @@ def mock_completed_analysis(experiment_id):
         status="completed",
         total_synths=50,
         aggregated_outcomes=AggregatedOutcomes(
-            did_not_try_rate=0.3,
-            failed_rate=0.2,
-            success_rate=0.5,
+            adopted_rate=0.50,
+            not_adopted_rate=0.50,
         ),
     )
 
@@ -91,9 +90,8 @@ def mock_experiment(experiment_id, mock_scorecard):
 
 def create_synth_outcome(
     synth_id: str,
-    success_rate: float,
-    failed_rate: float,
-    did_not_try_rate: float,
+    adopted_rate: float,
+    not_adopted_rate: float,
     capability_mean: float = 0.5,
     trust_mean: float = 0.5,
     friction_tolerance_mean: float = 0.5,
@@ -105,9 +103,8 @@ def create_synth_outcome(
         id=outcome_id,
         synth_id=synth_id,
         analysis_id="ana_12345678",
-        success_rate=success_rate,
-        failed_rate=failed_rate,
-        did_not_try_rate=did_not_try_rate,
+        adopted_rate=adopted_rate,
+        not_adopted_rate=not_adopted_rate,
         synth_attributes=SimulationAttributes(
             latent_traits=SimulationLatentTraits(
                 capability_mean=capability_mean,
@@ -132,36 +129,25 @@ def sample_outcomes():
     np.random.seed(42)
     outcomes = []
 
-    # Create 50 outcomes with attributes that correlate with success
+    # Create 50 outcomes with attributes that correlate with adoption
     for i in range(50):
-        # Higher capability and trust = higher success
+        # Higher capability and trust = higher adoption
         capability = 0.3 + np.random.rand() * 0.6
         trust = 0.2 + np.random.rand() * 0.7
         friction = 0.2 + np.random.rand() * 0.6
         exploration = 0.3 + np.random.rand() * 0.4
 
-        # Success rate depends on capability and trust with some noise
-        base_success = 0.3 * capability + 0.4 * trust + 0.2 * friction + 0.1 * exploration
+        # Adopted rate depends on capability and trust with some noise
+        base_adopted = 0.3 * capability + 0.4 * trust + 0.2 * friction + 0.1 * exploration
         noise = np.random.randn() * 0.1
-        success_rate = np.clip(base_success + noise, 0.05, 0.95)
-
-        failed_rate = np.clip(
-            0.5 - 0.3 * capability - 0.2 * trust + np.random.randn() * 0.1, 0.05, 0.5
-        )
-        did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
-
-        # Normalize
-        total = success_rate + failed_rate + did_not_try_rate
-        success_rate /= total
-        failed_rate /= total
-        did_not_try_rate /= total
+        adopted_rate = float(np.clip(base_adopted + noise, 0.05, 0.95))
+        not_adopted_rate = 1.0 - adopted_rate
 
         outcomes.append(
             create_synth_outcome(
                 f"synth_{i:03d}",
-                success_rate,
-                failed_rate,
-                did_not_try_rate,
+                adopted_rate,
+                not_adopted_rate,
                 capability,
                 trust,
                 friction,
@@ -176,7 +162,7 @@ def sample_outcomes():
 def few_outcomes():
     """Create only 10 synth outcomes for testing minimum requirements."""
     return [
-        create_synth_outcome(f"synth_{i:03d}", 0.5, 0.3, 0.2)
+        create_synth_outcome(f"synth_{i:03d}", 0.50, 0.50)
         for i in range(10)
     ]
 
@@ -212,8 +198,8 @@ class TestShapEndpoints:
 
             assert data["simulation_id"] == mock_completed_analysis.id
             assert data["synth_id"] == "synth_010"
-            assert "predicted_success_rate" in data
-            assert "actual_success_rate" in data
+            assert "predicted_adopted_rate" in data
+            assert "actual_adopted_rate" in data
             assert "baseline_prediction" in data
             assert "contributions" in data
             assert "explanation_text" in data

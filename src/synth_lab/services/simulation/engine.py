@@ -58,9 +58,8 @@ class SynthOutcomeResult:
     """Outcome rates for a single synth."""
 
     synth_id: str
-    did_not_try_rate: float
-    failed_rate: float
-    success_rate: float
+    adopted_rate: float
+    not_adopted_rate: float
     synth_attributes: dict[str, Any] = field(default_factory=dict)
 
 
@@ -69,9 +68,8 @@ class SimulationResults:
     """Complete simulation results."""
 
     synth_outcomes: list[SynthOutcomeResult]
-    aggregated_did_not_try: float
-    aggregated_failed: float
-    aggregated_success: float
+    aggregated_adopted: float
+    aggregated_not_adopted: float
     total_synths: int
     n_executions: int
     execution_time_seconds: float
@@ -149,9 +147,7 @@ class MonteCarloEngine:
 
         # Run simulation for each synth
         synth_outcomes: list[SynthOutcomeResult] = []
-        total_did_not_try = 0.0
-        total_failed = 0.0
-        total_success = 0.0
+        total_adopted = 0.0
 
         for synth in synths:
             # Extract latent traits from simulation_attributes
@@ -192,9 +188,8 @@ class MonteCarloEngine:
             )
 
             # Calculate rates with 3 decimal precision
-            did_not_try_rate = round(outcomes["did_not_try"] / n_executions, 3)
-            failed_rate = round(outcomes["failed"] / n_executions, 3)
-            success_rate = round(outcomes["success"] / n_executions, 3)
+            adopted_rate = round(outcomes["adopted"] / n_executions, 3)
+            not_adopted_rate = round(1.0 - adopted_rate, 3)
 
             # Build synth_attributes including emergent explanation if available
             result_attrs = dict(sim_attrs)
@@ -215,31 +210,26 @@ class MonteCarloEngine:
             synth_outcomes.append(
                 SynthOutcomeResult(
                     synth_id=synth.get("id", "unknown"),
-                    did_not_try_rate=did_not_try_rate,
-                    failed_rate=failed_rate,
-                    success_rate=success_rate,
+                    adopted_rate=adopted_rate,
+                    not_adopted_rate=not_adopted_rate,
                     synth_attributes=result_attrs,
                 )
             )
 
             # Accumulate for aggregation
-            total_did_not_try += did_not_try_rate
-            total_failed += failed_rate
-            total_success += success_rate
+            total_adopted += adopted_rate
 
         # Calculate aggregated rates (average across synths) with 3 decimal precision
         n_synths = len(synths)
-        aggregated_did_not_try = round(total_did_not_try / n_synths, 3) if n_synths > 0 else 0.0
-        aggregated_failed = round(total_failed / n_synths, 3) if n_synths > 0 else 0.0
-        aggregated_success = round(total_success / n_synths, 3) if n_synths > 0 else 0.0
+        aggregated_adopted = round(total_adopted / n_synths, 3) if n_synths > 0 else 0.0
+        aggregated_not_adopted = round(1.0 - aggregated_adopted, 3)
 
         execution_time = time.perf_counter() - start_time
 
         return SimulationResults(
             synth_outcomes=synth_outcomes,
-            aggregated_did_not_try=aggregated_did_not_try,
-            aggregated_failed=aggregated_failed,
-            aggregated_success=aggregated_success,
+            aggregated_adopted=aggregated_adopted,
+            aggregated_not_adopted=aggregated_not_adopted,
             total_synths=n_synths,
             n_executions=n_executions,
             execution_time_seconds=execution_time)
@@ -263,9 +253,9 @@ class MonteCarloEngine:
             emergent_state: Optional emergent state from mechanism×sensitivity interactions
 
         Returns:
-            Dict with outcome counts: did_not_try, failed, success
+            Dict with outcome counts: adopted, not_adopted
         """
-        outcomes = {"did_not_try": 0, "failed": 0, "success": 0}
+        outcomes = {"adopted": 0, "not_adopted": 0}
 
         for _ in range(n_executions):
             # Sample user state
@@ -366,7 +356,7 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         for outcome in results.synth_outcomes:
-            total = outcome.did_not_try_rate + outcome.failed_rate + outcome.success_rate
+            total = outcome.adopted_rate + outcome.not_adopted_rate
             if abs(total - 1.0) > 0.001:
                 all_validation_failures.append(
                     f"Synth {outcome.synth_id} rates don't sum to 1: {total}"
@@ -381,13 +371,13 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         agg_total = (
-            results.aggregated_did_not_try + results.aggregated_failed + results.aggregated_success
+            results.aggregated_adopted + results.aggregated_not_adopted
         )
         if abs(agg_total - 1.0) > 0.001:
             all_validation_failures.append(f"Aggregated rates don't sum to 1: {agg_total}")
         else:
             print(
-                f"Test 3 PASSED: Aggregated rates sum to 1.0 (success={results.aggregated_success:.3f})"
+                f"Test 3 PASSED: Aggregated rates sum to 1.0 (adopted={results.aggregated_adopted:.3f})"
             )
     except Exception as e:
         all_validation_failures.append(f"Aggregated rates test failed: {e}")
@@ -405,7 +395,7 @@ if __name__ == "__main__":
             test_synths[:3], test_scorecard, test_scenario, n_executions=50
         )
 
-        if results1.aggregated_success != results2.aggregated_success:
+        if results1.aggregated_adopted != results2.aggregated_adopted:
             all_validation_failures.append(
                 "Reproducibility failed: different results with same seed"
             )
@@ -491,15 +481,15 @@ if __name__ == "__main__":
             high_cap_synths, test_scorecard, test_scenario, n_executions=100
         )
 
-        if high_results.aggregated_success <= low_results.aggregated_success:
+        if high_results.aggregated_adopted <= low_results.aggregated_adopted:
             all_validation_failures.append(
-                f"Higher capability should lead to more success: "
-                f"{high_results.aggregated_success:.3f} <= {low_results.aggregated_success:.3f}"
+                f"Higher capability should lead to more adoption: "
+                f"{high_results.aggregated_adopted:.3f} <= {low_results.aggregated_adopted:.3f}"
             )
         else:
             print(
-                f"Test 6 PASSED: Higher capability leads to more success "
-                f"({low_results.aggregated_success:.3f} -> {high_results.aggregated_success:.3f})"
+                f"Test 6 PASSED: Higher capability leads to more adoption "
+                f"({low_results.aggregated_adopted:.3f} -> {high_results.aggregated_adopted:.3f})"
             )
     except Exception as e:
         all_validation_failures.append(f"Capability effect test failed: {e}")
@@ -583,20 +573,20 @@ if __name__ == "__main__":
             low_sens_synths, mech_scorecard, test_scenario, n_executions=100
         )
 
-        variance = abs(high_sens_results.aggregated_success - low_sens_results.aggregated_success)
+        variance = abs(high_sens_results.aggregated_adopted - low_sens_results.aggregated_adopted)
 
         # SC-001: Must show >15% variance
         if variance < 0.15:
             all_validation_failures.append(
                 f"Mechanism simulation should show >15% variance: {variance:.3f} "
-                f"(high_sens={high_sens_results.aggregated_success:.3f}, "
-                f"low_sens={low_sens_results.aggregated_success:.3f})"
+                f"(high_sens={high_sens_results.aggregated_adopted:.3f}, "
+                f"low_sens={low_sens_results.aggregated_adopted:.3f})"
             )
         else:
             print(
                 f"Test 7 PASSED: Mechanism simulation variance {variance:.3f} "
-                f"(high_sens={high_sens_results.aggregated_success:.3f}, "
-                f"low_sens={low_sens_results.aggregated_success:.3f})"
+                f"(high_sens={high_sens_results.aggregated_adopted:.3f}, "
+                f"low_sens={low_sens_results.aggregated_adopted:.3f})"
             )
 
         # Verify emergent_explanation is in synth_attributes

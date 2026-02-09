@@ -34,17 +34,17 @@ class AnalysisCacheService:
 
     # Default parameters for cached charts
     DEFAULT_PARAMS = {
-        CacheKeys.TRY_VS_SUCCESS: {"x_threshold": 0.5, "y_threshold": 0.5},
-        CacheKeys.DISTRIBUTION: {"sort_by": "success_rate", "order": "desc", "limit": 50},
+        CacheKeys.TRY_VS_SUCCESS: {"x_threshold": 0.33, "y_threshold": 0.66},
+        CacheKeys.DISTRIBUTION: {"sort_by": "adopted_rate", "order": "desc", "limit": 50},
         CacheKeys.HEATMAP: {
             "x_axis": "digital_literacy",
             "y_axis": "domain_expertise",
             "bins": 5,
-            "metric": "failed_rate",
+            "metric": "not_adopted_rate",
         },
         CacheKeys.SCATTER: {
             "x_axis": "digital_literacy",
-            "y_axis": "success_rate",
+            "y_axis": "adopted_rate",
         },
         CacheKeys.CORRELATIONS: {},
         CacheKeys.EXTREME_CASES: {"n_per_category": 5},

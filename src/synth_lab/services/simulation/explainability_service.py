@@ -43,7 +43,7 @@ class ExplainabilityService:
     """
     Service for generating SHAP explanations and Partial Dependence Plots.
 
-    Trains a GradientBoostingRegressor internally to predict success_rate,
+    Trains a GradientBoostingRegressor internally to predict adopted_rate,
     then uses SHAP TreeExplainer for individual explanations and sklearn
     partial_dependence for feature effect analysis.
     """
@@ -58,7 +58,7 @@ class ExplainabilityService:
         outcomes: list[SynthOutcome],
         features: list[str] | None = None) -> tuple[GradientBoostingRegressor, float]:
         """
-        Train a GradientBoostingRegressor to predict success_rate.
+        Train a GradientBoostingRegressor to predict adopted_rate.
 
         The model is cached per simulation_id for reuse.
 
@@ -85,8 +85,8 @@ class ExplainabilityService:
             features=features,
             include_outcomes=False)
 
-        # Target variable is success_rate
-        y = np.array([o.success_rate for o in outcomes])
+        # Target variable is adopted_rate
+        y = np.array([o.adopted_rate for o in outcomes])
 
         # Train model
         model = GradientBoostingRegressor(
@@ -178,10 +178,10 @@ class ExplainabilityService:
         synth_features = X[target_idx]
 
         # Calculate baseline (expected value)
-        baseline_prediction = float(np.mean([o.success_rate for o in outcomes]))
+        baseline_prediction = float(np.mean([o.adopted_rate for o in outcomes]))
 
         # Get model prediction
-        predicted_success_rate = float(model.predict(X[target_idx : target_idx + 1])[0])
+        predicted_adopted_rate = float(model.predict(X[target_idx : target_idx + 1])[0])
 
         # Build contributions list
         contributions = []
@@ -208,15 +208,15 @@ class ExplainabilityService:
         explanation_text = self._generate_explanation_text(
             synth_id=synth_id,
             contributions=contributions,
-            predicted=predicted_success_rate,
-            actual=target_outcome.success_rate,
+            predicted=predicted_adopted_rate,
+            actual=target_outcome.adopted_rate,
             baseline=baseline_prediction)
 
         return ShapExplanation(
             synth_id=synth_id,
             simulation_id=simulation_id,
-            predicted_success_rate=predicted_success_rate,
-            actual_success_rate=target_outcome.success_rate,
+            predicted_adopted_rate=predicted_adopted_rate,
+            actual_adopted_rate=target_outcome.adopted_rate,
             baseline_prediction=baseline_prediction,
             contributions=contributions,
             explanation_text=explanation_text,
@@ -429,7 +429,7 @@ class ExplainabilityService:
         pdp_values = [
             PDPPoint(
                 feature_value=float(grid_values[i]),
-                predicted_success=float(avg_predictions[i]),
+                predicted_adopted=float(avg_predictions[i]),
                 confidence_lower=None,  # Could add confidence intervals later
                 confidence_upper=None)
             for i in range(len(grid_values))
@@ -608,22 +608,15 @@ if __name__ == "__main__":
 
         base_success = 0.3 * capability + 0.4 * trust + 0.2 * friction
         noise = np.random.randn() * 0.1
-        success_rate = np.clip(base_success + noise, 0.05, 0.95)
-        failed_rate = np.clip(0.4 - 0.2 * capability + np.random.randn() * 0.1, 0.05, 0.5)
-        did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
-
-        total = success_rate + failed_rate + did_not_try_rate
-        success_rate /= total
-        failed_rate /= total
-        did_not_try_rate /= total
+        adopted_rate = np.clip(base_success + noise, 0.05, 0.95)
+        not_adopted_rate = round(1.0 - adopted_rate, 3)
 
         outcomes.append(
             SynthOutcome(
                 synth_id=f"synth_{i:03d}",
                 simulation_id="sim_test",
-                success_rate=success_rate,
-                failed_rate=failed_rate,
-                did_not_try_rate=did_not_try_rate,
+                adopted_rate=adopted_rate,
+                not_adopted_rate=not_adopted_rate,
                 synth_attributes=SimulationAttributes(
                     observables=SimulationObservables(
                         digital_literacy=0.5,

@@ -166,23 +166,16 @@ export function SankeyFlowChart({ data }: SankeyFlowChartProps) {
           <div className="flex items-center gap-1.5">
             <span
               className="w-2.5 h-2.5 rounded-full"
-              style={{ backgroundColor: '#f59e0b' }}
-            />
-            <span>Não tentou: {data.outcome_counts.did_not_try}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span
-              className="w-2.5 h-2.5 rounded-full"
-              style={{ backgroundColor: '#ef4444' }}
-            />
-            <span>Falhou: {data.outcome_counts.failed}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span
-              className="w-2.5 h-2.5 rounded-full"
               style={{ backgroundColor: '#22c55e' }}
             />
-            <span>Sucesso: {data.outcome_counts.success}</span>
+            <span>Adotaram: {data.outcome_counts.adopted}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span
+              className="w-2.5 h-2.5 rounded-full"
+              style={{ backgroundColor: '#94a3b8' }}
+            />
+            <span>Não Adotaram: {data.outcome_counts.not_adopted}</span>
           </div>
         </div>
       </div>

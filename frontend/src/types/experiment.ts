@@ -66,12 +66,10 @@ export interface ScorecardData {
  * Aggregated outcomes from analysis.
  */
 export interface AggregatedOutcomes {
-  /** Proportion that did not try (0-1) */
-  did_not_try_rate: number;
-  /** Proportion that tried but failed (0-1) */
-  failed_rate: number;
-  /** Proportion that succeeded (0-1) */
-  success_rate: number;
+  /** Proportion that adopted (0-1) */
+  adopted_rate: number;
+  /** Proportion that did not adopt (0-1) */
+  not_adopted_rate: number;
 }
 
 /**

@@ -91,7 +91,7 @@ function PathStepCard({ step, isFirst, isLast, onClick }: PathStepCardProps) {
             <div>
               <p className="font-medium text-sm">Cenário Inicial (Baseline)</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Taxa de sucesso: {formatSuccessRate(step.success_rate)}
+                Taxa de adoção: {formatSuccessRate(step.adopted_rate)}
               </p>
             </div>
           ) : (
@@ -104,15 +104,15 @@ function PathStepCard({ step, isFirst, isLast, onClick }: PathStepCardProps) {
               )}
               <div className="flex items-center gap-3 mt-2 text-sm">
                 <span className="text-muted-foreground">
-                  {formatSuccessRate(step.success_rate)}
+                  {formatSuccessRate(step.adopted_rate)}
                 </span>
                 <span
                   className={`flex items-center gap-1 ${
-                    step.delta_success_rate >= 0 ? 'text-green-600' : 'text-red-600'
+                    step.delta_adopted_rate >= 0 ? 'text-green-600' : 'text-red-600'
                   }`}
                 >
                   <TrendingUp className="h-3 w-3" />
-                  {formatDelta(step.delta_success_rate)}
+                  {formatDelta(step.delta_adopted_rate)}
                 </span>
               </div>
             </div>

@@ -119,9 +119,8 @@ def _convert_outcomes_to_schema(
     outcomes: AggregatedOutcomes) -> AggregatedOutcomesSchema:
     """Convert domain entity to API schema."""
     return AggregatedOutcomesSchema(
-        did_not_try_rate=outcomes.did_not_try_rate,
-        failed_rate=outcomes.failed_rate,
-        success_rate=outcomes.success_rate)
+        adopted_rate=outcomes.adopted_rate,
+        not_adopted_rate=outcomes.not_adopted_rate)
 
 
 # =============================================================================
@@ -321,9 +320,8 @@ async def list_outcomes(
             SynthOutcomeResponse(
                 id=outcome.id,
                 synth_id=outcome.synth_id,
-                did_not_try_rate=outcome.did_not_try_rate,
-                failed_rate=outcome.failed_rate,
-                success_rate=outcome.success_rate,
+                adopted_rate=outcome.adopted_rate,
+                not_adopted_rate=outcome.not_adopted_rate,
                 synth_attributes=attrs)
         )
 
@@ -448,21 +446,21 @@ async def generate_insights(
     response_model=TryVsSuccessChart)
 async def get_try_vs_success_chart(
     experiment_id: str,
-    attempt_rate_threshold: float = Query(
-        default=0.5,
+    low_threshold: float = Query(
+        default=0.33,
         ge=0.0,
         le=1.0,
-        description="Minimum attempt rate for high engagement quadrants"),
-    success_rate_threshold: float = Query(
-        default=0.5,
+        description="Upper bound for low adoption bucket"),
+    high_threshold: float = Query(
+        default=0.66,
         ge=0.0,
         le=1.0,
-        description="Minimum success rate for high performance quadrants")) -> TryVsSuccessChart:
+        description="Lower bound for high adoption bucket")) -> TryVsSuccessChart:
     """
-    Get Try vs Success scatter plot data for an analysis.
+    Get adoption rate distribution data for an analysis.
 
-    Each point represents one synth with attempt rate vs success rate.
-    Uses cache for default parameters (0.5, 0.5).
+    Each point represents one synth classified into low/medium/high adoption buckets.
+    Uses cache for default parameters (0.33, 0.66).
     """
     service = get_analysis_service()
 
@@ -478,7 +476,7 @@ async def get_try_vs_success_chart(
             detail=f"Analysis must be completed (status: {analysis.status})")
 
     # Check cache for default parameters
-    is_default = attempt_rate_threshold == 0.5 and success_rate_threshold == 0.5
+    is_default = low_threshold == 0.33 and high_threshold == 0.66
     if is_default:
         cache_service = get_cache_service()
         cached = cache_service.get_cached(analysis.id, CacheKeys.TRY_VS_SUCCESS)
@@ -498,8 +496,8 @@ async def get_try_vs_success_chart(
     return chart_service.get_try_vs_success(
         simulation_id=analysis.id,
         outcomes=outcomes,
-        x_threshold=attempt_rate_threshold,
-        y_threshold=success_rate_threshold)
+        x_threshold=low_threshold,
+        y_threshold=high_threshold)
 
 
 @router.get(
@@ -508,8 +506,8 @@ async def get_try_vs_success_chart(
 async def get_distribution_chart(
     experiment_id: str,
     sort_by: str = Query(
-        default="success_rate",
-        description="Field to sort by: success_rate, failed_rate, did_not_try_rate"),
+        default="adopted_rate",
+        description="Field to sort by: adopted_rate, not_adopted_rate"),
     order: str = Query(default="desc", description="Sort order: asc or desc"),
     limit: int = Query(default=50, ge=1, le=1000, description="Maximum results")) -> OutcomeDistributionChart:
     """
@@ -532,7 +530,7 @@ async def get_distribution_chart(
             detail=f"Analysis must be completed (status: {analysis.status})")
 
     # Check cache for default parameters
-    is_default = sort_by == "success_rate" and order == "desc" and limit == 50
+    is_default = sort_by == "adopted_rate" and order == "desc" and limit == 50
     if is_default:
         cache_service = get_cache_service()
         cached = cache_service.get_cached(analysis.id, CacheKeys.DISTRIBUTION)
@@ -566,8 +564,8 @@ async def get_failure_heatmap_chart(
     y_axis: str = Query(default="trust_mean", description="Y-axis attribute"),
     bins: int = Query(default=5, ge=2, le=20, description="Number of bins per axis"),
     metric: str = Query(
-        default="failed_rate",
-        description="Metric to display: failed_rate, success_rate, did_not_try_rate")) -> FailureHeatmapChart:
+        default="not_adopted_rate",
+        description="Metric to display: adopted_rate, not_adopted_rate")) -> FailureHeatmapChart:
     """
     Get failure heatmap data for an analysis.
 
@@ -587,7 +585,7 @@ async def get_failure_heatmap_chart(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Analysis must be completed (status: {analysis.status})")
 
-    valid_metrics = ["failed_rate", "success_rate", "did_not_try_rate"]
+    valid_metrics = ["adopted_rate", "not_adopted_rate"]
     if metric not in valid_metrics:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -598,7 +596,7 @@ async def get_failure_heatmap_chart(
         x_axis == "digital_literacy"
         and y_axis == "trust_mean"
         and bins == 5
-        and metric == "failed_rate"
+        and metric == "not_adopted_rate"
     )
     if is_default:
         cache_service = get_cache_service()
@@ -631,7 +629,7 @@ async def get_failure_heatmap_chart(
 async def get_scatter_correlation_chart(
     experiment_id: str,
     x_axis: str = Query(default="capability_mean", description="X-axis attribute"),
-    y_axis: str = Query(default="success_rate", description="Y-axis attribute"),
+    y_axis: str = Query(default="adopted_rate", description="Y-axis attribute"),
     show_trendline: bool = Query(default=True, description="Include trend line")) -> ScatterCorrelationChart:
     """
     Get scatter correlation chart data for an analysis.
@@ -653,7 +651,7 @@ async def get_scatter_correlation_chart(
             detail=f"Analysis must be completed (status: {analysis.status})")
 
     # Check cache for default parameters
-    is_default = x_axis == "capability_mean" and y_axis == "success_rate"
+    is_default = x_axis == "capability_mean" and y_axis == "adopted_rate"
     if is_default:
         cache_service = get_cache_service()
         cached = cache_service.get_cached(analysis.id, CacheKeys.SCATTER)
@@ -687,7 +685,7 @@ async def get_sankey_flow_chart(
     Get Sankey flow chart data for an analysis.
 
     Shows outcome flow from population through outcomes to root causes.
-    3 levels: Population → Outcomes (did_not_try, failed, success) → Root Causes.
+    3 levels: Population → Outcomes (adopted, not_adopted) → Root Causes.
     """
     service = get_analysis_service()
     experiment_service = get_experiment_service()
@@ -1407,8 +1405,8 @@ class SegmentExplanationResponse(BaseModel):
     """Response for segment explanation via mechanism×sensitivity interactions."""
 
     segment_size: int = Field(description="Number of synths in the segment.")
-    segment_avg_success: float = Field(description="Average success rate of the segment.")
-    population_avg_success: float = Field(description="Average success rate of the population.")
+    segment_avg_adopted: float = Field(description="Average adopted rate of the segment.")
+    population_avg_adopted: float = Field(description="Average adopted rate of the population.")
     top_differentiating_factors: list[dict] = Field(
         default_factory=list,
         description="Top factors differentiating this segment from population.",
@@ -1477,8 +1475,8 @@ async def explain_segment(
     # Convert dataclass to response
     return SegmentExplanationResponse(
         segment_size=result.segment_size,
-        segment_avg_success=result.segment_avg_success,
-        population_avg_success=result.population_avg_success,
+        segment_avg_adopted=result.segment_avg_adopted,
+        population_avg_adopted=result.population_avg_adopted,
         top_differentiating_factors=[
             {
                 "interaction": {
@@ -1582,12 +1580,11 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         outcomes = AggregatedOutcomes(
-            did_not_try_rate=0.2,
-            failed_rate=0.3,
-            success_rate=0.5)
+            adopted_rate=0.5,
+            not_adopted_rate=0.5)
         schema = _convert_outcomes_to_schema(outcomes)
-        if schema.success_rate != 0.5:
-            all_validation_failures.append("Outcomes to schema success_rate mismatch")
+        if schema.adopted_rate != 0.5:
+            all_validation_failures.append("Outcomes to schema adopted_rate mismatch")
         else:
             print("Test 6 PASSED: Outcomes conversion works")
     except Exception as e:

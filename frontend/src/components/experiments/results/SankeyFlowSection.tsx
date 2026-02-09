@@ -64,10 +64,10 @@ export function SankeyFlowSection({ experimentId }: SankeyFlowSectionProps) {
                 </li>
                 <li>
                   <strong>Nível 2 (Outcomes):</strong> Como os synths se distribuem entre
-                  "Não tentou" (âmbar), "Falhou" (vermelho) e "Sucesso" (verde)
+                  "Adotaram" (verde) e "Não Adotaram" (cinza)
                 </li>
                 <li>
-                  <strong>Nível 3 (Causas Raiz):</strong> Para synths que não tentaram ou falharam,
+                  <strong>Nível 3 (Causas Raiz):</strong> Para synths que não adotaram,
                   indica a principal barreira identificada
                 </li>
               </ul>

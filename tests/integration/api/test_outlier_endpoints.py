@@ -57,9 +57,8 @@ def mock_completed_analysis(experiment_id):
         status="completed",
         total_synths=50,
         aggregated_outcomes=AggregatedOutcomes(
-            did_not_try_rate=0.3,
-            failed_rate=0.2,
-            success_rate=0.5,
+            adopted_rate=0.50,
+            not_adopted_rate=0.50,
         ),
     )
 
@@ -91,9 +90,8 @@ def mock_experiment(experiment_id, mock_scorecard):
 
 def create_synth_outcome(
     synth_id: str,
-    success_rate: float,
-    failed_rate: float,
-    did_not_try_rate: float,
+    adopted_rate: float,
+    not_adopted_rate: float,
     capability_mean: float = 0.5,
     trust_mean: float = 0.5,
     friction_tolerance_mean: float = 0.5,
@@ -104,9 +102,8 @@ def create_synth_outcome(
         id=outcome_id,
         synth_id=synth_id,
         analysis_id="ana_12345678",
-        success_rate=success_rate,
-        failed_rate=failed_rate,
-        did_not_try_rate=did_not_try_rate,
+        adopted_rate=adopted_rate,
+        not_adopted_rate=not_adopted_rate,
         synth_attributes=SimulationAttributes(
             latent_traits=SimulationLatentTraits(
                 capability_mean=capability_mean,
@@ -131,23 +128,16 @@ def sample_outcomes():
     outcomes = []
     np.random.seed(42)
 
-    # Worst failures (10 synths) - high capability but failed
+    # Worst failures (10 synths) - high capability but low adoption
     for i in range(10):
-        success_rate = 0.05 + np.random.rand() * 0.05
-        failed_rate = 0.8 + np.random.rand() * 0.15
-        did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
-        # Normalize
-        total = success_rate + failed_rate + did_not_try_rate
-        success_rate /= total
-        failed_rate /= total
-        did_not_try_rate /= total
+        adopted_rate = 0.05 + np.random.rand() * 0.10
+        not_adopted_rate = 1.0 - adopted_rate
 
         outcomes.append(
             create_synth_outcome(
                 f"worst_{i:03d}",
-                success_rate,
-                failed_rate,
-                did_not_try_rate,
+                adopted_rate,
+                not_adopted_rate,
                 0.7 + np.random.rand() * 0.2,
                 0.2 + np.random.rand() * 0.1,
                 0.2 + np.random.rand() * 0.1,
@@ -156,21 +146,14 @@ def sample_outcomes():
 
     # Best successes (10 synths)
     for i in range(10):
-        success_rate = 0.85 + np.random.rand() * 0.1
-        failed_rate = 0.05 + np.random.rand() * 0.05
-        did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
-        # Normalize
-        total = success_rate + failed_rate + did_not_try_rate
-        success_rate /= total
-        failed_rate /= total
-        did_not_try_rate /= total
+        adopted_rate = 0.85 + np.random.rand() * 0.10
+        not_adopted_rate = 1.0 - adopted_rate
 
         outcomes.append(
             create_synth_outcome(
                 f"best_{i:03d}",
-                success_rate,
-                failed_rate,
-                did_not_try_rate,
+                adopted_rate,
+                not_adopted_rate,
                 0.8 + np.random.rand() * 0.15,
                 0.8 + np.random.rand() * 0.15,
                 0.8 + np.random.rand() * 0.15,
@@ -179,21 +162,14 @@ def sample_outcomes():
 
     # Normal performers (30 synths)
     for i in range(30):
-        success_rate = 0.4 + np.random.rand() * 0.3
-        failed_rate = 0.2 + np.random.rand() * 0.2
-        did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
-        # Normalize
-        total = success_rate + failed_rate + did_not_try_rate
-        success_rate /= total
-        failed_rate /= total
-        did_not_try_rate /= total
+        adopted_rate = 0.4 + np.random.rand() * 0.3
+        not_adopted_rate = 1.0 - adopted_rate
 
         outcomes.append(
             create_synth_outcome(
                 f"normal_{i:03d}",
-                success_rate,
-                failed_rate,
-                did_not_try_rate,
+                adopted_rate,
+                not_adopted_rate,
                 0.5 + np.random.rand() * 0.2,
                 0.5 + np.random.rand() * 0.2,
                 0.5 + np.random.rand() * 0.2,
@@ -207,7 +183,7 @@ def sample_outcomes():
 def few_outcomes():
     """Create only 5 synth outcomes for testing minimum requirements."""
     return [
-        create_synth_outcome(f"synth_{i:03d}", 0.5, 0.3, 0.2)
+        create_synth_outcome(f"synth_{i:03d}", 0.50, 0.50)
         for i in range(5)
     ]
 
@@ -250,14 +226,14 @@ class TestExtremeCasesEndpoint:
             # Check worst failures
             for synth in data["worst_failures"]:
                 assert synth["category"] == "worst_failure"
-                assert synth["failed_rate"] > 0.5
+                assert synth["adopted_rate"] < 0.3
                 assert synth["profile_summary"] != ""
                 assert len(synth["interview_questions"]) >= 2
 
             # Check best successes
             for synth in data["best_successes"]:
                 assert synth["category"] == "best_success"
-                assert synth["success_rate"] > 0.7
+                assert synth["adopted_rate"] > 0.7
                 assert synth["profile_summary"] != ""
 
     def test_get_extreme_cases_with_custom_n(

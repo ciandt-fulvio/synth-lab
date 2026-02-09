@@ -72,7 +72,7 @@ class TestExplorationServiceIntegration:
         db_session.add(experiment)
 
         # Create baseline analysis (ID must match ^ana_[a-f0-9]{8}$)
-        # aggregated_outcomes must have did_not_try_rate, failed_rate, success_rate that sum to 1.0
+        # aggregated_outcomes must have adopted_rate, not_adopted_rate that sum to 1.0
         analysis = AnalysisRun(
             id="ana_a1b2c3d4",
             experiment_id="exp_e1a2b3c4",
@@ -81,7 +81,7 @@ class TestExplorationServiceIntegration:
             started_at=datetime.now().isoformat(),
             completed_at=datetime.now().isoformat(),
             total_synths=100,
-            aggregated_outcomes={"did_not_try_rate": 0.15, "failed_rate": 0.20, "success_rate": 0.65},
+            aggregated_outcomes={"adopted_rate": 0.65, "not_adopted_rate": 0.35},
         )
         db_session.add(analysis)
         db_session.commit()
@@ -139,7 +139,7 @@ class TestExplorationServiceIntegration:
             started_at=datetime.now().isoformat(),
             completed_at=datetime.now().isoformat(),
             total_synths=100,
-            aggregated_outcomes={"did_not_try_rate": 0.20, "failed_rate": 0.20, "success_rate": 0.60},
+            aggregated_outcomes={"adopted_rate": 0.60, "not_adopted_rate": 0.40},
         )
         db_session.add_all([experiment, analysis])
         db_session.commit()
@@ -252,13 +252,13 @@ class TestExplorationServiceIntegration:
             status="completed",
             started_at=datetime.now().isoformat(),
             total_synths=100,
-            aggregated_outcomes={"did_not_try_rate": 0.15, "failed_rate": 0.20, "success_rate": 0.65},
+            aggregated_outcomes={"adopted_rate": 0.65, "not_adopted_rate": 0.35},
         )
         exploration = Exploration(
             id="expl_a1b2c3d4",
             experiment_id="exp_e5a6b7c8",
             baseline_analysis_id="ana_a3b4c5d6",
-            goal={"metric": "success_rate", "operator": ">=", "value": 0.80},
+            goal={"metric": "adopted_rate", "operator": ">=", "value": 0.80},
             config={"beam_width": 3, "max_depth": 5},
             status="running",
             current_depth=1,
@@ -277,7 +277,7 @@ class TestExplorationServiceIntegration:
         assert result.id == "expl_a1b2c3d4"
         assert result.experiment_id == "exp_e5a6b7c8"
         assert result.status == "running"
-        assert result.goal.metric == "success_rate"
+        assert result.goal.metric == "adopted_rate"
         assert result.goal.value == 0.80
         assert result.config.beam_width == 3
 
@@ -424,19 +424,19 @@ class TestExplorationSummaryGeneratorIntegration:
             status="completed",
             started_at=datetime.now().isoformat(),
             total_synths=100,
-            aggregated_outcomes={"did_not_try_rate": 0.20, "failed_rate": 0.20, "success_rate": 0.60},
+            aggregated_outcomes={"adopted_rate": 0.60, "not_adopted_rate": 0.40},
         )
         exploration = Exploration(
             id="expl_a2b3c4d5",
             experiment_id="exp_e6a7b8c9",
             baseline_analysis_id="ana_a4b5c6d7",
-            goal={"metric": "success_rate", "operator": ">=", "value": 0.80},
+            goal={"metric": "adopted_rate", "operator": ">=", "value": 0.80},
             config={"beam_width": 3, "max_depth": 5},
             status="goal_achieved",
             current_depth=3,
             total_nodes=10,
             total_llm_calls=15,
-            best_success_rate=0.82,
+            best_adopted_rate=0.82,
             started_at=datetime.now().isoformat(),
             completed_at=datetime.now().isoformat(),
         )
@@ -456,9 +456,8 @@ class TestExplorationSummaryGeneratorIntegration:
                     "time_to_value": 0.7,
                 },
                 simulation_results={
-                    "did_not_try_rate": 0.20 - (i * 0.05),
-                    "failed_rate": 0.20 - (i * 0.05),
-                    "success_rate": 0.60 + (i * 0.10),
+                    "adopted_rate": 0.60 + (i * 0.10),
+                    "not_adopted_rate": 0.40 - (i * 0.10),
                 },
                 created_at=datetime.now().isoformat(),
             )
@@ -526,7 +525,7 @@ class TestExplorationServiceErrorHandling:
             status="completed",
             started_at=datetime.now().isoformat(),
             total_synths=100,
-            aggregated_outcomes={"did_not_try_rate": 0.25, "failed_rate": 0.25, "success_rate": 0.50},
+            aggregated_outcomes={"adopted_rate": 0.50, "not_adopted_rate": 0.50},
         )
         db_session.add_all([experiment, analysis])
         db_session.commit()
@@ -539,7 +538,7 @@ class TestExplorationServiceErrorHandling:
         try:
             exploration = service.start_exploration(
                 experiment_id="exp_e7a8b9c0",
-                goal_value=2.0,  # Invalid: > 1.0 for success_rate
+                goal_value=2.0,  # Invalid: > 1.0 for adopted_rate
             )
             # If it doesn't raise an error, verify it was created
             assert exploration.id is not None

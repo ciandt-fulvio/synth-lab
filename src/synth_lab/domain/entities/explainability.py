@@ -14,8 +14,8 @@ Sample Input:
     outcomes: list[SynthOutcome], synth_id: str
 
 Expected Output:
-    ShapExplanation: Feature contributions explaining why synth succeeded/failed
-    PDPResult: How changing features affects success probability
+    ShapExplanation: Feature contributions explaining why synth adopted/not adopted
+    PDPResult: How changing features affects adoption probability
 """
 
 from pydantic import BaseModel, Field
@@ -30,7 +30,7 @@ class ShapContribution(BaseModel):
     baseline_value: float = Field(..., description="Average feature value in population")
     impact: str = Field(
         ...,
-        description="Impact direction: positive (increases success), negative (decreases success)",
+        description="Impact direction: positive (increases adoption), negative (decreases adoption)",
     )
 
 
@@ -39,15 +39,15 @@ class ShapExplanation(BaseModel):
 
     synth_id: str = Field(..., description="Synth identifier")
     simulation_id: str = Field(..., description="Simulation identifier")
-    predicted_success_rate: float = Field(..., description="Model's predicted success rate")
-    actual_success_rate: float = Field(..., description="Actual observed success rate")
+    predicted_adopted_rate: float = Field(..., description="Model's predicted adopted rate")
+    actual_adopted_rate: float = Field(..., description="Actual observed adopted rate")
     baseline_prediction: float = Field(..., description="Average prediction across all synths")
     contributions: list[ShapContribution] = Field(
         ..., description="SHAP contributions for each feature, sorted by absolute value"
     )
     explanation_text: str = Field(
         ...,
-        description="Human-readable explanation of why synth succeeded/failed",
+        description="Human-readable explanation of why synth adopted/not adopted",
     )
     model_type: str = Field(
         default="gradient_boosting", description="ML model used for predictions"
@@ -70,8 +70,8 @@ class PDPPoint(BaseModel):
     """Single point in a partial dependence plot."""
 
     feature_value: float = Field(..., description="Value of the feature")
-    predicted_success: float = Field(
-        ..., description="Predicted success rate at this feature value"
+    predicted_adopted: float = Field(
+        ..., description="Predicted adopted rate at this feature value"
     )
     confidence_lower: float | None = Field(
         None, description="Lower bound of confidence interval (if available)"

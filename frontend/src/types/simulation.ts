@@ -67,10 +67,10 @@ export interface EmergentExplanation {
 export interface SegmentExplanation {
   /** Number of synths in the segment */
   segment_size: number;
-  /** Average success rate of the segment */
-  segment_avg_success: number;
-  /** Average success rate of the full population */
-  population_avg_success: number;
+  /** Average adoption rate of the segment */
+  segment_avg_adopted: number;
+  /** Average adoption rate of the full population */
+  population_avg_adopted: number;
   /** Top factors differentiating this segment from population */
   top_differentiating_factors: Array<{
     interaction: InteractionContribution;
@@ -86,36 +86,25 @@ export interface SegmentExplanation {
 // Phase 1: Overview Charts (Try vs Success, Distribution)
 // =============================================================================
 
-/** Point in Try vs Success scatter chart */
+/** Point in Adoption scatter chart */
 export interface TryVsSuccessPoint {
   synth_id: string;
-  attempt_rate: number;
-  success_rate: number;
-  quadrant: 'ok' | 'usability_issue' | 'discovery_issue' | 'low_value';
+  adopted_rate: number;
+  category: 'above_threshold' | 'below_threshold';
 }
 
-/** Quadrant summary for Try vs Success chart */
-export interface QuadrantSummary {
-  quadrant: 'ok' | 'usability_issue' | 'discovery_issue' | 'low_value';
-  count: number;
-  percentage: number;
-}
-
-/** Quadrant counts from API */
+/** Category counts from API */
 export interface QuadrantCounts {
-  ok: number;
-  usability_issue: number;
-  discovery_issue: number;
-  low_value: number;
+  above_threshold: number;
+  below_threshold: number;
 }
 
-/** Try vs Success scatter chart data */
+/** Adoption scatter chart data */
 export interface TryVsSuccessChart {
   simulation_id: string;
   points: TryVsSuccessPoint[];
   quadrant_counts: QuadrantCounts;
   quadrant_thresholds: {
-    x: number;
     y: number;
   };
   total_synths: number;
@@ -124,9 +113,8 @@ export interface TryVsSuccessChart {
 /** Single synth distribution from API */
 export interface SynthDistribution {
   synth_id: string;
-  did_not_try_rate: number;
-  failed_rate: number;
-  success_rate: number;
+  adopted_rate: number;
+  not_adopted_rate: number;
   sort_key: number;
 }
 
@@ -135,11 +123,10 @@ export interface OutcomeDistributionChart {
   simulation_id: string;
   distributions: SynthDistribution[];
   summary: {
-    avg_success: number;
-    avg_failed: number;
-    avg_did_not_try: number;
-    median_success: number;
-    std_success: number;
+    avg_adopted: number;
+    avg_not_adopted: number;
+    median_adopted: number;
+    std_adopted: number;
   };
   worst_performers: string[];
   best_performers: string[];
@@ -168,7 +155,7 @@ export interface FailureHeatmapChart {
   cells: HeatmapCell[];
   x_axis: string;
   y_axis: string;
-  metric: 'failed_rate' | 'success_rate' | 'did_not_try_rate';
+  metric: 'adopted_rate' | 'not_adopted_rate';
   bins: number;
   max_value: number;
   min_value: number;
@@ -256,9 +243,8 @@ export interface ClusterProfile {
   size: number;
   percentage: number;
   centroid: Record<string, number>;
-  avg_success_rate: number;
-  avg_failed_rate: number;
-  avg_did_not_try_rate: number;
+  avg_adopted_rate: number;
+  avg_not_adopted_rate: number;
   label?: string;
 }
 
@@ -315,7 +301,7 @@ export interface ClusterRadar {
   explanation: string;
   color: string;
   axes: RadarAxis[];
-  success_rate: number;
+  adopted_rate: number;
 }
 
 /** Radar chart comparison data */
@@ -352,9 +338,8 @@ export interface PCAScatterChart {
 export interface ExtremeSynth {
   synth_id: string;
   synth_name: string;
-  success_rate: number;
-  failed_rate: number;
-  did_not_try_rate: number;
+  adopted_rate: number;
+  not_adopted_rate: number;
   category: 'worst_failure' | 'best_success' | 'unexpected';
   profile_summary: string;
   interview_questions: string[];
@@ -376,9 +361,8 @@ export interface ExtremeCasesTable {
 export interface OutlierSynth {
   synth_id: string;
   anomaly_score: number;
-  success_rate: number;
-  failed_rate: number;
-  did_not_try_rate: number;
+  adopted_rate: number;
+  not_adopted_rate: number;
   outlier_type: 'unexpected_failure' | 'unexpected_success' | 'atypical_profile';
   explanation: string;
   capability_mean: number;
@@ -417,8 +401,8 @@ export interface ShapContribution {
 export interface ShapExplanation {
   simulation_id: string;
   synth_id: string;
-  predicted_success_rate: number;
-  actual_success_rate: number;
+  predicted_adopted_rate: number;
+  actual_adopted_rate: number;
   baseline_prediction: number;
   contributions: ShapContribution[];
   explanation_text: string;
@@ -536,9 +520,8 @@ export interface SankeyLink {
 
 /** Aggregated outcome counts */
 export interface OutcomeCounts {
-  did_not_try: number;
-  failed: number;
-  success: number;
+  adopted: number;
+  not_adopted: number;
 }
 
 /** Sankey flow chart data for outcome flow visualization */

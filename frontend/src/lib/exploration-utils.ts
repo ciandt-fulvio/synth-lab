@@ -148,7 +148,7 @@ export function buildReactFlowElements(
   let bestSuccessRate = -1;
   nodes.forEach((node) => {
     if (node.parent_id === null) return; // Skip root
-    const rate = node.simulation_results?.success_rate ?? -1;
+    const rate = node.simulation_results?.adopted_rate ?? -1;
     if (rate > bestSuccessRate) {
       bestSuccessRate = rate;
       bestNodeId = node.id;
@@ -188,7 +188,7 @@ export function buildReactFlowElements(
         label: node.action_applied || 'Baseline',
         shortLabel: node.short_action,
         value: node.simulation_results
-          ? node.simulation_results.success_rate * 100
+          ? node.simulation_results.adopted_rate * 100
           : null,
         status: node.node_status,
         isRoot,

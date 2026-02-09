@@ -12,7 +12,7 @@ Sample Input:
     outcomes: list[SynthOutcome] from simulation
 
 Expected Output:
-    ExtremeCasesTable: Top worst failures, best successes, unexpected cases
+    ExtremeCasesTable: Top lowest adoption, best adoption, unexpected cases
     OutlierResult: Statistical outliers via Isolation Forest
 """
 
@@ -56,11 +56,11 @@ class OutlierService:
 
         # Sort by success rate (ascending) for worst failures
         sorted_by_failure = sorted(
-            outcomes, key=lambda x: x.success_rate, reverse=False
+            outcomes, key=lambda x: x.adopted_rate, reverse=False
         )
 
         # Sort by success rate (descending) for best successes
-        sorted_by_success = sorted(outcomes, key=lambda x: x.success_rate, reverse=True)
+        sorted_by_success = sorted(outcomes, key=lambda x: x.adopted_rate, reverse=True)
 
         # Get top N from each category
         n_actual = min(n_per_category, len(outcomes))
@@ -138,9 +138,8 @@ class OutlierService:
                     synth_id=synth_id,
                     outlier_type=outlier_type,
                     anomaly_score=float(anomaly_scores[idx]),
-                    success_rate=synth.success_rate,
-                    failed_rate=synth.failed_rate,
-                    did_not_try_rate=synth.did_not_try_rate,
+                    adopted_rate=synth.adopted_rate,
+                    not_adopted_rate=synth.not_adopted_rate,
                     explanation=explanation,
                     capability_mean=synth.synth_attributes.latent_traits.capability_mean,
                     trust_mean=synth.synth_attributes.latent_traits.trust_mean,
@@ -166,9 +165,8 @@ class OutlierService:
         return ExtremeSynth(
             synth_id=outcome.synth_id,
             category=category,
-            success_rate=outcome.success_rate,
-            failed_rate=outcome.failed_rate,
-            did_not_try_rate=outcome.did_not_try_rate,
+            adopted_rate=outcome.adopted_rate,
+            not_adopted_rate=outcome.not_adopted_rate,
             profile_summary=profile_summary,
             interview_questions=interview_questions,
             capability_mean=outcome.synth_attributes.latent_traits.capability_mean,
@@ -198,8 +196,8 @@ class OutlierService:
         summary = f"Synth with {cap_level} capability ({traits.capability_mean:.2f}), "
         summary += f"{trust_level} trust ({traits.trust_mean:.2f}), "
         summary += f"and {lit_level} digital literacy ({obs.digital_literacy:.2f}). "
-        summary += f"Success rate: {outcome.success_rate:.1%}, "
-        summary += f"Failed rate: {outcome.failed_rate:.1%}."
+        summary += f"Adoption rate: {outcome.adopted_rate:.1%}, "
+        summary += f"Non-adoption rate: {outcome.not_adopted_rate:.1%}."
 
         return summary
 
@@ -221,12 +219,12 @@ class OutlierService:
             ]
         else:  # unexpected
             traits = outcome.synth_attributes.latent_traits
-            if traits.capability_mean < 0.4 and outcome.success_rate > 0.7:
+            if traits.capability_mean < 0.4 and outcome.adopted_rate > 0.7:
                 questions = [
                     "Apesar de pontuação baixa de capacidade, você teve sucesso. O que fez a diferença?",
                     "Você achou a funcionalidade particularmente fácil de usar? Por quê?",
                 ]
-            elif traits.capability_mean > 0.6 and outcome.failed_rate > 0.5:
+            elif traits.capability_mean > 0.6 and outcome.not_adopted_rate > 0.5:
                 questions = [
                     "Você tem alta capacidade mas experimentou falhas. O que deu errado?",
                     "Houve barreiras inesperadas ou aspectos confusos?",
@@ -247,11 +245,11 @@ class OutlierService:
             traits = outcome.synth_attributes.latent_traits
 
             # High capability but failed
-            if traits.capability_mean > 0.6 and outcome.failed_rate > 0.5:
+            if traits.capability_mean > 0.6 and outcome.not_adopted_rate > 0.5:
                 unexpected.append(self._create_extreme_synth(outcome, "unexpected"))
 
             # Low capability but succeeded
-            elif traits.capability_mean < 0.4 and outcome.success_rate > 0.7:
+            elif traits.capability_mean < 0.4 and outcome.adopted_rate > 0.7:
                 unexpected.append(self._create_extreme_synth(outcome, "unexpected"))
 
         return unexpected[:10]  # Limit to 10
@@ -261,11 +259,11 @@ class OutlierService:
         traits = synth.synth_attributes.latent_traits
 
         # High capability but failed unexpectedly
-        if traits.capability_mean > 0.6 and synth.failed_rate > 0.5:
+        if traits.capability_mean > 0.6 and synth.not_adopted_rate > 0.5:
             return "unexpected_failure"
 
         # Low capability but succeeded unexpectedly
-        if traits.capability_mean < 0.4 and synth.success_rate > 0.7:
+        if traits.capability_mean < 0.4 and synth.adopted_rate > 0.7:
             return "unexpected_success"
 
         # Otherwise it's an atypical profile
@@ -277,18 +275,18 @@ class OutlierService:
 
         if outlier_type == "unexpected_failure":
             return (
-                f"High capability ({traits.capability_mean:.2f}) but high failure rate "
-                f"({synth.failed_rate:.1%}). This suggests unexpected barriers or friction points."
+                f"High capability ({traits.capability_mean:.2f}) but high non-adoption rate "
+                f"({synth.not_adopted_rate:.1%}). This suggests unexpected barriers or friction points."
             )
         elif outlier_type == "unexpected_success":
             return (
-                f"Low capability ({traits.capability_mean:.2f}) but high success rate "
-                f"({synth.success_rate:.1%}). This indicates the feature may be easier than expected."
+                f"Low capability ({traits.capability_mean:.2f}) but high adoption rate "
+                f"({synth.adopted_rate:.1%}). This indicates the feature may be easier than expected."
             )
         else:
             return (
                 f"Atypical combination of attributes with capability={traits.capability_mean:.2f}, "
-                f"trust={traits.trust_mean:.2f}, success={synth.success_rate:.1%}."
+                f"trust={traits.trust_mean:.2f}, success={synth.adopted_rate:.1%}."
             )
 
     def _extract_features(
@@ -303,8 +301,8 @@ class OutlierService:
                 "friction_tolerance_mean",
                 "digital_literacy",
                 "similar_tool_experience",
-                "success_rate",
-                "failed_rate",
+                "adopted_rate",
+                "not_adopted_rate",
             ]
 
         X_list = []
@@ -326,10 +324,10 @@ class OutlierService:
                     row.append(obs.digital_literacy)
                 elif feature == "similar_tool_experience":
                     row.append(obs.similar_tool_experience)
-                elif feature == "success_rate":
-                    row.append(outcome.success_rate)
-                elif feature == "failed_rate":
-                    row.append(outcome.failed_rate)
+                elif feature == "adopted_rate":
+                    row.append(outcome.adopted_rate)
+                elif feature == "not_adopted_rate":
+                    row.append(outcome.not_adopted_rate)
 
             X_list.append(row)
             synth_ids.append(outcome.synth_id)

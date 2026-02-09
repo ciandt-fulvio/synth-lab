@@ -15,7 +15,7 @@ Sample usage:
     results = adapter.run_simulation(node, synths)
 
 Expected output:
-    SimulationResults from MonteCarloEngine with success/fail/did_not_try rates
+    SimulationResults from MonteCarloEngine with adopted/not_adopted rates
 """
 
 from typing import Any
@@ -97,12 +97,11 @@ class SimulationAdapter:
 
         # Convert results to exploration SimulationResults
         sim_results = SimulationResults(
-            success_rate=engine_results.aggregated_success,
-            fail_rate=engine_results.aggregated_failed,
-            did_not_try_rate=engine_results.aggregated_did_not_try)
+            adopted_rate=engine_results.aggregated_adopted,
+            not_adopted_rate=engine_results.aggregated_not_adopted)
 
         self.logger.debug(
-            f"Simulation complete: success_rate={sim_results.success_rate:.2%}, "
+            f"Simulation complete: adopted_rate={sim_results.adopted_rate:.2%}, "
             f"time={engine_results.execution_time_seconds:.3f}s"
         )
 
@@ -221,15 +220,15 @@ if __name__ == "__main__":
 
         sim_results, exec_time = adapter.run_simulation(params, synths)
 
-        if sim_results.success_rate < 0.0 or sim_results.success_rate > 1.0:
+        if sim_results.adopted_rate < 0.0 or sim_results.adopted_rate > 1.0:
             all_validation_failures.append(
-                f"Success rate out of range: {sim_results.success_rate}"
+                f"Adopted rate out of range: {sim_results.adopted_rate}"
             )
         if exec_time <= 0:
             all_validation_failures.append(f"Execution time should be positive: {exec_time}")
 
         # Rates should sum to approximately 1.0
-        total_rate = sim_results.success_rate + sim_results.fail_rate + sim_results.did_not_try_rate
+        total_rate = sim_results.adopted_rate + sim_results.not_adopted_rate
         if abs(total_rate - 1.0) > 0.01:
             all_validation_failures.append(f"Rates don't sum to 1.0: {total_rate}")
     except Exception as e:
@@ -297,9 +296,9 @@ if __name__ == "__main__":
         adapter2 = SimulationAdapter(seed=123, n_executions=50)
         result2, _ = adapter2.run_simulation(params, synths)
 
-        if abs(result1.success_rate - result2.success_rate) > 0.001:
+        if abs(result1.adopted_rate - result2.adopted_rate) > 0.001:
             all_validation_failures.append(
-                f"Same seed should produce same results: {result1.success_rate} vs {result2.success_rate}"
+                f"Same seed should produce same results: {result1.adopted_rate} vs {result2.adopted_rate}"
             )
     except Exception as e:
         all_validation_failures.append(f"Reproducibility test failed: {e}")

@@ -65,9 +65,8 @@ def mock_completed_analysis(experiment_id):
         status="completed",
         total_synths=100,
         aggregated_outcomes=AggregatedOutcomes(
-            did_not_try_rate=0.3,
-            failed_rate=0.2,
-            success_rate=0.5,
+            adopted_rate=0.50,
+            not_adopted_rate=0.50,
         ),
     )
 
@@ -99,9 +98,8 @@ def mock_experiment(experiment_id, mock_scorecard):
 
 def create_synth_outcome(
     synth_id: str,
-    success_rate: float,
-    failed_rate: float,
-    did_not_try_rate: float,
+    adopted_rate: float,
+    not_adopted_rate: float,
     capability_mean: float = 0.5,
     trust_mean: float = 0.5,
     friction_tolerance_mean: float = 0.5,
@@ -112,9 +110,8 @@ def create_synth_outcome(
         id=outcome_id,
         synth_id=synth_id,
         analysis_id="ana_12345678",
-        success_rate=success_rate,
-        failed_rate=failed_rate,
-        did_not_try_rate=did_not_try_rate,
+        adopted_rate=adopted_rate,
+        not_adopted_rate=not_adopted_rate,
         synth_attributes=SimulationAttributes(
             latent_traits=SimulationLatentTraits(
                 capability_mean=capability_mean,
@@ -145,32 +142,25 @@ def sample_outcomes():
         if i < 30:  # Cluster 1: High performers
             cap = 0.7 + np.random.rand() * 0.2
             trust = 0.7 + np.random.rand() * 0.2
-            success_base = 0.7
+            adopted_base = 0.7
         elif i < 60:  # Cluster 2: Low performers
             cap = 0.2 + np.random.rand() * 0.2
             trust = 0.2 + np.random.rand() * 0.2
-            success_base = 0.2
+            adopted_base = 0.2
         else:  # Cluster 3: Medium performers
             cap = 0.4 + np.random.rand() * 0.2
             trust = 0.5 + np.random.rand() * 0.2
-            success_base = 0.5
+            adopted_base = 0.5
 
-        success_rate = success_base + np.random.rand() * 0.15
-        failed_rate = 0.2 + np.random.rand() * 0.1
-        did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
-
-        # Normalize
-        total = success_rate + failed_rate + did_not_try_rate
-        success_rate /= total
-        failed_rate /= total
-        did_not_try_rate /= total
+        adopted_rate = adopted_base + np.random.rand() * 0.15
+        adopted_rate = min(adopted_rate, 1.0)
+        not_adopted_rate = 1.0 - adopted_rate
 
         outcomes.append(
             create_synth_outcome(
                 f"synth_{i:03d}",
-                success_rate,
-                failed_rate,
-                did_not_try_rate,
+                adopted_rate,
+                not_adopted_rate,
                 cap,
                 trust,
             )
@@ -183,7 +173,7 @@ def sample_outcomes():
 def few_outcomes():
     """Create only 5 synth outcomes for testing minimum requirements."""
     return [
-        create_synth_outcome(f"synth_{i:03d}", 0.5, 0.3, 0.2)
+        create_synth_outcome(f"synth_{i:03d}", 0.50, 0.50)
         for i in range(5)
     ]
 

@@ -11,7 +11,7 @@ Seed includes:
 - 500 synths analyzed (AnalysisRun + SynthOutcomes)
 - 6 completed interviews (ResearchExecution + Transcripts)
 - Documents: summary + executive summary + PR-FAQ
-- Exploration with 3 iterations (goal: 60% success)
+- Exploration with 3 iterations (goal: 60% adoption)
 - Synth groups and synths for interviews
 
 Usage:
@@ -356,9 +356,8 @@ def _seed_analysis_run(session: Session, experiment: Experiment, synth_count: in
         completed_at=(base_time - timedelta(hours=2, minutes=15)).isoformat(),
         total_synths=synth_count,
         aggregated_outcomes={
-            "success_rate": 0.62,
-            "failed_rate": 0.25,
-            "did_not_try_rate": 0.13,
+            "adopted_rate": 0.62,
+            "not_adopted_rate": 0.38,
         },
         execution_time_seconds=2700.0,
     )
@@ -375,27 +374,22 @@ def _seed_synth_outcomes(session: Session, analysis_run: AnalysisRun, synth_coun
     logger.debug(f"Seeding {synth_count} synth outcomes...")
 
     # Create realistic distribution of outcomes
-    # Target: ~62% average success rate with variation
+    # Target: ~62% average adopted rate with variation
     outcomes = []
 
     for i in range(synth_count):
-        # Generate realistic success rates with normal distribution around 62%
-        base_success = 0.62
+        # Generate realistic adopted rates with normal distribution around 62%
+        base_adopted = 0.62
         variation = random.gauss(0, 0.18)  # Standard deviation of 0.18
-        success_rate = max(0.0, min(1.0, base_success + variation))
-
-        # Distribute remaining probability between failed and did_not_try
-        remaining = 1.0 - success_rate
-        failed_rate = remaining * random.uniform(0.6, 0.8)  # 60-80% of failures are actual failures
-        did_not_try_rate = remaining - failed_rate
+        adopted_rate = max(0.0, min(1.0, base_adopted + variation))
+        not_adopted_rate = 1.0 - adopted_rate
 
         outcome = SynthOutcome(
             id=f"out_{analysis_run.id}_{i+1:04d}",
             analysis_id=analysis_run.id,
             synth_id=f"syn_{i+1:04d}",
-            success_rate=round(success_rate, 3),
-            failed_rate=round(failed_rate, 3),
-            did_not_try_rate=round(did_not_try_rate, 3),
+            adopted_rate=round(adopted_rate, 3),
+            not_adopted_rate=round(not_adopted_rate, 3),
             synth_attributes={
                 "age_group": random.choice(["18-25", "26-35", "36-45", "46-55", "56+"]),
                 "tech_savviness": random.choice(["low", "medium", "high"]),
@@ -491,7 +485,7 @@ def _generate_transcript_messages(synth_name: str, idx: int) -> list[dict[str, s
 
 
 def _seed_exploration(session: Session, experiment: Experiment, baseline_analysis: AnalysisRun) -> None:
-    """Seed exploration with 3 scenario iterations targeting 60% success."""
+    """Seed exploration with 3 scenario iterations targeting 60% adoption."""
     logger.debug("Seeding exploration with scenarios...")
 
     base_time = datetime.now()
@@ -501,9 +495,9 @@ def _seed_exploration(session: Session, experiment: Experiment, baseline_analysi
         experiment_id=experiment.id,
         baseline_analysis_id=baseline_analysis.id,
         goal={
-            "target_metric": "success_rate",
+            "target_metric": "adopted_rate",
             "target_value": 0.60,
-            "description": "Atingir 60% de success rate através de melhorias na UX e fluxo",
+            "description": "Atingir 60% de adopted rate através de melhorias na UX e fluxo",
         },
         config={
             "max_depth": 3,
@@ -515,7 +509,7 @@ def _seed_exploration(session: Session, experiment: Experiment, baseline_analysi
         current_depth=2,
         total_nodes=3,
         total_llm_calls=6,
-        best_success_rate=0.63,
+        best_adopted_rate=0.63,
         started_at=(base_time - timedelta(days=5)).isoformat(),
         completed_at=(base_time - timedelta(days=1)).isoformat(),
     )
@@ -540,7 +534,8 @@ def _seed_exploration(session: Session, experiment: Experiment, baseline_analysi
             "time_to_value": 0.75,
         },
         simulation_results={
-            "success_rate": 0.55,
+            "adopted_rate": 0.55,
+            "not_adopted_rate": 0.45,
             "synths_analyzed": 500,
             "avg_completion_time": 180,
         },
@@ -566,7 +561,8 @@ def _seed_exploration(session: Session, experiment: Experiment, baseline_analysi
             "time_to_value": 0.80,
         },
         simulation_results={
-            "success_rate": 0.58,
+            "adopted_rate": 0.58,
+            "not_adopted_rate": 0.42,
             "synths_analyzed": 500,
             "avg_completion_time": 150,
         },
@@ -592,7 +588,8 @@ def _seed_exploration(session: Session, experiment: Experiment, baseline_analysi
             "time_to_value": 0.85,
         },
         simulation_results={
-            "success_rate": 0.63,
+            "adopted_rate": 0.63,
+            "not_adopted_rate": 0.37,
             "synths_analyzed": 500,
             "avg_completion_time": 120,
         },
@@ -668,8 +665,8 @@ def _seed_documents(session: Session, experiment: Experiment) -> None:
 - Sugestões baseadas em histórico são valorizadas
 
 ## Métricas de Adoção
-- Success rate inicial: 55%
-- Success rate pós-otimização: 63%
+- Adopted rate inicial: 55%
+- Adopted rate pós-otimização: 63%
 - Meta alcançada: ✅ 60%""",
             doc_metadata={"version": "1.0", "word_count": 142},
             generated_at=(base_time - timedelta(days=2)).isoformat(),

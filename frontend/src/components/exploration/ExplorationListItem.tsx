@@ -65,9 +65,9 @@ export function ExplorationListItem({
               <GitBranch className="h-3.5 w-3.5" />
               {exploration.total_nodes} nós
             </span>
-            {exploration.best_success_rate !== null && (
+            {exploration.best_adopted_rate !== null && (
               <span className="font-medium text-slate-700">
-                Melhor: {formatSuccessRate(exploration.best_success_rate)}
+                Melhor: {formatSuccessRate(exploration.best_adopted_rate)}
               </span>
             )}
           </div>

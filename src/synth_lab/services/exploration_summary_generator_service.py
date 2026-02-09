@@ -199,8 +199,8 @@ class ExplorationSummaryGeneratorService:
             final_node = winning_path[-1]
 
             # Calculate improvement metrics
-            baseline_rate = root_node.get_success_rate() or 0
-            final_rate = final_node.get_success_rate() or 0
+            baseline_rate = root_node.get_adopted_rate() or 0
+            final_rate = final_node.get_adopted_rate() or 0
             improvement = (
                 ((final_rate - baseline_rate) / baseline_rate * 100) if baseline_rate > 0 else 0
             )
@@ -211,8 +211,8 @@ class ExplorationSummaryGeneratorService:
                 "exploration_id": exploration_id,
                 "winning_path_nodes": [n.id for n in winning_path],
                 "path_length": len(winning_path),
-                "baseline_success_rate": baseline_rate,
-                "final_success_rate": final_rate,
+                "baseline_adopted_rate": baseline_rate,
+                "final_adopted_rate": final_rate,
                 "improvement_percentage": round(improvement, 1),
             }
 
@@ -371,8 +371,8 @@ class ExplorationSummaryGeneratorService:
             final_node = winning_path[-1]
 
             # Calculate improvement metrics
-            baseline_rate = root_node.get_success_rate() or 0
-            final_rate = final_node.get_success_rate() or 0
+            baseline_rate = root_node.get_adopted_rate() or 0
+            final_rate = final_node.get_adopted_rate() or 0
             improvement = (
                 ((final_rate - baseline_rate) / baseline_rate * 100) if baseline_rate > 0 else 0
             )
@@ -383,8 +383,8 @@ class ExplorationSummaryGeneratorService:
                 "exploration_id": exploration_id,
                 "winning_path_nodes": [n.id for n in winning_path],
                 "path_length": len(winning_path),
-                "baseline_success_rate": baseline_rate,
-                "final_success_rate": final_rate,
+                "baseline_adopted_rate": baseline_rate,
+                "final_adopted_rate": final_rate,
                 "improvement_percentage": round(improvement, 1),
             }
 
@@ -485,8 +485,8 @@ class ExplorationSummaryGeneratorService:
         final_node = winning_path[-1]
 
         # Calculate improvement metrics
-        baseline_rate = root_node.get_success_rate() or 0
-        final_rate = final_node.get_success_rate() or 0
+        baseline_rate = root_node.get_adopted_rate() or 0
+        final_rate = final_node.get_adopted_rate() or 0
         improvement_pct = (
             ((final_rate - baseline_rate) / baseline_rate * 100) if baseline_rate > 0 else 0
         )
@@ -494,8 +494,8 @@ class ExplorationSummaryGeneratorService:
         # Format improvements (excluding root)
         improvements = []
         for i, node in enumerate(winning_path[1:], 1):
-            prev_rate = winning_path[i - 1].get_success_rate() or 0
-            curr_rate = node.get_success_rate() or 0
+            prev_rate = winning_path[i - 1].get_adopted_rate() or 0
+            curr_rate = node.get_adopted_rate() or 0
             delta = curr_rate - prev_rate
 
             improvements.append(
@@ -533,14 +533,14 @@ class ExplorationSummaryGeneratorService:
 - Esforço Inicial: {root_sc.initial_effort:.0%}
 - Risco Percebido: {root_sc.perceived_risk:.0%}
 - Tempo até Valor: {root_sc.time_to_value:.0%}
-- Taxa de Sucesso: {baseline_rate:.0%}
+- Taxa de Adoção: {baseline_rate:.0%}
 
 **Resultado Final**:
 - Complexidade: {final_sc.complexity:.0%} ({complexity_str})
 - Esforço Inicial: {final_sc.initial_effort:.0%} ({effort_str})
 - Risco Percebido: {final_sc.perceived_risk:.0%} ({risk_str})
 - Tempo até Valor: {final_sc.time_to_value:.0%} ({ttv_str})
-- Taxa de Sucesso: {final_rate:.0%} ({improvement_str})
+- Taxa de Adoção: {final_rate:.0%} ({improvement_str})
 """
 
         # Format materials section if provided
@@ -559,7 +559,7 @@ class ExplorationSummaryGeneratorService:
 ## CONTEXTO DA EXPLORAÇÃO
 
 - **Experimento**: {experiment_name}
-- **Meta**: Alcançar taxa de sucesso >= {exploration.goal.value:.0%}
+- **Meta**: Alcançar taxa de adoção >= {exploration.goal.value:.0%}
 - **Status Final**: {exploration.status.value}
 - **Melhoria Total**: {improvement_pct:.1f}% (de {baseline_rate:.0%} para {final_rate:.0%})
 - **Profundidade Explorada**: {len(winning_path)} níveis
@@ -584,7 +584,7 @@ experimento otimizado.
 
 1. **Foque no Estado Final**: Descreva a experiência otimizada como se já
    estivesse implementada
-2. **Use Dados Concretos**: Cite as métricas de scorecard e taxa de sucesso
+2. **Use Dados Concretos**: Cite as métricas de scorecard e taxa de adoção
 3. **Identifique Trade-offs**: Onde houve ganhos e onde houve custos (ex: menor
    complexidade vs maior esforço)
 4. **Seja Específico**: Use detalhes das ações aplicadas, não generalidades
@@ -597,7 +597,7 @@ Estruture sua resposta em Markdown com EXATAMENTE estas seções:
 
 ## Resumo Executivo
 (2-3 parágrafos descrevendo o estado final otimizado, destacando a melhoria de
-{improvement_pct:.1f}% na taxa de sucesso)
+{improvement_pct:.1f}% na taxa de adoção)
 
 ## Características Principais
 (4-6 aspectos-chave que definem esta versão melhorada, com referências

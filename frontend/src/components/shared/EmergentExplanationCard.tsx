@@ -160,13 +160,13 @@ export function SegmentExplanationCard({
 }: SegmentExplanationCardProps) {
   const {
     segment_size,
-    segment_avg_success,
-    population_avg_success,
+    segment_avg_adopted,
+    population_avg_adopted,
     top_differentiating_factors,
     explanation_text,
   } = explanation;
 
-  const successDiff = segment_avg_success - population_avg_success;
+  const successDiff = segment_avg_adopted - population_avg_adopted;
   const successDiffPct = (successDiff * 100).toFixed(1);
 
   return (
@@ -186,14 +186,14 @@ export function SegmentExplanationCard({
           <div className="flex-1 text-center">
             <span className="text-xs text-slate-500 block">Segmento</span>
             <span className="text-lg font-semibold text-slate-900">
-              {(segment_avg_success * 100).toFixed(1)}%
+              {(segment_avg_adopted * 100).toFixed(1)}%
             </span>
           </div>
           <ArrowRight className="h-4 w-4 text-slate-400" />
           <div className="flex-1 text-center">
             <span className="text-xs text-slate-500 block">População</span>
             <span className="text-lg font-semibold text-slate-500">
-              {(population_avg_success * 100).toFixed(1)}%
+              {(population_avg_adopted * 100).toFixed(1)}%
             </span>
           </div>
           <div className="flex-1 text-center">

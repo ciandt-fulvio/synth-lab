@@ -268,12 +268,11 @@ import type {
  */
 export async function getAnalysisTryVsSuccessChart(
   experimentId: string,
-  attemptRateThreshold = 0.5,
-  successRateThreshold = 0.5
+  _attemptRateThreshold = 0.5, // deprecated: no longer used in 2-outcome model
+  adoptedRateThreshold = 0.5
 ): Promise<TryVsSuccessChart> {
   const params = new URLSearchParams({
-    attempt_rate_threshold: String(attemptRateThreshold),
-    success_rate_threshold: String(successRateThreshold),
+    adopted_rate_threshold: String(adoptedRateThreshold),
   });
   return fetchAPI(`/experiments/${experimentId}/analysis/charts/try-vs-success?${params}`);
 }
@@ -283,7 +282,7 @@ export async function getAnalysisTryVsSuccessChart(
  */
 export async function getAnalysisDistributionChart(
   experimentId: string,
-  sortBy = 'success_rate',
+  sortBy = 'adopted_rate',
   order = 'desc',
   limit = 50
 ): Promise<OutcomeDistributionChart> {
@@ -303,7 +302,7 @@ export async function getAnalysisFailureHeatmap(
   xAxis = 'capability_mean',
   yAxis = 'trust_mean',
   bins = 5,
-  metric = 'failed_rate'
+  metric = 'not_adopted_rate'
 ): Promise<FailureHeatmapChart> {
   const params = new URLSearchParams({
     x_axis: xAxis,
@@ -320,7 +319,7 @@ export async function getAnalysisFailureHeatmap(
 export async function getAnalysisScatterCorrelation(
   experimentId: string,
   xAxis = 'trust_mean',
-  yAxis = 'success_rate',
+  yAxis = 'adopted_rate',
   showTrendline = true
 ): Promise<ScatterCorrelationChart> {
   const params = new URLSearchParams({
@@ -335,7 +334,7 @@ export async function getAnalysisScatterCorrelation(
  * Get Sankey flow chart for experiment analysis.
  *
  * Shows outcome flow from population through outcomes to root causes.
- * 3 levels: Population → Outcomes (did_not_try, failed, success) → Root Causes.
+ * 2 levels: Population → Outcomes (adopted, not_adopted) → Root Causes.
  */
 export async function getAnalysisSankeyFlow(
   experimentId: string

@@ -46,7 +46,7 @@ if TYPE_CHECKING:
     from synth_lab.domain.entities.emergent_state import EmergentState
 
 # Type alias for outcomes
-Outcome = Literal["did_not_try", "failed", "success"]
+Outcome = Literal["adopted", "not_adopted"]
 
 
 def _clamp(value: float, min_val: float = 0.0, max_val: float = 1.0) -> float:
@@ -229,12 +229,10 @@ def sample_outcome(
     p_success: float,
     rng: Generator) -> Outcome:
     """
-    Sample outcome based on attempt and success probabilities.
+    Sample adoption outcome from joint probability.
 
-    Decision tree:
-    1. Sample Bernoulli(p_attempt) -> if false, return "did_not_try"
-    2. Sample Bernoulli(p_success) -> if false, return "failed"
-    3. Return "success"
+    Combines attempt and success into single adoption probability:
+        P(adopted) = P(attempt) * P(success|attempt)
 
     Args:
         p_attempt: Probability of attempting
@@ -242,17 +240,12 @@ def sample_outcome(
         rng: NumPy random generator
 
     Returns:
-        Outcome: "did_not_try", "failed", or "success"
+        Outcome: "adopted" or "not_adopted"
     """
-    # First, check if user attempts
-    if rng.random() >= p_attempt:
-        return "did_not_try"
-
-    # User attempted, check if successful
-    if rng.random() >= p_success:
-        return "failed"
-
-    return "success"
+    p_adopted = p_attempt * p_success
+    if rng.random() < p_adopted:
+        return "adopted"
+    return "not_adopted"
 
 
 def calculate_outcome_probabilities(
@@ -280,14 +273,12 @@ def calculate_outcome_probabilities(
     p_attempt = calculate_p_attempt(user_state, scorecard_scores, emergent_state)
     p_success_given_attempt = calculate_p_success(user_state, scorecard_scores, emergent_state)
 
-    p_did_not_try = 1.0 - p_attempt
-    p_failed = p_attempt * (1.0 - p_success_given_attempt)
-    p_success = p_attempt * p_success_given_attempt
+    p_adopted = p_attempt * p_success_given_attempt
+    p_not_adopted = 1.0 - p_adopted
 
     return {
-        "p_did_not_try": p_did_not_try,
-        "p_failed": p_failed,
-        "p_success": p_success,
+        "p_adopted": p_adopted,
+        "p_not_adopted": p_not_adopted,
     }
 
 

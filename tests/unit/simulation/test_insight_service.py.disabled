@@ -82,7 +82,7 @@ def sample_chart_data_try_vs_success():
             "unaware": {"count": 15, "percentage": 15.0},
         },
         "total_synths": 100,
-        "avg_success_rate": 0.45,
+        "avg_adopted_rate": 0.45,
         "avg_try_rate": 0.67,
     }
 
@@ -99,21 +99,21 @@ def sample_chart_data_clustering():
                 "id": 0,
                 "size": 30,
                 "label": "Power Users",
-                "avg_success_rate": 0.85,
+                "avg_adopted_rate": 0.85,
                 "centroid": {"capability": 0.8, "trust": 0.75},
             },
             {
                 "id": 1,
                 "size": 40,
                 "label": "Strugglers",
-                "avg_success_rate": 0.15,
+                "avg_adopted_rate": 0.15,
                 "centroid": {"capability": 0.25, "trust": 0.3},
             },
             {
                 "id": 2,
                 "size": 30,
                 "label": "Casual",
-                "avg_success_rate": 0.55,
+                "avg_adopted_rate": 0.55,
                 "centroid": {"capability": 0.5, "trust": 0.6},
             },
         ],

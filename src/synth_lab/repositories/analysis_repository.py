@@ -323,9 +323,8 @@ if __name__ == "__main__":
         total_tests += 1
         try:
             outcomes = AggregatedOutcomes(
-                did_not_try_rate=0.2,
-                failed_rate=0.3,
-                success_rate=0.5)
+                adopted_rate=0.5,
+                not_adopted_rate=0.5)
             updated = ana_repo.update_status(
                 analysis.id,
                 status="completed",
@@ -339,8 +338,8 @@ if __name__ == "__main__":
                 all_validation_failures.append(f"Status not updated: {updated.status}")
             elif not updated.has_results():
                 all_validation_failures.append("Should have results")
-            elif updated.aggregated_outcomes.success_rate != 0.5:
-                all_validation_failures.append("success_rate mismatch")
+            elif updated.aggregated_outcomes.adopted_rate != 0.5:
+                all_validation_failures.append("adopted_rate mismatch")
         except Exception as e:
             all_validation_failures.append(f"Update status failed: {e}")
 

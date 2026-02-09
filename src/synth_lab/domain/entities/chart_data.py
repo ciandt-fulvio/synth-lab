@@ -2,6 +2,7 @@
 Chart data entities for UX Research analysis.
 
 Defines models for visualization data structures used in analysis endpoints.
+Uses a 2-outcome model: adopted / not_adopted.
 
 References:
     - Spec: specs/017-analysis-ux-research/spec.md
@@ -13,31 +14,30 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 # =============================================================================
-# 1. Try vs Success Chart
+# 1. Adoption Rate Distribution Chart (formerly Try vs Success)
 # =============================================================================
 
 
 class TryVsSuccessPoint(BaseModel):
-    """Individual point in the Try vs Success scatter plot."""
+    """Individual point in the adoption rate distribution."""
 
     synth_id: str = Field(description="ID of the synth.")
-    attempt_rate: float = Field(ge=0.0, le=1.0, description="X-axis: 1 - did_not_try_rate.")
-    success_rate: float = Field(ge=0.0, le=1.0, description="Y-axis: success_rate.")
-    quadrant: Literal["low_value", "usability_issue", "discovery_issue", "ok"] = Field(
-        description="Quadrant classification based on thresholds."
+    adopted_rate: float = Field(ge=0.0, le=1.0, description="Adoption rate.")
+    bucket: Literal["low", "medium", "high"] = Field(
+        description="Bucket classification based on thresholds."
     )
 
 
 class TryVsSuccessChart(BaseModel):
-    """Complete data for Try vs Success chart."""
+    """Complete data for adoption rate distribution chart."""
 
     simulation_id: str = Field(description="ID of the simulation.")
     points: list[TryVsSuccessPoint] = Field(description="All synth points.")
-    quadrant_counts: dict[str, int] = Field(
-        description='Count per quadrant: {"low_value": 50, "usability_issue": 210, ...}'
+    bucket_counts: dict[str, int] = Field(
+        description='Count per bucket: {"low": 50, "medium": 210, "high": 240}'
     )
-    quadrant_thresholds: dict[str, float] = Field(
-        description='Threshold values: {"x": 0.5, "y": 0.5}'
+    bucket_thresholds: dict[str, float] = Field(
+        description='Threshold values: {"low_max": 0.33, "high_min": 0.66}'
     )
     total_synths: int = Field(description="Total number of synths.")
 
@@ -51,9 +51,8 @@ class SynthDistribution(BaseModel):
     """Outcome distribution for a single synth."""
 
     synth_id: str = Field(description="ID of the synth.")
-    did_not_try_rate: float = Field(ge=0.0, le=1.0)
-    failed_rate: float = Field(ge=0.0, le=1.0)
-    success_rate: float = Field(ge=0.0, le=1.0)
+    adopted_rate: float = Field(ge=0.0, le=1.0)
+    not_adopted_rate: float = Field(ge=0.0, le=1.0)
     sort_key: float = Field(description="Value used for sorting.")
 
 
@@ -63,10 +62,10 @@ class OutcomeDistributionChart(BaseModel):
     simulation_id: str = Field(description="ID of the simulation.")
     distributions: list[SynthDistribution] = Field(description="Distribution per synth.")
     summary: dict[str, float] = Field(
-        description='Summary stats: {"avg_success": 0.42, "avg_failed": 0.35, ...}'
+        description='Summary stats: {"avg_adopted": 0.42, "avg_not_adopted": 0.58, ...}'
     )
-    worst_performers: list[str] = Field(description="Top synth_ids with lowest success.")
-    best_performers: list[str] = Field(description="Top synth_ids with highest success.")
+    worst_performers: list[str] = Field(description="Top synth_ids with lowest adoption.")
+    best_performers: list[str] = Field(description="Top synth_ids with highest adoption.")
     total_synths: int = Field(description="Total number of synths.")
 
 
@@ -93,9 +92,7 @@ class FailureHeatmapChart(BaseModel):
     simulation_id: str = Field(description="ID of the simulation.")
     x_axis: str = Field(description='X axis attribute: "capability_mean"')
     y_axis: str = Field(description='Y axis attribute: "trust_mean"')
-    metric: str = Field(
-        description='Metric being displayed: "failed_rate", "success_rate", "did_not_try_rate"'
-    )
+    metric: str = Field(description='Metric being displayed: "adopted_rate" or "not_adopted_rate"')
     bins: int = Field(ge=2, description="Number of bins per axis.")
     cells: list[HeatmapCell] = Field(description="All heatmap cells.")
     max_value: float = Field(description="Maximum metric value across cells.")
@@ -136,9 +133,7 @@ class BoxPlotChart(BaseModel):
     """Data for box plot by region chart."""
 
     simulation_id: str = Field(description="ID of the simulation.")
-    metric: str = Field(
-        description='Metric being displayed: "success_rate", "failed_rate", "did_not_try_rate"'
-    )
+    metric: str = Field(description='Metric being displayed: "adopted_rate" or "not_adopted_rate"')
     regions: list[RegionBoxPlot] = Field(description="Box plot per region.")
     baseline_stats: BoxPlotStats = Field(description="Baseline statistics for entire population.")
 
@@ -191,20 +186,15 @@ class ScatterCorrelationChart(BaseModel):
 
 
 class AttributeCorrelation(BaseModel):
-    """Correlation of a single attribute with outcome metrics."""
+    """Correlation of a single attribute with adoption rate."""
 
     attribute: str = Field(description="Attribute name (e.g., 'capability_mean').")
     attribute_label: str = Field(description="Display label in Portuguese.")
-    correlation_attempt: float = Field(
-        ge=-1.0, le=1.0, description="Pearson correlation with attempt_rate."
+    correlation_adopted: float = Field(
+        ge=-1.0, le=1.0, description="Pearson correlation with adopted_rate."
     )
-    correlation_success: float = Field(
-        ge=-1.0, le=1.0, description="Pearson correlation with success_rate."
-    )
-    p_value_attempt: float = Field(ge=0.0, description="P-value for attempt correlation.")
-    p_value_success: float = Field(ge=0.0, description="P-value for success correlation.")
-    is_significant_attempt: bool = Field(description="True if p < 0.05 for attempt.")
-    is_significant_success: bool = Field(description="True if p < 0.05 for success.")
+    p_value_adopted: float = Field(ge=0.0, description="P-value for adoption correlation.")
+    is_significant_adopted: bool = Field(description="True if p < 0.05 for adoption.")
 
 
 class AttributeCorrelationChart(BaseModel):
@@ -225,9 +215,9 @@ class AttributeCorrelationChart(BaseModel):
 class SankeyNode(BaseModel):
     """A node in the Sankey diagram."""
 
-    id: str = Field(description="Unique node identifier (e.g., 'population', 'did_not_try').")
+    id: str = Field(description="Unique node identifier (e.g., 'population', 'adopted').")
     label: str = Field(description="Display label in Portuguese.")
-    level: Literal[1, 2, 3] = Field(description="Diagram level (1=Population, 2=Outcome, 3=Cause).")
+    level: Literal[1, 2] = Field(description="Diagram level (1=Population, 2=Outcome).")
     color: str = Field(description="Hex color code for node.")
     value: int = Field(ge=0, description="Count of synths at this node.")
 
@@ -243,9 +233,8 @@ class SankeyLink(BaseModel):
 class OutcomeCounts(BaseModel):
     """Aggregated outcome counts."""
 
-    did_not_try: int = Field(ge=0, description="Count of synths with did_not_try as dominant outcome.")
-    failed: int = Field(ge=0, description="Count of synths with failed as dominant outcome.")
-    success: int = Field(ge=0, description="Count of synths with success as dominant outcome.")
+    adopted: int = Field(ge=0, description="Count of synths classified as adopted.")
+    not_adopted: int = Field(ge=0, description="Count of synths classified as not adopted.")
 
 
 class SankeyFlowChart(BaseModel):
@@ -268,17 +257,16 @@ if __name__ == "__main__":
     all_validation_failures: list[str] = []
     total_tests = 0
 
-    # Test 1: TryVsSuccessPoint creation
+    # Test 1: TryVsSuccessPoint creation (now adoption rate distribution)
     total_tests += 1
     try:
         point = TryVsSuccessPoint(
             synth_id="synth_001",
-            attempt_rate=0.75,
-            success_rate=0.40,
-            quadrant="ok",
+            adopted_rate=0.75,
+            bucket="high",
         )
-        if point.quadrant != "ok":
-            all_validation_failures.append(f"quadrant mismatch: {point.quadrant}")
+        if point.bucket != "high":
+            all_validation_failures.append(f"bucket mismatch: {point.bucket}")
     except Exception as e:
         all_validation_failures.append(f"TryVsSuccessPoint creation failed: {e}")
 
@@ -288,13 +276,12 @@ if __name__ == "__main__":
         chart = TryVsSuccessChart(
             simulation_id="sim_001",
             points=[point],
-            quadrant_counts={
-                "low_value": 50,
-                "usability_issue": 210,
-                "discovery_issue": 40,
-                "ok": 200,
+            bucket_counts={
+                "low": 50,
+                "medium": 210,
+                "high": 240,
             },
-            quadrant_thresholds={"x": 0.5, "y": 0.5},
+            bucket_thresholds={"low_max": 0.33, "high_min": 0.66},
             total_synths=500,
         )
         if chart.total_synths != 500:
@@ -307,13 +294,12 @@ if __name__ == "__main__":
     try:
         dist = SynthDistribution(
             synth_id="synth_001",
-            did_not_try_rate=0.20,
-            failed_rate=0.35,
-            success_rate=0.45,
+            adopted_rate=0.45,
+            not_adopted_rate=0.55,
             sort_key=0.45,
         )
-        if dist.success_rate != 0.45:
-            all_validation_failures.append(f"success_rate mismatch: {dist.success_rate}")
+        if dist.adopted_rate != 0.45:
+            all_validation_failures.append(f"adopted_rate mismatch: {dist.adopted_rate}")
     except Exception as e:
         all_validation_failures.append(f"SynthDistribution creation failed: {e}")
 
@@ -367,35 +353,57 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"CorrelationStats creation failed: {e}")
 
-    # Test 7: Reject invalid quadrant
+    # Test 7: Reject invalid bucket
     total_tests += 1
     try:
         TryVsSuccessPoint(
             synth_id="synth_001",
-            attempt_rate=0.75,
-            success_rate=0.40,
-            quadrant="invalid_quadrant",  # type: ignore
+            adopted_rate=0.75,
+            bucket="invalid_bucket",  # type: ignore
         )
-        all_validation_failures.append("Should reject invalid quadrant")
+        all_validation_failures.append("Should reject invalid bucket")
     except ValueError:
         pass  # Expected
     except Exception as e:
-        all_validation_failures.append(f"Unexpected error for invalid quadrant: {e}")
+        all_validation_failures.append(f"Unexpected error for invalid bucket: {e}")
 
-    # Test 8: Reject attempt_rate > 1
+    # Test 8: Reject adopted_rate > 1
     total_tests += 1
     try:
         TryVsSuccessPoint(
             synth_id="synth_001",
-            attempt_rate=1.5,  # Invalid
-            success_rate=0.40,
-            quadrant="ok",
+            adopted_rate=1.5,  # Invalid
+            bucket="high",
         )
-        all_validation_failures.append("Should reject attempt_rate > 1")
+        all_validation_failures.append("Should reject adopted_rate > 1")
     except ValueError:
         pass  # Expected
     except Exception as e:
-        all_validation_failures.append(f"Unexpected error for invalid attempt_rate: {e}")
+        all_validation_failures.append(f"Unexpected error for invalid adopted_rate: {e}")
+
+    # Test 9: OutcomeCounts with 2 outcomes
+    total_tests += 1
+    try:
+        counts = OutcomeCounts(adopted=300, not_adopted=200)
+        if counts.adopted != 300:
+            all_validation_failures.append(f"adopted mismatch: {counts.adopted}")
+    except Exception as e:
+        all_validation_failures.append(f"OutcomeCounts creation failed: {e}")
+
+    # Test 10: AttributeCorrelation with adopted fields
+    total_tests += 1
+    try:
+        attr_corr = AttributeCorrelation(
+            attribute="capability_mean",
+            attribute_label="Capacidade Média",
+            correlation_adopted=0.72,
+            p_value_adopted=0.001,
+            is_significant_adopted=True,
+        )
+        if not attr_corr.is_significant_adopted:
+            all_validation_failures.append("is_significant_adopted should be True")
+    except Exception as e:
+        all_validation_failures.append(f"AttributeCorrelation creation failed: {e}")
 
     # Final validation result
     if all_validation_failures:

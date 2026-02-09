@@ -30,7 +30,7 @@ export function useTryVsSuccessChart(
 
 export function useDistributionChart(
   experimentId: string,
-  sortBy = 'success_rate',
+  sortBy = 'adopted_rate',
   order = 'desc',
   limit = 50,
   enabled = true
@@ -52,7 +52,7 @@ export function useFailureHeatmap(
   xAxis = 'capability_mean',
   yAxis = 'trust_mean',
   bins = 5,
-  metric = 'failed_rate',
+  metric = 'not_adopted_rate',
   enabled = true
 ) {
   return useQuery({
@@ -66,7 +66,7 @@ export function useFailureHeatmap(
 export function useScatterCorrelation(
   experimentId: string,
   xAxis = 'trust_mean',
-  yAxis = 'success_rate',
+  yAxis = 'adopted_rate',
   showTrendline = true,
   enabled = true
 ) {

@@ -73,18 +73,16 @@ session: Session | None = None):
             # Check if outcome already exists (for INSERT OR REPLACE behavior)
             existing = self.session.get(SynthOutcomeORM, outcome_id)
             if existing:
-                existing.did_not_try_rate = outcome["did_not_try_rate"]
-                existing.failed_rate = outcome["failed_rate"]
-                existing.success_rate = outcome["success_rate"]
+                existing.adopted_rate = outcome["adopted_rate"]
+                existing.not_adopted_rate = outcome["not_adopted_rate"]
                 existing.synth_attributes = synth_attrs_dict
             else:
                 orm_outcome = SynthOutcomeORM(
                     id=outcome_id,
                     analysis_id=analysis_id,
                     synth_id=outcome["synth_id"],
-                    did_not_try_rate=outcome["did_not_try_rate"],
-                    failed_rate=outcome["failed_rate"],
-                    success_rate=outcome["success_rate"],
+                    adopted_rate=outcome["adopted_rate"],
+                    not_adopted_rate=outcome["not_adopted_rate"],
                     synth_attributes=synth_attrs_dict)
                 self._add(orm_outcome)
 
@@ -198,9 +196,8 @@ session: Session | None = None):
         return SynthOutcome(
             analysis_id=analysis_id,
             synth_id=orm_outcome.synth_id,
-            did_not_try_rate=orm_outcome.did_not_try_rate,
-            failed_rate=orm_outcome.failed_rate,
-            success_rate=orm_outcome.success_rate,
+            adopted_rate=orm_outcome.adopted_rate,
+            not_adopted_rate=orm_outcome.not_adopted_rate,
             synth_attributes=attrs)
 
 
@@ -253,9 +250,8 @@ if __name__ == "__main__":
             test_outcomes = [
                 {
                     "synth_id": "synth_001",
-                    "did_not_try_rate": 0.1,
-                    "failed_rate": 0.2,
-                    "success_rate": 0.7,
+                    "adopted_rate": 0.7,
+                    "not_adopted_rate": 0.3,
                     "synth_attributes": {
                         "observables": {
                             "digital_literacy": 0.35,
@@ -274,9 +270,8 @@ if __name__ == "__main__":
                 },
                 {
                     "synth_id": "synth_002",
-                    "did_not_try_rate": 0.3,
-                    "failed_rate": 0.3,
-                    "success_rate": 0.4,
+                    "adopted_rate": 0.4,
+                    "not_adopted_rate": 0.6,
                     "synth_attributes": {
                         "observables": {
                             "digital_literacy": 0.60,
@@ -310,9 +305,9 @@ if __name__ == "__main__":
                 all_validation_failures.append(f"Expected 2 outcomes, got {len(outcomes)}")
             if outcomes[0].synth_id != "synth_001":
                 all_validation_failures.append(f"Expected synth_001, got {outcomes[0].synth_id}")
-            if outcomes[0].success_rate != 0.7:
+            if outcomes[0].adopted_rate != 0.7:
                 all_validation_failures.append(
-                    f"Expected success_rate 0.7, got {outcomes[0].success_rate}"
+                    f"Expected adopted_rate 0.7, got {outcomes[0].adopted_rate}"
                 )
         except Exception as e:
             all_validation_failures.append(f"Get saved outcomes failed: {e}")
@@ -334,9 +329,8 @@ if __name__ == "__main__":
             updated_outcomes = [
                 {
                     "synth_id": "synth_001",
-                    "did_not_try_rate": 0.05,
-                    "failed_rate": 0.15,
-                    "success_rate": 0.8,
+                    "adopted_rate": 0.8,
+                    "not_adopted_rate": 0.2,
                     "synth_attributes": {
                         "observables": {
                             "digital_literacy": 0.35,
@@ -357,9 +351,9 @@ if __name__ == "__main__":
             saved = repo.save_outcomes(analysis.id, updated_outcomes)
             outcomes, count = repo.get_outcomes(analysis.id)
             synth_001_outcome = next(o for o in outcomes if o.synth_id == "synth_001")
-            if synth_001_outcome.success_rate != 0.8:
+            if synth_001_outcome.adopted_rate != 0.8:
                 all_validation_failures.append(
-                    f"Expected updated success_rate 0.8, got {synth_001_outcome.success_rate}"
+                    f"Expected updated adopted_rate 0.8, got {synth_001_outcome.adopted_rate}"
                 )
         except Exception as e:
             all_validation_failures.append(f"Update outcomes failed: {e}")

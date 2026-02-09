@@ -34,8 +34,8 @@ class DistributionParams(BaseModel):
     mode: Literal["by_synth", "by_percentile", "by_cluster"] = Field(
         default="by_synth", description="Aggregation mode."
     )
-    sort_by: Literal["success_rate", "failed_rate", "did_not_try_rate"] = Field(
-        default="success_rate", description="Field to sort by."
+    sort_by: Literal["adopted_rate", "not_adopted_rate"] = Field(
+        default="adopted_rate", description="Field to sort by."
     )
     order: Literal["asc", "desc"] = Field(default="desc", description="Sort order.")
     limit: int = Field(default=50, ge=1, le=1000, description="Maximum results to return.")
@@ -47,16 +47,16 @@ class HeatmapParams(BaseModel):
     x_axis: str = Field(default="capability_mean", description="X-axis attribute.")
     y_axis: str = Field(default="trust_mean", description="Y-axis attribute.")
     bins: int = Field(default=5, ge=2, le=20, description="Number of bins per axis.")
-    metric: Literal["failed_rate", "success_rate", "did_not_try_rate"] = Field(
-        default="failed_rate", description="Metric to display in cells."
+    metric: Literal["adopted_rate", "not_adopted_rate"] = Field(
+        default="not_adopted_rate", description="Metric to display in cells."
     )
 
 
 class BoxPlotParams(BaseModel):
     """Query parameters for Box Plot by Region."""
 
-    metric: Literal["success_rate", "failed_rate", "did_not_try_rate"] = Field(
-        default="success_rate", description="Metric to display."
+    metric: Literal["adopted_rate", "not_adopted_rate"] = Field(
+        default="adopted_rate", description="Metric to display."
     )
     include_baseline: bool = Field(default=True, description="Include baseline statistics.")
 
@@ -65,7 +65,7 @@ class ScatterParams(BaseModel):
     """Query parameters for Scatter Correlation chart."""
 
     x_axis: str = Field(default="trust_mean", description="X-axis attribute.")
-    y_axis: str = Field(default="success_rate", description="Y-axis attribute.")
+    y_axis: str = Field(default="adopted_rate", description="Y-axis attribute.")
     show_trendline: bool = Field(default=True, description="Include trend line.")
 
 
@@ -202,15 +202,15 @@ class SegmentExplanationResponse(BaseModel):
     """
 
     segment_size: int = Field(description="Number of synths in the segment.")
-    segment_avg_success: float = Field(
+    segment_avg_adopted: float = Field(
         ge=0.0,
         le=1.0,
-        description="Average success rate of the segment.",
+        description="Average adoption rate of the segment.",
     )
-    population_avg_success: float = Field(
+    population_avg_adopted: float = Field(
         ge=0.0,
         le=1.0,
-        description="Average success rate of the full population.",
+        description="Average adoption rate of the full population.",
     )
     top_differentiating_factors: list[DifferentiatingFactorResponse] = Field(
         default_factory=list,
@@ -261,8 +261,8 @@ if __name__ == "__main__":
     # Test 4: HeatmapParams with custom bins
     total_tests += 1
     try:
-        params = HeatmapParams(bins=7, metric="success_rate")
-        if params.bins != 7 or params.metric != "success_rate":
+        params = HeatmapParams(bins=7, metric="adopted_rate")
+        if params.bins != 7 or params.metric != "adopted_rate":
             all_validation_failures.append("HeatmapParams values incorrect")
     except Exception as e:
         all_validation_failures.append(f"HeatmapParams creation failed: {e}")
@@ -348,8 +348,8 @@ if __name__ == "__main__":
     try:
         resp = SegmentExplanationResponse(
             segment_size=10,
-            segment_avg_success=0.65,
-            population_avg_success=0.50,
+            segment_avg_adopted=0.65,
+            population_avg_adopted=0.50,
             top_differentiating_factors=[
                 DifferentiatingFactorResponse(
                     interaction=InteractionContributionResponse(
@@ -364,7 +364,7 @@ if __name__ == "__main__":
             ],
             explanation_text="High risk-averse users show 27% stronger response to irreversibility.",
         )
-        if resp.segment_size != 10 or resp.segment_avg_success != 0.65:
+        if resp.segment_size != 10 or resp.segment_avg_adopted != 0.65:
             all_validation_failures.append("SegmentExplanationResponse values incorrect")
         if len(resp.top_differentiating_factors) != 1:
             all_validation_failures.append("SegmentExplanationResponse factors incorrect")

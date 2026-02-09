@@ -26,7 +26,7 @@ class ExplorationCreate(BaseModel):
     goal_value: float = Field(
         ge=0.0,
         le=1.0,
-        description="Target success_rate to achieve (0-1).",
+        description="Target adopted_rate to achieve (0-1).",
         json_schema_extra={"example": 0.40})
 
     beam_width: int = Field(
@@ -64,7 +64,7 @@ class ExplorationCreate(BaseModel):
 class GoalResponse(BaseModel):
     """Goal definition in response."""
 
-    metric: str = Field(description="Metric to optimize (success_rate).")
+    metric: str = Field(description="Metric to optimize (adopted_rate).")
     operator: str = Field(description="Comparison operator (>=).")
     value: float = Field(description="Target value.")
 
@@ -85,8 +85,8 @@ class ExplorationSummary(BaseModel):
 
     id: str = Field(description="Exploration ID.")
     status: str = Field(description="Current status.")
-    goal_value: float = Field(description="Target success_rate.")
-    best_success_rate: float | None = Field(description="Best success rate achieved.")
+    goal_value: float = Field(description="Target adopted_rate.")
+    best_adopted_rate: float | None = Field(description="Best adoption rate achieved.")
     total_nodes: int = Field(description="Total nodes created.")
     started_at: datetime = Field(description="Start timestamp.")
     completed_at: datetime | None = Field(description="Completion timestamp.")
@@ -104,7 +104,7 @@ class ExplorationResponse(BaseModel):
     current_depth: int = Field(description="Current depth reached.")
     total_nodes: int = Field(description="Total nodes created.")
     total_llm_calls: int = Field(description="Total LLM calls made.")
-    best_success_rate: float | None = Field(description="Best success rate achieved.")
+    best_adopted_rate: float | None = Field(description="Best adoption rate achieved.")
     started_at: datetime = Field(description="Start timestamp.")
     completed_at: datetime | None = Field(description="Completion timestamp.")
 
@@ -119,11 +119,10 @@ class ScorecardParamsResponse(BaseModel):
 
 
 class SimulationResultsResponse(BaseModel):
-    """Simulation results in response."""
+    """Simulation results in response (2-outcome model)."""
 
-    success_rate: float
-    fail_rate: float
-    did_not_try_rate: float
+    adopted_rate: float
+    not_adopted_rate: float
 
 
 class ScenarioNodeResponse(BaseModel):
@@ -161,8 +160,8 @@ class PathStepResponse(BaseModel):
     action: str | None
     category: str | None
     rationale: str | None
-    success_rate: float
-    delta_success_rate: float
+    adopted_rate: float
+    delta_adopted_rate: float
 
 
 class WinningPathResponse(BaseModel):
@@ -171,7 +170,7 @@ class WinningPathResponse(BaseModel):
     exploration_id: str = Field(description="Exploration ID.")
     winner_node_id: str = Field(description="Winner node ID.")
     path: list[PathStepResponse] = Field(description="Path from root to winner.")
-    total_improvement: float = Field(description="Total success_rate improvement.")
+    total_improvement: float = Field(description="Total adopted_rate improvement.")
 
 
 class IterationResultResponse(BaseModel):
@@ -184,7 +183,7 @@ class IterationResultResponse(BaseModel):
     nodes_created: int
     nodes_dominated: int
     llm_calls_made: int
-    best_success_rate: float
+    best_adopted_rate: float
     frontier_size: int
 
 
@@ -245,7 +244,7 @@ def exploration_to_response(exploration) -> ExplorationResponse:
         current_depth=exploration.current_depth,
         total_nodes=exploration.total_nodes,
         total_llm_calls=exploration.total_llm_calls,
-        best_success_rate=exploration.best_success_rate,
+        best_adopted_rate=exploration.best_adopted_rate,
         started_at=exploration.started_at,
         completed_at=exploration.completed_at)
 
@@ -255,9 +254,8 @@ def node_to_response(node) -> ScenarioNodeResponse:
     simulation_results = None
     if node.simulation_results:
         simulation_results = SimulationResultsResponse(
-            success_rate=node.simulation_results.success_rate,
-            fail_rate=node.simulation_results.fail_rate,
-            did_not_try_rate=node.simulation_results.did_not_try_rate)
+            adopted_rate=node.simulation_results.adopted_rate,
+            not_adopted_rate=node.simulation_results.not_adopted_rate)
 
     return ScenarioNodeResponse(
         id=node.id,

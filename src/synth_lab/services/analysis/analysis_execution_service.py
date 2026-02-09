@@ -138,9 +138,8 @@ class AnalysisExecutionService:
             outcome_dicts = [
                 {
                     "synth_id": o.synth_id,
-                    "did_not_try_rate": o.did_not_try_rate,
-                    "failed_rate": o.failed_rate,
-                    "success_rate": o.success_rate,
+                    "adopted_rate": o.adopted_rate,
+                    "not_adopted_rate": o.not_adopted_rate,
                     "synth_attributes": o.synth_attributes,
                 }
                 for o in results.synth_outcomes
@@ -149,9 +148,8 @@ class AnalysisExecutionService:
 
             # Update analysis with results
             aggregated = AggregatedOutcomes(
-                did_not_try_rate=results.aggregated_did_not_try,
-                failed_rate=results.aggregated_failed,
-                success_rate=results.aggregated_success)
+                adopted_rate=results.aggregated_adopted,
+                not_adopted_rate=results.aggregated_not_adopted)
 
             updated_analysis = self.analysis_repo.update_status(
                 analysis_id=analysis.id,

@@ -31,19 +31,18 @@ import type {
 
 export async function getTryVsSuccessChart(
   simulationId: string,
-  attemptRateThreshold = 0.5,
-  successRateThreshold = 0.5
+  _attemptRateThreshold = 0.5, // deprecated: no longer used in 2-outcome model
+  adoptedRateThreshold = 0.5
 ): Promise<TryVsSuccessChart> {
   const params = new URLSearchParams({
-    attempt_rate_threshold: String(attemptRateThreshold),
-    success_rate_threshold: String(successRateThreshold),
+    adopted_rate_threshold: String(adoptedRateThreshold),
   });
   return fetchAPI(`/simulation/simulations/${simulationId}/charts/try-vs-success?${params}`);
 }
 
 export async function getDistributionChart(
   simulationId: string,
-  sortBy = 'success_rate',
+  sortBy = 'adopted_rate',
   order = 'desc',
   limit = 50
 ): Promise<OutcomeDistributionChart> {
@@ -64,7 +63,7 @@ export async function getFailureHeatmap(
   xAxis = 'capability_mean',
   yAxis = 'trust_mean',
   bins = 5,
-  metric = 'failed_rate'
+  metric = 'not_adopted_rate'
 ): Promise<FailureHeatmapChart> {
   const params = new URLSearchParams({
     x_axis: xAxis,
@@ -86,7 +85,7 @@ export async function getBoxPlotChart(
 export async function getScatterCorrelation(
   simulationId: string,
   xAxis = 'trust_mean',
-  yAxis = 'success_rate',
+  yAxis = 'adopted_rate',
   showTrendline = true
 ): Promise<ScatterCorrelationChart> {
   const params = new URLSearchParams({

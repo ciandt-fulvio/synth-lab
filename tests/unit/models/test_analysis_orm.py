@@ -156,8 +156,8 @@ class TestSynthOutcomeModel:
     def test_required_columns_exist(self):
         """SynthOutcome should have all required columns."""
         columns = set(SynthOutcome.__table__.columns.keys())
-        required = {"id", "analysis_id", "synth_id", "did_not_try_rate",
-                   "failed_rate", "success_rate", "synth_attributes"}
+        required = {"id", "analysis_id", "synth_id", "adopted_rate",
+                   "not_adopted_rate", "synth_attributes"}
         assert required.issubset(columns)
 
     def test_has_foreign_key_to_analysis_runs(self):
@@ -187,9 +187,8 @@ class TestSynthOutcomeCRUD:
             id="out_11111111",
             analysis_id="ana_44444444",
             synth_id="syn001",
-            did_not_try_rate=0.2,
-            failed_rate=0.3,
-            success_rate=0.5,
+            adopted_rate=0.60,
+            not_adopted_rate=0.40,
             synth_attributes={"age": 35, "income": "high"},
         )
         session.add(outcome)
@@ -197,7 +196,7 @@ class TestSynthOutcomeCRUD:
 
         result = session.get(SynthOutcome, "out_11111111")
         assert result is not None
-        assert result.success_rate == 0.5
+        assert result.adopted_rate == 0.60
         assert result.synth_attributes["age"] == 35
 
     def test_outcome_analysis_relationship(self, session: Session, sample_experiment: Experiment):
@@ -218,9 +217,8 @@ class TestSynthOutcomeCRUD:
                 id=f"out_2{i}",
                 analysis_id="ana_55555555",
                 synth_id=f"syn00{i}",
-                did_not_try_rate=0.1,
-                failed_rate=0.2,
-                success_rate=0.7,
+                adopted_rate=0.70,
+                not_adopted_rate=0.30,
             )
             session.add(outcome)
         session.commit()
@@ -245,9 +243,8 @@ class TestSynthOutcomeCRUD:
             id="out_delete1",
             analysis_id="ana_66666666",
             synth_id="syn001",
-            did_not_try_rate=0.0,
-            failed_rate=0.0,
-            success_rate=1.0,
+            adopted_rate=1.0,
+            not_adopted_rate=0.0,
         )
         session.add(outcome)
         session.commit()

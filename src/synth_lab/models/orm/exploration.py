@@ -37,7 +37,7 @@ class Exploration(Base):
         current_depth: Current tree depth
         total_nodes: Total nodes explored
         total_llm_calls: Number of LLM API calls
-        best_success_rate: Best success rate found
+        best_adopted_rate: Best adopted rate found
         started_at: ISO timestamp of start
         completed_at: ISO timestamp of completion
 
@@ -66,7 +66,7 @@ class Exploration(Base):
     current_depth: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     total_nodes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     total_llm_calls: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    best_success_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
+    best_adopted_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
     started_at: Mapped[str] = mapped_column(String(50), nullable=False)
     completed_at: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
@@ -198,7 +198,7 @@ if __name__ == "__main__":
 
     # Test 3: Exploration has required columns
     total_tests += 1
-    required_columns = {"id", "experiment_id", "baseline_analysis_id", "goal", "config", "status", "current_depth", "total_nodes", "total_llm_calls", "best_success_rate", "started_at", "completed_at"}
+    required_columns = {"id", "experiment_id", "baseline_analysis_id", "goal", "config", "status", "current_depth", "total_nodes", "total_llm_calls", "best_adopted_rate", "started_at", "completed_at"}
     actual_columns = set(Exploration.__table__.columns.keys())
     missing = required_columns - actual_columns
     if missing:

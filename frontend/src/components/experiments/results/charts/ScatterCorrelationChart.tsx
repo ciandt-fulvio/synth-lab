@@ -27,9 +27,8 @@ function formatAxisLabel(label: string): string {
 
   // Outcome metrics
   const outcomeLabels: Record<string, string> = {
-    attempt_rate: 'Taxa de Tentativa',
-    success_rate: 'Taxa de Sucesso',
-    failed_rate: 'Taxa de Falha',
+    adopted_rate: 'Taxa de Adoção',
+    not_adopted_rate: 'Taxa de Não Adoção',
   };
   if (outcomeLabels[label]) {
     return outcomeLabels[label];

@@ -25,9 +25,8 @@ DEFAULT_FEATURES = [
 
 
 def extract_features(
-    outcomes: list[SynthOutcome],
-    features: list[str] | None = None,
-    include_outcomes: bool = False) -> tuple[np.ndarray, list[str], list[str]]:
+    outcomes: list[SynthOutcome], features: list[str] | None = None, include_outcomes: bool = False
+) -> tuple[np.ndarray, list[str], list[str]]:
     """
     Extract feature matrix from synth outcomes.
 
@@ -56,7 +55,7 @@ def extract_features(
     feature_names = features.copy()
 
     if include_outcomes:
-        feature_names.extend(["success_rate", "failed_rate", "did_not_try_rate"])
+        feature_names.extend(["adopted_rate", "not_adopted_rate"])
 
     X = []
     synth_ids = []
@@ -78,9 +77,8 @@ def extract_features(
                 row.append(0.0)
 
         if include_outcomes:
-            row.append(outcome.success_rate)
-            row.append(outcome.failed_rate)
-            row.append(outcome.did_not_try_rate)
+            row.append(outcome.adopted_rate)
+            row.append(outcome.not_adopted_rate)
 
         X.append(row)
         synth_ids.append(outcome.synth_id)
@@ -94,17 +92,15 @@ def get_outcome_value(outcome: SynthOutcome, metric: str) -> float:
 
     Args:
         outcome: SynthOutcome entity.
-        metric: One of "success_rate", "failed_rate", "did_not_try_rate".
+        metric: One of "adopted_rate", "not_adopted_rate".
 
     Returns:
         The metric value as float.
     """
-    if metric == "success_rate":
-        return outcome.success_rate
-    elif metric == "failed_rate":
-        return outcome.failed_rate
-    elif metric == "did_not_try_rate":
-        return outcome.did_not_try_rate
+    if metric == "adopted_rate":
+        return outcome.adopted_rate
+    elif metric == "not_adopted_rate":
+        return outcome.not_adopted_rate
     else:
         raise ValueError(f"Unknown metric: {metric}")
 
@@ -131,14 +127,10 @@ def get_attribute_value(outcome: SynthOutcome, attribute: str) -> float:
         return getattr(observables, attribute)
 
     # Check outcome fields
-    if attribute == "success_rate":
-        return outcome.success_rate
-    elif attribute == "failed_rate":
-        return outcome.failed_rate
-    elif attribute == "did_not_try_rate":
-        return outcome.did_not_try_rate
-    elif attribute == "attempt_rate":
-        return 1.0 - outcome.did_not_try_rate
+    if attribute == "adopted_rate":
+        return outcome.adopted_rate
+    elif attribute == "not_adopted_rate":
+        return outcome.not_adopted_rate
 
     raise ValueError(f"Unknown attribute: {attribute}")
 
@@ -165,9 +157,8 @@ def get_available_attributes() -> dict[str, list[str]]:
             "domain_expertise",
         ],
         "outcomes": [
-            "success_rate",
-            "failed_rate",
-            "did_not_try_rate",
+            "adopted_rate",
+            "not_adopted_rate",
         ],
     }
 
@@ -182,36 +173,40 @@ if __name__ == "__main__":
     from synth_lab.domain.entities.simulation_attributes import (
         SimulationAttributes,
         SimulationLatentTraits,
-        SimulationObservables)
+        SimulationObservables,
+    )
 
     all_validation_failures: list[str] = []
     total_tests = 0
 
-    # Create sample outcomes for tests
-    def create_outcome(synth_id: str, success: float, failed: float) -> SynthOutcome:
+    # Create sample outcomes for tests (2-outcome model)
+    def create_outcome(synth_id: str, adopted: float) -> SynthOutcome:
         return SynthOutcome(
             analysis_id="ana_12345678",
             synth_id=synth_id,
-            success_rate=success,
-            failed_rate=failed,
-            did_not_try_rate=1.0 - success - failed,
+            adopted_rate=adopted,
+            not_adopted_rate=1.0 - adopted,
             synth_attributes=SimulationAttributes(
                 observables=SimulationObservables(
                     digital_literacy=0.5,
                     similar_tool_experience=0.4,
                     motor_ability=0.8,
                     time_availability=0.3,
-                    domain_expertise=0.6),
+                    domain_expertise=0.6,
+                ),
                 latent_traits=SimulationLatentTraits(
                     capability_mean=0.55,
                     trust_mean=0.45,
                     friction_tolerance_mean=0.40,
-                    exploration_prob=0.35)))
+                    exploration_prob=0.35,
+                ),
+            ),
+        )
 
     outcomes = [
-        create_outcome("synth_001", 0.40, 0.35),
-        create_outcome("synth_002", 0.60, 0.25),
-        create_outcome("synth_003", 0.30, 0.45),
+        create_outcome("synth_001", 0.40),
+        create_outcome("synth_002", 0.60),
+        create_outcome("synth_003", 0.30),
     ]
 
     # Test 1: Extract default features (5 observables only)
@@ -227,14 +222,14 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Default features extraction failed: {e}")
 
-    # Test 2: Extract with include_outcomes (5 features + 3 outcomes = 8)
+    # Test 2: Extract with include_outcomes (5 features + 2 outcomes = 7)
     total_tests += 1
     try:
         X, synth_ids, feature_names = extract_features(outcomes, include_outcomes=True)
-        if X.shape != (3, 8):
+        if X.shape != (3, 7):
             all_validation_failures.append(f"Shape with outcomes mismatch: {X.shape}")
-        if "success_rate" not in feature_names:
-            all_validation_failures.append("success_rate not in feature_names")
+        if "adopted_rate" not in feature_names:
+            all_validation_failures.append("adopted_rate not in feature_names")
     except Exception as e:
         all_validation_failures.append(f"Include outcomes extraction failed: {e}")
 
@@ -277,7 +272,7 @@ if __name__ == "__main__":
     # Test 6: get_outcome_value
     total_tests += 1
     try:
-        value = get_outcome_value(outcomes[0], "success_rate")
+        value = get_outcome_value(outcomes[0], "adopted_rate")
         if value != 0.40:
             all_validation_failures.append(f"get_outcome_value mismatch: {value}")
     except Exception as e:
@@ -304,7 +299,7 @@ if __name__ == "__main__":
     # Test 9: get_attribute_value - outcome
     total_tests += 1
     try:
-        value = get_attribute_value(outcomes[0], "success_rate")
+        value = get_attribute_value(outcomes[0], "adopted_rate")
         if value != 0.40:
             all_validation_failures.append(f"get_attribute_value outcome: {value}")
     except Exception as e:

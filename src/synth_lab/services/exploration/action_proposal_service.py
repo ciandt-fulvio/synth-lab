@@ -148,7 +148,7 @@ class ActionProposalService:
 
             self.logger.info(
                 f"Generating proposals for node {node.id} "
-                f"(depth={node.depth}, success_rate={node.get_success_rate():.2%})"
+                f"(depth={node.depth}, adopted_rate={node.get_adopted_rate():.2%})"
             )
 
             try:
@@ -186,7 +186,7 @@ REGRAS IMPORTANTES:
 2. Cada acao deve ser CONCRETA e ESPECIFICA (nao generica)
 3. Cada acao deve ter uma CATEGORIA do catalogo fornecido
 4. Os IMPACTOS devem ser pequenos e realistas (entre -0.10 e +0.10)
-5. Foque em reduzir complexity, perceived_risk e time_to_value para aumentar success_rate
+5. Foque em reduzir complexity, perceived_risk e time_to_value para aumentar adopted_rate
 6. O rationale deve explicar POR QUE essa acao ajudaria
 7. O short_action deve ser um RESUMO em 3 palavras (maximo 30 caracteres)
 8. NUNCA repita acoes que ja foram aplicadas no caminho atual (veja secao "Historico")
@@ -297,9 +297,8 @@ EXEMPLOS de short_action:
 
         if results:
             prompt_parts.extend([
-                f"- Success Rate: {results.success_rate:.2%}",
-                f"- Fail Rate: {results.fail_rate:.2%}",
-                f"- Did Not Try Rate: {results.did_not_try_rate:.2%}",
+                f"- Adopted Rate: {results.adopted_rate:.2%}",
+                f"- Not Adopted Rate: {results.not_adopted_rate:.2%}",
             ])
         else:
             prompt_parts.append("(simulacao pendente)")
@@ -310,7 +309,7 @@ EXEMPLOS de short_action:
             "",
             "## Instrucoes",
             "",
-            f"Proponha ate {max_proposals} acoes concretas para melhorar o success_rate.",
+            f"Proponha ate {max_proposals} acoes concretas para melhorar o adopted_rate.",
             "Cada acao deve ter categoria valida do catalogo e impactos estimados.",
             "EVITE repeticoes das acoes ja aplicadas no historico acima.",
             "Retorne APENAS o JSON, sem explicacoes adicionais.",
@@ -548,9 +547,8 @@ if __name__ == "__main__":
                 perceived_risk=0.25,
                 time_to_value=0.40),
             simulation_results=SimulationResults(
-                success_rate=0.25,
-                fail_rate=0.45,
-                did_not_try_rate=0.30))
+                adopted_rate=0.25,
+                not_adopted_rate=0.75))
 
         # Mock repository to avoid database dependency
         mock_repo = MagicMock()
@@ -563,8 +561,8 @@ if __name__ == "__main__":
             all_validation_failures.append("Prompt should contain experiment name")
         if "Complexity: 0.45" not in prompt:
             all_validation_failures.append("Prompt should contain complexity")
-        if "Success Rate: 25.00%" not in prompt:
-            all_validation_failures.append("Prompt should contain success rate")
+        if "Adopted Rate: 25.00%" not in prompt:
+            all_validation_failures.append("Prompt should contain adopted rate")
         if "Catalogo de Acoes" not in prompt:
             all_validation_failures.append("Prompt should contain catalog context")
         # Root node (path length = 1) should NOT have action history

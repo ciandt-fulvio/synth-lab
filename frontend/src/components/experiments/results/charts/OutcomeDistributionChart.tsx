@@ -1,5 +1,5 @@
 // frontend/src/components/experiments/results/charts/OutcomeDistributionChart.tsx
-// Pie chart showing outcome distribution (success, failed, did not try)
+// Pie chart showing outcome distribution (adopted, not adopted)
 
 import {
   PieChart,
@@ -17,15 +17,13 @@ interface OutcomeDistributionChartProps {
 
 // Outcome colors
 const OUTCOME_COLORS = {
-  success: '#22c55e', // Green
-  failed: '#ef4444', // Red
-  did_not_try: '#f59e0b', // Amber/Gold - important: not gray!
+  adopted: '#22c55e', // Green
+  not_adopted: '#94a3b8', // Slate/Gray
 } as const;
 
 const OUTCOME_LABELS = {
-  success: 'Sucesso',
-  failed: 'Falhou',
-  did_not_try: 'Não Tentou',
+  adopted: 'Adotaram',
+  not_adopted: 'Não Adotaram',
 } as const;
 
 interface CustomTooltipProps {
@@ -90,30 +88,25 @@ export function OutcomeDistributionChart({ data }: OutcomeDistributionChartProps
   // Transform data for pie chart using summary averages
   const pieData = [
     {
-      name: OUTCOME_LABELS.success,
-      value: summary.avg_success * 100,
-      fill: OUTCOME_COLORS.success,
+      name: OUTCOME_LABELS.adopted,
+      value: summary.avg_adopted * 100,
+      fill: OUTCOME_COLORS.adopted,
     },
     {
-      name: OUTCOME_LABELS.failed,
-      value: summary.avg_failed * 100,
-      fill: OUTCOME_COLORS.failed,
-    },
-    {
-      name: OUTCOME_LABELS.did_not_try,
-      value: summary.avg_did_not_try * 100,
-      fill: OUTCOME_COLORS.did_not_try,
+      name: OUTCOME_LABELS.not_adopted,
+      value: summary.avg_not_adopted * 100,
+      fill: OUTCOME_COLORS.not_adopted,
     },
   ].filter((item) => item.value > 0);
 
   return (
     <div className="space-y-4">
-      {/* Big success number */}
+      {/* Big adoption number */}
       <div className="text-center">
         <span className="text-5xl font-bold text-green-600">
-          {(summary.avg_success * 100).toFixed(0)}%
+          {(summary.avg_adopted * 100).toFixed(0)}%
         </span>
-        <p className="text-sm text-slate-500 mt-1">Taxa de Sucesso Média</p>
+        <p className="text-sm text-slate-500 mt-1">Taxa de Adoção Média</p>
       </div>
 
       {/* Pie chart */}
@@ -140,24 +133,18 @@ export function OutcomeDistributionChart({ data }: OutcomeDistributionChartProps
       </ResponsiveContainer>
 
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-4 text-center">
+      <div className="grid grid-cols-2 gap-4 text-center">
         <div className="p-3 bg-green-50 rounded-lg">
           <p className="text-2xl font-bold text-green-600">
-            {(summary.avg_success * 100).toFixed(1)}%
+            {(summary.avg_adopted * 100).toFixed(1)}%
           </p>
-          <p className="text-xs text-green-700">Sucesso</p>
+          <p className="text-xs text-green-700">Adotaram</p>
         </div>
-        <div className="p-3 bg-red-50 rounded-lg">
-          <p className="text-2xl font-bold text-red-600">
-            {(summary.avg_failed * 100).toFixed(1)}%
+        <div className="p-3 bg-slate-50 rounded-lg">
+          <p className="text-2xl font-bold text-slate-600">
+            {(summary.avg_not_adopted * 100).toFixed(1)}%
           </p>
-          <p className="text-xs text-red-700">Falharam</p>
-        </div>
-        <div className="p-3 bg-amber-50 rounded-lg">
-          <p className="text-2xl font-bold text-amber-600">
-            {(summary.avg_did_not_try * 100).toFixed(1)}%
-          </p>
-          <p className="text-xs text-amber-700">Não Tentaram</p>
+          <p className="text-xs text-slate-700">Não Adotaram</p>
         </div>
       </div>
 

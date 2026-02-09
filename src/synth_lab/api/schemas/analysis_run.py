@@ -57,25 +57,19 @@ class AnalysisConfigSchema(BaseModel):
 
 
 class AggregatedOutcomesSchema(BaseModel):
-    """Schema for aggregated analysis outcomes."""
+    """Schema for aggregated analysis outcomes (2-outcome model)."""
 
-    did_not_try_rate: float = Field(
+    adopted_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Proportion that did not try.",
-        examples=[0.2])
+        description="Proportion that adopted the feature.",
+        examples=[0.6])
 
-    failed_rate: float = Field(
+    not_adopted_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Proportion that tried but failed.",
-        examples=[0.3])
-
-    success_rate: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Proportion that succeeded.",
-        examples=[0.5])
+        description="Proportion that did not adopt the feature.",
+        examples=[0.4])
 
 
 # =============================================================================
@@ -166,20 +160,15 @@ class SynthOutcomeResponse(BaseModel):
         description="Synth ID.",
         examples=["synth_001"])
 
-    did_not_try_rate: float = Field(
+    adopted_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Proportion that did not try.")
+        description="Proportion that adopted the feature.")
 
-    failed_rate: float = Field(
+    not_adopted_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Proportion that tried but failed.")
-
-    success_rate: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Proportion that succeeded.")
+        description="Proportion that did not adopt the feature.")
 
     synth_attributes: SynthAttributesSchema = Field(
         description="Synth's simulation attributes.")
@@ -212,10 +201,10 @@ class InterviewSuggestionSchema(BaseModel):
     reason: str = Field(
         description="Reason for suggestion.")
 
-    failure_rate: float = Field(
+    not_adopted_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Synth's failure rate.")
+        description="Synth's non-adoption rate.")
 
     cluster_id: int | None = Field(
         default=None,
@@ -311,11 +300,12 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         outcomes = AggregatedOutcomesSchema(
-            did_not_try_rate=0.2,
-            failed_rate=0.3,
-            success_rate=0.5)
-        if outcomes.success_rate != 0.5:
-            all_validation_failures.append(f"success_rate mismatch: {outcomes.success_rate}")
+            adopted_rate=0.6,
+            not_adopted_rate=0.4)
+        if outcomes.adopted_rate != 0.6:
+            all_validation_failures.append(f"adopted_rate mismatch: {outcomes.adopted_rate}")
+        if outcomes.not_adopted_rate != 0.4:
+            all_validation_failures.append(f"not_adopted_rate mismatch: {outcomes.not_adopted_rate}")
     except Exception as e:
         all_validation_failures.append(f"AggregatedOutcomesSchema creation failed: {e}")
 
@@ -324,9 +314,8 @@ if __name__ == "__main__":
     try:
         config = AnalysisConfigSchema()
         outcomes = AggregatedOutcomesSchema(
-            did_not_try_rate=0.2,
-            failed_rate=0.3,
-            success_rate=0.5)
+            adopted_rate=0.6,
+            not_adopted_rate=0.4)
         response = AnalysisResponse(
             id="ana_12345678",
             experiment_id="exp_12345678",
@@ -359,12 +348,11 @@ if __name__ == "__main__":
         outcome = SynthOutcomeResponse(
             id="out_12345678",
             synth_id="synth_001",
-            did_not_try_rate=0.2,
-            failed_rate=0.3,
-            success_rate=0.5,
+            adopted_rate=0.6,
+            not_adopted_rate=0.4,
             synth_attributes=attrs)
-        if outcome.success_rate != 0.5:
-            all_validation_failures.append(f"outcome success_rate mismatch: {outcome.success_rate}")
+        if outcome.adopted_rate != 0.6:
+            all_validation_failures.append(f"outcome adopted_rate mismatch: {outcome.adopted_rate}")
     except Exception as e:
         all_validation_failures.append(f"SynthOutcomeResponse creation failed: {e}")
 
@@ -374,11 +362,11 @@ if __name__ == "__main__":
         suggestion = InterviewSuggestionSchema(
             synth_id="synth_001",
             synth_name="Maria Silva",
-            reason="High failure rate in low-trust cluster",
-            failure_rate=0.75,
+            reason="High non-adoption rate in low-trust cluster",
+            not_adopted_rate=0.75,
             cluster_id=2)
-        if suggestion.failure_rate != 0.75:
-            all_validation_failures.append("suggestion failure_rate mismatch")
+        if suggestion.not_adopted_rate != 0.75:
+            all_validation_failures.append("suggestion not_adopted_rate mismatch")
     except Exception as e:
         all_validation_failures.append(f"InterviewSuggestionSchema creation failed: {e}")
 

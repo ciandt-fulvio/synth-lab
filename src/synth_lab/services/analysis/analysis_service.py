@@ -318,9 +318,8 @@ if __name__ == "__main__":
         total_tests += 1
         try:
             outcomes = AggregatedOutcomes(
-                did_not_try_rate=0.2,
-                failed_rate=0.3,
-                success_rate=0.5)
+                adopted_rate=0.5,
+                not_adopted_rate=0.5)
             completed = service.complete_analysis(
                 analysis_id=analysis.id,
                 total_synths=100,

@@ -72,7 +72,7 @@ session: Session | None = None):
             current_depth=exploration.current_depth,
             total_nodes=exploration.total_nodes,
             total_llm_calls=exploration.total_llm_calls,
-            best_success_rate=exploration.best_success_rate,
+            best_adopted_rate=exploration.best_adopted_rate,
             started_at=exploration.started_at.isoformat(),
             completed_at=(
                 exploration.completed_at.isoformat() if exploration.completed_at else None
@@ -113,7 +113,7 @@ session: Session | None = None):
             orm_exploration.current_depth = exploration.current_depth
             orm_exploration.total_nodes = exploration.total_nodes
             orm_exploration.total_llm_calls = exploration.total_llm_calls
-            orm_exploration.best_success_rate = exploration.best_success_rate
+            orm_exploration.best_adopted_rate = exploration.best_adopted_rate
             orm_exploration.completed_at = (
                 exploration.completed_at.isoformat() if exploration.completed_at else None
             )
@@ -352,9 +352,9 @@ session: Session | None = None):
         for status_val, count in rows:
             result[status_val] = count
         return result
-    def get_best_node_by_success_rate(self, exploration_id: str) -> ScenarioNode | None:
+    def get_best_node_by_adopted_rate(self, exploration_id: str) -> ScenarioNode | None:
         """
-        Get the node with highest success rate.
+        Get the node with highest adopted rate.
 
         Args:
             exploration_id: Exploration ID.
@@ -371,10 +371,10 @@ session: Session | None = None):
         orm_nodes = list(self.session.execute(stmt).scalars().all())
         if not orm_nodes:
             return None
-        # Find best by success_rate
+        # Find best by adopted_rate
         best_node = max(
             orm_nodes,
-            key=lambda n: n.simulation_results.get("success_rate", 0.0)
+            key=lambda n: n.simulation_results.get("adopted_rate", 0.0)
             if n.simulation_results
             else 0.0)
         return self._orm_to_node(best_node)
@@ -418,7 +418,7 @@ session: Session | None = None):
             current_depth=row["current_depth"],
             total_nodes=row["total_nodes"],
             total_llm_calls=row["total_llm_calls"],
-            best_success_rate=row["best_success_rate"],
+            best_adopted_rate=row["best_adopted_rate"],
             started_at=started_at,
             completed_at=completed_at)
 
@@ -478,7 +478,7 @@ session: Session | None = None):
             current_depth=orm_exploration.current_depth,
             total_nodes=orm_exploration.total_nodes,
             total_llm_calls=orm_exploration.total_llm_calls,
-            best_success_rate=orm_exploration.best_success_rate,
+            best_adopted_rate=orm_exploration.best_adopted_rate,
             started_at=started_at,
             completed_at=completed_at)
 
@@ -577,9 +577,8 @@ if __name__ == "__main__":
                     perceived_risk=0.25,
                     time_to_value=0.40),
                 simulation_results=SimulationResults(
-                    success_rate=0.25,
-                    fail_rate=0.45,
-                    did_not_try_rate=0.30))
+                    adopted_rate=0.25,
+                    not_adopted_rate=0.75))
             result = repo.create_node(root_node)
             if result.id != root_node.id:
                 all_validation_failures.append(f"Root node ID mismatch: {result.id}")
@@ -614,9 +613,8 @@ if __name__ == "__main__":
                     perceived_risk=0.25,
                     time_to_value=0.38),
                 simulation_results=SimulationResults(
-                    success_rate=0.32,
-                    fail_rate=0.40,
-                    did_not_try_rate=0.28))
+                    adopted_rate=0.32,
+                    not_adopted_rate=0.68))
             result = repo.create_node(child_node)
             if result.parent_id != root_node.id:
                 all_validation_failures.append(f"Child parent_id mismatch: {result.parent_id}")
@@ -668,10 +666,10 @@ if __name__ == "__main__":
         except Exception as e:
             all_validation_failures.append(f"Count nodes by status failed: {e}")
 
-        # Test 10: Get best node by success rate
+        # Test 10: Get best node by adopted rate
         total_tests += 1
         try:
-            best = repo.get_best_node_by_success_rate(exploration.id)
+            best = repo.get_best_node_by_adopted_rate(exploration.id)
             if best is None:
                 all_validation_failures.append("Get best node returned None")
             elif best.id != child_node.id:
@@ -684,16 +682,16 @@ if __name__ == "__main__":
         try:
             exploration.current_depth = 1
             exploration.total_nodes = 2
-            exploration.best_success_rate = 0.32
+            exploration.best_adopted_rate = 0.32
             result = repo.update_exploration(exploration)
             retrieved = repo.get_exploration_by_id(exploration.id)
             if retrieved.current_depth != 1:
                 all_validation_failures.append(
                     f"current_depth not updated: {retrieved.current_depth}"
                 )
-            if retrieved.best_success_rate != 0.32:
+            if retrieved.best_adopted_rate != 0.32:
                 all_validation_failures.append(
-                    f"best_success_rate not updated: {retrieved.best_success_rate}"
+                    f"best_adopted_rate not updated: {retrieved.best_adopted_rate}"
                 )
         except Exception as e:
             all_validation_failures.append(f"Update exploration failed: {e}")

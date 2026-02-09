@@ -101,33 +101,26 @@ class SimulationResults(BaseModel):
     Results from Monte Carlo simulation.
 
     Attributes:
-        success_rate: Rate of successful outcomes [0, 1]
-        fail_rate: Rate of failed outcomes [0, 1]
-        did_not_try_rate: Rate of did-not-try outcomes [0, 1]
+        adopted_rate: Rate of adopted outcomes [0, 1]
+        not_adopted_rate: Rate of not-adopted outcomes [0, 1]
     """
 
-    success_rate: float = Field(
+    adopted_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Rate of successful outcomes.",
+        description="Rate of adopted outcomes.",
     )
 
-    fail_rate: float = Field(
+    not_adopted_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Rate of failed outcomes.",
-    )
-
-    did_not_try_rate: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Rate of did-not-try outcomes.",
+        description="Rate of not-adopted outcomes.",
     )
 
     @model_validator(mode="after")
     def validate_rates_sum(self) -> Self:
         """Ensure rates sum to approximately 1.0."""
-        total = self.success_rate + self.fail_rate + self.did_not_try_rate
+        total = self.adopted_rate + self.not_adopted_rate
         if abs(total - 1.0) > 0.01:  # Allow small floating point errors
             raise ValueError(f"Rates must sum to 1.0, got {total}")
         return self
@@ -273,11 +266,11 @@ class ScenarioNode(BaseModel):
         """Mark this node as having failed expansion."""
         self.node_status = NodeStatus.EXPANSION_FAILED
 
-    def get_success_rate(self) -> float | None:
-        """Get success rate from simulation results."""
+    def get_adopted_rate(self) -> float | None:
+        """Get adopted rate from simulation results."""
         if self.simulation_results is None:
             return None
-        return self.simulation_results.success_rate
+        return self.simulation_results.adopted_rate
 
 
 if __name__ == "__main__":
@@ -354,12 +347,11 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         results = SimulationResults(
-            success_rate=0.35,
-            fail_rate=0.40,
-            did_not_try_rate=0.25,
+            adopted_rate=0.35,
+            not_adopted_rate=0.65,
         )
-        if results.success_rate != 0.35:
-            all_validation_failures.append(f"success_rate mismatch: {results.success_rate}")
+        if results.adopted_rate != 0.35:
+            all_validation_failures.append(f"adopted_rate mismatch: {results.adopted_rate}")
     except Exception as e:
         all_validation_failures.append(f"SimulationResults creation test failed: {e}")
 
@@ -367,9 +359,8 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         SimulationResults(
-            success_rate=0.50,
-            fail_rate=0.30,
-            did_not_try_rate=0.30,
+            adopted_rate=0.50,
+            not_adopted_rate=0.30,
         )
         all_validation_failures.append("Should reject rates not summing to 1")
     except ValueError:
@@ -455,17 +446,16 @@ if __name__ == "__main__":
                 time_to_value=0.38,
             ),
             simulation_results=SimulationResults(
-                success_rate=0.32,
-                fail_rate=0.40,
-                did_not_try_rate=0.28,
+                adopted_rate=0.32,
+                not_adopted_rate=0.68,
             ),
         )
         if node.is_root():
             all_validation_failures.append("Should not be root node")
         if node.action_applied != "Adicionar tooltip contextual":
             all_validation_failures.append(f"Action mismatch: {node.action_applied}")
-        if node.get_success_rate() != 0.32:
-            all_validation_failures.append(f"Success rate mismatch: {node.get_success_rate()}")
+        if node.get_adopted_rate() != 0.32:
+            all_validation_failures.append(f"Adopted rate mismatch: {node.get_adopted_rate()}")
     except Exception as e:
         all_validation_failures.append(f"Create child node test failed: {e}")
 

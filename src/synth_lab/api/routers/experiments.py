@@ -415,9 +415,8 @@ async def get_experiment(
             outcomes_schema = None
             if analysis_run.aggregated_outcomes:
                 outcomes_schema = AggregatedOutcomesSchema(
-                    did_not_try_rate=analysis_run.aggregated_outcomes.did_not_try_rate,
-                    failed_rate=analysis_run.aggregated_outcomes.failed_rate,
-                    success_rate=analysis_run.aggregated_outcomes.success_rate)
+                    adopted_rate=analysis_run.aggregated_outcomes.adopted_rate,
+                    not_adopted_rate=analysis_run.aggregated_outcomes.not_adopted_rate)
             analysis_summary = AnalysisSummary(
                 id=analysis_run.id,
                 simulation_id=analysis_run.id,  # Use analysis ID for chart endpoints
@@ -868,7 +867,7 @@ async def list_explorations_for_experiment(
                 id=e.id,
                 status=e.status.value,
                 goal_value=e.goal.value,
-                best_success_rate=e.best_success_rate,
+                best_adopted_rate=e.best_adopted_rate,
                 total_nodes=e.total_nodes,
                 started_at=e.started_at,
                 completed_at=e.completed_at)

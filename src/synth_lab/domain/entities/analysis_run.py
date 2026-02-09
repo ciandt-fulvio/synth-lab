@@ -69,33 +69,26 @@ class AggregatedOutcomes(BaseModel):
     Aggregated outcomes from quantitative analysis.
 
     Attributes:
-        did_not_try_rate: Proportion that did not try (0-1)
-        failed_rate: Proportion that tried but failed (0-1)
-        success_rate: Proportion that succeeded (0-1)
+        adopted_rate: Proportion that adopted the feature (0-1)
+        not_adopted_rate: Proportion that did not adopt (0-1)
     """
 
-    did_not_try_rate: float = Field(
+    adopted_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Proportion that did not try.",
+        description="Proportion that adopted the feature.",
     )
 
-    failed_rate: float = Field(
+    not_adopted_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Proportion that tried but failed.",
-    )
-
-    success_rate: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Proportion that succeeded.",
+        description="Proportion that did not adopt.",
     )
 
     @model_validator(mode="after")
     def validate_rates_sum(self) -> Self:
         """Ensure rates sum to 1.0 (with tolerance for rounding)."""
-        total = self.did_not_try_rate + self.failed_rate + self.success_rate
+        total = self.adopted_rate + self.not_adopted_rate
         if not (0.99 <= total <= 1.01):
             raise ValueError(f"Rates must sum to 1.0, got {total}")
         return self
@@ -242,12 +235,11 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         outcomes = AggregatedOutcomes(
-            did_not_try_rate=0.2,
-            failed_rate=0.3,
-            success_rate=0.5,
+            adopted_rate=0.5,
+            not_adopted_rate=0.5,
         )
-        if outcomes.success_rate != 0.5:
-            all_validation_failures.append("success_rate mismatch")
+        if outcomes.adopted_rate != 0.5:
+            all_validation_failures.append("adopted_rate mismatch")
     except Exception as e:
         all_validation_failures.append(f"AggregatedOutcomes creation failed: {e}")
 
@@ -255,9 +247,8 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         AggregatedOutcomes(
-            did_not_try_rate=0.3,
-            failed_rate=0.3,
-            success_rate=0.3,  # Sum = 0.9
+            adopted_rate=0.3,
+            not_adopted_rate=0.3,  # Sum = 0.6
         )
         all_validation_failures.append("Should reject rates that don't sum to 1")
     except ValueError:
@@ -269,9 +260,8 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         outcomes = AggregatedOutcomes(
-            did_not_try_rate=0.15,
-            failed_rate=0.25,
-            success_rate=0.60,
+            adopted_rate=0.60,
+            not_adopted_rate=0.40,
         )
         run = AnalysisRun(
             experiment_id="exp_12345678",

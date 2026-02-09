@@ -105,9 +105,8 @@ class SynthOutcome(Base):
         id: UUID-style identifier
         analysis_id: Link to parent analysis run
         synth_id: Link to synth
-        did_not_try_rate: Rate of "did not try"
-        failed_rate: Failure rate
-        success_rate: Success rate
+        adopted_rate: Rate of adoption
+        not_adopted_rate: Rate of non-adoption
         synth_attributes: Synth attribute snapshot as JSON
 
     Relationships:
@@ -123,9 +122,8 @@ class SynthOutcome(Base):
         nullable=False,
     )
     synth_id: Mapped[str] = mapped_column(String(50), nullable=False)
-    did_not_try_rate: Mapped[float] = mapped_column(Float, nullable=False)
-    failed_rate: Mapped[float] = mapped_column(Float, nullable=False)
-    success_rate: Mapped[float] = mapped_column(Float, nullable=False)
+    adopted_rate: Mapped[float] = mapped_column(Float, nullable=False)
+    not_adopted_rate: Mapped[float] = mapped_column(Float, nullable=False)
     synth_attributes: Mapped[dict[str, Any] | None] = mapped_column(MutableJSON, nullable=True)
 
     # Relationships
@@ -141,7 +139,7 @@ class SynthOutcome(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<SynthOutcome(id={self.id!r}, synth_id={self.synth_id!r}, success_rate={self.success_rate})>"
+        return f"<SynthOutcome(id={self.id!r}, synth_id={self.synth_id!r}, adopted_rate={self.adopted_rate})>"
 
 
 class AnalysisCache(Base):
@@ -226,7 +224,7 @@ if __name__ == "__main__":
 
     # Test 5: SynthOutcome has required columns
     total_tests += 1
-    required_columns = {"id", "analysis_id", "synth_id", "did_not_try_rate", "failed_rate", "success_rate", "synth_attributes"}
+    required_columns = {"id", "analysis_id", "synth_id", "adopted_rate", "not_adopted_rate", "synth_attributes"}
     actual_columns = set(SynthOutcome.__table__.columns.keys())
     missing = required_columns - actual_columns
     if missing:

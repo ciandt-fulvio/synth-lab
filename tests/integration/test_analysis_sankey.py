@@ -53,9 +53,8 @@ def mock_completed_analysis():
         status="completed",
         total_synths=50,
         aggregated_outcomes=AggregatedOutcomes(
-            did_not_try_rate=0.3,
-            failed_rate=0.2,
-            success_rate=0.5,
+            adopted_rate=0.50,
+            not_adopted_rate=0.50,
         ),
     )
 
@@ -110,9 +109,8 @@ def mock_experiment_no_scorecard():
 
 def create_synth_outcome(
     synth_id: str,
-    did_not_try_rate: float,
-    failed_rate: float,
-    success_rate: float,
+    adopted_rate: float,
+    not_adopted_rate: float,
     capability_mean: float = 0.5,
     trust_mean: float = 0.5,
     friction_tolerance_mean: float = 0.5,
@@ -122,9 +120,8 @@ def create_synth_outcome(
         id="out_12345678",  # Pattern: out_[a-f0-9]{8}
         synth_id=synth_id,
         analysis_id="ana_12345678",  # Pattern: ana_[a-f0-9]{8}
-        did_not_try_rate=did_not_try_rate,
-        failed_rate=failed_rate,
-        success_rate=success_rate,
+        adopted_rate=adopted_rate,
+        not_adopted_rate=not_adopted_rate,
         synth_attributes=SimulationAttributes(
             latent_traits=SimulationLatentTraits(
                 capability_mean=capability_mean,
@@ -147,11 +144,11 @@ def create_synth_outcome(
 def mock_outcomes():
     """Create a list of mock outcomes for testing."""
     return [
-        create_synth_outcome("s1", 0.1, 0.2, 0.7),  # success
-        create_synth_outcome("s2", 0.1, 0.2, 0.7),  # success
-        create_synth_outcome("s3", 0.7, 0.2, 0.1, trust_mean=0.1),  # did_not_try
-        create_synth_outcome("s4", 0.2, 0.7, 0.1, capability_mean=0.1),  # failed
-        create_synth_outcome("s5", 0.2, 0.6, 0.2, capability_mean=0.1),  # failed
+        create_synth_outcome("s1", 0.70, 0.30),  # adopted
+        create_synth_outcome("s2", 0.70, 0.30),  # adopted
+        create_synth_outcome("s3", 0.10, 0.90, trust_mean=0.1),  # not_adopted
+        create_synth_outcome("s4", 0.10, 0.90, capability_mean=0.1),  # not_adopted
+        create_synth_outcome("s5", 0.20, 0.80, capability_mean=0.1),  # not_adopted
     ]
 
 
@@ -196,9 +193,8 @@ class TestSankeyFlowEndpoint:
 
             # Verify counts
             assert data["total_synths"] == 5
-            assert data["outcome_counts"]["success"] == 2
-            assert data["outcome_counts"]["did_not_try"] == 1
-            assert data["outcome_counts"]["failed"] == 2
+            assert data["outcome_counts"]["adopted"] == 2
+            assert data["outcome_counts"]["not_adopted"] == 3
 
             # Verify nodes structure
             for node in data["nodes"]:
@@ -207,7 +203,7 @@ class TestSankeyFlowEndpoint:
                 assert "level" in node
                 assert "color" in node
                 assert "value" in node
-                assert node["level"] in [1, 2, 3]
+                assert node["level"] in [1, 2]
 
             # Verify links structure
             for link in data["links"]:
@@ -317,18 +313,18 @@ class TestSankeyFlowEndpoint:
             assert response.status_code == 400
             assert "outcome" in response.json()["detail"].lower()
 
-    def test_sankey_flow_success_is_terminal(
+    def test_sankey_flow_adopted_is_terminal(
         self,
         client,
         mock_completed_analysis,
         mock_experiment,
     ):
-        """Test that success node has no outgoing links (is terminal)."""
-        # All synths have 100% success
-        all_success_outcomes = [
-            create_synth_outcome("s1", 0.0, 0.0, 1.0),
-            create_synth_outcome("s2", 0.0, 0.0, 1.0),
-            create_synth_outcome("s3", 0.0, 0.0, 1.0),
+        """Test that adopted node has no outgoing links (is terminal)."""
+        # All synths have 100% adopted
+        all_adopted_outcomes = [
+            create_synth_outcome("s1", 1.0, 0.0),
+            create_synth_outcome("s2", 1.0, 0.0),
+            create_synth_outcome("s3", 1.0, 0.0),
         ]
 
         with (
@@ -344,21 +340,20 @@ class TestSankeyFlowEndpoint:
         ):
             mock_analysis_svc.return_value.get_analysis.return_value = mock_completed_analysis
             mock_exp_svc.return_value.get_experiment.return_value = mock_experiment
-            mock_outcome_repo.return_value.get_outcomes.return_value = (all_success_outcomes, 3)
+            mock_outcome_repo.return_value.get_outcomes.return_value = (all_adopted_outcomes, 3)
 
             response = client.get("/experiments/exp_12345678/analysis/charts/sankey-flow")
 
             assert response.status_code == 200
             data = response.json()
 
-            # Verify success has no outgoing links
-            success_links = [l for l in data["links"] if l["source"] == "success"]
-            assert len(success_links) == 0
+            # Verify adopted has no outgoing links
+            adopted_links = [l for l in data["links"] if l["source"] == "adopted"]
+            assert len(adopted_links) == 0
 
             # Verify counts are correct
-            assert data["outcome_counts"]["success"] == 3
-            assert data["outcome_counts"]["did_not_try"] == 0
-            assert data["outcome_counts"]["failed"] == 0
+            assert data["outcome_counts"]["adopted"] == 3
+            assert data["outcome_counts"]["not_adopted"] == 0
 
     def test_sankey_flow_has_root_cause_nodes(
         self,
@@ -366,11 +361,11 @@ class TestSankeyFlowEndpoint:
         mock_completed_analysis,
         mock_experiment,
     ):
-        """Test that failed and did_not_try outcomes have root cause nodes."""
-        # Mix of outcomes to trigger root cause diagnosis
+        """Test that not_adopted outcomes appear as nodes in the Sankey flow."""
+        # Mix of outcomes with high not_adopted rates
         mixed_outcomes = [
-            create_synth_outcome("s1", 0.7, 0.2, 0.1, trust_mean=0.1),  # did_not_try - risk
-            create_synth_outcome("s2", 0.2, 0.7, 0.1, capability_mean=0.1),  # failed - cap
+            create_synth_outcome("s1", 0.10, 0.90, trust_mean=0.1),  # mostly not_adopted
+            create_synth_outcome("s2", 0.10, 0.90, capability_mean=0.1),  # mostly not_adopted
         ]
 
         with (
@@ -393,13 +388,10 @@ class TestSankeyFlowEndpoint:
             assert response.status_code == 200
             data = response.json()
 
-            # Check that level 3 nodes exist
-            level_3_nodes = [n for n in data["nodes"] if n["level"] == 3]
-            assert len(level_3_nodes) > 0
+            # Check that level 2 nodes exist (adopted and/or not_adopted)
+            level_2_nodes = [n for n in data["nodes"] if n["level"] == 2]
+            assert len(level_2_nodes) > 0
 
-            # Check that did_not_try and failed have outgoing links to root causes
-            did_not_try_links = [l for l in data["links"] if l["source"] == "did_not_try"]
-            failed_links = [l for l in data["links"] if l["source"] == "failed"]
-
-            assert len(did_not_try_links) > 0
-            assert len(failed_links) > 0
+            # Check that not_adopted appears as a target from population
+            not_adopted_links = [l for l in data["links"] if l["target"] == "not_adopted"]
+            assert len(not_adopted_links) > 0

@@ -41,13 +41,13 @@ class Goal(BaseModel):
     Goal definition for exploration.
 
     Attributes:
-        metric: The metric to optimize (currently only success_rate)
+        metric: The metric to optimize (currently only adopted_rate)
         operator: Comparison operator (currently only >=)
         value: Target value to achieve
     """
 
     metric: str = Field(
-        default="success_rate",
+        default="adopted_rate",
         description="Metric to optimize.",
     )
 
@@ -66,8 +66,8 @@ class Goal(BaseModel):
     @classmethod
     def validate_metric(cls, v: str) -> str:
         """Ensure metric is supported."""
-        if v != "success_rate":
-            raise ValueError(f"Unsupported metric: {v}. Only 'success_rate' is supported.")
+        if v != "adopted_rate":
+            raise ValueError(f"Unsupported metric: {v}. Only 'adopted_rate' is supported.")
         return v
 
     @field_validator("operator")
@@ -154,7 +154,7 @@ class Exploration(BaseModel):
         current_depth: Current depth reached in tree
         total_nodes: Total nodes created
         total_llm_calls: Total LLM calls made
-        best_success_rate: Best success rate achieved
+        best_adopted_rate: Best adopted rate achieved
         started_at: Start timestamp
         completed_at: Completion timestamp (if finished)
     """
@@ -207,11 +207,11 @@ class Exploration(BaseModel):
         description="Total LLM calls made.",
     )
 
-    best_success_rate: float | None = Field(
+    best_adopted_rate: float | None = Field(
         default=None,
         ge=0.0,
         le=1.0,
-        description="Best success rate achieved.",
+        description="Best adopted rate achieved.",
     )
 
     started_at: datetime = Field(
@@ -269,8 +269,8 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         goal = Goal(value=0.40)
-        if goal.metric != "success_rate":
-            all_validation_failures.append(f"Goal metric should be success_rate: {goal.metric}")
+        if goal.metric != "adopted_rate":
+            all_validation_failures.append(f"Goal metric should be adopted_rate: {goal.metric}")
         if goal.operator != ">=":
             all_validation_failures.append(f"Goal operator should be >=: {goal.operator}")
         if not goal.is_achieved(0.45):

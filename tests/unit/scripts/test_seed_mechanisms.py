@@ -20,7 +20,7 @@ class TestMechanismDefinitions:
         expected = {
             "irreversibility", "network_effect", "institutional_trust",
             "habit_displacement", "learning_curve", "social_visibility",
-            "valor_intrinseco", "friccao_operacional", "frequencia_de_uso",
+            "intrinsic_value", "operational_friction", "frequency_of_use",
         }
         assert keys == expected
 
@@ -50,30 +50,30 @@ class TestNewMechanisms:
     def _get_mech(self, key):
         return next(m for m in MECHANISM_DEFINITIONS if m["key"] == key)
 
-    def test_valor_intrinseco_labels(self):
-        m = self._get_mech("valor_intrinseco")
+    def test_intrinsic_value_labels(self):
+        m = self._get_mech("intrinsic_value")
         labels = [o["label"] for o in m["options"]]
         assert labels[0] == "cosmético"
         assert labels[-1] == "transformador"
 
-    def test_friccao_operacional_labels(self):
-        m = self._get_mech("friccao_operacional")
+    def test_operational_friction_labels(self):
+        m = self._get_mech("operational_friction")
         labels = [o["label"] for o in m["options"]]
         assert labels[0] == "sem fricção"
         assert labels[-1] == "fricção extrema"
 
-    def test_frequencia_de_uso_labels(self):
-        m = self._get_mech("frequencia_de_uso")
+    def test_frequency_of_use_labels(self):
+        m = self._get_mech("frequency_of_use")
         labels = [o["label"] for o in m["options"]]
         assert labels[0] == "raríssimo"
         assert labels[-1] == "diário ou mais"
 
-    @pytest.mark.parametrize("key", ["valor_intrinseco", "friccao_operacional", "frequencia_de_uso"])
+    @pytest.mark.parametrize("key", ["intrinsic_value", "operational_friction", "frequency_of_use"])
     def test_new_mechanism_has_label_pt(self, key):
         m = self._get_mech(key)
         assert "label_pt" in m and len(m["label_pt"]) > 0
 
-    @pytest.mark.parametrize("key", ["valor_intrinseco", "friccao_operacional", "frequencia_de_uso"])
+    @pytest.mark.parametrize("key", ["intrinsic_value", "operational_friction", "frequency_of_use"])
     def test_new_mechanism_has_description(self, key):
         m = self._get_mech(key)
         assert "description" in m and len(m["description"]) > 0

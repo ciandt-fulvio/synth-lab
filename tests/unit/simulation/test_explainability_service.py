@@ -32,38 +32,25 @@ def sample_outcomes() -> list[SynthOutcome]:
     outcomes = []
 
     # Create 100 synths with varying attributes and outcomes
-    # Success rate correlates with capability and trust
+    # Adopted rate correlates with capability and trust
     for i in range(100):
         capability = 0.3 + np.random.rand() * 0.6  # 0.3 to 0.9
         trust = 0.2 + np.random.rand() * 0.7  # 0.2 to 0.9
         friction = 0.2 + np.random.rand() * 0.6  # 0.2 to 0.8
         exploration = 0.3 + np.random.rand() * 0.4  # 0.3 to 0.7
 
-        # Success rate depends on capability and trust with some noise
-        base_success = 0.3 * capability + 0.4 * trust + 0.2 * friction + 0.1 * exploration
+        # Adopted rate depends on capability and trust with some noise
+        base_adopted = 0.3 * capability + 0.4 * trust + 0.2 * friction + 0.1 * exploration
         noise = np.random.randn() * 0.1
-        success_rate = np.clip(base_success + noise, 0.0, 0.95)
-
-        # Failed rate inversely related
-        failed_rate = np.clip(
-            0.5 - 0.3 * capability - 0.2 * trust + np.random.randn() * 0.1, 0.05, 0.5
-        )
-
-        did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
-
-        # Normalize
-        total = success_rate + failed_rate + did_not_try_rate
-        success_rate /= total
-        failed_rate /= total
-        did_not_try_rate /= total
+        adopted_rate = float(np.clip(base_adopted + noise, 0.05, 0.95))
+        not_adopted_rate = 1.0 - adopted_rate
 
         outcomes.append(
             SynthOutcome(
                 synth_id=f"synth_{i:03d}",
                 analysis_id="ana_12345678",
-                success_rate=success_rate,
-                failed_rate=failed_rate,
-                did_not_try_rate=did_not_try_rate,
+                adopted_rate=adopted_rate,
+                not_adopted_rate=not_adopted_rate,
                 synth_attributes=SimulationAttributes(
                     observables=SimulationObservables(
                         digital_literacy=0.3 + np.random.rand() * 0.5,
@@ -146,8 +133,8 @@ class TestShapExplanation:
 
         assert result.simulation_id == "sim_test"
         assert result.synth_id == "synth_000"
-        assert 0.0 <= result.predicted_success_rate <= 1.0
-        assert 0.0 <= result.actual_success_rate <= 1.0
+        assert 0.0 <= result.predicted_adopted_rate <= 1.0
+        assert 0.0 <= result.actual_adopted_rate <= 1.0
         assert result.baseline_prediction > 0
         assert len(result.contributions) > 0
         assert result.explanation_text != ""
@@ -447,9 +434,8 @@ class TestEdgeCases:
             SynthOutcome(
                 synth_id=f"synth_{i:03d}",
                 analysis_id="ana_12345678",
-                success_rate=0.5,
-                failed_rate=0.3,
-                did_not_try_rate=0.2,
+                adopted_rate=0.50,
+                not_adopted_rate=0.50,
                 synth_attributes=SimulationAttributes(
                     observables=SimulationObservables(
                         digital_literacy=0.5,

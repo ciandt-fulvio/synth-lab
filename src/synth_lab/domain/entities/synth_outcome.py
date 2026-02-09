@@ -37,9 +37,8 @@ class SynthOutcome(BaseModel):
         id: Unique identifier (out_[a-f0-9]{8})
         analysis_id: Parent analysis run ID
         synth_id: ID of the synth
-        did_not_try_rate: Proportion that did not try (0-1)
-        failed_rate: Proportion that tried but failed (0-1)
-        success_rate: Proportion that succeeded (0-1)
+        adopted_rate: Proportion that adopted the feature (0-1)
+        not_adopted_rate: Proportion that did not adopt (0-1)
         synth_attributes: Synth attributes at time of analysis
     """
 
@@ -60,22 +59,16 @@ class SynthOutcome(BaseModel):
     )
 
     # Outcome proportions [0, 1]
-    did_not_try_rate: float = Field(
+    adopted_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Proportion of executions where synth did not try.",
+        description="Proportion of executions where synth adopted the feature.",
     )
 
-    failed_rate: float = Field(
+    not_adopted_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Proportion of executions where synth tried but failed.",
-    )
-
-    success_rate: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Proportion of executions where synth succeeded.",
+        description="Proportion of executions where synth did not adopt.",
     )
 
     # Snapshot of synth attributes
@@ -86,7 +79,7 @@ class SynthOutcome(BaseModel):
     @model_validator(mode="after")
     def validate_rates_sum(self) -> Self:
         """Ensure rates sum to 1.0 (with tolerance for rounding)."""
-        total = self.did_not_try_rate + self.failed_rate + self.success_rate
+        total = self.adopted_rate + self.not_adopted_rate
         if not (0.99 <= total <= 1.01):
             raise ValueError(f"Rates must sum to 1.0, got {total}")
         return self
@@ -131,13 +124,12 @@ if __name__ == "__main__":
         outcome = SynthOutcome(
             analysis_id="ana_12345678",
             synth_id="synth_001",
-            did_not_try_rate=0.22,
-            failed_rate=0.38,
-            success_rate=0.40,
+            adopted_rate=0.40,
+            not_adopted_rate=0.60,
             synth_attributes=sample_attrs,
         )
-        if outcome.success_rate != 0.40:
-            all_validation_failures.append(f"success_rate mismatch: {outcome.success_rate}")
+        if outcome.adopted_rate != 0.40:
+            all_validation_failures.append(f"adopted_rate mismatch: {outcome.adopted_rate}")
         if not outcome.id.startswith("out_"):
             all_validation_failures.append(f"ID should start with out_: {outcome.id}")
     except Exception as e:
@@ -149,9 +141,8 @@ if __name__ == "__main__":
         SynthOutcome(
             analysis_id="ana_12345678",
             synth_id="synth_001",
-            did_not_try_rate=0.30,
-            failed_rate=0.30,
-            success_rate=0.30,  # Sum = 0.90
+            adopted_rate=0.30,
+            not_adopted_rate=0.30,  # Sum = 0.60
             synth_attributes=sample_attrs,
         )
         all_validation_failures.append("Should reject rates that don't sum to 1")
@@ -166,9 +157,8 @@ if __name__ == "__main__":
         outcome = SynthOutcome(
             analysis_id="ana_12345678",
             synth_id="synth_001",
-            did_not_try_rate=0.333,
-            failed_rate=0.333,
-            success_rate=0.334,  # Sum = 1.000
+            adopted_rate=0.505,
+            not_adopted_rate=0.495,  # Sum = 1.000
             synth_attributes=sample_attrs,
         )
         # Should accept within tolerance
@@ -181,9 +171,8 @@ if __name__ == "__main__":
         SynthOutcome(
             analysis_id="ana_12345678",
             synth_id="synth_001",
-            did_not_try_rate=-0.1,
-            failed_rate=0.5,
-            success_rate=0.6,
+            adopted_rate=-0.1,
+            not_adopted_rate=1.1,
             synth_attributes=sample_attrs,
         )
         all_validation_failures.append("Should reject negative rate")
@@ -198,9 +187,8 @@ if __name__ == "__main__":
         SynthOutcome(
             analysis_id="ana_12345678",
             synth_id="synth_001",
-            did_not_try_rate=1.5,
-            failed_rate=0.0,
-            success_rate=-0.5,  # Sum = 1.0 but individual invalid
+            adopted_rate=1.5,
+            not_adopted_rate=-0.5,  # Sum = 1.0 but individual invalid
             synth_attributes=sample_attrs,
         )
         all_validation_failures.append("Should reject rate > 1")
@@ -209,37 +197,35 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Unexpected error for rate > 1: {e}")
 
-    # Test 6: Edge case - all did_not_try
+    # Test 6: Edge case - all not_adopted
     total_tests += 1
     try:
         outcome = SynthOutcome(
             analysis_id="ana_12345678",
             synth_id="synth_001",
-            did_not_try_rate=1.0,
-            failed_rate=0.0,
-            success_rate=0.0,
+            adopted_rate=0.0,
+            not_adopted_rate=1.0,
             synth_attributes=sample_attrs,
         )
-        if outcome.did_not_try_rate != 1.0:
-            all_validation_failures.append("All did_not_try should be valid")
+        if outcome.not_adopted_rate != 1.0:
+            all_validation_failures.append("All not_adopted should be valid")
     except Exception as e:
-        all_validation_failures.append(f"All did_not_try test failed: {e}")
+        all_validation_failures.append(f"All not_adopted test failed: {e}")
 
-    # Test 7: Edge case - all success
+    # Test 7: Edge case - all adopted
     total_tests += 1
     try:
         outcome = SynthOutcome(
             analysis_id="ana_12345678",
             synth_id="synth_001",
-            did_not_try_rate=0.0,
-            failed_rate=0.0,
-            success_rate=1.0,
+            adopted_rate=1.0,
+            not_adopted_rate=0.0,
             synth_attributes=sample_attrs,
         )
-        if outcome.success_rate != 1.0:
-            all_validation_failures.append("All success should be valid")
+        if outcome.adopted_rate != 1.0:
+            all_validation_failures.append("All adopted should be valid")
     except Exception as e:
-        all_validation_failures.append(f"All success test failed: {e}")
+        all_validation_failures.append(f"All adopted test failed: {e}")
 
     # Test 8: Model dump includes synth_attributes
     total_tests += 1
@@ -247,9 +233,8 @@ if __name__ == "__main__":
         outcome = SynthOutcome(
             analysis_id="ana_12345678",
             synth_id="synth_001",
-            did_not_try_rate=0.22,
-            failed_rate=0.38,
-            success_rate=0.40,
+            adopted_rate=0.40,
+            not_adopted_rate=0.60,
             synth_attributes=sample_attrs,
         )
         dump = outcome.model_dump()
@@ -268,9 +253,8 @@ if __name__ == "__main__":
         SynthOutcome(
             analysis_id="invalid_id",
             synth_id="synth_001",
-            did_not_try_rate=0.22,
-            failed_rate=0.38,
-            success_rate=0.40,
+            adopted_rate=0.40,
+            not_adopted_rate=0.60,
             synth_attributes=sample_attrs,
         )
         all_validation_failures.append("Should reject invalid analysis_id format")

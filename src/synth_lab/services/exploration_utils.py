@@ -19,7 +19,7 @@ def get_winning_path(
     """
     Find the winning path from root to best leaf node.
 
-    Tiebreaker: success_rate DESC -> depth ASC -> created_at ASC
+    Tiebreaker: adopted_rate DESC -> depth ASC -> created_at ASC
 
     Args:
         repo: Exploration repository.
@@ -48,7 +48,7 @@ def get_winning_path(
     # Sort by tiebreaker
     leaf_nodes.sort(
         key=lambda n: (
-            -(n.get_success_rate() or 0),  # DESC
+            -(n.get_adopted_rate() or 0),  # DESC
             n.depth,  # ASC
             n.created_at,  # ASC
         )

@@ -404,7 +404,7 @@ class ClusteringService:
                     explanation=cluster.suggested_explanation,
                     color=self.CLUSTER_COLORS[i % len(self.CLUSTER_COLORS)],
                     axes=axes,
-                    success_rate=cluster.avg_success_rate)
+                    adopted_rate=cluster.avg_adopted_rate)
             )
 
         # Build axis labels and baseline
@@ -623,9 +623,8 @@ class ClusteringService:
             size = len(cluster_outcomes)
             percentage = (size / total_synths) * 100
 
-            avg_success = np.mean([o.success_rate for o in cluster_outcomes])
-            avg_failed = np.mean([o.failed_rate for o in cluster_outcomes])
-            avg_did_not_try = np.mean([o.did_not_try_rate for o in cluster_outcomes])
+            avg_adopted = np.mean([o.adopted_rate for o in cluster_outcomes])
+            avg_not_adopted = np.mean([o.not_adopted_rate for o in cluster_outcomes])
 
             # Build centroid dict
             centroid_dict = {
@@ -652,9 +651,8 @@ class ClusteringService:
                     size=size,
                     percentage=float(percentage),
                     centroid=centroid_dict,
-                    avg_success_rate=float(avg_success),
-                    avg_failed_rate=float(avg_failed),
-                    avg_did_not_try_rate=float(avg_did_not_try),
+                    avg_adopted_rate=float(avg_adopted),
+                    avg_not_adopted_rate=float(avg_not_adopted),
                     high_traits=high_traits,
                     low_traits=low_traits,
                     suggested_label=temp_label,
@@ -678,7 +676,7 @@ class ClusteringService:
     def _suggest_label(
         self,
         cluster_id: int,
-        avg_success: float,
+        avg_adopted: float,
         high_traits: list[str],
         low_traits: list[str]) -> str:
         """
@@ -686,7 +684,7 @@ class ClusteringService:
 
         Args:
             cluster_id: Cluster identifier.
-            avg_success: Average success rate.
+            avg_adopted: Average success rate.
             high_traits: Traits above average.
             low_traits: Traits below average.
 
@@ -694,14 +692,14 @@ class ClusteringService:
             Suggested label string.
         """
         # Success-based labels
-        if avg_success > 0.7:
+        if avg_adopted > 0.7:
             if "capability_mean" in high_traits and "trust_mean" in high_traits:
                 return "Power Users"
             elif "trust_mean" in high_traits:
                 return "Engaged Users"
             else:
                 return "High Performers"
-        elif avg_success < 0.3:
+        elif avg_adopted < 0.3:
             if "capability_mean" in low_traits and "trust_mean" in low_traits:
                 return "Strugglers"
             elif "trust_mean" in low_traits:
@@ -819,23 +817,15 @@ if __name__ == "__main__":
         # Create sample outcomes
         outcomes = []
         for i in range(30):
-            success_rate = 0.5 + np.random.rand() * 0.2
-            failed_rate = 0.2
-            did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
-            # Ensure rates sum to 1.0
-            total = success_rate + failed_rate + did_not_try_rate
-            if total > 0:
-                success_rate = success_rate / total
-                failed_rate = failed_rate / total
-                did_not_try_rate = did_not_try_rate / total
+            adopted_rate = 0.5 + np.random.rand() * 0.2
+            not_adopted_rate = round(1.0 - adopted_rate, 3)
 
             outcomes.append(
                 SynthOutcome(
                     synth_id=f"synth_{i:03d}",
                     simulation_id="sim_test",
-                    success_rate=success_rate,
-                    failed_rate=failed_rate,
-                    did_not_try_rate=did_not_try_rate,
+                    adopted_rate=adopted_rate,
+                    not_adopted_rate=not_adopted_rate,
                     synth_attributes=SimulationAttributes(
                         observables=SimulationObservables(
                             digital_literacy=0.5,

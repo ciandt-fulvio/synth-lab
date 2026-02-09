@@ -283,22 +283,17 @@ class ExperimentUpdate(BaseModel):
 
 
 class AggregatedOutcomesSchema(BaseModel):
-    """Schema for aggregated analysis outcomes."""
+    """Schema for aggregated analysis outcomes (2-outcome model)."""
 
-    did_not_try_rate: float = Field(
+    adopted_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Proportion that did not try.")
+        description="Proportion that adopted the feature.")
 
-    failed_rate: float = Field(
+    not_adopted_rate: float = Field(
         ge=0.0,
         le=1.0,
-        description="Proportion that tried but failed.")
-
-    success_rate: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Proportion that succeeded.")
+        description="Proportion that did not adopt the feature.")
 
 
 class AnalysisSummary(BaseModel):
@@ -557,9 +552,8 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         outcomes = AggregatedOutcomesSchema(
-            did_not_try_rate=0.2,
-            failed_rate=0.3,
-            success_rate=0.5)
+            adopted_rate=0.6,
+            not_adopted_rate=0.4)
         analysis = AnalysisSummary(
             id="ana_12345678",
             simulation_id="ana_12345678",
@@ -569,8 +563,8 @@ if __name__ == "__main__":
             aggregated_outcomes=outcomes)
         if analysis.aggregated_outcomes is None:
             all_validation_failures.append("aggregated_outcomes should not be None")
-        elif analysis.aggregated_outcomes.success_rate != 0.5:
-            all_validation_failures.append("success_rate mismatch")
+        elif analysis.aggregated_outcomes.adopted_rate != 0.6:
+            all_validation_failures.append("adopted_rate mismatch")
         elif analysis.simulation_id != analysis.id:
             all_validation_failures.append("simulation_id should match id")
     except Exception as e:

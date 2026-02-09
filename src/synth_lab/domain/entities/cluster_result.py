@@ -29,9 +29,8 @@ class ClusterProfile(BaseModel):
     size: int = Field(..., description="Number of synths in this cluster")
     percentage: float = Field(..., description="Percentage of total synths")
     centroid: dict[str, float] = Field(..., description="Mean of each feature")
-    avg_success_rate: float = Field(..., description="Average success rate")
-    avg_failed_rate: float = Field(..., description="Average failed rate")
-    avg_did_not_try_rate: float = Field(..., description="Average did not try rate")
+    avg_adopted_rate: float = Field(..., description="Average adopted rate")
+    avg_not_adopted_rate: float = Field(..., description="Average not adopted rate")
     high_traits: list[str] = Field(default_factory=list, description="Traits above the mean")
     low_traits: list[str] = Field(default_factory=list, description="Traits below the mean")
     suggested_label: str = Field(..., description="Human-readable label")
@@ -202,7 +201,7 @@ class ClusterRadar(BaseModel):
     )
     color: str = Field(..., description="Color for visualization")
     axes: list[RadarAxis] = Field(..., description="Radar axes")
-    success_rate: float = Field(..., description="Average success rate")
+    adopted_rate: float = Field(..., description="Average adopted rate")
 
 
 class RadarChart(BaseModel):
@@ -275,9 +274,8 @@ if __name__ == "__main__":
             size=120,
             percentage=24.0,
             centroid={"capability_mean": 0.72, "trust_mean": 0.68},
-            avg_success_rate=0.75,
-            avg_failed_rate=0.15,
-            avg_did_not_try_rate=0.10,
+            avg_adopted_rate=0.75,
+            avg_not_adopted_rate=0.25,
             high_traits=["capability_mean", "trust_mean"],
             low_traits=[],
             suggested_label="Power Users",
@@ -340,7 +338,7 @@ if __name__ == "__main__":
             label="Power Users",
             color="#FF6B6B",
             axes=[axis],
-            success_rate=0.75,
+            adopted_rate=0.75,
         )
         radar = RadarChart(
             simulation_id="sim_001",

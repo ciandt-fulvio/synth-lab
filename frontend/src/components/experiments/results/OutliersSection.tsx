@@ -46,18 +46,14 @@ function OutlierCard({ outlier, onClick, isSelected }: OutlierCardProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 text-xs mb-2">
+      <div className="grid grid-cols-2 gap-2 text-xs mb-2">
         <div>
-          <span className="text-slate-500">Sucesso</span>
-          <p className="font-medium text-green-600">{(outlier.success_rate * 100).toFixed(0)}%</p>
+          <span className="text-slate-500">Adotaram</span>
+          <p className="font-medium text-green-600">{(outlier.adopted_rate * 100).toFixed(0)}%</p>
         </div>
         <div>
-          <span className="text-slate-500">Falha</span>
-          <p className="font-medium text-red-600">{(outlier.failed_rate * 100).toFixed(0)}%</p>
-        </div>
-        <div>
-          <span className="text-slate-500">Não Tentou</span>
-          <p className="font-medium text-slate-600">{(outlier.did_not_try_rate * 100).toFixed(0)}%</p>
+          <span className="text-slate-500">Não Adotaram</span>
+          <p className="font-medium text-slate-600">{(outlier.not_adopted_rate * 100).toFixed(0)}%</p>
         </div>
       </div>
 

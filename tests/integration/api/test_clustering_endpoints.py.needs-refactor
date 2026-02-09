@@ -62,23 +62,17 @@ def sample_outcomes():
             trust = 0.5 + np.random.rand() * 0.2
             success_base = 0.5
 
-        success_rate = success_base + np.random.rand() * 0.15
-        failed_rate = 0.2 + np.random.rand() * 0.1
-        did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
-
-        # Normalize
-        total = success_rate + failed_rate + did_not_try_rate
-        success_rate /= total
-        failed_rate /= total
-        did_not_try_rate /= total
+        adopted_rate = success_base + np.random.rand() * 0.15
+        # Clamp to [0, 1]
+        adopted_rate = min(1.0, max(0.0, adopted_rate))
+        not_adopted_rate = 1.0 - adopted_rate
 
         outcomes.append(
             SynthOutcome(
                 synth_id=f"synth_{i:03d}",
                 analysis_id="ana_12345678",
-                success_rate=success_rate,
-                failed_rate=failed_rate,
-                did_not_try_rate=did_not_try_rate,
+                adopted_rate=adopted_rate,
+                not_adopted_rate=not_adopted_rate,
                 synth_attributes=SimulationAttributes(
                     observables=SimulationObservables(
                         digital_literacy=0.5,
@@ -348,9 +342,8 @@ class TestClusteringEndpoints:
             SynthOutcome(
                 synth_id=f"synth_{i:03d}",
                 analysis_id="ana_12345678",
-                success_rate=0.5,
-                failed_rate=0.3,
-                did_not_try_rate=0.2,
+                adopted_rate=0.50,
+                not_adopted_rate=0.50,
                 synth_attributes=SimulationAttributes(
                     observables=SimulationObservables(
                         digital_literacy=0.5,

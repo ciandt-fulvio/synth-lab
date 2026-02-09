@@ -285,8 +285,8 @@ async def get_winning_path(exploration_id: str) -> WinningPathResponse | None:
                     action=step["action"],
                     category=step["category"],
                     rationale=step["rationale"],
-                    success_rate=step["success_rate"],
-                    delta_success_rate=step["delta_success_rate"],
+                    adopted_rate=step["adopted_rate"],
+                    delta_adopted_rate=step["delta_adopted_rate"],
                 )
                 for step in path_data["path"]
             ],
@@ -556,7 +556,7 @@ if __name__ == "__main__":
             experiment_id=experiment.id,
             status="completed",
             aggregated_outcomes=AggregatedOutcomes(
-                success_rate=0.25, failed_rate=0.45, did_not_try_rate=0.30
+                adopted_rate=0.25, not_adopted_rate=0.75
             ),
         )
         analysis_repo.create(analysis)

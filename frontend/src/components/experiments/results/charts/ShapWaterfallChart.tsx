@@ -33,7 +33,7 @@ interface WaterfallDataPoint {
 }
 
 export function ShapWaterfallChart({ data }: ShapWaterfallChartProps) {
-  const { baseline_prediction, predicted_success_rate, contributions } = data;
+  const { baseline_prediction, predicted_adopted_rate, contributions } = data;
 
   // Sort contributions by absolute SHAP value (descending)
   const sortedContributions = [...contributions].sort(

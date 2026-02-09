@@ -59,8 +59,8 @@ export function NodeDetailsPanel({
   // Calculate delta from parent
   const successRateDelta =
     parentNode?.simulation_results && node.simulation_results
-      ? node.simulation_results.success_rate -
-        parentNode.simulation_results.success_rate
+      ? node.simulation_results.adopted_rate -
+        parentNode.simulation_results.adopted_rate
       : null;
 
   const getStatusStyles = (variant: string) => {
@@ -166,10 +166,10 @@ export function NodeDetailsPanel({
               <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 border border-slate-200/80 rounded-xl p-4">
                 <div className="flex items-end justify-between mb-3">
                   <div>
-                    <p className="text-xs text-slate-400 mb-1">Taxa de Sucesso</p>
+                    <p className="text-xs text-slate-400 mb-1">Taxa de Adoção</p>
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-bold text-slate-800 tabular-nums">
-                        {formatSuccessRate(node.simulation_results.success_rate)}
+                        {formatSuccessRate(node.simulation_results.adopted_rate)}
                       </span>
                       {successRateDelta !== null && (
                         <DeltaIndicator delta={successRateDelta} size="normal" />
@@ -178,13 +178,8 @@ export function NodeDetailsPanel({
                   </div>
                   <div className="text-right space-y-1">
                     <MetricPill
-                      label="Falha"
-                      value={formatSuccessRate(node.simulation_results.fail_rate)}
-                      color="rose"
-                    />
-                    <MetricPill
-                      label="Não tentou"
-                      value={formatSuccessRate(node.simulation_results.did_not_try_rate)}
+                      label="Não adotou"
+                      value={formatSuccessRate(node.simulation_results.not_adopted_rate)}
                       color="slate"
                     />
                   </div>
@@ -194,15 +189,11 @@ export function NodeDetailsPanel({
                 <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden flex">
                   <div
                     className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-500"
-                    style={{ width: `${node.simulation_results.success_rate * 100}%` }}
-                  />
-                  <div
-                    className="h-full bg-rose-400 transition-all duration-500"
-                    style={{ width: `${node.simulation_results.fail_rate * 100}%` }}
+                    style={{ width: `${node.simulation_results.adopted_rate * 100}%` }}
                   />
                   <div
                     className="h-full bg-slate-300 transition-all duration-500"
-                    style={{ width: `${node.simulation_results.did_not_try_rate * 100}%` }}
+                    style={{ width: `${node.simulation_results.not_adopted_rate * 100}%` }}
                   />
                 </div>
               </div>

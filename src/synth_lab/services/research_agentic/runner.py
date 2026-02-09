@@ -234,7 +234,7 @@ async def generate_initial_context(
     context_definition: str | None = None,
     additional_context: str | None = None,
     synth_outcome: "SynthOutcome | None" = None,
-    avg_success_rate: float | None = None) -> str:
+    avg_adopted_rate: float | None = None) -> str:
     """
     Generate initial context for the interviewee based on examples.
 
@@ -249,7 +249,7 @@ async def generate_initial_context(
         context_definition: Optional definition/purpose of the context
         additional_context: Optional additional context to complement the scenario
         synth_outcome: Optional simulation outcome for data-driven sentiment selection
-        avg_success_rate: Optional average success rate for comparison
+        avg_adopted_rate: Optional average adopted rate for comparison
 
     Returns:
         Generated initial context string
@@ -263,8 +263,8 @@ async def generate_initial_context(
 
     # Determine sentiment based on simulation data or randomly
     classification: ExperienceClassification | None = None
-    if synth_outcome is not None and avg_success_rate is not None:
-        classification = classify_experience(synth_outcome, avg_success_rate)
+    if synth_outcome is not None and avg_adopted_rate is not None:
+        classification = classify_experience(synth_outcome, avg_adopted_rate)
         sentiment = classification.sentiment
         logger.info(
             f"Classified experience for synth {synth_outcome.synth_id}: "
@@ -301,37 +301,34 @@ CONTEXTO:
     simulation_rules = ""
 
     if classification is not None and synth_outcome is not None:
-        success_pct = int(synth_outcome.success_rate * 100)
-        avg_pct = int(avg_success_rate * 100) if avg_success_rate else 0
-        attempt_pct = int((1 - synth_outcome.did_not_try_rate) * 100)
+        adopted_pct = int(synth_outcome.adopted_rate * 100)
+        avg_pct = int(avg_adopted_rate * 100) if avg_adopted_rate else 0
 
         # Determine position relative to average
         if classification.sentiment == "positive":
-            position = "ACIMA DA MÉDIA - experiência predominantemente positiva"
+            position = "ACIMA DA MÉDIA - adoção predominantemente positiva"
         elif classification.sentiment == "negative":
-            position = "ABAIXO DA MÉDIA - experiência predominantemente negativa"
+            position = "ABAIXO DA MÉDIA - adoção predominantemente negativa"
         else:
-            position = "NA MÉDIA - experiência mista"
+            position = "NA MÉDIA - adoção mista"
 
         simulation_data_section = f"""
 DADOS DA SIMULAÇÃO:
-- Taxa de sucesso: {success_pct}% (média do experimento: {avg_pct}%)
-- Taxa de tentativa: {attempt_pct}% (tentou usar)
+- Taxa de adoção: {adopted_pct}% (média do experimento: {avg_pct}%)
 - Classificação: {position}
 """
 
-        # Add behavior context for non-attempt patterns
+        # Add behavior context for non-adoption patterns
         if classification.non_attempt_reason:
             behavior_section = f"""
 COMPORTAMENTO DE USO:
-Esta pessoa tentou usar a funcionalidade apenas {attempt_pct}% das vezes.
-Possível motivo: {classification.non_attempt_reason}
+{classification.non_attempt_reason}
 """
 
         # Add simulation-aware rules
-        outcome_desc = "SUCESSO frequente" if success_pct > 50 else "DIFICULDADES"
+        outcome_desc = "ADOÇÃO frequente" if adopted_pct > 50 else "DIFICULDADES"
         simulation_rules = (
-            f"\n- A experiência deve refletir alguém que teve {outcome_desc} ({success_pct}%)"
+            f"\n- A experiência deve refletir alguém que teve {outcome_desc} ({adopted_pct}%)"
         )
 
     # Build additional context section
@@ -534,7 +531,7 @@ async def run_interview(
     # Fetch simulation data if analysis_id provided
     simulation_context_text: str = ""
     synth_outcome: "SynthOutcome | None" = None
-    avg_success_rate: float | None = None
+    avg_adopted_rate: float | None = None
 
     if analysis_id:
         from synth_lab.domain.entities.synth_outcome import SynthOutcome
@@ -548,16 +545,16 @@ async def run_interview(
         # Get analysis statistics for comparison
         stats = outcome_repo.get_analysis_statistics(analysis_id)
         if stats:
-            avg_success_rate = stats["avg_success_rate"]
+            avg_adopted_rate = stats["avg_adopted_rate"]
 
         # Get formatted simulation context for interviewee prompt
         simulation_context_text = _get_simulation_context_for_synth(synth_id, analysis_id)
         if simulation_context_text:
             logger.info(f"Using simulation context for {synth_name} from {analysis_id}")
-        if synth_outcome and avg_success_rate is not None:
+        if synth_outcome and avg_adopted_rate is not None:
             logger.info(
-                f"Simulation data: success={synth_outcome.success_rate:.0%}, "
-                f"avg={avg_success_rate:.0%}"
+                f"Simulation data: adopted={synth_outcome.adopted_rate:.0%}, "
+                f"avg={avg_adopted_rate:.0%}"
             )
 
     # Initialize shared memory
@@ -626,7 +623,7 @@ async def run_interview(
                                 context_definition=interview_guide.context_definition,
                                 additional_context=additional_context,
                                 synth_outcome=synth_outcome,
-                                avg_success_rate=avg_success_rate)
+                                avg_adopted_rate=avg_adopted_rate)
                             raw_result, generated_context = await asyncio.gather(
                                 interviewer_task, context_task
                             )

@@ -28,21 +28,14 @@ def sample_outcomes() -> list[SynthOutcome]:
 
     # Cluster 1: High capability, high trust (Power Users)
     for i in range(30):
-        success_rate = 0.7 + np.random.rand() * 0.2
-        failed_rate = 0.1 + np.random.rand() * 0.1
-        did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
-        # Normalize to ensure sum = 1.0
-        total = success_rate + failed_rate + did_not_try_rate
-        success_rate = success_rate / total
-        failed_rate = failed_rate / total
-        did_not_try_rate = did_not_try_rate / total
+        adopted_rate = 0.7 + np.random.rand() * 0.25  # 0.70 to 0.95
+        not_adopted_rate = 1.0 - adopted_rate
         outcomes.append(
             SynthOutcome(
                 synth_id=f"synth_{i:03d}",
                 analysis_id="ana_12345678",
-                success_rate=success_rate,
-                failed_rate=failed_rate,
-                did_not_try_rate=did_not_try_rate,
+                adopted_rate=adopted_rate,
+                not_adopted_rate=not_adopted_rate,
                 synth_attributes=SimulationAttributes(
                     observables=SimulationObservables(
                         digital_literacy=0.7,
@@ -63,21 +56,14 @@ def sample_outcomes() -> list[SynthOutcome]:
 
     # Cluster 2: Low capability, low trust (Strugglers)
     for i in range(30, 60):
-        success_rate = 0.1 + np.random.rand() * 0.1
-        failed_rate = 0.5 + np.random.rand() * 0.2
-        did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
-        # Normalize to ensure sum = 1.0
-        total = success_rate + failed_rate + did_not_try_rate
-        success_rate = success_rate / total
-        failed_rate = failed_rate / total
-        did_not_try_rate = did_not_try_rate / total
+        adopted_rate = 0.10 + np.random.rand() * 0.15  # 0.10 to 0.25
+        not_adopted_rate = 1.0 - adopted_rate
         outcomes.append(
             SynthOutcome(
                 synth_id=f"synth_{i:03d}",
                 analysis_id="ana_12345678",
-                success_rate=success_rate,
-                failed_rate=failed_rate,
-                did_not_try_rate=did_not_try_rate,
+                adopted_rate=adopted_rate,
+                not_adopted_rate=not_adopted_rate,
                 synth_attributes=SimulationAttributes(
                     observables=SimulationObservables(
                         digital_literacy=0.2,
@@ -98,21 +84,14 @@ def sample_outcomes() -> list[SynthOutcome]:
 
     # Cluster 3: Medium capability, high trust (Engaged Users)
     for i in range(60, 90):
-        success_rate = 0.4 + np.random.rand() * 0.2
-        failed_rate = 0.2 + np.random.rand() * 0.15
-        did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
-        # Normalize to ensure sum = 1.0
-        total = success_rate + failed_rate + did_not_try_rate
-        success_rate = success_rate / total
-        failed_rate = failed_rate / total
-        did_not_try_rate = did_not_try_rate / total
+        adopted_rate = 0.40 + np.random.rand() * 0.20  # 0.40 to 0.60
+        not_adopted_rate = 1.0 - adopted_rate
         outcomes.append(
             SynthOutcome(
                 synth_id=f"synth_{i:03d}",
                 analysis_id="ana_12345678",
-                success_rate=success_rate,
-                failed_rate=failed_rate,
-                did_not_try_rate=did_not_try_rate,
+                adopted_rate=adopted_rate,
+                not_adopted_rate=not_adopted_rate,
                 synth_attributes=SimulationAttributes(
                     observables=SimulationObservables(
                         digital_literacy=0.4,
@@ -159,9 +138,8 @@ class TestKMeansClustering:
         for cluster in result.clusters:
             assert cluster.size > 0
             assert cluster.percentage > 0
-            assert 0 <= cluster.avg_success_rate <= 1.0
-            assert 0 <= cluster.avg_failed_rate <= 1.0
-            assert 0 <= cluster.avg_did_not_try_rate <= 1.0
+            assert 0 <= cluster.avg_adopted_rate <= 1.0
+            assert 0 <= cluster.avg_not_adopted_rate <= 1.0
 
     def test_cluster_kmeans_with_elbow_data(self, sample_outcomes):
         """Test that elbow method data is generated."""
@@ -323,7 +301,7 @@ class TestRadarChart:
             assert cluster_radar.label != ""
             assert cluster_radar.color != ""
             assert len(cluster_radar.axes) == len(radar.axis_labels)
-            assert 0 <= cluster_radar.success_rate <= 1.0
+            assert 0 <= cluster_radar.adopted_rate <= 1.0
 
             # Check axes normalization
             for axis in cluster_radar.axes:
@@ -400,9 +378,8 @@ class TestEdgeCases:
             SynthOutcome(
                 synth_id=f"synth_{i:03d}",
                 analysis_id="ana_12345678",
-                success_rate=0.5,
-                failed_rate=0.3,
-                did_not_try_rate=0.2,
+                adopted_rate=0.50,
+                not_adopted_rate=0.50,
                 synth_attributes=SimulationAttributes(
                     observables=SimulationObservables(
                         digital_literacy=0.5,

@@ -70,7 +70,7 @@ class TestActionProposalWithMaterials:
                 time_to_value=0.40,
             ),
             simulation_results=SimulationResults(
-                success_rate=0.25, fail_rate=0.45, did_not_try_rate=0.30
+                adopted_rate=0.25, not_adopted_rate=0.75
             ),
         )
 

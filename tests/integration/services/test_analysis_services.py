@@ -259,7 +259,7 @@ class TestAnalysisCacheServiceIntegration:
             completed_at=datetime.now().isoformat(),
             total_synths=10,
             aggregated_outcomes={
-                "success_rate": 0.65,
+                "adopted_rate": 0.65,
                 "summary_stats": {
                     "digital_literacy": {"mean": 50.0, "std": 10.0},
                     "domain_expertise": {"mean": 60.0, "std": 15.0},
@@ -271,16 +271,14 @@ class TestAnalysisCacheServiceIntegration:
         # Create synth outcomes with proper SimulationAttributes structure
         # Rates must sum to 1.0
         for i in range(10):
-            success_rate = 0.5 + (i * 0.03)  # 0.50 to 0.77
-            failed_rate = 0.3 - (i * 0.02)   # 0.30 to 0.12
-            did_not_try_rate = 1.0 - success_rate - failed_rate  # ~0.20
+            adopted_rate = 0.5 + (i * 0.03)  # 0.50 to 0.77
+            not_adopted_rate = 1.0 - adopted_rate
             outcome = SynthOutcome(
                 id=f"outcome_cache_{i:03d}",
                 analysis_id="ana_d3e4f5a6",
                 synth_id=f"synth_cache_{i:03d}",
-                did_not_try_rate=round(did_not_try_rate, 3),
-                failed_rate=round(failed_rate, 3),
-                success_rate=round(success_rate, 3),
+                adopted_rate=round(adopted_rate, 3),
+                not_adopted_rate=round(not_adopted_rate, 3),
                 synth_attributes={
                     "observables": {
                         "digital_literacy": min(0.5 + i * 0.04, 1.0),
@@ -343,7 +341,7 @@ class TestAnalysisCacheServiceIntegration:
             analysis_id="ana_e4f5a6b7",
             cache_key="distribution",
             data={
-                "chart_data": [{"name": "Synth 1", "success_rate": 0.75}],
+                "chart_data": [{"name": "Synth 1", "adopted_rate": 0.75}],
                 "metadata": {"total": 100},
             },
             computed_at=datetime.now().isoformat(),
@@ -358,7 +356,7 @@ class TestAnalysisCacheServiceIntegration:
         # Verify
         assert result is not None
         assert "chart_data" in result
-        assert result["chart_data"][0]["success_rate"] == 0.75
+        assert result["chart_data"][0]["adopted_rate"] == 0.75
 
     def test_invalidate_cache_removes_entries(self, db_session):
         """Test that invalidate_cache removes cache entries for analysis."""

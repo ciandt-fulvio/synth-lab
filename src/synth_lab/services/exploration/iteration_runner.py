@@ -47,7 +47,7 @@ class IterationResult:
     nodes_created: int
     nodes_dominated: int
     llm_calls_made: int
-    best_success_rate: float
+    best_adopted_rate: float
     frontier_size: int
     goal_achieved: bool = False
     termination_reason: str | None = None
@@ -129,7 +129,7 @@ class IterationRunner:
                 nodes_created=0,
                 nodes_dominated=0,
                 llm_calls_made=0,
-                best_success_rate=exploration.best_success_rate or 0.0,
+                best_adopted_rate=exploration.best_adopted_rate or 0.0,
                 frontier_size=0,
                 termination_reason="no_viable_paths")
 
@@ -180,25 +180,25 @@ class IterationRunner:
         winner_node: ScenarioNode | None = None
         for nws in all_new_nodes:
             if nws.sim_results:
-                success_rate = nws.sim_results.success_rate
-                if exploration.goal.is_achieved(success_rate):
+                adopted_rate = nws.sim_results.adopted_rate
+                if exploration.goal.is_achieved(adopted_rate):
                     goal_achieved = True
                     winner_node = nws.node
                     self.logger.info(
                         f"Goal achieved! Node {nws.node.id} reached "
-                        f"success_rate={success_rate:.2%}"
+                        f"adopted_rate={adopted_rate:.2%}"
                     )
                     break
 
         # Apply Pareto dominance filter
         dominated_count = self._apply_pareto_filter(exploration.id)
 
-        # Apply beam search (keep top K by success_rate)
+        # Apply beam search (keep top K by adopted_rate)
         self._apply_beam_search(exploration.id, beam_width)
 
-        # Get updated frontier and best success rate
+        # Get updated frontier and best adopted rate
         new_frontier = self.tree_manager.get_frontier(exploration.id)
-        best_success_rate = self._get_best_success_rate(exploration.id)
+        best_adopted_rate = self._get_best_adopted_rate(exploration.id)
 
         # Handle goal achievement
         if goal_achieved and winner_node:
@@ -210,7 +210,7 @@ class IterationRunner:
                 nodes_created=len(all_new_nodes),
                 nodes_dominated=dominated_count,
                 llm_calls_made=llm_calls,
-                best_success_rate=best_success_rate,
+                best_adopted_rate=best_adopted_rate,
                 frontier_size=len(new_frontier),
                 goal_achieved=True)
 
@@ -221,7 +221,7 @@ class IterationRunner:
             nodes_created=len(all_new_nodes),
             nodes_dominated=dominated_count,
             llm_calls_made=llm_calls,
-            best_success_rate=best_success_rate,
+            best_adopted_rate=best_adopted_rate,
             frontier_size=len(new_frontier))
 
     async def _run_simulations_parallel(
@@ -250,7 +250,7 @@ class IterationRunner:
         Apply Pareto dominance filter to active nodes.
 
         A node A dominates B if:
-        - A.success_rate >= B.success_rate
+        - A.adopted_rate >= B.adopted_rate
         - A.complexity <= B.complexity
         - A.perceived_risk <= B.perceived_risk
         - AND at least one strict inequality
@@ -292,8 +292,8 @@ class IterationRunner:
         if not a.simulation_results or not b.simulation_results:
             return False
 
-        a_sr = a.simulation_results.success_rate
-        b_sr = b.simulation_results.success_rate
+        a_sr = a.simulation_results.adopted_rate
+        b_sr = b.simulation_results.adopted_rate
         a_cx = a.scorecard_params.complexity
         b_cx = b.scorecard_params.complexity
         a_pr = a.scorecard_params.perceived_risk
@@ -310,16 +310,16 @@ class IterationRunner:
         """
         Apply beam search to limit frontier size.
 
-        Keeps the top K nodes by success_rate, marks others as dominated.
+        Keeps the top K nodes by adopted_rate, marks others as dominated.
         """
         nodes = self.repository.get_frontier_nodes(exploration_id)
         if len(nodes) <= beam_width:
             return
 
-        # Sort by success_rate descending
+        # Sort by adopted_rate descending
         sorted_nodes = sorted(
             nodes,
-            key=lambda n: n.simulation_results.success_rate
+            key=lambda n: n.simulation_results.adopted_rate
             if n.simulation_results
             else 0.0,
             reverse=True)
@@ -333,13 +333,13 @@ class IterationRunner:
             f"dominated {len(nodes) - beam_width}"
         )
 
-    def _get_best_success_rate(self, exploration_id: str) -> float:
-        """Get the best success rate across all nodes."""
+    def _get_best_adopted_rate(self, exploration_id: str) -> float:
+        """Get the best adopted rate across all nodes."""
         nodes = self.repository.get_nodes_by_exploration(exploration_id)
         best = 0.0
         for node in nodes:
             if node.simulation_results:
-                best = max(best, node.simulation_results.success_rate)
+                best = max(best, node.simulation_results.adopted_rate)
         return best
 
 
@@ -358,7 +358,7 @@ if __name__ == "__main__":
             nodes_created=5,
             nodes_dominated=2,
             llm_calls_made=3,
-            best_success_rate=0.35,
+            best_adopted_rate=0.35,
             frontier_size=3)
         if result.goal_achieved:
             all_validation_failures.append("goal_achieved should be False by default")
@@ -372,7 +372,7 @@ if __name__ == "__main__":
     try:
         from synth_lab.domain.entities.scenario_node import ScorecardParams
 
-        # Node A dominates B (better success_rate, same or better other metrics)
+        # Node A dominates B (better adopted_rate, same or better other metrics)
         node_a = ScenarioNode(
             exploration_id="expl_12345678",
             parent_id="node_00000001",  # Required for depth=1
@@ -383,9 +383,8 @@ if __name__ == "__main__":
                 perceived_risk=0.20,
                 time_to_value=0.30),
             simulation_results=SimulationResults(
-                success_rate=0.40,
-                fail_rate=0.35,
-                did_not_try_rate=0.25))
+                adopted_rate=0.40,
+                not_adopted_rate=0.60))
 
         node_b = ScenarioNode(
             exploration_id="expl_12345678",
@@ -397,9 +396,8 @@ if __name__ == "__main__":
                 perceived_risk=0.25,
                 time_to_value=0.30),
             simulation_results=SimulationResults(
-                success_rate=0.35,
-                fail_rate=0.40,
-                did_not_try_rate=0.25))
+                adopted_rate=0.35,
+                not_adopted_rate=0.65))
 
         runner = IterationRunner()
         if not runner._dominates(node_a, node_b):
@@ -423,9 +421,8 @@ if __name__ == "__main__":
                 perceived_risk=0.30,
                 time_to_value=0.30),
             simulation_results=SimulationResults(
-                success_rate=0.30,  # Worse success_rate
-                fail_rate=0.40,
-                did_not_try_rate=0.30))
+                adopted_rate=0.30,  # Worse adopted_rate
+                not_adopted_rate=0.70))
 
         node_d = ScenarioNode(
             exploration_id="expl_12345678",
@@ -437,9 +434,8 @@ if __name__ == "__main__":
                 perceived_risk=0.25,
                 time_to_value=0.30),
             simulation_results=SimulationResults(
-                success_rate=0.45,  # Better success_rate
-                fail_rate=0.35,
-                did_not_try_rate=0.20))
+                adopted_rate=0.45,  # Better adopted_rate
+                not_adopted_rate=0.55))
 
         runner = IterationRunner()
         if runner._dominates(node_c, node_d):

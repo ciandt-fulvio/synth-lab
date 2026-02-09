@@ -8,15 +8,13 @@ interface BoxPlotChartProps {
 }
 
 const OUTCOME_COLORS = {
-  success: { bg: 'bg-green-100', border: 'border-green-400', fill: 'fill-green-400' },
-  failed: { bg: 'bg-red-100', border: 'border-red-400', fill: 'fill-red-400' },
-  did_not_try: { bg: 'bg-slate-100', border: 'border-slate-400', fill: 'fill-slate-400' },
+  adopted: { bg: 'bg-green-100', border: 'border-green-400', fill: 'fill-green-400' },
+  not_adopted: { bg: 'bg-slate-100', border: 'border-slate-400', fill: 'fill-slate-400' },
 } as const;
 
 const OUTCOME_LABELS = {
-  success: 'Sucesso',
-  failed: 'Falhou',
-  did_not_try: 'Não Tentou',
+  adopted: 'Adotaram',
+  not_adopted: 'Não Adotaram',
 } as const;
 
 interface BoxPlotSVGProps {

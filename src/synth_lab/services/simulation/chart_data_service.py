@@ -2,6 +2,7 @@
 Chart data service for UX Research analysis.
 
 Generates data structures for visualization charts based on simulation outcomes.
+Uses a 2-outcome model: adopted / not_adopted.
 
 References:
     - Spec: specs/017-analysis-ux-research/spec.md
@@ -23,7 +24,6 @@ from synth_lab.domain.entities import (
     CorrelationPoint,
     CorrelationStats,
     FailureHeatmapChart,
-    FeatureScorecard,
     HeatmapCell,
     OutcomeCounts,
     OutcomeDistributionChart,
@@ -36,9 +36,8 @@ from synth_lab.domain.entities import (
     SynthOutcome,
     TrendlinePoint,
     TryVsSuccessChart,
-    TryVsSuccessPoint)
-from synth_lab.domain.entities.experiment import (
-    ScorecardData)
+    TryVsSuccessPoint,
+)
 from synth_lab.services.simulation.feature_extraction import get_attribute_value
 
 
@@ -47,90 +46,85 @@ class ChartDataService:
     Service for generating chart data from simulation outcomes.
 
     Provides methods for Phase 1 (Overview) and Phase 2 (Location) charts.
+    Uses a 2-outcome model: adopted / not_adopted.
     """
 
     # =========================================================================
-    # Phase 1: Visão Geral (User Story 1)
+    # Phase 1: Visao Geral (User Story 1)
     # =========================================================================
 
     def get_try_vs_success(
         self,
         simulation_id: str,
         outcomes: list[SynthOutcome],
-        x_threshold: float = 0.5,
-        y_threshold: float = 0.5) -> TryVsSuccessChart:
+        x_threshold: float = 0.33,
+        y_threshold: float = 0.66,
+    ) -> TryVsSuccessChart:
         """
-        Generate Try vs Success scatter plot data.
+        Generate adoption rate distribution chart data.
 
-        Each point represents one synth:
-        - X-axis: attempt_rate = 1 - did_not_try_rate
-        - Y-axis: success_rate
+        Each point represents one synth with its adopted_rate classified
+        into buckets: low, medium, high.
 
-        Quadrants:
-        - ok: high attempt, high success (X >= threshold, Y >= threshold)
-        - usability_issue: high attempt, low success (X >= threshold, Y < threshold)
-        - discovery_issue: low attempt, high success (X < threshold, Y >= threshold)
-        - low_value: low attempt, low success (X < threshold, Y < threshold)
+        Buckets:
+        - low: adopted_rate < x_threshold (default 0.33)
+        - high: adopted_rate >= y_threshold (default 0.66)
+        - medium: everything in between
 
         Args:
             simulation_id: ID of the simulation.
             outcomes: List of SynthOutcome entities.
-            x_threshold: X-axis threshold for quadrant division.
-            y_threshold: Y-axis threshold for quadrant division.
+            x_threshold: Upper bound for 'low' bucket.
+            y_threshold: Lower bound for 'high' bucket.
 
         Returns:
-            TryVsSuccessChart with points and quadrant counts.
+            TryVsSuccessChart with points and bucket counts.
         """
         logger.info(
-            f"Generating Try vs Success chart for {simulation_id} with {len(outcomes)} synths"
+            f"Generating adoption distribution chart for {simulation_id} "
+            f"with {len(outcomes)} synths"
         )
 
         points: list[TryVsSuccessPoint] = []
-        quadrant_counts = {
-            "low_value": 0,
-            "usability_issue": 0,
-            "discovery_issue": 0,
-            "ok": 0,
+        bucket_counts = {
+            "low": 0,
+            "medium": 0,
+            "high": 0,
         }
 
         for outcome in outcomes:
-            attempt_rate = 1.0 - outcome.did_not_try_rate
-            success_rate = outcome.success_rate
+            adopted_rate = outcome.adopted_rate
 
-            # Determine quadrant
-            if attempt_rate >= x_threshold:
-                if success_rate >= y_threshold:
-                    quadrant = "ok"
-                else:
-                    quadrant = "usability_issue"
+            # Determine bucket
+            if adopted_rate < x_threshold:
+                bucket = "low"
+            elif adopted_rate >= y_threshold:
+                bucket = "high"
             else:
-                if success_rate >= y_threshold:
-                    quadrant = "discovery_issue"
-                else:
-                    quadrant = "low_value"
+                bucket = "medium"
 
             point = TryVsSuccessPoint(
-                synth_id=outcome.synth_id,
-                attempt_rate=attempt_rate,
-                success_rate=success_rate,
-                quadrant=quadrant)
+                synth_id=outcome.synth_id, adopted_rate=adopted_rate, bucket=bucket
+            )
             points.append(point)
-            quadrant_counts[quadrant] += 1
+            bucket_counts[bucket] += 1
 
         return TryVsSuccessChart(
             simulation_id=simulation_id,
             points=points,
-            quadrant_counts=quadrant_counts,
-            quadrant_thresholds={"x": x_threshold, "y": y_threshold},
-            total_synths=len(outcomes))
+            bucket_counts=bucket_counts,
+            bucket_thresholds={"low_max": x_threshold, "high_min": y_threshold},
+            total_synths=len(outcomes),
+        )
 
     def get_outcome_distribution(
         self,
         simulation_id: str,
         outcomes: list[SynthOutcome],
-        sort_by: Literal["success_rate", "failed_rate", "did_not_try_rate"] = "success_rate",
+        sort_by: Literal["adopted_rate", "not_adopted_rate"] = "adopted_rate",
         order: Literal["asc", "desc"] = "desc",
-        limit: int = 50) -> OutcomeDistributionChart:
+        limit: int = 50,
+    ) -> OutcomeDistributionChart:
         """
         Generate outcome distribution chart data.
 
@@ -153,22 +147,20 @@ class ChartDataService:
 
         # Build distributions
         distributions: list[SynthDistribution] = []
-        success_rates: list[float] = []
-        failed_rates: list[float] = []
-        did_not_try_rates: list[float] = []
+        adopted_rates: list[float] = []
+        not_adopted_rates: list[float] = []
 
         for outcome in outcomes:
             sort_key = getattr(outcome, sort_by)
             dist = SynthDistribution(
                 synth_id=outcome.synth_id,
-                did_not_try_rate=outcome.did_not_try_rate,
-                failed_rate=outcome.failed_rate,
-                success_rate=outcome.success_rate,
-                sort_key=sort_key)
+                adopted_rate=outcome.adopted_rate,
+                not_adopted_rate=outcome.not_adopted_rate,
+                sort_key=sort_key,
+            )
             distributions.append(dist)
-            success_rates.append(outcome.success_rate)
-            failed_rates.append(outcome.failed_rate)
-            did_not_try_rates.append(outcome.did_not_try_rate)
+            adopted_rates.append(outcome.adopted_rate)
+            not_adopted_rates.append(outcome.not_adopted_rate)
 
         # Sort
         reverse = order == "desc"
@@ -179,15 +171,14 @@ class ChartDataService:
 
         # Calculate summary
         summary = {
-            "avg_success": float(np.mean(success_rates)) if success_rates else 0.0,
-            "avg_failed": float(np.mean(failed_rates)) if failed_rates else 0.0,
-            "avg_did_not_try": float(np.mean(did_not_try_rates)) if did_not_try_rates else 0.0,
-            "median_success": float(np.median(success_rates)) if success_rates else 0.0,
-            "std_success": float(np.std(success_rates)) if success_rates else 0.0,
+            "avg_adopted": float(np.mean(adopted_rates)) if adopted_rates else 0.0,
+            "avg_not_adopted": float(np.mean(not_adopted_rates)) if not_adopted_rates else 0.0,
+            "median_adopted": float(np.median(adopted_rates)) if adopted_rates else 0.0,
+            "std_adopted": float(np.std(adopted_rates)) if adopted_rates else 0.0,
         }
 
         # Get worst/best performers (from full list, not limited)
-        all_sorted = sorted(outcomes, key=lambda o: o.success_rate)
+        all_sorted = sorted(outcomes, key=lambda o: o.adopted_rate)
         worst_performers = [o.synth_id for o in all_sorted[:10]]
         best_performers = [o.synth_id for o in all_sorted[-10:][::-1]]
 
@@ -197,10 +188,11 @@ class ChartDataService:
             summary=summary,
             worst_performers=worst_performers,
             best_performers=best_performers,
-            total_synths=len(outcomes))
+            total_synths=len(outcomes),
+        )
 
     # =========================================================================
-    # Phase 2: Localização de Problemas (User Story 2)
+    # Phase 2: Localizacao de Problemas (User Story 2)
     # =========================================================================
 
     def get_failure_heatmap(
@@ -210,8 +202,9 @@ class ChartDataService:
         x_axis: str = "digital_literacy",
         y_axis: str = "domain_expertise",
         bins: int = 5,
-        metric: Literal["failed_rate", "success_rate", "did_not_try_rate"] = "failed_rate",
-        critical_threshold: float = 0.7) -> FailureHeatmapChart:
+        metric: Literal["adopted_rate", "not_adopted_rate"] = "not_adopted_rate",
+        critical_threshold: float = 0.7,
+    ) -> FailureHeatmapChart:
         """
         Generate failure heatmap data.
 
@@ -245,7 +238,8 @@ class ChartDataService:
                 max_value=0.0,
                 min_value=0.0,
                 critical_cells=[],
-                critical_threshold=critical_threshold)
+                critical_threshold=critical_threshold,
+            )
 
         # Extract values
         x_values = [get_attribute_value(o, x_axis) for o in outcomes]
@@ -317,7 +311,8 @@ class ChartDataService:
                     y_range=(y_min, y_max),
                     metric_value=avg_metric,
                     synth_count=len(cell_indices),
-                    synth_ids=cell_synths)
+                    synth_ids=cell_synths,
+                )
                 cells.append(cell)
                 all_metric_values.append(avg_metric)
 
@@ -336,14 +331,16 @@ class ChartDataService:
             max_value=max(all_metric_values) if all_metric_values else 0.0,
             min_value=min(all_metric_values) if all_metric_values else 0.0,
             critical_cells=critical_cells,
-            critical_threshold=critical_threshold)
+            critical_threshold=critical_threshold,
+        )
 
     def get_box_plot(
         self,
         simulation_id: str,
         outcomes: list[SynthOutcome],
-        metric: Literal["success_rate", "failed_rate", "did_not_try_rate"] = "success_rate",
-        include_baseline: bool = True) -> BoxPlotChart:
+        metric: Literal["adopted_rate", "not_adopted_rate"] = "adopted_rate",
+        include_baseline: bool = True,
+    ) -> BoxPlotChart:
         """
         Generate box plot data for the entire population.
 
@@ -369,19 +366,13 @@ class ChartDataService:
             simulation_id=simulation_id,
             metric=metric,
             regions=regions,
-            baseline_stats=baseline_stats if include_baseline else self._calculate_box_stats([]))
+            baseline_stats=baseline_stats if include_baseline else self._calculate_box_stats([]),
+        )
 
     def _calculate_box_stats(self, values: list[float]) -> BoxPlotStats:
         """Calculate box plot statistics for a list of values."""
         if not values:
-            return BoxPlotStats(
-                min=0.0,
-                q1=0.0,
-                median=0.0,
-                q3=0.0,
-                max=0.0,
-                mean=0.0,
-                outliers=[])
+            return BoxPlotStats(min=0.0, q1=0.0, median=0.0, q3=0.0, max=0.0, mean=0.0, outliers=[])
 
         arr = np.array(values)
         q1 = float(np.percentile(arr, 25))
@@ -400,15 +391,17 @@ class ChartDataService:
             q3=q3,
             max=float(np.max(arr)),
             mean=float(np.mean(arr)),
-            outliers=outliers)
+            outliers=outliers,
+        )
 
     def get_scatter_correlation(
         self,
         simulation_id: str,
         outcomes: list[SynthOutcome],
         x_axis: str = "digital_literacy",
-        y_axis: str = "success_rate",
-        show_trendline: bool = True) -> ScatterCorrelationChart:
+        y_axis: str = "adopted_rate",
+        show_trendline: bool = True,
+    ) -> ScatterCorrelationChart:
         """
         Generate scatter correlation chart data.
 
@@ -438,8 +431,10 @@ class ChartDataService:
                     r_squared=0.0,
                     is_significant=False,
                     trend_slope=0.0,
-                    trend_intercept=0.0),
-                trendline=[])
+                    trend_intercept=0.0,
+                ),
+                trendline=[],
+            )
 
         # Extract values
         points: list[CorrelationPoint] = []
@@ -449,12 +444,7 @@ class ChartDataService:
         for outcome in outcomes:
             x_val = get_attribute_value(outcome, x_axis)
             y_val = get_attribute_value(outcome, y_axis)
-            points.append(
-                CorrelationPoint(
-                    synth_id=outcome.synth_id,
-                    x_value=x_val,
-                    y_value=y_val)
-            )
+            points.append(CorrelationPoint(synth_id=outcome.synth_id, x_value=x_val, y_value=y_val))
             x_values.append(x_val)
             y_values.append(y_val)
 
@@ -488,7 +478,8 @@ class ChartDataService:
             r_squared=float(pearson_r**2),
             is_significant=p_value < 0.05 and not np.isnan(p_value),
             trend_slope=float(slope),
-            trend_intercept=float(intercept))
+            trend_intercept=float(intercept),
+        )
 
         # Calculate trendline points
         trendline: list[TrendlinePoint] = []
@@ -505,7 +496,8 @@ class ChartDataService:
             y_axis=y_axis,
             points=points,
             correlation=correlation,
-            trendline=trendline)
+            trendline=trendline,
+        )
 
     # =========================================================================
     # Phase 2b: Attribute Correlations
@@ -513,25 +505,24 @@ class ChartDataService:
 
     # Attribute labels in Portuguese
     ATTRIBUTE_LABELS: dict[str, str] = {
-        "capability_mean": "Capacidade Média",
-        "trust_mean": "Confiança Média",
-        "friction_tolerance_mean": "Tolerância a Atrito",
-        "exploration_prob": "Propensão a Explorar",
+        "capability_mean": "Capacidade Media",
+        "trust_mean": "Confianca Media",
+        "friction_tolerance_mean": "Tolerancia a Atrito",
+        "exploration_prob": "Propensao a Explorar",
         "digital_literacy": "Literacia Digital",
-        "similar_tool_experience": "Experiência Similar",
+        "similar_tool_experience": "Experiencia Similar",
         "motor_ability": "Habilidade Motora",
-        "time_availability": "Tempo Disponível",
-        "domain_expertise": "Expertise no Domínio",
+        "time_availability": "Tempo Disponivel",
+        "domain_expertise": "Expertise no Dominio",
     }
 
     def get_attribute_correlations(
-        self,
-        simulation_id: str,
-        outcomes: list[SynthOutcome]) -> AttributeCorrelationChart:
+        self, simulation_id: str, outcomes: list[SynthOutcome]
+    ) -> AttributeCorrelationChart:
         """
-        Calculate correlation of each synth attribute with attempt_rate and success_rate.
+        Calculate correlation of each synth attribute with adopted_rate.
 
-        Returns correlations sorted by absolute correlation with success_rate (descending).
+        Returns correlations sorted by absolute correlation (descending).
 
         Args:
             simulation_id: ID of the simulation.
@@ -544,13 +535,11 @@ class ChartDataService:
 
         if not outcomes or len(outcomes) < 3:
             return AttributeCorrelationChart(
-                simulation_id=simulation_id,
-                correlations=[],
-                total_synths=len(outcomes))
+                simulation_id=simulation_id, correlations=[], total_synths=len(outcomes)
+            )
 
-        # Calculate attempt_rate and success_rate for each synth
-        attempt_rates = np.array([1.0 - o.did_not_try_rate for o in outcomes])
-        success_rates = np.array([o.success_rate for o in outcomes])
+        # Calculate adopted_rate for each synth
+        adopted_rates = np.array([o.adopted_rate for o in outcomes])
 
         # All attributes to analyze
         all_attributes = [
@@ -571,43 +560,31 @@ class ChartDataService:
             # Extract attribute values
             attr_values = np.array([get_attribute_value(o, attr) for o in outcomes])
 
-            # Calculate correlation with attempt_rate
+            # Calculate correlation with adopted_rate
             try:
-                corr_attempt, p_attempt = stats.pearsonr(attr_values, attempt_rates)
+                corr_adopted, p_adopted = stats.pearsonr(attr_values, adopted_rates)
                 # Handle NaN (occurs when variance is zero)
-                if np.isnan(corr_attempt) or np.isnan(p_attempt):
-                    corr_attempt, p_attempt = 0.0, 1.0
+                if np.isnan(corr_adopted) or np.isnan(p_adopted):
+                    corr_adopted, p_adopted = 0.0, 1.0
             except Exception:
-                corr_attempt, p_attempt = 0.0, 1.0
-
-            # Calculate correlation with success_rate
-            try:
-                corr_success, p_success = stats.pearsonr(attr_values, success_rates)
-                # Handle NaN (occurs when variance is zero)
-                if np.isnan(corr_success) or np.isnan(p_success):
-                    corr_success, p_success = 0.0, 1.0
-            except Exception:
-                corr_success, p_success = 0.0, 1.0
+                corr_adopted, p_adopted = 0.0, 1.0
 
             correlations.append(
                 AttributeCorrelation(
                     attribute=attr,
                     attribute_label=self.ATTRIBUTE_LABELS.get(attr, attr),
-                    correlation_attempt=float(corr_attempt),
-                    correlation_success=float(corr_success),
-                    p_value_attempt=float(p_attempt),
-                    p_value_success=float(p_success),
-                    is_significant_attempt=p_attempt < 0.05,
-                    is_significant_success=p_success < 0.05)
+                    correlation_adopted=float(corr_adopted),
+                    p_value_adopted=float(p_adopted),
+                    is_significant_adopted=p_adopted < 0.05,
+                )
             )
 
         # Keep fixed order (same as X_AXIS_OPTIONS in frontend)
         # No sorting - order matches dropdown for consistency
 
         return AttributeCorrelationChart(
-            simulation_id=simulation_id,
-            correlations=correlations,
-            total_synths=len(outcomes))
+            simulation_id=simulation_id, correlations=correlations, total_synths=len(outcomes)
+        )
 
     # =========================================================================
     # Sankey Flow Chart (Outcome Flow Visualization)
@@ -616,179 +593,31 @@ class ChartDataService:
     # Node colors following design system
     SANKEY_COLORS = {
         "population": "#6366f1",  # indigo
-        "did_not_try": "#f59e0b",  # amber
-        "failed": "#ef4444",  # red
-        "success": "#22c55e",  # green
-        # did_not_try causes (based on P(attempt) formula)
-        "effort_barrier": "#fbbf24",  # amber-400
-        "risk_barrier": "#fb923c",  # orange-400
-        # failed causes (based on P(success|attempt) formula)
-        "capability_barrier": "#f87171",  # red-400
-        "patience_barrier": "#fca5a5",  # red-300
+        "adopted": "#22c55e",  # green
+        "not_adopted": "#f59e0b",  # amber
     }
 
     # Node labels in Portuguese
     SANKEY_LABELS = {
-        "population": "População",
-        "did_not_try": "Não tentou",
-        "failed": "Falhou",
-        "success": "Sucesso",
-        # did_not_try causes
-        "effort_barrier": "Esforço inicial alto",
-        "risk_barrier": "Risco percebido",
-        # failed causes
-        "capability_barrier": "Capability insuficiente",
-        "patience_barrier": "Desistiu antes do valor",
+        "population": "Populacao",
+        "adopted": "Adotou",
+        "not_adopted": "Nao adotou",
     }
-
-    # Note: Tie-breaking priority moved to diagnose methods directly
-    FAILED_PRIORITY = {
-        "capability_gap": 2,  # capability_barrier
-        "patience_gap": 1,  # patience_barrier
-    }
-
-    def get_dominant_outcome(
-        self,
-        outcome: SynthOutcome) -> Literal["did_not_try", "failed", "success"]:
-        """
-        Determine the dominant outcome for a synth.
-
-        The dominant outcome is the one with the highest rate.
-        Tie-breaking priority: success > failed > did_not_try.
-
-        Args:
-            outcome: SynthOutcome entity.
-
-        Returns:
-            The dominant outcome type.
-        """
-        rates = {
-            "success": outcome.success_rate,
-            "failed": outcome.failed_rate,
-            "did_not_try": outcome.did_not_try_rate,
-        }
-        # Sort by rate (desc), then by priority (success > failed > did_not_try)
-        priority = {"success": 3, "failed": 2, "did_not_try": 1}
-        sorted_outcomes = sorted(
-            rates.items(), key=lambda x: (x[1], priority[x[0]]), reverse=True
-        )
-        return sorted_outcomes[0][0]
-
-    def diagnose_did_not_try(
-        self,
-        outcome: SynthOutcome,
-        scorecard: FeatureScorecard | ScorecardData) -> str:
-        """
-        Diagnose root cause for did_not_try outcome.
-
-        Based on P(attempt) formula from Monte Carlo simulation:
-        logit = 2.0*motivation + 1.5*trust - 2.0*perceived_risk - 1.5*initial_effort
-
-        Gaps calculated as (barrier - enabler) weighted by simulation weights:
-        - effort_gap = 1.5*initial_effort - 2.0*motivation (effort vs motivation)
-        - risk_gap = 2.0*perceived_risk - 1.5*trust (risk vs trust)
-
-        Args:
-            outcome: SynthOutcome entity with synth_attributes.
-            scorecard: Feature scorecard with dimensions.
-
-        Returns:
-            Root cause barrier ID (effort_barrier, risk_barrier).
-        """
-        attrs = outcome.synth_attributes
-        if not attrs:
-            return "effort_barrier"  # Default fallback
-
-        # Get motivation from observables or use baseline
-        # In the simulation, motivation is derived from task_criticality
-        # Using 0.5 as baseline since we don't have direct motivation storage
-        motivation = 0.5
-
-        # Calculate weighted gaps matching simulation P(attempt) formula
-        # P(attempt) decreases when: high effort vs low motivation, high risk vs low trust
-        gaps = {
-            # Effort barrier: high initial_effort relative to motivation
-            "effort_gap": (1.5 * scorecard.initial_effort.score) - (2.0 * motivation),
-            # Risk barrier: high perceived_risk relative to trust
-            "risk_gap": (2.0 * scorecard.perceived_risk.score) - (1.5 * attrs.latent_traits.trust_mean),
-        }
-
-        # Find largest gap with tie-breaking (effort has priority)
-        priority = {"effort_gap": 1, "risk_gap": 0}
-        sorted_gaps = sorted(
-            gaps.items(),
-            key=lambda x: (x[1], priority.get(x[0], 0)),
-            reverse=True)
-        largest_gap = sorted_gaps[0][0]
-
-        # Map gap to barrier
-        gap_to_barrier = {
-            "effort_gap": "effort_barrier",
-            "risk_gap": "risk_barrier",
-        }
-        return gap_to_barrier[largest_gap]
-
-    def diagnose_failed(
-        self,
-        outcome: SynthOutcome,
-        scorecard: FeatureScorecard | ScorecardData) -> str:
-        """
-        Diagnose root cause for failed outcome.
-
-        Calculates gaps between scorecard dimensions and synth traits.
-        The largest positive gap indicates the primary barrier.
-
-        Gap formulas:
-        - capability_gap = complexity.score - capability_mean
-        - patience_gap = time_to_value.score - friction_tolerance_mean
-
-        Args:
-            outcome: SynthOutcome entity with synth_attributes.
-            scorecard: Feature scorecard with dimensions.
-
-        Returns:
-            Root cause barrier ID (capability_barrier, patience_barrier).
-        """
-        attrs = outcome.synth_attributes
-        if not attrs:
-            return "capability_barrier"  # Default fallback
-
-        gaps = {
-            "capability_gap": scorecard.complexity.score - attrs.latent_traits.capability_mean,
-            "patience_gap": scorecard.time_to_value.score - attrs.latent_traits.friction_tolerance_mean,
-        }
-
-        # Find largest gap with tie-breaking
-        sorted_gaps = sorted(
-            gaps.items(),
-            key=lambda x: (x[1], self.FAILED_PRIORITY.get(x[0], 0)),
-            reverse=True)
-        largest_gap = sorted_gaps[0][0]
-
-        # Map gap to barrier
-        gap_to_barrier = {
-            "capability_gap": "capability_barrier",
-            "patience_gap": "patience_barrier",
-        }
-        return gap_to_barrier[largest_gap]
 
     def get_sankey_flow(
-        self,
-        analysis_id: str,
-        outcomes: list[SynthOutcome],
-        scorecard: FeatureScorecard | ScorecardData) -> SankeyFlowChart:
+        self, analysis_id: str, outcomes: list[SynthOutcome], scorecard: object | None = None
+    ) -> SankeyFlowChart:
         """
         Generate Sankey flow chart data for outcome flow visualization.
 
-        Creates a 3-level Sankey diagram:
+        Creates a 2-level Sankey diagram:
         - Level 1: Population
-        - Level 2: Outcomes (did_not_try, failed, success)
-        - Level 3: Root causes (for did_not_try and failed only)
+        - Level 2: Outcomes (adopted, not_adopted)
 
         Args:
             analysis_id: Analysis run ID.
             outcomes: List of SynthOutcome entities.
-            scorecard: Feature scorecard for gap calculation.
+            scorecard: Unused (kept for backward compatibility).
 
         Returns:
             SankeyFlowChart with nodes and links.
@@ -801,103 +630,32 @@ class ChartDataService:
                 nodes=[],
                 links=[],
                 total_synths=0,
-                outcome_counts=OutcomeCounts(did_not_try=0, failed=0, success=0))
+                outcome_counts=OutcomeCounts(adopted=0, not_adopted=0),
+            )
 
         total_synths = len(outcomes)
 
-        # Step 1: Calculate average rates across all synths (matching distribution chart)
-        avg_did_not_try = sum(o.did_not_try_rate for o in outcomes) / total_synths
-        avg_failed = sum(o.failed_rate for o in outcomes) / total_synths
-        avg_success = sum(o.success_rate for o in outcomes) / total_synths
+        # Calculate average rates across all synths
+        avg_adopted = sum(o.adopted_rate for o in outcomes) / total_synths
+        avg_not_adopted = sum(o.not_adopted_rate for o in outcomes) / total_synths
 
         # Convert rates to counts (rounded to maintain whole numbers)
-        did_not_try_count = round(avg_did_not_try * total_synths)
-        failed_count = round(avg_failed * total_synths)
-        success_count = round(avg_success * total_synths)
+        adopted_count = round(avg_adopted * total_synths)
+        not_adopted_count = round(avg_not_adopted * total_synths)
 
         # Adjust for rounding to ensure total matches
-        total_counted = did_not_try_count + failed_count + success_count
+        total_counted = adopted_count + not_adopted_count
         if total_counted != total_synths:
-            # Adjust the largest category
             diff = total_synths - total_counted
-            if success_count >= failed_count and success_count >= did_not_try_count:
-                success_count += diff
-            elif failed_count >= did_not_try_count:
-                failed_count += diff
+            if adopted_count >= not_adopted_count:
+                adopted_count += diff
             else:
-                did_not_try_count += diff
+                not_adopted_count += diff
 
-        outcome_counts = OutcomeCounts(
-            did_not_try=did_not_try_count,
-            failed=failed_count,
-            success=success_count)
+        outcome_counts = OutcomeCounts(adopted=adopted_count, not_adopted=not_adopted_count)
 
-        # Step 2: Diagnose root causes using rate-weighted distribution
-        # For each synth, weight the root cause by their did_not_try_rate or failed_rate
-        root_cause_weights: dict[str, float] = {
-            # did_not_try causes (from P(attempt) formula)
-            "effort_barrier": 0.0,
-            "risk_barrier": 0.0,
-            # failed causes (from P(success|attempt) formula)
-            "capability_barrier": 0.0,
-            "patience_barrier": 0.0,
-        }
-
-        for o in outcomes:
-            # Weight by did_not_try_rate for did_not_try causes
-            if o.did_not_try_rate > 0:
-                cause = self.diagnose_did_not_try(o, scorecard)
-                root_cause_weights[cause] += o.did_not_try_rate
-
-            # Weight by failed_rate for failed causes
-            if o.failed_rate > 0:
-                cause = self.diagnose_failed(o, scorecard)
-                root_cause_weights[cause] += o.failed_rate
-
-        # Convert weighted sums to counts proportional to outcome counts
-        # did_not_try causes (only 2: effort and risk)
-        total_dnt_weight = root_cause_weights["effort_barrier"] + root_cause_weights["risk_barrier"]
-        # failed causes
-        total_failed_weight = root_cause_weights["capability_barrier"] + root_cause_weights["patience_barrier"]
-
-        root_cause_counts: dict[str, int] = {}
-
-        # Distribute did_not_try_count among its causes
-        if total_dnt_weight > 0 and did_not_try_count > 0:
-            for cause in ["effort_barrier", "risk_barrier"]:
-                proportion = root_cause_weights[cause] / total_dnt_weight
-                root_cause_counts[cause] = round(proportion * did_not_try_count)
-
-            # Adjust for rounding
-            dnt_assigned = sum(root_cause_counts.get(c, 0) for c in ["effort_barrier", "risk_barrier"])
-            if dnt_assigned != did_not_try_count:
-                # Find the cause with highest weight and adjust
-                max_cause = max(["effort_barrier", "risk_barrier"],
-                               key=lambda c: root_cause_weights[c])
-                root_cause_counts[max_cause] += did_not_try_count - dnt_assigned
-        else:
-            for cause in ["effort_barrier", "risk_barrier"]:
-                root_cause_counts[cause] = 0
-
-        # Distribute failed_count among its causes
-        if total_failed_weight > 0 and failed_count > 0:
-            for cause in ["capability_barrier", "patience_barrier"]:
-                proportion = root_cause_weights[cause] / total_failed_weight
-                root_cause_counts[cause] = round(proportion * failed_count)
-
-            # Adjust for rounding
-            failed_assigned = sum(root_cause_counts.get(c, 0) for c in ["capability_barrier", "patience_barrier"])
-            if failed_assigned != failed_count:
-                max_cause = max(["capability_barrier", "patience_barrier"],
-                               key=lambda c: root_cause_weights[c])
-                root_cause_counts[max_cause] += failed_count - failed_assigned
-        else:
-            for cause in ["capability_barrier", "patience_barrier"]:
-                root_cause_counts[cause] = 0
-
-        # Step 3: Build nodes
+        # Build nodes
         nodes: list[SankeyNode] = []
-        total_synths = len(outcomes)
 
         # Level 1: Population
         nodes.append(
@@ -906,11 +664,12 @@ class ChartDataService:
                 label=self.SANKEY_LABELS["population"],
                 level=1,
                 color=self.SANKEY_COLORS["population"],
-                value=total_synths)
+                value=total_synths,
+            )
         )
 
         # Level 2: Outcomes (only include if count > 0)
-        for outcome_id in ["did_not_try", "failed", "success"]:
+        for outcome_id in ["adopted", "not_adopted"]:
             count = getattr(outcome_counts, outcome_id)
             if count > 0:
                 nodes.append(
@@ -919,54 +678,25 @@ class ChartDataService:
                         label=self.SANKEY_LABELS[outcome_id],
                         level=2,
                         color=self.SANKEY_COLORS[outcome_id],
-                        value=count)
+                        value=count,
+                    )
                 )
 
-        # Level 3: Root causes (only include if count > 0)
-        for cause_id, count in root_cause_counts.items():
-            if count > 0:
-                nodes.append(
-                    SankeyNode(
-                        id=cause_id,
-                        label=self.SANKEY_LABELS[cause_id],
-                        level=3,
-                        color=self.SANKEY_COLORS[cause_id],
-                        value=count)
-                )
-
-        # Step 4: Build links (only include if value > 0)
+        # Build links (only include if value > 0)
         links: list[SankeyLink] = []
 
-        # Level 1 → Level 2 links
-        for outcome_id in ["did_not_try", "failed", "success"]:
+        for outcome_id in ["adopted", "not_adopted"]:
             count = getattr(outcome_counts, outcome_id)
             if count > 0:
-                links.append(
-                    SankeyLink(source="population", target=outcome_id, value=count)
-                )
-
-        # Level 2 → Level 3 links for did_not_try
-        for cause_id in ["effort_barrier", "risk_barrier"]:
-            count = root_cause_counts[cause_id]
-            if count > 0:
-                links.append(
-                    SankeyLink(source="did_not_try", target=cause_id, value=count)
-                )
-
-        # Level 2 → Level 3 links for failed
-        for cause_id in ["capability_barrier", "patience_barrier"]:
-            count = root_cause_counts[cause_id]
-            if count > 0:
-                links.append(
-                    SankeyLink(source="failed", target=cause_id, value=count)
-                )
+                links.append(SankeyLink(source="population", target=outcome_id, value=count))
 
         return SankeyFlowChart(
             analysis_id=analysis_id,
             nodes=nodes,
             links=links,
             total_synths=total_synths,
-            outcome_counts=outcome_counts)
+            outcome_counts=outcome_counts,
+        )
 
 
 # =============================================================================
@@ -979,48 +709,49 @@ if __name__ == "__main__":
     from synth_lab.domain.entities.simulation_attributes import (
         SimulationAttributes,
         SimulationLatentTraits,
-        SimulationObservables)
+        SimulationObservables,
+    )
 
     all_validation_failures: list[str] = []
     total_tests = 0
 
-    # Create sample outcomes for tests
+    # Create sample outcomes for tests (2-outcome model)
     def create_outcome(
-        synth_id: str,
-        success: float,
-        failed: float,
-        capability: float = 0.5,
-        trust: float = 0.5) -> SynthOutcome:
+        synth_id: str, adopted: float, capability: float = 0.5, trust: float = 0.5
+    ) -> SynthOutcome:
         return SynthOutcome(
-            simulation_id="sim_test",
+            analysis_id="ana_12345678",
             synth_id=synth_id,
-            success_rate=success,
-            failed_rate=failed,
-            did_not_try_rate=1.0 - success - failed,
+            adopted_rate=adopted,
+            not_adopted_rate=1.0 - adopted,
             synth_attributes=SimulationAttributes(
                 observables=SimulationObservables(
                     digital_literacy=0.5,
                     similar_tool_experience=0.4,
                     motor_ability=0.8,
                     time_availability=0.3,
-                    domain_expertise=0.6),
+                    domain_expertise=0.6,
+                ),
                 latent_traits=SimulationLatentTraits(
                     capability_mean=capability,
                     trust_mean=trust,
                     friction_tolerance_mean=0.40,
-                    exploration_prob=0.35)))
+                    exploration_prob=0.35,
+                ),
+            ),
+        )
 
     outcomes = [
-        create_outcome("synth_001", 0.70, 0.20, capability=0.8, trust=0.7),  # ok
-        create_outcome("synth_002", 0.30, 0.50, capability=0.6, trust=0.6),  # usability_issue
-        create_outcome("synth_003", 0.60, 0.10, capability=0.2, trust=0.8),  # discovery_issue
-        create_outcome("synth_004", 0.20, 0.30, capability=0.3, trust=0.2),  # low_value
-        create_outcome("synth_005", 0.55, 0.35, capability=0.5, trust=0.5),  # ok
+        create_outcome("synth_001", 0.80, capability=0.8, trust=0.7),
+        create_outcome("synth_002", 0.30, capability=0.6, trust=0.6),
+        create_outcome("synth_003", 0.55, capability=0.2, trust=0.8),
+        create_outcome("synth_004", 0.15, capability=0.3, trust=0.2),
+        create_outcome("synth_005", 0.70, capability=0.5, trust=0.5),
     ]
 
     service = ChartDataService()
 
-    # Test 1: get_try_vs_success
+    # Test 1: get_try_vs_success (adoption distribution)
     total_tests += 1
     try:
         chart = service.get_try_vs_success("sim_test", outcomes)
@@ -1028,19 +759,25 @@ if __name__ == "__main__":
             all_validation_failures.append(f"try_vs_success total_synths: {chart.total_synths}")
         if len(chart.points) != 5:
             all_validation_failures.append(f"try_vs_success points count: {len(chart.points)}")
-        # synth_001 has attempt_rate=0.9 (1-0.1), success=0.7 -> ok quadrant
+        # synth_001 has adopted_rate=0.80 -> high bucket (>= 0.66)
         p1 = next((p for p in chart.points if p.synth_id == "synth_001"), None)
-        if p1 and p1.quadrant != "ok":
-            all_validation_failures.append(f"synth_001 quadrant: {p1.quadrant}")
+        if p1 and p1.bucket != "high":
+            all_validation_failures.append(f"synth_001 bucket: {p1.bucket}")
+        # synth_004 has adopted_rate=0.15 -> low bucket (< 0.33)
+        p4 = next((p for p in chart.points if p.synth_id == "synth_004"), None)
+        if p4 and p4.bucket != "low":
+            all_validation_failures.append(f"synth_004 bucket: {p4.bucket}")
     except Exception as e:
         all_validation_failures.append(f"try_vs_success failed: {e}")
 
     # Test 2: get_try_vs_success with custom thresholds
     total_tests += 1
     try:
-        chart = service.get_try_vs_success("sim_test", outcomes, x_threshold=0.9, y_threshold=0.6)
-        if chart.quadrant_thresholds["x"] != 0.9:
-            all_validation_failures.append(f"custom threshold x: {chart.quadrant_thresholds['x']}")
+        chart = service.get_try_vs_success("sim_test", outcomes, x_threshold=0.4, y_threshold=0.7)
+        if chart.bucket_thresholds["low_max"] != 0.4:
+            all_validation_failures.append(
+                f"custom threshold low_max: {chart.bucket_thresholds['low_max']}"
+            )
     except Exception as e:
         all_validation_failures.append(f"try_vs_success custom thresholds failed: {e}")
 
@@ -1052,8 +789,8 @@ if __name__ == "__main__":
             all_validation_failures.append(f"distribution limit: {len(chart.distributions)}")
         if chart.total_synths != 5:
             all_validation_failures.append(f"distribution total_synths: {chart.total_synths}")
-        if "avg_success" not in chart.summary:
-            all_validation_failures.append("distribution missing avg_success")
+        if "avg_adopted" not in chart.summary:
+            all_validation_failures.append("distribution missing avg_adopted")
     except Exception as e:
         all_validation_failures.append(f"outcome_distribution failed: {e}")
 
@@ -1061,7 +798,7 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         chart = service.get_outcome_distribution("sim_test", outcomes, order="asc", limit=5)
-        # First should be lowest success (synth_004 with 0.20)
+        # First should be lowest adopted (synth_004 with 0.15)
         if chart.distributions[0].synth_id != "synth_004":
             all_validation_failures.append(
                 f"distribution asc first: {chart.distributions[0].synth_id}"
@@ -1088,16 +825,15 @@ if __name__ == "__main__":
             all_validation_failures.append(f"scatter points count: {len(chart.points)}")
         if len(chart.trendline) != 2:
             all_validation_failures.append(f"scatter trendline count: {len(chart.trendline)}")
-        # Should have correlation stats
         if chart.correlation.pearson_r is None:
             all_validation_failures.append("scatter missing pearson_r")
     except Exception as e:
         all_validation_failures.append(f"scatter_correlation failed: {e}")
 
-    # Test 7: get_box_plot without region
+    # Test 7: get_box_plot
     total_tests += 1
     try:
-        chart = service.get_box_plot("sim_test", outcomes, region_analysis=None)
+        chart = service.get_box_plot("sim_test", outcomes)
         if chart.baseline_stats.mean == 0.0:
             all_validation_failures.append("box_plot baseline mean should not be 0")
         if len(chart.regions) != 0:
@@ -1115,6 +851,40 @@ if __name__ == "__main__":
             all_validation_failures.append(f"empty try_vs_success total: {chart.total_synths}")
     except Exception as e:
         all_validation_failures.append(f"empty outcomes handling failed: {e}")
+
+    # Test 9: get_sankey_flow (2-outcome model)
+    total_tests += 1
+    try:
+        chart = service.get_sankey_flow("ana_12345678", outcomes)
+        if chart.total_synths != 5:
+            all_validation_failures.append(f"sankey total_synths: {chart.total_synths}")
+        # Should have 3 nodes: population + adopted + not_adopted
+        if len(chart.nodes) != 3:
+            all_validation_failures.append(f"sankey nodes count: {len(chart.nodes)}")
+        # Should have 2 links: population->adopted, population->not_adopted
+        if len(chart.links) != 2:
+            all_validation_failures.append(f"sankey links count: {len(chart.links)}")
+        # Outcome counts should sum to total
+        total_outcome = chart.outcome_counts.adopted + chart.outcome_counts.not_adopted
+        if total_outcome != 5:
+            all_validation_failures.append(f"sankey outcome total: {total_outcome}")
+    except Exception as e:
+        all_validation_failures.append(f"sankey_flow failed: {e}")
+
+    # Test 10: get_attribute_correlations
+    total_tests += 1
+    try:
+        chart = service.get_attribute_correlations("sim_test", outcomes)
+        if len(chart.correlations) != 9:
+            all_validation_failures.append(
+                f"attribute_correlations count: {len(chart.correlations)}"
+            )
+        # Should have correlation_adopted field
+        first = chart.correlations[0]
+        if not hasattr(first, "correlation_adopted"):
+            all_validation_failures.append("missing correlation_adopted field")
+    except Exception as e:
+        all_validation_failures.append(f"attribute_correlations failed: {e}")
 
     # Final validation result
     if all_validation_failures:

@@ -15,7 +15,7 @@ import { z } from 'zod';
  * Goal definition for exploration.
  */
 export interface ExplorationGoal {
-  metric: 'success_rate';
+  metric: 'adopted_rate';
   operator: '>=';
   value: number; // 0-1
 }
@@ -55,7 +55,7 @@ export interface Exploration {
   current_depth: number;
   total_nodes: number;
   total_llm_calls: number;
-  best_success_rate: number | null;
+  best_adopted_rate: number | null;
   started_at: string;
   completed_at: string | null;
 }
@@ -74,9 +74,8 @@ export interface ScorecardParams {
  * Simulation results for a scenario.
  */
 export interface SimulationResults {
-  success_rate: number;
-  fail_rate: number;
-  did_not_try_rate: number;
+  adopted_rate: number;
+  not_adopted_rate: number;
 }
 
 /**
@@ -120,8 +119,8 @@ export interface PathStep {
   action: string | null;
   category: string | null;
   rationale: string | null;
-  success_rate: number;
-  delta_success_rate: number;
+  adopted_rate: number;
+  delta_adopted_rate: number;
 }
 
 /**
@@ -230,7 +229,7 @@ export interface ExplorationSummary {
   id: string;
   status: ExplorationStatus;
   goal_value: number;
-  best_success_rate: number | null;
+  best_adopted_rate: number | null;
   total_nodes: number;
   started_at: string;
   completed_at: string | null;

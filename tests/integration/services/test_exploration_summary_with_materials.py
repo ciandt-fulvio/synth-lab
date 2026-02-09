@@ -54,7 +54,7 @@ class TestExplorationSummaryWithMaterials:
                 time_to_value=0.40,
             ),
             simulation_results=SimulationResults(
-                success_rate=0.50, fail_rate=0.30, did_not_try_rate=0.20
+                adopted_rate=0.50, not_adopted_rate=0.50
             ),
         )
 
@@ -73,7 +73,7 @@ class TestExplorationSummaryWithMaterials:
                 time_to_value=0.35,
             ),
             simulation_results=SimulationResults(
-                success_rate=0.72, fail_rate=0.18, did_not_try_rate=0.10
+                adopted_rate=0.72, not_adopted_rate=0.28
             ),
         )
 

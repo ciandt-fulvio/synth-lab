@@ -26,24 +26,17 @@ def sample_outcomes() -> list[SynthOutcome]:
     outcomes = []
     np.random.seed(42)
 
-    # Cluster 1: Worst failures (10 synths) - high capability but failed
+    # Cluster 1: Worst failures (10 synths) - high capability but low adoption
     for i in range(10):
-        success_rate = 0.05 + np.random.rand() * 0.05
-        failed_rate = 0.8 + np.random.rand() * 0.15
-        did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
-        # Normalize
-        total = success_rate + failed_rate + did_not_try_rate
-        success_rate /= total
-        failed_rate /= total
-        did_not_try_rate /= total
+        adopted_rate = 0.05 + np.random.rand() * 0.10  # 0.05 to 0.15
+        not_adopted_rate = 1.0 - adopted_rate
 
         outcomes.append(
             SynthOutcome(
                 synth_id=f"worst_{i:03d}",
                 analysis_id="ana_12345678",
-                success_rate=success_rate,
-                failed_rate=failed_rate,
-                did_not_try_rate=did_not_try_rate,
+                adopted_rate=adopted_rate,
+                not_adopted_rate=not_adopted_rate,
                 synth_attributes=SimulationAttributes(
                     observables=SimulationObservables(
                         digital_literacy=0.2,
@@ -64,22 +57,15 @@ def sample_outcomes() -> list[SynthOutcome]:
 
     # Cluster 2: Best successes (10 synths)
     for i in range(10):
-        success_rate = 0.85 + np.random.rand() * 0.1
-        failed_rate = 0.05 + np.random.rand() * 0.05
-        did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
-        # Normalize
-        total = success_rate + failed_rate + did_not_try_rate
-        success_rate /= total
-        failed_rate /= total
-        did_not_try_rate /= total
+        adopted_rate = 0.85 + np.random.rand() * 0.10  # 0.85 to 0.95
+        not_adopted_rate = 1.0 - adopted_rate
 
         outcomes.append(
             SynthOutcome(
                 synth_id=f"best_{i:03d}",
                 analysis_id="ana_12345678",
-                success_rate=success_rate,
-                failed_rate=failed_rate,
-                did_not_try_rate=did_not_try_rate,
+                adopted_rate=adopted_rate,
+                not_adopted_rate=not_adopted_rate,
                 synth_attributes=SimulationAttributes(
                     observables=SimulationObservables(
                         digital_literacy=0.8,
@@ -98,14 +84,13 @@ def sample_outcomes() -> list[SynthOutcome]:
             )
         )
 
-    # Cluster 3: Unexpected outlier - low capability but high success
+    # Cluster 3: Unexpected outlier - low capability but high adoption
     outcomes.append(
         SynthOutcome(
             synth_id="outlier_success",
             analysis_id="ana_12345678",
-            success_rate=0.92,
-            failed_rate=0.05,
-            did_not_try_rate=0.03,
+            adopted_rate=0.92,
+            not_adopted_rate=0.08,
             synth_attributes=SimulationAttributes(
                 observables=SimulationObservables(
                     digital_literacy=0.2,
@@ -115,7 +100,7 @@ def sample_outcomes() -> list[SynthOutcome]:
                     domain_expertise=0.2,
                 ),
                 latent_traits=SimulationLatentTraits(
-                    capability_mean=0.2,  # Low capability but high success - OUTLIER
+                    capability_mean=0.2,  # Low capability but high adoption - OUTLIER
                     trust_mean=0.9,
                     friction_tolerance_mean=0.9,
                     exploration_prob=0.9,
@@ -126,22 +111,15 @@ def sample_outcomes() -> list[SynthOutcome]:
 
     # Cluster 4: Normal performers (29 synths)
     for i in range(29):
-        success_rate = 0.4 + np.random.rand() * 0.3
-        failed_rate = 0.2 + np.random.rand() * 0.2
-        did_not_try_rate = max(0.0, 1.0 - success_rate - failed_rate)
-        # Normalize
-        total = success_rate + failed_rate + did_not_try_rate
-        success_rate /= total
-        failed_rate /= total
-        did_not_try_rate /= total
+        adopted_rate = 0.35 + np.random.rand() * 0.30  # 0.35 to 0.65
+        not_adopted_rate = 1.0 - adopted_rate
 
         outcomes.append(
             SynthOutcome(
                 synth_id=f"normal_{i:03d}",
                 analysis_id="ana_12345678",
-                success_rate=success_rate,
-                failed_rate=failed_rate,
-                did_not_try_rate=did_not_try_rate,
+                adopted_rate=adopted_rate,
+                not_adopted_rate=not_adopted_rate,
                 synth_attributes=SimulationAttributes(
                     observables=SimulationObservables(
                         digital_literacy=0.5,
@@ -181,8 +159,8 @@ class TestExtremeCases:
         assert len(result.unexpected_cases) >= 1
         assert result.total_synths == 50
 
-    def test_worst_failures_have_highest_failure_rate(self, sample_outcomes):
-        """Test that worst failures are correctly ranked by lowest success rate."""
+    def test_worst_failures_have_lowest_adopted_rate(self, sample_outcomes):
+        """Test that worst failures are correctly ranked by lowest adopted rate."""
         service = OutlierService()
         result = service.get_extreme_cases(
             simulation_id="sim_test_001",
@@ -190,16 +168,16 @@ class TestExtremeCases:
             n_per_category=10,
         )
 
-        # Check that failures are sorted by success rate (ascending)
-        success_rates = [synth.success_rate for synth in result.worst_failures]
-        assert success_rates == sorted(success_rates, reverse=False)
+        # Check that failures are sorted by adopted rate (ascending)
+        adopted_rates = [synth.adopted_rate for synth in result.worst_failures]
+        assert adopted_rates == sorted(adopted_rates, reverse=False)
 
-        # All should have low success rates
+        # All should have low adopted rates
         for synth in result.worst_failures:
-            assert synth.success_rate < 0.5
+            assert synth.adopted_rate < 0.5
             assert synth.category == "worst_failure"
 
-    def test_best_successes_have_highest_success_rate(self, sample_outcomes):
+    def test_best_successes_have_highest_adopted_rate(self, sample_outcomes):
         """Test that best successes are correctly ranked."""
         service = OutlierService()
         result = service.get_extreme_cases(
@@ -208,13 +186,13 @@ class TestExtremeCases:
             n_per_category=10,
         )
 
-        # Check that successes are sorted by success rate (descending)
-        success_rates = [synth.success_rate for synth in result.best_successes]
-        assert success_rates == sorted(success_rates, reverse=True)
+        # Check that successes are sorted by adopted rate (descending)
+        adopted_rates = [synth.adopted_rate for synth in result.best_successes]
+        assert adopted_rates == sorted(adopted_rates, reverse=True)
 
-        # All should have high success rates
+        # All should have high adopted rates
         for synth in result.best_successes:
-            assert synth.success_rate > 0.7
+            assert synth.adopted_rate > 0.7
             assert synth.category == "best_success"
 
     def test_profile_summary_is_generated(self, sample_outcomes):
@@ -336,9 +314,8 @@ class TestEdgeCases:
             SynthOutcome(
                 synth_id=f"synth_{i:03d}",
                 analysis_id="ana_12345678",
-                success_rate=0.5,
-                failed_rate=0.3,
-                did_not_try_rate=0.2,
+                adopted_rate=0.50,
+                not_adopted_rate=0.50,
                 synth_attributes=SimulationAttributes(
                     observables=SimulationObservables(
                         digital_literacy=0.5,

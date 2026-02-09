@@ -244,7 +244,7 @@ session: Session | None = None):
 
         Returns:
             Tuple of (top_performer_ids, bottom_performer_ids).
-            Each list contains synth IDs ordered by success_rate.
+            Each list contains synth IDs ordered by adopted_rate.
 
         Raises:
             ValueError: If experiment has no analysis or insufficient synths.
@@ -263,16 +263,16 @@ session: Session | None = None):
 
         analysis_id = analysis.id
 
-        # Get top performers (highest success_rate)
+        # Get top performers (highest adopted_rate)
         top_stmt = select(SynthOutcomeORM.synth_id).where(
             SynthOutcomeORM.analysis_id == analysis_id
-        ).order_by(SynthOutcomeORM.success_rate.desc()).limit(top_n)
+        ).order_by(SynthOutcomeORM.adopted_rate.desc()).limit(top_n)
         top_results = self.session.execute(top_stmt).scalars().all()
 
-        # Get bottom performers (lowest success_rate)
+        # Get bottom performers (lowest adopted_rate)
         bottom_stmt = select(SynthOutcomeORM.synth_id).where(
             SynthOutcomeORM.analysis_id == analysis_id
-        ).order_by(SynthOutcomeORM.success_rate.asc()).limit(top_n)
+        ).order_by(SynthOutcomeORM.adopted_rate.asc()).limit(top_n)
         bottom_results = self.session.execute(bottom_stmt).scalars().all()
 
         # Validate we have enough synths

@@ -170,8 +170,8 @@ class ExplorationPRFAQGeneratorService:
             final_node = winning_path[-1]
 
             # Calculate improvement metrics
-            baseline_rate = root_node.get_success_rate() or 0
-            final_rate = final_node.get_success_rate() or 0
+            baseline_rate = root_node.get_adopted_rate() or 0
+            final_rate = final_node.get_adopted_rate() or 0
             improvement = (
                 ((final_rate - baseline_rate) / baseline_rate * 100) if baseline_rate > 0 else 0
             )
@@ -182,8 +182,8 @@ class ExplorationPRFAQGeneratorService:
                 "exploration_id": exploration_id,
                 "winning_path_nodes": [n.id for n in winning_path],
                 "path_length": len(winning_path),
-                "baseline_success_rate": baseline_rate,
-                "final_success_rate": final_rate,
+                "baseline_adopted_rate": baseline_rate,
+                "final_adopted_rate": final_rate,
                 "improvement_percentage": round(improvement, 1),
             }
 
@@ -306,8 +306,8 @@ class ExplorationPRFAQGeneratorService:
         # Format improvements (excluding root)
         improvements = []
         for i, node in enumerate(winning_path[1:], 1):
-            prev_rate = winning_path[i - 1].get_success_rate() or 0
-            curr_rate = node.get_success_rate() or 0
+            prev_rate = winning_path[i - 1].get_adopted_rate() or 0
+            curr_rate = node.get_adopted_rate() or 0
             delta = curr_rate - prev_rate
 
             improvements.append(
@@ -322,8 +322,8 @@ class ExplorationPRFAQGeneratorService:
         )
 
         # Calculate metrics
-        baseline_rate = root_node.get_success_rate() or 0
-        final_rate = final_node.get_success_rate() or 0
+        baseline_rate = root_node.get_adopted_rate() or 0
+        final_rate = final_node.get_adopted_rate() or 0
         improvement_pct = (
             ((final_rate - baseline_rate) / baseline_rate * 100) if baseline_rate > 0 else 0
         )
@@ -368,12 +368,12 @@ Você está anunciando uma **nova versão otimizada** de "{experiment_name}" com
 
 {materials_section}
 
-**Cenário Original**: {experiment_name} tinha taxa de sucesso de {baseline_rate:.0%}
+**Cenário Original**: {experiment_name} tinha taxa de adoção de {baseline_rate:.0%}
 
 **Melhorias Aplicadas**:
 {improvements_text}
 
-**Resultado**: Nova versão com taxa de sucesso de {final_rate:.0%} (melhoria de {improvement_pct:.1f}%)
+**Resultado**: Nova versão com taxa de adoção de {final_rate:.0%} (melhoria de {improvement_pct:.1f}%)
 
 **Mudanças no Scorecard**:
 - Complexidade: {root_sc.complexity:.0%} → {final_sc.complexity:.0%}
@@ -397,7 +397,7 @@ Use o formato abaixo:
 
 SÃO PAULO, SP, {launch_date_str} — Anunciamos hoje o lançamento do [Nome do Produto], uma solução inovadora que [benefício principal em uma frase]. Esta atualização foi projetada especificamente para [público-alvo] que [contexto/situação].
 
-O [Nome do Produto] oferece [característica 1], [característica 2] e [característica 3], proporcionando uma experiência significativamente melhorada. Com base em extensos testes, a nova versão alcançou {final_rate:.0%} de taxa de sucesso, representando um avanço importante para usuários que anteriormente enfrentavam [principais fricções].
+O [Nome do Produto] oferece [característica 1], [característica 2] e [característica 3], proporcionando uma experiência significativamente melhorada. Com base em extensos testes, a nova versão alcançou {final_rate:.0%} de taxa de adoção, representando um avanço importante para usuários que anteriormente enfrentavam [principais fricções].
 
 ## O Problema
 
@@ -435,7 +435,7 @@ R: [Resposta sobre disponibilidade e rollout]
 ## FAQs Internas (Equipe/Stakeholders)
 
 **P: Como vamos medir o sucesso do [Nome do Produto]?**
-R: [Mencione métricas de negócio e experiência - pode usar a taxa de sucesso como KPI principal]
+R: [Mencione métricas de negócio e experiência - pode usar a taxa de adoção como KPI principal]
 
 **P: Qual foi o investimento necessário para desenvolver estas melhorias?**
 R: [Responda baseado nas mudanças de esforço e complexidade do scorecard, mas em termos de recursos e tempo]

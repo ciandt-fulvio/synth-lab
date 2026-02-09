@@ -73,21 +73,17 @@ function SynthCard({ synth, variant, onClick, isSelected }: SynthCardProps) {
           </span>
         </div>
         <span className={`text-sm font-bold ${styles.rateColor}`}>
-          {(synth.success_rate * 100).toFixed(0)}%
+          {(synth.adopted_rate * 100).toFixed(0)}%
         </span>
       </div>
-      <div className="grid grid-cols-3 gap-2 text-xs">
+      <div className="grid grid-cols-2 gap-2 text-xs">
         <div>
-          <span className="text-slate-500">Sucesso</span>
-          <p className="font-medium text-green-600">{(synth.success_rate * 100).toFixed(0)}%</p>
+          <span className="text-slate-500">Adotaram</span>
+          <p className="font-medium text-green-600">{(synth.adopted_rate * 100).toFixed(0)}%</p>
         </div>
         <div>
-          <span className="text-slate-500">Falha</span>
-          <p className="font-medium text-red-600">{(synth.failed_rate * 100).toFixed(0)}%</p>
-        </div>
-        <div>
-          <span className="text-slate-500">Não Tentou</span>
-          <p className="font-medium text-slate-600">{(synth.did_not_try_rate * 100).toFixed(0)}%</p>
+          <span className="text-slate-500">Não Adotaram</span>
+          <p className="font-medium text-slate-600">{(synth.not_adopted_rate * 100).toFixed(0)}%</p>
         </div>
       </div>
     </button>

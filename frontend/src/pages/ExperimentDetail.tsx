@@ -999,7 +999,7 @@ export default function ExperimentDetail() {
         open={isNewExplorationOpen}
         onOpenChange={setIsNewExplorationOpen}
         experimentId={id ?? ''}
-        baselineSuccessRate={analysis?.aggregated_outcomes?.success_rate}
+        baselineSuccessRate={analysis?.aggregated_outcomes?.adopted_rate}
         onSuccess={handleExplorationSuccess}
       />
 

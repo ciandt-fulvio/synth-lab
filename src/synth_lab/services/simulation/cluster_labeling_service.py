@@ -150,7 +150,7 @@ class ClusterLabelingService:
 
             cluster_block = f"""<cluster_{profile.cluster_id}>
 - Tamanho: {profile.size} usuários ({profile.percentage:.1f}%)
-- Taxa de sucesso: {profile.avg_success_rate * 100:.0f}%
+- Taxa de adoção: {profile.avg_adopted_rate * 100:.0f}%
 {chr(10).join(trait_lines)}
 - Traits acima da média: {', '.join(high_traits_labels) if high_traits_labels else 'nenhum'}
 - Traits abaixo da média: {', '.join(low_traits_labels) if low_traits_labels else 'nenhum'}
@@ -271,9 +271,8 @@ if __name__ == "__main__":
                     "friction_tolerance_mean": 0.68,
                     "exploration_prob": 0.33,
                 },
-                avg_success_rate=0.28,
-                avg_failed_rate=0.42,
-                avg_did_not_try_rate=0.30,
+                avg_adopted_rate=0.28,
+                avg_not_adopted_rate=0.72,
                 high_traits=["capability_mean", "friction_tolerance_mean"],
                 low_traits=["trust_mean"],
                 suggested_label="Test",
@@ -288,9 +287,8 @@ if __name__ == "__main__":
                     "friction_tolerance_mean": 0.55,
                     "exploration_prob": 0.71,
                 },
-                avg_success_rate=0.65,
-                avg_failed_rate=0.20,
-                avg_did_not_try_rate=0.15,
+                avg_adopted_rate=0.65,
+                avg_not_adopted_rate=0.35,
                 high_traits=["trust_mean", "exploration_prob"],
                 low_traits=["capability_mean"],
                 suggested_label="Test",
@@ -306,8 +304,8 @@ if __name__ == "__main__":
             all_validation_failures.append("Prompt missing cluster_1 tag")
         if "Capacidade: 0.72" not in prompt:
             all_validation_failures.append("Prompt missing capability value")
-        if "Taxa de sucesso: 28%" not in prompt:
-            all_validation_failures.append("Prompt missing success rate")
+        if "Taxa de adoção: 28%" not in prompt:
+            all_validation_failures.append("Prompt missing adoption rate")
         if "Confiança" not in prompt:
             all_validation_failures.append("Prompt missing trust trait label")
 

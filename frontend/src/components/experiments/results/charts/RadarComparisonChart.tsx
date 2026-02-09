@@ -108,7 +108,7 @@ export function RadarComparisonChart({ data }: RadarComparisonChartProps) {
               </p>
             )}
             <p className="text-xs text-slate-500">
-              Taxa de sucesso: {(cluster.success_rate * 100).toFixed(0)}%
+              Taxa de adoção: {(cluster.adopted_rate * 100).toFixed(0)}%
             </p>
           </div>
         ))}

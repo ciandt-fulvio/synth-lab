@@ -67,7 +67,7 @@ export function ExplorationProgress({
         <MetricCard
           icon={<TrendingUp className="h-4 w-4 text-green-600" />}
           label="Melhor Taxa"
-          value={formatSuccessRate(exploration.best_success_rate)}
+          value={formatSuccessRate(exploration.best_adopted_rate)}
           highlight={exploration.status === 'goal_achieved'}
         />
       </div>

@@ -115,7 +115,7 @@ export function PhaseOverview({ experimentId, analysis }: PhaseOverviewProps) {
             <PieChart className="h-4 w-4 text-slate-500" />
             Distribuição de Resultados
           </CardTitle>
-          <p className="text-meta">Proporção média de synths que tiveram sucesso, falharam ou não tentaram</p>
+          <p className="text-meta">Proporção média de synths que adotaram ou não adotaram a feature</p>
         </CardHeader>
         <CardContent>
           {/* Loading state */}
