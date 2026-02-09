@@ -60,12 +60,12 @@ export interface Disabilities {
 }
 
 // ============================================================================
-// Simulation Attributes (Observable vs Latent Traits)
+// Observable Labels (used by analysis charts for old simulation data)
 // ============================================================================
 
 /**
- * Observable attribute with formatted label for PM display.
- * Used in SynthDetail response.
+ * Observable attribute with formatted label for analysis chart display.
+ * Used by observable-labels.ts for chart formatting.
  */
 export interface ObservableWithLabel {
   key: string;
@@ -73,45 +73,6 @@ export interface ObservableWithLabel {
   value: number;
   label: 'Muito Baixo' | 'Baixo' | 'Médio' | 'Alto' | 'Muito Alto';
   description: string;
-}
-
-/**
- * Raw simulation observables (for internal use).
- */
-export interface SimulationObservables {
-  digital_literacy: number;
-  similar_tool_experience: number;
-  motor_ability: number;
-  time_availability: number;
-  domain_expertise: number;
-}
-
-/**
- * Latent traits derived from observables (internal use only).
- * NOT shown to PM in frontend.
- */
-export interface SimulationLatentTraits {
-  capability_mean: number;
-  trust_mean: number;
-  friction_tolerance_mean: number;
-  exploration_prob: number;
-}
-
-/**
- * Raw simulation attributes (observables + latent traits).
- */
-export interface SimulationAttributesRaw {
-  observables: SimulationObservables;
-  latent_traits: SimulationLatentTraits;
-}
-
-/**
- * Formatted simulation attributes for PM display.
- * Frontend should use `observables_formatted` and NEVER show `raw.latent_traits`.
- */
-export interface SimulationAttributesFormatted {
-  observables_formatted: ObservableWithLabel[];
-  raw?: SimulationAttributesRaw;
 }
 
 export interface SynthSummary {
@@ -125,12 +86,23 @@ export interface SynthSummary {
   version: string;
 }
 
+export interface UserSensitivities {
+  risk_aversion: number;
+  social_dependency: number;
+  institutional_trust_level: number;
+  habit_plasticity: number;
+  friction_tolerance: number;
+  pragmatism: number;
+  digital_capability: number;
+  motor_ability: number;
+  subject_domain: number;
+}
+
 export interface SynthDetail extends SynthSummary {
   demografia?: Demographics;
   psicografia?: Psychographics;
   deficiencias?: Disabilities;
-  observables?: SimulationObservables;
-  simulation_attributes?: SimulationAttributesFormatted;
+  sensitivities?: UserSensitivities;
 }
 
 export interface SynthsListParams {

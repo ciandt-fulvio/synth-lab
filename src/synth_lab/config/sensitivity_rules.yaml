@@ -1,5 +1,6 @@
-version: "1.0"
+version: "1.1"
 description: "Calibração default para população brasileira"
+strength_default: 15
 
 sensitivities:
   risk_aversion:
@@ -120,3 +121,31 @@ sensitivities:
           value: ["moderada", "severa"]
         adjustment: -0.10
         reason: "Deficiência visual impacta capacidade digital"
+
+  motor_ability:
+    description: "Capacidade motora/visual para operar interfaces"
+    base: 0.80
+    rules:
+      - condition:
+          field: "deficiencias.motora.tipo"
+          operator: "in"
+          value: ["moderada", "severa"]
+        adjustment: -0.30
+        reason: "Deficiência motora reduz capacidade de operar interfaces"
+      - condition:
+          field: "deficiencias.visual.tipo"
+          operator: "in"
+          value: ["moderada", "severa"]
+        adjustment: -0.20
+        reason: "Deficiência visual dificulta uso de interfaces"
+      - condition: {field: "demografia.idade", operator: ">=", value: 65}
+        adjustment: -0.10
+        reason: "Idade avançada reduz destreza motora/visual"
+      - condition: {field: "demografia.idade", operator: ">=", value: 75}
+        adjustment: -0.10
+        reason: "Idade muito avançada agrava limitações motoras"
+
+  subject_domain:
+    description: "Conhecimento do assunto/domínio da feature"
+    base: 0.50
+    strength: 6

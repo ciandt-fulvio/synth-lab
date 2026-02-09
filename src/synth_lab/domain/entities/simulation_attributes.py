@@ -102,12 +102,19 @@ class SimulationAttributes(BaseModel):
     """
     Complete simulation attributes for a synth.
 
-    Combines observable attributes and derived latent traits for use
-    in Monte Carlo feature impact simulations.
+    Legacy container combining observable attributes and latent traits.
+    As of v3.1.0, observables and latent_traits are optional (deprecated).
+    New synths use sensitivities only via UserSensitivities.
     """
 
-    observables: SimulationObservables
-    latent_traits: SimulationLatentTraits
+    observables: SimulationObservables | None = Field(
+        default=None,
+        description="Legacy observable attributes (deprecated in v3.1.0).",
+    )
+    latent_traits: SimulationLatentTraits | None = Field(
+        default=None,
+        description="Legacy latent traits derived from observables (deprecated in v3.1.0).",
+    )
 
     # User sensitivities (new in 038-mechanism-based-simulation)
     sensitivities: UserSensitivities | None = Field(
@@ -118,12 +125,14 @@ class SimulationAttributes(BaseModel):
     @model_validator(mode="after")
     def validate_all_values_in_range(self) -> Self:
         """Ensure all values are within [0, 1] range."""
-        for field_name, value in self.observables.model_dump().items():
-            if not 0.0 <= value <= 1.0:
-                raise ValueError(f"Observable {field_name} must be in [0,1], got {value}")
-        for field_name, value in self.latent_traits.model_dump().items():
-            if not 0.0 <= value <= 1.0:
-                raise ValueError(f"Latent trait {field_name} must be in [0,1], got {value}")
+        if self.observables is not None:
+            for field_name, value in self.observables.model_dump().items():
+                if not 0.0 <= value <= 1.0:
+                    raise ValueError(f"Observable {field_name} must be in [0,1], got {value}")
+        if self.latent_traits is not None:
+            for field_name, value in self.latent_traits.model_dump().items():
+                if not 0.0 <= value <= 1.0:
+                    raise ValueError(f"Latent trait {field_name} must be in [0,1], got {value}")
         return self
 
 

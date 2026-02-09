@@ -33,6 +33,7 @@ from synth_lab.models.synth import (
     SynthDetail,
     SynthFieldInfo,
     SynthSummary,
+    UserSensitivities,
     VisualDisability)
 from synth_lab.repositories.base import BaseRepository
 from synth_lab.services.errors import InvalidQueryError, SynthNotFoundError
@@ -429,15 +430,19 @@ session: Session | None = None):
                 description="Disability information (IBGE PNS 2019). Access via json_extract(data, '$.deficiencias...')",
                 nested_fields=["visual", "auditiva", "motora", "cognitiva"]),
             SynthFieldInfo(
-                name="data.observables",
+                name="data.sensitivities",
                 type="object",
-                description="Observable simulation attributes (v2.3.0+). Access via json_extract(data, '$.observables...')",
+                description="User sensitivities for mechanism-sensitivity simulation (v3.0.0+). Access via json_extract(data, '$.sensitivities...')",
                 nested_fields=[
-                    "digital_literacy",
-                    "similar_tool_experience",
+                    "risk_aversion",
+                    "social_dependency",
+                    "institutional_trust_level",
+                    "habit_plasticity",
+                    "friction_tolerance",
+                    "pragmatism",
+                    "digital_capability",
                     "motor_ability",
-                    "time_availability",
-                    "domain_expertise",
+                    "subject_domain",
                 ]),
         ]
 
@@ -521,44 +526,17 @@ session: Session | None = None):
     def _format_simulation_attributes(
         self, sim_attrs_data: dict
     ) -> SimulationAttributesForDisplay | None:
-        """Format simulation attributes with labels for PM display."""
-        from synth_lab.domain.entities.simulation_attributes import SimulationObservables
-        from synth_lab.services.observable_labels import format_observables_with_labels
+        """Format simulation attributes for display.
 
-        observables_data = sim_attrs_data.get("observables", {})
-        if not observables_data:
+        As of v3.1.0, observables are deprecated. This method returns
+        raw simulation attributes only for backward compatibility.
+        """
+        if not sim_attrs_data:
             return None
 
-        # Create SimulationObservables entity
-        try:
-            observables = SimulationObservables(
-                digital_literacy=observables_data.get("digital_literacy", 0.5),
-                similar_tool_experience=observables_data.get("similar_tool_experience", 0.5),
-                motor_ability=observables_data.get("motor_ability", 1.0),
-                time_availability=observables_data.get("time_availability", 0.5),
-                domain_expertise=observables_data.get("domain_expertise", 0.5))
-
-            # Format with labels
-            formatted = format_observables_with_labels(observables)
-            formatted_dicts = [
-                {
-                    "key": f.key,
-                    "name": f.name,
-                    "value": f.value,
-                    "label": f.label,
-                    "description": f.description,
-                }
-                for f in formatted
-            ]
-
-            return SimulationAttributesForDisplay(
-                observables_formatted=formatted_dicts,
-                raw=sim_attrs_data)
-        except Exception:
-            # If formatting fails, return raw only
-            return SimulationAttributesForDisplay(
-                observables_formatted=[],
-                raw=sim_attrs_data)
+        return SimulationAttributesForDisplay(
+            observables_formatted=[],
+            raw=sim_attrs_data)
 
     def _row_to_detail(self, row) -> SynthDetail:
         """Convert a database row to SynthDetail with nested objects following schema v1."""
@@ -644,6 +622,12 @@ session: Session | None = None):
         if sim_attrs_data:
             simulation_attributes = self._format_simulation_attributes(sim_attrs_data)
 
+        # Parse sensitivities from data (v3.0.0+)
+        sensitivities = None
+        sensitivities_data = data.get("sensitivities")
+        if sensitivities_data:
+            sensitivities = UserSensitivities(**sensitivities_data)
+
         return SynthDetail(
             id=row["id"],
             synth_group_id=row["synth_group_id"] if "synth_group_id" in row.keys() else None,
@@ -657,7 +641,8 @@ session: Session | None = None):
             psicografia=psicografia,
             deficiencias=deficiencias,
             observables=observables,
-            simulation_attributes=simulation_attributes)
+            simulation_attributes=simulation_attributes,
+            sensitivities=sensitivities)
 
     # =========================================================================
     # ORM conversion methods
@@ -757,6 +742,12 @@ session: Session | None = None):
         if sim_attrs_data:
             simulation_attributes = self._format_simulation_attributes(sim_attrs_data)
 
+        # Parse sensitivities from data (v3.0.0+)
+        sensitivities = None
+        sensitivities_data = data.get("sensitivities")
+        if sensitivities_data:
+            sensitivities = UserSensitivities(**sensitivities_data)
+
         return SynthDetail(
             id=orm_synth.id,
             synth_group_id=orm_synth.synth_group_id,
@@ -770,7 +761,8 @@ session: Session | None = None):
             psicografia=psicografia,
             deficiencias=deficiencias,
             observables=observables,
-            simulation_attributes=simulation_attributes)
+            simulation_attributes=simulation_attributes,
+            sensitivities=sensitivities)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 """
 Sensitivity deriver service.
 
-Derives 7 user sensitivities from synth demographic data using
+Derives 9 user sensitivities from synth demographic data using
 configurable YAML rules. Each sensitivity starts at a base value
 and is adjusted by rules that match the synth's demographics.
 
@@ -38,11 +38,12 @@ import numpy as np
 import yaml
 from loguru import logger
 
-# Beta distribution concentration parameter.
+# Default Beta distribution concentration parameter.
 # Higher values produce tighter distributions around the mean.
-BETA_STRENGTH: int = 15
+# Individual sensitivities can override via 'strength' in YAML.
+BETA_STRENGTH_DEFAULT: int = 15
 
-# 7 expected sensitivity keys
+# 9 expected sensitivity keys
 SENSITIVITY_KEYS = [
     "risk_aversion",
     "social_dependency",
@@ -51,6 +52,8 @@ SENSITIVITY_KEYS = [
     "friction_tolerance",
     "pragmatism",
     "digital_capability",
+    "motor_ability",
+    "subject_domain",
 ]
 
 # Supported numeric operators
@@ -178,16 +181,17 @@ def derive_sensitivities(
     config_name: str = "default",
     seed: int | None = None,
 ) -> dict:
-    """Derive 7 sensitivities from synth demographic data using YAML rules.
+    """Derive 9 sensitivities from synth demographic data using YAML rules.
 
     For each sensitivity:
         1. Start with base value from YAML.
         2. Apply all matching rule adjustments.
         3. Clamp mean to [0.01, 0.99].
-        4. Sample from Beta(mean * BETA_STRENGTH, (1-mean) * BETA_STRENGTH).
+        4. Sample from Beta(mean * strength, (1-mean) * strength).
 
-    The sampled value becomes the synth's fixed sensitivity, capturing
-    individual variation around the demographic mean.
+    The strength parameter defaults to BETA_STRENGTH_DEFAULT (15) but can
+    be overridden per-sensitivity in YAML (e.g. subject_domain uses 6
+    for a wider Beta(3,3) spread).
 
     Args:
         synth_data: Full synth data dict (with demografia, composicao_familiar, etc.).
@@ -195,13 +199,14 @@ def derive_sensitivities(
         seed: Random seed for reproducibility (None for random).
 
     Returns:
-        Dict with 7 sensitivity float values and a _meta dict containing
+        Dict with 9 sensitivity float values and a _meta dict containing
         derivation_version, config_name, and applied_rules.
     """
     rng = np.random.default_rng(seed)
     rules_data = load_sensitivity_rules(config_name)
     sensitivities_config = rules_data.get("sensitivities", {})
     version = rules_data.get("version", "unknown")
+    global_strength = int(rules_data.get("strength_default", BETA_STRENGTH_DEFAULT))
 
     result: dict[str, Any] = {}
     applied_rules: list[str] = []
@@ -222,9 +227,10 @@ def derive_sensitivities(
 
         # Clamp mean, then sample from Beta distribution
         mean = max(0.01, min(0.99, mean))
-        alpha = mean * BETA_STRENGTH
-        beta = (1.0 - mean) * BETA_STRENGTH
-        result[key] = round(float(rng.beta(alpha, beta)), 4)
+        strength = int(sens_config.get("strength", global_strength))
+        alpha = mean * strength
+        beta_param = (1.0 - mean) * strength
+        result[key] = round(float(rng.beta(alpha, beta_param)), 4)
 
     result["_meta"] = {
         "derivation_version": str(version),
@@ -252,9 +258,9 @@ if __name__ == "__main__":
             all_validation_failures.append("Test 1: Config missing 'version'")
         if "sensitivities" not in config:
             all_validation_failures.append("Test 1: Config missing 'sensitivities'")
-        if len(config["sensitivities"]) != 7:
+        if len(config["sensitivities"]) != 9:
             all_validation_failures.append(
-                f"Test 1: Expected 7 sensitivities, got {len(config['sensitivities'])}"
+                f"Test 1: Expected 9 sensitivities, got {len(config['sensitivities'])}"
             )
     except Exception as e:
         all_validation_failures.append(f"Test 1 (load config): {e}")
@@ -398,9 +404,12 @@ if __name__ == "__main__":
             "risk_aversion": 0.60, "social_dependency": 0.50,
             "institutional_trust_level": 0.50, "habit_plasticity": 0.55,
             "friction_tolerance": 0.50, "pragmatism": 0.55, "digital_capability": 0.50,
+            "motor_ability": 0.80, "subject_domain": 0.50,
         }
         for k, base in expected_bases.items():
-            if abs(avgs[k] - base) > 0.05:
+            # subject_domain uses strength=6 (wider spread), needs looser tolerance
+            tol = 0.08 if k == "subject_domain" else 0.05
+            if abs(avgs[k] - base) > tol:
                 all_validation_failures.append(
                     f"Test 6: avg {k}={avgs[k]:.4f} too far from base {base}"
                 )
@@ -436,9 +445,9 @@ if __name__ == "__main__":
         if meta is None:
             all_validation_failures.append("Test 8: _meta is missing")
         else:
-            if meta.get("derivation_version") != "1.0":
+            if meta.get("derivation_version") != "1.1":
                 all_validation_failures.append(
-                    f"Test 8: version expected '1.0', got '{meta.get('derivation_version')}'"
+                    f"Test 8: version expected '1.1', got '{meta.get('derivation_version')}'"
                 )
             if meta.get("config_name") != "default":
                 all_validation_failures.append(

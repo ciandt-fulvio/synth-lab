@@ -2,7 +2,7 @@
 Synth Builder - Orchestrates synth assembly from all generation modules.
 
 This module combines demographics, psychographics, disabilities,
-derivations, and observable attributes to create complete synthetic personas.
+derivations, and sensitivity attributes to create complete synthetic personas.
 
 Functions:
 - assemble_synth(): Generate a complete synth by orchestrating all modules
@@ -17,8 +17,7 @@ Sample usage:
 
 Expected output:
     Complete synth dict with all fields populated and validated,
-    including observables (5 attributes). Latent traits are derived
-    during simulation in simulation_service.py, not stored with synth.
+    including sensitivities (9 attributes derived from demographics).
 """
 
 from datetime import datetime, timezone
@@ -37,9 +36,6 @@ from synth_lab.gen_synth import (
     psychographics,
     validation,
 )
-from synth_lab.gen_synth.simulation_attributes import (
-    generate_observables_correlated,
-)
 from synth_lab.gen_synth.utils import gerar_id
 from synth_lab.services.sensitivity_deriver import derive_sensitivities
 
@@ -56,26 +52,22 @@ def assemble_synth(
     2. Generating name based on demographics
     3. Generating psychographics (interests, cognitive contract)
     4. Generating disabilities (if applicable)
-    5. Generating observables (correlated with demographics)
-    6. Generating photo link from name
-    7. Assembling complete synth
+    5. Generating photo link from name
+    6. Assembling complete synth
+    7. Deriving sensitivities from demographics
     8. Deriving description from complete synth
-
-    Note: Latent traits are NOT generated here. They are derived during
-    simulation in simulation_service.py and stored in synth_outcomes.
 
     Args:
         config: Configuration dict with 'ibge', 'occupations', 'interests_hobbies'
         rng: Optional NumPy random generator for reproducibility
 
     Returns:
-        dict: Complete synth with all fields populated, including observables.
-              observables are stored directly (not nested under simulation_attributes).
+        dict: Complete synth with all fields populated, including sensitivities.
     """
     # Generate unique ID
     synth_id = gerar_id(tamanho=6)
 
-    # Create RNG if not provided (for observable generation)
+    # Create RNG if not provided
     if rng is None:
         rng = np.random.default_rng()
 
@@ -91,38 +83,23 @@ def assemble_synth(
     # 4. Generate disabilities
     deficiencias = disabilities.generate_disabilities(config["ibge"])
 
-    # 5. Generate observables (correlated with demographics)
-    # Extract demographic factors for correlation
-    idade = demografia.get("idade")
-    escolaridade = demografia.get("escolaridade")
-    composicao_familiar = demografia.get("composicao_familiar")
-
-    observables = generate_observables_correlated(
-        rng=rng,
-        deficiencias=deficiencias,
-        escolaridade=escolaridade,
-        composicao_familiar=composicao_familiar,
-        idade=idade,
-    )
-
-    # 6. Generate photo link
+    # 5. Generate photo link
     link_photo = derivations.generate_photo_link(nome)
 
-    # 7. Assemble complete synth (needed for description)
+    # 6. Assemble complete synth (needed for description and sensitivity derivation)
     synth = {
         "id": synth_id,
         "nome": nome,
         "descricao": "",  # Placeholder, will be filled after
         "link_photo": link_photo,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "version": "3.0.0",  # Bumped version for mechanism-sensitivity model
+        "version": "3.1.0",  # Bumped: removed observables, sensitivities-only model
         "demografia": demografia,
         "psicografia": psicografia,
         "deficiencias": deficiencias,
-        "observables": observables.model_dump(),
     }
 
-    # 7b. Derive sensitivities from demographics
+    # 7. Derive sensitivities from demographics
     synth["sensitivities"] = derive_sensitivities(synth)
 
     # 8. Derive description (needs complete synth)
@@ -150,7 +127,6 @@ def assemble_synth_with_config(
             - distributions.escolaridade: Education distribution (4 buckets)
             - distributions.deficiencias: Disability config (rate + severity dist)
             - distributions.composicao_familiar: Family composition distribution
-            - distributions.domain_expertise: Beta params (alpha, beta)
         rng: Optional NumPy random generator for reproducibility
 
     Returns:
@@ -211,43 +187,23 @@ def assemble_synth_with_config(
         custom_severity_dist=custom_severity,
     )
 
-    # 5. Generate observables with custom domain expertise params
-    idade = demografia.get("idade")
-    escolaridade = demografia.get("escolaridade")
-    composicao_familiar = demografia.get("composicao_familiar")
-
-    domain_expertise_config = distributions.get("domain_expertise", {})
-    expertise_alpha = domain_expertise_config.get("alpha", 3.0)
-    expertise_beta = domain_expertise_config.get("beta", 3.0)
-
-    observables = generate_observables_correlated(
-        rng=rng,
-        deficiencias=deficiencias,
-        escolaridade=escolaridade,
-        composicao_familiar=composicao_familiar,
-        idade=idade,
-        expertise_alpha=expertise_alpha,
-        expertise_beta=expertise_beta,
-    )
-
-    # 6. Generate photo link
+    # 5. Generate photo link
     link_photo = derivations.generate_photo_link(nome)
 
-    # 7. Assemble complete synth
+    # 6. Assemble complete synth
     synth = {
         "id": synth_id,
         "nome": nome,
         "descricao": "",
         "link_photo": link_photo,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "version": "3.0.0",
+        "version": "3.1.0",  # Bumped: removed observables, sensitivities-only model
         "demografia": demografia,
         "psicografia": psicografia,
         "deficiencias": deficiencias,
-        "observables": observables.model_dump(),
     }
 
-    # 7b. Derive sensitivities from demographics
+    # 7. Derive sensitivities from demographics
     synth["sensitivities"] = derive_sensitivities(synth)
 
     # 8. Derive description
@@ -294,7 +250,6 @@ if __name__ == "__main__":
             "demografia",
             "psicografia",
             "deficiencias",
-            "observables",
             "sensitivities",
         ]
 
@@ -376,44 +331,15 @@ if __name__ == "__main__":
         else:
             print(f"✓ Disabilities complete: {defic['visual']['tipo']}")
 
-    # Test 6: Verify observables structure (latent_traits are derived during simulation)
+    # Test 6: Verify observables are NOT present (removed in v3.1.0)
     total_tests += 1
     if "synth" in locals():
-        observables = synth.get("observables", {})
-        observables_failures = []
-
-        # Check all required observables
-        required_observables = [
-            "digital_literacy",
-            "similar_tool_experience",
-            "motor_ability",
-            "time_availability",
-            "domain_expertise",
-        ]
-        missing_obs = [f for f in required_observables if f not in observables]
-        if missing_obs:
-            observables_failures.append(f"Missing observables: {missing_obs}")
-
-        # Verify all values in [0, 1]
-        for field, value in observables.items():
-            if not 0.0 <= value <= 1.0:
-                observables_failures.append(f"Observable {field} out of range: {value}")
-
-        # Verify latent_traits are NOT present (they're derived during simulation)
-        if "latent_traits" in synth:
-            observables_failures.append(
-                "latent_traits should NOT be in synth (derived during simulation)"
+        if "observables" in synth:
+            all_validation_failures.append(
+                "observables should NOT be in synth (removed in v3.1.0)"
             )
-        if "simulation_attributes" in synth:
-            observables_failures.append(
-                "simulation_attributes should NOT be in synth (replaced by observables)"
-            )
-
-        dl = observables.get("digital_literacy", 0)
-        if observables_failures:
-            all_validation_failures.extend(observables_failures)
         else:
-            print(f"✓ Observables complete: 5 attributes (dl={dl:.3f})")
+            print("✓ No observables in synth (correctly removed)")
 
     # Test 7: Verify sensitivities structure
     total_tests += 1
@@ -429,6 +355,8 @@ if __name__ == "__main__":
             "friction_tolerance",
             "pragmatism",
             "digital_capability",
+            "motor_ability",
+            "subject_domain",
         ]
         missing_sens = [f for f in required_sens if f not in sens]
         if missing_sens:
@@ -451,7 +379,7 @@ if __name__ == "__main__":
             all_validation_failures.extend(sens_failures)
         else:
             ra = sens.get("risk_aversion", 0)
-            print(f"✓ Sensitivities complete: 7 fields (risk_aversion={ra:.3f})")
+            print(f"✓ Sensitivities complete: 9 fields (risk_aversion={ra:.3f})")
 
     # Test 8: Verify derivations
     total_tests += 1

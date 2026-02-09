@@ -251,6 +251,8 @@ PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
 - PostgreSQL 14+ (JSONB for scorecard_data, simulation_attributes) (038-mechanism-based-simulation)
 - Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK (gpt-4o-mini), React 18, TanStack Query, shadcn/ui (039-narrative-mechanism-config)
 - PostgreSQL 14+ (novas tabelas para mecanismos/opções, JSONB para narrativa gerada) (039-narrative-mechanism-config)
+- Python 3.13+ (backend only — sem mudanças no frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, NumPy, PyYAML (040-mechanism-sensitivity-update)
+- PostgreSQL 14+ (JSONB fields — sem migração de schema) (040-mechanism-sensitivity-update)
 
 ## Recent Changes
 - 028-exploration-summary: Added Python 3.13+ + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, Arize Phoenix

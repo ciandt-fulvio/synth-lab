@@ -37,31 +37,42 @@ class TestSimulationSensitivityIntegration:
     """End-to-end integration tests for the simulation-sensitivity pipeline."""
 
     def test_full_pipeline_demographics_to_adoption(self):
-        """Full pipeline: demographics -> sensitivities -> emergent -> adoption.
+        """Full pipeline: pre-computed sensitivities -> emergent -> adoption.
 
-        Creates 2 synth dicts with demographics (no pre-computed sensitivities):
-        - Young tech-savvy (25yo, higher education, Sudeste)
-        - Elderly low-tech (68yo, ensino medio, Nordeste)
+        Creates 2 synth dicts with pre-computed sensitivities representing:
+        - Young tech-savvy (high digital_capability, high motor_ability)
+        - Elderly low-tech (low digital_capability, lower motor_ability)
 
-        Verifies that run_simulation derives sensitivities on the fly, runs
-        Monte Carlo, and produces expected directional results (young > elderly).
+        Uses pre-computed sensitivities (instead of demographics) to avoid
+        Beta distribution randomness in derive_sensitivities. The derivation
+        path is tested separately in test_synth_sensitivity_integration.py.
         """
         young_tech = {
             "id": "young_tech",
-            "demografia": {
-                "idade": 25,
-                "escolaridade": "Superior completo",
-                "renda_mensal": 6000.0,
-                "localizacao": {"regiao": "Sudeste"},
+            "sensitivities": {
+                "risk_aversion": 0.35,
+                "social_dependency": 0.55,
+                "institutional_trust_level": 0.55,
+                "habit_plasticity": 0.65,
+                "friction_tolerance": 0.60,
+                "pragmatism": 0.55,
+                "digital_capability": 0.80,
+                "motor_ability": 0.95,
+                "subject_domain": 0.50,
             },
         }
         elderly_low_tech = {
             "id": "elderly_low_tech",
-            "demografia": {
-                "idade": 68,
-                "escolaridade": "Ensino medio completo",
-                "renda_mensal": 1500.0,
-                "localizacao": {"regiao": "Nordeste"},
+            "sensitivities": {
+                "risk_aversion": 0.65,
+                "social_dependency": 0.35,
+                "institutional_trust_level": 0.60,
+                "habit_plasticity": 0.30,
+                "friction_tolerance": 0.35,
+                "pragmatism": 0.55,
+                "digital_capability": 0.25,
+                "motor_ability": 0.75,
+                "subject_domain": 0.50,
             },
         }
 
@@ -130,6 +141,8 @@ class TestSimulationSensitivityIntegration:
                 "friction_tolerance": 0.8,
                 "pragmatism": 0.6,
                 "digital_capability": 0.9,
+                "motor_ability": 0.85,
+                "subject_domain": 0.7,
             },
         }
 
@@ -231,6 +244,8 @@ class TestSimulationSensitivityIntegration:
             "friction_tolerance",
             "pragmatism",
             "digital_capability",
+            "motor_ability",
+            "subject_domain",
         ]
         for field in sensitivity_fields:
             assert derived_1[field] == derived_2[field], (

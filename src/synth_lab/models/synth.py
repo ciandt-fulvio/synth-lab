@@ -166,8 +166,30 @@ class SimulationAttributesForDisplay(BaseModel):
     )
 
 
+class UserSensitivities(BaseModel):
+    """User sensitivities that interact with feature mechanisms (v3.0.0+)."""
+
+    risk_aversion: float = Field(ge=0.0, le=1.0, description="Aversion to irreversible actions")
+    social_dependency: float = Field(ge=0.0, le=1.0, description="Need for social validation")
+    institutional_trust_level: float = Field(ge=0.0, le=1.0, description="Trust in institutions")
+    habit_plasticity: float = Field(
+        ge=0.0, le=1.0, description="Flexibility to change routines"
+    )
+    friction_tolerance: float = Field(
+        ge=0.0, le=1.0, description="Tolerance for complex processes"
+    )
+    pragmatism: float = Field(ge=0.0, le=1.0, description="Focus on utility vs hedonic")
+    digital_capability: float = Field(ge=0.0, le=1.0, description="Digital technical ability")
+    motor_ability: float = Field(
+        ge=0.0, le=1.0, description="Motor/visual ability to operate interfaces"
+    )
+    subject_domain: float = Field(
+        ge=0.0, le=1.0, description="Knowledge of the feature's domain"
+    )
+
+
 class SynthDetail(SynthBase):
-    """Full synth model with all nested data following schema v2.3.0."""
+    """Full synth model with all nested data following schema v3.0.0."""
 
     demografia: Demographics | None = None
     psicografia: Psychographics | None = None
@@ -177,6 +199,9 @@ class SynthDetail(SynthBase):
         description="Observable attributes for simulation (v2.3.0+): digital_literacy, similar_tool_experience, motor_ability, time_availability, domain_expertise",
     )
     simulation_attributes: SimulationAttributesForDisplay | None = None
+    sensitivities: UserSensitivities | None = Field(
+        default=None, description="User sensitivities (v3.0.0+)"
+    )
 
 
 class SynthSearchRequest(BaseModel):

@@ -37,7 +37,7 @@ TOLERANCE = 1e-4
 
 
 def _make_sensitivities_dict(
-    ra=0.5, sd=0.5, it=0.5, hp=0.5, ft=0.5, pr=0.5, dc=0.5
+    ra=0.5, sd=0.5, it=0.5, hp=0.5, ft=0.5, pr=0.5, dc=0.5, ma=0.5, dom=0.5
 ):
     """Compact helper for sensitivities dict."""
     return {
@@ -48,6 +48,8 @@ def _make_sensitivities_dict(
         "friction_tolerance": ft,
         "pragmatism": pr,
         "digital_capability": dc,
+        "motor_ability": ma,
+        "subject_domain": dom,
     }
 
 
@@ -61,8 +63,10 @@ def _make_emergent_state(**kw):
         friction_burden=0.0,
         social_pressure=0.0,
         network_barrier=0.0,
+        motor_barrier=0.0,
         intrinsic_appeal=0.0,
         frequency_value=0.0,
+        domain_advantage=0.0,
     )
     defaults.update(kw)
     return EmergentState(**defaults)
@@ -159,7 +163,7 @@ class TestCalculateAdoptionProbability:
         assert prob == pytest.approx(0.5, abs=TOLERANCE)
 
     def test_high_barriers_reduce_probability(self):
-        """7 barriers set high should push probability below 0.3."""
+        """8 barriers set high should push probability below 0.3."""
         es = _make_emergent_state(
             perceived_risk=0.8,
             trust_barrier=0.7,
@@ -168,15 +172,17 @@ class TestCalculateAdoptionProbability:
             friction_burden=0.4,
             social_pressure=0.3,
             network_barrier=0.2,
+            motor_barrier=0.3,
         )
         prob = _calculate_adoption_probability(es)
         assert prob < 0.3, f"Expected prob < 0.3, got {prob}"
 
     def test_high_appeals_increase_probability(self):
-        """2 appeals set high should push probability above 0.7."""
+        """3 appeals set high should push probability above 0.7."""
         es = _make_emergent_state(
             intrinsic_appeal=0.9,
             frequency_value=0.8,
+            domain_advantage=0.7,
         )
         prob = _calculate_adoption_probability(es)
         assert prob > 0.7, f"Expected prob > 0.7, got {prob}"
@@ -192,37 +198,37 @@ class TestCalculateAdoptionProbability:
             friction_burden=1.0,
             social_pressure=1.0,
             network_barrier=1.0,
+            motor_barrier=1.0,
         )
         prob_low = _calculate_adoption_probability(es_low)
         assert 0.0 <= prob_low <= 1.0
         assert prob_low == pytest.approx(0.0, abs=TOLERANCE)
 
-        # Very high appeals -> should clamp to 1.0
+        # Very high appeals -> 0.5 + (1+1+0)*0.18 = 0.5 + 0.36 = 0.86
         es_high = _make_emergent_state(
             intrinsic_appeal=1.0,
             frequency_value=1.0,
         )
         prob_high = _calculate_adoption_probability(es_high)
         assert 0.0 <= prob_high <= 1.0
-        # 0.5 + 2.0 * 0.20 = 0.5 + 0.4 = 0.9 (not clamped, still in range)
-        assert prob_high == pytest.approx(0.9, abs=TOLERANCE)
+        assert prob_high == pytest.approx(0.86, abs=TOLERANCE)
 
     def test_sc005_barrier_vs_appeal_difference(self):
         """SC-005: barrier-heavy vs appeal-heavy synths differ by >= 20%.
 
         High barrier synth:
-            7 barriers = 0.8 each, appeals = 0.1 each
-            prob = 0.5 - (7 * 0.8) * 0.15 + (2 * 0.1) * 0.20
-                 = 0.5 - 5.6 * 0.15 + 0.2 * 0.20
-                 = 0.5 - 0.84 + 0.04
-                 = -0.30  -> clamped to 0.0
+            8 barriers: 7 at 0.8 + motor_barrier=0.0, appeals: 2 at 0.1 + domain=0.0
+            prob = 0.5 - (7*0.8+0)*0.12 + (0.1+0.1+0)*0.18
+                 = 0.5 - 5.6*0.12 + 0.2*0.18
+                 = 0.5 - 0.672 + 0.036
+                 = -0.136  -> clamped to 0.0
 
         High appeal synth:
-            7 barriers = 0.1 each, appeals = 0.9 each
-            prob = 0.5 - (7 * 0.1) * 0.15 + (2 * 0.9) * 0.20
-                 = 0.5 - 0.7 * 0.15 + 1.8 * 0.20
-                 = 0.5 - 0.105 + 0.36
-                 = 0.755
+            8 barriers: 7 at 0.1 + motor_barrier=0.0, appeals: 2 at 0.9 + domain=0.0
+            prob = 0.5 - (7*0.1+0)*0.12 + (0.9+0.9+0)*0.18
+                 = 0.5 - 0.7*0.12 + 1.8*0.18
+                 = 0.5 - 0.084 + 0.324
+                 = 0.74
         """
         # High barrier synth
         es_barrier = _make_emergent_state(
@@ -254,7 +260,7 @@ class TestCalculateAdoptionProbability:
 
         # Verify individual probabilities
         assert prob_barrier == pytest.approx(0.0, abs=TOLERANCE)
-        assert prob_appeal == pytest.approx(0.755, abs=TOLERANCE)
+        assert prob_appeal == pytest.approx(0.74, abs=TOLERANCE)
 
         # SC-005: difference must be >= 20%
         difference = abs(prob_appeal - prob_barrier)
@@ -434,5 +440,5 @@ class TestConstants:
         assert len(_MECHANISM_FIELDS) == 9
 
     def test_sensitivity_fields_count(self):
-        """_SENSITIVITY_FIELDS should contain exactly 7 entries."""
-        assert len(_SENSITIVITY_FIELDS) == 7
+        """_SENSITIVITY_FIELDS should contain exactly 9 entries."""
+        assert len(_SENSITIVITY_FIELDS) == 9

@@ -415,14 +415,14 @@ class TestValidateSynthFull:
         assert len(errors) > 0
 
     def test_accepts_fully_valid_synth(self):
-        """Test that validate_synth_full accepts synths that pass all validations (v2.3.0)."""
+        """Test that validate_synth_full accepts synths that pass all validations (v3.1.0)."""
         synth = {
             "id": "test12",  # 6 chars
             "nome": "Test Person",
             "descricao": "A test description that is longer than 50 characters to meet the minimum requirement.",
             "link_photo": "https://ui-avatars.com/api/?name=Test",
             "created_at": "2024-01-01T00:00:00Z",
-            "version": "2.3.0",
+            "version": "3.1.0",
             "demografia": {
                 "idade": 30,
                 "genero_biologico": "feminino",
@@ -454,12 +454,16 @@ class TestValidateSynthFull:
                 "motora": {"tipo": "nenhuma"},
                 "cognitiva": {"tipo": "nenhuma"},
             },
-            "observables": {
-                "digital_literacy": 0.75,
-                "similar_tool_experience": 0.6,
+            "sensitivities": {
+                "risk_aversion": 0.5,
+                "social_dependency": 0.4,
+                "institutional_trust_level": 0.6,
+                "habit_plasticity": 0.5,
+                "friction_tolerance": 0.5,
+                "pragmatism": 0.6,
+                "digital_capability": 0.75,
                 "motor_ability": 1.0,
-                "time_availability": 0.5,
-                "domain_expertise": 0.4,
+                "subject_domain": 0.4,
             },
         }
 

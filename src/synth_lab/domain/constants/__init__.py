@@ -10,10 +10,8 @@ from synth_lab.domain.constants.demographic_factors import (
     EDUCATION_FACTOR_MAP,
     FAMILY_PRESSURE_MAP,
 )
-from synth_lab.domain.constants.observable_metadata import OBSERVABLE_METADATA
 
 __all__ = [
-    "OBSERVABLE_METADATA",
     "EDUCATION_FACTOR_MAP",
     "DISABILITY_SEVERITY_MAP",
     "FAMILY_PRESSURE_MAP",

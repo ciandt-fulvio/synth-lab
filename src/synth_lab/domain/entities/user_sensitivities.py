@@ -24,6 +24,8 @@ class UserSensitivities(BaseModel):
     - friction_tolerance: Tolerance for complex processes (high = tolerates friction)
     - pragmatism: Focus on practical utility over novelty (high = pragmatic)
     - digital_capability: Digital technical ability (high = digitally capable)
+    - motor_ability: Motor/visual ability to operate interfaces (high = capable)
+    - subject_domain: Knowledge of the feature's domain (high = expert)
 
     Default value of 0.5 represents neutral sensitivity.
     """
@@ -77,6 +79,20 @@ class UserSensitivities(BaseModel):
         description="Digital technical ability (0=low capability, 1=high capability)",
     )
 
+    motor_ability: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Motor/visual ability to operate interfaces (0=limited, 1=fully capable)",
+    )
+
+    subject_domain: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Knowledge of the feature's domain (0=novice, 1=expert)",
+    )
+
 
 if __name__ == "__main__":
     import sys
@@ -89,6 +105,8 @@ if __name__ == "__main__":
         "friction_tolerance",
         "pragmatism",
         "digital_capability",
+        "motor_ability",
+        "subject_domain",
     ]
 
     all_validation_failures: list[str] = []
@@ -116,6 +134,8 @@ if __name__ == "__main__":
             "friction_tolerance": 0.7,
             "pragmatism": 0.9,
             "digital_capability": 0.2,
+            "motor_ability": 0.75,
+            "subject_domain": 0.6,
         }
         sensitivities = UserSensitivities(**values)
         for field, expected in values.items():
@@ -158,6 +178,8 @@ if __name__ == "__main__":
             "friction_tolerance": 0.0,
             "pragmatism": 1.0,
             "digital_capability": 0.0,
+            "motor_ability": 1.0,
+            "subject_domain": 0.0,
         }
         sensitivities = UserSensitivities(**boundary)
         for field, expected in boundary.items():
@@ -180,6 +202,8 @@ if __name__ == "__main__":
             "friction_tolerance": 0.5,
             "pragmatism": 0.5,
             "digital_capability": 0.5,
+            "motor_ability": 0.5,
+            "subject_domain": 0.5,
         }
         for field, expected in expected_dump.items():
             if dump.get(field) != expected:
@@ -225,6 +249,8 @@ if __name__ == "__main__":
         ("friction_tolerance", -0.5),
         ("pragmatism", 1.1),
         ("digital_capability", 2.0),
+        ("motor_ability", -0.1),
+        ("subject_domain", 1.5),
     ]:
         try:
             UserSensitivities(**{field_name: bad_value})

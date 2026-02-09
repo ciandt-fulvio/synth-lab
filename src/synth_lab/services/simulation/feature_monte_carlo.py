@@ -55,7 +55,7 @@ _MECHANISM_FIELDS: list[str] = [
     "frequencia_de_uso",
 ]
 
-# 7 sensitivity field names (excluding _meta).
+# 9 sensitivity field names (excluding _meta).
 _SENSITIVITY_FIELDS: list[str] = [
     "risk_aversion",
     "social_dependency",
@@ -64,6 +64,8 @@ _SENSITIVITY_FIELDS: list[str] = [
     "friction_tolerance",
     "pragmatism",
     "digital_capability",
+    "motor_ability",
+    "subject_domain",
 ]
 
 
@@ -155,17 +157,20 @@ def _get_sensitivities(synth_data: dict) -> UserSensitivities:
 def _calculate_adoption_probability(
     emergent_state: object,
     base_probability: float = 0.5,
-    barrier_weight: float = 0.15,
-    appeal_weight: float = 0.20,
+    barrier_weight: float = 0.12,
+    appeal_weight: float = 0.18,
 ) -> float:
     """Compute adoption probability from emergent state barriers and appeals.
 
     Formula:
         prob = base
-             - sum(7 barriers) * barrier_weight
-             + sum(2 appeals)  * appeal_weight
+             - sum(8 barriers) * barrier_weight
+             + sum(3 appeals)  * appeal_weight
 
     Result is clamped to [0.0, 1.0].
+
+    Weights are rebalanced for 8 barriers + 3 appeals (previously 7+2)
+    to keep the probability range roughly the same.
 
     Args:
         emergent_state: EmergentState with barrier and appeal fields.
@@ -184,10 +189,12 @@ def _calculate_adoption_probability(
         emergent_state.friction_burden,
         emergent_state.social_pressure,
         emergent_state.network_barrier,
+        emergent_state.motor_barrier,
     ]
     appeals = [
         emergent_state.intrinsic_appeal,
         emergent_state.frequency_value,
+        emergent_state.domain_advantage,
     ]
 
     prob = base_probability - sum(barriers) * barrier_weight + sum(appeals) * appeal_weight
@@ -279,7 +286,9 @@ if __name__ == "__main__":
     _failures: list[str] = []
     _total = 0
 
-    def _sens(ra=0.5, sd=0.5, it=0.5, hp=0.5, ft=0.5, pr=0.5, dc=0.5) -> dict:
+    def _sens(
+        ra=0.5, sd=0.5, it=0.5, hp=0.5, ft=0.5, pr=0.5, dc=0.5, ma=0.5, dom=0.5,
+    ) -> dict:
         """Build a compact sensitivities dict."""
         return {
             "risk_aversion": ra,
@@ -289,6 +298,8 @@ if __name__ == "__main__":
             "friction_tolerance": ft,
             "pragmatism": pr,
             "digital_capability": dc,
+            "motor_ability": ma,
+            "subject_domain": dom,
         }
 
     def _es(**kw) -> EmergentState:
@@ -301,8 +312,10 @@ if __name__ == "__main__":
             friction_burden=0.0,
             social_pressure=0.0,
             network_barrier=0.0,
+            motor_barrier=0.0,
             intrinsic_appeal=0.0,
             frequency_value=0.0,
+            domain_advantage=0.0,
         )
         defaults.update(kw)
         return EmergentState(**defaults)
@@ -348,6 +361,7 @@ if __name__ == "__main__":
                 friction_burden=0.4,
                 social_pressure=0.3,
                 network_barrier=0.2,
+                motor_barrier=0.3,
             )
         )
         if prob >= 0.3:
@@ -358,7 +372,9 @@ if __name__ == "__main__":
     # ---- Test 4: High appeals -> high probability ----
     _total += 1
     try:
-        prob = _calculate_adoption_probability(_es(intrinsic_appeal=0.9, frequency_value=0.8))
+        prob = _calculate_adoption_probability(
+            _es(intrinsic_appeal=0.9, frequency_value=0.8, domain_advantage=0.7)
+        )
         if prob <= 0.7:
             _failures.append(f"T4: High appeals should give high prob, got {prob}")
     except Exception as e:
@@ -369,11 +385,15 @@ if __name__ == "__main__":
     try:
         young = {
             "id": "young_tech",
-            "sensitivities": _sens(ra=0.3, sd=0.6, hp=0.8, ft=0.7, pr=0.7, dc=0.9),
+            "sensitivities": _sens(
+                ra=0.3, sd=0.6, hp=0.8, ft=0.7, pr=0.7, dc=0.9, ma=0.9, dom=0.6,
+            ),
         }
         elderly = {
             "id": "elderly_user",
-            "sensitivities": _sens(ra=0.9, sd=0.3, it=0.4, hp=0.2, ft=0.2, pr=0.4, dc=0.2),
+            "sensitivities": _sens(
+                ra=0.9, sd=0.3, it=0.4, hp=0.2, ft=0.2, pr=0.4, dc=0.2, ma=0.4, dom=0.3,
+            ),
         }
         mechs = FeatureMechanisms(
             irreversibility=0.7,

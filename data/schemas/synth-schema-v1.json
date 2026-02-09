@@ -303,6 +303,18 @@
           "maximum": 1,
           "description": "Digital technical ability"
         },
+        "motor_ability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Motor/visual ability to operate interfaces"
+        },
+        "subject_domain": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Knowledge of the feature's domain"
+        },
         "_meta": {
           "type": "object",
           "description": "Derivation metadata",
@@ -323,8 +335,8 @@
           }
         }
       },
-      "required": ["risk_aversion", "social_dependency", "institutional_trust_level", "habit_plasticity", "friction_tolerance", "pragmatism", "digital_capability"]
+      "required": ["risk_aversion", "social_dependency", "institutional_trust_level", "habit_plasticity", "friction_tolerance", "pragmatism", "digital_capability", "motor_ability", "subject_domain"]
     }
   },
-  "required": ["id", "nome", "descricao", "link_photo", "created_at", "version", "demografia", "psicografia", "deficiencias", "observables"]
+  "required": ["id", "nome", "descricao", "link_photo", "created_at", "version", "demografia", "psicografia", "deficiencias", "sensitivities"]
 }

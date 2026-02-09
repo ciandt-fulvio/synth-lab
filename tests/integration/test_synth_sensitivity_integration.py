@@ -15,9 +15,9 @@ References:
 
 Expected behavior:
     - assemble_synth() returns a synth dict with a "sensitivities" key
-    - sensitivities contains 7 fields: risk_aversion, social_dependency,
+    - sensitivities contains 9 fields: risk_aversion, social_dependency,
       institutional_trust_level, habit_plasticity, friction_tolerance,
-      pragmatism, digital_capability
+      pragmatism, digital_capability, motor_ability, subject_domain
     - Each sensitivity value is between 0.0 and 1.0
     - sensitivities["_meta"] contains derivation_version, config_name, applied_rules
     - Different demographics produce meaningfully different sensitivities
@@ -29,7 +29,7 @@ import pytest
 from synth_lab.gen_synth.config import load_config_data
 from synth_lab.gen_synth.synth_builder import assemble_synth
 
-# All 7 sensitivity fields expected in the output
+# All 9 sensitivity fields expected in the output (v3.1.0)
 SENSITIVITY_FIELDS = [
     "risk_aversion",
     "social_dependency",
@@ -38,6 +38,8 @@ SENSITIVITY_FIELDS = [
     "friction_tolerance",
     "pragmatism",
     "digital_capability",
+    "motor_ability",
+    "subject_domain",
 ]
 
 
@@ -65,14 +67,14 @@ class TestAssembleSynthIncludesSensitivities:
             "This requires T010 integration of derive_sensitivities into synth_builder."
         )
 
-    def test_sensitivities_has_all_seven_fields(self, generated_synth):
-        """Verify sensitivities has all 7 sensitivity fields."""
+    def test_sensitivities_has_all_nine_fields(self, generated_synth):
+        """Verify sensitivities has all 9 sensitivity fields."""
         sensitivities = generated_synth.get("sensitivities", {})
 
         missing_fields = [field for field in SENSITIVITY_FIELDS if field not in sensitivities]
         assert not missing_fields, (
             f"Sensitivities missing fields: {missing_fields}. "
-            f"Expected all 7: {SENSITIVITY_FIELDS}. "
+            f"Expected all 9: {SENSITIVITY_FIELDS}. "
             f"Got keys: {list(sensitivities.keys())}"
         )
 
@@ -91,7 +93,7 @@ class TestAssembleSynthIncludesSensitivities:
         )
 
     def test_sensitivities_do_not_break_existing_fields(self, generated_synth):
-        """Verify that adding sensitivities does not remove existing synth fields."""
+        """Verify that sensitivities coexist with all required synth fields (v3.1.0)."""
         required_existing_fields = [
             "id",
             "nome",
@@ -102,10 +104,11 @@ class TestAssembleSynthIncludesSensitivities:
             "demografia",
             "psicografia",
             "deficiencias",
-            "observables",
+            "sensitivities",
         ]
         missing = [f for f in required_existing_fields if f not in generated_synth]
-        assert not missing, f"Adding sensitivities broke existing synth fields. Missing: {missing}"
+        assert not missing, f"Synth missing required fields: {missing}"
+        assert "observables" not in generated_synth, "observables should be removed in v3.1.0"
 
 
 @pytest.mark.integration
@@ -154,9 +157,9 @@ class TestAssembleSynthSensitivitiesMetadata:
     def test_meta_derivation_version_matches_yaml(self, generated_synth):
         """Verify _meta.derivation_version matches the YAML config version."""
         meta = generated_synth.get("sensitivities", {}).get("_meta", {})
-        # The YAML sensitivity_rules.yaml has version: "1.0"
-        assert meta.get("derivation_version") == "1.0", (
-            f"derivation_version should be '1.0' (matching sensitivity_rules.yaml), "
+        # The YAML sensitivity_rules.yaml has version: "1.1"
+        assert meta.get("derivation_version") == "1.1", (
+            f"derivation_version should be '1.1' (matching sensitivity_rules.yaml), "
             f"got '{meta.get('derivation_version')}'"
         )
 
@@ -277,7 +280,7 @@ class TestDeriveSensitivitiesDirectly:
         }
 
     def test_derive_sensitivities_returns_all_fields(self, young_tech_synth):
-        """Verify derive_sensitivities returns dict with all 7 fields."""
+        """Verify derive_sensitivities returns dict with all 9 fields."""
         from synth_lab.services.sensitivity_deriver import derive_sensitivities
 
         result = derive_sensitivities(young_tech_synth)
@@ -323,8 +326,8 @@ class TestDeriveSensitivitiesDirectly:
         """
         from synth_lab.services.sensitivity_deriver import derive_sensitivities
 
-        young_result = derive_sensitivities(young_tech_synth)
-        elderly_result = derive_sensitivities(elderly_synth)
+        young_result = derive_sensitivities(young_tech_synth, seed=42)
+        elderly_result = derive_sensitivities(elderly_synth, seed=42)
 
         young_dc = young_result["digital_capability"]
         elderly_dc = elderly_result["digital_capability"]
@@ -344,8 +347,8 @@ class TestDeriveSensitivitiesDirectly:
         """
         from synth_lab.services.sensitivity_deriver import derive_sensitivities
 
-        young_result = derive_sensitivities(young_tech_synth)
-        elderly_result = derive_sensitivities(elderly_synth)
+        young_result = derive_sensitivities(young_tech_synth, seed=42)
+        elderly_result = derive_sensitivities(elderly_synth, seed=42)
 
         young_ra = young_result["risk_aversion"]
         elderly_ra = elderly_result["risk_aversion"]
@@ -364,8 +367,8 @@ class TestDeriveSensitivitiesDirectly:
         """
         from synth_lab.services.sensitivity_deriver import derive_sensitivities
 
-        young_result = derive_sensitivities(young_tech_synth)
-        elderly_result = derive_sensitivities(elderly_synth)
+        young_result = derive_sensitivities(young_tech_synth, seed=42)
+        elderly_result = derive_sensitivities(elderly_synth, seed=42)
 
         young_hp = young_result["habit_plasticity"]
         elderly_hp = elderly_result["habit_plasticity"]
@@ -395,7 +398,7 @@ class TestDeriveSensitivitiesDirectly:
         )
 
     def test_sensitivity_profiles_differ_meaningfully(self, young_tech_synth, elderly_synth):
-        """Young and elderly profiles should differ by >= 0.15 average across 7 dimensions.
+        """Young and elderly profiles should differ by >= 0.15 average across 9 dimensions.
 
         This is success criterion SC-002 from the spec.
         """

@@ -4,29 +4,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Loader2, User, Monitor, Wrench, Activity, Clock, BookOpen } from 'lucide-react';
+import { Loader2, User } from 'lucide-react';
 import { useSynthDetail } from '@/hooks/use-synths';
 import { getSynthAvatarUrl } from '@/services/synths-api';
-
-// Helper to get color based on value
-function getValueColor(value: number): { bg: string; text: string; label: string } {
-  if (value < 0.4) {
-    return { bg: 'bg-red-500', text: 'text-red-600', label: 'Baixo' };
-  } else if (value < 0.7) {
-    return { bg: 'bg-amber-500', text: 'text-amber-600', label: 'Médio' };
-  } else {
-    return { bg: 'bg-emerald-500', text: 'text-emerald-600', label: 'Alto' };
-  }
-}
-
-// Observable attribute configuration
-const OBSERVABLE_CONFIG = [
-  { key: 'digital_literacy', label: 'Familiaridade com tecnologia', icon: Monitor },
-  { key: 'similar_tool_experience', label: 'Experiência com ferramentas similares', icon: Wrench },
-  { key: 'motor_ability', label: 'Habilidade física', icon: Activity },
-  { key: 'time_availability', label: 'Disponibilidade de Tempo', icon: Clock },
-  { key: 'domain_expertise', label: 'Conhecimento do assunto', icon: BookOpen },
-] as const;
+import { SensitivitiesTab } from './SensitivitiesTab';
 
 interface SynthDetailDialogProps {
   synthId: string | null;
@@ -50,7 +31,7 @@ export function SynthDetailDialog({ synthId, open, onOpenChange }: SynthDetailDi
               <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20">
                   <AvatarImage
-                    src={synth.avatar_path ? getSynthAvatarUrl(synth.id) : undefined}
+                    src={getSynthAvatarUrl(synth.id)}
                     alt={synth.nome}
                   />
                   <AvatarFallback>
@@ -70,7 +51,7 @@ export function SynthDetailDialog({ synthId, open, onOpenChange }: SynthDetailDi
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="demographics">Demografia</TabsTrigger>
                 <TabsTrigger value="psychographics">Psicografia</TabsTrigger>
-                <TabsTrigger value="tech">Capacidades Técnicas</TabsTrigger>
+                <TabsTrigger value="sensitivities">Sensibilidades</TabsTrigger>
               </TabsList>
 
               <TabsContent value="demographics" className="space-y-4">
@@ -154,48 +135,16 @@ export function SynthDetailDialog({ synthId, open, onOpenChange }: SynthDetailDi
                 )}
               </TabsContent>
 
-              <TabsContent value="tech" className="space-y-4">
-                {synth.observables && (
+              <TabsContent value="sensitivities">
+                {synth.sensitivities ? (
+                  <SensitivitiesTab
+                    sensitivities={synth.sensitivities}
+                    groupAverages={undefined}
+                  />
+                ) : (
                   <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Atributos Observáveis</CardTitle>
-                      <p className="text-xs text-muted-foreground">
-                        Características que podem ser identificadas ou medidas externamente
-                      </p>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {OBSERVABLE_CONFIG.map(({ key, label, icon: Icon }) => {
-                        const value = synth.observables?.[key as keyof typeof synth.observables] ?? 0;
-                        const percentage = value * 100;
-                        const colors = getValueColor(value);
-
-                        return (
-                          <div key={key} className="space-y-1.5">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className={`p-1.5 rounded-md bg-slate-100`}>
-                                  <Icon className="h-4 w-4 text-slate-600" />
-                                </div>
-                                <span className="text-sm font-medium text-slate-700">{label}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${colors.bg} bg-opacity-15 ${colors.text}`}>
-                                  {colors.label}
-                                </span>
-                                <span className="text-sm font-semibold text-slate-800 w-12 text-right">
-                                  {percentage.toFixed(0)}%
-                                </span>
-                              </div>
-                            </div>
-                            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all duration-500 ${colors.bg}`}
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <CardContent className="py-8 text-center text-muted-foreground">
+                      Sensibilidades não disponíveis para este synth
                     </CardContent>
                   </Card>
                 )}

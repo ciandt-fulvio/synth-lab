@@ -1,4 +1,4 @@
-"""Tests for synth_builder module (v2.3.0)."""
+"""Tests for synth_builder module (v3.1.0)."""
 
 import pytest
 
@@ -9,7 +9,7 @@ def test_assemble_synth_structure(config_data):
     """Test that assemble_synth returns complete structure."""
     synth = synth_builder.assemble_synth(config_data)
 
-    # Check top-level fields (v2.3.0 - capacidades_tecnologicas removed, observables added)
+    # Check top-level fields (v3.1.0 - observables removed, sensitivities added)
     required_fields = [
         "id",
         "nome",
@@ -20,7 +20,7 @@ def test_assemble_synth_structure(config_data):
         "demografia",
         "psicografia",
         "deficiencias",
-        "observables",
+        "sensitivities",
     ]
 
     for field in required_fields:
@@ -28,6 +28,7 @@ def test_assemble_synth_structure(config_data):
 
     # Ensure removed fields are not present
     assert "capacidades_tecnologicas" not in synth
+    assert "observables" not in synth
 
 
 def test_assemble_synth_demographics(config_data):
@@ -83,23 +84,27 @@ def test_assemble_synth_disabilities(config_data):
         assert "tipo" in disabilities[field]
 
 
-def test_assemble_synth_observables(config_data):
-    """Test observables section has all 5 attributes (v2.3.0)."""
+def test_assemble_synth_sensitivities(config_data):
+    """Test sensitivities section has all 9 attributes (v3.1.0)."""
     synth = synth_builder.assemble_synth(config_data)
 
-    obs = synth["observables"]
-    required_obs_fields = [
-        "digital_literacy",
-        "similar_tool_experience",
+    sens = synth["sensitivities"]
+    required_sens_fields = [
+        "risk_aversion",
+        "social_dependency",
+        "institutional_trust_level",
+        "habit_plasticity",
+        "friction_tolerance",
+        "pragmatism",
+        "digital_capability",
         "motor_ability",
-        "time_availability",
-        "domain_expertise",
+        "subject_domain",
     ]
 
-    for field in required_obs_fields:
-        assert field in obs
-        assert isinstance(obs[field], float)
-        assert 0.0 <= obs[field] <= 1.0
+    for field in required_sens_fields:
+        assert field in sens, f"Missing sensitivity field: {field}"
+        assert isinstance(sens[field], float)
+        assert 0.0 <= sens[field] <= 1.0
 
 
 def test_assemble_synth_id_unique(config_data):
@@ -124,13 +129,13 @@ def test_assemble_synth_timestamps(config_data):
 
 
 def test_assemble_synth_version(config_data):
-    """Test that version is set correctly to v3.0.0."""
+    """Test that version is set correctly to v3.1.0."""
     synth = synth_builder.assemble_synth(config_data)
 
     assert "version" in synth
     assert isinstance(synth["version"], str)
-    # Version bumped to v3.0.0 for mechanism-sensitivity model
-    assert synth["version"] == "3.0.0", f"Expected version 3.0.0, got {synth['version']}"
+    # Version bumped to v3.1.0: removed observables, sensitivities-only model
+    assert synth["version"] == "3.1.0", f"Expected version 3.1.0, got {synth['version']}"
 
 
 def test_assemble_synth_link_photo(config_data):

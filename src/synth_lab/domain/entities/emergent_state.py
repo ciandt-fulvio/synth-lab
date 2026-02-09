@@ -5,8 +5,8 @@ Defines models for emergent behavioral states calculated from mechanism x sensit
 interactions during Monte Carlo simulations. Each state represents a barrier or appeal
 that modifies user adoption behavior.
 
-9 Emergent States:
-    Barriers (7):
+11 Emergent States:
+    Barriers (8):
         - perceived_risk: irreversibility x risk_aversion (Affinity)
         - trust_barrier: institutional_trust x (1 - institutional_trust_level) (Resistance)
         - habit_resistance: habit_displacement x (1 - habit_plasticity) (Resistance)
@@ -14,10 +14,12 @@ that modifies user adoption behavior.
         - friction_burden: friccao_operacional x (1 - friction_tolerance) (Resistance)
         - social_pressure: social_visibility x social_dependency (Affinity)
         - network_barrier: network_effect x (1 - social_dependency) (Resistance)
+        - motor_barrier: friccao_operacional x (1 - motor_ability) (Resistance)
 
-    Appeals (2):
+    Appeals (3):
         - intrinsic_appeal: valor_intrinseco x pragmatism (Appeal)
         - frequency_value: frequencia_de_uso x pragmatism (Appeal)
+        - domain_advantage: valor_intrinseco x subject_domain (Appeal)
 
 References:
     - Spec: specs/040-emergent-state-expansion/spec.md
@@ -51,7 +53,7 @@ class EmergentState:
     Emergent behavioral state from mechanism x sensitivity interactions.
 
     Calculated per user per simulation execution.
-    Contains 7 barriers and 2 appeals that modify adoption behavior.
+    Contains 8 barriers and 3 appeals that modify adoption behavior.
 
     Barriers (higher = harder to adopt):
         perceived_risk = irreversibility x risk_aversion
@@ -61,10 +63,12 @@ class EmergentState:
         friction_burden = friccao_operacional x (1 - friction_tolerance)
         social_pressure = social_visibility x social_dependency
         network_barrier = network_effect x (1 - social_dependency)
+        motor_barrier = friccao_operacional x (1 - motor_ability)
 
     Appeals (higher = easier to adopt):
         intrinsic_appeal = valor_intrinseco x pragmatism
         frequency_value = frequencia_de_uso x pragmatism
+        domain_advantage = valor_intrinseco x subject_domain
     """
 
     # --- Barriers (7) ---
@@ -90,7 +94,10 @@ class EmergentState:
     network_barrier: float
     """Barrier from network_effect x (1 - social_dependency) (Resistance type)."""
 
-    # --- Appeals (2) ---
+    motor_barrier: float
+    """Barrier from friccao_operacional x (1 - motor_ability) (Resistance type)."""
+
+    # --- Appeals (3) ---
 
     intrinsic_appeal: float
     """Appeal from valor_intrinseco x pragmatism (Appeal type)."""
@@ -98,13 +105,16 @@ class EmergentState:
     frequency_value: float
     """Appeal from frequencia_de_uso x pragmatism (Appeal type)."""
 
+    domain_advantage: float
+    """Appeal from valor_intrinseco x subject_domain (Appeal type)."""
+
     # --- Metadata ---
 
     top_contributors: list[InteractionContribution] = field(default_factory=list)
     """Top interactions sorted by product value (typically top 3)."""
 
     raw_interactions: dict[str, float] = field(default_factory=dict)
-    """All 9 mechanism x sensitivity products for full explainability."""
+    """All 11 mechanism x sensitivity products for full explainability."""
 
 
 if __name__ == "__main__":
@@ -130,7 +140,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"InteractionContribution creation failed: {e}")
 
-    # Test 2: Create EmergentState with minimal data (all 9 states)
+    # Test 2: Create EmergentState with minimal data (all 11 states)
     total_tests += 1
     try:
         state = EmergentState(
@@ -141,8 +151,10 @@ if __name__ == "__main__":
             friction_burden=0.10,
             social_pressure=0.28,
             network_barrier=0.49,
+            motor_barrier=0.12,
             intrinsic_appeal=0.65,
             frequency_value=0.40,
+            domain_advantage=0.35,
         )
         if state.perceived_risk != 0.15:
             all_validation_failures.append(f"perceived_risk mismatch: {state.perceived_risk}")
@@ -160,10 +172,14 @@ if __name__ == "__main__":
             all_validation_failures.append(f"social_pressure mismatch: {state.social_pressure}")
         if state.network_barrier != 0.49:
             all_validation_failures.append(f"network_barrier mismatch: {state.network_barrier}")
+        if state.motor_barrier != 0.12:
+            all_validation_failures.append(f"motor_barrier mismatch: {state.motor_barrier}")
         if state.intrinsic_appeal != 0.65:
             all_validation_failures.append(f"intrinsic_appeal mismatch: {state.intrinsic_appeal}")
         if state.frequency_value != 0.40:
             all_validation_failures.append(f"frequency_value mismatch: {state.frequency_value}")
+        if state.domain_advantage != 0.35:
+            all_validation_failures.append(f"domain_advantage mismatch: {state.domain_advantage}")
         if state.top_contributors != []:
             all_validation_failures.append("top_contributors should default to empty list")
         if state.raw_interactions != {}:
@@ -187,8 +203,10 @@ if __name__ == "__main__":
             "friccao_operacional_friction_tolerance": 0.10,
             "social_visibility_social_dependency": 0.28,
             "network_effect_social_dependency": 0.49,
+            "friccao_operacional_motor_ability": 0.12,
             "valor_intrinseco_pragmatism": 0.65,
             "frequencia_de_uso_pragmatism": 0.40,
+            "valor_intrinseco_subject_domain": 0.35,
         }
         state = EmergentState(
             perceived_risk=0.72,
@@ -198,8 +216,10 @@ if __name__ == "__main__":
             friction_burden=0.10,
             social_pressure=0.28,
             network_barrier=0.49,
+            motor_barrier=0.12,
             intrinsic_appeal=0.65,
             frequency_value=0.40,
+            domain_advantage=0.35,
             top_contributors=contributors,
             raw_interactions=raw,
         )
@@ -209,9 +229,9 @@ if __name__ == "__main__":
             )
         if state.top_contributors[0].product != 0.72:
             all_validation_failures.append("First contributor product should be 0.72")
-        if len(state.raw_interactions) != 9:
+        if len(state.raw_interactions) != 11:
             all_validation_failures.append(
-                f"raw_interactions should have 9 keys, got {len(state.raw_interactions)}"
+                f"raw_interactions should have 11 keys, got {len(state.raw_interactions)}"
             )
         if "irreversibility_risk_aversion" not in state.raw_interactions:
             all_validation_failures.append("raw_interactions missing expected key")
@@ -231,8 +251,10 @@ if __name__ == "__main__":
             friction_burden=0.0,
             social_pressure=0.0,
             network_barrier=0.0,
+            motor_barrier=0.0,
             intrinsic_appeal=0.0,
             frequency_value=0.0,
+            domain_advantage=0.0,
         )
         for field_name in [
             "perceived_risk",
@@ -242,18 +264,20 @@ if __name__ == "__main__":
             "friction_burden",
             "social_pressure",
             "network_barrier",
+            "motor_barrier",
             "intrinsic_appeal",
             "frequency_value",
+            "domain_advantage",
         ]:
             if getattr(state, field_name) != 0.0:
                 all_validation_failures.append(f"Zero {field_name} should be valid")
     except Exception as e:
         all_validation_failures.append(f"Zero values test failed: {e}")
 
-    # Test 5: Field existence check (9 state fields + 2 metadata fields = 11 total)
+    # Test 5: Field existence check (11 state fields + 2 metadata fields = 13 total)
     total_tests += 1
     expected_fields = {
-        # 7 barriers
+        # 8 barriers
         "perceived_risk",
         "trust_barrier",
         "habit_resistance",
@@ -261,9 +285,11 @@ if __name__ == "__main__":
         "friction_burden",
         "social_pressure",
         "network_barrier",
-        # 2 appeals
+        "motor_barrier",
+        # 3 appeals
         "intrinsic_appeal",
         "frequency_value",
+        "domain_advantage",
         # 2 metadata
         "top_contributors",
         "raw_interactions",
@@ -273,9 +299,9 @@ if __name__ == "__main__":
         all_validation_failures.append(
             f"EmergentState field mismatch: expected {expected_fields}, got {actual_fields}"
         )
-    if len(actual_fields) != 11:
+    if len(actual_fields) != 13:
         all_validation_failures.append(
-            f"EmergentState should have 11 fields, got {len(actual_fields)}"
+            f"EmergentState should have 13 fields, got {len(actual_fields)}"
         )
 
     # Test 6: Verify InteractionContribution fields unchanged

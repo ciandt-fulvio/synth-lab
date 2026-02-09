@@ -169,14 +169,14 @@ def config_data() -> dict[str, Any]:
 
 @pytest.fixture
 def sample_synth() -> dict[str, Any]:
-    """Provide a minimal valid synth structure for testing (matches synth-schema v2.3.0)."""
+    """Provide a minimal valid synth structure for testing (matches synth-schema v3.1.0)."""
     return {
         "id": "test01",
         "nome": "Test User",
         "descricao": "Pessoa de 25 anos para testes automatizados do sistema com descrição mais longa",
         "link_photo": "https://ui-avatars.com/api/?name=Test+User&size=256&background=random",
         "created_at": "2025-12-15T10:00:00Z",
-        "version": "2.3.0",
+        "version": "3.1.0",
         "demografia": {
             "idade": 25,
             "genero_biologico": "masculino",
@@ -208,12 +208,16 @@ def sample_synth() -> dict[str, Any]:
             "motora": {"tipo": "nenhuma"},
             "cognitiva": {"tipo": "nenhuma"},
         },
-        "observables": {
-            "digital_literacy": 0.9,
-            "similar_tool_experience": 0.7,
-            "motor_ability": 1.0,
-            "time_availability": 0.6,
-            "domain_expertise": 0.5,
+        "sensitivities": {
+            "risk_aversion": 0.3,
+            "social_dependency": 0.5,
+            "institutional_trust_level": 0.6,
+            "habit_plasticity": 0.7,
+            "friction_tolerance": 0.8,
+            "pragmatism": 0.6,
+            "digital_capability": 0.9,
+            "motor_ability": 0.85,
+            "subject_domain": 0.7,
         },
     }
 

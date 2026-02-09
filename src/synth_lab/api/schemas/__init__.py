@@ -14,12 +14,6 @@ from synth_lab.api.schemas.analysis import (
     ScatterParams,
     ShapParams,
     TryVsSuccessParams)
-from synth_lab.api.schemas.synth_schemas import (
-    ObservableWithLabelResponse,
-    SimulationAttributesFormatted,
-    SimulationAttributesRaw,
-    SimulationLatentTraitsResponse,
-    SimulationObservablesResponse)
 
 __all__ = [
     # Analysis
@@ -36,10 +30,4 @@ __all__ = [
     "ScatterParams",
     "ShapParams",
     "TryVsSuccessParams",
-    # Synth schemas
-    "ObservableWithLabelResponse",
-    "SimulationAttributesFormatted",
-    "SimulationAttributesRaw",
-    "SimulationLatentTraitsResponse",
-    "SimulationObservablesResponse",
 ]

@@ -33,6 +33,9 @@ from sqlalchemy import text
 from synth_lab.infrastructure.database_v2 import create_db_engine
 from tests.fixtures.seed_test import seed_database
 
+# Import seed_mechanisms from the other script
+from scripts.seed_mechanisms import seed_mechanisms, _check_mechanisms_exist
+
 
 def _check_synth_groups_exist(db_url: str) -> bool:
     """Check if synth_groups table has any records.

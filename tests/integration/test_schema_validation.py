@@ -52,23 +52,25 @@ def test_generated_synth_has_retained_fields():
     assert "regras" in contrato
     assert "efeito_esperado" in contrato
 
-    # Verify observables (v2.3.0 new field)
-    assert "observables" in synth
-    observables = synth["observables"]
-    assert "digital_literacy" in observables
-    assert "motor_ability" in observables
-    assert "time_availability" in observables
-    assert "similar_tool_experience" in observables
-    assert "domain_expertise" in observables
+    # Verify sensitivities (v3.1.0 - replaced observables)
+    assert "sensitivities" in synth
+    assert "observables" not in synth
+    sens = synth["sensitivities"]
+    for field in [
+        "risk_aversion", "social_dependency", "institutional_trust_level",
+        "habit_plasticity", "friction_tolerance", "pragmatism",
+        "digital_capability", "motor_ability", "subject_domain",
+    ]:
+        assert field in sens, f"Missing sensitivity: {field}"
 
 
-def test_generated_synth_version_3_0_0():
-    """Test that generated synths have version 3.0.0."""
+def test_generated_synth_version_3_1_0():
+    """Test that generated synths have version 3.1.0."""
     config = load_config_data()
     synth = synth_builder.assemble_synth(config)
 
     assert "version" in synth
-    assert synth["version"] == "3.0.0", f"Generated synth should be v3.0.0, got {synth['version']}"
+    assert synth["version"] == "3.1.0", f"Generated synth should be v3.1.0, got {synth['version']}"
 
 
 def test_multiple_synths_no_removed_fields():

@@ -18,7 +18,7 @@ from synth_lab.services.sensitivity_deriver import (
     load_sensitivity_rules,
 )
 
-ALL_7_SENSITIVITIES = [
+ALL_SENSITIVITIES = [
     "risk_aversion",
     "social_dependency",
     "institutional_trust_level",
@@ -26,6 +26,8 @@ ALL_7_SENSITIVITIES = [
     "friction_tolerance",
     "pragmatism",
     "digital_capability",
+    "motor_ability",
+    "subject_domain",
 ]
 
 
@@ -39,13 +41,13 @@ class TestLoadConfig:
         """GIVEN default config WHEN loading THEN returns dict with version='1.0'."""
         config = load_sensitivity_rules()
         assert isinstance(config, dict)
-        assert config["version"] == "1.0"
+        assert config["version"] == "1.1"
 
-    def test_load_config_has_all_7_sensitivities(self):
-        """GIVEN default config WHEN loading THEN all 7 sensitivities are present."""
+    def test_load_config_has_all_9_sensitivities(self):
+        """GIVEN default config WHEN loading THEN all 9 sensitivities are present."""
         config = load_sensitivity_rules()
         sensitivities = config["sensitivities"]
-        for name in ALL_7_SENSITIVITIES:
+        for name in ALL_SENSITIVITIES:
             assert name in sensitivities, f"Missing sensitivity: {name}"
 
     def test_load_config_name_is_metadata_only(self):
@@ -58,7 +60,7 @@ class TestLoadConfig:
     def test_metadata_reflects_specific_config_version(self):
         """GIVEN default config WHEN deriving THEN _meta.derivation_version matches YAML version."""
         result = derive_sensitivities({})
-        assert result["_meta"]["derivation_version"] == "1.0"
+        assert result["_meta"]["derivation_version"] == "1.1"
 
 
 # ==================== get_nested_value ====================
@@ -277,21 +279,21 @@ class TestEvaluateCondition:
 class TestDeriveSensitivities:
     """Tests for derive_sensitivities() end-to-end derivation."""
 
-    def test_derive_all_7_present(self):
-        """GIVEN any valid synth data WHEN deriving THEN result has all 7 sensitivity keys."""
+    def test_derive_all_9_present(self):
+        """GIVEN any valid synth data WHEN deriving THEN result has all 9 sensitivity keys."""
         result = derive_sensitivities({"demografia": {"idade": 35}})
-        for name in ALL_7_SENSITIVITIES:
+        for name in ALL_SENSITIVITIES:
             assert name in result, f"Missing sensitivity key: {name}"
 
     def test_derive_missing_demographics_defaults(self):
         """GIVEN empty dict WHEN deriving N times THEN averages converge to base means."""
         n_samples = 50
-        avgs = {key: 0.0 for key in ALL_7_SENSITIVITIES}
+        avgs = {key: 0.0 for key in ALL_SENSITIVITIES}
         for i in range(n_samples):
             result = derive_sensitivities({}, seed=i)
-            for key in ALL_7_SENSITIVITIES:
+            for key in ALL_SENSITIVITIES:
                 avgs[key] += result[key]
-        for key in ALL_7_SENSITIVITIES:
+        for key in ALL_SENSITIVITIES:
             avgs[key] /= n_samples
 
         # Averages should converge to base values
@@ -302,6 +304,9 @@ class TestDeriveSensitivities:
         assert avgs["friction_tolerance"] == pytest.approx(0.50, abs=0.05)
         assert avgs["pragmatism"] == pytest.approx(0.55, abs=0.05)
         assert avgs["digital_capability"] == pytest.approx(0.50, abs=0.05)
+        assert avgs["motor_ability"] == pytest.approx(0.80, abs=0.05)
+        # subject_domain uses strength=6 (wider spread), needs looser tolerance
+        assert avgs["subject_domain"] == pytest.approx(0.50, abs=0.08)
 
     def test_derive_young_tech_professional(self):
         """GIVEN young (25) with higher education WHEN deriving.
@@ -373,7 +378,7 @@ class TestDeriveSensitivities:
         }
         result = derive_sensitivities(synth_data)
 
-        for name in ALL_7_SENSITIVITIES:
+        for name in ALL_SENSITIVITIES:
             assert 0.0 <= result[name] <= 1.0, f"{name}={result[name]} is out of [0.0, 1.0] range"
 
     def test_derive_metadata_present(self):
@@ -503,7 +508,7 @@ class TestAgeSensitivities:
     def test_all_sensitivities_in_valid_range(self, age):
         """GIVEN any age WHEN deriving THEN all sensitivities are in [0.0, 1.0]."""
         result = derive_sensitivities({"demografia": {"idade": age}})
-        for name in ALL_7_SENSITIVITIES:
+        for name in ALL_SENSITIVITIES:
             assert 0.0 <= result[name] <= 1.0, f"age={age}: {name}={result[name]} out of range"
 
 

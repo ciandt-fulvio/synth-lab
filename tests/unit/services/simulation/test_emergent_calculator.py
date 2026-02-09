@@ -88,8 +88,10 @@ class TestCalculateEmergentState:
             "friction_burden",
             "social_pressure",
             "network_barrier",
+            "motor_barrier",
             "intrinsic_appeal",
             "frequency_value",
+            "domain_advantage",
         ]
         for field_name in all_state_fields:
             assert getattr(state, field_name) == pytest.approx(0.0, abs=TOLERANCE), (
@@ -167,16 +169,18 @@ class TestCalculateEmergentState:
             "friction_burden",
             "social_pressure",
             "network_barrier",
+            "motor_barrier",
             "intrinsic_appeal",
             "frequency_value",
+            "domain_advantage",
         ]
         for field_name in all_state_fields:
             assert getattr(state, field_name) == pytest.approx(0.5, abs=TOLERANCE), (
                 f"{field_name} should be 0.5 with all mechanisms=1.0 and default sensitivities"
             )
 
-    def test_raw_interactions_has_9_keys(self):
-        """Verify raw_interactions contains exactly the expected 9 compound keys."""
+    def test_raw_interactions_has_11_keys(self):
+        """Verify raw_interactions contains exactly the expected 11 compound keys."""
         mechanisms = FeatureMechanisms(irreversibility=0.5, valor_intrinseco=0.3)
         sensitivities = UserSensitivities()
 
@@ -190,11 +194,13 @@ class TestCalculateEmergentState:
             "learning_curve_digital_capability",
             "friccao_operacional_friction_tolerance",
             "network_effect_social_dependency",
+            "friccao_operacional_motor_ability",
             "valor_intrinseco_pragmatism",
             "frequencia_de_uso_pragmatism",
+            "valor_intrinseco_subject_domain",
         }
         assert set(state.raw_interactions.keys()) == expected_keys
-        assert len(state.raw_interactions) == 9
+        assert len(state.raw_interactions) == 11
 
 
 class TestTopContributors:
@@ -300,19 +306,19 @@ class TestTopContributors:
 class TestInteractionPairs:
     """Tests for the INTERACTION_PAIRS constant structure."""
 
-    def test_has_9_pairs(self):
-        """INTERACTION_PAIRS contains exactly 9 tuples."""
-        assert len(INTERACTION_PAIRS) == 9
+    def test_has_11_pairs(self):
+        """INTERACTION_PAIRS contains exactly 11 tuples."""
+        assert len(INTERACTION_PAIRS) == 11
 
     def test_formula_types(self):
-        """Correct distribution of formula types: 4 affinity, 5 resistance."""
+        """Correct distribution of formula types: 5 affinity, 6 resistance."""
         affinity_count = sum(1 for _, _, ft in INTERACTION_PAIRS if ft == "affinity")
         resistance_count = sum(1 for _, _, ft in INTERACTION_PAIRS if ft == "resistance")
 
-        # 2 affinity barriers + 2 appeals (affinity type) = 4
-        assert affinity_count == 4
-        # 5 resistance barriers
-        assert resistance_count == 5
+        # 2 affinity barriers + 3 appeals (affinity type) = 5
+        assert affinity_count == 5
+        # 6 resistance barriers
+        assert resistance_count == 6
 
     def test_all_mechanism_fields_used(self):
         """All 9 mechanism field names appear in INTERACTION_PAIRS."""
