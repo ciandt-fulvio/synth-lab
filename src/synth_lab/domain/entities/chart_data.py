@@ -9,41 +9,10 @@ References:
     - Data model: specs/017-analysis-ux-research/data-model.md
 """
 
-from typing import Literal
-
 from pydantic import BaseModel, Field
 
 # =============================================================================
-# 1. Adoption Rate Distribution Chart (formerly Try vs Success)
-# =============================================================================
-
-
-class TryVsSuccessPoint(BaseModel):
-    """Individual point in the adoption rate distribution."""
-
-    synth_id: str = Field(description="ID of the synth.")
-    adopted_rate: float = Field(ge=0.0, le=1.0, description="Adoption rate.")
-    bucket: Literal["low", "medium", "high"] = Field(
-        description="Bucket classification based on thresholds."
-    )
-
-
-class TryVsSuccessChart(BaseModel):
-    """Complete data for adoption rate distribution chart."""
-
-    simulation_id: str = Field(description="ID of the simulation.")
-    points: list[TryVsSuccessPoint] = Field(description="All synth points.")
-    bucket_counts: dict[str, int] = Field(
-        description='Count per bucket: {"low": 50, "medium": 210, "high": 240}'
-    )
-    bucket_thresholds: dict[str, float] = Field(
-        description='Threshold values: {"low_max": 0.33, "high_min": 0.66}'
-    )
-    total_synths: int = Field(description="Total number of synths.")
-
-
-# =============================================================================
-# 2. Outcome Distribution Chart
+# 1. Outcome Distribution Chart
 # =============================================================================
 
 
@@ -208,46 +177,6 @@ class AttributeCorrelationChart(BaseModel):
 
 
 # =============================================================================
-# 7. Sankey Flow Chart
-# =============================================================================
-
-
-class SankeyNode(BaseModel):
-    """A node in the Sankey diagram."""
-
-    id: str = Field(description="Unique node identifier (e.g., 'population', 'adopted').")
-    label: str = Field(description="Display label in Portuguese.")
-    level: Literal[1, 2] = Field(description="Diagram level (1=Population, 2=Outcome).")
-    color: str = Field(description="Hex color code for node.")
-    value: int = Field(ge=0, description="Count of synths at this node.")
-
-
-class SankeyLink(BaseModel):
-    """A flow link between two nodes."""
-
-    source: str = Field(description="Source node ID.")
-    target: str = Field(description="Target node ID.")
-    value: int = Field(ge=0, description="Number of synths in this flow.")
-
-
-class OutcomeCounts(BaseModel):
-    """Aggregated outcome counts."""
-
-    adopted: int = Field(ge=0, description="Count of synths classified as adopted.")
-    not_adopted: int = Field(ge=0, description="Count of synths classified as not adopted.")
-
-
-class SankeyFlowChart(BaseModel):
-    """Complete Sankey flow data for visualization."""
-
-    analysis_id: str = Field(description="Analysis run ID (ana_[a-f0-9]{8}).")
-    nodes: list[SankeyNode] = Field(description="All nodes in the diagram.")
-    links: list[SankeyLink] = Field(description="All flow links between nodes.")
-    total_synths: int = Field(ge=0, description="Total population count.")
-    outcome_counts: OutcomeCounts = Field(description="Aggregated counts per outcome.")
-
-
-# =============================================================================
 # Validation
 # =============================================================================
 
@@ -257,39 +186,7 @@ if __name__ == "__main__":
     all_validation_failures: list[str] = []
     total_tests = 0
 
-    # Test 1: TryVsSuccessPoint creation (now adoption rate distribution)
-    total_tests += 1
-    try:
-        point = TryVsSuccessPoint(
-            synth_id="synth_001",
-            adopted_rate=0.75,
-            bucket="high",
-        )
-        if point.bucket != "high":
-            all_validation_failures.append(f"bucket mismatch: {point.bucket}")
-    except Exception as e:
-        all_validation_failures.append(f"TryVsSuccessPoint creation failed: {e}")
-
-    # Test 2: TryVsSuccessChart creation
-    total_tests += 1
-    try:
-        chart = TryVsSuccessChart(
-            simulation_id="sim_001",
-            points=[point],
-            bucket_counts={
-                "low": 50,
-                "medium": 210,
-                "high": 240,
-            },
-            bucket_thresholds={"low_max": 0.33, "high_min": 0.66},
-            total_synths=500,
-        )
-        if chart.total_synths != 500:
-            all_validation_failures.append(f"total_synths mismatch: {chart.total_synths}")
-    except Exception as e:
-        all_validation_failures.append(f"TryVsSuccessChart creation failed: {e}")
-
-    # Test 3: SynthDistribution creation
+    # Test 1: SynthDistribution creation
     total_tests += 1
     try:
         dist = SynthDistribution(
@@ -303,7 +200,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"SynthDistribution creation failed: {e}")
 
-    # Test 4: HeatmapCell creation
+    # Test 2: HeatmapCell creation
     total_tests += 1
     try:
         cell = HeatmapCell(
@@ -320,7 +217,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"HeatmapCell creation failed: {e}")
 
-    # Test 5: BoxPlotStats creation
+    # Test 3: BoxPlotStats creation
     total_tests += 1
     try:
         stats = BoxPlotStats(
@@ -337,7 +234,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"BoxPlotStats creation failed: {e}")
 
-    # Test 6: CorrelationStats creation
+    # Test 4: CorrelationStats creation
     total_tests += 1
     try:
         corr = CorrelationStats(
@@ -353,44 +250,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"CorrelationStats creation failed: {e}")
 
-    # Test 7: Reject invalid bucket
-    total_tests += 1
-    try:
-        TryVsSuccessPoint(
-            synth_id="synth_001",
-            adopted_rate=0.75,
-            bucket="invalid_bucket",  # type: ignore
-        )
-        all_validation_failures.append("Should reject invalid bucket")
-    except ValueError:
-        pass  # Expected
-    except Exception as e:
-        all_validation_failures.append(f"Unexpected error for invalid bucket: {e}")
-
-    # Test 8: Reject adopted_rate > 1
-    total_tests += 1
-    try:
-        TryVsSuccessPoint(
-            synth_id="synth_001",
-            adopted_rate=1.5,  # Invalid
-            bucket="high",
-        )
-        all_validation_failures.append("Should reject adopted_rate > 1")
-    except ValueError:
-        pass  # Expected
-    except Exception as e:
-        all_validation_failures.append(f"Unexpected error for invalid adopted_rate: {e}")
-
-    # Test 9: OutcomeCounts with 2 outcomes
-    total_tests += 1
-    try:
-        counts = OutcomeCounts(adopted=300, not_adopted=200)
-        if counts.adopted != 300:
-            all_validation_failures.append(f"adopted mismatch: {counts.adopted}")
-    except Exception as e:
-        all_validation_failures.append(f"OutcomeCounts creation failed: {e}")
-
-    # Test 10: AttributeCorrelation with adopted fields
+    # Test 5: AttributeCorrelation with adopted fields
     total_tests += 1
     try:
         attr_corr = AttributeCorrelation(

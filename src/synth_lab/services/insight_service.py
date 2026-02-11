@@ -203,7 +203,6 @@ class InsightService:
         """
         # Charts with pre-computed cache data (PDP excluded - dynamic with params)
         prompt_builders = {
-            "try_vs_success": self._build_prompt_try_vs_success,
             "shap_summary": self._build_prompt_shap_summary,
             "extreme_cases": self._build_prompt_extreme_cases,
             "outliers": self._build_prompt_outliers,
@@ -216,34 +215,6 @@ class InsightService:
             raise ValueError(f"Unknown chart type: {chart_type}")
 
         return builder(chart_data, hypothesis)
-
-    def _build_prompt_try_vs_success(
-        self, chart_data: dict[str, Any], hypothesis: str
-    ) -> str:
-        """Build prompt for Try vs Success chart."""
-        return f"""Analise estes dados do gráfico "Tentativa vs Sucesso" e forneça insights em PORTUGUÊS BRASILEIRO.
-
-**Hipótese:**
-{hypothesis}
-
-**Dados do Gráfico:**
-{chart_data}
-
-**Sua Tarefa:**
-Você é um pesquisador UX analisando dados quantitativos de uma simulação de feature. Sua função é olhar os dados e fazer análises profundas, sem dizer obviedades, nem ficar explicando como o gráfico funciona.
-
-**Diretrizes:**
-- A ideia aqui não é dar ideias de melhorias, mas tentar dar clareza de problemas.
-- Fale de forma clara e simples, sem complicações desnecessárias.
-- SEMPRE em português brasileiro
-
-**Formato de Saída (JSON):**
-{{
-  "problem_understanding": "Breve descrição do que está sendo testado (≤80 tokens)",
-  "trends_observed": "Padrões principais nos dados (≤80 tokens)",
-  "resumo_key_findings": "Suas conclusões (>120 E ≤200 tokens)"
-}}
-"""
 
     def _build_prompt_shap_summary(
         self, chart_data: dict[str, Any], hypothesis: str
@@ -416,7 +387,6 @@ if __name__ == "__main__":
         service = InsightService()
         # Only test charts with pre-computed cache data (PDP excluded)
         chart_types = [
-            "try_vs_success",
             "shap_summary",
             "extreme_cases",
             "outliers",

@@ -16,19 +16,15 @@ import {
   createExperiment,
   updateExperiment,
   deleteExperiment,
-  createScorecardForExperiment,
   createInterviewForExperiment,
   getAutoInterview,
   createAutoInterview,
-  estimateScorecardForExperiment,
-  estimateScorecardFromText,
   runAnalysis,
   updateExperimentMechanisms,
   type ExperimentsListParams,
-  type ScorecardEstimateRequest,
   type RunAnalysisRequest,
 } from '@/services/experiments-api';
-import type { ExperimentCreate, ExperimentUpdate, ScorecardCreate } from '@/types/experiment';
+import type { ExperimentCreate, ExperimentUpdate } from '@/types/experiment';
 import type { InterviewCreateRequest } from '@/types/research';
 import type { FeatureMechanisms } from '@/types/simulation';
 
@@ -210,24 +206,6 @@ export function useDeleteExperiment() {
 }
 
 /**
- * Hook to create a scorecard linked to an experiment.
- */
-export function useCreateScorecardForExperiment() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ experimentId, data }: { experimentId: string; data: ScorecardCreate }) =>
-      createScorecardForExperiment(experimentId, data),
-    onSuccess: (_, variables) => {
-      // Invalidate experiment detail to show the new scorecard
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.experimentDetail(variables.experimentId),
-      });
-    },
-  });
-}
-
-/**
  * Hook to create an interview linked to an experiment.
  */
 export function useCreateInterviewForExperiment() {
@@ -273,24 +251,6 @@ export function useCreateAutoInterview() {
         queryKey: queryKeys.autoInterview(experimentId),
       });
     },
-  });
-}
-
-/**
- * Hook to estimate scorecard dimensions using AI for an existing experiment.
- */
-export function useEstimateScorecardForExperiment() {
-  return useMutation({
-    mutationFn: (experimentId: string) => estimateScorecardForExperiment(experimentId),
-  });
-}
-
-/**
- * Hook to estimate scorecard dimensions from text input (before experiment exists).
- */
-export function useEstimateScorecardFromText() {
-  return useMutation({
-    mutationFn: (data: ScorecardEstimateRequest) => estimateScorecardFromText(data),
   });
 }
 

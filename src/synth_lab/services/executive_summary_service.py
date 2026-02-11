@@ -292,7 +292,7 @@ Sintetize os seguintes {len(insights)} insights de gráficos em um resumo execut
 Gere um documento markdown bem estruturado com as seguintes seções:
 
 ## Visão Geral
-O que foi testado especificamente neste experimento e quais foram os resultados gerais (≤200 palavras). Mencione explicitamente a feature/funcionalidade testada e como ela se comportou. Sintetize insights de Tentativa vs Sucesso e distribuição de resultados no contexto desta hipótese.
+O que foi testado especificamente neste experimento e quais foram os resultados gerais (≤200 palavras). Mencione explicitamente a feature/funcionalidade testada e como ela se comportou. Sintetize insights de distribuição de resultados e adoção no contexto desta hipótese.
 
 ## Explicabilidade
 Quais características dos usuários ou do contexto mais influenciam o sucesso no uso desta feature específica (≤200 palavras). Relacione os drivers identificados (SHAP/PDP) com as particularidades da funcionalidade sendo testada.
@@ -385,11 +385,6 @@ if __name__ == "__main__":
 
         service = ExecutiveSummaryService()
         sample_insights = [
-            ChartInsight(
-                analysis_id="ana_12345678",
-                chart_type="try_vs_success",
-                summary="70% dos usuários tentaram a funcionalidade",
-                status="completed"),
             ChartInsight(
                 analysis_id="ana_12345678",
                 chart_type="shap_summary",

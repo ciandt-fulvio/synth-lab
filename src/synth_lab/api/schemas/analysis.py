@@ -17,17 +17,6 @@ from pydantic import BaseModel, Field
 # =============================================================================
 
 
-class TryVsSuccessParams(BaseModel):
-    """Query parameters for Try vs Success chart."""
-
-    x_threshold: float = Field(
-        default=0.5, ge=0.0, le=1.0, description="X-axis threshold for quadrant division."
-    )
-    y_threshold: float = Field(
-        default=0.5, ge=0.0, le=1.0, description="Y-axis threshold for quadrant division."
-    )
-
-
 class DistributionParams(BaseModel):
     """Query parameters for Outcome Distribution chart."""
 
@@ -231,25 +220,7 @@ if __name__ == "__main__":
     all_validation_failures: list[str] = []
     total_tests = 0
 
-    # Test 1: TryVsSuccessParams defaults
-    total_tests += 1
-    try:
-        params = TryVsSuccessParams()
-        if params.x_threshold != 0.5 or params.y_threshold != 0.5:
-            all_validation_failures.append("TryVsSuccessParams defaults incorrect")
-    except Exception as e:
-        all_validation_failures.append(f"TryVsSuccessParams creation failed: {e}")
-
-    # Test 2: TryVsSuccessParams with custom values
-    total_tests += 1
-    try:
-        params = TryVsSuccessParams(x_threshold=0.6, y_threshold=0.4)
-        if params.x_threshold != 0.6:
-            all_validation_failures.append(f"x_threshold mismatch: {params.x_threshold}")
-    except Exception as e:
-        all_validation_failures.append(f"TryVsSuccessParams custom failed: {e}")
-
-    # Test 3: DistributionParams defaults
+    # Test 1: DistributionParams defaults
     total_tests += 1
     try:
         params = DistributionParams()
@@ -258,7 +229,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"DistributionParams creation failed: {e}")
 
-    # Test 4: HeatmapParams with custom bins
+    # Test 2: HeatmapParams with custom bins
     total_tests += 1
     try:
         params = HeatmapParams(bins=7, metric="adopted_rate")
@@ -267,7 +238,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"HeatmapParams creation failed: {e}")
 
-    # Test 5: ClusterRequest defaults
+    # Test 3: ClusterRequest defaults
     total_tests += 1
     try:
         req = ClusterRequest()
@@ -276,7 +247,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"ClusterRequest creation failed: {e}")
 
-    # Test 6: ClusterRequest with hierarchical
+    # Test 4: ClusterRequest with hierarchical
     total_tests += 1
     try:
         req = ClusterRequest(method="hierarchical", linkage="complete")
@@ -285,7 +256,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"ClusterRequest hierarchical failed: {e}")
 
-    # Test 7: CutDendrogramRequest
+    # Test 5: CutDendrogramRequest
     total_tests += 1
     try:
         req = CutDendrogramRequest(n_clusters=5)
@@ -294,17 +265,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"CutDendrogramRequest creation failed: {e}")
 
-    # Test 8: Reject invalid threshold > 1
-    total_tests += 1
-    try:
-        TryVsSuccessParams(x_threshold=1.5)
-        all_validation_failures.append("Should reject threshold > 1")
-    except ValueError:
-        pass  # Expected
-    except Exception as e:
-        all_validation_failures.append(f"Unexpected error for invalid threshold: {e}")
-
-    # Test 9: Reject invalid contamination
+    # Test 6: Reject invalid contamination
     total_tests += 1
     try:
         OutliersParams(contamination=0.6)  # > 0.5
@@ -314,7 +275,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Unexpected error for invalid contamination: {e}")
 
-    # Test 10: Reject n_clusters < 2
+    # Test 7: Reject n_clusters < 2
     total_tests += 1
     try:
         ClusterRequest(n_clusters=1)
@@ -324,7 +285,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Unexpected error for invalid n_clusters: {e}")
 
-    # Test 11: ExplainSegmentRequest with synth_ids
+    # Test 8: ExplainSegmentRequest with synth_ids
     total_tests += 1
     try:
         req = ExplainSegmentRequest(synth_ids=["synth_1", "synth_2"])
@@ -333,7 +294,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"ExplainSegmentRequest creation failed: {e}")
 
-    # Test 12: ExplainSegmentRequest reject empty synth_ids
+    # Test 9: ExplainSegmentRequest reject empty synth_ids
     total_tests += 1
     try:
         ExplainSegmentRequest(synth_ids=[])
@@ -343,7 +304,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Unexpected error for empty synth_ids: {e}")
 
-    # Test 13: SegmentExplanationResponse creation
+    # Test 10: SegmentExplanationResponse creation
     total_tests += 1
     try:
         resp = SegmentExplanationResponse(
@@ -371,7 +332,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"SegmentExplanationResponse creation failed: {e}")
 
-    # Test 14: InteractionContributionResponse
+    # Test 11: InteractionContributionResponse
     total_tests += 1
     try:
         contrib = InteractionContributionResponse(

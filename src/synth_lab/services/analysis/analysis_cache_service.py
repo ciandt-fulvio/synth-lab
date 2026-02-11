@@ -34,7 +34,6 @@ class AnalysisCacheService:
 
     # Default parameters for cached charts
     DEFAULT_PARAMS = {
-        CacheKeys.TRY_VS_SUCCESS: {"x_threshold": 0.33, "y_threshold": 0.66},
         CacheKeys.DISTRIBUTION: {"sort_by": "adopted_rate", "order": "desc", "limit": 50},
         CacheKeys.HEATMAP: {
             "x_axis": "digital_literacy",
@@ -93,17 +92,6 @@ class AnalysisCacheService:
         cache_entries: dict[str, dict[str, Any]] = {}
 
         # Phase 1: Overview charts
-        try:
-            chart = self.chart_service.get_try_vs_success(
-                simulation_id=analysis_id,
-                outcomes=outcomes,
-                **self.DEFAULT_PARAMS[CacheKeys.TRY_VS_SUCCESS])
-            cache_entries[CacheKeys.TRY_VS_SUCCESS] = chart.model_dump()
-            results[CacheKeys.TRY_VS_SUCCESS] = True
-        except Exception as e:
-            self.logger.error(f"Failed to compute {CacheKeys.TRY_VS_SUCCESS}: {e}")
-            results[CacheKeys.TRY_VS_SUCCESS] = False
-
         try:
             chart = self.chart_service.get_outcome_distribution(
                 simulation_id=analysis_id,
@@ -288,7 +276,6 @@ class AnalysisCacheService:
             Dict of cache_key -> is_cached.
         """
         all_keys = [
-            CacheKeys.TRY_VS_SUCCESS,
             CacheKeys.DISTRIBUTION,
             CacheKeys.HEATMAP,
             CacheKeys.SCATTER,

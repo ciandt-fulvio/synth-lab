@@ -58,46 +58,12 @@ def insight_service(mock_llm_client, mock_cache_repo, mock_analysis_repo, mock_e
 
 
 @pytest.fixture
-def sample_try_vs_success_data():
-    """Sample Try vs Success chart data."""
+def sample_shap_chart_data():
+    """Sample SHAP chart data."""
     return {
-        "quadrants": [
-            {"type": "did_not_try", "count": 100, "rate": 0.2},
-            {"type": "tried_failed", "count": 150, "rate": 0.3},
-            {"type": "tried_succeeded", "count": 250, "rate": 0.5},
-        ],
+        "feature_importances": {"capability_mean": 0.35, "trust_mean": 0.28},
         "total_synths": 500,
     }
-
-
-class TestBuildPromptTryVsSuccess:
-    """Test _build_prompt_try_vs_success method."""
-
-    def test_builds_prompt_with_chart_data(self, insight_service, sample_try_vs_success_data):
-        """Should build prompt including chart data, hypothesis, and instructions."""
-        hypothesis = "Usuários com alta capacidade terão maior taxa de sucesso"
-        prompt = insight_service._build_prompt_try_vs_success(
-            sample_try_vs_success_data, hypothesis
-        )
-
-        assert isinstance(prompt, str)
-        assert len(prompt) > 100  # Should be substantial
-        assert "Tentativa vs Sucesso" in prompt
-        # Should include hypothesis
-        assert hypothesis in prompt
-        # Should request Portuguese output
-        assert "PORTUGUÊS BRASILEIRO" in prompt
-
-    def test_prompt_includes_output_format(self, insight_service, sample_try_vs_success_data):
-        """Should specify JSON output format with resumo_key_findings."""
-        hypothesis = "Test hypothesis"
-        prompt = insight_service._build_prompt_try_vs_success(
-            sample_try_vs_success_data, hypothesis
-        )
-
-        # Should request structured JSON output
-        assert "JSON" in prompt
-        assert "resumo_key_findings" in prompt
 
 
 class TestBuildPromptForChartType:
@@ -110,7 +76,6 @@ class TestBuildPromptForChartType:
 
         # All supported chart types should work
         supported_types = [
-            "try_vs_success",
             "shap_summary",
             "extreme_cases",
             "outliers",
@@ -137,12 +102,12 @@ class TestBuildPromptForChartType:
 class TestGenerateInsight:
     """Test generate_insight main method (integration with LLM)."""
 
-    def test_generates_insight_for_try_vs_success(
-        self, insight_service, sample_try_vs_success_data
+    def test_generates_insight_for_shap_summary(
+        self, insight_service, sample_shap_chart_data
     ):
         """Should orchestrate prompt building, LLM call, and storage."""
         analysis_id = "ana_12345678"
-        chart_type = "try_vs_success"
+        chart_type = "shap_summary"
 
         # Mock hypothesis lookup (returns empty for simplicity)
         insight_service.analysis_repo.get_by_id.return_value = None
@@ -157,7 +122,7 @@ class TestGenerateInsight:
 
         # Execute
         result = insight_service.generate_insight(
-            analysis_id, chart_type, sample_try_vs_success_data
+            analysis_id, chart_type, sample_shap_chart_data
         )
 
         # Verify
@@ -192,7 +157,7 @@ class TestGenerateInsight:
     def test_uses_summary_fallback_if_resumo_missing(self, insight_service):
         """Should fallback to 'summary' field if 'resumo_key_findings' is missing."""
         analysis_id = "ana_12345678"
-        chart_type = "try_vs_success"
+        chart_type = "shap_summary"
         chart_data = {"test": "data"}
 
         # Mock hypothesis lookup

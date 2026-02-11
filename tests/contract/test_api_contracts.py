@@ -200,29 +200,9 @@ class TestExperimentContracts:
                 "feature_name",
                 "scenario",
                 "description_text",
-                "complexity",
-                "initial_effort",
-                "perceived_risk",
-                "time_to_value",
             ]
             for field in scorecard_fields:
                 assert field in scorecard, f"scorecard_data deve ter '{field}'"
-
-            # Valida estrutura de dimension
-            for dimension in [
-                "complexity",
-                "initial_effort",
-                "perceived_risk",
-                "time_to_value",
-            ]:
-                dim = scorecard[dimension]
-                assert "score" in dim, f"{dimension} deve ter 'score'"
-                assert isinstance(
-                    dim["score"], (int, float)
-                ), f"{dimension}.score deve ser número"
-                assert 0.0 <= dim["score"] <= 1.0, (
-                    f"{dimension}.score deve estar entre 0 e 1"
-                )
 
     def test_get_experiment_synths_returns_valid_schema(self, client: TestClient):
         """GET /synth-groups/:id/synths retorna lista de synths (endpoint separado)."""

@@ -24,10 +24,6 @@ function formatAxisLabel(label: string): string {
     capability_mean: 'Capacidade',
     trust_mean: 'Confiança',
     friction_tolerance_mean: 'Tolerância',
-    complexity: 'Complexidade',
-    initial_effort: 'Esforço',
-    perceived_risk: 'Risco',
-    time_to_value: 'Tempo/Valor',
   };
   return labelMap[label] || label.replace(/_/g, ' ');
 }

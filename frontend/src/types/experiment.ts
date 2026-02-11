@@ -17,21 +17,10 @@ import type { FeatureMechanisms } from './simulation';
 // =============================================================================
 
 /**
- * Scorecard dimension with score and optional metadata.
- */
-export interface ScorecardDimension {
-  /** Score value in [0,1] */
-  score: number;
-  /** Rules applied to derive score */
-  rules_applied?: string[];
-  /** Lower bound for uncertainty */
-  lower_bound?: number;
-  /** Upper bound for uncertainty */
-  upper_bound?: number;
-}
-
-/**
  * Embedded scorecard data within an experiment.
+ *
+ * Legacy dimensions (complexity, initial_effort, perceived_risk, time_to_value)
+ * were removed in 040 — simulation uses only mechanisms.
  */
 export interface ScorecardData {
   /** Name of the feature */
@@ -40,14 +29,6 @@ export interface ScorecardData {
   description_text: string;
   /** Usage scenario */
   use_scenario?: string;
-  /** Complexity dimension */
-  complexity: ScorecardDimension;
-  /** Initial effort dimension */
-  initial_effort: ScorecardDimension;
-  /** Perceived risk dimension */
-  perceived_risk: ScorecardDimension;
-  /** Time to value dimension */
-  time_to_value: ScorecardDimension;
   /** LLM-generated justification */
   justification?: string;
   /** Impact hypotheses */
@@ -266,109 +247,3 @@ export interface PaginatedExperimentSummary {
   pagination: PaginationMeta;
 }
 
-// =============================================================================
-// Scorecard API Types (Legacy - for backward compatibility)
-// =============================================================================
-
-/**
- * Dimension score configuration for scorecards.
- * @deprecated Use ScorecardDimension instead
- */
-export interface DimensionCreate {
-  /** Score value in [0,1] */
-  score: number;
-  /** Rules applied to derive score */
-  rules_applied?: string[];
-  /** Minimum uncertainty bound */
-  min_uncertainty?: number;
-  /** Maximum uncertainty bound */
-  max_uncertainty?: number;
-}
-
-/**
- * Request schema for creating a scorecard linked to an experiment.
- * @deprecated Use PUT /experiments/{id}/scorecard with ScorecardData instead
- */
-export interface ScorecardCreate {
-  /** Name of the feature */
-  feature_name: string;
-  /** Usage scenario */
-  use_scenario: string;
-  /** Feature description */
-  description_text: string;
-  /** List of evaluators */
-  evaluators?: string[];
-  /** Media URLs for feature description */
-  description_media_urls?: string[];
-  /** Complexity dimension */
-  complexity?: DimensionCreate;
-  /** Initial effort dimension */
-  initial_effort?: DimensionCreate;
-  /** Perceived risk dimension */
-  perceived_risk?: DimensionCreate;
-  /** Time to value dimension */
-  time_to_value?: DimensionCreate;
-}
-
-/**
- * Response schema for a created scorecard.
- * @deprecated Use ExperimentDetail.scorecard_data instead
- */
-export interface ScorecardResponse {
-  /** Scorecard ID (8 char alphanumeric) */
-  id: string;
-  /** Parent experiment ID */
-  experiment_id: string | null;
-  /** Feature name */
-  feature_name: string;
-  /** Usage scenario */
-  use_scenario: string;
-  /** Feature description */
-  description_text: string;
-  /** Complexity score [0,1] */
-  complexity_score: number;
-  /** Initial effort score [0,1] */
-  initial_effort_score: number;
-  /** Perceived risk score [0,1] */
-  perceived_risk_score: number;
-  /** Time to value score [0,1] */
-  time_to_value_score: number;
-  /** LLM-generated justification */
-  justification: string | null;
-  /** Impact hypotheses */
-  impact_hypotheses: string[];
-  /** Creation timestamp */
-  created_at: string;
-  /** Last update timestamp */
-  updated_at: string | null;
-}
-
-// =============================================================================
-// AI Estimation Types
-// =============================================================================
-
-/**
- * AI-generated dimension estimate.
- */
-export interface DimensionEstimate {
-  /** Estimated score value in [0,1] */
-  score: number;
-  /** Brief justification for the score */
-  justification?: string;
-  /** Minimum uncertainty bound */
-  lower_bound?: number;
-  /** Maximum uncertainty bound */
-  upper_bound?: number;
-}
-
-/**
- * Response from AI scorecard estimation.
- */
-export interface ScorecardEstimateResponse {
-  complexity: DimensionEstimate;
-  initial_effort: DimensionEstimate;
-  perceived_risk: DimensionEstimate;
-  time_to_value: DimensionEstimate;
-  justification?: string;
-  impact_hypotheses?: string[];
-}

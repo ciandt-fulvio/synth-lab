@@ -13,7 +13,7 @@ from synth_lab.api.schemas.analysis import (
     PDPParams,
     ScatterParams,
     ShapParams,
-    TryVsSuccessParams)
+)
 
 __all__ = [
     # Analysis
@@ -29,5 +29,4 @@ __all__ = [
     "PDPParams",
     "ScatterParams",
     "ShapParams",
-    "TryVsSuccessParams",
 ]

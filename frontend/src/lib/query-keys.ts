@@ -36,7 +36,6 @@ export const queryKeys = {
 
   // Analysis (experiment-based)
   analysis: {
-    tryVsSuccess: (experimentId: string) => ['analysis', experimentId, 'try-vs-success'] as const,
     distribution: (experimentId: string) => ['analysis', experimentId, 'distribution'] as const,
     failureHeatmap: (experimentId: string) => ['analysis', experimentId, 'failure-heatmap'] as const,
     scatter: (experimentId: string) => ['analysis', experimentId, 'scatter'] as const,
@@ -51,7 +50,6 @@ export const queryKeys = {
     pdp: (experimentId: string, feature: string) => ['analysis', experimentId, 'pdp', feature] as const,
     pdpComparison: (experimentId: string) => ['analysis', experimentId, 'pdp-comparison'] as const,
     insights: (experimentId: string) => ['analysis', experimentId, 'insights'] as const,
-    sankeyFlow: (experimentId: string) => ['analysis', experimentId, 'sankey-flow'] as const,
     segmentExplanation: (experimentId: string, synthIds: string[]) => ['analysis', experimentId, 'segment-explanation', synthIds] as const,
   },
 

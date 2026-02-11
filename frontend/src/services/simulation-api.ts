@@ -3,7 +3,6 @@
 
 import { fetchAPI } from './api';
 import type {
-  TryVsSuccessChart,
   OutcomeDistributionChart,
   FailureHeatmapChart,
   BoxPlotChart,
@@ -28,17 +27,6 @@ import type {
 // =============================================================================
 // Phase 1: Overview Charts
 // =============================================================================
-
-export async function getTryVsSuccessChart(
-  simulationId: string,
-  _attemptRateThreshold = 0.5, // deprecated: no longer used in 2-outcome model
-  adoptedRateThreshold = 0.5
-): Promise<TryVsSuccessChart> {
-  const params = new URLSearchParams({
-    adopted_rate_threshold: String(adoptedRateThreshold),
-  });
-  return fetchAPI(`/simulation/simulations/${simulationId}/charts/try-vs-success?${params}`);
-}
 
 export async function getDistributionChart(
   simulationId: string,

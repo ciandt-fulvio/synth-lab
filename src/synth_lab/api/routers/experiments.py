@@ -10,7 +10,7 @@ References:
 
 import asyncio
 
-from fastapi import APIRouter, HTTPException, Query, status, Request, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from loguru import logger
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,22 +20,18 @@ from synth_lab.api.schemas.experiments import (
     AnalysisSummary,
     ExperimentDetail,
     ExperimentResponse,
+    FeatureMechanismsInput,
     InterviewSummary,
     PaginatedExperimentSummary,
     ScorecardDataSchema,
-    ScorecardDimensionSchema,
-    ScorecardEstimateResponse)
-from synth_lab.api.schemas.experiments import (
-    ExperimentCreate as ExperimentCreateSchema)
-from synth_lab.api.schemas.experiments import (
-    ExperimentSummary as ExperimentSummarySchema)
-from synth_lab.api.schemas.experiments import (
-    ExperimentUpdate as ExperimentUpdateSchema)
+)
+from synth_lab.api.schemas.experiments import ExperimentCreate as ExperimentCreateSchema
+from synth_lab.api.schemas.experiments import ExperimentSummary as ExperimentSummarySchema
+from synth_lab.api.schemas.experiments import ExperimentUpdate as ExperimentUpdateSchema
 from synth_lab.api.schemas.exploration import ExplorationSummary
-from synth_lab.domain.entities.experiment import ScorecardData, ScorecardDimension
-from synth_lab.infrastructure.database_v2 import get_session, get_db_session
-from synth_lab.infrastructure.auth.session_manager import SessionManager
-from synth_lab.services.permission_service import PermissionService
+from synth_lab.domain.entities.experiment import ScorecardData
+from synth_lab.domain.entities.feature_mechanisms import FeatureMechanisms
+from synth_lab.infrastructure.database_v2 import get_db_session, get_session
 from synth_lab.models.pagination import PaginationParams
 from synth_lab.models.research import ResearchExecuteRequest, ResearchExecuteResponse
 from synth_lab.repositories.analysis_repository import AnalysisRepository
@@ -45,12 +41,9 @@ from synth_lab.repositories.research_repository import ResearchRepository
 from synth_lab.repositories.synth_group_repository import SynthGroupRepository
 from synth_lab.repositories.synth_repository import SynthRepository
 from synth_lab.services.experiment_service import ExperimentService
-from synth_lab.services.interview_guide_generator_service import (
-    generate_interview_guide_async)
+from synth_lab.services.interview_guide_generator_service import generate_interview_guide_async
+from synth_lab.services.permission_service import PermissionService
 from synth_lab.services.research_service import ResearchService
-from synth_lab.services.scorecard_estimator import (
-    ScorecardEstimationError,
-    ScorecardEstimator)
 
 router = APIRouter()
 
@@ -114,28 +107,13 @@ def _convert_schema_to_scorecard_data(
         scenario=schema.scenario,
         description_text=schema.description_text,
         description_media_urls=schema.description_media_urls,
-        complexity=ScorecardDimension(
-            score=schema.complexity.score,
-            rules_applied=schema.complexity.rules_applied,
-            lower_bound=schema.complexity.lower_bound,
-            upper_bound=schema.complexity.upper_bound),
-        initial_effort=ScorecardDimension(
-            score=schema.initial_effort.score,
-            rules_applied=schema.initial_effort.rules_applied,
-            lower_bound=schema.initial_effort.lower_bound,
-            upper_bound=schema.initial_effort.upper_bound),
-        perceived_risk=ScorecardDimension(
-            score=schema.perceived_risk.score,
-            rules_applied=schema.perceived_risk.rules_applied,
-            lower_bound=schema.perceived_risk.lower_bound,
-            upper_bound=schema.perceived_risk.upper_bound),
-        time_to_value=ScorecardDimension(
-            score=schema.time_to_value.score,
-            rules_applied=schema.time_to_value.rules_applied,
-            lower_bound=schema.time_to_value.lower_bound,
-            upper_bound=schema.time_to_value.upper_bound),
         justification=schema.justification,
-        impact_hypotheses=schema.impact_hypotheses)
+        impact_hypotheses=schema.impact_hypotheses,
+        mechanisms=(
+            FeatureMechanisms(**schema.mechanisms.model_dump())
+            if schema.mechanisms else None
+        ),
+        feature_types=schema.feature_types)
 
 
 def _convert_scorecard_data_to_schema(
@@ -146,28 +124,13 @@ def _convert_scorecard_data_to_schema(
         scenario=data.scenario,
         description_text=data.description_text,
         description_media_urls=data.description_media_urls,
-        complexity=ScorecardDimensionSchema(
-            score=data.complexity.score,
-            rules_applied=data.complexity.rules_applied,
-            lower_bound=data.complexity.lower_bound,
-            upper_bound=data.complexity.upper_bound),
-        initial_effort=ScorecardDimensionSchema(
-            score=data.initial_effort.score,
-            rules_applied=data.initial_effort.rules_applied,
-            lower_bound=data.initial_effort.lower_bound,
-            upper_bound=data.initial_effort.upper_bound),
-        perceived_risk=ScorecardDimensionSchema(
-            score=data.perceived_risk.score,
-            rules_applied=data.perceived_risk.rules_applied,
-            lower_bound=data.perceived_risk.lower_bound,
-            upper_bound=data.perceived_risk.upper_bound),
-        time_to_value=ScorecardDimensionSchema(
-            score=data.time_to_value.score,
-            rules_applied=data.time_to_value.rules_applied,
-            lower_bound=data.time_to_value.lower_bound,
-            upper_bound=data.time_to_value.upper_bound),
         justification=data.justification,
-        impact_hypotheses=data.impact_hypotheses)
+        impact_hypotheses=data.impact_hypotheses,
+        mechanisms=(
+            FeatureMechanismsInput(**data.mechanisms.model_dump())
+            if data.mechanisms else None
+        ),
+        feature_types=data.feature_types)
 
 
 # =============================================================================
@@ -249,69 +212,6 @@ async def create_experiment(
                 detail=f"Invalid reference: {str(e)}")
         # Re-raise other exceptions
         raise
-
-
-class ScorecardEstimateRequest(BaseModel):
-    """Request for AI scorecard estimation from text."""
-
-    name: str = Field(
-        max_length=100,
-        description="Short name of the feature.")
-    hypothesis: str = Field(
-        max_length=500,
-        description="Description of the hypothesis to test.")
-    description: str | None = Field(
-        default=None,
-        max_length=2000,
-        description="Additional context.")
-
-
-@router.post(
-    "/estimate-scorecard",
-    response_model=ScorecardEstimateResponse,
-    status_code=status.HTTP_200_OK)
-async def estimate_scorecard_from_text(
-    request: ScorecardEstimateRequest) -> ScorecardEstimateResponse:
-    """
-    Use AI to estimate scorecard dimensions from text input.
-
-    This endpoint allows estimation before an experiment exists,
-    useful for forms where the user wants AI-generated estimates.
-    Takes name, hypothesis, and optional description as input.
-    """
-    estimator = ScorecardEstimator()
-    try:
-        estimate = estimator.estimate_from_text(
-            name=request.name,
-            hypothesis=request.hypothesis,
-            description=request.description)
-        return ScorecardEstimateResponse(
-            complexity=ScorecardDimensionSchema(
-                score=estimate.complexity.value,
-                rules_applied=[],
-                lower_bound=estimate.complexity.min,
-                upper_bound=estimate.complexity.max),
-            initial_effort=ScorecardDimensionSchema(
-                score=estimate.initial_effort.value,
-                rules_applied=[],
-                lower_bound=estimate.initial_effort.min,
-                upper_bound=estimate.initial_effort.max),
-            perceived_risk=ScorecardDimensionSchema(
-                score=estimate.perceived_risk.value,
-                rules_applied=[],
-                lower_bound=estimate.perceived_risk.min,
-                upper_bound=estimate.perceived_risk.max),
-            time_to_value=ScorecardDimensionSchema(
-                score=estimate.time_to_value.value,
-                rules_applied=[],
-                lower_bound=estimate.time_to_value.min,
-                upper_bound=estimate.time_to_value.max),
-            justification=getattr(estimate, "justification", ""),
-            impact_hypotheses=getattr(estimate, "impact_hypotheses", []))
-    except ScorecardEstimationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e))
 
 
 @router.get("/list", response_model=PaginatedExperimentSummary)
@@ -398,8 +298,9 @@ async def get_experiment(
 
     with get_session() as session:
         # Get synth group name
-        from synth_lab.models.orm.synth import SynthGroup as SynthGroupORM
         from sqlalchemy import select
+
+        from synth_lab.models.orm.synth import SynthGroup as SynthGroupORM
 
         synth_group_name = "Unknown"
         stmt = select(SynthGroupORM.name).where(SynthGroupORM.id == experiment.synth_group_id)
@@ -875,54 +776,3 @@ async def list_explorations_for_experiment(
         ]
 
 
-@router.post(
-    "/{experiment_id}/estimate-scorecard",
-    response_model=ScorecardEstimateResponse,
-    status_code=status.HTTP_200_OK)
-async def estimate_scorecard_for_experiment(
-    experiment_id: str) -> ScorecardEstimateResponse:
-    """
-    Use AI to estimate scorecard dimensions for an experiment.
-
-    Takes the experiment's name, hypothesis, and description,
-    and returns AI-generated estimates for all scorecard dimensions.
-    """
-    # Validate experiment exists and get details
-    exp_service = get_experiment_service()
-    experiment = exp_service.get_experiment(experiment_id)
-    if experiment is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found")
-
-    # Use ScorecardEstimator service (handles LLM call with tracing)
-    estimator = ScorecardEstimator()
-    try:
-        estimate = estimator.estimate_from_experiment(experiment)
-        return ScorecardEstimateResponse(
-            complexity=ScorecardDimensionSchema(
-                score=estimate.complexity.value,
-                rules_applied=[],
-                lower_bound=estimate.complexity.min,
-                upper_bound=estimate.complexity.max),
-            initial_effort=ScorecardDimensionSchema(
-                score=estimate.initial_effort.value,
-                rules_applied=[],
-                lower_bound=estimate.initial_effort.min,
-                upper_bound=estimate.initial_effort.max),
-            perceived_risk=ScorecardDimensionSchema(
-                score=estimate.perceived_risk.value,
-                rules_applied=[],
-                lower_bound=estimate.perceived_risk.min,
-                upper_bound=estimate.perceived_risk.max),
-            time_to_value=ScorecardDimensionSchema(
-                score=estimate.time_to_value.value,
-                rules_applied=[],
-                lower_bound=estimate.time_to_value.min,
-                upper_bound=estimate.time_to_value.max),
-            justification=getattr(estimate, "justification", ""),
-            impact_hypotheses=getattr(estimate, "impact_hypotheses", []))
-    except ScorecardEstimationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e))

@@ -20,7 +20,6 @@ interface InsightsListSectionProps {
 }
 
 const CHART_TYPE_LABELS: Record<string, string> = {
-  try_vs_success: 'Tentativa vs Sucesso',
   outcome_distribution: 'Distribuição de Resultados',
   failure_heatmap: 'Mapa de Calor de Falhas',
   box_plot: 'Box Plot',

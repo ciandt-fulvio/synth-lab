@@ -16,7 +16,6 @@ from synth_lab.domain.entities.chart_insight import ChartInsight
 from synth_lab.domain.entities.experiment import (
     Experiment,
     ScorecardData,
-    ScorecardDimension,
 )
 from synth_lab.services.executive_summary_service import ExecutiveSummaryService
 
@@ -68,12 +67,6 @@ def sample_insights():
     return [
         ChartInsight(
             analysis_id="ana_12345678",
-            chart_type="try_vs_success",
-            summary="Checkout tem boa taxa de engajamento mas precisa melhorar conversão",
-            status="completed",
-        ),
-        ChartInsight(
-            analysis_id="ana_12345678",
             chart_type="shap_summary",
             summary="Confiança e capacidade do usuário influenciam fortemente o sucesso",
             status="completed",
@@ -98,10 +91,6 @@ def sample_experiment():
         scorecard_data=ScorecardData(
             feature_name="Entrega Agendada",
             description_text="Permite agendar entregas para horários específicos",
-            complexity=ScorecardDimension(score=0.3),
-            initial_effort=ScorecardDimension(score=0.4),
-            perceived_risk=ScorecardDimension(score=0.2),
-            time_to_value=ScorecardDimension(score=0.6),
         ),
     )
 
@@ -116,7 +105,6 @@ class TestBuildMarkdownSynthesisPrompt:
         assert isinstance(prompt, str)
         assert len(prompt) > 200  # Should be substantial
         # Should reference chart types
-        assert "try_vs_success" in prompt
         assert "shap_summary" in prompt
         assert "pca_scatter" in prompt
 
@@ -127,8 +115,8 @@ class TestBuildMarkdownSynthesisPrompt:
         prompt = summary_service._build_markdown_synthesis_prompt(sample_insights)
 
         # Should include insight summaries
-        assert "engajamento" in prompt.lower() or "conversão" in prompt.lower()
         assert "confiança" in prompt.lower() or "capacidade" in prompt.lower()
+        assert "segmentação" in prompt.lower() or "necessidades" in prompt.lower()
 
     def test_handles_minimum_insights(self, summary_service):
         """Should handle minimum number of insights (2)."""
@@ -226,7 +214,7 @@ class TestGenerateMarkdownSummary:
         too_few_insights = [
             ChartInsight(
                 analysis_id=analysis_id,
-                chart_type="try_vs_success",
+                chart_type="shap_summary",
                 summary="Test",
                 status="completed",
             ),

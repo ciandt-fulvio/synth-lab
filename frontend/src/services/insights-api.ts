@@ -20,7 +20,7 @@ import type { ChartInsight, AllInsightsResponse } from '../types/insights';
  * Get AI-generated insight for a specific chart type.
  *
  * @param experimentId - Experiment ID
- * @param chartType - Chart type (try_vs_success, shap_summary, pdp, pca_scatter, radar_comparison, extreme_cases, outliers)
+ * @param chartType - Chart type (shap_summary, pdp, pca_scatter, radar_comparison, extreme_cases, outliers)
  * @returns ChartInsight for the requested chart type
  * @throws 404 if experiment or insight not found
  * @throws 400 if chart_type is invalid

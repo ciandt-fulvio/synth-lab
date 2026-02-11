@@ -184,7 +184,7 @@ session: Session | None = None):
             SynthOutcome entity or None if synth_attributes is missing
         """
         attrs_dict = orm_outcome.synth_attributes
-        attrs = SimulationAttributes.model_validate(attrs_dict) if attrs_dict else None
+        attrs = SimulationAttributes.model_validate(attrs_dict) if attrs_dict is not None else None
 
         # Skip outcomes without synth_attributes (required field in SynthOutcome)
         if attrs is None:

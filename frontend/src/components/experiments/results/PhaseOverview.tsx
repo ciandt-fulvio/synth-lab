@@ -1,5 +1,5 @@
 // frontend/src/components/experiments/results/PhaseOverview.tsx
-// Phase 1: Overview - aggregates Distribution and TryVsSuccess charts
+// Phase 1: Overview - Distribution chart
 
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -10,8 +10,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { ChartErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { OutcomeDistributionChart } from './charts/OutcomeDistributionChart';
-import { SankeyFlowSection } from './SankeyFlowSection';
-import { TryVsSuccessSection } from './TryVsSuccessSection';
 import { useAnalysisDistributionChart } from '@/hooks/use-analysis-charts';
 import { useGenerateAnalysisChartInsight } from '@/hooks/use-insights';
 import type { AnalysisSummary } from '@/types/experiment';
@@ -177,11 +175,6 @@ export function PhaseOverview({ experimentId, analysis }: PhaseOverviewProps) {
         </CardContent>
       </Card>
 
-      {/* Row 2: Sankey Flow - Outcome Flow Visualization */}
-      <SankeyFlowSection experimentId={experimentId} />
-
-      {/* Row 3: Try vs Success with explanation and controls */}
-      <TryVsSuccessSection experimentId={experimentId} />
     </div>
   );
 }

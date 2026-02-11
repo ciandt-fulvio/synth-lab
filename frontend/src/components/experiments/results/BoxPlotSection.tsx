@@ -31,10 +31,6 @@ interface BoxPlotSectionProps {
 const ATTRIBUTE_OPTIONS = [
   { value: 'capability_mean', label: 'Capacidade' },
   { value: 'trust_mean', label: 'Confiança' },
-  { value: 'complexity', label: 'Complexidade' },
-  { value: 'initial_effort', label: 'Esforço Inicial' },
-  { value: 'perceived_risk', label: 'Risco Percebido' },
-  { value: 'time_to_value', label: 'Tempo p/ Valor' },
 ];
 
 export function BoxPlotSection({ simulationId }: BoxPlotSectionProps) {

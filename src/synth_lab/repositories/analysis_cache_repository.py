@@ -290,7 +290,6 @@ session: Session | None = None):
         """
         # Map chart types to their insight cache keys
         insight_key_map = {
-            "try_vs_success": CacheKeys.INSIGHT_TRY_VS_SUCCESS,
             "shap_summary": CacheKeys.INSIGHT_SHAP_SUMMARY,
             "pdp": CacheKeys.INSIGHT_PDP,
             "pca_scatter": CacheKeys.INSIGHT_PCA_SCATTER,

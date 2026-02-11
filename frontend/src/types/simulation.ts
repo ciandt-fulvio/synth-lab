@@ -83,32 +83,8 @@ export interface SegmentExplanation {
 }
 
 // =============================================================================
-// Phase 1: Overview Charts (Try vs Success, Distribution)
+// Phase 1: Overview Charts (Distribution)
 // =============================================================================
-
-/** Point in Adoption scatter chart */
-export interface TryVsSuccessPoint {
-  synth_id: string;
-  adopted_rate: number;
-  category: 'above_threshold' | 'below_threshold';
-}
-
-/** Category counts from API */
-export interface QuadrantCounts {
-  above_threshold: number;
-  below_threshold: number;
-}
-
-/** Adoption scatter chart data */
-export interface TryVsSuccessChart {
-  simulation_id: string;
-  points: TryVsSuccessPoint[];
-  quadrant_counts: QuadrantCounts;
-  quadrant_thresholds: {
-    y: number;
-  };
-  total_synths: number;
-}
 
 /** Single synth distribution from API */
 export interface SynthDistribution {
@@ -451,7 +427,6 @@ export interface PDPComparison {
 
 /** Chart types that can have insights generated */
 export type ChartType =
-  | 'try_vs_success'
   | 'distribution'
   | 'failure_heatmap'
   | 'box_plot'
@@ -496,41 +471,6 @@ export interface SimulationInsights {
   insights: ChartInsight[];
   executive_summary?: string;
   updated_at: string;
-}
-
-// =============================================================================
-// Sankey Flow Chart (Outcome Flow Visualization)
-// =============================================================================
-
-/** Node in Sankey diagram */
-export interface SankeyNode {
-  id: string;
-  label: string;
-  level: 1 | 2 | 3;
-  color: string;
-  value: number;
-}
-
-/** Link between nodes in Sankey diagram */
-export interface SankeyLink {
-  source: string;
-  target: string;
-  value: number;
-}
-
-/** Aggregated outcome counts */
-export interface OutcomeCounts {
-  adopted: number;
-  not_adopted: number;
-}
-
-/** Sankey flow chart data for outcome flow visualization */
-export interface SankeyFlowChart {
-  analysis_id: string;
-  nodes: SankeyNode[];
-  links: SankeyLink[];
-  total_synths: number;
-  outcome_counts: OutcomeCounts;
 }
 
 // =============================================================================

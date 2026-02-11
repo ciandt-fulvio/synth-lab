@@ -29,9 +29,7 @@ from synth_lab.domain.entities.analysis_run import AggregatedOutcomes, AnalysisC
 from synth_lab.domain.entities.chart_data import (
     FailureHeatmapChart,
     OutcomeDistributionChart,
-    SankeyFlowChart,
-    ScatterCorrelationChart,
-    TryVsSuccessChart)
+    ScatterCorrelationChart)
 from synth_lab.domain.entities.cluster_result import (
     HierarchicalResult,
     KMeansResult,
@@ -310,8 +308,10 @@ async def list_outcomes(
         observables_dict = {}
         latent_traits_dict = {}
         if outcome.synth_attributes:
-            observables_dict = outcome.synth_attributes.observables.model_dump()
-            latent_traits_dict = outcome.synth_attributes.latent_traits.model_dump()
+            if outcome.synth_attributes.observables is not None:
+                observables_dict = outcome.synth_attributes.observables.model_dump()
+            if outcome.synth_attributes.latent_traits is not None:
+                latent_traits_dict = outcome.synth_attributes.latent_traits.model_dump()
 
         attrs = SynthAttributesSchema(
             observables=observables_dict,
@@ -439,65 +439,6 @@ async def generate_insights(
 # =============================================================================
 # Chart Endpoints
 # =============================================================================
-
-
-@router.get(
-    "/{experiment_id}/analysis/charts/try-vs-success",
-    response_model=TryVsSuccessChart)
-async def get_try_vs_success_chart(
-    experiment_id: str,
-    low_threshold: float = Query(
-        default=0.33,
-        ge=0.0,
-        le=1.0,
-        description="Upper bound for low adoption bucket"),
-    high_threshold: float = Query(
-        default=0.66,
-        ge=0.0,
-        le=1.0,
-        description="Lower bound for high adoption bucket")) -> TryVsSuccessChart:
-    """
-    Get adoption rate distribution data for an analysis.
-
-    Each point represents one synth classified into low/medium/high adoption buckets.
-    Uses cache for default parameters (0.33, 0.66).
-    """
-    service = get_analysis_service()
-
-    analysis = service.get_analysis(experiment_id)
-    if analysis is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}")
-
-    if analysis.status != "completed":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})")
-
-    # Check cache for default parameters
-    is_default = low_threshold == 0.33 and high_threshold == 0.66
-    if is_default:
-        cache_service = get_cache_service()
-        cached = cache_service.get_cached(analysis.id, CacheKeys.TRY_VS_SUCCESS)
-        if cached:
-            return TryVsSuccessChart.model_validate(cached)
-
-    # Compute on-demand (cache miss or custom parameters)
-    chart_service = get_chart_data_service()
-    outcome_repo = get_outcome_repository()
-
-    outcomes, _ = outcome_repo.get_outcomes(analysis.id)
-    if not outcomes:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No outcomes found for this analysis")
-
-    return chart_service.get_try_vs_success(
-        simulation_id=analysis.id,
-        outcomes=outcomes,
-        x_threshold=low_threshold,
-        y_threshold=high_threshold)
 
 
 @router.get(
@@ -674,59 +615,6 @@ async def get_scatter_correlation_chart(
         x_axis=x_axis,
         y_axis=y_axis,
         show_trendline=show_trendline)
-
-
-@router.get(
-    "/{experiment_id}/analysis/charts/sankey-flow",
-    response_model=SankeyFlowChart)
-async def get_sankey_flow_chart(
-    experiment_id: str) -> SankeyFlowChart:
-    """
-    Get Sankey flow chart data for an analysis.
-
-    Shows outcome flow from population through outcomes to root causes.
-    3 levels: Population → Outcomes (adopted, not_adopted) → Root Causes.
-    """
-    service = get_analysis_service()
-    experiment_service = get_experiment_service()
-
-    analysis = service.get_analysis(experiment_id)
-    if analysis is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No analysis found for experiment {experiment_id}")
-
-    if analysis.status != "completed":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Analysis must be completed (status: {analysis.status})")
-
-    # Get experiment to access scorecard
-    experiment = experiment_service.get_experiment(experiment_id)
-    if experiment is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Experiment {experiment_id} not found")
-
-    if experiment.scorecard_data is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Experiment must have a scorecard for Sankey flow analysis")
-
-    # Get outcomes
-    chart_service = get_chart_data_service()
-    outcome_repo = get_outcome_repository()
-
-    outcomes, _ = outcome_repo.get_outcomes(analysis.id)
-    if not outcomes:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No outcomes found for this analysis")
-
-    return chart_service.get_sankey_flow(
-        analysis_id=analysis.id,
-        outcomes=outcomes,
-        scorecard=experiment.scorecard_data)
 
 
 # =============================================================================

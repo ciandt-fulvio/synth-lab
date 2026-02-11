@@ -147,11 +147,6 @@ export function ExperimentForm({
     experimentData.scorecard_data = {
       feature_name: name.trim(),
       description_text: hypothesis.trim(),
-      // Default scorecard dimensions (can be refined later)
-      complexity: { score: 0.5 },
-      initial_effort: { score: 0.5 },
-      perceived_risk: { score: 0.5 },
-      time_to_value: { score: 0.5 },
       // Store mechanism values from narrative configuration
       mechanisms: mechanismValuesToFeatureMechanisms(values),
       // Store inferred feature types

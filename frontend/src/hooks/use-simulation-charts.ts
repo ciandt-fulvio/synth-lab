@@ -4,7 +4,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import {
-  getAnalysisTryVsSuccessChart,
   getAnalysisDistributionChart,
   getAnalysisFailureHeatmap,
   getAnalysisScatterCorrelation,
@@ -13,20 +12,6 @@ import {
 // =============================================================================
 // Phase 1: Overview Charts
 // =============================================================================
-
-export function useTryVsSuccessChart(
-  experimentId: string,
-  attemptRateThreshold = 0.5,
-  successRateThreshold = 0.5,
-  enabled = true
-) {
-  return useQuery({
-    queryKey: [...queryKeys.analysis.tryVsSuccess(experimentId), attemptRateThreshold, successRateThreshold],
-    queryFn: () => getAnalysisTryVsSuccessChart(experimentId, attemptRateThreshold, successRateThreshold),
-    enabled: !!experimentId && enabled,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-}
 
 export function useDistributionChart(
   experimentId: string,

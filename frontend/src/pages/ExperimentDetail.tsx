@@ -73,66 +73,6 @@ import { MechanismEditor, DEFAULT_MECHANISMS, hasMechanisms } from '@/components
 import type { FeatureMechanisms } from '@/types/simulation';
 
 // =============================================================================
-// Scorecard Slider Component (Read-only)
-// =============================================================================
-
-interface ScoreSliderProps {
-  label: string;
-  value: number;
-  color: string;
-  delay?: number;
-}
-
-function ScoreSlider({ label, value, color, delay = 0 }: ScoreSliderProps) {
-  const [animatedValue, setAnimatedValue] = useState(0);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const duration = 800;
-      const steps = 40;
-      const increment = value / steps;
-      let current = 0;
-
-      const interval = setInterval(() => {
-        current += increment;
-        if (current >= value) {
-          setAnimatedValue(value);
-          clearInterval(interval);
-        } else {
-          setAnimatedValue(current);
-        }
-      }, duration / steps);
-
-      return () => clearInterval(interval);
-    }, delay);
-
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-
-  return (
-    <div className="flex items-center gap-3 min-w-[180px]">
-      <div className="flex-1">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs font-medium text-slate-600">{label}</span>
-          <span className="text-xs font-bold text-slate-700" style={{ color }}>
-            {Math.round(animatedValue * 100)}%
-          </span>
-        </div>
-        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-800 ease-out"
-            style={{
-              width: `${animatedValue * 100}%`,
-              backgroundColor: color,
-            }}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// =============================================================================
 // Main Component
 // =============================================================================
 
@@ -378,35 +318,6 @@ export default function ExperimentDetail() {
               </div>
             </div>
 
-            {/* Right: Scorecard Sliders */}
-            {hasScorecard && (
-              <div className="flex-shrink-0 w-full lg:w-auto lg:min-w-[220px] space-y-3 pt-2 lg:pt-0 lg:border-l lg:border-slate-200 lg:pl-6">
-                <ScoreSlider
-                  label="Complexidade"
-                  value={scorecard.complexity.score}
-                  color="#0d9488"
-                  delay={0}
-                />
-                <ScoreSlider
-                  label="Esforço Inicial"
-                  value={scorecard.initial_effort.score}
-                  color="#14b8a6"
-                  delay={100}
-                />
-                <ScoreSlider
-                  label="Risco Percebido"
-                  value={scorecard.perceived_risk.score}
-                  color="#2dd4bf"
-                  delay={200}
-                />
-                <ScoreSlider
-                  label="Tempo p/ Valor"
-                  value={scorecard.time_to_value.score}
-                  color="#5eead4"
-                  delay={300}
-                />
-              </div>
-            )}
           </div>
         </div>
 

@@ -43,7 +43,6 @@ export interface ExecutiveSummary {
  * Note: pdp is excluded (dynamic chart with user-selected feature parameter)
  */
 export type ChartTypeWithInsight =
-  | "try_vs_success"
   | "shap_summary"
   | "extreme_cases"
   | "outliers"

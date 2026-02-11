@@ -80,7 +80,6 @@ class TestActionProposalWithMaterials:
         from synth_lab.domain.entities.experiment import (
             Experiment,
             ScorecardData,
-            ScorecardDimension,
         )
 
         return Experiment(
@@ -90,10 +89,6 @@ class TestActionProposalWithMaterials:
             scorecard_data=ScorecardData(
                 feature_name="Test Feature",
                 description_text="Test description",
-                complexity=ScorecardDimension(score=0.45),
-                initial_effort=ScorecardDimension(score=0.30),
-                perceived_risk=ScorecardDimension(score=0.25),
-                time_to_value=ScorecardDimension(score=0.40),
             ),
         )
 

@@ -2,9 +2,7 @@
 // Re-exports for chart components
 
 // Phase 1: Overview
-export { TryVsSuccessChart } from './TryVsSuccessChart';
 export { OutcomeDistributionChart } from './OutcomeDistributionChart';
-export { SankeyFlowChart } from './SankeyFlowChart';
 
 // Phase 2: Problem Location
 export { FailureHeatmap } from './FailureHeatmap';

@@ -72,6 +72,30 @@ class FeatureMechanismsInput(BaseModel):
         examples=[0.3],
     )
 
+    valor_intrinseco: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Intrinsic value perceived by the user.",
+        examples=[0.7],
+    )
+
+    friccao_operacional: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Operational friction to use the feature.",
+        examples=[0.4],
+    )
+
+    frequencia_de_uso: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Expected frequency of use.",
+        examples=[0.6],
+    )
+
 
 class FeatureMechanismsOutput(BaseModel):
     """Output schema for feature mechanisms."""
@@ -86,6 +110,9 @@ class FeatureMechanismsOutput(BaseModel):
         description="Degree to which feature requires learning new skills."
     )
     social_visibility: float = Field(description="Degree to which usage is visible to others.")
+    valor_intrinseco: float = Field(description="Intrinsic value perceived by the user.")
+    friccao_operacional: float = Field(description="Operational friction to use the feature.")
+    frequencia_de_uso: float = Field(description="Expected frequency of use.")
 
 
 # =============================================================================
@@ -93,35 +120,12 @@ class FeatureMechanismsOutput(BaseModel):
 # =============================================================================
 
 
-class ScorecardDimensionSchema(BaseModel):
-    """Schema for a single scorecard dimension."""
-
-    score: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Dimension score (0-1).",
-        examples=[0.65])
-
-    rules_applied: list[str] = Field(
-        default_factory=list,
-        description="List of rules that influenced this score.",
-        examples=[["High learning curve", "Similar tools exist"]])
-
-    lower_bound: float | None = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-        description="Lower bound of the score range.")
-
-    upper_bound: float | None = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-        description="Upper bound of the score range.")
-
-
 class ScorecardDataSchema(BaseModel):
-    """Schema for embedded scorecard data."""
+    """Schema for embedded scorecard data.
+
+    Legacy dimensions (complexity, initial_effort, perceived_risk, time_to_value)
+    were removed in 040 — simulation uses only mechanisms.
+    """
 
     feature_name: str = Field(
         description="Name of the feature being scored.",
@@ -139,18 +143,6 @@ class ScorecardDataSchema(BaseModel):
     description_media_urls: list[str] = Field(
         default_factory=list,
         description="URLs to media files describing the feature.")
-
-    complexity: ScorecardDimensionSchema = Field(
-        description="Complexity dimension (how hard to understand/use).")
-
-    initial_effort: ScorecardDimensionSchema = Field(
-        description="Initial effort dimension (setup/learning cost).")
-
-    perceived_risk: ScorecardDimensionSchema = Field(
-        description="Perceived risk dimension (fear of failure/loss).")
-
-    time_to_value: ScorecardDimensionSchema = Field(
-        description="Time to value dimension (how long until benefit).")
 
     justification: str | None = Field(
         default=None,
@@ -170,29 +162,6 @@ class ScorecardDataSchema(BaseModel):
         default_factory=list,
         description="Category tags for the feature (e.g., 'financial', 'social', 'utility').",
     )
-
-
-class ScorecardEstimateResponse(BaseModel):
-    """Response from AI scorecard estimation."""
-
-    complexity: ScorecardDimensionSchema = Field(
-        description="Estimated complexity dimension.")
-
-    initial_effort: ScorecardDimensionSchema = Field(
-        description="Estimated initial effort dimension.")
-
-    perceived_risk: ScorecardDimensionSchema = Field(
-        description="Estimated perceived risk dimension.")
-
-    time_to_value: ScorecardDimensionSchema = Field(
-        description="Estimated time to value dimension.")
-
-    justification: str = Field(
-        description="LLM justification for the estimates.")
-
-    impact_hypotheses: list[str] = Field(
-        default_factory=list,
-        description="Impact hypotheses from LLM analysis.")
 
 
 # =============================================================================
@@ -450,11 +419,7 @@ if __name__ == "__main__":
     try:
         scorecard = ScorecardDataSchema(
             feature_name="Test",
-            description_text="Test description",
-            complexity=ScorecardDimensionSchema(score=0.3),
-            initial_effort=ScorecardDimensionSchema(score=0.4),
-            perceived_risk=ScorecardDimensionSchema(score=0.2),
-            time_to_value=ScorecardDimensionSchema(score=0.5))
+            description_text="Test description")
         req = ExperimentCreate(
             name="Test",
             hypothesis="Test",
@@ -462,36 +427,10 @@ if __name__ == "__main__":
             scorecard_data=scorecard)
         if req.scorecard_data is None:
             all_validation_failures.append("scorecard_data should not be None")
-        elif req.scorecard_data.complexity.score != 0.3:
-            score = req.scorecard_data.complexity.score
-            all_validation_failures.append(f"Complexity score mismatch: {score}")
+        elif req.scorecard_data.feature_name != "Test":
+            all_validation_failures.append(f"Feature name mismatch: {req.scorecard_data.feature_name}")
     except Exception as e:
         all_validation_failures.append(f"ExperimentCreate with scorecard failed: {e}")
-
-    # Test 3: ScorecardDimensionSchema with all fields
-    total_tests += 1
-    try:
-        dim = ScorecardDimensionSchema(
-            score=0.65,
-            rules_applied=["Rule 1", "Rule 2"],
-            lower_bound=0.5,
-            upper_bound=0.8)
-        if dim.score != 0.65:
-            all_validation_failures.append(f"Score mismatch: {dim.score}")
-        if len(dim.rules_applied) != 2:
-            all_validation_failures.append(f"Rules count mismatch: {len(dim.rules_applied)}")
-    except Exception as e:
-        all_validation_failures.append(f"ScorecardDimensionSchema creation failed: {e}")
-
-    # Test 4: Reject score > 1
-    total_tests += 1
-    try:
-        ScorecardDimensionSchema(score=1.5)
-        all_validation_failures.append("Should reject score > 1")
-    except ValueError:
-        pass  # Expected
-    except Exception as e:
-        all_validation_failures.append(f"Unexpected error for score > 1: {e}")
 
     # Test 5: ExperimentUpdate optional fields
     total_tests += 1
@@ -509,11 +448,7 @@ if __name__ == "__main__":
 
         scorecard = ScorecardDataSchema(
             feature_name="Test",
-            description_text="Test",
-            complexity=ScorecardDimensionSchema(score=0.3),
-            initial_effort=ScorecardDimensionSchema(score=0.4),
-            perceived_risk=ScorecardDimensionSchema(score=0.2),
-            time_to_value=ScorecardDimensionSchema(score=0.5))
+            description_text="Test")
         resp = ExperimentResponse(
             id="exp_12345678",
             name="Test",
@@ -602,21 +537,6 @@ if __name__ == "__main__":
             all_validation_failures.append(f"interviews count mismatch: {len(detail.interviews)}")
     except Exception as e:
         all_validation_failures.append(f"ExperimentDetail creation failed: {e}")
-
-    # Test 10: ScorecardEstimateResponse
-    total_tests += 1
-    try:
-        estimate = ScorecardEstimateResponse(
-            complexity=ScorecardDimensionSchema(score=0.4),
-            initial_effort=ScorecardDimensionSchema(score=0.3),
-            perceived_risk=ScorecardDimensionSchema(score=0.2),
-            time_to_value=ScorecardDimensionSchema(score=0.6),
-            justification="Based on feature complexity...",
-            impact_hypotheses=["Users may struggle initially"])
-        if estimate.justification == "":
-            all_validation_failures.append("justification should not be empty")
-    except Exception as e:
-        all_validation_failures.append(f"ScorecardEstimateResponse creation failed: {e}")
 
     # Final validation result
     if all_validation_failures:

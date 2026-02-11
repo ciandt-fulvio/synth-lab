@@ -58,7 +58,6 @@ class CacheKeys:
     """Standard cache keys for pre-computed data."""
 
     # Phase 1: Overview
-    TRY_VS_SUCCESS = "try_vs_success"
     DISTRIBUTION = "distribution"
 
     # Phase 2: Problem Location
@@ -83,7 +82,6 @@ class CacheKeys:
     SHAP_SUMMARY = "shap_summary"
 
     # AI-Generated Insights (Individual Charts)
-    INSIGHT_TRY_VS_SUCCESS = "insight_try_vs_success"
     INSIGHT_SHAP_SUMMARY = "insight_shap_summary"
     INSIGHT_PDP = "insight_pdp"
     INSIGHT_PCA_SCATTER = "insight_pca_scatter"

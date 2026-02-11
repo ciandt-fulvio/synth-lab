@@ -30,6 +30,40 @@ from synth_lab.domain.entities import (
 class OutlierService:
     """Service for identifying extreme cases and outliers in simulations."""
 
+    # Mapping from legacy feature names to UserSensitivities fields
+    _SENSITIVITY_MAP = {
+        "capability_mean": "digital_capability",
+        "trust_mean": "institutional_trust_level",
+        "friction_tolerance_mean": "friction_tolerance",
+        "digital_literacy": "digital_capability",
+        "similar_tool_experience": "subject_domain",
+    }
+
+    def _get_trait(self, outcome: SynthOutcome, feature: str) -> float:
+        """Get feature value from legacy attributes or sensitivities.
+
+        Falls back to sensitivities mapping when latent_traits/observables are None.
+        """
+        attrs = outcome.synth_attributes
+
+        # Try legacy latent_traits
+        if attrs.latent_traits is not None:
+            if hasattr(attrs.latent_traits, feature):
+                return getattr(attrs.latent_traits, feature)
+
+        # Try legacy observables
+        if attrs.observables is not None:
+            if hasattr(attrs.observables, feature):
+                return getattr(attrs.observables, feature)
+
+        # Fallback to sensitivities
+        if attrs.sensitivities is not None:
+            sens_field = self._SENSITIVITY_MAP.get(feature)
+            if sens_field and hasattr(attrs.sensitivities, sens_field):
+                return getattr(attrs.sensitivities, sens_field)
+
+        return 0.5  # neutral default
+
     def get_extreme_cases(
         self,
         simulation_id: str,
@@ -141,11 +175,11 @@ class OutlierService:
                     adopted_rate=synth.adopted_rate,
                     not_adopted_rate=synth.not_adopted_rate,
                     explanation=explanation,
-                    capability_mean=synth.synth_attributes.latent_traits.capability_mean,
-                    trust_mean=synth.synth_attributes.latent_traits.trust_mean,
-                    friction_tolerance_mean=synth.synth_attributes.latent_traits.friction_tolerance_mean,
-                    digital_literacy=synth.synth_attributes.observables.digital_literacy,
-                    similar_tool_experience=synth.synth_attributes.observables.similar_tool_experience)
+                    capability_mean=self._get_trait(synth, "capability_mean"),
+                    trust_mean=self._get_trait(synth, "trust_mean"),
+                    friction_tolerance_mean=self._get_trait(synth, "friction_tolerance_mean"),
+                    digital_literacy=self._get_trait(synth, "digital_literacy"),
+                    similar_tool_experience=self._get_trait(synth, "similar_tool_experience"))
             )
 
         return OutlierResult(
@@ -169,33 +203,24 @@ class OutlierService:
             not_adopted_rate=outcome.not_adopted_rate,
             profile_summary=profile_summary,
             interview_questions=interview_questions,
-            capability_mean=outcome.synth_attributes.latent_traits.capability_mean,
-            trust_mean=outcome.synth_attributes.latent_traits.trust_mean,
-            friction_tolerance_mean=outcome.synth_attributes.latent_traits.friction_tolerance_mean)
+            capability_mean=self._get_trait(outcome, "capability_mean"),
+            trust_mean=self._get_trait(outcome, "trust_mean"),
+            friction_tolerance_mean=self._get_trait(outcome, "friction_tolerance_mean"))
 
     def _generate_profile_summary(self, outcome: SynthOutcome) -> str:
         """Generate human-readable profile summary."""
-        traits = outcome.synth_attributes.latent_traits
-        obs = outcome.synth_attributes.observables
+        cap = self._get_trait(outcome, "capability_mean")
+        trust = self._get_trait(outcome, "trust_mean")
+        lit = self._get_trait(outcome, "digital_literacy")
 
         # Classify traits
-        cap_level = (
-            "high"
-            if traits.capability_mean > 0.6
-            else ("low" if traits.capability_mean < 0.4 else "medium")
-        )
-        trust_level = (
-            "high" if traits.trust_mean > 0.6 else ("low" if traits.trust_mean < 0.4 else "medium")
-        )
-        lit_level = (
-            "high"
-            if obs.digital_literacy > 0.6
-            else ("low" if obs.digital_literacy < 0.4 else "medium")
-        )
+        cap_level = "high" if cap > 0.6 else ("low" if cap < 0.4 else "medium")
+        trust_level = "high" if trust > 0.6 else ("low" if trust < 0.4 else "medium")
+        lit_level = "high" if lit > 0.6 else ("low" if lit < 0.4 else "medium")
 
-        summary = f"Synth with {cap_level} capability ({traits.capability_mean:.2f}), "
-        summary += f"{trust_level} trust ({traits.trust_mean:.2f}), "
-        summary += f"and {lit_level} digital literacy ({obs.digital_literacy:.2f}). "
+        summary = f"Synth with {cap_level} capability ({cap:.2f}), "
+        summary += f"{trust_level} trust ({trust:.2f}), "
+        summary += f"and {lit_level} digital literacy ({lit:.2f}). "
         summary += f"Adoption rate: {outcome.adopted_rate:.1%}, "
         summary += f"Non-adoption rate: {outcome.not_adopted_rate:.1%}."
 
@@ -218,13 +243,13 @@ class OutlierService:
                 "Quais aspectos da funcionalidade você achou mais úteis?",
             ]
         else:  # unexpected
-            traits = outcome.synth_attributes.latent_traits
-            if traits.capability_mean < 0.4 and outcome.adopted_rate > 0.7:
+            cap = self._get_trait(outcome, "capability_mean")
+            if cap < 0.4 and outcome.adopted_rate > 0.7:
                 questions = [
                     "Apesar de pontuação baixa de capacidade, você teve sucesso. O que fez a diferença?",
                     "Você achou a funcionalidade particularmente fácil de usar? Por quê?",
                 ]
-            elif traits.capability_mean > 0.6 and outcome.not_adopted_rate > 0.5:
+            elif cap > 0.6 and outcome.not_adopted_rate > 0.5:
                 questions = [
                     "Você tem alta capacidade mas experimentou falhas. O que deu errado?",
                     "Houve barreiras inesperadas ou aspectos confusos?",
@@ -242,28 +267,28 @@ class OutlierService:
         unexpected = []
 
         for outcome in outcomes:
-            traits = outcome.synth_attributes.latent_traits
+            cap = self._get_trait(outcome, "capability_mean")
 
             # High capability but failed
-            if traits.capability_mean > 0.6 and outcome.not_adopted_rate > 0.5:
+            if cap > 0.6 and outcome.not_adopted_rate > 0.5:
                 unexpected.append(self._create_extreme_synth(outcome, "unexpected"))
 
             # Low capability but succeeded
-            elif traits.capability_mean < 0.4 and outcome.adopted_rate > 0.7:
+            elif cap < 0.4 and outcome.adopted_rate > 0.7:
                 unexpected.append(self._create_extreme_synth(outcome, "unexpected"))
 
         return unexpected[:10]  # Limit to 10
 
     def _classify_outlier_type(self, synth: SynthOutcome) -> str:
         """Classify outlier type based on outcome and attributes."""
-        traits = synth.synth_attributes.latent_traits
+        cap = self._get_trait(synth, "capability_mean")
 
         # High capability but failed unexpectedly
-        if traits.capability_mean > 0.6 and synth.not_adopted_rate > 0.5:
+        if cap > 0.6 and synth.not_adopted_rate > 0.5:
             return "unexpected_failure"
 
         # Low capability but succeeded unexpectedly
-        if traits.capability_mean < 0.4 and synth.adopted_rate > 0.7:
+        if cap < 0.4 and synth.adopted_rate > 0.7:
             return "unexpected_success"
 
         # Otherwise it's an atypical profile
@@ -271,22 +296,23 @@ class OutlierService:
 
     def _generate_outlier_explanation(self, synth: SynthOutcome, outlier_type: str) -> str:
         """Generate explanation for why synth is an outlier."""
-        traits = synth.synth_attributes.latent_traits
+        cap = self._get_trait(synth, "capability_mean")
+        trust = self._get_trait(synth, "trust_mean")
 
         if outlier_type == "unexpected_failure":
             return (
-                f"High capability ({traits.capability_mean:.2f}) but high non-adoption rate "
+                f"High capability ({cap:.2f}) but high non-adoption rate "
                 f"({synth.not_adopted_rate:.1%}). This suggests unexpected barriers or friction points."
             )
         elif outlier_type == "unexpected_success":
             return (
-                f"Low capability ({traits.capability_mean:.2f}) but high adoption rate "
+                f"Low capability ({cap:.2f}) but high adoption rate "
                 f"({synth.adopted_rate:.1%}). This indicates the feature may be easier than expected."
             )
         else:
             return (
-                f"Atypical combination of attributes with capability={traits.capability_mean:.2f}, "
-                f"trust={traits.trust_mean:.2f}, success={synth.adopted_rate:.1%}."
+                f"Atypical combination of attributes with capability={cap:.2f}, "
+                f"trust={trust:.2f}, success={synth.adopted_rate:.1%}."
             )
 
     def _extract_features(
@@ -310,24 +336,13 @@ class OutlierService:
 
         for outcome in outcomes:
             row = []
-            traits = outcome.synth_attributes.latent_traits
-            obs = outcome.synth_attributes.observables
-
             for feature in features:
-                if feature == "capability_mean":
-                    row.append(traits.capability_mean)
-                elif feature == "trust_mean":
-                    row.append(traits.trust_mean)
-                elif feature == "friction_tolerance_mean":
-                    row.append(traits.friction_tolerance_mean)
-                elif feature == "digital_literacy":
-                    row.append(obs.digital_literacy)
-                elif feature == "similar_tool_experience":
-                    row.append(obs.similar_tool_experience)
-                elif feature == "adopted_rate":
+                if feature == "adopted_rate":
                     row.append(outcome.adopted_rate)
                 elif feature == "not_adopted_rate":
                     row.append(outcome.not_adopted_rate)
+                else:
+                    row.append(self._get_trait(outcome, feature))
 
             X_list.append(row)
             synth_ids.append(outcome.synth_id)

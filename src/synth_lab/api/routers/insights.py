@@ -93,7 +93,7 @@ async def generate_chart_insight(
 
     Args:
         experiment_id: Experiment ID
-        chart_type: Chart type (try_vs_success, shap_summary, etc.)
+        chart_type: Chart type (shap_summary, etc.)
         request: Chart data for insight generation
         background_tasks: FastAPI background tasks
 
@@ -106,7 +106,6 @@ async def generate_chart_insight(
     """
     # Validate chart type
     valid_chart_types = [
-        "try_vs_success",
         "distribution",
         "shap_summary",
         "pdp",
@@ -175,7 +174,7 @@ async def get_chart_insight(
 
     Args:
         experiment_id: Experiment ID
-        chart_type: Chart type (try_vs_success, shap_summary, pdp, pca_scatter, etc.)
+        chart_type: Chart type (shap_summary, pdp, pca_scatter, etc.)
 
     Returns:
         ChartInsight for the requested chart type
@@ -187,7 +186,6 @@ async def get_chart_insight(
     """
     # Validate chart type
     valid_chart_types = [
-        "try_vs_success",
         "distribution",
         "shap_summary",
         "pdp",
@@ -270,7 +268,7 @@ async def get_all_insights(experiment_id: str) -> AllInsightsResponse:
     insights = cache_repo.get_all_chart_insights(analysis.id)
 
     # Calculate statistics
-    total_expected = 9  # 9 supported chart types
+    total_expected = 8  # 8 supported chart types
     completed = len([i for i in insights if i.status == "completed"])
     pending = len([i for i in insights if i.status == "pending"])
     failed = len([i for i in insights if i.status == "failed"])

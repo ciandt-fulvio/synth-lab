@@ -25,18 +25,12 @@ from synth_lab.domain.entities import (
     CorrelationStats,
     FailureHeatmapChart,
     HeatmapCell,
-    OutcomeCounts,
     OutcomeDistributionChart,
     RegionBoxPlot,
-    SankeyFlowChart,
-    SankeyLink,
-    SankeyNode,
     ScatterCorrelationChart,
     SynthDistribution,
     SynthOutcome,
     TrendlinePoint,
-    TryVsSuccessChart,
-    TryVsSuccessPoint,
 )
 from synth_lab.services.simulation.feature_extraction import get_attribute_value
 
@@ -52,70 +46,6 @@ class ChartDataService:
     # =========================================================================
     # Phase 1: Visao Geral (User Story 1)
     # =========================================================================
-
-    def get_try_vs_success(
-        self,
-        simulation_id: str,
-        outcomes: list[SynthOutcome],
-        x_threshold: float = 0.33,
-        y_threshold: float = 0.66,
-    ) -> TryVsSuccessChart:
-        """
-        Generate adoption rate distribution chart data.
-
-        Each point represents one synth with its adopted_rate classified
-        into buckets: low, medium, high.
-
-        Buckets:
-        - low: adopted_rate < x_threshold (default 0.33)
-        - high: adopted_rate >= y_threshold (default 0.66)
-        - medium: everything in between
-
-        Args:
-            simulation_id: ID of the simulation.
-            outcomes: List of SynthOutcome entities.
-            x_threshold: Upper bound for 'low' bucket.
-            y_threshold: Lower bound for 'high' bucket.
-
-        Returns:
-            TryVsSuccessChart with points and bucket counts.
-        """
-        logger.info(
-            f"Generating adoption distribution chart for {simulation_id} "
-            f"with {len(outcomes)} synths"
-        )
-
-        points: list[TryVsSuccessPoint] = []
-        bucket_counts = {
-            "low": 0,
-            "medium": 0,
-            "high": 0,
-        }
-
-        for outcome in outcomes:
-            adopted_rate = outcome.adopted_rate
-
-            # Determine bucket
-            if adopted_rate < x_threshold:
-                bucket = "low"
-            elif adopted_rate >= y_threshold:
-                bucket = "high"
-            else:
-                bucket = "medium"
-
-            point = TryVsSuccessPoint(
-                synth_id=outcome.synth_id, adopted_rate=adopted_rate, bucket=bucket
-            )
-            points.append(point)
-            bucket_counts[bucket] += 1
-
-        return TryVsSuccessChart(
-            simulation_id=simulation_id,
-            points=points,
-            bucket_counts=bucket_counts,
-            bucket_thresholds={"low_max": x_threshold, "high_min": y_threshold},
-            total_synths=len(outcomes),
-        )
 
     def get_outcome_distribution(
         self,
@@ -586,117 +516,6 @@ class ChartDataService:
             simulation_id=simulation_id, correlations=correlations, total_synths=len(outcomes)
         )
 
-    # =========================================================================
-    # Sankey Flow Chart (Outcome Flow Visualization)
-    # =========================================================================
-
-    # Node colors following design system
-    SANKEY_COLORS = {
-        "population": "#6366f1",  # indigo
-        "adopted": "#22c55e",  # green
-        "not_adopted": "#f59e0b",  # amber
-    }
-
-    # Node labels in Portuguese
-    SANKEY_LABELS = {
-        "population": "Populacao",
-        "adopted": "Adotou",
-        "not_adopted": "Nao adotou",
-    }
-
-    def get_sankey_flow(
-        self, analysis_id: str, outcomes: list[SynthOutcome], scorecard: object | None = None
-    ) -> SankeyFlowChart:
-        """
-        Generate Sankey flow chart data for outcome flow visualization.
-
-        Creates a 2-level Sankey diagram:
-        - Level 1: Population
-        - Level 2: Outcomes (adopted, not_adopted)
-
-        Args:
-            analysis_id: Analysis run ID.
-            outcomes: List of SynthOutcome entities.
-            scorecard: Unused (kept for backward compatibility).
-
-        Returns:
-            SankeyFlowChart with nodes and links.
-        """
-        logger.info(f"Generating Sankey flow chart for {analysis_id} with {len(outcomes)} synths")
-
-        if not outcomes:
-            return SankeyFlowChart(
-                analysis_id=analysis_id,
-                nodes=[],
-                links=[],
-                total_synths=0,
-                outcome_counts=OutcomeCounts(adopted=0, not_adopted=0),
-            )
-
-        total_synths = len(outcomes)
-
-        # Calculate average rates across all synths
-        avg_adopted = sum(o.adopted_rate for o in outcomes) / total_synths
-        avg_not_adopted = sum(o.not_adopted_rate for o in outcomes) / total_synths
-
-        # Convert rates to counts (rounded to maintain whole numbers)
-        adopted_count = round(avg_adopted * total_synths)
-        not_adopted_count = round(avg_not_adopted * total_synths)
-
-        # Adjust for rounding to ensure total matches
-        total_counted = adopted_count + not_adopted_count
-        if total_counted != total_synths:
-            diff = total_synths - total_counted
-            if adopted_count >= not_adopted_count:
-                adopted_count += diff
-            else:
-                not_adopted_count += diff
-
-        outcome_counts = OutcomeCounts(adopted=adopted_count, not_adopted=not_adopted_count)
-
-        # Build nodes
-        nodes: list[SankeyNode] = []
-
-        # Level 1: Population
-        nodes.append(
-            SankeyNode(
-                id="population",
-                label=self.SANKEY_LABELS["population"],
-                level=1,
-                color=self.SANKEY_COLORS["population"],
-                value=total_synths,
-            )
-        )
-
-        # Level 2: Outcomes (only include if count > 0)
-        for outcome_id in ["adopted", "not_adopted"]:
-            count = getattr(outcome_counts, outcome_id)
-            if count > 0:
-                nodes.append(
-                    SankeyNode(
-                        id=outcome_id,
-                        label=self.SANKEY_LABELS[outcome_id],
-                        level=2,
-                        color=self.SANKEY_COLORS[outcome_id],
-                        value=count,
-                    )
-                )
-
-        # Build links (only include if value > 0)
-        links: list[SankeyLink] = []
-
-        for outcome_id in ["adopted", "not_adopted"]:
-            count = getattr(outcome_counts, outcome_id)
-            if count > 0:
-                links.append(SankeyLink(source="population", target=outcome_id, value=count))
-
-        return SankeyFlowChart(
-            analysis_id=analysis_id,
-            nodes=nodes,
-            links=links,
-            total_synths=total_synths,
-            outcome_counts=outcome_counts,
-        )
 
 
 # =============================================================================
@@ -751,37 +570,7 @@ if __name__ == "__main__":
 
     service = ChartDataService()
 
-    # Test 1: get_try_vs_success (adoption distribution)
-    total_tests += 1
-    try:
-        chart = service.get_try_vs_success("sim_test", outcomes)
-        if chart.total_synths != 5:
-            all_validation_failures.append(f"try_vs_success total_synths: {chart.total_synths}")
-        if len(chart.points) != 5:
-            all_validation_failures.append(f"try_vs_success points count: {len(chart.points)}")
-        # synth_001 has adopted_rate=0.80 -> high bucket (>= 0.66)
-        p1 = next((p for p in chart.points if p.synth_id == "synth_001"), None)
-        if p1 and p1.bucket != "high":
-            all_validation_failures.append(f"synth_001 bucket: {p1.bucket}")
-        # synth_004 has adopted_rate=0.15 -> low bucket (< 0.33)
-        p4 = next((p for p in chart.points if p.synth_id == "synth_004"), None)
-        if p4 and p4.bucket != "low":
-            all_validation_failures.append(f"synth_004 bucket: {p4.bucket}")
-    except Exception as e:
-        all_validation_failures.append(f"try_vs_success failed: {e}")
-
-    # Test 2: get_try_vs_success with custom thresholds
-    total_tests += 1
-    try:
-        chart = service.get_try_vs_success("sim_test", outcomes, x_threshold=0.4, y_threshold=0.7)
-        if chart.bucket_thresholds["low_max"] != 0.4:
-            all_validation_failures.append(
-                f"custom threshold low_max: {chart.bucket_thresholds['low_max']}"
-            )
-    except Exception as e:
-        all_validation_failures.append(f"try_vs_success custom thresholds failed: {e}")
-
-    # Test 3: get_outcome_distribution
+    # Test 1: get_outcome_distribution
     total_tests += 1
     try:
         chart = service.get_outcome_distribution("sim_test", outcomes, limit=3)
@@ -794,7 +583,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"outcome_distribution failed: {e}")
 
-    # Test 4: get_outcome_distribution sorted asc
+    # Test 2: get_outcome_distribution sorted asc
     total_tests += 1
     try:
         chart = service.get_outcome_distribution("sim_test", outcomes, order="asc", limit=5)
@@ -806,7 +595,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"outcome_distribution asc failed: {e}")
 
-    # Test 5: get_failure_heatmap
+    # Test 3: get_failure_heatmap
     total_tests += 1
     try:
         chart = service.get_failure_heatmap("sim_test", outcomes, bins=3)
@@ -817,7 +606,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"failure_heatmap failed: {e}")
 
-    # Test 6: get_scatter_correlation
+    # Test 4: get_scatter_correlation
     total_tests += 1
     try:
         chart = service.get_scatter_correlation("sim_test", outcomes)
@@ -830,7 +619,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"scatter_correlation failed: {e}")
 
-    # Test 7: get_box_plot
+    # Test 5: get_box_plot
     total_tests += 1
     try:
         chart = service.get_box_plot("sim_test", outcomes)
@@ -843,35 +632,16 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"box_plot failed: {e}")
 
-    # Test 8: empty outcomes
+    # Test 6: empty outcomes
     total_tests += 1
     try:
-        chart = service.get_try_vs_success("sim_test", [])
+        chart = service.get_outcome_distribution("sim_test", [])
         if chart.total_synths != 0:
-            all_validation_failures.append(f"empty try_vs_success total: {chart.total_synths}")
+            all_validation_failures.append(f"empty distribution total: {chart.total_synths}")
     except Exception as e:
         all_validation_failures.append(f"empty outcomes handling failed: {e}")
 
-    # Test 9: get_sankey_flow (2-outcome model)
-    total_tests += 1
-    try:
-        chart = service.get_sankey_flow("ana_12345678", outcomes)
-        if chart.total_synths != 5:
-            all_validation_failures.append(f"sankey total_synths: {chart.total_synths}")
-        # Should have 3 nodes: population + adopted + not_adopted
-        if len(chart.nodes) != 3:
-            all_validation_failures.append(f"sankey nodes count: {len(chart.nodes)}")
-        # Should have 2 links: population->adopted, population->not_adopted
-        if len(chart.links) != 2:
-            all_validation_failures.append(f"sankey links count: {len(chart.links)}")
-        # Outcome counts should sum to total
-        total_outcome = chart.outcome_counts.adopted + chart.outcome_counts.not_adopted
-        if total_outcome != 5:
-            all_validation_failures.append(f"sankey outcome total: {total_outcome}")
-    except Exception as e:
-        all_validation_failures.append(f"sankey_flow failed: {e}")
-
-    # Test 10: get_attribute_correlations
+    # Test 7: get_attribute_correlations
     total_tests += 1
     try:
         chart = service.get_attribute_correlations("sim_test", outcomes)

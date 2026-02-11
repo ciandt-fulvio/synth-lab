@@ -15,7 +15,6 @@ from pydantic import BaseModel, Field
 
 # Type alias for chart types
 ChartType = Literal[
-    "try_vs_success",
     "distribution",
     "failure_heatmap",
     "scatter",
@@ -39,7 +38,7 @@ class ChartInsight(BaseModel):
         description="Parent analysis ID",
     )
     chart_type: str = Field(
-        description="Chart type identifier (e.g., 'try_vs_success', 'shap_summary')",
+        description="Chart type identifier (e.g., 'shap_summary', 'pca_scatter')",
     )
     summary: str = Field(
         description="AI-generated insight summary in Portuguese",

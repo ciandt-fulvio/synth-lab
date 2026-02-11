@@ -201,7 +201,6 @@ class InsightService:
         data_str = json.dumps(chart_data, indent=2, default=str)
 
         chart_descriptions = {
-            "try_vs_success": "quadrant chart showing try rate vs success rate",
             "distribution": "histogram showing distribution of values",
             "failure_heatmap": "heatmap showing failure patterns",
             "scatter": "scatter plot showing correlation between variables",

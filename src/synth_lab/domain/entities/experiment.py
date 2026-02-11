@@ -14,9 +14,7 @@ from __future__ import annotations
 
 import secrets
 from datetime import datetime, timezone
-from typing import Self
-
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator
 
 from synth_lab.domain.entities.feature_mechanisms import FeatureMechanisms
 
@@ -31,70 +29,23 @@ def generate_experiment_id() -> str:
     return f"exp_{secrets.token_hex(4)}"
 
 
-class ScorecardDimension(BaseModel):
-    """
-    A dimension of the scorecard with score and optional metadata.
-
-    Attributes:
-        score: Score value in [0,1] range
-        rules_applied: Objective rules applied (e.g., ['2 conceitos novos'])
-        lower_bound: Lower uncertainty bound
-        upper_bound: Upper uncertainty bound
-    """
-
-    score: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Score value in [0,1] range.",
-    )
-
-    rules_applied: list[str] = Field(
-        default_factory=list,
-        description="Objective rules applied.",
-    )
-
-    lower_bound: float | None = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-        description="Lower uncertainty bound.",
-    )
-
-    upper_bound: float | None = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-        description="Upper uncertainty bound.",
-    )
-
-    @model_validator(mode="after")
-    def validate_bounds(self) -> Self:
-        """Ensure lower_bound <= upper_bound if both are set."""
-        if self.lower_bound is not None and self.upper_bound is not None:
-            if self.lower_bound > self.upper_bound:
-                raise ValueError(
-                    f"lower_bound ({self.lower_bound}) must be <= upper_bound ({self.upper_bound})"
-                )
-        return self
-
-
 class ScorecardData(BaseModel):
     """
     Scorecard data embedded in an experiment.
 
-    Contains all dimensions and metadata needed for quantitative analysis.
+    Contains metadata and mechanisms needed for quantitative analysis.
+    Legacy dimensions (complexity, initial_effort, perceived_risk, time_to_value)
+    were removed in 040 — simulation uses only mechanisms.
 
     Attributes:
         feature_name: Name of the feature being evaluated
         scenario: Scenario of use (default: 'baseline')
         description_text: Text description of the feature
         description_media_urls: URLs to supporting media
-        complexity: Complexity dimension
-        initial_effort: Initial effort dimension
-        perceived_risk: Perceived risk dimension
-        time_to_value: Time to value dimension
         justification: LLM-generated justification
         impact_hypotheses: LLM-generated impact hypotheses
+        mechanisms: Feature mechanisms for simulation
+        feature_types: Category tags for the feature
     """
 
     feature_name: str = Field(
@@ -113,23 +64,6 @@ class ScorecardData(BaseModel):
     description_media_urls: list[str] = Field(
         default_factory=list,
         description="URLs to videos, photos, etc.",
-    )
-
-    # Dimensions [0, 1]
-    complexity: ScorecardDimension = Field(
-        description="Complexity dimension with score and rules.",
-    )
-
-    initial_effort: ScorecardDimension = Field(
-        description="Initial effort dimension with score and rules.",
-    )
-
-    perceived_risk: ScorecardDimension = Field(
-        description="Perceived risk dimension with score and rules.",
-    )
-
-    time_to_value: ScorecardDimension = Field(
-        description="Time to value dimension with score and rules.",
     )
 
     # LLM-generated fields
@@ -323,10 +257,6 @@ if __name__ == "__main__":
         scorecard = ScorecardData(
             feature_name="Test Feature",
             description_text="A test feature",
-            complexity=ScorecardDimension(score=0.3),
-            initial_effort=ScorecardDimension(score=0.4),
-            perceived_risk=ScorecardDimension(score=0.2),
-            time_to_value=ScorecardDimension(score=0.6),
         )
         exp = Experiment(
             name="Test",
@@ -340,36 +270,12 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Create with scorecard failed: {e}")
 
-    # Test 8: ScorecardDimension validation
-    total_tests += 1
-    try:
-        ScorecardDimension(score=1.5)
-        all_validation_failures.append("Should reject score > 1")
-    except ValueError:
-        pass  # Expected
-    except Exception as e:
-        all_validation_failures.append(f"Unexpected error for score > 1: {e}")
-
-    # Test 9: ScorecardDimension bounds validation
-    total_tests += 1
-    try:
-        ScorecardDimension(score=0.5, lower_bound=0.6, upper_bound=0.4)
-        all_validation_failures.append("Should reject lower > upper bound")
-    except ValueError:
-        pass  # Expected
-    except Exception as e:
-        all_validation_failures.append(f"Unexpected error for invalid bounds: {e}")
-
-    # Test 10: model_dump includes scorecard
+    # Test 8: model_dump includes scorecard
     total_tests += 1
     try:
         scorecard = ScorecardData(
             feature_name="Test",
             description_text="Test",
-            complexity=ScorecardDimension(score=0.4),
-            initial_effort=ScorecardDimension(score=0.3),
-            perceived_risk=ScorecardDimension(score=0.2),
-            time_to_value=ScorecardDimension(score=0.5),
         )
         exp = Experiment(
             name="Test",
@@ -379,8 +285,8 @@ if __name__ == "__main__":
         data = exp.model_dump()
         if "scorecard_data" not in data:
             all_validation_failures.append("model_dump missing scorecard_data")
-        if data["scorecard_data"]["complexity"]["score"] != 0.4:
-            all_validation_failures.append("model_dump complexity score mismatch")
+        if data["scorecard_data"]["feature_name"] != "Test":
+            all_validation_failures.append("model_dump feature_name mismatch")
     except Exception as e:
         all_validation_failures.append(f"model_dump test failed: {e}")
 

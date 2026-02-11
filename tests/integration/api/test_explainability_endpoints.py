@@ -24,7 +24,6 @@ from synth_lab.domain.entities.analysis_run import (
 from synth_lab.domain.entities.experiment import (
     Experiment,
     ScorecardData,
-    ScorecardDimension,
 )
 from synth_lab.domain.entities.simulation_attributes import (
     SimulationAttributes,
@@ -70,10 +69,6 @@ def mock_scorecard():
         feature_name="Test Feature",
         scenario="Test scenario",
         description_text="Test feature description",
-        perceived_risk=ScorecardDimension(score=0.5),
-        initial_effort=ScorecardDimension(score=0.6),
-        complexity=ScorecardDimension(score=0.4),
-        time_to_value=ScorecardDimension(score=0.5),
     )
 
 

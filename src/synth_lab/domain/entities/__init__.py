@@ -15,17 +15,11 @@ from synth_lab.domain.entities.chart_data import (
     CorrelationStats,
     FailureHeatmapChart,
     HeatmapCell,
-    OutcomeCounts,
     OutcomeDistributionChart,
     RegionBoxPlot,
-    SankeyFlowChart,
-    SankeyLink,
-    SankeyNode,
     ScatterCorrelationChart,
     SynthDistribution,
     TrendlinePoint,
-    TryVsSuccessChart,
-    TryVsSuccessPoint,
 )
 from synth_lab.domain.entities.chart_insight import ChartInsight
 from synth_lab.domain.entities.cluster_result import (
@@ -59,9 +53,6 @@ from synth_lab.domain.entities.experiment_material import (
     MIME_TYPE_MAP,
     generate_material_id,
     get_file_type_from_mime,
-)
-from synth_lab.domain.entities.experiment import (
-    ScorecardDimension as ExperimentScorecardDimension,
 )
 from synth_lab.domain.entities.emergent_state import (
     EmergentState,
@@ -143,17 +134,11 @@ __all__ = [
     "CorrelationStats",
     "FailureHeatmapChart",
     "HeatmapCell",
-    "OutcomeCounts",
     "OutcomeDistributionChart",
     "RegionBoxPlot",
-    "SankeyFlowChart",
-    "SankeyLink",
-    "SankeyNode",
     "ScatterCorrelationChart",
     "SynthDistribution",
     "TrendlinePoint",
-    "TryVsSuccessChart",
-    "TryVsSuccessPoint",
     # Cluster result
     "ClusterProfile",
     "ClusterRadar",
@@ -174,7 +159,6 @@ __all__ = [
     "InteractionContribution",
     # Experiment (updated in v7 - embedded scorecard)
     "Experiment",
-    "ExperimentScorecardDimension",
     "ScorecardData",
     "generate_experiment_id",
     # Experiment Material (new in 001-experiment-materials)

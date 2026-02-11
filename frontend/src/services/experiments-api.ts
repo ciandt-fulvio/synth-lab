@@ -14,9 +14,6 @@ import type {
   ExperimentUpdate,
   ExperimentDetail,
   PaginatedExperimentSummary,
-  ScorecardCreate,
-  ScorecardResponse,
-  ScorecardEstimateResponse,
   AnalysisSummary,
 } from '@/types/experiment';
 import type { FeatureMechanisms } from '@/types/simulation';
@@ -113,21 +110,6 @@ export async function updateExperimentMechanisms(
 }
 
 /**
- * Create a scorecard linked to an experiment.
- *
- * The scorecard is automatically associated with the specified experiment.
- */
-export async function createScorecardForExperiment(
-  experimentId: string,
-  data: ScorecardCreate
-): Promise<ScorecardResponse> {
-  return fetchAPI<ScorecardResponse>(`/experiments/${experimentId}/scorecards`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
-/**
  * Create an interview linked to an experiment.
  *
  * The interview is automatically associated with the specified experiment.
@@ -173,48 +155,6 @@ export async function createAutoInterview(
 }
 
 /**
- * Estimate scorecard dimensions using AI.
- *
- * Uses the experiment's name, hypothesis, and description to generate
- * AI-powered estimates for all scorecard dimensions.
- */
-export async function estimateScorecardForExperiment(
-  experimentId: string
-): Promise<ScorecardEstimateResponse> {
-  return fetchAPI<ScorecardEstimateResponse>(
-    `/experiments/${experimentId}/estimate-scorecard`,
-    { method: 'POST' }
-  );
-}
-
-/**
- * Request for scorecard estimation from text.
- */
-export interface ScorecardEstimateRequest {
-  name: string;
-  hypothesis: string;
-  description?: string;
-}
-
-/**
- * Estimate scorecard dimensions using AI from text input.
- *
- * This allows estimation before an experiment exists.
- * Useful for the experiment form to get AI-generated slider values.
- */
-export async function estimateScorecardFromText(
-  data: ScorecardEstimateRequest
-): Promise<ScorecardEstimateResponse> {
-  return fetchAPI<ScorecardEstimateResponse>(
-    '/experiments/estimate-scorecard',
-    {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }
-  );
-}
-
-/**
  * Request for running analysis.
  */
 export interface RunAnalysisRequest {
@@ -249,7 +189,6 @@ export async function runAnalysis(
 // =============================================================================
 
 import type {
-  TryVsSuccessChart,
   OutcomeDistributionChart,
   FailureHeatmapChart,
   ScatterCorrelationChart,
@@ -260,22 +199,7 @@ import type {
   RadarComparisonChart,
   PCAScatterChart,
   ElbowPoint,
-  SankeyFlowChart,
 } from '@/types/simulation';
-
-/**
- * Get try vs success quadrant chart for experiment analysis.
- */
-export async function getAnalysisTryVsSuccessChart(
-  experimentId: string,
-  _attemptRateThreshold = 0.5, // deprecated: no longer used in 2-outcome model
-  adoptedRateThreshold = 0.5
-): Promise<TryVsSuccessChart> {
-  const params = new URLSearchParams({
-    adopted_rate_threshold: String(adoptedRateThreshold),
-  });
-  return fetchAPI(`/experiments/${experimentId}/analysis/charts/try-vs-success?${params}`);
-}
 
 /**
  * Get outcome distribution chart for experiment analysis.
@@ -328,18 +252,6 @@ export async function getAnalysisScatterCorrelation(
     show_trendline: String(showTrendline),
   });
   return fetchAPI(`/experiments/${experimentId}/analysis/charts/scatter?${params}`);
-}
-
-/**
- * Get Sankey flow chart for experiment analysis.
- *
- * Shows outcome flow from population through outcomes to root causes.
- * 2 levels: Population → Outcomes (adopted, not_adopted) → Root Causes.
- */
-export async function getAnalysisSankeyFlow(
-  experimentId: string
-): Promise<SankeyFlowChart> {
-  return fetchAPI(`/experiments/${experimentId}/analysis/charts/sankey-flow`);
 }
 
 // =============================================================================

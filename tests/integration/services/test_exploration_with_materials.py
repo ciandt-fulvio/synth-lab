@@ -20,9 +20,7 @@ class TestExplorationWithMaterials:
     def sample_experiment_with_materials(self):
         """Create sample experiment with materials."""
         from synth_lab.domain.entities.experiment import (
-            Experiment,
             ScorecardData,
-            ScorecardDimension,
         )
 
         experiment = Mock()
@@ -32,10 +30,6 @@ class TestExplorationWithMaterials:
         experiment.scorecard_data = ScorecardData(
             feature_name="Test Feature",
             description_text="Test description",
-            complexity=ScorecardDimension(score=0.45),
-            initial_effort=ScorecardDimension(score=0.30),
-            perceived_risk=ScorecardDimension(score=0.25),
-            time_to_value=ScorecardDimension(score=0.40),
         )
 
         # Material 1: Design wireframe

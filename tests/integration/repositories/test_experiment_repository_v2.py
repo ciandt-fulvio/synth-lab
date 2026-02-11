@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from synth_lab.models.orm.experiment import Experiment as ExperimentORM
 from synth_lab.models.orm.analysis import AnalysisRun as AnalysisRunORM
-from synth_lab.domain.entities.experiment import Experiment, ScorecardData, ScorecardDimension
+from synth_lab.domain.entities.experiment import Experiment, ScorecardData
 from synth_lab.models.pagination import PaginationParams
 from synth_lab.repositories.experiment_repository import ExperimentRepository
 
@@ -74,10 +74,6 @@ class TestExperimentRepositoryCreate:
         scorecard = ScorecardData(
             feature_name="Test Feature",
             description_text="A test feature",
-            complexity=ScorecardDimension(score=0.3),
-            initial_effort=ScorecardDimension(score=0.4),
-            perceived_risk=ScorecardDimension(score=0.2),
-            time_to_value=ScorecardDimension(score=0.6),
         )
         experiment = Experiment(
             name="With Scorecard",
@@ -338,10 +334,6 @@ class TestExperimentRepositoryUpdate:
         scorecard = ScorecardData(
             feature_name="New Feature",
             description_text="Description",
-            complexity=ScorecardDimension(score=0.5),
-            initial_effort=ScorecardDimension(score=0.5),
-            perceived_risk=ScorecardDimension(score=0.5),
-            time_to_value=ScorecardDimension(score=0.5),
         )
         result = repo.update_scorecard(experiment.id, scorecard)
         session.commit()
