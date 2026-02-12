@@ -33,7 +33,6 @@ import { AnalysisPhaseTabs, type AnalysisPhaseId } from '@/components/experiment
 import {
   PhaseOverview,
   PhaseLocation,
-  PhaseSegmentation,
   PhaseEdgeCases,
 } from '@/components/experiments/results';
 import { ViewSummaryButton } from '@/components/experiments/results/ViewSummaryButton';
@@ -573,8 +572,6 @@ export default function ExperimentDetail() {
                       return <PhaseOverview experimentId={expId} analysis={analysis} />;
                     case 'localizacao':
                       return <PhaseLocation experimentId={expId} />;
-                    case 'segmentacao':
-                      return <PhaseSegmentation experimentId={expId} />;
                     case 'casos-especiais':
                       return <PhaseEdgeCases experimentId={expId} />;
                     default:

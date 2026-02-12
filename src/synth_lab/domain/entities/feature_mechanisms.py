@@ -23,9 +23,9 @@ class FeatureMechanisms(BaseModel):
     - habit_displacement: Replaces existing habits (0=additive, 1=replacement)
     - learning_curve: Requires learning new skills (0=intuitive, 1=complex)
     - social_visibility: Usage is visible to others (0=private, 1=public)
-    - valor_intrinseco: Real improvement in user's life (0=cosmetic, 1=transformative)
-    - friccao_operacional: Operational friction/steps/errors in usage (0=none, 1=extreme)
-    - frequencia_de_uso: Expected usage frequency (0=rare, 1=daily or more)
+    - intrinsic_value: Real improvement in user's life (0=cosmetic, 1=transformative)
+    - operational_friction: Operational friction/steps/errors in usage (0=none, 1=extreme)
+    - frequency_of_use: Expected usage frequency (0=rare, 1=daily or more)
 
     Default value of 0.0 represents mechanism not present.
     """
@@ -66,19 +66,19 @@ class FeatureMechanisms(BaseModel):
         le=1.0,
         description="Degree to which usage is visible to others",
     )
-    valor_intrinseco: float = Field(
+    intrinsic_value: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
         description="Real improvement in user's life (0=cosmetic, 1=transformative)",
     )
-    friccao_operacional: float = Field(
+    operational_friction: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
         description="Operational friction/steps/errors in usage (0=none, 1=extreme)",
     )
-    frequencia_de_uso: float = Field(
+    frequency_of_use: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
@@ -95,9 +95,9 @@ class FeatureMechanisms(BaseModel):
                 self.habit_displacement > 0,
                 self.learning_curve > 0,
                 self.social_visibility > 0,
-                self.valor_intrinseco > 0,
-                self.friccao_operacional > 0,
-                self.frequencia_de_uso > 0,
+                self.intrinsic_value > 0,
+                self.operational_friction > 0,
+                self.frequency_of_use > 0,
             ]
         )
 
@@ -109,9 +109,9 @@ ALL_9_FIELDS = {
     "habit_displacement",
     "learning_curve",
     "social_visibility",
-    "valor_intrinseco",
-    "friccao_operacional",
-    "frequencia_de_uso",
+    "intrinsic_value",
+    "operational_friction",
+    "frequency_of_use",
 }
 
 if __name__ == "__main__":
@@ -142,9 +142,9 @@ if __name__ == "__main__":
             habit_displacement=0.4,
             learning_curve=0.5,
             social_visibility=0.3,
-            valor_intrinseco=0.6,
-            friccao_operacional=0.2,
-            frequencia_de_uso=0.85,
+            intrinsic_value=0.6,
+            operational_friction=0.2,
+            frequency_of_use=0.85,
         )
         m = FeatureMechanisms(**vals)
         for k, v in vals.items():
@@ -166,7 +166,7 @@ if __name__ == "__main__":
             learning_curve=0.5,
             social_visibility=0.3,
         )
-        for f in ("valor_intrinseco", "friccao_operacional", "frequencia_de_uso"):
+        for f in ("intrinsic_value", "operational_friction", "frequency_of_use"):
             if getattr(m, f) != 0.0:
                 failures.append(f"Backward compat: {f} should default to 0.0, got {getattr(m, f)}")
     except Exception as e:
@@ -191,16 +191,16 @@ if __name__ == "__main__":
     # Test 6: Reject new field below 0
     total_tests += 1
     try:
-        FeatureMechanisms(valor_intrinseco=-0.5)
-        failures.append("Should reject negative valor_intrinseco")
+        FeatureMechanisms(intrinsic_value=-0.5)
+        failures.append("Should reject negative intrinsic_value")
     except ValueError:
         pass
 
     # Test 7: Reject new field above 1
     total_tests += 1
     try:
-        FeatureMechanisms(frequencia_de_uso=2.0)
-        failures.append("Should reject frequencia_de_uso > 1")
+        FeatureMechanisms(frequency_of_use=2.0)
+        failures.append("Should reject frequency_of_use > 1")
     except ValueError:
         pass
 
@@ -214,14 +214,14 @@ if __name__ == "__main__":
             habit_displacement=1.0,
             learning_curve=0.0,
             social_visibility=1.0,
-            valor_intrinseco=0.0,
-            friccao_operacional=1.0,
-            frequencia_de_uso=0.0,
+            intrinsic_value=0.0,
+            operational_friction=1.0,
+            frequency_of_use=0.0,
         )
         if m.network_effect != 1.0:
             failures.append("1.0 should be accepted for network_effect")
-        if m.friccao_operacional != 1.0:
-            failures.append("1.0 should be accepted for friccao_operacional")
+        if m.operational_friction != 1.0:
+            failures.append("1.0 should be accepted for operational_friction")
         if not m.has_any_mechanism():
             failures.append("has_any_mechanism should be True with some 1.0 values")
     except Exception as e:
@@ -231,9 +231,9 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         for field, val in [
-            ("valor_intrinseco", 0.1),
-            ("friccao_operacional", 0.3),
-            ("frequencia_de_uso", 0.5),
+            ("intrinsic_value", 0.1),
+            ("operational_friction", 0.3),
+            ("frequency_of_use", 0.5),
         ]:
             m = FeatureMechanisms(**{field: val})
             if not m.has_any_mechanism():
@@ -244,17 +244,17 @@ if __name__ == "__main__":
     # Test 10: model_dump has all 9 fields with correct values
     total_tests += 1
     try:
-        m = FeatureMechanisms(irreversibility=0.9, network_effect=0.7, valor_intrinseco=0.6)
+        m = FeatureMechanisms(irreversibility=0.9, network_effect=0.7, intrinsic_value=0.6)
         dump = m.model_dump()
         if set(dump.keys()) != ALL_9_FIELDS:
             failures.append(f"model_dump keys mismatch: {set(dump.keys())} != {ALL_9_FIELDS}")
         checks = {
             "irreversibility": 0.9,
             "network_effect": 0.7,
-            "valor_intrinseco": 0.6,
+            "intrinsic_value": 0.6,
             "institutional_trust": 0.0,
-            "friccao_operacional": 0.0,
-            "frequencia_de_uso": 0.0,
+            "operational_friction": 0.0,
+            "frequency_of_use": 0.0,
         }
         for k, expected in checks.items():
             if dump[k] != expected:

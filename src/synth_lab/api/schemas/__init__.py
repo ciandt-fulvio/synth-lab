@@ -2,15 +2,10 @@
 
 from synth_lab.api.schemas.analysis import (
     BoxPlotParams,
-    ClusterRequest,
-    CutDendrogramRequest,
-    DendrogramParams,
     DistributionParams,
     ExtremeCasesParams,
     HeatmapParams,
     OutliersParams,
-    PDPComparisonParams,
-    PDPParams,
     ScatterParams,
     ShapParams,
 )
@@ -18,15 +13,10 @@ from synth_lab.api.schemas.analysis import (
 __all__ = [
     # Analysis
     "BoxPlotParams",
-    "ClusterRequest",
-    "CutDendrogramRequest",
-    "DendrogramParams",
     "DistributionParams",
     "ExtremeCasesParams",
     "HeatmapParams",
     "OutliersParams",
-    "PDPComparisonParams",
-    "PDPParams",
     "ScatterParams",
     "ShapParams",
 ]

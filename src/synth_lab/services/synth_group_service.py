@@ -9,12 +9,17 @@ References:
     - Custom groups: specs/030-custom-synth-groups/spec.md
 """
 
+from __future__ import annotations
+
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
 from synth_lab.domain.entities.synth_group import SynthGroup
+
+if TYPE_CHECKING:
+    from synth_lab.api.schemas.synth_group_stats import SynthGroupStatistics
 from synth_lab.gen_synth.config import load_config_data
 from synth_lab.gen_synth.synth_builder import assemble_synth_with_config
 from synth_lab.models.orm.synth import Synth as SynthORM
@@ -43,7 +48,8 @@ class SynthGroupService:
         name: str,
         description: str | None = None,
         group_id: str | None = None,
-        owner_id: str | None = None) -> SynthGroupSummary:
+        owner_id: str | None = None,
+    ) -> SynthGroupSummary:
         """
         Create a new synth group.
 
@@ -69,12 +75,14 @@ class SynthGroupService:
                 id=group_id,
                 name=name.strip(),
                 description=description.strip() if description else None,
-                owner_id=owner_id)
+                owner_id=owner_id,
+            )
         else:
             group = SynthGroup(
                 name=name.strip(),
                 description=description.strip() if description else None,
-                owner_id=owner_id)
+                owner_id=owner_id,
+            )
 
         self.repository.create(group)
 
@@ -158,10 +166,8 @@ class SynthGroupService:
         )
 
     def get_or_create_group(
-        self,
-        name: str,
-        description: str | None = None,
-        group_id: str | None = None) -> SynthGroupSummary:
+        self, name: str, description: str | None = None, group_id: str | None = None
+    ) -> SynthGroupSummary:
         """
         Get existing group by name or create new one.
 
@@ -182,10 +188,7 @@ class SynthGroupService:
                 return group
 
         # Create new group if not found
-        return self.create_group(
-            name=name,
-            description=description,
-            group_id=group_id)
+        return self.create_group(name=name, description=description, group_id=group_id)
 
     def create_auto_group(self, prefix: str = "Geração") -> SynthGroupSummary:
         """
@@ -235,6 +238,20 @@ class SynthGroupService:
         """
         return self.repository.get_by_id(group_id)
 
+    def get_group_statistics(self, group_id: str) -> SynthGroupStatistics | None:
+        """
+        Get aggregate statistics for a synth group.
+
+        Returns demographic and sensitivity histograms.
+
+        Args:
+            group_id: Group ID.
+
+        Returns:
+            SynthGroupStatistics if found, None otherwise.
+        """
+        return self.repository.get_statistics(group_id)
+
     def get_group_detail(self, group_id: str) -> SynthGroupDetail | None:
         """
         Get synth group detail with list of synths.
@@ -248,19 +265,20 @@ class SynthGroupService:
         return self.repository.get_detail(group_id)
 
     def list_groups(
-        self, params: PaginationParams | None = None
+        self, params: PaginationParams | None = None, user_id: str | None = None
     ) -> PaginatedResponse[SynthGroupSummary]:
         """
         List synth groups with pagination.
 
         Args:
             params: Pagination parameters.
+            user_id: If provided, filter to groups the user can access.
 
         Returns:
             Paginated list of synth group summaries.
         """
         params = params or PaginationParams()
-        return self.repository.list_groups(params)
+        return self.repository.list_groups(params, user_id=user_id)
 
     def delete_group(self, group_id: str) -> bool:
         """
@@ -290,7 +308,6 @@ if __name__ == "__main__":
     import sys
     import tempfile
     from pathlib import Path
-
 
     # Validation
     all_validation_failures = []

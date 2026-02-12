@@ -192,13 +192,6 @@ import type {
   OutcomeDistributionChart,
   FailureHeatmapChart,
   ScatterCorrelationChart,
-  AttributeCorrelationChart,
-  ClusterRequest,
-  KMeansResult,
-  HierarchicalResult,
-  RadarComparisonChart,
-  PCAScatterChart,
-  ElbowPoint,
 } from '@/types/simulation';
 
 /**
@@ -255,74 +248,7 @@ export async function getAnalysisScatterCorrelation(
 }
 
 // =============================================================================
-// Phase 3: Clustering Endpoints
-// =============================================================================
-
-/**
- * Create clustering for experiment analysis.
- */
-export async function createAnalysisClustering(
-  experimentId: string,
-  request: ClusterRequest
-): Promise<KMeansResult | HierarchicalResult> {
-  return fetchAPI(`/experiments/${experimentId}/analysis/clusters`, {
-    method: 'POST',
-    body: JSON.stringify(request),
-  });
-}
-
-/**
- * Create automatic K-Means clustering with optimal K detection.
- * Executes Elbow method and uses recommended K automatically.
- */
-export async function createAutoAnalysisClustering(
-  experimentId: string
-): Promise<KMeansResult> {
-  return fetchAPI(`/experiments/${experimentId}/analysis/clusters/auto`, {
-    method: 'POST',
-  });
-}
-
-/**
- * Get cached clustering for experiment analysis.
- */
-export async function getAnalysisClustering(
-  experimentId: string
-): Promise<KMeansResult | HierarchicalResult> {
-  return fetchAPI(`/experiments/${experimentId}/analysis/clusters`);
-}
-
-/**
- * Get elbow method data for experiment analysis.
- */
-export async function getAnalysisElbow(
-  experimentId: string,
-  maxK = 10
-): Promise<ElbowPoint[]> {
-  const params = new URLSearchParams({ max_k: String(maxK) });
-  return fetchAPI(`/experiments/${experimentId}/analysis/clusters/elbow?${params}`);
-}
-
-/**
- * Get radar comparison chart for experiment analysis.
- */
-export async function getAnalysisRadarComparison(
-  experimentId: string
-): Promise<RadarComparisonChart> {
-  return fetchAPI(`/experiments/${experimentId}/analysis/clusters/radar`);
-}
-
-/**
- * Get PCA 2D scatter plot with cluster colors.
- */
-export async function getAnalysisPCAScatter(
-  experimentId: string
-): Promise<PCAScatterChart> {
-  return fetchAPI(`/experiments/${experimentId}/analysis/clusters/pca-scatter`);
-}
-
-// =============================================================================
-// Phase 4: Edge Cases & Outliers Endpoints
+// Phase 3: Edge Cases & Outliers Endpoints
 // =============================================================================
 
 import type {
@@ -330,8 +256,6 @@ import type {
   OutlierResult,
   ShapSummary,
   ShapExplanation,
-  PDPResult,
-  PDPComparison,
 } from '@/types/simulation';
 
 /**
@@ -357,7 +281,7 @@ export async function getAnalysisOutliers(
 }
 
 // =============================================================================
-// Phase 5: Explainability (SHAP & PDP) Endpoints
+// Explainability (SHAP) Endpoints
 // =============================================================================
 
 /**
@@ -377,38 +301,8 @@ export async function getAnalysisShapExplanation(
   return fetchAPI(`/experiments/${experimentId}/analysis/shap/${synthId}`);
 }
 
-/**
- * Get Partial Dependence Plot for a single feature.
- */
-export async function getAnalysisPDP(
-  experimentId: string,
-  feature: string,
-  gridResolution = 20
-): Promise<PDPResult> {
-  const params = new URLSearchParams({
-    feature,
-    grid_resolution: String(gridResolution),
-  });
-  return fetchAPI(`/experiments/${experimentId}/analysis/pdp?${params}`);
-}
-
-/**
- * Get PDP comparison for multiple features.
- */
-export async function getAnalysisPDPComparison(
-  experimentId: string,
-  features: string[],
-  gridResolution = 20
-): Promise<PDPComparison> {
-  const params = new URLSearchParams({
-    features: features.join(','),
-    grid_resolution: String(gridResolution),
-  });
-  return fetchAPI(`/experiments/${experimentId}/analysis/pdp/comparison?${params}`);
-}
-
 // =============================================================================
-// Phase 6: Insights Endpoints
+// Insights Endpoints
 // =============================================================================
 
 import type { SimulationInsights, ChartInsight } from '@/types/simulation';

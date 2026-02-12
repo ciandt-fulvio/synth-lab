@@ -21,9 +21,10 @@ const ITEMS_PER_PAGE = 45;
 
 interface SynthListProps {
   selectedGroupId?: string;
+  hideGroupName?: boolean;
 }
 
-export function SynthList({ selectedGroupId }: SynthListProps) {
+export function SynthList({ selectedGroupId, hideGroupName }: SynthListProps) {
   const [selectedSynthId, setSelectedSynthId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
 
@@ -125,7 +126,7 @@ export function SynthList({ selectedGroupId }: SynthListProps) {
             key={synth.id}
             synth={synth}
             onClick={(id) => setSelectedSynthId(id)}
-            groupName={synth.synth_group_id && groupsData?.data
+            groupName={!hideGroupName && synth.synth_group_id && groupsData?.data
               ? groupsData.data.find(g => g.id === synth.synth_group_id)?.name
               : undefined}
           />

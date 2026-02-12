@@ -61,6 +61,7 @@ class OutlierSynth(BaseModel):
     """Single outlier synth identified by statistical methods."""
 
     synth_id: str = Field(..., description="Synth identifier")
+    synth_name: str = Field(default="", description="Synth display name")
     outlier_type: str = Field(
         ...,
         description="Type: unexpected_failure, unexpected_success, or atypical_profile",

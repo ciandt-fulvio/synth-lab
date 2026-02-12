@@ -13,6 +13,7 @@ import type {
   SynthGroupCreate,
   SynthGroupDetail,
   SynthGroupSummary,
+  SynthGroupStatistics,
   PaginatedSynthGroup,
   CreateSynthGroupRequest,
   SynthGroupCreateResponse,
@@ -62,6 +63,15 @@ export async function deleteSynthGroup(id: string): Promise<void> {
   return fetchAPI<void>(`/synth-groups/${id}`, {
     method: 'DELETE',
   });
+}
+
+/**
+ * Get aggregate statistics for a synth group.
+ */
+export async function getSynthGroupStatistics(
+  id: string
+): Promise<SynthGroupStatistics> {
+  return fetchAPI<SynthGroupStatistics>(`/synth-groups/${id}/statistics`);
 }
 
 /**

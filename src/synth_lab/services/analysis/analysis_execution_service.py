@@ -299,8 +299,6 @@ class AnalysisExecutionService:
                 "shap_summary": CacheKeys.SHAP_SUMMARY,
                 "extreme_cases": CacheKeys.EXTREME_CASES,
                 "outliers": CacheKeys.OUTLIERS,
-                "pca_scatter": CacheKeys.PCA_SCATTER,
-                "radar_comparison": CacheKeys.RADAR_COMPARISON,
             }
 
             # Filter to only charts that actually exist in cache

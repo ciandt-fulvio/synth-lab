@@ -121,19 +121,20 @@ class ExperimentService:
         return None
 
     def list_experiments(
-        self, params: PaginationParams | None = None
+        self, params: PaginationParams | None = None, user_id: str | None = None
     ) -> PaginatedResponse[ExperimentSummary]:
         """
         List experiments with pagination.
 
         Args:
             params: Pagination parameters.
+            user_id: If provided, filter to experiments the user can access.
 
         Returns:
             Paginated list of experiment summaries.
         """
         params = params or PaginationParams()
-        return self.repository.list_experiments(params)
+        return self.repository.list_experiments(params, user_id=user_id)
 
     def update_experiment(
         self,

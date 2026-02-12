@@ -22,21 +22,9 @@ from synth_lab.domain.entities.chart_data import (
     TrendlinePoint,
 )
 from synth_lab.domain.entities.chart_insight import ChartInsight
-from synth_lab.domain.entities.cluster_result import (
-    ClusterProfile,
-    ClusterRadar,
-    DendrogramBranch,
-    DendrogramChart,
-    DendrogramNode,
-    DendrogramTreeNode,
-    ElbowDataPoint,
-    HierarchicalResult,
-    KMeansResult,
-    PCAScatterChart,
-    PCAScatterPoint,
-    RadarAxis,
-    RadarChart,
-    SuggestedCut,
+from synth_lab.domain.entities.emergent_state import (
+    EmergentState,
+    InteractionContribution,
 )
 from synth_lab.domain.entities.experiment import (
     Experiment,
@@ -44,29 +32,28 @@ from synth_lab.domain.entities.experiment import (
     generate_experiment_id,
 )
 from synth_lab.domain.entities.experiment_material import (
+    MATERIAL_TYPE_LABELS,
+    MIME_TYPE_MAP,
     DescriptionStatus,
     ExperimentMaterial,
     ExperimentMaterialSummary,
     FileType,
     MaterialType,
-    MATERIAL_TYPE_LABELS,
-    MIME_TYPE_MAP,
     generate_material_id,
     get_file_type_from_mime,
 )
-from synth_lab.domain.entities.emergent_state import (
-    EmergentState,
-    InteractionContribution,
-)
 from synth_lab.domain.entities.explainability import (
-    PDPComparison,
-    PDPPoint,
-    PDPResult,
     ShapContribution,
     ShapExplanation,
     ShapSummary,
 )
 from synth_lab.domain.entities.feature_mechanisms import FeatureMechanisms
+from synth_lab.domain.entities.feature_scorecard import (
+    FeatureScorecard,
+    ScorecardDimension,
+    ScorecardIdentification,
+    generate_scorecard_id,
+)
 from synth_lab.domain.entities.feature_type import FeatureType, generate_feature_type_id
 from synth_lab.domain.entities.mechanism_definition import (
     MechanismDefinition,
@@ -76,12 +63,6 @@ from synth_lab.domain.entities.mechanism_definition import (
 from synth_lab.domain.entities.narrative_response import (
     NarrativeResponse,
     SelectedMechanism,
-)
-from synth_lab.domain.entities.feature_scorecard import (
-    FeatureScorecard,
-    ScorecardDimension,
-    ScorecardIdentification,
-    generate_scorecard_id,
 )
 from synth_lab.domain.entities.outlier_result import (
     ExtremeCasesTable,
@@ -98,7 +79,6 @@ from synth_lab.domain.entities.simulation_attributes import (
     SimulationLatentTraits,
     SimulationObservables,
 )
-from synth_lab.domain.entities.user_sensitivities import UserSensitivities
 from synth_lab.domain.entities.simulation_context import SimulationContext
 from synth_lab.domain.entities.simulation_run import (
     SimulationConfig,
@@ -116,6 +96,7 @@ from synth_lab.domain.entities.synth_outcome import (
     SynthOutcome,
     generate_outcome_id,
 )
+from synth_lab.domain.entities.user_sensitivities import UserSensitivities
 
 __all__ = [
     # Analysis run (new in v7)
@@ -139,21 +120,6 @@ __all__ = [
     "ScatterCorrelationChart",
     "SynthDistribution",
     "TrendlinePoint",
-    # Cluster result
-    "ClusterProfile",
-    "ClusterRadar",
-    "DendrogramBranch",
-    "DendrogramChart",
-    "DendrogramNode",
-    "DendrogramTreeNode",
-    "ElbowDataPoint",
-    "HierarchicalResult",
-    "KMeansResult",
-    "PCAScatterChart",
-    "PCAScatterPoint",
-    "RadarAxis",
-    "RadarChart",
-    "SuggestedCut",
     # Emergent state (new in 038-mechanism-based-simulation)
     "EmergentState",
     "InteractionContribution",
@@ -172,9 +138,6 @@ __all__ = [
     "generate_material_id",
     "get_file_type_from_mime",
     # Explainability
-    "PDPComparison",
-    "PDPPoint",
-    "PDPResult",
     "ShapContribution",
     "ShapExplanation",
     "ShapSummary",

@@ -1,8 +1,18 @@
 // src/services/api.ts - Base API configuration
 
+import type { QueryClient } from '@tanstack/react-query';
+
 // In production, VITE_API_URL should point to the backend service URL
 // In development, /api is proxied to localhost:8000
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+
+// Global QueryClient reference for auth invalidation on 401
+let _queryClient: QueryClient | null = null;
+
+/** Register the QueryClient so fetchAPI can invalidate auth cache on 401. */
+export function setQueryClient(qc: QueryClient) {
+  _queryClient = qc;
+}
 
 export class APIError extends Error {
   constructor(
@@ -39,6 +49,18 @@ export async function fetchAPI<T>(
     });
 
     if (!response.ok) {
+      // Handle session expiry: clear auth state so ProtectedRoute redirects to login
+      if (response.status === 401) {
+        localStorage.removeItem('auth_token');
+        // Invalidate auth cache - ProtectedRoute will redirect to /login
+        if (_queryClient) {
+          _queryClient.setQueryData(['auth', 'currentUser'], null);
+        } else if (!window.location.pathname.startsWith('/login')) {
+          // Fallback if QueryClient not registered yet
+          window.location.href = '/login';
+        }
+      }
+
       let errorData;
       try {
         errorData = await response.json();

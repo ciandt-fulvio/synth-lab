@@ -65,12 +65,14 @@ function SynthCard({ synth, variant, onClick, isSelected }: SynthCardProps) {
           <div className="flex items-center gap-2">
             {styles.icon}
             <span className="text-sm font-medium text-slate-800 truncate max-w-40">
-              {synth.synth_name || synth.synth_id.substring(0, 8)}
+              {synth.synth_name || synth.synth_id}
             </span>
           </div>
-          <span className="text-xs font-mono text-slate-400 truncate max-w-40 ml-6">
-            {synth.synth_id}
-          </span>
+          {synth.synth_name && (
+            <span className="text-xs font-mono text-slate-400 truncate max-w-40 ml-6">
+              {synth.synth_id}
+            </span>
+          )}
         </div>
         <span className={`text-sm font-bold ${styles.rateColor}`}>
           {(synth.adopted_rate * 100).toFixed(0)}%

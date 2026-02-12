@@ -58,19 +58,19 @@ const MECHANISM_CONFIGS: MechanismConfig[] = [
     example: 'Compra em grupo, posts públicos',
   },
   {
-    key: 'valor_intrinseco',
+    key: 'intrinsic_value',
     label: 'Valor Intrínseco',
     description: 'Grau em que a feature melhora a vida real do usuário',
     example: 'Agendamento automático, alerta de fraude',
   },
   {
-    key: 'friccao_operacional',
+    key: 'operational_friction',
     label: 'Fricção Operacional',
     description: 'Grau de fricção, etapas ou erros no uso cotidiano',
     example: 'Múltiplas confirmações, timeout, erros frequentes',
   },
   {
-    key: 'frequencia_de_uso',
+    key: 'frequency_of_use',
     label: 'Frequência de Uso',
     description: 'Frequência esperada de uso da feature',
     example: 'Diário (saldo), mensal (extrato), raro (portabilidade)',
@@ -188,9 +188,9 @@ export const DEFAULT_MECHANISMS: FeatureMechanisms = {
   habit_displacement: 0,
   learning_curve: 0,
   social_visibility: 0,
-  valor_intrinseco: 0,
-  friccao_operacional: 0,
-  frequencia_de_uso: 0,
+  intrinsic_value: 0,
+  operational_friction: 0,
+  frequency_of_use: 0,
 };
 
 /** Check if mechanisms have any non-zero values */

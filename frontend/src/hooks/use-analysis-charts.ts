@@ -1,28 +1,19 @@
 // frontend/src/hooks/use-analysis-charts.ts
 // React Query hooks for experiment analysis chart data
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import {
   getAnalysisDistributionChart,
   getAnalysisFailureHeatmap,
   getAnalysisScatterCorrelation,
-  createAnalysisClustering,
-  createAutoAnalysisClustering,
-  getAnalysisClustering,
-  getAnalysisElbow,
-  getAnalysisRadarComparison,
-  getAnalysisPCAScatter,
-  // Phase 4: Edge Cases
+  // Phase 3: Edge Cases
   getAnalysisExtremeCases,
   getAnalysisOutliers,
-  // Phase 5: Explainability
+  // Explainability
   getAnalysisShapSummary,
   getAnalysisShapExplanation,
-  getAnalysisPDP,
-  getAnalysisPDPComparison,
 } from '@/services/experiments-api';
-import type { ClusterRequest } from '@/types/simulation';
 
 // =============================================================================
 // Phase 1: Overview Charts
@@ -79,88 +70,7 @@ export function useAnalysisScatterCorrelation(
 }
 
 // =============================================================================
-// Phase 3: Clustering
-// =============================================================================
-
-export function useAnalysisClustering(experimentId: string, enabled = true) {
-  return useQuery({
-    queryKey: queryKeys.analysis.clusters(experimentId),
-    queryFn: () => getAnalysisClustering(experimentId),
-    enabled: !!experimentId && enabled,
-    staleTime: 10 * 60 * 1000,
-    // Don't retry on 404 (clustering not created yet)
-    retry: (failureCount, error) => {
-      if (error instanceof Error && error.message.includes('404')) return false;
-      return failureCount < 3;
-    },
-  });
-}
-
-export function useCreateAnalysisClustering(experimentId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (request: ClusterRequest) => createAnalysisClustering(experimentId, request),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.clusters(experimentId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.elbow(experimentId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.radarComparison(experimentId) });
-    },
-  });
-}
-
-export function useAutoAnalysisClustering(experimentId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: () => createAutoAnalysisClustering(experimentId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.clusters(experimentId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.radarComparison(experimentId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.analysis.pcaScatter(experimentId) });
-    },
-  });
-}
-
-export function useAnalysisElbow(experimentId: string, maxK = 10, enabled = true) {
-  return useQuery({
-    queryKey: [...queryKeys.analysis.elbow(experimentId), maxK],
-    queryFn: () => getAnalysisElbow(experimentId, maxK),
-    enabled: !!experimentId && enabled,
-    staleTime: 10 * 60 * 1000,
-  });
-}
-
-export function useAnalysisRadarComparison(experimentId: string, enabled = true) {
-  return useQuery({
-    queryKey: queryKeys.analysis.radarComparison(experimentId),
-    queryFn: () => getAnalysisRadarComparison(experimentId),
-    enabled: !!experimentId && enabled,
-    staleTime: 10 * 60 * 1000,
-    // Don't retry on 404 (clustering not created yet)
-    retry: (failureCount, error) => {
-      if (error instanceof Error && error.message.includes('404')) return false;
-      return failureCount < 3;
-    },
-  });
-}
-
-export function useAnalysisPCAScatter(experimentId: string, enabled = true) {
-  return useQuery({
-    queryKey: queryKeys.analysis.pcaScatter(experimentId),
-    queryFn: () => getAnalysisPCAScatter(experimentId),
-    enabled: !!experimentId && enabled,
-    staleTime: 10 * 60 * 1000,
-    // Don't retry on 404 (clustering not created yet)
-    retry: (failureCount, error) => {
-      if (error instanceof Error && error.message.includes('404')) return false;
-      return failureCount < 3;
-    },
-  });
-}
-
-// =============================================================================
-// Phase 4: Edge Cases & Outliers
+// Phase 3: Edge Cases & Outliers
 // =============================================================================
 
 export function useAnalysisExtremeCases(
@@ -190,7 +100,7 @@ export function useAnalysisOutliers(
 }
 
 // =============================================================================
-// Phase 5: Explainability (SHAP & PDP)
+// Explainability (SHAP)
 // =============================================================================
 
 export function useAnalysisShapSummary(experimentId: string, enabled = true) {
@@ -211,34 +121,6 @@ export function useAnalysisShapExplanation(
     queryKey: queryKeys.analysis.shapExplanation(experimentId, synthId),
     queryFn: () => getAnalysisShapExplanation(experimentId, synthId),
     enabled: !!experimentId && !!synthId && enabled,
-    staleTime: 10 * 60 * 1000,
-  });
-}
-
-export function useAnalysisPDP(
-  experimentId: string,
-  feature: string,
-  gridResolution = 20,
-  enabled = true
-) {
-  return useQuery({
-    queryKey: [...queryKeys.analysis.pdp(experimentId, feature), gridResolution],
-    queryFn: () => getAnalysisPDP(experimentId, feature, gridResolution),
-    enabled: !!experimentId && !!feature && enabled,
-    staleTime: 10 * 60 * 1000,
-  });
-}
-
-export function useAnalysisPDPComparison(
-  experimentId: string,
-  features: string[],
-  gridResolution = 20,
-  enabled = true
-) {
-  return useQuery({
-    queryKey: [...queryKeys.analysis.pdpComparison(experimentId), features, gridResolution],
-    queryFn: () => getAnalysisPDPComparison(experimentId, features, gridResolution),
-    enabled: !!experimentId && features.length > 0 && enabled,
     staleTime: 10 * 60 * 1000,
   });
 }

@@ -20,11 +20,11 @@ export interface FeatureMechanisms {
   /** Degree to which usage is visible to others [0,1] */
   social_visibility: number;
   /** Real improvement in user's life (0=cosmetic, 1=transformative) [0,1] */
-  valor_intrinseco: number;
+  intrinsic_value: number;
   /** Operational friction/steps/errors in usage (0=none, 1=extreme) [0,1] */
-  friccao_operacional: number;
+  operational_friction: number;
   /** Expected usage frequency (0=rare, 1=daily or more) [0,1] */
-  frequencia_de_uso: number;
+  frequency_of_use: number;
 }
 
 /** User sensitivities for mechanism interactions */
@@ -336,6 +336,7 @@ export interface ExtremeCasesTable {
 /** Synth identified as statistical outlier */
 export interface OutlierSynth {
   synth_id: string;
+  synth_name: string;
   anomaly_score: number;
   adopted_rate: number;
   not_adopted_rate: number;
@@ -394,35 +395,8 @@ export interface ShapSummary {
   model_score: number;
 }
 
-/** Point in PDP curve */
-export interface PDPPoint {
-  feature_value: number;
-  predicted_success: number;
-  confidence_lower?: number;
-  confidence_upper?: number;
-}
-
-/** Partial Dependence Plot result */
-export interface PDPResult {
-  simulation_id: string;
-  feature_name: string;
-  feature_display_name: string;
-  pdp_values: PDPPoint[];
-  effect_type: 'monotonic_increasing' | 'monotonic_decreasing' | 'non_linear' | 'flat';
-  effect_strength: number;
-  baseline_value: number;
-}
-
-/** PDP comparison across features */
-export interface PDPComparison {
-  simulation_id: string;
-  pdp_results: PDPResult[];
-  feature_ranking: string[];
-  total_synths: number;
-}
-
 // =============================================================================
-// Phase 6: LLM Insights
+// LLM Insights
 // =============================================================================
 
 /** Chart types that can have insights generated */
@@ -431,15 +405,10 @@ export type ChartType =
   | 'failure_heatmap'
   | 'box_plot'
   | 'scatter'
-  | 'elbow'
-  | 'radar'
-  | 'pca_scatter'
   | 'extreme_cases'
   | 'outliers'
   | 'shap_summary'
-  | 'shap_explanation'
-  | 'pdp'
-  | 'pdp_comparison';
+  | 'shap_explanation';
 
 /** Caption for a chart */
 export interface ChartCaption {

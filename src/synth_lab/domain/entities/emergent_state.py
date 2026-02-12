@@ -11,15 +11,15 @@ that modifies user adoption behavior.
         - trust_barrier: institutional_trust x (1 - institutional_trust_level) (Resistance)
         - habit_resistance: habit_displacement x (1 - habit_plasticity) (Resistance)
         - learning_frustration: learning_curve x (1 - digital_capability) (Resistance)
-        - friction_burden: friccao_operacional x (1 - friction_tolerance) (Resistance)
+        - friction_burden: operational_friction x (1 - friction_tolerance) (Resistance)
         - social_pressure: social_visibility x social_dependency (Affinity)
         - network_barrier: network_effect x (1 - social_dependency) (Resistance)
-        - motor_barrier: friccao_operacional x (1 - motor_ability) (Resistance)
+        - motor_barrier: operational_friction x (1 - motor_ability) (Resistance)
 
     Appeals (3):
-        - intrinsic_appeal: valor_intrinseco x pragmatism (Appeal)
-        - frequency_value: frequencia_de_uso x pragmatism (Appeal)
-        - domain_advantage: valor_intrinseco x subject_domain (Appeal)
+        - intrinsic_appeal: intrinsic_value x pragmatism (Appeal)
+        - frequency_value: frequency_of_use x pragmatism (Appeal)
+        - domain_advantage: intrinsic_value x subject_domain (Appeal)
 
 References:
     - Spec: specs/040-emergent-state-expansion/spec.md
@@ -60,15 +60,15 @@ class EmergentState:
         trust_barrier = institutional_trust x (1 - institutional_trust_level)
         habit_resistance = habit_displacement x (1 - habit_plasticity)
         learning_frustration = learning_curve x (1 - digital_capability)
-        friction_burden = friccao_operacional x (1 - friction_tolerance)
+        friction_burden = operational_friction x (1 - friction_tolerance)
         social_pressure = social_visibility x social_dependency
         network_barrier = network_effect x (1 - social_dependency)
-        motor_barrier = friccao_operacional x (1 - motor_ability)
+        motor_barrier = operational_friction x (1 - motor_ability)
 
     Appeals (higher = easier to adopt):
-        intrinsic_appeal = valor_intrinseco x pragmatism
-        frequency_value = frequencia_de_uso x pragmatism
-        domain_advantage = valor_intrinseco x subject_domain
+        intrinsic_appeal = intrinsic_value x pragmatism
+        frequency_value = frequency_of_use x pragmatism
+        domain_advantage = intrinsic_value x subject_domain
     """
 
     # --- Barriers (7) ---
@@ -86,7 +86,7 @@ class EmergentState:
     """Barrier from learning_curve x (1 - digital_capability) (Resistance type)."""
 
     friction_burden: float
-    """Barrier from friccao_operacional x (1 - friction_tolerance) (Resistance type)."""
+    """Barrier from operational_friction x (1 - friction_tolerance) (Resistance type)."""
 
     social_pressure: float
     """Barrier from social_visibility x social_dependency (Affinity type)."""
@@ -95,18 +95,18 @@ class EmergentState:
     """Barrier from network_effect x (1 - social_dependency) (Resistance type)."""
 
     motor_barrier: float
-    """Barrier from friccao_operacional x (1 - motor_ability) (Resistance type)."""
+    """Barrier from operational_friction x (1 - motor_ability) (Resistance type)."""
 
     # --- Appeals (3) ---
 
     intrinsic_appeal: float
-    """Appeal from valor_intrinseco x pragmatism (Appeal type)."""
+    """Appeal from intrinsic_value x pragmatism (Appeal type)."""
 
     frequency_value: float
-    """Appeal from frequencia_de_uso x pragmatism (Appeal type)."""
+    """Appeal from frequency_of_use x pragmatism (Appeal type)."""
 
     domain_advantage: float
-    """Appeal from valor_intrinseco x subject_domain (Appeal type)."""
+    """Appeal from intrinsic_value x subject_domain (Appeal type)."""
 
     # --- Metadata ---
 
@@ -192,7 +192,7 @@ if __name__ == "__main__":
     try:
         contributors = [
             InteractionContribution("irreversibility", "risk_aversion", 0.72),
-            InteractionContribution("valor_intrinseco", "pragmatism", 0.65),
+            InteractionContribution("intrinsic_value", "pragmatism", 0.65),
             InteractionContribution("network_effect", "social_dependency", 0.49),
         ]
         raw = {
@@ -200,13 +200,13 @@ if __name__ == "__main__":
             "institutional_trust_institutional_trust_level": 0.32,
             "habit_displacement_habit_plasticity": 0.20,
             "learning_curve_digital_capability": 0.45,
-            "friccao_operacional_friction_tolerance": 0.10,
+            "operational_friction_friction_tolerance": 0.10,
             "social_visibility_social_dependency": 0.28,
             "network_effect_social_dependency": 0.49,
-            "friccao_operacional_motor_ability": 0.12,
-            "valor_intrinseco_pragmatism": 0.65,
-            "frequencia_de_uso_pragmatism": 0.40,
-            "valor_intrinseco_subject_domain": 0.35,
+            "operational_friction_motor_ability": 0.12,
+            "intrinsic_value_pragmatism": 0.65,
+            "frequency_of_use_pragmatism": 0.40,
+            "intrinsic_value_subject_domain": 0.35,
         }
         state = EmergentState(
             perceived_risk=0.72,
@@ -235,7 +235,7 @@ if __name__ == "__main__":
             )
         if "irreversibility_risk_aversion" not in state.raw_interactions:
             all_validation_failures.append("raw_interactions missing expected key")
-        if "valor_intrinseco_pragmatism" not in state.raw_interactions:
+        if "intrinsic_value_pragmatism" not in state.raw_interactions:
             all_validation_failures.append("raw_interactions missing appeal key")
     except Exception as e:
         all_validation_failures.append(f"EmergentState full creation failed: {e}")

@@ -16,9 +16,19 @@ import type { ObservableWithLabel } from '@/types/synth';
  * (Latent traits are internal and should NOT be shown in UI)
  */
 export const OBSERVABLE_LABELS: Record<string, string> = {
+  // User sensitivities (new mechanism-based model)
+  risk_aversion: 'Aversão ao Risco',
+  social_dependency: 'Dependência Social',
+  institutional_trust_level: 'Confiança Institucional',
+  habit_plasticity: 'Plasticidade de Hábito',
+  friction_tolerance: 'Tolerância à Fricção',
+  pragmatism: 'Pragmatismo',
+  digital_capability: 'Capacidade Digital',
+  motor_ability: 'Habilidade Motora',
+  subject_domain: 'Domínio do Assunto',
+  // Legacy observables (for backward compatibility)
   digital_literacy: 'Familiaridade com tecnologia',
   similar_tool_experience: 'Experiência com ferramentas similares',
-  motor_ability: 'Habilidade física',
   time_availability: 'Disponibilidade de Tempo',
   domain_expertise: 'Conhecimento do assunto',
 };

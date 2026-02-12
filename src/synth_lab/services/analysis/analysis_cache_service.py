@@ -19,7 +19,6 @@ from synth_lab.domain.entities.analysis_cache import CacheKeys
 from synth_lab.repositories.analysis_cache_repository import AnalysisCacheRepository
 from synth_lab.repositories.analysis_outcome_repository import AnalysisOutcomeRepository
 from synth_lab.services.simulation.chart_data_service import ChartDataService
-from synth_lab.services.simulation.clustering_service import ClusteringService
 from synth_lab.services.simulation.explainability_service import ExplainabilityService
 from synth_lab.services.simulation.outlier_service import OutlierService
 
@@ -56,13 +55,11 @@ class AnalysisCacheService:
         cache_repo: AnalysisCacheRepository | None = None,
         outcome_repo: AnalysisOutcomeRepository | None = None,
         chart_service: ChartDataService | None = None,
-        clustering_service: ClusteringService | None = None,
         outlier_service: OutlierService | None = None,
         explainability_service: ExplainabilityService | None = None):
         self.cache_repo = cache_repo or AnalysisCacheRepository()
         self.outcome_repo = outcome_repo or AnalysisOutcomeRepository()
         self.chart_service = chart_service or ChartDataService()
-        self.clustering_service = clustering_service or ClusteringService()
         self.outlier_service = outlier_service or OutlierService()
         self.explainability_service = explainability_service or ExplainabilityService()
         self.logger = logger.bind(component="analysis_cache_service")
@@ -171,54 +168,6 @@ class AnalysisCacheService:
             self.logger.error(f"Failed to compute {CacheKeys.SHAP_SUMMARY}: {e}")
             results[CacheKeys.SHAP_SUMMARY] = False
 
-        # Phase 3: Segmentation (auto clustering + PCA + Radar)
-        kmeans_result = None
-        try:
-            # Run automatic K-Means clustering
-            kmeans_result = self.clustering_service.cluster_kmeans(
-                simulation_id=analysis_id,
-                outcomes=outcomes,
-                n_clusters=None,  # Auto-detect via elbow
-            )
-            self.logger.info(f"Auto-clustering completed with k={kmeans_result.n_clusters}")
-        except Exception as e:
-            self.logger.warning(f"Failed to auto-cluster: {e}")
-
-        if kmeans_result:
-            # Save KMeans clustering result to cache
-            try:
-                cache_key_clustering = CacheKeys.clustering(kmeans_result.n_clusters)
-                cache_entries[cache_key_clustering] = kmeans_result.model_dump()
-                results[cache_key_clustering] = True
-                self.logger.info(
-                    f"Cached K-Means result with k={kmeans_result.n_clusters} "
-                    f"({len(kmeans_result.profiles)} profiles with LLM-generated labels)"
-                )
-            except Exception as e:
-                self.logger.error(f"Failed to cache clustering result: {e}")
-                results[CacheKeys.clustering(kmeans_result.n_clusters)] = False
-
-            # PCA Scatter
-            try:
-                chart = self.clustering_service.get_pca_scatter(
-                    simulation_id=analysis_id,
-                    outcomes=outcomes,
-                    kmeans_result=kmeans_result)
-                cache_entries[CacheKeys.PCA_SCATTER] = chart.model_dump()
-                results[CacheKeys.PCA_SCATTER] = True
-            except Exception as e:
-                self.logger.error(f"Failed to compute {CacheKeys.PCA_SCATTER}: {e}")
-                results[CacheKeys.PCA_SCATTER] = False
-
-            # Radar Comparison
-            try:
-                chart = self.clustering_service.radar_comparison(kmeans_result)
-                cache_entries[CacheKeys.RADAR_COMPARISON] = chart.model_dump()
-                results[CacheKeys.RADAR_COMPARISON] = True
-            except Exception as e:
-                self.logger.error(f"Failed to compute {CacheKeys.RADAR_COMPARISON}: {e}")
-                results[CacheKeys.RADAR_COMPARISON] = False
-
         # Save all entries to cache
         if cache_entries:
             saved = self.cache_repo.save_many(analysis_id, cache_entries)
@@ -283,8 +232,6 @@ class AnalysisCacheService:
             CacheKeys.EXTREME_CASES,
             CacheKeys.OUTLIERS,
             CacheKeys.SHAP_SUMMARY,
-            CacheKeys.PCA_SCATTER,
-            CacheKeys.RADAR_COMPARISON,
         ]
 
         cached = self.cache_repo.get_all(analysis_id)

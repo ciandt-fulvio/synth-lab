@@ -288,6 +288,54 @@ export const DOMAIN_EXPERTISE_LABELS: Record<DomainExpertiseLevel, string> = {
 };
 
 // ============================================
+// Statistics Types (group detail page)
+// ============================================
+
+export interface HistogramBucket {
+  label: string;
+  count: number;
+  percentage: number;
+}
+
+export interface HistogramData {
+  buckets: HistogramBucket[];
+  mean: number;
+  std_dev: number;
+}
+
+export interface CategoryCount {
+  label: string;
+  count: number;
+  percentage: number;
+}
+
+export interface DisabilityStats {
+  pcd_count: number;
+  pcd_percentage: number;
+  non_pcd_count: number;
+  non_pcd_percentage: number;
+}
+
+export interface DemographicStats {
+  age: HistogramData;
+  income: HistogramData;
+  education: CategoryCount[];
+  family_composition: CategoryCount[];
+  disability: DisabilityStats;
+}
+
+export interface SensitivityStats {
+  distributions: Record<string, HistogramData>;
+}
+
+export interface SynthGroupStatistics {
+  group_id: string;
+  total_synths: number;
+  demographics: DemographicStats;
+  sensitivities: SensitivityStats;
+}
+
+// ============================================
 // Original Types (maintained for backward compatibility)
 // ============================================
 

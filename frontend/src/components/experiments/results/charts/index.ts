@@ -9,15 +9,6 @@ export { FailureHeatmap } from './FailureHeatmap';
 export { BoxPlotChart } from './BoxPlotChart';
 export { ScatterCorrelationChart } from './ScatterCorrelationChart';
 
-// Phase 3: Segmentation
-export { ElbowChart } from './ElbowChart';
-export { RadarComparisonChart } from './RadarComparisonChart';
-
-// Phase 5: Explainability
+// Explainability
 export { ShapSummaryChart } from './ShapSummaryChart';
 export { ShapWaterfallChart } from './ShapWaterfallChart';
-export { PDPChart } from './PDPChart';
-export { PDPComparisonChart } from './PDPComparisonChart';
-
-// Phase 6: Insights
-// TODO: Export InsightCard

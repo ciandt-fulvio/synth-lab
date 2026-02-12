@@ -20,6 +20,8 @@ export const queryKeys = {
   // Synth Groups
   synthGroupsList: ['synth-groups'] as const,
   synthGroupDetail: (id: string) => ['synth-groups', id] as const,
+  synthGroupStatistics: (id: string) => ['synth-groups', id, 'statistics'] as const,
+  synthGroupStatistics: (id: string) => ['synth-groups', id, 'statistics'] as const,
 
   // Research
   researchList: ['research'] as const,
@@ -39,16 +41,10 @@ export const queryKeys = {
     distribution: (experimentId: string) => ['analysis', experimentId, 'distribution'] as const,
     failureHeatmap: (experimentId: string) => ['analysis', experimentId, 'failure-heatmap'] as const,
     scatter: (experimentId: string) => ['analysis', experimentId, 'scatter'] as const,
-    clusters: (experimentId: string) => ['analysis', experimentId, 'clusters'] as const,
-    elbow: (experimentId: string) => ['analysis', experimentId, 'elbow'] as const,
-    radarComparison: (experimentId: string) => ['analysis', experimentId, 'radar-comparison'] as const,
-    pcaScatter: (experimentId: string) => ['analysis', experimentId, 'pca-scatter'] as const,
     extremeCases: (experimentId: string) => ['analysis', experimentId, 'extreme-cases'] as const,
     outliers: (experimentId: string) => ['analysis', experimentId, 'outliers'] as const,
     shapSummary: (experimentId: string) => ['analysis', experimentId, 'shap-summary'] as const,
     shapExplanation: (experimentId: string, synthId: string) => ['analysis', experimentId, 'shap', synthId] as const,
-    pdp: (experimentId: string, feature: string) => ['analysis', experimentId, 'pdp', feature] as const,
-    pdpComparison: (experimentId: string) => ['analysis', experimentId, 'pdp-comparison'] as const,
     insights: (experimentId: string) => ['analysis', experimentId, 'insights'] as const,
     segmentExplanation: (experimentId: string, synthIds: string[]) => ['analysis', experimentId, 'segment-explanation', synthIds] as const,
   },

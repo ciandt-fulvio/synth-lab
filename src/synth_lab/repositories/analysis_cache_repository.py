@@ -291,9 +291,6 @@ session: Session | None = None):
         # Map chart types to their insight cache keys
         insight_key_map = {
             "shap_summary": CacheKeys.INSIGHT_SHAP_SUMMARY,
-            "pdp": CacheKeys.INSIGHT_PDP,
-            "pca_scatter": CacheKeys.INSIGHT_PCA_SCATTER,
-            "radar_comparison": CacheKeys.INSIGHT_RADAR_COMPARISON,
             "extreme_cases": CacheKeys.INSIGHT_EXTREME_CASES,
             "outliers": CacheKeys.INSIGHT_OUTLIERS,
         }

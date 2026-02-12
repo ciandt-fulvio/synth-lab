@@ -208,21 +208,23 @@ class OutlierService:
             friction_tolerance_mean=self._get_trait(outcome, "friction_tolerance_mean"))
 
     def _generate_profile_summary(self, outcome: SynthOutcome) -> str:
-        """Generate human-readable profile summary."""
+        """Generate human-readable profile summary in Portuguese."""
         cap = self._get_trait(outcome, "capability_mean")
         trust = self._get_trait(outcome, "trust_mean")
-        lit = self._get_trait(outcome, "digital_literacy")
+        friction = self._get_trait(outcome, "friction_tolerance_mean")
 
-        # Classify traits
-        cap_level = "high" if cap > 0.6 else ("low" if cap < 0.4 else "medium")
-        trust_level = "high" if trust > 0.6 else ("low" if trust < 0.4 else "medium")
-        lit_level = "high" if lit > 0.6 else ("low" if lit < 0.4 else "medium")
+        def _level(val: float) -> str:
+            if val > 0.6:
+                return "alta"
+            if val < 0.4:
+                return "baixa"
+            return "média"
 
-        summary = f"Synth with {cap_level} capability ({cap:.2f}), "
-        summary += f"{trust_level} trust ({trust:.2f}), "
-        summary += f"and {lit_level} digital literacy ({lit:.2f}). "
-        summary += f"Adoption rate: {outcome.adopted_rate:.1%}, "
-        summary += f"Non-adoption rate: {outcome.not_adopted_rate:.1%}."
+        summary = f"Capacidade digital {_level(cap)} ({cap:.0%}), "
+        summary += f"confiança institucional {_level(trust)} ({trust:.0%}), "
+        summary += f"tolerância a fricção {_level(friction)} ({friction:.0%}). "
+        summary += f"Adoção: {outcome.adopted_rate:.0%}, "
+        summary += f"Não-adoção: {outcome.not_adopted_rate:.0%}."
 
         return summary
 
@@ -295,24 +297,61 @@ class OutlierService:
         return "atypical_profile"
 
     def _generate_outlier_explanation(self, synth: SynthOutcome, outlier_type: str) -> str:
-        """Generate explanation for why synth is an outlier."""
+        """Generate Portuguese explanation for why synth is an outlier."""
         cap = self._get_trait(synth, "capability_mean")
         trust = self._get_trait(synth, "trust_mean")
+        friction = self._get_trait(synth, "friction_tolerance_mean")
 
         if outlier_type == "unexpected_failure":
+            details = []
+            if cap > 0.6:
+                details.append(f"capacidade digital alta ({cap:.0%})")
+            if trust > 0.6:
+                details.append(f"confiança institucional alta ({trust:.0%})")
+            profile = " e ".join(details) if details else f"perfil favorável"
             return (
-                f"High capability ({cap:.2f}) but high non-adoption rate "
-                f"({synth.not_adopted_rate:.1%}). This suggests unexpected barriers or friction points."
+                f"Apesar de {profile}, apresentou taxa de não-adoção de "
+                f"{synth.not_adopted_rate:.0%}. Pode indicar barreiras "
+                f"de usabilidade ou fricção inesperada na funcionalidade."
             )
         elif outlier_type == "unexpected_success":
+            details = []
+            if cap < 0.4:
+                details.append(f"capacidade digital baixa ({cap:.0%})")
+            if trust < 0.4:
+                details.append(f"confiança institucional baixa ({trust:.0%})")
+            profile = " e ".join(details) if details else "perfil desfavorável"
             return (
-                f"Low capability ({cap:.2f}) but high adoption rate "
-                f"({synth.adopted_rate:.1%}). This indicates the feature may be easier than expected."
+                f"Mesmo com {profile}, alcançou taxa de adoção de "
+                f"{synth.adopted_rate:.0%}. Sugere que a funcionalidade "
+                f"é mais acessível do que o esperado para este perfil."
             )
         else:
+            # Build a description of what makes this profile atypical
+            extremes = []
+            if cap <= 0.3:
+                extremes.append("capacidade digital muito baixa")
+            elif cap >= 0.7:
+                extremes.append("capacidade digital muito alta")
+            if trust <= 0.3:
+                extremes.append("baixa confiança institucional")
+            elif trust >= 0.7:
+                extremes.append("alta confiança institucional")
+            if friction <= 0.3:
+                extremes.append("baixa tolerância a fricção")
+            elif friction >= 0.7:
+                extremes.append("alta tolerância a fricção")
+
+            if extremes:
+                traits_desc = ", ".join(extremes)
+                return (
+                    f"Combinação incomum de {traits_desc}, "
+                    f"com taxa de adoção de {synth.adopted_rate:.0%}. "
+                    f"Este perfil difere significativamente da maioria dos synths."
+                )
             return (
-                f"Atypical combination of attributes with capability={cap:.2f}, "
-                f"trust={trust:.2f}, success={synth.adopted_rate:.1%}."
+                f"Perfil estatisticamente raro com adoção de {synth.adopted_rate:.0%}. "
+                f"A combinação de atributos não segue os padrões típicos da amostra."
             )
 
     def _extract_features(

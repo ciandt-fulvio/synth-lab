@@ -20,20 +20,9 @@ Expected Output:
 import numpy as np
 from loguru import logger
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.inspection import partial_dependence
 
-from synth_lab.domain.entities import (
-    PDPComparison,
-    PDPPoint,
-    PDPResult,
-    ShapContribution,
-    ShapExplanation,
-    ShapSummary,
-    SynthOutcome)
-from synth_lab.services.simulation.feature_extraction import (
-    DEFAULT_FEATURES,
-    extract_features,
-    get_attribute_value)
+from synth_lab.domain.entities import ShapContribution, ShapExplanation, ShapSummary, SynthOutcome
+from synth_lab.services.simulation.feature_extraction import DEFAULT_FEATURES, extract_features
 
 # Minimum synths required for reliable SHAP analysis
 MIN_SYNTHS_FOR_SHAP = 20
@@ -54,9 +43,8 @@ class ExplainabilityService:
         self._shap_values_cache: dict[str, np.ndarray] = {}
 
     def _train_model(
-        self,
-        outcomes: list[SynthOutcome],
-        features: list[str] | None = None) -> tuple[GradientBoostingRegressor, float]:
+        self, outcomes: list[SynthOutcome], features: list[str] | None = None
+    ) -> tuple[GradientBoostingRegressor, float]:
         """
         Train a GradientBoostingRegressor to predict adopted_rate.
 
@@ -81,9 +69,8 @@ class ExplainabilityService:
 
         # Extract features
         X, synth_ids, feature_names = extract_features(
-            outcomes,
-            features=features,
-            include_outcomes=False)
+            outcomes, features=features, include_outcomes=False
+        )
 
         # Target variable is adopted_rate
         y = np.array([o.adopted_rate for o in outcomes])
@@ -95,7 +82,8 @@ class ExplainabilityService:
             learning_rate=0.1,
             random_state=42,
             validation_fraction=0.1,
-            n_iter_no_change=10)
+            n_iter_no_change=10,
+        )
         model.fit(X, y)
 
         # Calculate R² score
@@ -116,7 +104,8 @@ class ExplainabilityService:
         simulation_id: str,
         outcomes: list[SynthOutcome],
         synth_id: str,
-        features: list[str] | None = None) -> ShapExplanation:
+        features: list[str] | None = None,
+    ) -> ShapExplanation:
         """
         Generate SHAP explanation for a specific synth.
 
@@ -159,9 +148,8 @@ class ExplainabilityService:
 
         # Extract features
         X, synth_ids, feature_names = extract_features(
-            outcomes,
-            features=features,
-            include_outcomes=False)
+            outcomes, features=features, include_outcomes=False
+        )
 
         # Get SHAP values using TreeExplainer
         cache_key = f"{simulation_id}:{','.join(features or DEFAULT_FEATURES)}"
@@ -198,7 +186,8 @@ class ExplainabilityService:
                     feature_value=feature_value,
                     shap_value=shap_value,
                     baseline_value=feature_baseline,
-                    impact="positive" if shap_value > 0 else "negative")
+                    impact="positive" if shap_value > 0 else "negative",
+                )
             )
 
         # Sort by absolute SHAP value (most important first)
@@ -210,7 +199,8 @@ class ExplainabilityService:
             contributions=contributions,
             predicted=predicted_adopted_rate,
             actual=target_outcome.adopted_rate,
-            baseline=baseline_prediction)
+            baseline=baseline_prediction,
+        )
 
         return ShapExplanation(
             synth_id=synth_id,
@@ -220,7 +210,8 @@ class ExplainabilityService:
             baseline_prediction=baseline_prediction,
             contributions=contributions,
             explanation_text=explanation_text,
-            model_type="gradient_boosting")
+            model_type="gradient_boosting",
+        )
 
     def _generate_explanation_text(
         self,
@@ -228,7 +219,8 @@ class ExplainabilityService:
         contributions: list[ShapContribution],
         predicted: float,
         actual: float,
-        baseline: float) -> str:
+        baseline: float,
+    ) -> str:
         """
         Generate human-readable explanation text from SHAP values.
 
@@ -282,10 +274,8 @@ class ExplainabilityService:
         return " ".join(parts)
 
     def get_shap_summary(
-        self,
-        simulation_id: str,
-        outcomes: list[SynthOutcome],
-        features: list[str] | None = None) -> ShapSummary:
+        self, simulation_id: str, outcomes: list[SynthOutcome], features: list[str] | None = None
+    ) -> ShapSummary:
         """
         Generate global SHAP summary showing feature importance.
 
@@ -318,9 +308,8 @@ class ExplainabilityService:
 
         # Extract features
         X, synth_ids, feature_names = extract_features(
-            outcomes,
-            features=features,
-            include_outcomes=False)
+            outcomes, features=features, include_outcomes=False
+        )
 
         # Get SHAP values
         cache_key = f"{simulation_id}:{','.join(features or DEFAULT_FEATURES)}"
@@ -342,9 +331,8 @@ class ExplainabilityService:
 
         # Sort features by importance
         sorted_features = sorted(
-            feature_importances.keys(),
-            key=lambda f: feature_importances[f],
-            reverse=True)
+            feature_importances.keys(), key=lambda f: feature_importances[f], reverse=True
+        )
 
         # Top 10 features
         top_features = sorted_features[:10]
@@ -354,186 +342,8 @@ class ExplainabilityService:
             feature_importances=feature_importances,
             top_features=top_features,
             total_synths=len(outcomes),
-            model_score=score)
-
-    def calculate_pdp(
-        self,
-        simulation_id: str,
-        outcomes: list[SynthOutcome],
-        feature: str,
-        features: list[str] | None = None,
-        grid_resolution: int = 20) -> PDPResult:
-        """
-        Calculate Partial Dependence Plot for a feature.
-
-        Shows how changing the feature value affects the predicted
-        success rate, averaging over all other features.
-
-        Args:
-            simulation_id: Simulation identifier.
-            outcomes: List of all SynthOutcome entities.
-            feature: Feature name to analyze.
-            features: All feature names to use. Defaults to latent traits.
-            grid_resolution: Number of points in PDP curve.
-
-        Returns:
-            PDPResult with PDP curve and effect classification.
-
-        Raises:
-            ValueError: If feature not found.
-        """
-        if not outcomes:
-            raise ValueError("Outcomes list is empty")
-
-        # Use default features if not specified
-        if features is None:
-            features = DEFAULT_FEATURES.copy()
-
-        # Verify feature exists
-        if feature not in features:
-            # Try to add it
-            try:
-                get_attribute_value(outcomes[0], feature)
-                features = [feature] + [f for f in features if f != feature]
-            except ValueError:
-                raise ValueError(f"Feature '{feature}' not found in synth attributes")
-
-        # Train model
-        model, score = self._train_model(outcomes, features)
-
-        # Extract features
-        X, synth_ids, feature_names = extract_features(
-            outcomes,
-            features=features,
-            include_outcomes=False)
-
-        # Find feature index
-        try:
-            feature_idx = feature_names.index(feature)
-        except ValueError:
-            raise ValueError(f"Feature '{feature}' not found in feature list")
-
-        # Calculate partial dependence
-        pd_result = partial_dependence(
-            model,
-            X,
-            features=[feature_idx],
-            kind="average",
-            grid_resolution=grid_resolution)
-
-        # Extract values
-        grid_values = pd_result["grid_values"][0]
-        avg_predictions = pd_result["average"][0]
-
-        # Build PDP points
-        pdp_values = [
-            PDPPoint(
-                feature_value=float(grid_values[i]),
-                predicted_adopted=float(avg_predictions[i]),
-                confidence_lower=None,  # Could add confidence intervals later
-                confidence_upper=None)
-            for i in range(len(grid_values))
-        ]
-
-        # Classify effect type
-        effect_type, effect_strength = self._classify_effect(list(avg_predictions))
-
-        # Calculate baseline value
-        baseline_value = float(np.mean(X[:, feature_idx]))
-
-        # Human-readable display name
-        display_name = feature.replace("_", " ").title()
-
-        return PDPResult(
-            simulation_id=simulation_id,
-            feature_name=feature,
-            feature_display_name=display_name,
-            pdp_values=pdp_values,
-            effect_type=effect_type,
-            effect_strength=effect_strength,
-            baseline_value=baseline_value)
-
-    def _classify_effect(
-        self,
-        values: list[float]) -> tuple[str, float]:
-        """
-        Classify the type of effect based on PDP values.
-
-        Args:
-            values: List of predicted values along PDP curve.
-
-        Returns:
-            Tuple of (effect_type, effect_strength).
-            Effect types: monotonic_increasing, monotonic_decreasing, non_linear, flat
-        """
-        if len(values) < 2:
-            return "flat", 0.0
-
-        values_arr = np.array(values)
-
-        # Calculate effect strength (range of predictions)
-        effect_strength = float(np.max(values_arr) - np.min(values_arr))
-
-        # Check if flat (very small range)
-        if effect_strength < 0.01:
-            return "flat", effect_strength
-
-        # Calculate differences
-        diffs = np.diff(values_arr)
-
-        # Check monotonicity
-        positive_diffs = np.sum(diffs > 0)
-        negative_diffs = np.sum(diffs < 0)
-        total_diffs = len(diffs)
-
-        # Consider monotonic if >80% of differences are in same direction
-        monotonic_threshold = 0.8
-
-        if positive_diffs / total_diffs >= monotonic_threshold:
-            return "monotonic_increasing", effect_strength
-        elif negative_diffs / total_diffs >= monotonic_threshold:
-            return "monotonic_decreasing", effect_strength
-        else:
-            return "non_linear", effect_strength
-
-    def compare_pdps(
-        self,
-        simulation_id: str,
-        outcomes: list[SynthOutcome],
-        features: list[str],
-        grid_resolution: int = 20) -> PDPComparison:
-        """
-        Compare PDPs across multiple features.
-
-        Args:
-            simulation_id: Simulation identifier.
-            outcomes: List of all SynthOutcome entities.
-            features: List of feature names to compare.
-            grid_resolution: Number of points in each PDP curve.
-
-        Returns:
-            PDPComparison with all PDPs and ranking.
-        """
-        pdp_results = []
-
-        for feature in features:
-            pdp = self.calculate_pdp(
-                simulation_id=simulation_id,
-                outcomes=outcomes,
-                feature=feature,
-                features=features,
-                grid_resolution=grid_resolution)
-            pdp_results.append(pdp)
-
-        # Rank by effect strength (descending)
-        sorted_pdps = sorted(pdp_results, key=lambda p: p.effect_strength, reverse=True)
-        feature_ranking = [p.feature_name for p in sorted_pdps]
-
-        return PDPComparison(
-            simulation_id=simulation_id,
-            pdp_results=pdp_results,
-            feature_ranking=feature_ranking,
-            total_synths=len(outcomes))
+            model_score=score,
+        )
 
     # =============================================================================
     # Router-compatible wrapper methods
@@ -544,41 +354,12 @@ class ExplainabilityService:
         simulation_id: str,
         outcomes: list[SynthOutcome],
         synth_id: str,
-        features: list[str] | None = None) -> ShapExplanation:
+        features: list[str] | None = None,
+    ) -> ShapExplanation:
         """Wrapper for explain_synth for API router compatibility."""
         return self.explain_synth(
-            simulation_id=simulation_id,
-            outcomes=outcomes,
-            synth_id=synth_id,
-            features=features)
-
-    def get_pdp(
-        self,
-        simulation_id: str,
-        outcomes: list[SynthOutcome],
-        feature: str,
-        features: list[str] | None = None,
-        grid_resolution: int = 20) -> PDPResult:
-        """Wrapper for calculate_pdp for API router compatibility."""
-        return self.calculate_pdp(
-            simulation_id=simulation_id,
-            outcomes=outcomes,
-            feature=feature,
-            features=features,
-            grid_resolution=grid_resolution)
-
-    def get_pdp_comparison(
-        self,
-        simulation_id: str,
-        outcomes: list[SynthOutcome],
-        features: list[str],
-        grid_resolution: int = 20) -> PDPComparison:
-        """Wrapper for compare_pdps for API router compatibility."""
-        return self.compare_pdps(
-            simulation_id=simulation_id,
-            outcomes=outcomes,
-            features=features,
-            grid_resolution=grid_resolution)
+            simulation_id=simulation_id, outcomes=outcomes, synth_id=synth_id, features=features
+        )
 
 
 # =============================================================================
@@ -591,7 +372,8 @@ if __name__ == "__main__":
     from synth_lab.domain.entities.simulation_attributes import (
         SimulationAttributes,
         SimulationLatentTraits,
-        SimulationObservables)
+        SimulationObservables,
+    )
 
     all_validation_failures: list[str] = []
     total_tests = 0
@@ -623,12 +405,16 @@ if __name__ == "__main__":
                         similar_tool_experience=0.5,
                         motor_ability=0.5,
                         time_availability=0.5,
-                        domain_expertise=0.5),
+                        domain_expertise=0.5,
+                    ),
                     latent_traits=SimulationLatentTraits(
                         capability_mean=capability,
                         trust_mean=trust,
                         friction_tolerance_mean=friction,
-                        exploration_prob=exploration)))
+                        exploration_prob=exploration,
+                    ),
+                ),
+            )
         )
 
     service = ExplainabilityService()
@@ -650,9 +436,8 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         explanation = service.explain_synth(
-            simulation_id="sim_test",
-            outcomes=outcomes,
-            synth_id="synth_010")
+            simulation_id="sim_test", outcomes=outcomes, synth_id="synth_010"
+        )
         if not explanation.contributions:
             all_validation_failures.append("No contributions in explanation")
         if explanation.explanation_text == "":
@@ -667,9 +452,7 @@ if __name__ == "__main__":
     # Test 3: SHAP summary
     total_tests += 1
     try:
-        summary = service.get_shap_summary(
-            simulation_id="sim_test",
-            outcomes=outcomes)
+        summary = service.get_shap_summary(simulation_id="sim_test", outcomes=outcomes)
         if not summary.feature_importances:
             all_validation_failures.append("No feature importances")
         if not summary.top_features:
@@ -679,76 +462,10 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"SHAP summary failed: {e}")
 
-    # Test 4: PDP calculation
+    # Test 4: Synth not found error
     total_tests += 1
     try:
-        pdp = service.calculate_pdp(
-            simulation_id="sim_test",
-            outcomes=outcomes,
-            feature="trust_mean")
-        if not pdp.pdp_values:
-            all_validation_failures.append("No PDP values")
-        if pdp.effect_type not in [
-            "monotonic_increasing",
-            "monotonic_decreasing",
-            "non_linear",
-            "flat",
-        ]:
-            all_validation_failures.append(f"Invalid effect type: {pdp.effect_type}")
-        else:
-            print(
-                f"Test 4 PASSED: PDP calculated, effect={pdp.effect_type}, strength={pdp.effect_strength:.3f}"
-            )
-    except Exception as e:
-        all_validation_failures.append(f"PDP calculation failed: {e}")
-
-    # Test 5: PDP comparison
-    total_tests += 1
-    try:
-        comparison = service.compare_pdps(
-            simulation_id="sim_test",
-            outcomes=outcomes,
-            features=["capability_mean", "trust_mean"])
-        if len(comparison.pdp_results) != 2:
-            all_validation_failures.append(f"Expected 2 PDPs, got {len(comparison.pdp_results)}")
-        if len(comparison.feature_ranking) != 2:
-            all_validation_failures.append(
-                f"Expected 2 in ranking, got {len(comparison.feature_ranking)}"
-            )
-        else:
-            print(f"Test 5 PASSED: PDP comparison, ranking: {comparison.feature_ranking}")
-    except Exception as e:
-        all_validation_failures.append(f"PDP comparison failed: {e}")
-
-    # Test 6: Effect classification
-    total_tests += 1
-    try:
-        # Monotonic increasing
-        effect_type, strength = service._classify_effect([0.1, 0.2, 0.3, 0.4, 0.5])
-        if effect_type != "monotonic_increasing":
-            all_validation_failures.append(f"Expected monotonic_increasing, got {effect_type}")
-
-        # Monotonic decreasing
-        effect_type, strength = service._classify_effect([0.5, 0.4, 0.3, 0.2, 0.1])
-        if effect_type != "monotonic_decreasing":
-            all_validation_failures.append(f"Expected monotonic_decreasing, got {effect_type}")
-
-        # Flat
-        effect_type, strength = service._classify_effect([0.5, 0.5, 0.5, 0.5])
-        if effect_type != "flat":
-            all_validation_failures.append(f"Expected flat, got {effect_type}")
-
-        print("Test 6 PASSED: Effect classification works correctly")
-    except Exception as e:
-        all_validation_failures.append(f"Effect classification failed: {e}")
-
-    # Test 7: Synth not found error
-    total_tests += 1
-    try:
-        service.explain_synth(
-            simulation_id="sim_test",
-            outcomes=outcomes,
-            synth_id="nonexistent")
+        service.explain_synth(simulation_id="sim_test", outcomes=outcomes, synth_id="nonexistent")
         all_validation_failures.append("Should have raised ValueError for nonexistent synth")
     except ValueError as e:
         if "not found" in str(e):

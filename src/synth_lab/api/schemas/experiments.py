@@ -72,7 +72,7 @@ class FeatureMechanismsInput(BaseModel):
         examples=[0.3],
     )
 
-    valor_intrinseco: float = Field(
+    intrinsic_value: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
@@ -80,7 +80,7 @@ class FeatureMechanismsInput(BaseModel):
         examples=[0.7],
     )
 
-    friccao_operacional: float = Field(
+    operational_friction: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
@@ -88,7 +88,7 @@ class FeatureMechanismsInput(BaseModel):
         examples=[0.4],
     )
 
-    frequencia_de_uso: float = Field(
+    frequency_of_use: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
@@ -110,9 +110,9 @@ class FeatureMechanismsOutput(BaseModel):
         description="Degree to which feature requires learning new skills."
     )
     social_visibility: float = Field(description="Degree to which usage is visible to others.")
-    valor_intrinseco: float = Field(description="Intrinsic value perceived by the user.")
-    friccao_operacional: float = Field(description="Operational friction to use the feature.")
-    frequencia_de_uso: float = Field(description="Expected frequency of use.")
+    intrinsic_value: float = Field(description="Intrinsic value perceived by the user.")
+    operational_friction: float = Field(description="Operational friction to use the feature.")
+    frequency_of_use: float = Field(description="Expected frequency of use.")
 
 
 # =============================================================================

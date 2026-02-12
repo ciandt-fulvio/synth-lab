@@ -242,7 +242,7 @@ async def list_experiments(
         tag=tag,
         sort_by=sort_by,
         sort_order=sort_order)
-    result = service.list_experiments(params)
+    result = service.list_experiments(params, user_id=current_user_id)
 
     # Convert repository summaries to API schemas
     summaries = [

@@ -11,18 +11,18 @@ modifies user adoption behavior during Monte Carlo simulations.
         trust_barrier        = institutional_trust x (1 - institutional_trust_level)
         habit_resistance     = habit_displacement x (1 - habit_plasticity)
         learning_frustration = learning_curve x (1 - digital_capability)
-        friction_burden      = friccao_operacional x (1 - friction_tolerance)
+        friction_burden      = operational_friction x (1 - friction_tolerance)
         network_barrier      = network_effect x (1 - social_dependency)
-        motor_barrier        = friccao_operacional x (1 - motor_ability)
+        motor_barrier        = operational_friction x (1 - motor_ability)
 
     Affinity barriers (mechanism x sensitivity):
         perceived_risk  = irreversibility x risk_aversion
         social_pressure = social_visibility x social_dependency
 
     Appeals (mechanism x sensitivity):
-        intrinsic_appeal  = valor_intrinseco x pragmatism
-        frequency_value   = frequencia_de_uso x pragmatism
-        domain_advantage  = valor_intrinseco x subject_domain
+        intrinsic_appeal  = intrinsic_value x pragmatism
+        frequency_value   = frequency_of_use x pragmatism
+        domain_advantage  = intrinsic_value x subject_domain
 
 References:
     - Spec: specs/040-emergent-state-expansion/spec.md
@@ -55,13 +55,13 @@ INTERACTION_PAIRS: list[tuple[str, str, str]] = [
     ("institutional_trust", "institutional_trust_level", "resistance"),
     ("habit_displacement", "habit_plasticity", "resistance"),
     ("learning_curve", "digital_capability", "resistance"),
-    ("friccao_operacional", "friction_tolerance", "resistance"),
+    ("operational_friction", "friction_tolerance", "resistance"),
     ("network_effect", "social_dependency", "resistance"),
-    ("friccao_operacional", "motor_ability", "resistance"),
+    ("operational_friction", "motor_ability", "resistance"),
     # Appeals (same formula as affinity: mech x sens)
-    ("valor_intrinseco", "pragmatism", "affinity"),
-    ("frequencia_de_uso", "pragmatism", "affinity"),
-    ("valor_intrinseco", "subject_domain", "affinity"),
+    ("intrinsic_value", "pragmatism", "affinity"),
+    ("frequency_of_use", "pragmatism", "affinity"),
+    ("intrinsic_value", "subject_domain", "affinity"),
 ]
 
 
@@ -107,14 +107,14 @@ def calculate_emergent_state(
     trust_barrier = mechanisms.institutional_trust * (1 - sensitivities.institutional_trust_level)
     habit_resistance = mechanisms.habit_displacement * (1 - sensitivities.habit_plasticity)
     learning_frustration = mechanisms.learning_curve * (1 - sensitivities.digital_capability)
-    friction_burden = mechanisms.friccao_operacional * (1 - sensitivities.friction_tolerance)
+    friction_burden = mechanisms.operational_friction * (1 - sensitivities.friction_tolerance)
     network_barrier = mechanisms.network_effect * (1 - sensitivities.social_dependency)
-    motor_barrier = mechanisms.friccao_operacional * (1 - sensitivities.motor_ability)
+    motor_barrier = mechanisms.operational_friction * (1 - sensitivities.motor_ability)
 
     # Appeals
-    intrinsic_appeal = mechanisms.valor_intrinseco * sensitivities.pragmatism
-    frequency_value = mechanisms.frequencia_de_uso * sensitivities.pragmatism
-    domain_advantage = mechanisms.valor_intrinseco * sensitivities.subject_domain
+    intrinsic_appeal = mechanisms.intrinsic_value * sensitivities.pragmatism
+    frequency_value = mechanisms.frequency_of_use * sensitivities.pragmatism
+    domain_advantage = mechanisms.intrinsic_value * sensitivities.subject_domain
 
     # Extract top 3 contributors sorted by product descending (non-zero only)
     top_contributors = _get_top_contributors(raw_interactions, top_n=3)
@@ -144,7 +144,7 @@ def _get_top_contributors(
     Extract top N interactions sorted by product value descending.
 
     Only includes non-zero contributions. Uses INTERACTION_PAIRS to correctly
-    split compound key names (e.g. "friccao_operacional_friction_tolerance").
+    split compound key names (e.g. "operational_friction_friction_tolerance").
 
     Args:
         raw_interactions: Dictionary of "mechanism_sensitivity" -> product.
@@ -199,9 +199,9 @@ if __name__ == "__main__":
             habit_displacement=0.4,
             learning_curve=0.5,
             social_visibility=0.3,
-            valor_intrinseco=0.6,
-            friccao_operacional=0.2,
-            frequencia_de_uso=0.85,
+            intrinsic_value=0.6,
+            operational_friction=0.2,
+            frequency_of_use=0.85,
         )
         sensitivities = UserSensitivities(
             risk_aversion=0.8,
@@ -312,9 +312,9 @@ if __name__ == "__main__":
             habit_displacement=1.0,
             learning_curve=1.0,
             social_visibility=1.0,
-            valor_intrinseco=1.0,
-            friccao_operacional=1.0,
-            frequencia_de_uso=1.0,
+            intrinsic_value=1.0,
+            operational_friction=1.0,
+            frequency_of_use=1.0,
         )
         sensitivities = UserSensitivities(
             risk_aversion=1.0,
@@ -361,7 +361,7 @@ if __name__ == "__main__":
     try:
         mechanisms = FeatureMechanisms(
             irreversibility=0.9,  # 0.9 x 0.9 = 0.81
-            valor_intrinseco=0.8,  # 0.8 x 0.7 = 0.56
+            intrinsic_value=0.8,  # 0.8 x 0.7 = 0.56
             network_effect=0.5,  # 0.5 x (1 - 0.2) = 0.40
             habit_displacement=0.3,  # 0.3 x (1 - 0.5) = 0.15
             social_visibility=0.1,  # 0.1 x 0.2 = 0.02
@@ -398,10 +398,10 @@ if __name__ == "__main__":
                     f"got {state.top_contributors[0].product}"
                 )
 
-            # Second should be valor_intrinseco x pragmatism = 0.56
-            if state.top_contributors[1].mechanism != "valor_intrinseco":
+            # Second should be intrinsic_value x pragmatism = 0.56
+            if state.top_contributors[1].mechanism != "intrinsic_value":
                 all_validation_failures.append(
-                    f"Second contributor mechanism: expected 'valor_intrinseco', "
+                    f"Second contributor mechanism: expected 'intrinsic_value', "
                     f"got '{state.top_contributors[1].mechanism}'"
                 )
     except Exception as e:
@@ -410,7 +410,7 @@ if __name__ == "__main__":
     # Test 5: raw_interactions has exactly 9 keys
     total_tests += 1
     try:
-        mechanisms = FeatureMechanisms(irreversibility=0.5, valor_intrinseco=0.3)
+        mechanisms = FeatureMechanisms(irreversibility=0.5, intrinsic_value=0.3)
         sensitivities = UserSensitivities()
         state = calculate_emergent_state(mechanisms, sensitivities)
 
@@ -420,12 +420,12 @@ if __name__ == "__main__":
             "institutional_trust_institutional_trust_level",
             "habit_displacement_habit_plasticity",
             "learning_curve_digital_capability",
-            "friccao_operacional_friction_tolerance",
+            "operational_friction_friction_tolerance",
             "network_effect_social_dependency",
-            "friccao_operacional_motor_ability",
-            "valor_intrinseco_pragmatism",
-            "frequencia_de_uso_pragmatism",
-            "valor_intrinseco_subject_domain",
+            "operational_friction_motor_ability",
+            "intrinsic_value_pragmatism",
+            "frequency_of_use_pragmatism",
+            "intrinsic_value_subject_domain",
         }
         actual_keys = set(state.raw_interactions.keys())
 
@@ -450,11 +450,11 @@ if __name__ == "__main__":
             institutional_trust=1.0,
             habit_displacement=1.0,
             learning_curve=1.0,
-            friccao_operacional=1.0,
+            operational_friction=1.0,
             network_effect=1.0,
             social_visibility=1.0,
-            valor_intrinseco=1.0,
-            frequencia_de_uso=1.0,
+            intrinsic_value=1.0,
+            frequency_of_use=1.0,
         )
         sensitivities = UserSensitivities()  # All defaults (0.5)
         state = calculate_emergent_state(mechanisms, sensitivities)

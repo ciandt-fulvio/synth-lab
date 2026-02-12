@@ -1,7 +1,8 @@
 /**
- * T026 SynthGroupList component - Enhanced UI.
+ * SynthGroupList component.
  *
- * Grid list of synth group cards with staggered animations and improved states.
+ * Grid list of synth group cards with staggered animations.
+ * Cards navigate to the group detail page on click.
  *
  * References:
  *   - Spec: specs/030-custom-synth-groups/spec.md (US2)
@@ -17,9 +18,6 @@ import type { SynthGroupSummary } from '@/types/synthGroup';
 
 interface SynthGroupListProps {
   groups: SynthGroupSummary[];
-  selectedId?: string;
-  onSelect: (groupId: string) => void;
-  onViewDetails?: (groupId: string) => void;
   isLoading?: boolean;
   onCreateClick?: () => void;
 }
@@ -47,7 +45,6 @@ function LoadingSkeleton() {
           <Skeleton className="h-4 w-3/4 mb-4" />
           <div className="flex items-center justify-between mt-4">
             <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-7 w-20 rounded-lg" />
           </div>
         </Card>
       ))}
@@ -80,9 +77,6 @@ function EmptyState({ onCreateClick }: { onCreateClick?: () => void }) {
 
 export function SynthGroupList({
   groups,
-  selectedId,
-  onSelect,
-  onViewDetails,
   isLoading = false,
   onCreateClick,
 }: SynthGroupListProps) {
@@ -113,12 +107,7 @@ export function SynthGroupList({
             animationFillMode: 'backwards',
           }}
         >
-          <SynthGroupCard
-            group={group}
-            onClick={onSelect}
-            onViewDetails={onViewDetails}
-            isSelected={selectedId === group.id}
-          />
+          <SynthGroupCard group={group} />
         </div>
       ))}
     </div>

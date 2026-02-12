@@ -65,16 +65,7 @@ class CacheKeys:
     SCATTER = "scatter"
     CORRELATIONS = "correlations"
 
-    # Phase 3: Segmentation (dynamic - clustering_k{n})
-    @staticmethod
-    def clustering(k: int) -> str:
-        return f"clustering_k{k}"
-
-    ELBOW = "elbow"
-    PCA_SCATTER = "pca_scatter"
-    RADAR_COMPARISON = "radar_comparison"
-
-    # Phase 4: Edge Cases
+    # Phase 3: Edge Cases
     EXTREME_CASES = "extreme_cases"
     OUTLIERS = "outliers"
 
@@ -83,9 +74,6 @@ class CacheKeys:
 
     # AI-Generated Insights (Individual Charts)
     INSIGHT_SHAP_SUMMARY = "insight_shap_summary"
-    INSIGHT_PDP = "insight_pdp"
-    INSIGHT_PCA_SCATTER = "insight_pca_scatter"
-    INSIGHT_RADAR_COMPARISON = "insight_radar_comparison"
     INSIGHT_EXTREME_CASES = "insight_extreme_cases"
     INSIGHT_OUTLIERS = "insight_outliers"
 
@@ -130,16 +118,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Create with params failed: {e}")
 
-    # Test 3: CacheKeys helper
-    total_tests += 1
-    try:
-        key = CacheKeys.clustering(5)
-        if key != "clustering_k5":
-            all_validation_failures.append(f"clustering key mismatch: {key}")
-    except Exception as e:
-        all_validation_failures.append(f"CacheKeys helper failed: {e}")
-
-    # Test 4: Invalid analysis_id format
+    # Test 3: Invalid analysis_id format
     total_tests += 1
     try:
         AnalysisCache(

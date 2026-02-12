@@ -38,12 +38,22 @@ function OutlierCard({ outlier, onClick, isSelected }: OutlierCardProps) {
       }`}
     >
       <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-amber-500" />
-          <span className="text-xs font-mono text-slate-600 truncate max-w-32">
-            {outlier.synth_id.substring(0, 12)}...
-          </span>
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            <span className="text-sm font-medium text-slate-800 truncate max-w-40">
+              {outlier.synth_name || outlier.synth_id.substring(0, 8)}
+            </span>
+          </div>
+          {outlier.synth_name && (
+            <span className="text-xs font-mono text-slate-400 truncate max-w-40 ml-6">
+              {outlier.synth_id}
+            </span>
+          )}
         </div>
+        <span className="text-sm font-bold text-amber-600">
+          {(outlier.adopted_rate * 100).toFixed(0)}%
+        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-xs mb-2">
@@ -57,7 +67,7 @@ function OutlierCard({ outlier, onClick, isSelected }: OutlierCardProps) {
         </div>
       </div>
 
-      <p className="text-xs text-slate-600 italic">
+      <p className="text-xs text-slate-600 leading-relaxed">
         {outlier.explanation}
       </p>
     </button>

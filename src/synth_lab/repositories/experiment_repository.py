@@ -124,31 +124,51 @@ session: Session | None = None):
             return None
         return self._orm_to_experiment(result)
 
-    def list_experiments(self, params: PaginationParams) -> PaginatedResponse[ExperimentSummary]:
+    def list_experiments(
+        self, params: PaginationParams, user_id: str | None = None
+    ) -> PaginatedResponse[ExperimentSummary]:
         """
         List experiments with pagination.
 
         Only returns active experiments (not soft-deleted).
+        When user_id is provided, only returns experiments owned by or shared with the user.
 
         Args:
             params: Pagination parameters.
+            user_id: If provided, filter to experiments the user can access.
 
         Returns:
             Paginated response with experiment summaries.
         """
-        return self._list_experiments_orm(params)
+        return self._list_experiments_orm(params, user_id=user_id)
 
-    def _list_experiments_orm(self, params: PaginationParams) -> PaginatedResponse[ExperimentSummary]:
+    def _list_experiments_orm(
+        self, params: PaginationParams, user_id: str | None = None
+    ) -> PaginatedResponse[ExperimentSummary]:
         """List experiments using ORM with eager-loaded relationships."""
         from sqlalchemy import func as sqlfunc, or_
         from sqlalchemy.orm import joinedload
         from synth_lab.models.orm.tag import ExperimentTag as ExperimentTagORM, Tag as TagORM
+        from synth_lab.models.orm.share import ExperimentShare as ExperimentShareORM
 
         # Base query for active experiments with eager-loaded synth_group
         stmt = select(ExperimentORM).where(ExperimentORM.status == "active").options(
             joinedload(ExperimentORM.synth_group)
         )
         count_where = [ExperimentORM.status == "active"]
+
+        # Filter by user access (ownership or shares)
+        if user_id:
+            access_filter = or_(
+                ExperimentORM.owner_id == user_id,
+                ExperimentORM.id.in_(
+                    select(ExperimentShareORM.experiment_id).where(
+                        ExperimentShareORM.user_id == user_id
+                    )
+                ),
+            )
+            stmt = stmt.where(access_filter)
+            count_where.append(access_filter)
 
         # Apply tag filter
         if params.tag:

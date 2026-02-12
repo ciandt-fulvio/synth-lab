@@ -13,6 +13,7 @@ import { queryKeys } from '@/lib/query-keys';
 import {
   listSynthGroups,
   getSynthGroup,
+  getSynthGroupStatistics,
   createSynthGroup,
   deleteSynthGroup,
   createSynthGroupWithConfig,
@@ -37,6 +38,17 @@ export function useSynthGroup(id: string) {
   return useQuery({
     queryKey: queryKeys.synthGroupDetail(id),
     queryFn: () => getSynthGroup(id),
+    enabled: !!id,
+  });
+}
+
+/**
+ * Hook to fetch synth group statistics (histograms).
+ */
+export function useSynthGroupStatistics(id: string) {
+  return useQuery({
+    queryKey: queryKeys.synthGroupStatistics(id),
+    queryFn: () => getSynthGroupStatistics(id),
     enabled: !!id,
   });
 }

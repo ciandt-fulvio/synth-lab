@@ -9,6 +9,7 @@ References:
     - ORM models: synth_lab.models.orm.synth
 """
 
+import math
 from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field
@@ -16,6 +17,15 @@ from sqlalchemy import func as sqlfunc
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from synth_lab.api.schemas.synth_group_stats import (
+    CategoryCount,
+    DemographicStats,
+    DisabilityStats,
+    HistogramBucket,
+    HistogramData,
+    SensitivityStats,
+    SynthGroupStatistics,
+)
 from synth_lab.domain.entities.synth_group import (
     DEFAULT_SYNTH_GROUP_DESCRIPTION,
     DEFAULT_SYNTH_GROUP_ID,
@@ -228,18 +238,41 @@ class SynthGroupRepository(BaseRepository):
             synths=synths,
         )
 
-    def list_groups(self, params: PaginationParams) -> PaginatedResponse[SynthGroupSummary]:
+    def list_groups(
+        self, params: PaginationParams, user_id: str | None = None
+    ) -> PaginatedResponse[SynthGroupSummary]:
         """
         List synth groups with pagination.
 
+        When user_id is provided, only returns groups owned by or shared with the user.
+
         Args:
             params: Pagination parameters.
+            user_id: If provided, filter to groups the user can access.
 
         Returns:
             Paginated response with synth group summaries.
         """
+        from sqlalchemy import or_
+        from synth_lab.models.orm.share import SynthGroupShare as SynthGroupShareORM
+
         stmt = select(SynthGroupORM).order_by(SynthGroupORM.created_at.desc())
-        count_stmt = select(sqlfunc.count()).select_from(SynthGroupORM)
+        count_base = select(SynthGroupORM)
+
+        # Filter by user access (ownership or shares)
+        if user_id:
+            access_filter = or_(
+                SynthGroupORM.owner_id == user_id,
+                SynthGroupORM.id.in_(
+                    select(SynthGroupShareORM.synth_group_id).where(
+                        SynthGroupShareORM.user_id == user_id
+                    )
+                ),
+            )
+            stmt = stmt.where(access_filter)
+            count_base = count_base.where(access_filter)
+
+        count_stmt = select(sqlfunc.count()).select_from(count_base.subquery())
         total = self.session.execute(count_stmt).scalar() or 0
 
         stmt = stmt.limit(params.limit).offset(params.offset)
@@ -273,6 +306,188 @@ class SynthGroupRepository(BaseRepository):
         self._flush()
         self._commit()
         return True
+
+    def get_statistics(self, group_id: str) -> SynthGroupStatistics | None:
+        """
+        Compute aggregate statistics for a synth group.
+
+        Extracts demographics and sensitivities from the JSONB data column
+        and computes histogram buckets, means, and standard deviations.
+
+        Args:
+            group_id: Synth group ID.
+
+        Returns:
+            SynthGroupStatistics if group exists, None otherwise.
+        """
+        orm_group = self.session.get(SynthGroupORM, group_id)
+        if orm_group is None:
+            return None
+
+        # Get all synths data for this group
+        stmt = select(SynthORM.data).where(
+            SynthORM.synth_group_id == group_id,
+            SynthORM.data.isnot(None),
+        )
+        rows = list(self.session.execute(stmt).scalars().all())
+        total = len(rows)
+
+        if total == 0:
+            return SynthGroupStatistics(group_id=group_id, total_synths=0)
+
+        # Extract raw values
+        ages: list[float] = []
+        incomes: list[float] = []
+        education_counts: dict[str, int] = {}
+        family_counts: dict[str, int] = {}
+        pcd_count = 0
+        sensitivity_values: dict[str, list[float]] = {}
+
+        for data in rows:
+            if not isinstance(data, dict):
+                continue
+
+            demo = data.get("demografia", {})
+            if demo:
+                age = demo.get("idade")
+                if age is not None:
+                    ages.append(float(age))
+
+                income = demo.get("renda_mensal")
+                if income is not None:
+                    incomes.append(float(income))
+
+                edu = demo.get("escolaridade")
+                if edu:
+                    education_counts[edu] = education_counts.get(edu, 0) + 1
+
+                family = demo.get("composicao_familiar", {})
+                family_type = family.get("tipo") if isinstance(family, dict) else None
+                if family_type:
+                    family_counts[family_type] = family_counts.get(family_type, 0) + 1
+
+            # Check disability (any non-zero severity)
+            deficiencias = data.get("deficiencias", {})
+            if deficiencias and isinstance(deficiencias, dict):
+                has_disability = False
+                for def_type in ["visual", "auditiva", "motora", "cognitiva"]:
+                    def_data = deficiencias.get(def_type, {})
+                    if isinstance(def_data, dict):
+                        tipo = def_data.get("tipo", "nenhuma")
+                        if tipo and tipo != "nenhuma":
+                            has_disability = True
+                            break
+                if has_disability:
+                    pcd_count += 1
+
+            # Sensitivities
+            sensitivities = data.get("sensitivities", {})
+            if sensitivities and isinstance(sensitivities, dict):
+                for key, val in sensitivities.items():
+                    if isinstance(val, (int, float)):
+                        sensitivity_values.setdefault(key, []).append(float(val))
+
+        # Build demographic stats
+        demographics = DemographicStats(
+            age=self._build_age_histogram(ages, total),
+            income=self._build_income_histogram(incomes, total),
+            education=self._build_category_counts(education_counts, total),
+            family_composition=self._build_category_counts(family_counts, total),
+            disability=DisabilityStats(
+                pcd_count=pcd_count,
+                pcd_percentage=round(pcd_count / total * 100, 1) if total > 0 else 0.0,
+                non_pcd_count=total - pcd_count,
+                non_pcd_percentage=(
+                    round((total - pcd_count) / total * 100, 1) if total > 0 else 0.0
+                ),
+            ),
+        )
+
+        # Build sensitivity stats
+        sens_distributions: dict[str, HistogramData] = {}
+        for key, values in sensitivity_values.items():
+            sens_distributions[key] = self._build_sensitivity_histogram(values, total)
+
+        return SynthGroupStatistics(
+            group_id=group_id,
+            total_synths=total,
+            demographics=demographics,
+            sensitivities=SensitivityStats(distributions=sens_distributions),
+        )
+
+    @staticmethod
+    def _compute_stats(values: list[float]) -> tuple[float, float]:
+        """Compute mean and standard deviation for a list of values."""
+        if not values:
+            return 0.0, 0.0
+        mean = sum(values) / len(values)
+        if len(values) < 2:
+            return round(mean, 2), 0.0
+        variance = sum((v - mean) ** 2 for v in values) / len(values)
+        return round(mean, 2), round(math.sqrt(variance), 2)
+
+    @staticmethod
+    def _build_age_histogram(ages: list[float], total: int) -> HistogramData:
+        """Build age histogram with predefined buckets."""
+        buckets_def = [
+            ("15-29", 15, 30),
+            ("30-44", 30, 45),
+            ("45-59", 45, 60),
+            ("60+", 60, 200),
+        ]
+        buckets: list[HistogramBucket] = []
+        for label, low, high in buckets_def:
+            count = sum(1 for a in ages if low <= a < high)
+            pct = round(count / total * 100, 1) if total > 0 else 0.0
+            buckets.append(HistogramBucket(label=label, count=count, percentage=pct))
+
+        mean, std = SynthGroupRepository._compute_stats(ages)
+        return HistogramData(buckets=buckets, mean=mean, std_dev=std)
+
+    @staticmethod
+    def _build_income_histogram(incomes: list[float], total: int) -> HistogramData:
+        """Build income histogram with predefined buckets."""
+        buckets_def = [
+            ("0-1k", 0, 1000),
+            ("1k-3k", 1000, 3000),
+            ("3k-5k", 3000, 5000),
+            ("5k-10k", 5000, 10000),
+            ("10k+", 10000, float("inf")),
+        ]
+        buckets: list[HistogramBucket] = []
+        for label, low, high in buckets_def:
+            count = sum(1 for i in incomes if low <= i < high)
+            pct = round(count / total * 100, 1) if total > 0 else 0.0
+            buckets.append(HistogramBucket(label=label, count=count, percentage=pct))
+
+        mean, std = SynthGroupRepository._compute_stats(incomes)
+        return HistogramData(buckets=buckets, mean=mean, std_dev=std)
+
+    @staticmethod
+    def _build_category_counts(counts: dict[str, int], total: int) -> list[CategoryCount]:
+        """Build category counts sorted by count descending."""
+        result = []
+        for label, count in sorted(counts.items(), key=lambda x: -x[1]):
+            pct = round(count / total * 100, 1) if total > 0 else 0.0
+            result.append(CategoryCount(label=label, count=count, percentage=pct))
+        return result
+
+    @staticmethod
+    def _build_sensitivity_histogram(values: list[float], total: int) -> HistogramData:
+        """Build sensitivity histogram with 0.05-width buckets in [0, 1] range."""
+        buckets: list[HistogramBucket] = []
+        step = 0.05
+        for i in range(20):
+            low = round(i * step, 2)
+            high = round((i + 1) * step, 2)
+            upper = high if i < 19 else 1.01  # inclusive upper for last bucket
+            count = sum(1 for v in values if low <= v < upper)
+            pct = round(count / total * 100, 1) if total > 0 else 0.0
+            label = f"{low:.2f}"
+            buckets.append(HistogramBucket(label=label, count=count, percentage=pct))
+
+        mean, std = SynthGroupRepository._compute_stats(values)
+        return HistogramData(buckets=buckets, mean=mean, std_dev=std)
 
     def _row_to_summary(self, row) -> SynthGroupSummary:
         """Convert a database row to SynthGroupSummary."""

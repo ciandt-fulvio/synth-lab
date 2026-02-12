@@ -4,22 +4,16 @@
 // Phase containers
 export { PhaseOverview } from './PhaseOverview';
 export { PhaseLocation } from './PhaseLocation';
-export { PhaseSegmentation } from './PhaseSegmentation';
 export { PhaseEdgeCases } from './PhaseEdgeCases';
 
-// Section components (Phase 2: Influência - moved from Phase 5)
+// Section components (Phase 2: Influência)
 export { ShapSummarySection } from './ShapSummarySection';
-export { PDPSection } from './PDPSection';
 
 // Section components (Legacy - keeping for now)
 export { HeatmapSection } from './HeatmapSection';
 export { BoxPlotSection } from './BoxPlotSection';
 
-// Section components (Phase 3: Segmentation)
-export { ElbowSection } from './ElbowSection';
-export { RadarSection } from './RadarSection';
-
-// Section components (Phase 4: Edge Cases)
+// Section components (Phase 3: Edge Cases)
 export { ExtremeCasesSection } from './ExtremeCasesSection';
 export { OutliersSection } from './OutliersSection';
 export { ShapWaterfallSection } from './ShapWaterfallSection';

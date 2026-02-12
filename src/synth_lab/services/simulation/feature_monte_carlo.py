@@ -16,7 +16,7 @@ Sample usage:
     from synth_lab.services.simulation.feature_monte_carlo import run_simulation
     from synth_lab.domain.entities.feature_mechanisms import FeatureMechanisms
 
-    mechanisms = FeatureMechanisms(irreversibility=0.8, valor_intrinseco=0.9)
+    mechanisms = FeatureMechanisms(irreversibility=0.8, intrinsic_value=0.9)
     synths = [{"id": "s1", "sensitivities": {"risk_aversion": 0.7, ...}}, ...]
     results = run_simulation(synths, mechanisms, n_executions=100, seed=42)
 
@@ -50,9 +50,9 @@ _MECHANISM_FIELDS: list[str] = [
     "habit_displacement",
     "learning_curve",
     "social_visibility",
-    "valor_intrinseco",
-    "friccao_operacional",
-    "frequencia_de_uso",
+    "intrinsic_value",
+    "operational_friction",
+    "frequency_of_use",
 ]
 
 # 9 sensitivity field names (excluding _meta).
@@ -402,9 +402,9 @@ if __name__ == "__main__":
             habit_displacement=0.5,
             learning_curve=0.6,
             social_visibility=0.3,
-            valor_intrinseco=0.8,
-            friccao_operacional=0.4,
-            frequencia_de_uso=0.7,
+            intrinsic_value=0.8,
+            operational_friction=0.4,
+            frequency_of_use=0.7,
         )
         results = run_simulation([young, elderly], mechs, n_executions=500, seed=42)
 
@@ -444,7 +444,7 @@ if __name__ == "__main__":
     _total += 1
     try:
         rs = [{"id": "repro", "sensitivities": _sens(ra=0.6, sd=0.4, pr=0.6, dc=0.7)}]
-        rm = FeatureMechanisms(irreversibility=0.5, valor_intrinseco=0.8)
+        rm = FeatureMechanisms(irreversibility=0.5, intrinsic_value=0.8)
         r1 = run_simulation(rs, rm, n_executions=200, seed=99)
         r2 = run_simulation(rs, rm, n_executions=200, seed=99)
         a1, a2 = r1.outcomes[0].adoption_rate, r2.outcomes[0].adoption_rate

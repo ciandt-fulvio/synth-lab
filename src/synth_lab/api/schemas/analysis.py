@@ -90,58 +90,6 @@ class ShapParams(BaseModel):
     )
 
 
-class PDPParams(BaseModel):
-    """Query parameters for Partial Dependence Plot."""
-
-    feature: str = Field(description="Feature to analyze.")
-    grid_resolution: int = Field(default=20, ge=5, le=100, description="Number of grid points.")
-
-
-class PDPComparisonParams(BaseModel):
-    """Query parameters for PDP Comparison."""
-
-    features: str = Field(description="Comma-separated list of features to compare.")
-
-
-class DendrogramParams(BaseModel):
-    """Query parameters for Dendrogram visualization."""
-
-    max_depth: int = Field(default=5, ge=1, le=20, description="Maximum tree depth to show.")
-    truncate_mode: Literal["level", "lastp", "none"] = Field(
-        default="level", description="Truncation mode for visualization."
-    )
-    color_threshold: float | None = Field(
-        default=None, description="Distance threshold for coloring."
-    )
-
-
-# =============================================================================
-# Request Bodies for POST endpoints
-# =============================================================================
-
-
-class ClusterRequest(BaseModel):
-    """Request body for creating clustering."""
-
-    method: Literal["kmeans", "hierarchical"] = Field(
-        default="kmeans", description="Clustering method."
-    )
-    n_clusters: int = Field(default=4, ge=2, le=20, description="Number of clusters for K-Means.")
-    features: list[str] | None = Field(
-        default=None, description="Features to use. None = all latent traits."
-    )
-    include_outcomes: bool = Field(
-        default=False, description="Include outcome rates in clustering features."
-    )
-    linkage: str = Field(default="ward", description="Linkage method for hierarchical clustering.")
-
-
-class CutDendrogramRequest(BaseModel):
-    """Request body for cutting dendrogram."""
-
-    n_clusters: int = Field(ge=2, le=50, description="Number of clusters to cut into.")
-
-
 # =============================================================================
 # Mechanism Explanation Schemas (038-mechanism-based-simulation)
 # =============================================================================
@@ -238,34 +186,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"HeatmapParams creation failed: {e}")
 
-    # Test 3: ClusterRequest defaults
-    total_tests += 1
-    try:
-        req = ClusterRequest()
-        if req.method != "kmeans" or req.n_clusters != 4:
-            all_validation_failures.append("ClusterRequest defaults incorrect")
-    except Exception as e:
-        all_validation_failures.append(f"ClusterRequest creation failed: {e}")
-
-    # Test 4: ClusterRequest with hierarchical
-    total_tests += 1
-    try:
-        req = ClusterRequest(method="hierarchical", linkage="complete")
-        if req.linkage != "complete":
-            all_validation_failures.append(f"linkage mismatch: {req.linkage}")
-    except Exception as e:
-        all_validation_failures.append(f"ClusterRequest hierarchical failed: {e}")
-
-    # Test 5: CutDendrogramRequest
-    total_tests += 1
-    try:
-        req = CutDendrogramRequest(n_clusters=5)
-        if req.n_clusters != 5:
-            all_validation_failures.append(f"n_clusters mismatch: {req.n_clusters}")
-    except Exception as e:
-        all_validation_failures.append(f"CutDendrogramRequest creation failed: {e}")
-
-    # Test 6: Reject invalid contamination
+    # Test 3: Reject invalid contamination
     total_tests += 1
     try:
         OutliersParams(contamination=0.6)  # > 0.5
@@ -275,17 +196,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Unexpected error for invalid contamination: {e}")
 
-    # Test 7: Reject n_clusters < 2
-    total_tests += 1
-    try:
-        ClusterRequest(n_clusters=1)
-        all_validation_failures.append("Should reject n_clusters < 2")
-    except ValueError:
-        pass  # Expected
-    except Exception as e:
-        all_validation_failures.append(f"Unexpected error for invalid n_clusters: {e}")
-
-    # Test 8: ExplainSegmentRequest with synth_ids
+    # Test 4: ExplainSegmentRequest with synth_ids
     total_tests += 1
     try:
         req = ExplainSegmentRequest(synth_ids=["synth_1", "synth_2"])

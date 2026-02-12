@@ -11,19 +11,20 @@ References:
 
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query, status, Request, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from synth_lab.api.schemas.synth_group_stats import SynthGroupStatistics
 from synth_lab.api.schemas.synth_groups import (
     CreateSynthGroupRequest,
     SynthGroupCreateResponse,
 )
+from synth_lab.infrastructure.database_v2 import get_db_session
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.repositories.synth_group_repository import SynthGroupSummary
-from synth_lab.services.synth_group_service import SynthGroupService
-from synth_lab.infrastructure.database_v2 import get_db_session
 from synth_lab.services.permission_service import PermissionService
+from synth_lab.services.synth_group_service import SynthGroupService
 
 router = APIRouter()
 
@@ -198,7 +199,7 @@ async def list_synth_groups(
     """
     service = get_synth_group_service()
     params = PaginationParams(limit=limit, offset=offset, sort_by="created_at", sort_order="desc")
-    return service.list_groups(params)
+    return service.list_groups(params, user_id=current_user_id)
 
 
 @router.get("/{group_id}", response_model=SynthGroupDetailResponse)
@@ -250,6 +251,34 @@ async def get_synth_group(
         config=detail.config,
         synths=synths,
     )
+
+
+@router.get("/{group_id}/statistics", response_model=SynthGroupStatistics)
+async def get_synth_group_statistics(
+    group_id: str,
+    current_user_id: str = Depends(get_current_user_id),
+    permission_service: PermissionService = Depends(get_permission_service),
+) -> SynthGroupStatistics:
+    """
+    Get aggregate statistics for a synth group.
+
+    Returns pre-computed histogram buckets for demographics and sensitivities.
+    """
+    service = get_synth_group_service()
+    stats = service.get_group_statistics(group_id)
+    if stats is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Synth group {group_id} not found"
+        )
+
+    has_access = permission_service.can_access_synth_group(current_user_id, group_id)
+    if not has_access:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this synth group",
+        )
+
+    return stats
 
 
 @router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)

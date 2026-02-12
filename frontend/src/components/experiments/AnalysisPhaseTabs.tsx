@@ -12,7 +12,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   TrendingUp,
   PieChart,
-  Users,
   UserCheck,
   ChevronRight,
   Play,
@@ -33,7 +32,6 @@ export interface AnalysisPhase {
 export type AnalysisPhaseId =
   | 'visao-geral'
   | 'localizacao'
-  | 'segmentacao'
   | 'casos-especiais';
 
 export const ANALYSIS_PHASES: AnalysisPhase[] = [
@@ -54,15 +52,6 @@ export const ANALYSIS_PHASES: AnalysisPhase[] = [
     question: 'Quais características dos usuários mais influenciam o resultado?',
     description:
       'Analisa correlações entre atributos dos synths e taxas de sucesso ou falha. Revela quais características importam mais para prever comportamento.',
-  },
-  {
-    id: 'segmentacao',
-    title: 'Segmentação',
-    shortTitle: 'Segmentos',
-    icon: <Users className="w-4 h-4" />,
-    question: 'Que tipos de usuários seguem comportamentos distintos?',
-    description:
-      'Agrupa usuários por padrões de comportamento. Identifica perfis que performam melhor ou pior.',
   },
   {
     id: 'casos-especiais',
@@ -149,14 +138,14 @@ export function AnalysisPhaseTabs({
                 Análise Quantitativa
               </h3>
               <p className="text-sm text-slate-500">
-                4 fases de investigação
+                3 fases de investigação
               </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             {actions}
             <div className="text-xs text-slate-400 font-medium">
-              Fase {currentIndex + 1} de 4
+              Fase {currentIndex + 1} de 3
             </div>
           </div>
         </div>
