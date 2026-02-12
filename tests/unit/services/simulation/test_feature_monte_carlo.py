@@ -114,9 +114,9 @@ class TestSampleMechanisms:
             habit_displacement=0.4,
             learning_curve=0.6,
             social_visibility=0.2,
-            valor_intrinseco=0.8,
-            friccao_operacional=0.35,
-            frequencia_de_uso=0.65,
+            intrinsic_value=0.8,
+            operational_friction=0.35,
+            frequency_of_use=0.65,
         )
         sampled = _sample_mechanisms(mechanisms, rng)
 
@@ -131,7 +131,7 @@ class TestSampleMechanisms:
         mechanisms = FeatureMechanisms(
             irreversibility=0.5,
             network_effect=0.7,
-            valor_intrinseco=0.3,
+            intrinsic_value=0.3,
         )
 
         rng_a = np.random.default_rng(99)
@@ -317,7 +317,7 @@ class TestRunSimulation:
             {"id": "s1", "sensitivities": _make_sensitivities_dict()},
             {"id": "s2", "sensitivities": _make_sensitivities_dict(ra=0.7)},
         ]
-        mechanisms = FeatureMechanisms(irreversibility=0.5, valor_intrinseco=0.6)
+        mechanisms = FeatureMechanisms(irreversibility=0.5, intrinsic_value=0.6)
 
         results = run_simulation(synths, mechanisms, n_executions=100, seed=42)
 
@@ -334,7 +334,7 @@ class TestRunSimulation:
         synths = [
             {"id": "repro", "sensitivities": _make_sensitivities_dict(ra=0.6, dc=0.7)},
         ]
-        mechanisms = FeatureMechanisms(irreversibility=0.5, valor_intrinseco=0.8)
+        mechanisms = FeatureMechanisms(irreversibility=0.5, intrinsic_value=0.8)
 
         r1 = run_simulation(synths, mechanisms, n_executions=200, seed=99)
         r2 = run_simulation(synths, mechanisms, n_executions=200, seed=99)
@@ -352,7 +352,7 @@ class TestRunSimulation:
         mechanisms = FeatureMechanisms(
             irreversibility=0.7,
             learning_curve=0.6,
-            valor_intrinseco=0.8,
+            intrinsic_value=0.8,
         )
 
         results = run_simulation(synths, mechanisms, n_executions=100, seed=42)
@@ -392,9 +392,9 @@ class TestRunSimulation:
             habit_displacement=0.5,
             learning_curve=0.6,
             social_visibility=0.3,
-            valor_intrinseco=0.8,
-            friccao_operacional=0.4,
-            frequencia_de_uso=0.7,
+            intrinsic_value=0.8,
+            operational_friction=0.4,
+            frequency_of_use=0.7,
         )
 
         results = run_simulation(

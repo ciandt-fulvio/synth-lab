@@ -7,7 +7,7 @@ from synth_lab.domain.entities.feature_mechanisms import FeatureMechanisms, ALL_
 ALL_MECHANISM_KEYS = [
     "irreversibility", "network_effect", "institutional_trust",
     "habit_displacement", "learning_curve", "social_visibility",
-    "valor_intrinseco", "friccao_operacional", "frequencia_de_uso",
+    "intrinsic_value", "operational_friction", "frequency_of_use",
 ]
 ORIGINAL_6 = ALL_MECHANISM_KEYS[:6]
 NEW_3 = ALL_MECHANISM_KEYS[6:]
@@ -83,13 +83,13 @@ class TestHasAnyMechanism:
 
 class TestModelDump:
     def test_dump_has_all_9_keys(self):
-        m = FeatureMechanisms(irreversibility=0.9, valor_intrinseco=0.6)
+        m = FeatureMechanisms(irreversibility=0.9, intrinsic_value=0.6)
         dump = m.model_dump()
         assert set(dump.keys()) == set(ALL_MECHANISM_KEYS)
 
     def test_dump_preserves_values(self):
-        m = FeatureMechanisms(irreversibility=0.9, valor_intrinseco=0.6)
+        m = FeatureMechanisms(irreversibility=0.9, intrinsic_value=0.6)
         dump = m.model_dump()
         assert dump["irreversibility"] == 0.9
-        assert dump["valor_intrinseco"] == 0.6
+        assert dump["intrinsic_value"] == 0.6
         assert dump["network_effect"] == 0.0

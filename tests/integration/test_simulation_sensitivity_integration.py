@@ -83,9 +83,9 @@ class TestSimulationSensitivityIntegration:
             habit_displacement=0.5,
             learning_curve=0.6,
             social_visibility=0.3,
-            valor_intrinseco=0.8,
-            friccao_operacional=0.4,
-            frequencia_de_uso=0.7,
+            intrinsic_value=0.8,
+            operational_friction=0.4,
+            frequency_of_use=0.7,
         )
 
         results = run_simulation(
@@ -148,7 +148,7 @@ class TestSimulationSensitivityIntegration:
 
         mechanisms = FeatureMechanisms(
             irreversibility=0.5,
-            valor_intrinseco=0.7,
+            intrinsic_value=0.7,
             learning_curve=0.4,
         )
 
@@ -173,7 +173,7 @@ class TestSimulationSensitivityIntegration:
         Derives sensitivities for a known demographic profile, then manually
         verifies that:
         - perceived_risk == irreversibility x risk_aversion
-        - intrinsic_appeal == valor_intrinseco x pragmatism
+        - intrinsic_appeal == intrinsic_value x pragmatism
         """
         synth = {
             "id": "test",
@@ -191,7 +191,7 @@ class TestSimulationSensitivityIntegration:
 
         mechanisms = FeatureMechanisms(
             irreversibility=0.8,
-            valor_intrinseco=0.7,
+            intrinsic_value=0.7,
         )
 
         state = calculate_emergent_state(mechanisms, sensitivities)
@@ -203,7 +203,7 @@ class TestSimulationSensitivityIntegration:
             f"Formula: irreversibility(0.8) x risk_aversion({derived['risk_aversion']})"
         )
 
-        # intrinsic_appeal = valor_intrinseco x pragmatism (appeal formula)
+        # intrinsic_appeal = intrinsic_value x pragmatism (appeal formula)
         expected_intrinsic_appeal = 0.7 * derived["pragmatism"]
         assert state.intrinsic_appeal == pytest.approx(
             expected_intrinsic_appeal, abs=1e-6
@@ -262,7 +262,7 @@ class TestSimulationSensitivityIntegration:
         # Run simulation twice with same seed -> should be identical
         mechanisms = FeatureMechanisms(
             irreversibility=0.6,
-            valor_intrinseco=0.7,
+            intrinsic_value=0.7,
             network_effect=0.4,
             habit_displacement=0.3,
         )

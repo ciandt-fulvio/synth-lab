@@ -33,10 +33,10 @@ class TestCalculateEmergentState:
             institutional_trust=0.8,
             habit_displacement=0.4,
             learning_curve=0.5,
-            friccao_operacional=0.2,
+            operational_friction=0.2,
             network_effect=0.7,
-            valor_intrinseco=0.6,
-            frequencia_de_uso=0.85,
+            intrinsic_value=0.6,
+            frequency_of_use=0.85,
         )
         sensitivities = UserSensitivities(
             risk_aversion=0.8,
@@ -110,10 +110,10 @@ class TestCalculateEmergentState:
             institutional_trust=1.0,
             habit_displacement=1.0,
             learning_curve=1.0,
-            friccao_operacional=1.0,
+            operational_friction=1.0,
             network_effect=1.0,
-            valor_intrinseco=1.0,
-            frequencia_de_uso=1.0,
+            intrinsic_value=1.0,
+            frequency_of_use=1.0,
         )
         sensitivities = UserSensitivities(
             risk_aversion=1.0,
@@ -152,10 +152,10 @@ class TestCalculateEmergentState:
             institutional_trust=1.0,
             habit_displacement=1.0,
             learning_curve=1.0,
-            friccao_operacional=1.0,
+            operational_friction=1.0,
             network_effect=1.0,
-            valor_intrinseco=1.0,
-            frequencia_de_uso=1.0,
+            intrinsic_value=1.0,
+            frequency_of_use=1.0,
         )
         sensitivities = UserSensitivities()  # All defaults = 0.5
 
@@ -181,7 +181,7 @@ class TestCalculateEmergentState:
 
     def test_raw_interactions_has_11_keys(self):
         """Verify raw_interactions contains exactly the expected 11 compound keys."""
-        mechanisms = FeatureMechanisms(irreversibility=0.5, valor_intrinseco=0.3)
+        mechanisms = FeatureMechanisms(irreversibility=0.5, intrinsic_value=0.3)
         sensitivities = UserSensitivities()
 
         state = calculate_emergent_state(mechanisms, sensitivities)
@@ -192,12 +192,12 @@ class TestCalculateEmergentState:
             "institutional_trust_institutional_trust_level",
             "habit_displacement_habit_plasticity",
             "learning_curve_digital_capability",
-            "friccao_operacional_friction_tolerance",
+            "operational_friction_friction_tolerance",
             "network_effect_social_dependency",
-            "friccao_operacional_motor_ability",
-            "valor_intrinseco_pragmatism",
-            "frequencia_de_uso_pragmatism",
-            "valor_intrinseco_subject_domain",
+            "operational_friction_motor_ability",
+            "intrinsic_value_pragmatism",
+            "frequency_of_use_pragmatism",
+            "intrinsic_value_subject_domain",
         }
         assert set(state.raw_interactions.keys()) == expected_keys
         assert len(state.raw_interactions) == 11
@@ -210,7 +210,7 @@ class TestTopContributors:
         """Top contributors are returned sorted by product value descending."""
         mechanisms = FeatureMechanisms(
             irreversibility=0.9,   # 0.9 x 0.9 = 0.81
-            valor_intrinseco=0.8,  # 0.8 x 0.7 = 0.56
+            intrinsic_value=0.8,  # 0.8 x 0.7 = 0.56
             network_effect=0.5,    # 0.5 x (1 - 0.2) = 0.40
             habit_displacement=0.3,  # 0.3 x (1 - 0.5) = 0.15
             social_visibility=0.1,   # 0.1 x 0.2 = 0.02
@@ -235,10 +235,10 @@ class TestTopContributors:
             institutional_trust=0.8,
             habit_displacement=0.4,
             learning_curve=0.5,
-            friccao_operacional=0.2,
+            operational_friction=0.2,
             network_effect=0.7,
-            valor_intrinseco=0.6,
-            frequencia_de_uso=0.85,
+            intrinsic_value=0.6,
+            frequency_of_use=0.85,
         )
         sensitivities = UserSensitivities(
             risk_aversion=0.8,
@@ -289,10 +289,10 @@ class TestTopContributors:
             "institutional_trust_institutional_trust_level": 0.32,
             "habit_displacement_habit_plasticity": 0.20,
             "learning_curve_digital_capability": 0.30,
-            "friccao_operacional_friction_tolerance": 0.06,
+            "operational_friction_friction_tolerance": 0.06,
             "network_effect_social_dependency": 0.49,
-            "valor_intrinseco_pragmatism": 0.54,
-            "frequencia_de_uso_pragmatism": 0.765,
+            "intrinsic_value_pragmatism": 0.54,
+            "frequency_of_use_pragmatism": 0.765,
         }
 
         top_5 = _get_top_contributors(raw_interactions, top_n=5)
@@ -328,10 +328,10 @@ class TestInteractionPairs:
             "institutional_trust",
             "habit_displacement",
             "learning_curve",
-            "friccao_operacional",
+            "operational_friction",
             "network_effect",
-            "valor_intrinseco",
-            "frequencia_de_uso",
+            "intrinsic_value",
+            "frequency_of_use",
         }
 
         actual_mechanisms = {mech for mech, _, _ in INTERACTION_PAIRS}
