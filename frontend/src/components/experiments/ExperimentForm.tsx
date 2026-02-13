@@ -61,6 +61,9 @@ function mechanismValuesToFeatureMechanisms(values: MechanismValues): FeatureMec
     habit_displacement: values.habit_displacement ?? 0.5,
     learning_curve: values.learning_curve ?? 0.5,
     social_visibility: values.social_visibility ?? 0.5,
+    intrinsic_value: values.intrinsic_value ?? 0.5,
+    operational_friction: values.operational_friction ?? 0.5,
+    frequency_of_use: values.frequency_of_use ?? 0.5,
   };
 }
 

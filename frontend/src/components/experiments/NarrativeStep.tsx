@@ -76,7 +76,7 @@ export function NarrativeStep({
   isSubmitting = false,
 }: NarrativeStepProps) {
   // Fetch mechanisms from database
-  const { data: mechanismsData, isLoading: isLoadingMechanisms } = useMechanisms();
+  const { data: mechanismsData, isLoading: isLoadingMechanisms, isError: isMechanismsError, error: mechanismsError } = useMechanisms();
 
   // Narrative generation mutation
   const generateMutation = useGenerateNarrative();
@@ -118,6 +118,9 @@ export function NarrativeStep({
             {}
           );
           setSelections(initial);
+        },
+        onError: (error) => {
+          console.error('[NarrativeStep] Failed to generate narrative:', error);
         },
       }
     );
@@ -177,7 +180,7 @@ export function NarrativeStep({
   const isLoading = isLoadingMechanisms || generateMutation.isPending;
 
   // Error state (T042)
-  const hasError = generateMutation.isError;
+  const hasError = generateMutation.isError || isMechanismsError;
 
   return (
     <div className="space-y-4">
@@ -223,15 +226,19 @@ export function NarrativeStep({
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Erro na geração</AlertTitle>
           <AlertDescription className="space-y-2">
-            <p>Não foi possível gerar a narrativa. Tente novamente.</p>
+            <p>
+              {isMechanismsError
+                ? `Não foi possível carregar os mecanismos: ${mechanismsError instanceof Error ? mechanismsError.message : 'Erro desconhecido'}`
+                : 'Não foi possível gerar a narrativa. Tente novamente.'}
+            </p>
             <Button
               variant="outline"
               size="sm"
-              onClick={handleRegenerate}
+              onClick={isMechanismsError ? () => window.location.reload() : handleRegenerate}
               className="mt-2"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
-              Tentar novamente
+              {isMechanismsError ? 'Recarregar página' : 'Tentar novamente'}
             </Button>
           </AlertDescription>
         </Alert>

@@ -9,7 +9,12 @@ References:
     - Data model: specs/038-mechanism-based-simulation/data-model.md
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+# Minimum value for appeal mechanisms when configured (> 0).
+# Ensures any configured feature always has some appeal.
+_APPEAL_MINIMUM = 0.2
+_APPEAL_FIELDS = {"intrinsic_value", "frequency_of_use"}
 
 
 class FeatureMechanisms(BaseModel):
@@ -84,6 +89,19 @@ class FeatureMechanisms(BaseModel):
         le=1.0,
         description="Expected usage frequency (0=rare, 1=daily or more)",
     )
+
+    @model_validator(mode="after")
+    def _clamp_appeal_minimums(self) -> "FeatureMechanisms":
+        """Clamp appeal mechanisms to minimum when configured.
+
+        If intrinsic_value or frequency_of_use is > 0 but < 0.2, clamp to 0.2.
+        Value of 0.0 means "not configured" and is preserved.
+        """
+        for field_name in _APPEAL_FIELDS:
+            value = getattr(self, field_name)
+            if 0.0 < value < _APPEAL_MINIMUM:
+                object.__setattr__(self, field_name, _APPEAL_MINIMUM)
+        return self
 
     def has_any_mechanism(self) -> bool:
         """Check if any mechanism is non-zero."""

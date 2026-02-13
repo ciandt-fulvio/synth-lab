@@ -114,11 +114,17 @@ class AnalysisExecutionService:
             import time
 
             start_time = time.time()
+            feature_types = (
+                experiment.scorecard_data.feature_types
+                if experiment.scorecard_data
+                else None
+            )
             results = run_simulation(
                 synths=synths,
                 mechanisms=mechanisms,
                 n_executions=config.n_executions,
                 seed=config.seed,
+                feature_types=feature_types,
             )
             execution_time = time.time() - start_time
 

@@ -11,6 +11,8 @@ ALL_MECHANISM_KEYS = [
 ]
 ORIGINAL_6 = ALL_MECHANISM_KEYS[:6]
 NEW_3 = ALL_MECHANISM_KEYS[6:]
+APPEAL_FIELDS = ["intrinsic_value", "frequency_of_use"]
+NON_APPEAL_FIELDS = [f for f in ALL_MECHANISM_KEYS if f not in APPEAL_FIELDS]
 
 
 class TestFeatureMechanismsFields:
@@ -46,6 +48,46 @@ class TestFeatureMechanismsFields:
             FeatureMechanisms(**{field: 1.01})
 
 
+class TestAppealMinimumClamping:
+    """Tests for model_validator that clamps appeal mechanisms to minimum 0.2."""
+
+    @pytest.mark.parametrize("field", APPEAL_FIELDS)
+    def test_value_below_minimum_clamped_to_0_2(self, field):
+        """Appeal values > 0 but < 0.2 are clamped to 0.2."""
+        m = FeatureMechanisms(**{field: 0.1})
+        assert getattr(m, field) == 0.2
+
+    @pytest.mark.parametrize("field", APPEAL_FIELDS)
+    def test_zero_preserved(self, field):
+        """Zero means 'not configured' and should NOT be clamped."""
+        m = FeatureMechanisms(**{field: 0.0})
+        assert getattr(m, field) == 0.0
+
+    @pytest.mark.parametrize("field", APPEAL_FIELDS)
+    def test_value_at_minimum_preserved(self, field):
+        """Value exactly at 0.2 should stay 0.2."""
+        m = FeatureMechanisms(**{field: 0.2})
+        assert getattr(m, field) == 0.2
+
+    @pytest.mark.parametrize("field", APPEAL_FIELDS)
+    def test_value_above_minimum_preserved(self, field):
+        """Values >= 0.2 are unchanged."""
+        m = FeatureMechanisms(**{field: 0.5})
+        assert getattr(m, field) == 0.5
+
+    @pytest.mark.parametrize("field", NON_APPEAL_FIELDS)
+    def test_non_appeal_fields_not_clamped(self, field):
+        """Non-appeal fields (barriers) should NOT be clamped."""
+        m = FeatureMechanisms(**{field: 0.1})
+        assert getattr(m, field) == 0.1
+
+    def test_tiny_appeal_value_clamped(self):
+        """Very small appeal value 0.01 is clamped to 0.2."""
+        m = FeatureMechanisms(intrinsic_value=0.01, frequency_of_use=0.05)
+        assert m.intrinsic_value == 0.2
+        assert m.frequency_of_use == 0.2
+
+
 class TestBackwardCompatibility:
     def test_construct_with_only_original_6(self):
         m = FeatureMechanisms(
@@ -68,6 +110,7 @@ class TestBackwardCompatibility:
 class TestHasAnyMechanism:
     @pytest.mark.parametrize("field", ALL_MECHANISM_KEYS)
     def test_detects_each_field(self, field):
+        # Appeal fields get clamped to 0.2 if set to 0.5, still >0 so detected
         m = FeatureMechanisms(**{field: 0.5})
         assert m.has_any_mechanism()
 

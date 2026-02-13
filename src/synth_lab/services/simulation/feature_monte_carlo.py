@@ -1,15 +1,16 @@
 """
 Monte Carlo simulation engine with Beta-sampled mechanisms and emergent states.
 
-Replaces the old ``engine.py`` with a simplified model:
-    1. Sample each mechanism from Beta(mean*15, (1-mean)*15)
-    2. Calculate emergent state (7 barriers + 2 appeals)
-    3. Compute adoption probability from emergent states
-    4. Sample binary adoption via Bernoulli(prob)
+Model:
+    1. Sample each mechanism from Beta(mean*strength, (1-mean)*strength)
+       with per-mechanism concentration (trust=tight, intrinsic_value=wide)
+    2. Calculate emergent state (7 barriers + 4 appeals)
+    3. Compute adoption probability via sigmoid function
+    4. Apply gating mechanisms (trust, risk, value gates) based on feature type
+    5. Sample binary adoption via Bernoulli(prob)
 
 References:
     - Spec: specs/040-mechanism-sensitivity-update/spec.md
-    - Contracts: specs/040-mechanism-sensitivity-update/contracts/simulation-api.md
     - NumPy Beta distribution: https://numpy.org/doc/stable/reference/random/generated/numpy.random.Generator.beta.html
 
 Sample usage:
@@ -29,6 +30,7 @@ Expected output:
     )
 """
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -38,9 +40,33 @@ from synth_lab.domain.entities.user_sensitivities import UserSensitivities
 from synth_lab.services.sensitivity_deriver import derive_sensitivities
 from synth_lab.services.simulation.emergent_calculator import calculate_emergent_state
 
-# Beta distribution concentration parameter.
-# Higher values produce tighter distributions around the mean.
-BETA_STRENGTH: int = 15
+# Default Beta distribution concentration parameter.
+BETA_STRENGTH_DEFAULT: int = 15
+
+# Per-mechanism Beta concentration: higher = tighter distribution around mean.
+BETA_STRENGTH_MAP: dict[str, int] = {
+    "institutional_trust": 30,   # Stable - people are consistent about trust
+    "irreversibility": 20,      # Fairly stable risk perception
+    "learning_curve": 12,       # Moderate variation
+    "habit_displacement": 12,   # Moderate variation
+    "operational_friction": 12, # Moderate variation
+    "social_visibility": 10,    # Some variation
+    "network_effect": 10,       # Some variation
+    "frequency_of_use": 8,      # Moderate-high variation
+    "intrinsic_value": 6,       # High variation, very context-dependent
+}
+
+# Sigmoid model parameters for adoption probability.
+_INTERCEPT: float = -0.2
+_APPEAL_WEIGHT: float = 1.4
+_BARRIER_WEIGHT: float = 1.1
+
+# Gate definitions: gate_name -> feature types that activate it.
+GATE_TYPE_MAP: dict[str, list[str]] = {
+    "trust_gate": ["financial", "identity", "security"],
+    "risk_gate": ["financial", "identity"],
+    "value_gate": ["aesthetic", "flow"],
+}
 
 # Names of the 9 mechanism fields on FeatureMechanisms.
 _MECHANISM_FIELDS: list[str] = [
@@ -105,10 +131,13 @@ def _sample_mechanisms(
 ) -> FeatureMechanisms:
     """Sample each mechanism from a Beta distribution around its mean.
 
+    Uses per-mechanism concentration from BETA_STRENGTH_MAP. Higher concentration
+    produces tighter distributions (e.g., trust is stable, intrinsic_value varies more).
+
     For each of the 9 mechanism fields:
         - mean == 0.0 -> return 0.0 (skip sampling, avoids degenerate Beta)
         - mean == 1.0 -> return 1.0 (skip sampling, avoids degenerate Beta)
-        - otherwise   -> sample Beta(mean * BETA_STRENGTH, (1 - mean) * BETA_STRENGTH)
+        - otherwise   -> sample Beta(mean * strength, (1 - mean) * strength)
 
     Args:
         mechanisms: Feature mechanisms with mean values in [0, 1].
@@ -125,9 +154,10 @@ def _sample_mechanisms(
         elif mean == 1.0:
             sampled[field_name] = 1.0
         else:
-            alpha = mean * BETA_STRENGTH
-            beta = (1.0 - mean) * BETA_STRENGTH
-            sampled[field_name] = float(rng.beta(alpha, beta))
+            strength = BETA_STRENGTH_MAP.get(field_name, BETA_STRENGTH_DEFAULT)
+            alpha = mean * strength
+            beta_param = (1.0 - mean) * strength
+            sampled[field_name] = float(rng.beta(alpha, beta_param))
     return FeatureMechanisms(**sampled)
 
 
@@ -154,32 +184,27 @@ def _get_sensitivities(synth_data: dict) -> UserSensitivities:
     return UserSensitivities(**kwargs)
 
 
+def _sigmoid(x: float) -> float:
+    """Standard sigmoid function: 1 / (1 + exp(-x))."""
+    return 1.0 / (1.0 + math.exp(-x))
+
+
 def _calculate_adoption_probability(
     emergent_state: object,
-    base_probability: float = 0.5,
-    barrier_weight: float = 0.12,
-    appeal_weight: float = 0.18,
 ) -> float:
-    """Compute adoption probability from emergent state barriers and appeals.
+    """Compute adoption probability from emergent state using sigmoid function.
 
     Formula:
-        prob = base
-             - sum(8 barriers) * barrier_weight
-             + sum(3 appeals)  * appeal_weight
+        z = INTERCEPT + APPEAL_WEIGHT * sum(4 appeals) - BARRIER_WEIGHT * sum(7 barriers)
+        prob = sigmoid(z)
 
-    Result is clamped to [0.0, 1.0].
-
-    Weights are rebalanced for 8 barriers + 3 appeals (previously 7+2)
-    to keep the probability range roughly the same.
+    Sigmoid output is always in (0, 1), no clamping needed.
 
     Args:
         emergent_state: EmergentState with barrier and appeal fields.
-        base_probability: Starting probability before adjustments.
-        barrier_weight: Weight applied to each barrier's contribution.
-        appeal_weight: Weight applied to each appeal's contribution.
 
     Returns:
-        Adoption probability in [0.0, 1.0].
+        Adoption probability in (0.0, 1.0).
     """
     barriers = [
         emergent_state.perceived_risk,
@@ -188,17 +213,62 @@ def _calculate_adoption_probability(
         emergent_state.learning_frustration,
         emergent_state.friction_burden,
         emergent_state.social_pressure,
-        emergent_state.network_barrier,
         emergent_state.motor_barrier,
     ]
     appeals = [
         emergent_state.intrinsic_appeal,
         emergent_state.frequency_value,
         emergent_state.domain_advantage,
+        emergent_state.network_bonus,
     ]
 
-    prob = base_probability - sum(barriers) * barrier_weight + sum(appeals) * appeal_weight
-    return max(0.0, min(1.0, prob))
+    z = _INTERCEPT + _APPEAL_WEIGHT * sum(appeals) - _BARRIER_WEIGHT * sum(barriers)
+    return _sigmoid(z)
+
+
+def _apply_gates(
+    prob: float,
+    emergent_state: object,
+    feature_types: list[str] | None,
+) -> float:
+    """Apply gating mechanisms based on feature types.
+
+    Gates modify the base probability multiplicatively:
+    - Trust gate: for financial/identity/security features, low trust kills adoption
+    - Risk gate: for financial/identity features, high irreversibility creates wall
+    - Value gate: for aesthetic/flow features, low intrinsic value kills adoption
+
+    Args:
+        prob: Base adoption probability from sigmoid.
+        emergent_state: EmergentState with barrier and appeal fields.
+        feature_types: Feature type tags (e.g., ["financial", "identity"]).
+
+    Returns:
+        Gated adoption probability.
+    """
+    if not feature_types:
+        return prob
+
+    type_set = set(feature_types)
+
+    # Trust gate: sigmoid(8 * (trust_level - 0.45)); p *= (0.15 + 0.85 * gate)
+    if type_set & set(GATE_TYPE_MAP["trust_gate"]):
+        trust_level = 1.0 - emergent_state.trust_barrier  # Higher = more trust
+        trust_gate = _sigmoid(8.0 * (trust_level - 0.45))
+        prob *= 0.15 + 0.85 * trust_gate
+
+    # Risk gate: 1 - (irrev * risk_aversion)^1.6; p *= clamp(gate, 0.05, 1.0)
+    if type_set & set(GATE_TYPE_MAP["risk_gate"]):
+        risk_product = emergent_state.perceived_risk
+        risk_gate = 1.0 - risk_product**1.6
+        prob *= max(0.05, min(1.0, risk_gate))
+
+    # Value gate: sigmoid(9 * (intrinsic_appeal - 0.25)); p *= (0.2 + 0.8 * gate)
+    if type_set & set(GATE_TYPE_MAP["value_gate"]):
+        value_gate = _sigmoid(9.0 * (emergent_state.intrinsic_appeal - 0.25))
+        prob *= 0.2 + 0.8 * value_gate
+
+    return prob
 
 
 # ---------------------------------------------------------------------------
@@ -211,6 +281,7 @@ def run_simulation(
     mechanisms: FeatureMechanisms,
     n_executions: int = 100,
     seed: int | None = None,
+    feature_types: list[str] | None = None,
 ) -> SimulationResults:
     """Run Monte Carlo simulation for feature adoption.
 
@@ -218,9 +289,10 @@ def run_simulation(
         1. Obtain user sensitivities (stored or derived).
         2. For each execution:
             a. Sample mechanisms from Beta distributions.
-            b. Calculate emergent state (barriers + appeals).
-            c. Compute adoption probability.
-            d. Sample binary outcome via Bernoulli(prob).
+            b. Calculate emergent state (7 barriers + 4 appeals).
+            c. Compute adoption probability via sigmoid.
+            d. Apply gating mechanisms based on feature types.
+            e. Sample binary outcome via Bernoulli(prob).
         3. Compute adoption_rate = adopted_count / n_executions.
 
     Args:
@@ -229,6 +301,7 @@ def run_simulation(
         mechanisms: Feature mechanisms with mean values in [0, 1].
         n_executions: Number of Monte Carlo iterations per synth.
         seed: Random seed for reproducibility (None for random).
+        feature_types: Feature type tags for gating (e.g., ["financial"]).
 
     Returns:
         SimulationResults with per-synth outcomes and aggregate adoption rate.
@@ -247,6 +320,7 @@ def run_simulation(
             sampled = _sample_mechanisms(mechanisms, rng)
             emergent = calculate_emergent_state(sampled, sensitivities)
             prob = _calculate_adoption_probability(emergent)
+            prob = _apply_gates(prob, emergent, feature_types)
             probability_sum += prob
             if rng.random() < prob:
                 adopted_count += 1
@@ -311,11 +385,11 @@ if __name__ == "__main__":
             learning_frustration=0.0,
             friction_burden=0.0,
             social_pressure=0.0,
-            network_barrier=0.0,
             motor_barrier=0.0,
             intrinsic_appeal=0.0,
             frequency_value=0.0,
             domain_advantage=0.0,
+            network_bonus=0.0,
         )
         defaults.update(kw)
         return EmergentState(**defaults)
@@ -340,12 +414,13 @@ if __name__ == "__main__":
     except Exception as e:
         _failures.append(f"T1 (Beta sampling): {e}")
 
-    # ---- Test 2: Adoption probability with all zeros -> 0.5 ----
+    # ---- Test 2: Adoption probability with all zeros -> sigmoid(-0.2) ≈ 0.45 ----
     _total += 1
     try:
         prob = _calculate_adoption_probability(_es())
-        if abs(prob - 0.5) > 0.001:
-            _failures.append(f"T2: All zeros should give 0.5, got {prob}")
+        expected = _sigmoid(_INTERCEPT)  # sigmoid(-0.2) ≈ 0.4502
+        if abs(prob - expected) > 0.001:
+            _failures.append(f"T2: All zeros should give ~{expected:.4f}, got {prob}")
     except Exception as e:
         _failures.append(f"T2 (zero probability): {e}")
 
@@ -360,11 +435,10 @@ if __name__ == "__main__":
                 learning_frustration=0.5,
                 friction_burden=0.4,
                 social_pressure=0.3,
-                network_barrier=0.2,
                 motor_barrier=0.3,
             )
         )
-        if prob >= 0.3:
+        if prob >= 0.15:
             _failures.append(f"T3: High barriers should give low prob, got {prob}")
     except Exception as e:
         _failures.append(f"T3 (high barriers): {e}")
@@ -373,7 +447,7 @@ if __name__ == "__main__":
     _total += 1
     try:
         prob = _calculate_adoption_probability(
-            _es(intrinsic_appeal=0.9, frequency_value=0.8, domain_advantage=0.7)
+            _es(intrinsic_appeal=0.9, frequency_value=0.8, domain_advantage=0.7, network_bonus=0.5)
         )
         if prob <= 0.7:
             _failures.append(f"T4: High appeals should give high prob, got {prob}")

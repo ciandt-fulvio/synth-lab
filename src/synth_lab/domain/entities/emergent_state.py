@@ -6,20 +6,20 @@ interactions during Monte Carlo simulations. Each state represents a barrier or 
 that modifies user adoption behavior.
 
 11 Emergent States:
-    Barriers (8):
-        - perceived_risk: irreversibility x risk_aversion (Affinity)
+    Barriers (7):
+        - perceived_risk: 1 - (1 - irreversibility) * (1 - risk_aversion) (Non-linear)
         - trust_barrier: institutional_trust x (1 - institutional_trust_level) (Resistance)
         - habit_resistance: habit_displacement x (1 - habit_plasticity) (Resistance)
         - learning_frustration: learning_curve x (1 - digital_capability) (Resistance)
         - friction_burden: operational_friction x (1 - friction_tolerance) (Resistance)
         - social_pressure: social_visibility x social_dependency (Affinity)
-        - network_barrier: network_effect x (1 - social_dependency) (Resistance)
         - motor_barrier: operational_friction x (1 - motor_ability) (Resistance)
 
-    Appeals (3):
+    Appeals (4):
         - intrinsic_appeal: intrinsic_value x pragmatism (Appeal)
         - frequency_value: frequency_of_use x pragmatism (Appeal)
         - domain_advantage: intrinsic_value x subject_domain (Appeal)
+        - network_bonus: network_effect x social_dependency (Appeal)
 
 References:
     - Spec: specs/040-emergent-state-expansion/spec.md
@@ -53,28 +53,28 @@ class EmergentState:
     Emergent behavioral state from mechanism x sensitivity interactions.
 
     Calculated per user per simulation execution.
-    Contains 8 barriers and 3 appeals that modify adoption behavior.
+    Contains 7 barriers and 4 appeals that modify adoption behavior.
 
     Barriers (higher = harder to adopt):
-        perceived_risk = irreversibility x risk_aversion
+        perceived_risk = 1 - (1 - irreversibility) * (1 - risk_aversion)
         trust_barrier = institutional_trust x (1 - institutional_trust_level)
         habit_resistance = habit_displacement x (1 - habit_plasticity)
         learning_frustration = learning_curve x (1 - digital_capability)
         friction_burden = operational_friction x (1 - friction_tolerance)
         social_pressure = social_visibility x social_dependency
-        network_barrier = network_effect x (1 - social_dependency)
         motor_barrier = operational_friction x (1 - motor_ability)
 
     Appeals (higher = easier to adopt):
         intrinsic_appeal = intrinsic_value x pragmatism
         frequency_value = frequency_of_use x pragmatism
         domain_advantage = intrinsic_value x subject_domain
+        network_bonus = network_effect x social_dependency
     """
 
     # --- Barriers (7) ---
 
     perceived_risk: float
-    """Barrier from irreversibility x risk_aversion (Affinity type)."""
+    """Barrier from 1 - (1 - irreversibility) * (1 - risk_aversion) (Non-linear)."""
 
     trust_barrier: float
     """Barrier from institutional_trust x (1 - institutional_trust_level) (Resistance type)."""
@@ -91,13 +91,10 @@ class EmergentState:
     social_pressure: float
     """Barrier from social_visibility x social_dependency (Affinity type)."""
 
-    network_barrier: float
-    """Barrier from network_effect x (1 - social_dependency) (Resistance type)."""
-
     motor_barrier: float
     """Barrier from operational_friction x (1 - motor_ability) (Resistance type)."""
 
-    # --- Appeals (3) ---
+    # --- Appeals (4) ---
 
     intrinsic_appeal: float
     """Appeal from intrinsic_value x pragmatism (Appeal type)."""
@@ -107,6 +104,9 @@ class EmergentState:
 
     domain_advantage: float
     """Appeal from intrinsic_value x subject_domain (Appeal type)."""
+
+    network_bonus: float
+    """Appeal from network_effect x social_dependency (Affinity type)."""
 
     # --- Metadata ---
 
@@ -150,7 +150,7 @@ if __name__ == "__main__":
             learning_frustration=0.45,
             friction_burden=0.10,
             social_pressure=0.28,
-            network_barrier=0.49,
+            network_bonus=0.49,
             motor_barrier=0.12,
             intrinsic_appeal=0.65,
             frequency_value=0.40,
@@ -170,8 +170,8 @@ if __name__ == "__main__":
             all_validation_failures.append(f"friction_burden mismatch: {state.friction_burden}")
         if state.social_pressure != 0.28:
             all_validation_failures.append(f"social_pressure mismatch: {state.social_pressure}")
-        if state.network_barrier != 0.49:
-            all_validation_failures.append(f"network_barrier mismatch: {state.network_barrier}")
+        if state.network_bonus != 0.49:
+            all_validation_failures.append(f"network_bonus mismatch: {state.network_bonus}")
         if state.motor_barrier != 0.12:
             all_validation_failures.append(f"motor_barrier mismatch: {state.motor_barrier}")
         if state.intrinsic_appeal != 0.65:
@@ -215,7 +215,7 @@ if __name__ == "__main__":
             learning_frustration=0.45,
             friction_burden=0.10,
             social_pressure=0.28,
-            network_barrier=0.49,
+            network_bonus=0.49,
             motor_barrier=0.12,
             intrinsic_appeal=0.65,
             frequency_value=0.40,
@@ -250,7 +250,7 @@ if __name__ == "__main__":
             learning_frustration=0.0,
             friction_burden=0.0,
             social_pressure=0.0,
-            network_barrier=0.0,
+            network_bonus=0.0,
             motor_barrier=0.0,
             intrinsic_appeal=0.0,
             frequency_value=0.0,
@@ -263,7 +263,7 @@ if __name__ == "__main__":
             "learning_frustration",
             "friction_burden",
             "social_pressure",
-            "network_barrier",
+            "network_bonus",
             "motor_barrier",
             "intrinsic_appeal",
             "frequency_value",
@@ -284,7 +284,7 @@ if __name__ == "__main__":
         "learning_frustration",
         "friction_burden",
         "social_pressure",
-        "network_barrier",
+        "network_bonus",
         "motor_barrier",
         # 3 appeals
         "intrinsic_appeal",

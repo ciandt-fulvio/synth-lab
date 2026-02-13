@@ -5,24 +5,26 @@ Computes 11 emergent behavioral states from 9 feature mechanisms x 9 user
 sensitivities interactions. Each state represents a barrier or appeal that
 modifies user adoption behavior during Monte Carlo simulations.
 
-11 Emergent States (per spec FR-010):
+11 Emergent States:
 
     Resistance barriers (mechanism x (1 - sensitivity)):
         trust_barrier        = institutional_trust x (1 - institutional_trust_level)
         habit_resistance     = habit_displacement x (1 - habit_plasticity)
         learning_frustration = learning_curve x (1 - digital_capability)
         friction_burden      = operational_friction x (1 - friction_tolerance)
-        network_barrier      = network_effect x (1 - social_dependency)
         motor_barrier        = operational_friction x (1 - motor_ability)
 
     Affinity barriers (mechanism x sensitivity):
-        perceived_risk  = irreversibility x risk_aversion
         social_pressure = social_visibility x social_dependency
+
+    Non-linear barrier:
+        perceived_risk  = 1 - (1 - irreversibility) * (1 - risk_aversion)
 
     Appeals (mechanism x sensitivity):
         intrinsic_appeal  = intrinsic_value x pragmatism
         frequency_value   = frequency_of_use x pragmatism
         domain_advantage  = intrinsic_value x subject_domain
+        network_bonus     = network_effect x social_dependency
 
 References:
     - Spec: specs/040-emergent-state-expansion/spec.md
@@ -56,7 +58,7 @@ INTERACTION_PAIRS: list[tuple[str, str, str]] = [
     ("habit_displacement", "habit_plasticity", "resistance"),
     ("learning_curve", "digital_capability", "resistance"),
     ("operational_friction", "friction_tolerance", "resistance"),
-    ("network_effect", "social_dependency", "resistance"),
+    ("network_effect", "social_dependency", "affinity"),
     ("operational_friction", "motor_ability", "resistance"),
     # Appeals (same formula as affinity: mech x sens)
     ("intrinsic_value", "pragmatism", "affinity"),
@@ -81,7 +83,7 @@ def calculate_emergent_state(
         sensitivities: User psychological sensitivities (9 floats in [0, 1]).
 
     Returns:
-        EmergentState with 8 barriers, 3 appeals, top contributors, and raw interactions.
+        EmergentState with 7 barriers, 4 appeals, top contributors, and raw interactions.
     """
     # Calculate all 9 raw interactions
     raw_interactions: dict[str, float] = {}
@@ -98,9 +100,11 @@ def calculate_emergent_state(
         key = f"{mech_name}_{sens_name}"
         raw_interactions[key] = round(product, 10)
 
-    # Calculate the 11 emergent states using explicit FR-010 formulas
-    # Affinity barriers
-    perceived_risk = mechanisms.irreversibility * sensitivities.risk_aversion
+    # Calculate the 11 emergent states
+    # Non-linear barrier: probabilistic OR (either high alone → significant risk)
+    perceived_risk = 1.0 - (1.0 - mechanisms.irreversibility) * (1.0 - sensitivities.risk_aversion)
+
+    # Affinity barrier
     social_pressure = mechanisms.social_visibility * sensitivities.social_dependency
 
     # Resistance barriers
@@ -108,13 +112,13 @@ def calculate_emergent_state(
     habit_resistance = mechanisms.habit_displacement * (1 - sensitivities.habit_plasticity)
     learning_frustration = mechanisms.learning_curve * (1 - sensitivities.digital_capability)
     friction_burden = mechanisms.operational_friction * (1 - sensitivities.friction_tolerance)
-    network_barrier = mechanisms.network_effect * (1 - sensitivities.social_dependency)
     motor_barrier = mechanisms.operational_friction * (1 - sensitivities.motor_ability)
 
     # Appeals
     intrinsic_appeal = mechanisms.intrinsic_value * sensitivities.pragmatism
     frequency_value = mechanisms.frequency_of_use * sensitivities.pragmatism
     domain_advantage = mechanisms.intrinsic_value * sensitivities.subject_domain
+    network_bonus = mechanisms.network_effect * sensitivities.social_dependency
 
     # Extract top 3 contributors sorted by product descending (non-zero only)
     top_contributors = _get_top_contributors(raw_interactions, top_n=3)
@@ -126,7 +130,7 @@ def calculate_emergent_state(
         learning_frustration=learning_frustration,
         friction_burden=friction_burden,
         social_pressure=social_pressure,
-        network_barrier=network_barrier,
+        network_bonus=network_bonus,
         motor_barrier=motor_barrier,
         intrinsic_appeal=intrinsic_appeal,
         frequency_value=frequency_value,
@@ -218,20 +222,21 @@ if __name__ == "__main__":
 
         # Verify each of the 11 formulas
         expected = {
-            # Affinity barriers: mech x sens
-            "perceived_risk": 0.9 * 0.8,  # 0.72
+            # Non-linear barrier: 1 - (1-mech)(1-sens)
+            "perceived_risk": 1.0 - (1.0 - 0.9) * (1.0 - 0.8),  # 0.98
+            # Affinity barrier: mech x sens
             "social_pressure": 0.3 * 0.3,  # 0.09
             # Resistance barriers: mech x (1 - sens)
             "trust_barrier": 0.8 * (1 - 0.6),  # 0.32
             "habit_resistance": 0.4 * (1 - 0.5),  # 0.20
             "learning_frustration": 0.5 * (1 - 0.4),  # 0.30
             "friction_burden": 0.2 * (1 - 0.7),  # 0.06
-            "network_barrier": 0.7 * (1 - 0.3),  # 0.49
             "motor_barrier": 0.2 * (1 - 0.6),  # 0.08
             # Appeals: mech x sens
             "intrinsic_appeal": 0.6 * 0.9,  # 0.54
             "frequency_value": 0.85 * 0.9,  # 0.765
             "domain_advantage": 0.6 * 0.7,  # 0.42
+            "network_bonus": 0.7 * 0.3,  # 0.21
         }
 
         for field_name, expected_val in expected.items():
@@ -253,7 +258,7 @@ if __name__ == "__main__":
             "learning_frustration",
             "friction_burden",
             "social_pressure",
-            "network_barrier",
+            "network_bonus",
             "motor_barrier",
             "intrinsic_appeal",
             "frequency_value",
@@ -329,13 +334,14 @@ if __name__ == "__main__":
         )
         state = calculate_emergent_state(mechanisms, sensitivities)
 
-        # Affinity: 1.0 x 1.0 = 1.0
+        # Non-linear: 1 - (1-1)(1-1) = 1.0; Affinity: 1.0 x 1.0 = 1.0
         max_affinity = {
-            "perceived_risk": 1.0,  # 1.0 x 1.0
+            "perceived_risk": 1.0,  # 1 - 0*0 = 1.0
             "social_pressure": 1.0,  # 1.0 x 1.0
             "intrinsic_appeal": 1.0,  # 1.0 x 1.0
             "frequency_value": 1.0,  # 1.0 x 1.0
             "domain_advantage": 1.0,  # 1.0 x 1.0
+            "network_bonus": 1.0,  # 1.0 x 1.0 (now affinity appeal)
         }
         # Resistance: 1.0 x (1 - 1.0) = 0.0
         max_resistance = {
@@ -343,7 +349,6 @@ if __name__ == "__main__":
             "habit_resistance": 0.0,  # 1.0 x (1 - 1.0)
             "learning_frustration": 0.0,  # 1.0 x (1 - 1.0)
             "friction_burden": 0.0,  # 1.0 x (1 - 1.0)
-            "network_barrier": 0.0,  # 1.0 x (1 - 1.0)
             "motor_barrier": 0.0,  # 1.0 x (1 - 1.0)
         }
 
@@ -362,7 +367,7 @@ if __name__ == "__main__":
         mechanisms = FeatureMechanisms(
             irreversibility=0.9,  # 0.9 x 0.9 = 0.81
             intrinsic_value=0.8,  # 0.8 x 0.7 = 0.56
-            network_effect=0.5,  # 0.5 x (1 - 0.2) = 0.40
+            network_effect=0.5,  # 0.5 x 0.2 = 0.10 (affinity)
             habit_displacement=0.3,  # 0.3 x (1 - 0.5) = 0.15
             social_visibility=0.1,  # 0.1 x 0.2 = 0.02
         )
@@ -461,25 +466,31 @@ if __name__ == "__main__":
 
         # Affinity: 1.0 x 0.5 = 0.5
         # Resistance: 1.0 x (1 - 0.5) = 0.5
-        all_fields = [
-            "perceived_risk",
+        # Non-linear perceived_risk: 1 - (1-1.0)*(1-0.5) = 1.0
+        fields_expect_half = [
             "trust_barrier",
             "habit_resistance",
             "learning_frustration",
             "friction_burden",
             "social_pressure",
-            "network_barrier",
+            "network_bonus",
             "motor_barrier",
             "intrinsic_appeal",
             "frequency_value",
             "domain_advantage",
         ]
-        for field_name in all_fields:
+        for field_name in fields_expect_half:
             actual_val = getattr(state, field_name)
             if abs(actual_val - 0.5) > TOLERANCE:
                 all_validation_failures.append(
                     f"Default sensitivity {field_name}: expected 0.5, got {actual_val}"
                 )
+        # perceived_risk is non-linear: 1 - (1-1.0)*(1-0.5) = 1.0
+        if abs(state.perceived_risk - 1.0) > TOLERANCE:
+            all_validation_failures.append(
+                f"Default sensitivity perceived_risk: expected 1.0 (non-linear), "
+                f"got {state.perceived_risk}"
+            )
     except Exception as e:
         all_validation_failures.append(f"Default sensitivities test failed: {e}")
 
