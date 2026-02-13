@@ -1,0 +1,11 @@
+synth_id,nome,group,risk_aversion,social_dependency,institutional_trust_level,habit_plasticity,friction_tolerance,pragmatism,digital_capability,motor_ability,subject_domain
+eor90o,Agatha Almeida,DEFAULT,0.55,0.5,0.55,0.55,0.5,0.65,0.6,0.94,0.78
+c993qn,Agatha Casa Grande,DEFAULT,0.55,0.6,0.55,0.65,0.55,0.6,0.75,1.0,0.65
+919zbb,Agatha Costela,DEFAULT,0.6,0.5,0.5,0.55,0.5,0.6,0.5,0.94,0.41
+on517a,Agatha Garcia,DEFAULT,0.6,0.6,0.5,0.65,0.55,0.55,0.65,1.0,0.32
+wrthql,Agatha Machado (idosa),DEFAULT,0.65,0.45,0.65,0.4,0.4,0.65,0.4,0.88,0.87
+1so0pb,Alexandre Teixeira (idoso),DEFAULT,0.7,0.45,0.6,0.4,0.4,0.6,0.3,0.88,0.57
+madwqj,Alexandre Jesus (jovem),DEFAULT,0.55,0.6,0.5,0.65,0.55,0.55,0.65,1.0,0.50
+0cv93z,Alexia Cassiano (jovem),DEFAULT,0.55,0.6,0.5,0.65,0.55,0.55,0.65,1.0,0.23
+ok1md5,Allana Porto (idosa),DEFAULT,0.7,0.45,0.6,0.4,0.4,0.6,0.3,0.88,0.72
+obwshj,Alicia Sales (idosa),DEFAULT,0.7,0.45,0.6,0.4,0.4,0.6,0.3,0.94,0.55

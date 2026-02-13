@@ -1,0 +1,6 @@
+experiment,irreversibility,network_effect,institutional_trust,habit_displacement,learning_curve,social_visibility,valor_intrinseco,friccao_operacional,frequencia_de_uso
+teste_monte_carlo_v2,0.7,0.0,0.8,0.0,0.6,0.0,0.0,0.0,0.0
+delivery_entrega_agendada,0.5,0.5,0.25,0.25,0.5,0.5,0.0,0.0,0.0
+delivery_entrega_agendada_2,0.5,0.5,0.25,0.5,0.5,0.5,0.0,0.0,0.0
+EXEMPLO_pix_whatsapp,0.8,0.3,0.7,0.4,0.3,0.2,0.9,0.5,0.85
+EXEMPLO_app_bancario_idosos,0.6,0.1,0.8,0.7,0.8,0.1,0.7,0.7,0.6

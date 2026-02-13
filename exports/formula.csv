@@ -1,0 +1,19 @@
+tipo,nome_estado_emergente,formula,mecanismo_usado,sensibilidade_usada,descricao
+BARRIER_affinity,perceived_risk,mecanismo * sensibilidade,irreversibility,risk_aversion,"Quanto mais irreversível E mais avesso a risco, maior a barreira"
+BARRIER_affinity,social_pressure,mecanismo * sensibilidade,social_visibility,social_dependency,"Quanto mais visível E mais dependente social, maior a pressão"
+BARRIER_resistance,trust_barrier,mecanismo * (1 - sensibilidade),institutional_trust,(1-institutional_trust_level),"Feature exige confiança institucional mas user não confia"
+BARRIER_resistance,habit_resistance,mecanismo * (1 - sensibilidade),habit_displacement,(1-habit_plasticity),"Feature muda hábitos mas user é rígido"
+BARRIER_resistance,learning_frustration,mecanismo * (1 - sensibilidade),learning_curve,(1-digital_capability),"Feature exige aprender mas user tem baixa capacidade digital"
+BARRIER_resistance,friction_burden,mecanismo * (1 - sensibilidade),friccao_operacional,(1-friction_tolerance),"Feature tem fricção mas user não tolera"
+BARRIER_resistance,network_barrier,mecanismo * (1 - sensibilidade),network_effect,(1-social_dependency),"Feature precisa de rede mas user é independente"
+BARRIER_resistance,motor_barrier,mecanismo * (1 - sensibilidade),friccao_operacional,(1-motor_ability),"Feature tem fricção mas user tem baixa habilidade motora"
+APPEAL,intrinsic_appeal,mecanismo * sensibilidade,valor_intrinseco,pragmatism,"Feature tem valor intrínseco E user é pragmático"
+APPEAL,frequency_value,mecanismo * sensibilidade,frequencia_de_uso,pragmatism,"Feature é usada frequentemente E user é pragmático"
+APPEAL,domain_advantage,mecanismo * sensibilidade,valor_intrinseco,subject_domain,"Feature tem valor intrínseco E user é expert no domínio"
+
+---,---,---,---,---,---
+FORMULA_FINAL,P(adopted),"0.5 - SUM(8 barreiras) * 0.12 + SUM(3 apelos) * 0.18",---,---,"Resultado clamped entre 0.0 e 1.0"
+CONSTANTES,base_probability,0.5,---,---,Probabilidade base antes de ajustes
+CONSTANTES,barrier_weight,0.12,---,---,Peso multiplicado pela soma das 8 barreiras
+CONSTANTES,appeal_weight,0.18,---,---,Peso multiplicado pela soma dos 3 apelos
+CONSTANTES,beta_strength,15,---,---,"Concentração da distribuição Beta para sampling de mecanismos (maior = menos variância)"
