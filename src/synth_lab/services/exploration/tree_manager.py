@@ -69,12 +69,12 @@ class TreeManager:
             raise ValueError(f"Analysis {analysis_run.id} has no aggregated outcomes")
 
         # Extract scorecard params from experiment
-        scorecard = experiment.scorecard_data
+        # Legacy dimensions removed in 040 — use defaults for exploration compatibility
         scorecard_params = ScorecardParams(
-            complexity=scorecard.complexity.score,
-            initial_effort=scorecard.initial_effort.score,
-            perceived_risk=scorecard.perceived_risk.score,
-            time_to_value=scorecard.time_to_value.score)
+            complexity=0.5,
+            initial_effort=0.5,
+            perceived_risk=0.5,
+            time_to_value=0.5)
 
         # Extract simulation results from analysis
         outcomes = analysis_run.aggregated_outcomes

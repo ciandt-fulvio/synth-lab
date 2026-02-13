@@ -49,7 +49,7 @@ EXPECTED_TABLES = {
 }
 
 # Current HEAD revision ID (fix_resolve_schema_divergence)
-CURRENT_HEAD_REVISION = "21d9e0896964"
+CURRENT_HEAD_REVISION = "b3c4d5e6f7a8"
 
 
 def get_alembic_config(database_url: str) -> Config:

@@ -388,10 +388,11 @@ class TestDeriveSensitivitiesDirectly:
         """
         from synth_lab.services.sensitivity_deriver import derive_sensitivities
 
-        result = derive_sensitivities(elderly_synth)
+        result = derive_sensitivities(elderly_synth, seed=42)
 
         friction = result["friction_tolerance"]
-        # Base is 0.50, with -0.10 (age) and -0.10 (motor disability) = 0.30
+        # Base is 0.50, with -0.10 (age) and -0.10 (motor disability) = mean 0.30
+        # Beta sampling adds noise, so use generous threshold
         assert friction < 0.50, (
             f"Elderly person with motor disability should have friction_tolerance < 0.50, "
             f"got {friction}"

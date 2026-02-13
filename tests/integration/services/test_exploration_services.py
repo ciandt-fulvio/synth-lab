@@ -59,14 +59,10 @@ class TestExplorationServiceIntegration:
                 "feature_name": "Test Feature",
                 "scenario": "Test scenario",
                 "description_text": "Test description",
-                "complexity": {"score": 0.5, "reasoning": "Medium"},
-                "initial_effort": {"score": 0.6, "reasoning": "Medium"},
-                "perceived_risk": {"score": 0.4, "reasoning": "Low"},
-                "time_to_value": {"score": 0.7, "reasoning": "Fast"},
-                "features": [
-                    {"name": "feature1", "data_type": "continuous"},
-                    {"name": "feature2", "data_type": "continuous"},
-                ],
+                "mechanisms": {
+                    "intrinsic_value": 0.5,
+                    "operational_friction": 0.3,
+                },
             },
         )
         db_session.add(experiment)
@@ -124,11 +120,10 @@ class TestExplorationServiceIntegration:
                 "feature_name": "Test Feature",
                 "scenario": "Test scenario",
                 "description_text": "Test description",
-                "complexity": {"score": 0.5, "reasoning": "Medium"},
-                "initial_effort": {"score": 0.6, "reasoning": "Medium"},
-                "perceived_risk": {"score": 0.4, "reasoning": "Low"},
-                "time_to_value": {"score": 0.7, "reasoning": "Fast"},
-                "features": [{"name": "feature1", "data_type": "continuous"}],
+                "mechanisms": {
+                    "intrinsic_value": 0.5,
+                    "operational_friction": 0.3,
+                },
             },
         )
         analysis = AnalysisRun(
@@ -210,11 +205,10 @@ class TestExplorationServiceIntegration:
                 "feature_name": "Test Feature",
                 "scenario": "Test scenario",
                 "description_text": "Test description",
-                "complexity": {"score": 0.5, "reasoning": "Medium"},
-                "initial_effort": {"score": 0.6, "reasoning": "Medium"},
-                "perceived_risk": {"score": 0.4, "reasoning": "Low"},
-                "time_to_value": {"score": 0.7, "reasoning": "Fast"},
-                "features": [{"name": "feature1", "data_type": "continuous"}],
+                "mechanisms": {
+                    "intrinsic_value": 0.5,
+                    "operational_friction": 0.3,
+                },
             },
         )
         db_session.add(experiment)
@@ -238,11 +232,10 @@ class TestExplorationServiceIntegration:
                 "feature_name": "Test Feature",
                 "scenario": "Test scenario",
                 "description_text": "Test description",
-                "complexity": {"score": 0.5, "reasoning": "Medium"},
-                "initial_effort": {"score": 0.6, "reasoning": "Medium"},
-                "perceived_risk": {"score": 0.4, "reasoning": "Low"},
-                "time_to_value": {"score": 0.7, "reasoning": "Fast"},
-                "features": [{"name": "f1", "data_type": "continuous"}],
+                "mechanisms": {
+                    "intrinsic_value": 0.5,
+                    "operational_friction": 0.3,
+                },
             },
         )
         analysis = AnalysisRun(
@@ -411,10 +404,10 @@ class TestExplorationSummaryGeneratorIntegration:
                 "feature_name": "Test Feature",
                 "scenario": "Test scenario",
                 "description_text": "Test description",
-                "complexity": {"score": 0.5, "reasoning": "Medium"},
-                "initial_effort": {"score": 0.6, "reasoning": "Medium"},
-                "perceived_risk": {"score": 0.4, "reasoning": "Low"},
-                "time_to_value": {"score": 0.7, "reasoning": "Fast"},
+                "mechanisms": {
+                    "intrinsic_value": 0.5,
+                    "operational_friction": 0.3,
+                },
             },
         )
         analysis = AnalysisRun(
@@ -511,11 +504,10 @@ class TestExplorationServiceErrorHandling:
                 "feature_name": "Test Feature",
                 "scenario": "Test scenario",
                 "description_text": "Test description",
-                "complexity": {"score": 0.5, "reasoning": "Medium"},
-                "initial_effort": {"score": 0.6, "reasoning": "Medium"},
-                "perceived_risk": {"score": 0.4, "reasoning": "Low"},
-                "time_to_value": {"score": 0.7, "reasoning": "Fast"},
-                "features": [{"name": "feature1", "data_type": "continuous"}],
+                "mechanisms": {
+                    "intrinsic_value": 0.5,
+                    "operational_friction": 0.3,
+                },
             },
         )
         analysis = AnalysisRun(
