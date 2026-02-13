@@ -27,8 +27,8 @@ dependencies = [
     "networkx>=3.0",
     "kneed>=0.8.0", # Knee point detection for elbow method
     # Analysis (SHAP explainability) - requires numba>=0.61.0 for Python 3.13
-    "shap>=0.46.0",
-    "numba>=0.61.0",
+    "shap>=0.50.0",
+    "numba>=0.61.0b1",
     # Observability (Phoenix/OpenTelemetry)
     "arize-phoenix>=5.0.0",
     "arize-phoenix-otel>=0.6.0",
@@ -37,7 +37,7 @@ dependencies = [
     "opentelemetry-sdk>=1.20.0",
     "opentelemetry-exporter-otlp>=1.20.0",
     # Database ORM and Migrations
-    "sqlalchemy>=2.0.0",
+    "sqlalchemy>=2.0.0,<2.1",
     "alembic>=1.12.0",
     "psycopg2-binary>=2.9.0",
     # S3 Storage (Railway Buckets / AWS compatible)
@@ -67,6 +67,10 @@ dev = [
 
 [project.scripts]
 synthlab = "synth_lab.__main__:main"
+
+[tool.uv]
+prerelease = "allow"
+environments = ["python_version >= '3.13' and python_version < '3.14'"]
 
 [build-system]
 requires = ["setuptools>=68.0"]
