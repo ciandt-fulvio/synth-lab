@@ -3,8 +3,10 @@
 Tests share entity validation and data structure.
 Must FAIL before implementation.
 """
-import pytest
 from uuid import uuid4
+
+import pytest
+
 from synth_lab.domain.entities.share import ExperimentShare, PermissionLevel
 
 

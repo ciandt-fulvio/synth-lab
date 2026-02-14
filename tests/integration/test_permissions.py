@@ -2,15 +2,16 @@
 
 Tests permission logic with real database interactions.
 """
-import pytest
 from uuid import uuid4
 
-from synth_lab.services.experiment_service import ExperimentService
-from synth_lab.services.synth_group_service import SynthGroupService
-from synth_lab.services.permission_service import PermissionService
+import pytest
+
+from synth_lab.domain.entities.share import PermissionLevel
 from synth_lab.repositories.experiment_repository import ExperimentRepository
 from synth_lab.repositories.synth_group_repository import SynthGroupRepository
-from synth_lab.domain.entities.share import PermissionLevel
+from synth_lab.services.experiment_service import ExperimentService
+from synth_lab.services.permission_service import PermissionService
+from synth_lab.services.synth_group_service import SynthGroupService
 
 
 @pytest.mark.slow
@@ -103,8 +104,8 @@ class TestPermissionChecksIntegration:
         )
 
         # Share with viewer - directly insert into shares table
-        from datetime import datetime
-        granted_at = datetime.utcnow().isoformat()
+        from datetime import UTC, datetime
+        granted_at = datetime.now(UTC).isoformat()
         db_session.execute(
             text("""
                 INSERT INTO experiment_shares (id, experiment_id, user_id, permission_level, granted_by_id, granted_at)

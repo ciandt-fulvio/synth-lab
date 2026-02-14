@@ -10,15 +10,14 @@ Seeds initial mechanism definitions, options, and feature types.
 This migration populates the mechanism tables with the initial configuration
 required for the narrative generation feature to work.
 """
-from typing import Sequence, Union
-import uuid
 import json
+import uuid
+from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import table, column
+from alembic import op
+from sqlalchemy import column, table
 from sqlalchemy.dialects.postgresql import UUID
-
 
 # revision identifiers, used by Alembic
 revision: str = '933673a892f5'

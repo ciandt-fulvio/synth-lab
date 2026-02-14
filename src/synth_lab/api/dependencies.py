@@ -12,7 +12,7 @@ from typing import Generator
 
 from sqlalchemy.orm import Session
 
-from synth_lab.infrastructure.database_v2 import get_db_session, get_session
+from synth_lab.infrastructure.database_v2 import get_db_session
 from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
 
 

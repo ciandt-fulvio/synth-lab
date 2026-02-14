@@ -9,14 +9,12 @@ References:
     - contracts/materials_context.yaml: API contracts
 """
 
-import pytest
+from synth_lab.models.orm.material import ExperimentMaterial
 from synth_lab.services.materials_context import (
-    MaterialContext,
     format_materials_for_prompt,
     to_material_context,
     validate_token_budget,
 )
-from synth_lab.models.orm.material import ExperimentMaterial
 
 
 class TestToMaterialContext:

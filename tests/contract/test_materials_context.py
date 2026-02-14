@@ -8,10 +8,12 @@ References:
     - contracts/materials_context.yaml: API contract specification
 """
 
-import pytest
 import re
-from synth_lab.services.materials_context import format_materials_for_prompt
+
+import pytest
+
 from synth_lab.models.orm.material import ExperimentMaterial
+from synth_lab.services.materials_context import format_materials_for_prompt
 
 
 class TestMaterialsContextContract:

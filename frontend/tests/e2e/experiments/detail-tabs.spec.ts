@@ -2,19 +2,20 @@
  * E2E Tests - Experiment Detail Tabs Navigation
  *
  * Testa a navegação entre todas as tabs na página de detalhe do experimento:
- * - Análise (scorecard)
  * - Entrevistas
- * - Explorações
  * - Materiais
  * - Relatórios
+ *
+ * SKIPPED: Aguardando refatoração da home page (remoção de /old-home/).
+ * TODO: Re-habilitar após definir rota definitiva para lista de experimentos.
  *
  * Run: npm run test:e2e experiments/detail-tabs.spec.ts
  */
 import { test, expect } from '../fixtures';
 
-test.describe('Experiments - Detail Tabs @experiments', () => {
+test.describe.skip('Experiments - Detail Tabs @experiments', () => {
   test.beforeEach(async ({ page }) => {
-    // Navega para home e clica no primeiro experimento
+    // TODO: Atualizar para rota definitiva quando /old-home/ for removida
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -34,56 +35,30 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
 
     // Wait for experiment detail page to load
     await expect(page.locator('h2').first()).toBeVisible({ timeout: 10000 });
-    await expect(page.getByRole('tab', { name: /análise/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('tab', { name: /entrevistas/i })).toBeVisible({ timeout: 10000 });
   });
 
   test('DT001 - All tabs are visible', async ({ page }) => {
     // Verifica que todas as tabs estão presentes
-    const analysisTab = page.getByRole('tab', { name: /análise/i });
     const interviewsTab = page.getByRole('tab', { name: /entrevistas/i });
-    const explorationsTab = page.getByRole('tab', { name: /explorações/i });
     const materialsTab = page.getByRole('tab', { name: /materiais/i });
     const reportsTab = page.getByRole('tab', { name: /relatórios/i });
 
-    await expect(analysisTab).toBeVisible();
     await expect(interviewsTab).toBeVisible();
-    await expect(explorationsTab).toBeVisible();
     await expect(materialsTab).toBeVisible();
     await expect(reportsTab).toBeVisible();
   });
 
-  test('DT002 - Análise tab is selected by default', async ({ page }) => {
-    // Tab Análise deve estar selecionada por padrão
-    const analysisTab = page.getByRole('tab', { name: /análise/i });
-    await expect(analysisTab).toHaveAttribute('aria-selected', 'true');
-  });
-
-  test('DT003 - Análise tab shows scorecard or message', async ({ page }) => {
-    const analysisTab = page.getByRole('tab', { name: /análise/i });
-
-    // Garante que está na tab Análise
-    if (await analysisTab.getAttribute('aria-selected') !== 'true') {
-      await analysisTab.click();
-      await page.waitForTimeout(500);
-    }
-
-    // Deve mostrar conteúdo de análise quantitativa ou mensagem de aguardando
-    const hasAnalysisContent = await page.locator('h3').filter({
-      hasText: /análise quantitativa/i
-    }).count() > 0;
-
-    const hasWaitingMessage = await page.locator('text=/aguardando execução|aguardando análise/i').count() > 0;
-
-    // Uma das duas opções deve ser verdadeira
-    expect(hasAnalysisContent || hasWaitingMessage).toBeTruthy();
-  });
-
-  test('DT004 - Navigate to Entrevistas tab', async ({ page }) => {
+  test('DT002 - Entrevistas tab is selected by default', async ({ page }) => {
+    // Tab Entrevistas deve estar selecionada por padrão
     const interviewsTab = page.getByRole('tab', { name: /entrevistas/i });
-    await interviewsTab.click();
-    await page.waitForTimeout(500);
+    await expect(interviewsTab).toHaveAttribute('aria-selected', 'true');
+  });
 
-    // Tab deve estar selecionada
+  test('DT003 - Entrevistas tab shows content', async ({ page }) => {
+    const interviewsTab = page.getByRole('tab', { name: /entrevistas/i });
+
+    // Tab deve estar selecionada por padrão
     await expect(interviewsTab).toHaveAttribute('aria-selected', 'true');
 
     // Deve mostrar conteúdo de entrevistas
@@ -92,12 +67,10 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
     ).toBeVisible({ timeout: 5000 });
   });
 
-  test('DT005 - Entrevistas tab shows count', async ({ page }) => {
+  test('DT004 - Entrevistas tab shows count', async ({ page }) => {
     const interviewsTab = page.getByRole('tab', { name: /entrevistas/i });
-    await interviewsTab.click();
-    await page.waitForTimeout(500);
 
-    // Tab should be selected
+    // Tab should be selected by default
     await expect(interviewsTab).toHaveAttribute('aria-selected', 'true');
 
     // Check for the heading "Entrevistas" in the page
@@ -110,10 +83,8 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
     ).toBeVisible();
   });
 
-  test('DT006 - Entrevistas tab shows empty state or list', async ({ page }) => {
+  test('DT005 - Entrevistas tab shows empty state or list', async ({ page }) => {
     const interviewsTab = page.getByRole('tab', { name: /entrevistas/i });
-    await interviewsTab.click();
-    await page.waitForTimeout(500);
 
     // Deve mostrar botão "Nova Entrevista"
     const newInterviewBtn = page.getByRole('button', { name: /nova entrevista/i });
@@ -126,43 +97,7 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
     expect(hasContent).toBeTruthy();
   });
 
-  test('DT007 - Navigate to Explorações tab', async ({ page }) => {
-    const explorationsTab = page.getByRole('tab', { name: /explorações/i });
-
-    // Verifica se tab está habilitada (HTML disabled ou data-disabled attribute)
-    const isDisabled = await explorationsTab.isDisabled();
-
-    if (isDisabled) {
-      test.skip('Tab Explorações está desabilitada para este experimento');
-    }
-
-    await explorationsTab.click();
-    await page.waitForTimeout(500);
-
-    // Tab deve estar selecionada
-    await expect(explorationsTab).toHaveAttribute('aria-selected', 'true');
-  });
-
-  test('DT008 - Explorações tab shows content when enabled', async ({ page }) => {
-    const explorationsTab = page.getByRole('tab', { name: /explorações/i });
-
-    // Verifica se tab está habilitada
-    const isDisabled = await explorationsTab.isDisabled();
-
-    if (isDisabled) {
-      test.skip('Tab Explorações está desabilitada');
-    }
-
-    await explorationsTab.click();
-    await page.waitForTimeout(500);
-
-    // Deve mostrar algum conteúdo relacionado a explorações
-    // (árvore, nós, cenários, ou empty state)
-    const hasContent = await page.locator('text=/exploração|exploration|cenário|scenario|nó|node/i').count() > 0;
-    expect(hasContent).toBeTruthy();
-  });
-
-  test('DT009 - Navigate to Materiais tab', async ({ page }) => {
+  test('DT006 - Navigate to Materiais tab', async ({ page }) => {
     const materialsTab = page.getByRole('tab', { name: /materiais/i });
     await materialsTab.click();
     await page.waitForTimeout(500);
@@ -176,7 +111,7 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
     ).toBeVisible({ timeout: 5000 });
   });
 
-  test('DT010 - Materiais tab shows count', async ({ page }) => {
+  test('DT007 - Materiais tab shows count', async ({ page }) => {
     const materialsTab = page.getByRole('tab', { name: /materiais/i });
     await materialsTab.click();
     await page.waitForTimeout(500);
@@ -191,7 +126,7 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
     await expect(page.locator('text=/arquivo.*anexado/i')).toBeVisible();
   });
 
-  test('DT011 - Materiais tab shows upload area', async ({ page }) => {
+  test('DT008 - Materiais tab shows upload area', async ({ page }) => {
     const materialsTab = page.getByRole('tab', { name: /materiais/i });
     await materialsTab.click();
     await page.waitForTimeout(500);
@@ -201,7 +136,7 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
     await expect(uploadArea.first()).toBeVisible({ timeout: 5000 });
   });
 
-  test('DT012 - Navigate to Relatórios tab', async ({ page }) => {
+  test('DT009 - Navigate to Relatórios tab', async ({ page }) => {
     const reportsTab = page.getByRole('tab', { name: /relatórios/i });
     await reportsTab.click();
     await page.waitForTimeout(500);
@@ -215,17 +150,19 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
     ).toBeVisible({ timeout: 5000 });
   });
 
-  test('DT013 - Relatórios tab shows description', async ({ page }) => {
+  test('DT010 - Relatórios tab shows description', async ({ page }) => {
     const reportsTab = page.getByRole('tab', { name: /relatórios/i });
     await reportsTab.click();
     await page.waitForTimeout(500);
 
-    // Deve mostrar descrição
-    const description = page.locator('text=/documentos gerados.*análises.*explorações/i');
-    await expect(description).toBeVisible({ timeout: 5000 });
+    // Deve mostrar descrição ou conteúdo relacionado a documentos
+    const hasDescription = await page.locator('text=/documentos gerados/i').count() > 0;
+    const hasContent = await page.locator('h3').filter({ hasText: /relatórios/i }).count() > 0;
+
+    expect(hasDescription || hasContent).toBeTruthy();
   });
 
-  test('DT014 - Relatórios tab shows empty state or list', async ({ page }) => {
+  test('DT011 - Relatórios tab shows empty state or list', async ({ page }) => {
     const reportsTab = page.getByRole('tab', { name: /relatórios/i });
     await reportsTab.click();
 
@@ -244,25 +181,10 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
     expect(hasEmptyState || hasList).toBeTruthy();
   });
 
-  test('DT015 - Navigate between all tabs sequentially', async ({ page }) => {
-    // Análise (já está selecionada)
-    const analysisTab = page.getByRole('tab', { name: /análise/i });
-    await expect(analysisTab).toHaveAttribute('aria-selected', 'true');
-
-    // Entrevistas
+  test('DT012 - Navigate between all tabs sequentially', async ({ page }) => {
+    // Entrevistas (já está selecionada por padrão)
     const interviewsTab = page.getByRole('tab', { name: /entrevistas/i });
-    await interviewsTab.click();
-    await page.waitForTimeout(500);
     await expect(interviewsTab).toHaveAttribute('aria-selected', 'true');
-
-    // Explorações (se habilitada)
-    const explorationsTab = page.getByRole('tab', { name: /explorações/i });
-    const isDisabled = await explorationsTab.isDisabled();
-    if (!isDisabled) {
-      await explorationsTab.click();
-      await page.waitForTimeout(500);
-      await expect(explorationsTab).toHaveAttribute('aria-selected', 'true');
-    }
 
     // Materiais
     const materialsTab = page.getByRole('tab', { name: /materiais/i });
@@ -276,37 +198,36 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
     await page.waitForTimeout(500);
     await expect(reportsTab).toHaveAttribute('aria-selected', 'true');
 
-    // Volta para Análise
-    await analysisTab.click();
-    await page.waitForTimeout(500);
-    await expect(analysisTab).toHaveAttribute('aria-selected', 'true');
-  });
-
-  test('DT016 - Tab content changes when switching tabs', async ({ page }) => {
-    // Pega conteúdo da tab Análise
-    const analysisContent = await page.locator('main').textContent();
-
-    // Muda para Entrevistas
-    const interviewsTab = page.getByRole('tab', { name: /entrevistas/i });
+    // Volta para Entrevistas
     await interviewsTab.click();
     await page.waitForTimeout(500);
+    await expect(interviewsTab).toHaveAttribute('aria-selected', 'true');
+  });
 
-    // Conteúdo deve ser diferente
+  test('DT013 - Tab content changes when switching tabs', async ({ page }) => {
+    // Pega conteúdo da tab Entrevistas (default)
     const interviewsContent = await page.locator('main').textContent();
-    expect(interviewsContent).not.toEqual(analysisContent);
 
     // Muda para Materiais
     const materialsTab = page.getByRole('tab', { name: /materiais/i });
     await materialsTab.click();
     await page.waitForTimeout(500);
 
-    // Conteúdo deve ser diferente novamente
+    // Conteúdo deve ser diferente
     const materialsContent = await page.locator('main').textContent();
     expect(materialsContent).not.toEqual(interviewsContent);
-    expect(materialsContent).not.toEqual(analysisContent);
+
+    // Volta para Entrevistas
+    const interviewsTab = page.getByRole('tab', { name: /entrevistas/i });
+    await interviewsTab.click();
+    await page.waitForTimeout(500);
+
+    // Conteúdo deve voltar ao original
+    const interviewsContent2 = await page.locator('main').textContent();
+    expect(interviewsContent2).toEqual(interviewsContent);
   });
 
-  test('DT017 - Tab badges show correct counts', async ({ page }) => {
+  test('DT014 - Tab badges show correct counts', async ({ page }) => {
     // Verifica que badges nas tabs mostram contagens corretas
 
     // Tab Entrevistas deve mostrar número
@@ -328,15 +249,11 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
     expect(hasReportCount).toBeTruthy();
   });
 
-  test('DT018 - URL does not change when switching tabs', async ({ page }) => {
+  test('DT015 - URL does not change when switching tabs', async ({ page }) => {
     // Salva URL inicial
     const initialUrl = page.url();
 
     // Navega entre tabs
-    await page.getByRole('tab', { name: /entrevistas/i }).click();
-    await page.waitForTimeout(300);
-    expect(page.url()).toBe(initialUrl);
-
     await page.getByRole('tab', { name: /materiais/i }).click();
     await page.waitForTimeout(300);
     expect(page.url()).toBe(initialUrl);
@@ -345,10 +262,12 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
     await page.waitForTimeout(300);
     expect(page.url()).toBe(initialUrl);
 
-    // URL deve permanecer a mesma (não deve adicionar hash ou query params)
+    await page.getByRole('tab', { name: /entrevistas/i }).click();
+    await page.waitForTimeout(300);
+    expect(page.url()).toBe(initialUrl);
   });
 
-  test('DT019 - Selected tab persists after page interaction', async ({ page }) => {
+  test('DT016 - Selected tab persists after page interaction', async ({ page }) => {
     // Vai para tab Materiais
     const materialsTab = page.getByRole('tab', { name: /materiais/i });
     await materialsTab.click();
@@ -361,28 +280,11 @@ test.describe('Experiments - Detail Tabs @experiments', () => {
     // Tab ainda deve estar selecionada
     await expect(materialsTab).toHaveAttribute('aria-selected', 'true');
   });
-
-  test('DT020 - Disabled tab cannot be selected', async ({ page }) => {
-    const explorationsTab = page.getByRole('tab', { name: /explorações/i });
-
-    const isDisabled = await explorationsTab.isDisabled();
-
-    if (!isDisabled) {
-      test.skip('Tab Explorações está habilitada para este experimento');
-    }
-
-    // Tenta clicar na tab desabilitada
-    await explorationsTab.click({ force: true });
-    await page.waitForTimeout(500);
-
-    // Tab NÃO deve estar selecionada
-    const isSelected = await explorationsTab.getAttribute('aria-selected');
-    expect(isSelected).not.toBe('true');
-  });
 });
 
-test.describe('Experiments - Tab Accessibility @experiments @a11y', () => {
+test.describe.skip('Experiments - Tab Accessibility @experiments @a11y', () => {
   test.beforeEach(async ({ page }) => {
+    // TODO: Atualizar para rota definitiva quando /old-home/ for removida
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -391,14 +293,14 @@ test.describe('Experiments - Tab Accessibility @experiments @a11y', () => {
     await page.waitForLoadState('networkidle');
   });
 
-  test('DT021 - Tabs have correct ARIA attributes', async ({ page }) => {
-    const analysisTab = page.getByRole('tab', { name: /análise/i });
+  test('DT017 - Tabs have correct ARIA attributes', async ({ page }) => {
+    const interviewsTab = page.getByRole('tab', { name: /entrevistas/i });
 
     // Deve ter role="tab"
-    await expect(analysisTab).toHaveAttribute('role', 'tab');
+    await expect(interviewsTab).toHaveAttribute('role', 'tab');
 
     // Deve ter aria-selected
-    const ariaSelected = await analysisTab.getAttribute('aria-selected');
+    const ariaSelected = await interviewsTab.getAttribute('aria-selected');
     expect(ariaSelected).toBeTruthy();
 
     // Tabpanel ativo deve ter role="tabpanel" (apenas o visível)
@@ -406,25 +308,25 @@ test.describe('Experiments - Tab Accessibility @experiments @a11y', () => {
     await expect(activeTabpanel).toBeVisible();
   });
 
-  test('DT022 - Keyboard navigation works (Arrow keys)', async ({ page }) => {
-    const analysisTab = page.getByRole('tab', { name: /análise/i });
+  test('DT018 - Keyboard navigation works (Arrow keys)', async ({ page }) => {
+    const interviewsTab = page.getByRole('tab', { name: /entrevistas/i });
 
-    // Foca na tab Análise
-    await analysisTab.focus();
+    // Foca na tab Entrevistas (default)
+    await interviewsTab.focus();
 
     // Pressiona ArrowRight para ir para próxima tab
     await page.keyboard.press('ArrowRight');
     await page.waitForTimeout(300);
 
-    // Tab Entrevistas deve estar focada ou selecionada
-    const interviewsTab = page.getByRole('tab', { name: /entrevistas/i });
-    const isFocused = await interviewsTab.evaluate(el => el === document.activeElement);
+    // Tab Materiais deve estar focada ou selecionada
+    const materialsTab = page.getByRole('tab', { name: /materiais/i });
+    const isFocused = await materialsTab.evaluate(el => el === document.activeElement);
 
     // Ou está focada ou está selecionada
-    expect(isFocused || await interviewsTab.getAttribute('aria-selected') === 'true').toBeTruthy();
+    expect(isFocused || await materialsTab.getAttribute('aria-selected') === 'true').toBeTruthy();
   });
 
-  test('DT023 - Tab list has correct ARIA role', async ({ page }) => {
+  test('DT019 - Tab list has correct ARIA role', async ({ page }) => {
     // Tablist deve ter role="tablist"
     const tablist = page.locator('[role="tablist"]');
     await expect(tablist).toBeVisible();

@@ -2,15 +2,13 @@
 
 Validates JWT tokens and injects current user into request state.
 """
-from fastapi import Request, HTTPException, status
+from typing import Optional
+
+from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from typing import Optional
-from loguru import logger
 
 from synth_lab.infrastructure.auth.session_manager import get_session_manager
-from synth_lab.services.auth_service import AuthService
-from synth_lab.repositories.user_repository import UserRepository
 
 
 class AuthenticationMiddleware(BaseHTTPMiddleware):

@@ -2,15 +2,16 @@
 
 Tests user data access operations with mocked database.
 """
-import pytest
-from uuid import uuid4
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
+from uuid import uuid4
+
+import pytest
 from sqlalchemy.exc import IntegrityError
 
-from synth_lab.repositories.user_repository import UserRepository
 from synth_lab.domain.entities.user import User
 from synth_lab.models.orm.user import User as UserModel
+from synth_lab.repositories.user_repository import UserRepository
 
 
 @pytest.fixture
@@ -40,8 +41,8 @@ def sample_user():
         email="user@example.com",
         display_name="John Doe",
         profile_picture_url="https://example.com/pic.jpg",
-        created_at=datetime.utcnow().isoformat(),
-        updated_at=datetime.utcnow().isoformat(),
+        created_at=datetime.now(UTC).isoformat(),
+        updated_at=datetime.now(UTC).isoformat(),
     )
 
 
@@ -54,8 +55,8 @@ def sample_user_model():
     model.email = "user@example.com"
     model.display_name = "John Doe"
     model.profile_picture_url = "https://example.com/pic.jpg"
-    model.created_at = datetime.utcnow().isoformat()
-    model.updated_at = datetime.utcnow().isoformat()
+    model.created_at = datetime.now(UTC).isoformat()
+    model.updated_at = datetime.now(UTC).isoformat()
     return model
 
 

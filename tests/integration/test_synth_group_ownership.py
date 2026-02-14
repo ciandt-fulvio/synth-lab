@@ -2,11 +2,11 @@
 
 Tests ownership assignment and persistence with real database.
 """
-import pytest
-from uuid import uuid4
 
-from synth_lab.services.synth_group_service import SynthGroupService
+import pytest
+
 from synth_lab.repositories.synth_group_repository import SynthGroupRepository
+from synth_lab.services.synth_group_service import SynthGroupService
 
 
 @pytest.mark.slow

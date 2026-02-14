@@ -185,7 +185,6 @@ class PRFAQRepository(BaseRepository):
         Raises:
             PRFAQNotFoundError: If PR-FAQ not found.
         """
-        import json
 
         experiment_id = self._get_experiment_id(exec_id)
         if not experiment_id:

@@ -7,17 +7,18 @@ Uses real database and tests Service → Repository → Database flow.
 Executar: pytest -m integration tests/integration/services/test_document_services.py
 """
 
-import pytest
 from datetime import datetime
 
-from synth_lab.services.document_service import DocumentService
-from synth_lab.repositories.experiment_document_repository import (
-    ExperimentDocumentRepository,
-    DocumentNotFoundError,
-)
-from synth_lab.models.orm.experiment import Experiment
+import pytest
+
+from synth_lab.domain.entities.experiment_document import DocumentStatus, DocumentType
 from synth_lab.models.orm.document import ExperimentDocument
-from synth_lab.domain.entities.experiment_document import DocumentType, DocumentStatus
+from synth_lab.models.orm.experiment import Experiment
+from synth_lab.repositories.experiment_document_repository import (
+    DocumentNotFoundError,
+    ExperimentDocumentRepository,
+)
+from synth_lab.services.document_service import DocumentService
 
 
 def create_document_service(session) -> DocumentService:

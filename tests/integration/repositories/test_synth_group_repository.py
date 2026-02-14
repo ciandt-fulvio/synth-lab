@@ -9,17 +9,19 @@ References:
     - ORM Models: synth_lab.models.orm.synth
 """
 
-import pytest
 from datetime import datetime, timezone
+
+import pytest
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from synth_lab.models.orm.synth import SynthGroup as SynthGroupORM, Synth as SynthORM
 from synth_lab.domain.entities.synth_group import (
-    SynthGroup,
     DEFAULT_SYNTH_GROUP_ID,
     DEFAULT_SYNTH_GROUP_NAME,
+    SynthGroup,
 )
+from synth_lab.models.orm.synth import Synth as SynthORM
+from synth_lab.models.orm.synth import SynthGroup as SynthGroupORM
 from synth_lab.models.pagination import PaginationParams
 from synth_lab.repositories.synth_group_repository import SynthGroupRepository
 

@@ -29,7 +29,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 
 from loguru import logger
-from sqlalchemy import create_engine, Engine, text
+from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
 

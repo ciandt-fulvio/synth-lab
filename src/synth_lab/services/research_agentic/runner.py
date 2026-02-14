@@ -25,10 +25,7 @@ import random
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from synth_lab.domain.entities.synth_outcome import SynthOutcome
+from typing import Any
 
 from agents import Runner, add_trace_processor, trace
 from loguru import logger
@@ -36,10 +33,7 @@ from rich.console import Console
 
 from synth_lab.trace_visualizer import SpanStatus, SpanType, Tracer
 
-from .agent_definitions import (
-    create_interviewee,
-    create_interviewee_reviewer,
-    create_interviewer)
+from .agent_definitions import create_interviewee, create_interviewee_reviewer, create_interviewer
 from .tracing_bridge import TraceVisualizerProcessor
 
 # Console for colored output
@@ -232,14 +226,11 @@ async def generate_initial_context(
     topic_guide: str,
     model: str = "gpt-4o-mini",
     context_definition: str | None = None,
-    additional_context: str | None = None,
-    synth_outcome: "SynthOutcome | None" = None,
-    avg_adopted_rate: float | None = None) -> str:
+    additional_context: str | None = None) -> str:
     """
     Generate initial context for the interviewee based on examples.
 
-    When simulation data is provided, uses it to determine appropriate sentiment.
-    Otherwise falls back to random selection.
+    Uses random sentiment selection to determine the type of experience.
 
     Args:
         synth: Synth data dictionary
@@ -248,8 +239,6 @@ async def generate_initial_context(
         model: LLM model to use
         context_definition: Optional definition/purpose of the context
         additional_context: Optional additional context to complement the scenario
-        synth_outcome: Optional simulation outcome for data-driven sentiment selection
-        avg_adopted_rate: Optional average adopted rate for comparison
 
     Returns:
         Generated initial context string
@@ -257,23 +246,9 @@ async def generate_initial_context(
     from agents import Agent
     from agents import Runner as AgentRunner
 
-    from synth_lab.services.research_agentic.context_formatter import (
-        ExperienceClassification,
-        classify_experience)
-
-    # Determine sentiment based on simulation data or randomly
-    classification: ExperienceClassification | None = None
-    if synth_outcome is not None and avg_adopted_rate is not None:
-        classification = classify_experience(synth_outcome, avg_adopted_rate)
-        sentiment = classification.sentiment
-        logger.info(
-            f"Classified experience for synth {synth_outcome.synth_id}: "
-            f"{sentiment} ({classification.reason})"
-        )
-    else:
-        # Fallback: random selection when no simulation data
-        sentiment = random.choice(["positive", "negative", "neutral"])
-        logger.debug(f"No simulation data, using random sentiment: {sentiment}")
+    # Random sentiment selection
+    sentiment = random.choice(["positive", "negative", "neutral"])
+    logger.debug(f"Using random sentiment: {sentiment}")
 
     example = context_examples.get(sentiment, "")
 
@@ -295,42 +270,6 @@ CONTEXTO:
 {context_definition}
 """
 
-    # Build simulation data section (when available)
-    simulation_data_section = ""
-    behavior_section = ""
-    simulation_rules = ""
-
-    if classification is not None and synth_outcome is not None:
-        adopted_pct = int(synth_outcome.adopted_rate * 100)
-        avg_pct = int(avg_adopted_rate * 100) if avg_adopted_rate else 0
-
-        # Determine position relative to average
-        if classification.sentiment == "positive":
-            position = "ACIMA DA MÉDIA - adoção predominantemente positiva"
-        elif classification.sentiment == "negative":
-            position = "ABAIXO DA MÉDIA - adoção predominantemente negativa"
-        else:
-            position = "NA MÉDIA - adoção mista"
-
-        simulation_data_section = f"""
-DADOS DA SIMULAÇÃO:
-- Taxa de adoção: {adopted_pct}% (média do experimento: {avg_pct}%)
-- Classificação: {position}
-"""
-
-        # Add behavior context for non-adoption patterns
-        if classification.non_attempt_reason:
-            behavior_section = f"""
-COMPORTAMENTO DE USO:
-{classification.non_attempt_reason}
-"""
-
-        # Add simulation-aware rules
-        outcome_desc = "ADOÇÃO frequente" if adopted_pct > 50 else "DIFICULDADES"
-        simulation_rules = (
-            f"\n- A experiência deve refletir alguém que teve {outcome_desc} ({adopted_pct}%)"
-        )
-
     # Build additional context section
     additional_context_section = ""
     if additional_context:
@@ -341,34 +280,34 @@ CONTEXTO ADICIONAL:
 
     # Build prompt header
     header = (
-        f"Você deve gerar uma experiência pessoal para {nome}, "
+        f"Voce deve gerar uma experiencia pessoal para {nome}, "
         f"{idade} anos, {ocupacao}, de {cidade}."
     )
 
     prompt = f"""{header}
 
 RELATIVO A:
-{context_def_section}{simulation_data_section}{behavior_section}{additional_context_section}
+{context_def_section}{additional_context_section}
 
-TIPO DE EXPERIÊNCIA: {sentiment.upper()}
+TIPO DE EXPERIENCIA: {sentiment.upper()}
 
-EXEMPLO DE REFERÊNCIA (adapte para o perfil da pessoa):
+EXEMPLO DE REFERENCIA (adapte para o perfil da pessoa):
 {example}
 
 REGRAS:
-- Gere uma experiência {sentiment} única e personalizada para esta pessoa
+- Gere uma experiencia {sentiment} unica e personalizada para esta pessoa
 - Use linguagem natural e coloquial adequada ao perfil
-- Inclua detalhes concretos (datas, situações, emoções)
-- Máximo 3-4 frases
-- NÃO copie o exemplo literalmente, apenas use como inspiração{simulation_rules}
+- Inclua detalhes concretos (datas, situacoes, emocoes)
+- Maximo 3-4 frases
+- NAO copie o exemplo literalmente, apenas use como inspiracao
 
-Responda APENAS com a experiência gerada, sem explicações adicionais."""
+Responda APENAS com a experiencia gerada, sem explicacoes adicionais."""
 
     context_agent = Agent(
         name="Context Generator",
         instructions=(
-            "Você é um gerador de contextos para personas sintéticas. "
-            "Gere experiências realistas e personalizadas."
+            "Voce e um gerador de contextos para personas sinteticas. "
+            "Gere experiencias realistas e personalizadas."
         ),
         model=model)
 
@@ -377,39 +316,7 @@ Responda APENAS com a experiência gerada, sem explicações adicionais."""
 
     logger.info(f"Generated {sentiment} context for {nome}: {generated_context[:100]}...")
 
-    return f"[EXPERIÊNCIA PRÉVIA - {sentiment.upper()}]: {generated_context}"
-
-
-def _get_simulation_context_for_synth(synth_id: str, analysis_id: str) -> str:
-    """
-    Fetch simulation results and format as context for interview.
-
-    Args:
-        synth_id: The synth ID
-        analysis_id: The analysis ID to fetch results from
-
-    Returns:
-        Formatted simulation context string, or empty string if not found
-    """
-    from synth_lab.repositories.synth_outcome_repository import SynthOutcomeRepository
-    from synth_lab.services.research_agentic.context_formatter import (
-        create_simulation_context_from_outcome,
-        format_simulation_context)
-
-    try:
-        repo = SynthOutcomeRepository()
-        outcome = repo.get_by_synth_and_analysis(synth_id, analysis_id)
-
-        if outcome is None:
-            logger.debug(f"No simulation results for synth {synth_id} in analysis {analysis_id}")
-            return ""
-
-        context = create_simulation_context_from_outcome(outcome)
-        return format_simulation_context(context)
-
-    except Exception as e:
-        logger.warning(f"Failed to fetch simulation context: {e}")
-        return ""
+    return f"[EXPERIENCIA PREVIA - {sentiment.upper()}]: {generated_context}"
 
 
 def format_synth_profile(synth: dict[str, Any]) -> str:
@@ -471,7 +378,6 @@ async def run_interview(
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
     guide_name: str = "interview",
-    analysis_id: str | None = None,
     materials: list | None = None) -> InterviewResult:
     """
     Run an agentic interview with orchestrated turn-taking.
@@ -495,9 +401,6 @@ async def run_interview(
             If True, uses raw interviewee response without humanization review.
         additional_context: Optional additional context to complement the research scenario
         guide_name: Name identifier for the guide (for logging/tracing)
-        analysis_id: Optional analysis ID to fetch simulation results for context.
-            When provided, synth's simulation performance is included in the
-            interviewee prompt for coherent behavior.
         materials: Optional list of ExperimentMaterial objects to include in prompts.
             When provided, materials are accessible to both interviewer and interviewee.
 
@@ -508,13 +411,12 @@ async def run_interview(
     ```python
     guide = InterviewGuideData(
         context_definition="Pesquisa sobre checkout 1-clique",
-        questions="Q1: Como você se sente...?",
-        context_examples="Exemplo de experiência positiva...")
+        questions="Q1: Como voce se sente...?",
+        context_examples="Exemplo de experiencia positiva...")
     result = await run_interview(
         synth_id="abc123",
         interview_guide=guide,
         max_turns=6,
-        analysis_id="ana_12345678",  # Include simulation context
     )
     ```
     """
@@ -528,43 +430,13 @@ async def run_interview(
     # Get context examples for generating initial context
     context_examples = interview_guide.get_context_examples_dict()
 
-    # Fetch simulation data if analysis_id provided
-    simulation_context_text: str = ""
-    synth_outcome: "SynthOutcome | None" = None
-    avg_adopted_rate: float | None = None
-
-    if analysis_id:
-        from synth_lab.domain.entities.synth_outcome import SynthOutcome
-        from synth_lab.repositories.synth_outcome_repository import SynthOutcomeRepository
-
-        outcome_repo = SynthOutcomeRepository()
-
-        # Get synth's simulation outcome
-        synth_outcome = outcome_repo.get_by_synth_and_analysis(synth_id, analysis_id)
-
-        # Get analysis statistics for comparison
-        stats = outcome_repo.get_analysis_statistics(analysis_id)
-        if stats:
-            avg_adopted_rate = stats["avg_adopted_rate"]
-
-        # Get formatted simulation context for interviewee prompt
-        simulation_context_text = _get_simulation_context_for_synth(synth_id, analysis_id)
-        if simulation_context_text:
-            logger.info(f"Using simulation context for {synth_name} from {analysis_id}")
-        if synth_outcome and avg_adopted_rate is not None:
-            logger.info(
-                f"Simulation data: adopted={synth_outcome.adopted_rate:.0%}, "
-                f"avg={avg_adopted_rate:.0%}"
-            )
-
     # Initialize shared memory
     shared_memory = SharedMemory(
         topic_guide=topic_guide,
         synth=synth)
 
     # Initial context will be generated in parallel with first interviewer turn
-    # If we have simulation context, prepend it
-    initial_context: str = simulation_context_text
+    initial_context: str = ""
 
     # Initialize tracer for visualization
     trace_id = f"agentic-interview-{synth_id}"
@@ -621,16 +493,11 @@ async def run_interview(
                                 topic_guide=topic_guide,
                                 model=model,
                                 context_definition=interview_guide.context_definition,
-                                additional_context=additional_context,
-                                synth_outcome=synth_outcome,
-                                avg_adopted_rate=avg_adopted_rate)
+                                additional_context=additional_context)
                             raw_result, generated_context = await asyncio.gather(
                                 interviewer_task, context_task
                             )
-                            # Combine simulation context with generated context
-                            if initial_context and generated_context:
-                                initial_context = f"{initial_context}\n\n{generated_context}"
-                            elif generated_context:
+                            if generated_context:
                                 initial_context = generated_context
                             logger.info(f"Generated initial context: {initial_context[:80]}...")
                         else:

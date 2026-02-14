@@ -15,14 +15,13 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
-from synth_lab.api.main import app
-from synth_lab.api.routers import materials as materials_router
-from synth_lab.services.material_service import MaterialService
-from synth_lab.repositories.experiment_material_repository import ExperimentMaterialRepository
-
 # Import all ORM models to register them with SQLAlchemy
 import synth_lab.models.orm  # noqa: F401
+from synth_lab.api.main import app
+from synth_lab.api.routers import materials as materials_router
 from synth_lab.models.orm.experiment import Experiment
+from synth_lab.repositories.experiment_material_repository import ExperimentMaterialRepository
+from synth_lab.services.material_service import MaterialService
 
 
 @pytest.fixture
@@ -167,7 +166,6 @@ class TestUploadUrlEndpoint:
         self, mock_gen_id, mock_gen_url, client, db_session
     ):
         """Should return 400 when experiment has 10 materials already."""
-        from synth_lab.models.orm.material import ExperimentMaterial
 
         # Create test experiment
         experiment = create_test_experiment("exp_33445566")

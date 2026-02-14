@@ -4,6 +4,7 @@ Tests OAuth client initialization and authorization URL generation.
 Must FAIL before implementation.
 """
 import pytest
+
 from synth_lab.infrastructure.auth.oauth_client import OAuthClient
 
 

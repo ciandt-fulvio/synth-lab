@@ -8,7 +8,6 @@ Executar: pytest tests/contract/test_openapi_typescript_sync.py -v
 Requer: Backend rodando (BACKEND_URL env var or localhost:8000)
 """
 
-import json
 import os
 import subprocess
 import sys

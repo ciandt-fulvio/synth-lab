@@ -9,13 +9,11 @@ References:
     - Data Model: specs/027-postgresql-migration/data-model.md
 """
 
-import os
-import pytest
 from datetime import datetime
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
 
-from synth_lab.models.orm.base import Base
+import pytest
+from sqlalchemy.orm import Session
+
 from synth_lab.models.orm.experiment import Experiment, InterviewGuide
 
 # Fixtures engine and session are provided by conftest.py
@@ -31,7 +29,7 @@ class TestExperimentModel:
     def test_required_columns_exist(self):
         """Experiment should have all required columns."""
         columns = set(Experiment.__table__.columns.keys())
-        required = {"id", "name", "hypothesis", "description", "scorecard_data",
+        required = {"id", "name", "hypothesis", "description",
                    "status", "created_at", "updated_at"}
         assert required.issubset(columns)
 
@@ -46,7 +44,6 @@ class TestExperimentModel:
         assert cols["name"] is False
         assert cols["hypothesis"] is False
         assert cols["description"] is True
-        assert cols["scorecard_data"] is True
         assert cols["created_at"] is False
         assert cols["updated_at"] is True
 
@@ -82,28 +79,6 @@ class TestExperimentCRUD:
         assert result.name == "Test Experiment"
         assert result.hypothesis == "Users will prefer this feature"
         assert result.status == "active"
-
-    def test_create_experiment_with_scorecard(self, session: Session):
-        """Create experiment with scorecard JSON data."""
-        scorecard_data = {
-            "feature_name": "Test Feature",
-            "description_text": "A test description",
-            "complexity": {"score": 0.5},
-        }
-        experiment = Experiment(
-            id="exp_22222222",
-            name="With Scorecard",
-            hypothesis="Test hypothesis",
-            scorecard_data=scorecard_data,
-            status="active",
-            created_at=datetime.now().isoformat(),
-        )
-        session.add(experiment)
-        session.commit()
-
-        result = session.get(Experiment, "exp_22222222")
-        assert result.scorecard_data == scorecard_data
-        assert result.scorecard_data["feature_name"] == "Test Feature"
 
     def test_update_experiment(self, session: Session):
         """Update experiment fields."""

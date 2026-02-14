@@ -15,10 +15,12 @@ from synth_lab.domain.entities.experiment_document import (
     DocumentStatus,
     DocumentType,
     ExperimentDocument,
-    ExperimentDocumentSummary)
+    ExperimentDocumentSummary,
+)
 from synth_lab.repositories.experiment_document_repository import (
     DocumentNotFoundError,
-    ExperimentDocumentRepository)
+    ExperimentDocumentRepository,
+)
 
 
 class DocumentService:

@@ -9,9 +9,10 @@ References:
     - research.md: PR-FAQ material reference format
 """
 
-import pytest
-from unittest.mock import Mock
 import re
+from unittest.mock import Mock
+
+import pytest
 
 
 @pytest.fixture

@@ -48,8 +48,8 @@ EXPECTED_TABLES = {
     "synth_group_shares",
 }
 
-# Current HEAD revision ID (fix_resolve_schema_divergence)
-CURRENT_HEAD_REVISION = "b3c4d5e6f7a8"
+# Current HEAD revision ID (cleanup_drop_simulation_analysis_exploration)
+CURRENT_HEAD_REVISION = "c4d5e6f7a8b9"
 
 
 def get_alembic_config(database_url: str) -> Config:
@@ -88,7 +88,7 @@ class TestAlembicMigrationsPostgres:
         # This ensures we start from a clean state
         try:
             command.downgrade(config, "base")
-        except Exception as e:
+        except Exception:
             # If downgrade fails, it might be because we're already at base
             # or tables don't exist - try to drop all tables manually
             try:
@@ -184,7 +184,6 @@ class TestAlembicMigrationsPostgres:
             "name",
             "hypothesis",
             "description",
-            "scorecard_data",
             "status",
             "created_at",
             "updated_at",

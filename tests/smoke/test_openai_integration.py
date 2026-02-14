@@ -76,8 +76,8 @@ class TestOpenAISmoke:
         """
         Smoke test for OpenAI DALL-E image generation.
 
-        Cost: ~$0.02 (1 DALL-E 3 image)
-        Time: ~5-10 seconds
+        Cost: ~$0.016 (1 DALL-E 2 256x256 image - 4x cheaper than DALL-E 3)
+        Time: ~2-3 seconds (3x faster than DALL-E 3)
 
         Tests:
         1. DALL-E API is accessible
@@ -85,8 +85,7 @@ class TestOpenAISmoke:
         3. Returns valid image URL
         4. Image can be downloaded
 
-        Note: This is the ONLY test that should make a real DALL-E call.
-        All other avatar tests should use mocks.
+        Note: Uses DALL-E 2 for speed and cost. DALL-E 3 is tested separately if needed.
         """
         # Check if API key is configured
         api_key = os.environ.get("OPENAI_API_KEY")
@@ -98,12 +97,11 @@ class TestOpenAISmoke:
         # Create client
         client = OpenAI(api_key=api_key)
 
-        # Make minimal DALL-E call (1 image, smallest size)
+        # Make minimal DALL-E call using DALL-E 2 (faster and cheaper)
         response = client.images.generate(
-            model="dall-e-3",
-            prompt="A simple white square on a gray background",  # Minimal prompt
-            size="1024x1024",  # Standard size
-            quality="standard",  # Standard quality (cheaper than HD)
+            model="dall-e-2",  # DALL-E 2 is 4x cheaper and 3x faster
+            prompt="white square",  # Minimal prompt (faster processing)
+            size="256x256",  # Smallest size for speed
             n=1,  # Just 1 image
         )
 
@@ -131,10 +129,10 @@ class TestOpenAISmoke:
 
         img = Image.open(BytesIO(img_response.content))
         assert img.format == "PNG"
-        assert img.width == 1024
-        assert img.height == 1024
+        assert img.width == 256  # DALL-E 2 256x256
+        assert img.height == 256
 
-        print(f"✅ DALL-E API is working. Image URL: {image_url[:50]}...")
+        print(f"✅ DALL-E API is working (DALL-E 2, 256x256). Image URL: {image_url[:50]}...")
 
 
 @pytest.mark.slow

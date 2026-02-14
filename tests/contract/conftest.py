@@ -13,7 +13,6 @@ from fastapi.testclient import TestClient
 from synth_lab.api.main import app
 from synth_lab.infrastructure.auth.session_manager import SessionManager
 
-
 # Test user constants
 # IMPORTANT: Must be a valid UUID format for database FK constraints
 TEST_USER_ID = "00000001-0000-0000-0000-000000000001"

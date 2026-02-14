@@ -13,7 +13,7 @@ import { test, expect, Page } from '../fixtures';
  * Skips the test if the button is disabled (no interview guide configured).
  */
 async function navigateToInterviewTab(page: Page): Promise<void> {
-  await page.goto('/');
+  await page.goto('/old-home/');
   await page.waitForLoadState('networkidle');
 
   // Wait for experiments page to load
@@ -33,9 +33,9 @@ async function navigateToInterviewTab(page: Page): Promise<void> {
 
   // Wait for experiment detail page to load
   await expect(page.locator('h2').first()).toBeVisible({ timeout: 10000 });
-  await expect(page.getByRole('tab', { name: /análise/i })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole('tab', { name: /entrevistas/i })).toBeVisible({ timeout: 10000 });
 
-  // Navigate to Interviews tab
+  // Navigate to Interviews tab (should be default, but click to be safe)
   const interviewsTab = page.getByRole('tab', { name: /entrevistas/i });
   await interviewsTab.click();
   await page.waitForTimeout(500);

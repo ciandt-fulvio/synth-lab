@@ -7,17 +7,18 @@ Uses real database and tests Service → Repository → Database flow.
 Executar: pytest -m integration tests/integration/services/test_experiment_services.py
 """
 
-import pytest
 from datetime import datetime
 
-from synth_lab.services.experiment_service import ExperimentService
-from synth_lab.services.synth_service import SynthService
-from synth_lab.services.synth_group_service import SynthGroupService
+import pytest
+
+from synth_lab.models.orm.experiment import Experiment
+from synth_lab.models.orm.synth import Synth, SynthGroup
 from synth_lab.repositories.experiment_repository import ExperimentRepository
 from synth_lab.repositories.synth_group_repository import SynthGroupRepository
 from synth_lab.repositories.synth_repository import SynthRepository
-from synth_lab.models.orm.experiment import Experiment
-from synth_lab.models.orm.synth import Synth, SynthGroup
+from synth_lab.services.experiment_service import ExperimentService
+from synth_lab.services.synth_group_service import SynthGroupService
+from synth_lab.services.synth_service import SynthService
 
 
 @pytest.mark.integration

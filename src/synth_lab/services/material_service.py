@@ -17,7 +17,7 @@ References:
 from datetime import datetime, timezone
 from io import BytesIO
 
-from botocore.exceptions import ClientError, BotoCoreError
+from botocore.exceptions import BotoCoreError, ClientError
 from loguru import logger
 from PIL import Image
 
@@ -655,6 +655,7 @@ class MaterialService:
         try:
             # moviepy requires a file, so we use a temp file
             import tempfile
+
             from moviepy.editor import VideoFileClip
 
             with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as tmp:
@@ -809,6 +810,7 @@ class MaterialService:
             Description text, or None if failed.
         """
         import base64
+
         from synth_lab.infrastructure.llm_client import get_llm_client
         from synth_lab.infrastructure.phoenix_tracing import get_tracer
 
@@ -878,7 +880,9 @@ class MaterialService:
         """
         import base64
         import tempfile
+
         from moviepy.editor import VideoFileClip
+
         from synth_lab.infrastructure.llm_client import get_llm_client
         from synth_lab.infrastructure.phoenix_tracing import get_tracer
 
@@ -970,8 +974,8 @@ class MaterialService:
 
         try:
             # Extract text from PDF
-            from pdf2image import convert_from_bytes
             import pytesseract
+            from pdf2image import convert_from_bytes
 
             # Convert first page to image
             images = convert_from_bytes(

@@ -9,18 +9,18 @@ References:
 Note: Images built for linux/amd64 platform for Railway deployment.
 """
 
+import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-import os
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.sessions import SessionMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
 from loguru import logger
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+from starlette.middleware.sessions import SessionMiddleware
 
 from synth_lab.api.errors import register_exception_handlers
 from synth_lab.infrastructure.config import (
@@ -91,6 +91,7 @@ app.add_middleware(SessionMiddleware, secret_key=session_secret)
 
 # Add authentication middleware
 from synth_lab.infrastructure.middleware.auth_middleware import AuthenticationMiddleware
+
 app.add_middleware(AuthenticationMiddleware)
 
 # Register exception handlers
@@ -123,21 +124,13 @@ async def root() -> dict:
 
 # Router imports
 from synth_lab.api.routers import (
-    analysis,
     auth,
-    causal_dag,
     chat,
     documents,
     experiments,
-    exploration,
-    hypotheses,
-    insights,
     materials,
-    mechanisms,
     prfaq,
     research,
-    simulation_insights,
-    simulations,
     synth_groups,
     synths,
     tags,
@@ -150,19 +143,10 @@ app.include_router(chat.router, prefix="/synths", tags=["chat"])
 app.include_router(research.router, prefix="/research", tags=["research"])
 app.include_router(prfaq.router, prefix="/prfaq", tags=["prfaq"])
 app.include_router(experiments.router, prefix="/experiments", tags=["experiments"])
-app.include_router(analysis.router, prefix="/experiments", tags=["analysis"])
-app.include_router(insights.router, prefix="/experiments", tags=["insights"])
 app.include_router(documents.router, prefix="/experiments", tags=["documents"])
 app.include_router(materials.router, prefix="/experiments", tags=["materials"])
 app.include_router(tags.router, prefix="/tags", tags=["tags"])
 app.include_router(synth_groups.router, prefix="/synth-groups", tags=["synth-groups"])
-app.include_router(exploration.router, prefix="/explorations", tags=["explorations"])
-app.include_router(simulations.router)  # Simulations router has its own prefix /simulations
-app.include_router(simulation_insights.router)  # Insights router shares /simulations prefix
-app.include_router(causal_dag.router)  # DAG router shares /simulations prefix
-app.include_router(hypotheses.router)  # Hypotheses router shares /simulations prefix
-app.include_router(mechanisms.router)  # Mechanisms router has /mechanisms prefix
-app.include_router(mechanisms.experiments_router)  # Narrative generation under /experiments
 
 # Mount static files for generated images and documents
 # Images available at: /static/document/images/<filename>

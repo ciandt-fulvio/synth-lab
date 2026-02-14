@@ -13,11 +13,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from synth_lab.api.main import app
-from synth_lab.api.routers import synth_groups as synth_groups_router
-from synth_lab.services.synth_group_service import SynthGroupService
-from synth_lab.repositories.synth_group_repository import SynthGroupRepository
-from synth_lab.models.orm.synth import SynthGroup as SynthGroupORM, Synth as SynthORM
-from synth_lab.models.orm.experiment import Experiment as ExperimentORM
+from synth_lab.models.orm.synth import Synth as SynthORM
+from synth_lab.models.orm.synth import SynthGroup as SynthGroupORM
 
 
 @pytest.fixture
@@ -28,9 +25,13 @@ def initial_group_count(db_session) -> int:
 
 @pytest.fixture
 def valid_config() -> dict:
-    """Return a valid synth group config with all required fields."""
+    """Return a valid synth group config with all required fields.
+
+    Note: Using n_synths=2 (reduced from 5) to speed up tests.
+    This is sufficient to validate multi-synth logic while keeping tests fast.
+    """
     return {
-        "n_synths": 5,
+        "n_synths": 2,  # Reduced from 5 for faster test execution
         "distributions": {
             "idade": {"15-29": 0.25, "30-44": 0.25, "45-59": 0.25, "60+": 0.25},
             "escolaridade": {
@@ -61,9 +62,13 @@ def valid_config() -> dict:
     }
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def client(postgres_test_url: str, auth_token):
-    """Create test client with test database and authentication."""
+    """Create test client with test database and authentication.
+
+    Module-scoped to avoid recreating FastAPI app for each test.
+    This saves ~0.5-1s per test.
+    """
     import os
 
     # Store original DATABASE_URL
@@ -152,7 +157,7 @@ class TestCreateSynthGroupWithConfig:
     def test_create_with_config_generates_synths(self, client, db_session):
         """Create with config generates synths."""
         config = {
-            "n_synths": 10,
+            "n_synths": 3,  # Reduced from 10 for faster test execution
             "distributions": {
                 "idade": {"15-29": 0.25, "30-44": 0.25, "45-59": 0.25, "60+": 0.25},
                 "escolaridade": {
@@ -195,12 +200,12 @@ class TestCreateSynthGroupWithConfig:
         data = response.json()
 
         assert data["name"] == "Custom Config Group"
-        assert data["synths_count"] == 10
+        assert data["synths_count"] == 3
 
         # Verify config stored
         group = db_session.get(SynthGroupORM, data["id"])
         assert group.config is not None
-        assert group.config["n_synths"] == 10
+        assert group.config["n_synths"] == 3
 
     def test_create_with_config_validates_n_synths(self, client):
         """Create with config validates n_synths range."""
@@ -328,7 +333,7 @@ class TestListSynthGroups:
         data = response.json()
 
         group = next(g for g in data["data"] if g["id"] == group_id)
-        assert group["synth_count"] == 5
+        assert group["synth_count"] == 2
 
 
 class TestGetSynthGroupDetail:
@@ -377,7 +382,7 @@ class TestGetSynthGroupDetail:
         data = response.json()
 
         assert data["config"] is not None
-        assert data["config"]["n_synths"] == 5
+        assert data["config"]["n_synths"] == 2
 
 
 class TestDeleteSynthGroup:
@@ -410,7 +415,6 @@ class TestDeleteSynthGroup:
 
     def test_delete_preserves_synths(self, client, db_session, valid_config):
         """Delete nullifies synth group_id but keeps synths."""
-        from synth_lab.models.orm.synth import Synth as SynthORM
 
         # Create group with synths
         config = {**valid_config, "n_synths": 3}
@@ -462,12 +466,12 @@ class TestSynthGroupsFullFlow:
         groups = list_response.json()["data"]
         assert any(g["id"] == group_id for g in groups)
 
-        # 3. Get detail - should have synths (valid_config has n_synths=5)
+        # 3. Get detail - should have synths (valid_config has n_synths=2)
         detail_response = client.get(f"/synth-groups/{group_id}")
         assert detail_response.status_code == 200
         detail = detail_response.json()
-        assert detail["synth_count"] == 5  # valid_config default
-        assert len(detail["synths"]) == 5
+        assert detail["synth_count"] == 2  # valid_config default
+        assert len(detail["synths"]) == 2
 
         # 4. Delete group
         delete_response = client.delete(f"/synth-groups/{group_id}")

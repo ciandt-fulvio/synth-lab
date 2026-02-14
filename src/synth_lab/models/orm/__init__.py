@@ -7,21 +7,17 @@ Models are organized by domain:
 - base: DeclarativeBase, mixins, and custom types
 - experiment: Experiment, InterviewGuide
 - synth: Synth, SynthGroup
-- analysis: AnalysisRun, SynthOutcome, AnalysisCache
 - research: ResearchExecution, Transcript
-- exploration: Exploration, ScenarioNode
-- insight: ChartInsight
 - document: ExperimentDocument
 - material: ExperimentMaterial
 
 Usage:
-    from synth_lab.models.orm import Experiment, Synth, AnalysisRun
+    from synth_lab.models.orm import Experiment, Synth
 
     # Or import specific modules
     from synth_lab.models.orm.experiment import Experiment, InterviewGuide
 """
 
-from synth_lab.models.orm.analysis import AnalysisCache, AnalysisRun, SynthOutcome
 from synth_lab.models.orm.base import (
     Base,
     JSONVariant,
@@ -34,13 +30,11 @@ from synth_lab.models.orm.base import (
 from synth_lab.models.orm.document import ExperimentDocument
 from synth_lab.models.orm.experiment import Experiment, InterviewGuide
 from synth_lab.models.orm.material import ExperimentMaterial
-from synth_lab.models.orm.exploration import Exploration, ScenarioNode
-from synth_lab.models.orm.insight import ChartInsight
 from synth_lab.models.orm.research import ResearchExecution, Transcript
+from synth_lab.models.orm.share import ExperimentShare, PermissionLevel, SynthGroupShare
 from synth_lab.models.orm.synth import Synth, SynthGroup
 from synth_lab.models.orm.tag import ExperimentTag, Tag
 from synth_lab.models.orm.user import User
-from synth_lab.models.orm.share import ExperimentShare, SynthGroupShare, PermissionLevel
 
 __all__ = [
     # Base
@@ -57,18 +51,9 @@ __all__ = [
     # Synth
     "Synth",
     "SynthGroup",
-    # Analysis
-    "AnalysisRun",
-    "SynthOutcome",
-    "AnalysisCache",
     # Research
     "ResearchExecution",
     "Transcript",
-    # Exploration
-    "Exploration",
-    "ScenarioNode",
-    # Insight
-    "ChartInsight",
     # Document
     "ExperimentDocument",
     # Material

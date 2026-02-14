@@ -409,6 +409,7 @@ class TestThumbnailGeneration:
         """Should generate thumbnail for image material."""
         # Mock S3 download - return a small PNG image bytes
         from io import BytesIO
+
         from PIL import Image
 
         # Create a small test image
@@ -544,6 +545,7 @@ class TestThumbnailGeneration:
     ):
         """Should return None if thumbnail upload fails."""
         from io import BytesIO
+
         from PIL import Image
 
         # Create valid image bytes

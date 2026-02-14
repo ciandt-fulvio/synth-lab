@@ -341,7 +341,8 @@ if __name__ == "__main__":
         from synth_lab.domain.entities.simulation_attributes import (
             SimulationAttributes,
             SimulationLatentTraits,
-            SimulationObservables)
+            SimulationObservables,
+        )
 
         sample_attrs = SimulationAttributes(
             observables=SimulationObservables(

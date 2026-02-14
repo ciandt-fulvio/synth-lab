@@ -9,11 +9,13 @@ References:
     - contracts/materials_context.yaml: Prompt formatting contract
 """
 
-import pytest
 from unittest.mock import Mock
+
+import pytest
+
 from synth_lab.services.research_agentic.instructions import (
-    format_interviewer_instructions,
     format_interviewee_instructions,
+    format_interviewer_instructions,
 )
 
 

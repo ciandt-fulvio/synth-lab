@@ -4,8 +4,7 @@ Provides utilities for generating test JWT tokens and managing authenticated ses
 in E2E tests using cookie injection (bypasses OAuth flow).
 """
 import os
-from datetime import datetime, timedelta
-
+from datetime import UTC, datetime, timedelta
 
 # Test user constants - must match tests/conftest.py and seed data
 TEST_USER = {
@@ -61,7 +60,7 @@ def create_test_auth_token(
     if expires_delta is None:
         expires_delta = timedelta(hours=1)
 
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     payload = {
         "sub": user_id,
         "email": email,

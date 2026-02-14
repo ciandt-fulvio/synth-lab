@@ -2,7 +2,8 @@
 
 import pytest
 from pydantic import ValidationError
-from synth_lab.domain.entities.feature_mechanisms import FeatureMechanisms, ALL_9_FIELDS
+
+from synth_lab.domain.entities.feature_mechanisms import FeatureMechanisms
 
 ALL_MECHANISM_KEYS = [
     "irreversibility", "network_effect", "institutional_trust",

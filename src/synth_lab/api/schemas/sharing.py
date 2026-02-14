@@ -1,6 +1,7 @@
 """Pydantic schemas for sharing API endpoints."""
-from pydantic import BaseModel, Field, field_validator
 from typing import Optional
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class ShareExperimentRequest(BaseModel):

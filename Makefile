@@ -1,4 +1,4 @@
-.PHONY: help install setup-hooks gensynth phoenix phoenix-ui kill validate-ui test test-fast test-e2e test-e2e-docker test-e2e-docker-up test-e2e-docker-down test-e2e-docker-logs test-e2e-seed test-smoke-staging test-smoke-production lint-format update-docs clean clean-images dev-up dev-down dev-logs-back dev-logs-front db-migrate ensure-container-runtime
+.PHONY: help install setup-hooks gensynth phoenix phoenix-ui kill validate-ui test test-fast test-e2e test-e2e-docker test-e2e-docker-up test-e2e-docker-down test-e2e-docker-logs test-e2e-seed test-smoke-staging test-smoke-production test-real-api lint-format update-docs clean clean-images dev-up dev-down dev-logs-back dev-logs-front db-migrate ensure-container-runtime
 
 # =============================================================================
 # Configuration
@@ -29,13 +29,19 @@ PODMAN_MACHINE_RUNNING := $(shell if [ "$(CONTAINER_RUNTIME)" = "podman" ]; then
 .PHONY: ensure-container-runtime
 ensure-container-runtime:
 ifeq ($(CONTAINER_RUNTIME),podman)
-ifeq ($(PODMAN_MACHINE_RUNNING),no)
-	@echo "🔧 Podman machine not running. Starting it..."
-	@podman machine start || (echo "❌ Failed to start Podman machine. Try: podman machine init && podman machine start" && exit 1)
-	@echo "✅ Podman machine started"
-else
-	@echo "✅ Podman machine already running"
-endif
+	@# Check if podman is actually accessible (not just machine status)
+	@if ! podman ps > /dev/null 2>&1; then \
+		echo "🔧 Podman connection issue detected, restarting..."; \
+		podman machine stop > /dev/null 2>&1 || true; \
+		podman machine start; \
+		echo "✅ Podman machine restarted"; \
+	elif [ "$(PODMAN_MACHINE_RUNNING)" = "no" ]; then \
+		echo "🔧 Podman machine not running. Starting it..."; \
+		podman machine start || (echo "❌ Failed to start Podman machine. Try: podman machine init && podman machine start" && exit 1); \
+		echo "✅ Podman machine started"; \
+	else \
+		echo "✅ Podman machine already running"; \
+	fi
 else
 	@true
 endif
@@ -70,9 +76,10 @@ help:
 	@echo "  make dev-logs-front View frontend logs"
 	@echo ""
 	@echo "Testing (Smart Mode - runs failed tests first):"
-	@echo "  make test               Run unit/integration tests (smart mode)"
+	@echo "  make test               Run unit/integration tests (smart mode, skips real API)"
 	@echo "  make test-fast          Run fast anti-regression tests (~30s)"
 	@echo "  make test-e2e           Run E2E tests (smart mode, isolated Docker)"
+	@echo "  make test-real-api      Run REAL API tests (slow, costs money) ⚠️"
 	@echo "  make test-smoke-staging Run smoke tests against Staging (Railway)"
 	@echo "  make test-smoke-production Run smoke tests against Production (Railway)"
 	@echo ""
@@ -112,12 +119,14 @@ endif
 # =============================================================================
 # Tools
 # =============================================================================
-gensynth:
-	DATABASE_URL="$(DATABASE_URL)" PHOENIX_ENABLED=$(PHOENIX_ENABLED) LOG_LEVEL=$(LOG_LEVEL) uv run synthlab gensynth $(ARGS)
-
 phoenix:
-	@echo "Phoenix: http://127.0.0.1:6006"
-	@exec uv run python -m phoenix.server.main serve
+	@if lsof -ti:6006 > /dev/null 2>&1; then \
+		echo "✅ Phoenix is already running at http://127.0.0.1:6006"; \
+		echo "   To restart, run: make kill && make phoenix"; \
+	else \
+		echo "🚀 Starting Phoenix at http://127.0.0.1:6006"; \
+		exec uv run python -m phoenix.server.main serve; \
+	fi
 
 phoenix-ui:
 	@echo "🔍 Opening Phoenix UI at http://localhost:6006"
@@ -168,16 +177,7 @@ test-fast: test-db-up
 test-e2e: test-e2e-docker
 
 test-e2e-docker: ensure-container-runtime
-	@echo "🎭 Running E2E tests (isolated environment)..."
-	@echo "   Frontend: http://localhost:8091"
-	@echo "   Backend:  http://localhost:8001"
-	@echo "   Database: localhost:5433"
-	@echo ""
-	@./scripts/compose-e2e.sh up-detached; \
-	exit_code=0; \
-	./scripts/run-e2e-tests-smart.sh || exit_code=$$?; \
-	./scripts/compose-e2e.sh down; \
-	exit $$exit_code
+	@./scripts/run-e2e-full.sh
 
 test-e2e-docker-up:
 	@echo "🎭 Starting E2E environment..."
@@ -257,7 +257,7 @@ dev-up: ensure-container-runtime
 	@echo ""
 	@echo "✅ Environment ready! Use 'make dev-logs-back e make dev-logs-front' to view logs"
 
-dev-down:
+dev-down: ensure-container-runtime
 	@echo "🛑 Stopping Docker development environment..."
 	@$(CONTAINER_RUNTIME) compose -f $(COMPOSE_FILE) --env-file docker/.env.dev --profile dev down
 	@echo "✅ Done"

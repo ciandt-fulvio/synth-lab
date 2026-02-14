@@ -46,7 +46,11 @@ export default defineConfig({
   // Use 4 workers in CI for faster execution
   // Tests with shared state should use: test.describe.configure({ mode: 'serial' })
   workers: process.env.CI ? 4 : 6,
-  reporter: 'html',
+  // Use list reporter for detailed per-test output + html for browsable report
+  reporter: [
+    ['list'],
+    ['html', { open: 'never' }]
+  ],
 
   use: {
     baseURL,

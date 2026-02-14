@@ -19,7 +19,6 @@ import os
 import sys
 
 import pytest
-from alembic import command
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory

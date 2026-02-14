@@ -15,7 +15,6 @@ pytest_plugins = ['pytest_asyncio']
 import json
 import os
 import shutil
-import sys
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -88,9 +87,12 @@ def test_user_google_id() -> str:
     return TEST_USER_GOOGLE_ID
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def auth_token() -> str:
-    """Create a valid JWT token for testing."""
+    """Create a valid JWT token for testing.
+
+    Session-scoped to allow sharing with module-scoped client fixtures.
+    """
     from synth_lab.infrastructure.auth.session_manager import SessionManager
     session_manager = SessionManager()
     return session_manager.create_access_token(
@@ -111,9 +113,10 @@ def create_test_user(db_session):
             user_id = create_test_user(email="test@example.com")
             # Now you can create experiments with owner_id=user_id
     """
-    from synth_lab.models.orm.user import User
-    from datetime import datetime
+    from datetime import UTC, datetime
     from uuid import uuid4
+
+    from synth_lab.models.orm.user import User
 
     def _create_user(
         user_id: str = None,
@@ -132,8 +135,8 @@ def create_test_user(db_session):
             email=email,
             google_user_id=google_user_id,
             display_name=display_name,
-            created_at=datetime.utcnow().isoformat(),
-            updated_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
+            updated_at=datetime.now(UTC).isoformat(),
         )
         db_session.add(user)
         db_session.flush()  # Flush to make it available in the same transaction
@@ -590,8 +593,8 @@ def db_session(seeded_test_engine):
             # After test, your additions are rolled back
             # but seed data remains for next test
     """
-    from sqlalchemy.orm import sessionmaker
     from sqlalchemy import event
+    from sqlalchemy.orm import sessionmaker
 
     connection = seeded_test_engine.connect()
     transaction = connection.begin()
@@ -616,6 +619,67 @@ def db_session(seeded_test_engine):
         nested.rollback()
     transaction.rollback()
     connection.close()
+
+
+# ==============================================================================
+# Test Optimization Fixtures (Mock LLM, Disable Background Tasks)
+# ==============================================================================
+
+
+@pytest.fixture(autouse=True)
+def mock_llm_calls(monkeypatch):
+    """
+    Auto-mock all LLM calls in integration tests.
+
+    This fixture prevents real OpenAI API calls during testing, which:
+    - Saves ~5 seconds per test that creates experiments
+    - Eliminates external API dependency
+    - Reduces cost (no API charges)
+    - Makes tests deterministic
+
+    Only applies to integration tests. Smoke tests with marker 'real_api'
+    should use real LLM calls.
+    """
+    import asyncio
+
+    # Mock generate_interview_guide_async to return immediately
+    async def mock_generate_interview_guide(*args, **kwargs):
+        """Mock interview guide generation - no-op."""
+        await asyncio.sleep(0.001)  # Minimal delay to simulate async
+        return None
+
+    monkeypatch.setattr(
+        "synth_lab.services.interview_guide_generator_service.generate_interview_guide_async",
+        mock_generate_interview_guide,
+    )
+
+
+@pytest.fixture(autouse=True)
+def disable_background_tasks_in_tests(monkeypatch):
+    """
+    Disable asyncio.create_task in tests to prevent race conditions.
+
+    Background tasks can cause issues in tests:
+    - FK violations when deleting entities before tasks complete
+    - Unpredictable test behavior
+    - Slower test execution
+
+    This fixture makes background tasks no-op in tests.
+    """
+    import asyncio
+
+    original_create_task = asyncio.create_task
+
+    def mock_create_task(coro, *args, **kwargs):
+        """Mock create_task - close coroutine without executing."""
+        # Close coroutine to avoid "coroutine never awaited" warning
+        coro.close()
+        # Return a completed future to avoid AttributeError
+        future = asyncio.Future()
+        future.set_result(None)
+        return future
+
+    monkeypatch.setattr("asyncio.create_task", mock_create_task)
 
 
 # ==============================================================================

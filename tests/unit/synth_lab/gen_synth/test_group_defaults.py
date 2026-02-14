@@ -4,7 +4,6 @@ Unit tests for group_defaults module.
 Tests the expand_education_distribution function and default constants.
 """
 
-import pytest
 
 from synth_lab.domain.constants.group_defaults import (
     ESCOLARIDADE_EXPANSION_RATIOS,

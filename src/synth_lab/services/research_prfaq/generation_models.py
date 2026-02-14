@@ -26,7 +26,7 @@ Expected output (prfaq):
     )
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -118,9 +118,9 @@ class PRFAQDocument(BaseModel):
     press_release: PressRelease = Field(..., description="Press release section")
     faq: list[FAQItem] = Field(..., description="FAQ items (8-12 questions)")
     generated_at: datetime = Field(
-        default_factory=lambda: datetime.now(datetime.UTC)
+        default_factory=lambda: datetime.now(UTC)
         if hasattr(datetime, "UTC")
-        else datetime.utcnow()
+        else datetime.now(UTC)
     )
     version: int = Field(default=1, description="Version number")
     edit_history: list[Dict[str, Any]] = Field(
@@ -176,9 +176,9 @@ class GenerationMetadata(BaseModel):
 
     batch_id: str = Field(..., description="Source batch ID")
     generation_timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(datetime.UTC)
+        default_factory=lambda: datetime.now(UTC)
         if hasattr(datetime, "UTC")
-        else datetime.utcnow()
+        else datetime.now(UTC)
     )
     model_used: str = Field(default="gpt-4", description="LLM model identifier")
     prompt_strategy: str = Field(

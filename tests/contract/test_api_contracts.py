@@ -18,7 +18,6 @@ Note: Uses shared 'client' fixture from tests/contract/conftest.py
 """
 
 import sys
-from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -70,7 +69,7 @@ class TestExperimentContracts:
             assert isinstance(exp["hypothesis"], str), "hypothesis deve ser string"
 
             # Campos booleanos de estado
-            bool_fields = ["has_scorecard", "has_analysis", "has_interview_guide"]
+            bool_fields = ["has_interview_guide"]
             for field in bool_fields:
                 if field in exp:
                     assert isinstance(exp[field], bool), f"{field} deve ser bool"
@@ -190,19 +189,6 @@ class TestExperimentContracts:
         required_fields = ["id", "name", "hypothesis", "created_at"]
         for field in required_fields:
             assert field in exp, f"ExperimentDetail deve ter '{field}'"
-
-        # scorecard_data pode ou não existir (opcional)
-        if "scorecard_data" in exp and exp["scorecard_data"] is not None:
-            scorecard = exp["scorecard_data"]
-
-            # Campos obrigatórios do scorecard
-            scorecard_fields = [
-                "feature_name",
-                "scenario",
-                "description_text",
-            ]
-            for field in scorecard_fields:
-                assert field in scorecard, f"scorecard_data deve ter '{field}'"
 
     def test_get_experiment_synths_returns_valid_schema(self, client: TestClient):
         """GET /synth-groups/:id/synths retorna lista de synths (endpoint separado)."""

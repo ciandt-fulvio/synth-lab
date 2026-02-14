@@ -3,9 +3,11 @@
 Tests user model validation rules and constraints.
 Must FAIL before implementation.
 """
-import pytest
+from datetime import UTC, datetime
 from uuid import uuid4
-from datetime import datetime
+
+import pytest
+
 from synth_lab.domain.entities.user import User
 
 
@@ -20,8 +22,8 @@ class TestUserEntityValidation:
             email="user@example.com",
             display_name="John Doe",
             profile_picture_url="https://lh3.googleusercontent.com/test",
-            created_at=datetime.utcnow().isoformat(),
-            updated_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
+            updated_at=datetime.now(UTC).isoformat(),
         )
 
         assert user is not None
@@ -37,8 +39,8 @@ class TestUserEntityValidation:
                 email="user@example.com",
                 display_name="John Doe",
                 profile_picture_url=None,
-                created_at=datetime.utcnow().isoformat(),
-                updated_at=datetime.utcnow().isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
+                updated_at=datetime.now(UTC).isoformat(),
             )
 
     def test_user_requires_email(self):
@@ -50,8 +52,8 @@ class TestUserEntityValidation:
                 email="",
                 display_name="John Doe",
                 profile_picture_url=None,
-                created_at=datetime.utcnow().isoformat(),
-                updated_at=datetime.utcnow().isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
+                updated_at=datetime.now(UTC).isoformat(),
             )
 
     def test_user_validates_email_format(self):
@@ -63,8 +65,8 @@ class TestUserEntityValidation:
                 email="not-an-email",
                 display_name="John Doe",
                 profile_picture_url=None,
-                created_at=datetime.utcnow().isoformat(),
-                updated_at=datetime.utcnow().isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
+                updated_at=datetime.now(UTC).isoformat(),
             )
 
     def test_user_display_name_optional(self):
@@ -75,8 +77,8 @@ class TestUserEntityValidation:
             email="user@example.com",
             display_name=None,
             profile_picture_url=None,
-            created_at=datetime.utcnow().isoformat(),
-            updated_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
+            updated_at=datetime.now(UTC).isoformat(),
         )
 
         assert user.display_name is None
@@ -89,8 +91,8 @@ class TestUserEntityValidation:
             email="user@example.com",
             display_name="John Doe",
             profile_picture_url=None,
-            created_at=datetime.utcnow().isoformat(),
-            updated_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
+            updated_at=datetime.now(UTC).isoformat(),
         )
 
         assert user.profile_picture_url is None

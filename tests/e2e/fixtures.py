@@ -10,13 +10,13 @@ Usage:
         authenticated_page.goto('/experiments/new')
         # User is already authenticated - no login required
 """
-import pytest
 import os
 
+import pytest
 
 # Try to import playwright - skip fixtures if not available
 try:
-    from playwright.sync_api import sync_playwright, Page, BrowserContext
+    from playwright.sync_api import BrowserContext, Page, sync_playwright
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:
     PLAYWRIGHT_AVAILABLE = False

@@ -6,15 +6,15 @@ Uses best practices for testing OAuth/JWT flows:
 - AsyncMock for async OAuth operations
 - Proper dependency override for mocking services
 """
+from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock, AsyncMock
-from uuid import uuid4
 
 from synth_lab.api.main import app
 from synth_lab.api.routers.auth import get_auth_service
 from synth_lab.domain.entities.user import User
-
 
 # Test user constant - matches conftest.py
 TEST_USER_ID = "00000001-0000-0000-0000-000000000001"

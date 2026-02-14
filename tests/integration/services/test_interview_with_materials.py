@@ -8,8 +8,9 @@ References:
     - spec.md: User Story 1 acceptance criteria
 """
 
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch
 
 
 @pytest.mark.integration
@@ -43,9 +44,7 @@ class TestInterviewWithMaterials:
         self, sample_experiment_with_materials
     ):
         """Test interviewer agent instructions include materials."""
-        from synth_lab.services.research_agentic.instructions import (
-            format_interviewer_instructions
-        )
+        from synth_lab.services.research_agentic.instructions import format_interviewer_instructions
 
         instructions = format_interviewer_instructions(
             topic_guide="Test research topic",
@@ -65,9 +64,7 @@ class TestInterviewWithMaterials:
         self, sample_experiment_with_materials
     ):
         """Test interviewee agent instructions include materials."""
-        from synth_lab.services.research_agentic.instructions import (
-            format_interviewee_instructions
-        )
+        from synth_lab.services.research_agentic.instructions import format_interviewee_instructions
 
         synth = {
             "nome": "Test User",
@@ -142,11 +139,11 @@ class TestInterviewWithMaterials:
         # 4. Verify materials are referenced in responses
 
         # For now, verify core components exist and can be created
-        from synth_lab.services.research_agentic.tools import create_materials_tool
         from synth_lab.services.research_agentic.instructions import (
-            format_interviewer_instructions,
             format_interviewee_instructions,
+            format_interviewer_instructions,
         )
+        from synth_lab.services.research_agentic.tools import create_materials_tool
 
         # Can create tool
         mock_repo = Mock()

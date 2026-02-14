@@ -6,9 +6,9 @@ authentication. Supports access tokens (short-lived) and refresh tokens
 """
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
 
-from jose import jwt, JWTError
+from jose import JWTError, jwt
 
 
 class SessionManager:

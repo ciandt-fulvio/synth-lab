@@ -13,7 +13,6 @@ For examples of mocked service integration tests, see:
 Dependencies: pytest
 """
 
-import pytest
 
 
 class TestAvatarGeneratorFunctions:

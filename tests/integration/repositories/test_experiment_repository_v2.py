@@ -9,14 +9,13 @@ References:
     - ORM Models: synth_lab.models.orm
 """
 
+
 import pytest
-from datetime import datetime
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from synth_lab.domain.entities.experiment import Experiment
 from synth_lab.models.orm.experiment import Experiment as ExperimentORM
-from synth_lab.models.orm.analysis import AnalysisRun as AnalysisRunORM
-from synth_lab.domain.entities.experiment import Experiment, ScorecardData
 from synth_lab.models.pagination import PaginationParams
 from synth_lab.repositories.experiment_repository import ExperimentRepository
 
@@ -68,26 +67,6 @@ class TestExperimentRepositoryCreate:
 
         orm_exp = session.get(ExperimentORM, experiment.id)
         assert orm_exp.description == "A detailed description of the experiment"
-
-    def test_create_experiment_with_scorecard(self, repo: ExperimentRepository, session: Session):
-        """Create experiment with scorecard data."""
-        scorecard = ScorecardData(
-            feature_name="Test Feature",
-            description_text="A test feature",
-        )
-        experiment = Experiment(
-            name="With Scorecard",
-            hypothesis="Scorecard works",
-            scorecard_data=scorecard,
-        )
-        result = repo.create(experiment)
-        session.commit()
-
-        retrieved = repo.get_by_id(experiment.id)
-        assert retrieved is not None
-        assert retrieved.has_scorecard()
-        assert retrieved.scorecard_data.feature_name == "Test Feature"
-
 
 class TestExperimentRepositoryGet:
     """Tests for retrieving experiments via SQLAlchemy."""
@@ -325,24 +304,6 @@ class TestExperimentRepositoryUpdate:
         result = repo.update("exp_nonexistent", name="Test")
         assert result is None
 
-    def test_update_scorecard(self, repo: ExperimentRepository, session: Session):
-        """Update experiment scorecard."""
-        experiment = Experiment(name="Test", hypothesis="Test")
-        repo.create(experiment)
-        session.commit()
-
-        scorecard = ScorecardData(
-            feature_name="New Feature",
-            description_text="Description",
-        )
-        result = repo.update_scorecard(experiment.id, scorecard)
-        session.commit()
-
-        assert result is not None
-        assert result.has_scorecard()
-        assert result.scorecard_data.feature_name == "New Feature"
-
-
 class TestExperimentRepositoryDelete:
     """Tests for deleting experiments via SQLAlchemy."""
 
@@ -366,33 +327,6 @@ class TestExperimentRepositoryDelete:
         """Delete returns False for non-existent experiment."""
         result = repo.delete("exp_nonexistent")
         assert result is False
-
-
-class TestExperimentRepositoryRelationships:
-    """Tests for experiment relationships via SQLAlchemy."""
-
-    def test_list_includes_has_analysis_flag(self, repo: ExperimentRepository, session: Session):
-        """Experiment summary should include has_analysis flag."""
-        experiment = Experiment(name="With Analysis", hypothesis="Test")
-        repo.create(experiment)
-        session.commit()
-
-        # Create analysis run directly
-        analysis = AnalysisRunORM(
-            id="ana_test0001",
-            experiment_id=experiment.id,
-            config={},
-            status="completed",
-            started_at=datetime.now().isoformat(),
-        )
-        session.add(analysis)
-        session.commit()
-
-        params = PaginationParams(limit=10, offset=0)
-        result = repo.list_experiments(params)
-
-        assert len(result.data) == 1
-        assert result.data[0].has_analysis is True
 
 
 if __name__ == "__main__":

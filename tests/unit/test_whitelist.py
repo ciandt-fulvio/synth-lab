@@ -3,7 +3,6 @@
 Tests email and domain matching logic for access control whitelist.
 Must FAIL before implementation.
 """
-import pytest
 from synth_lab.infrastructure.auth.whitelist import (
     is_whitelisted,
     parse_whitelist,

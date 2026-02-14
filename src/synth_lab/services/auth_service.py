@@ -2,14 +2,14 @@
 
 Handles Google OAuth flow, user creation, whitelist validation, and session management.
 """
-from typing import Tuple, Optional
-from uuid import UUID
+from typing import Optional, Tuple
+
 from loguru import logger
 
 from synth_lab.domain.entities.user import User
-from synth_lab.repositories.user_repository import UserRepository
-from synth_lab.infrastructure.auth.whitelist import load_whitelist_from_env, is_whitelisted
 from synth_lab.infrastructure.auth.session_manager import SessionManager
+from synth_lab.infrastructure.auth.whitelist import is_whitelisted, load_whitelist_from_env
+from synth_lab.repositories.user_repository import UserRepository
 
 
 class AuthService:

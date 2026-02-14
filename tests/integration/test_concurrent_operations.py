@@ -19,17 +19,15 @@ References:
     - Connection pooling: https://docs.sqlalchemy.org/en/20/core/pooling.html
 """
 
-import os
-import pytest
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import Session, sessionmaker
+import pytest
+from sqlalchemy import text
+from sqlalchemy.orm import sessionmaker
 
-from synth_lab.models.orm.base import Base
 from synth_lab.models.orm.experiment import Experiment
 
 

@@ -9,13 +9,11 @@ References:
     - Data Model: specs/027-postgresql-migration/data-model.md
 """
 
-import os
-import pytest
 from datetime import datetime
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
 
-from synth_lab.models.orm.base import Base
+import pytest
+from sqlalchemy.orm import Session
+
 from synth_lab.models.orm.synth import Synth, SynthGroup
 
 # Fixtures engine and session are provided by conftest.py

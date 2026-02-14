@@ -2,11 +2,10 @@
 
 Represents sharing relationships between users and resources (experiments, synth_groups).
 """
-from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Optional
-from uuid import UUID, uuid4
 import enum
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from uuid import UUID, uuid4
 
 
 class PermissionLevel(str, enum.Enum):
@@ -34,7 +33,7 @@ class ExperimentShare:
     permission_level: PermissionLevel
     granted_by_id: UUID
     id: UUID = field(default_factory=uuid4)
-    granted_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    granted_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def __post_init__(self):
         """Validate share data."""
@@ -89,7 +88,7 @@ class SynthGroupShare:
     permission_level: PermissionLevel
     granted_by_id: UUID
     id: UUID = field(default_factory=uuid4)
-    granted_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    granted_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def __post_init__(self):
         """Validate share data."""

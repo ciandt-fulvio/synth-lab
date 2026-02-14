@@ -9,8 +9,9 @@ References:
     - src/synth_lab/services/research_prfaq/prompts.py: Prompt generation
 """
 
-import pytest
 from unittest.mock import Mock
+
+import pytest
 
 
 class TestPRFAQPromptWithMaterials:

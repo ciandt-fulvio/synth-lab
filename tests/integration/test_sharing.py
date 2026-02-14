@@ -5,23 +5,24 @@ Tests complete sharing scenarios with real database.
 Note: These tests use direct SQL for share operations since SharingService
 requires async sessions, but the test fixtures provide sync sessions.
 """
-import pytest
 from uuid import uuid4
+
+import pytest
 from sqlalchemy import text
 
 from synth_lab.domain.entities.share import PermissionLevel
-from synth_lab.services.experiment_service import ExperimentService
-from synth_lab.services.synth_group_service import SynthGroupService
-from synth_lab.services.permission_service import PermissionService
 from synth_lab.repositories.experiment_repository import ExperimentRepository
 from synth_lab.repositories.synth_group_repository import SynthGroupRepository
+from synth_lab.services.experiment_service import ExperimentService
+from synth_lab.services.permission_service import PermissionService
+from synth_lab.services.synth_group_service import SynthGroupService
 
 
 def _create_experiment_share(db_session, experiment_id: str, user_id: str, permission_level: PermissionLevel, granted_by_id: str) -> str:
     """Helper to create an experiment share directly in database."""
-    from datetime import datetime
+    from datetime import UTC, datetime
     share_id = str(uuid4())
-    granted_at = datetime.utcnow().isoformat()
+    granted_at = datetime.now(UTC).isoformat()
     db_session.execute(
         text("""
             INSERT INTO experiment_shares (id, experiment_id, user_id, permission_level, granted_by_id, granted_at)
@@ -42,9 +43,9 @@ def _create_experiment_share(db_session, experiment_id: str, user_id: str, permi
 
 def _create_synth_group_share(db_session, synth_group_id: str, user_id: str, permission_level: PermissionLevel, granted_by_id: str) -> str:
     """Helper to create a synth_group share directly in database."""
-    from datetime import datetime
+    from datetime import UTC, datetime
     share_id = str(uuid4())
-    granted_at = datetime.utcnow().isoformat()
+    granted_at = datetime.now(UTC).isoformat()
     db_session.execute(
         text("""
             INSERT INTO synth_group_shares (id, synth_group_id, user_id, permission_level, granted_by_id, granted_at)

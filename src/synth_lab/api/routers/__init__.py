@@ -4,8 +4,7 @@ API routers module.
 Contains FastAPI routers for each domain area:
 - synths: Synth persona data access
 - research: Research execution and transcripts
-- experiments: Experiment management with embedded scorecards
+- experiments: Experiment management
 - prfaq: PR-FAQ document access
 - materials: Experiment materials (images, videos, documents)
-- mechanisms: Mechanism definitions and narrative generation
 """

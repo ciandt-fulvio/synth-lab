@@ -36,8 +36,8 @@ if [ -f "$PYTEST_CACHE" ] && [ -s "$PYTEST_CACHE" ]; then
         echo -e "${YELLOW}   Running failed tests first (fail-fast mode)...${NC}"
         echo ""
 
-        # Run only failed tests with fail-fast
-        if ! DATABASE_URL="${DATABASE_URL}" uv run pytest --last-failed --maxfail=1 -v; then
+        # Run only failed tests with fail-fast (skip real API tests by default)
+        if ! DATABASE_URL="${DATABASE_URL}" uv run pytest --last-failed --maxfail=1 -v -m "not real_api"; then
             echo ""
             echo -e "${RED}❌ Previously failed test(s) still failing!${NC}"
             echo -e "${RED}   Fix these tests before running full suite.${NC}"
@@ -53,10 +53,11 @@ if [ -f "$PYTEST_CACHE" ] && [ -s "$PYTEST_CACHE" ]; then
 fi
 
 # Run full test suite (without stopping on first failure)
-echo -e "${BLUE}🔄 Running full test suite (no fail-fast)...${NC}"
+# Skip real_api tests by default (they're slow and cost money)
+echo -e "${BLUE}🔄 Running full test suite (no fail-fast, skipping real API tests)...${NC}"
 echo ""
 
-if ! DATABASE_URL="${DATABASE_URL}" uv run pytest -v; then
+if ! DATABASE_URL="${DATABASE_URL}" uv run pytest -v -m "not real_api"; then
     echo ""
     echo -e "${RED}❌ Some tests failed in full suite!${NC}"
     echo -e "${YELLOW}   Next run will prioritize these failed tests.${NC}"

@@ -5,4 +5,3 @@ export * from './research';
 export * from './synth';
 export * from './prfaq';
 export * from './events';
-export * from './simulation';

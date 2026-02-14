@@ -2,11 +2,11 @@
 
 Represents an authenticated user who has successfully logged in via Google OAuth.
 """
+import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 from uuid import UUID, uuid4
-import re
 
 
 @dataclass
@@ -28,8 +28,8 @@ class User:
     display_name: Optional[str] = None
     profile_picture_url: Optional[str] = None
     id: UUID = field(default_factory=uuid4)
-    created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
-    updated_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def __post_init__(self):
         """Validate and normalize user data after initialization."""
@@ -136,4 +136,4 @@ class User:
         if "email" in google_user_info:
             self.email = google_user_info["email"].lower().strip()
 
-        self.updated_at = datetime.utcnow().isoformat()
+        self.updated_at = datetime.now(UTC).isoformat()

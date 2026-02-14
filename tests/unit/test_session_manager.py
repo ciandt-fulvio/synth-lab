@@ -3,9 +3,11 @@
 Tests token creation, validation, and expiration logic.
 Must FAIL before implementation.
 """
-import pytest
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
+
+import pytest
+
 from synth_lab.infrastructure.auth.session_manager import SessionManager
 
 
@@ -63,13 +65,13 @@ class TestJWTTokenCreation:
         user_id = str(uuid4())
         email = "user@example.com"
 
-        before_creation = datetime.utcnow()
+        before_creation = datetime.now(UTC)
         token = session_manager.create_access_token(user_id=user_id, email=email)
-        after_creation = datetime.utcnow()
+        after_creation = datetime.now(UTC)
 
         payload = session_manager.decode_token(token)
         exp_timestamp = payload["exp"]
-        exp_datetime = datetime.utcfromtimestamp(exp_timestamp)
+        exp_datetime = datetime.fromtimestamp(exp_timestamp, UTC)
 
         # Should expire 30 minutes from now (allow 1 second tolerance for timestamp rounding)
         expected_min = before_creation + timedelta(minutes=30) - timedelta(seconds=1)
@@ -89,10 +91,10 @@ class TestJWTTokenCreation:
             expires_delta=custom_expires
         )
         payload = session_manager.decode_token(token)
-        exp_datetime = datetime.utcfromtimestamp(payload["exp"])
+        exp_datetime = datetime.fromtimestamp(payload["exp"], UTC)
 
         # Should expire ~60 minutes from now
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         expected = now + custom_expires
         delta = abs((exp_datetime - expected).total_seconds())
 
@@ -254,8 +256,8 @@ class TestSessionManagerEdgeCases:
         )
 
         payload = session_manager.decode_token(refresh_token)
-        exp_datetime = datetime.utcfromtimestamp(payload["exp"])
-        now = datetime.utcnow()
+        exp_datetime = datetime.fromtimestamp(payload["exp"], UTC)
+        now = datetime.now(UTC)
 
         # Refresh token should expire in ~30 days
         delta_days = (exp_datetime - now).days

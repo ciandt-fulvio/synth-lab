@@ -1,5 +1,5 @@
 /**
- * T021 useExperiments hook.
+ * useExperiments hook.
  *
  * React Query hooks for experiment CRUD operations.
  *
@@ -19,14 +19,10 @@ import {
   createInterviewForExperiment,
   getAutoInterview,
   createAutoInterview,
-  runAnalysis,
-  updateExperimentMechanisms,
   type ExperimentsListParams,
-  type RunAnalysisRequest,
 } from '@/services/experiments-api';
 import type { ExperimentCreate, ExperimentUpdate } from '@/types/experiment';
 import type { InterviewCreateRequest } from '@/types/research';
-import type { FeatureMechanisms } from '@/types/simulation';
 
 /**
  * Hook to fetch paginated list of experiments with search and sort.
@@ -57,8 +53,6 @@ type ExperimentListCache = {
     name: string;
     hypothesis: string;
     description?: string | null;
-    has_scorecard: boolean;
-    has_analysis: boolean;
     has_interview_guide: boolean;
     interview_count: number;
     created_at: string;
@@ -70,9 +64,6 @@ type ExperimentListCache = {
 
 /**
  * Hook to create a new experiment with optimistic update.
- *
- * Shows the experiment card immediately while the API call is in progress.
- * Rolls back if the creation fails.
  */
 export function useCreateExperiment() {
   const queryClient = useQueryClient();
@@ -80,27 +71,20 @@ export function useCreateExperiment() {
   return useMutation({
     mutationFn: (data: ExperimentCreate) => createExperiment(data),
 
-    // Optimistic update: add placeholder to cache immediately
     onMutate: async (newExperiment) => {
-      // Cancel any outgoing refetches to avoid overwriting our optimistic update
       await queryClient.cancelQueries({ queryKey: queryKeys.experimentsList });
 
-      // Get all experiment list queries (they include params in the key)
       const queries = queryClient.getQueriesData<ExperimentListCache>({
         queryKey: queryKeys.experimentsList,
       });
 
-      // Snapshot all queries for rollback
       const previousQueries = queries.map(([key, data]) => ({ key, data }));
 
-      // Create optimistic experiment with temporary ID
       const optimisticExperiment = {
         id: `temp_${Date.now()}`,
         name: newExperiment.name,
         hypothesis: newExperiment.hypothesis,
         description: newExperiment.description ?? null,
-        has_scorecard: !!newExperiment.scorecard_data,
-        has_analysis: false,
         has_interview_guide: false,
         interview_count: 0,
         created_at: new Date().toISOString(),
@@ -108,7 +92,6 @@ export function useCreateExperiment() {
         _isOptimistic: true,
       };
 
-      // Update all experiment list caches
       queries.forEach(([key, data]) => {
         if (data) {
           queryClient.setQueryData(key, {
@@ -125,7 +108,6 @@ export function useCreateExperiment() {
       return { previousQueries };
     },
 
-    // On success: replace optimistic item with real data
     onSuccess: (createdExperiment) => {
       const queries = queryClient.getQueriesData<ExperimentListCache>({
         queryKey: queryKeys.experimentsList,
@@ -140,8 +122,6 @@ export function useCreateExperiment() {
                   name: createdExperiment.name,
                   hypothesis: createdExperiment.hypothesis,
                   description: createdExperiment.description ?? null,
-                  has_scorecard: createdExperiment.has_scorecard,
-                  has_analysis: !!createdExperiment.analysis,
                   has_interview_guide: createdExperiment.has_interview_guide,
                   interview_count: createdExperiment.interview_count,
                   created_at: createdExperiment.created_at,
@@ -154,14 +134,12 @@ export function useCreateExperiment() {
       });
     },
 
-    // On error: rollback to previous state
     onError: (_err, _newExperiment, context) => {
       context?.previousQueries?.forEach(({ key, data }) => {
         queryClient.setQueryData(key, data);
       });
     },
 
-    // Always refetch after error or success to ensure consistency
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.experimentsList });
     },
@@ -178,7 +156,6 @@ export function useUpdateExperiment() {
     mutationFn: ({ id, data }: { id: string; data: ExperimentUpdate }) =>
       updateExperiment(id, data),
     onSuccess: (_, variables) => {
-      // Invalidate specific experiment and list
       queryClient.invalidateQueries({
         queryKey: queryKeys.experimentDetail(variables.id),
       });
@@ -196,7 +173,6 @@ export function useDeleteExperiment() {
   return useMutation({
     mutationFn: (id: string) => deleteExperiment(id),
     onSuccess: (_, id) => {
-      // Invalidate specific experiment and list
       queryClient.invalidateQueries({
         queryKey: queryKeys.experimentDetail(id),
       });
@@ -215,7 +191,6 @@ export function useCreateInterviewForExperiment() {
     mutationFn: ({ experimentId, data }: { experimentId: string; data: InterviewCreateRequest }) =>
       createInterviewForExperiment(experimentId, data),
     onSuccess: (_, variables) => {
-      // Invalidate experiment detail to show the new interview
       queryClient.invalidateQueries({
         queryKey: queryKeys.experimentDetail(variables.experimentId),
       });
@@ -243,56 +218,12 @@ export function useCreateAutoInterview() {
   return useMutation({
     mutationFn: (experimentId: string) => createAutoInterview(experimentId),
     onSuccess: (_, experimentId) => {
-      // Invalidate experiment detail and auto-interview query
       queryClient.invalidateQueries({
         queryKey: queryKeys.experimentDetail(experimentId),
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.autoInterview(experimentId),
       });
-    },
-  });
-}
-
-/**
- * Hook to run quantitative analysis for an experiment.
- *
- * Creates and executes a Monte Carlo simulation.
- * On success, invalidates experiment detail to refresh analysis data.
- */
-export function useRunAnalysis() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ experimentId, config }: { experimentId: string; config?: RunAnalysisRequest }) =>
-      runAnalysis(experimentId, config),
-    onSuccess: (_, variables) => {
-      // Invalidate experiment detail to show the new analysis
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.experimentDetail(variables.experimentId),
-      });
-    },
-  });
-}
-
-/**
- * Hook to update feature mechanisms for an experiment.
- *
- * Updates only the mechanisms field in the experiment's scorecard_data.
- * Reference: specs/038-mechanism-based-simulation
- */
-export function useUpdateExperimentMechanisms() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, mechanisms }: { id: string; mechanisms: FeatureMechanisms }) =>
-      updateExperimentMechanisms(id, mechanisms),
-    onSuccess: (_, variables) => {
-      // Invalidate experiment detail to reflect updated mechanisms
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.experimentDetail(variables.id),
-      });
-      queryClient.invalidateQueries({ queryKey: queryKeys.experimentsList });
     },
   });
 }

@@ -318,7 +318,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if "synthlab" not in postgres_url:
-        print(f"❌ DATABASE_URL must point to test database (synthlab)")
+        print("❌ DATABASE_URL must point to test database (synthlab)")
         print(f"   Current: {postgres_url}")
         sys.exit(1)
 

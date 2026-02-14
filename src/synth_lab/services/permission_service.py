@@ -3,8 +3,6 @@
 Handles permission checks for experiments and synth_groups based on
 ownership and sharing relationships.
 """
-from typing import Optional
-from uuid import UUID
 
 
 class PermissionService:

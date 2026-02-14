@@ -10,7 +10,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Calendar, FlaskConical, MessageSquare, CheckCircle, Loader2 } from 'lucide-react';
+import { Calendar, MessageSquare, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { ExperimentSummary } from '@/types/experiment';
@@ -79,14 +79,6 @@ export function ExperimentCard({ experiment, onClick }: ExperimentCardProps) {
         )}
         <div className="flex items-center justify-between text-sm text-muted-foreground mt-2">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1" title="Análise Quantitativa">
-              <FlaskConical className="h-4 w-4 text-purple-500" />
-              {experiment.has_analysis ? (
-                <CheckCircle className="h-3 w-3 text-green-500" />
-              ) : (
-                <span className="text-gray-400">-</span>
-              )}
-            </div>
             <div className="flex items-center gap-1" title="Entrevistas">
               <MessageSquare className="h-4 w-4 text-blue-500" />
               <span>{experiment.interview_count}</span>

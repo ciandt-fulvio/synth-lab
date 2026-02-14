@@ -12,14 +12,13 @@ References:
     - Spec: specs/030-custom-synth-groups/spec.md
 """
 
+
 import pytest
-from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 
 from synth_lab.api.main import app
-from synth_lab.models.orm.experiment import Experiment as ExperimentORM
-from synth_lab.models.orm.synth import SynthGroup as SynthGroupORM, Synth as SynthORM
 from synth_lab.domain.entities.synth_group import DEFAULT_SYNTH_GROUP_ID
+from synth_lab.models.orm.experiment import Experiment as ExperimentORM
 
 
 @pytest.fixture
@@ -30,9 +29,13 @@ def initial_experiment_count(db_session) -> int:
 
 @pytest.fixture
 def valid_config() -> dict:
-    """Return a valid synth group config with all required fields."""
+    """Return a valid synth group config with all required fields.
+
+    Note: Using n_synths=2 (reduced from 5) to speed up tests.
+    This is sufficient to validate multi-synth logic while keeping tests fast.
+    """
     return {
-        "n_synths": 5,
+        "n_synths": 2,  # Reduced from 5 for faster test execution
         "distributions": {
             "idade": {"15-29": 0.25, "30-44": 0.25, "45-59": 0.25, "60+": 0.25},
             "escolaridade": {
@@ -63,9 +66,13 @@ def valid_config() -> dict:
     }
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def client(postgres_test_url: str, auth_token):
-    """Create test client with test database and authentication."""
+    """Create test client with test database and authentication.
+
+    Module-scoped to avoid recreating FastAPI app for each test.
+    This saves ~0.5-1s per test.
+    """
     import os
 
     # Store original DATABASE_URL
@@ -86,6 +93,18 @@ def client(postgres_test_url: str, auth_token):
             os.environ["DATABASE_URL"] = original_db_url
         else:
             os.environ.pop("DATABASE_URL", None)
+
+
+@pytest.fixture(scope="module")
+def shared_test_groups(client):
+    """Create reusable test groups for the module.
+
+    Creates 2 groups that can be shared across tests to reduce HTTP requests.
+    Each test should still be independent and not rely on specific data.
+    """
+    group1 = client.post("/synth-groups", json={"name": "Shared Test Group 1"}).json()
+    group2 = client.post("/synth-groups", json={"name": "Shared Test Group 2"}).json()
+    return {"group1": group1, "group2": group2}
 
 
 class TestExperimentsWithDefaultGroup:
@@ -324,8 +343,8 @@ class TestSynthsFilterByGroup:
         result = synths_response.json()
         synths = result.get("data", [])
 
-        # Should return only synths from this group (valid_config has n_synths=5)
-        assert len(synths) == 5
+        # Should return only synths from this group (valid_config has n_synths=2)
+        assert len(synths) == 2
         for synth in synths:
             assert synth.get("synth_group_id") == group["id"]
 
@@ -383,8 +402,8 @@ class TestExperimentsSynthGroupIntegrationFlow:
     def test_full_flow_custom_group_to_experiment(
         self, client, db_session, valid_config    ):
         """Test full flow: create custom group → create experiment → verify linkage."""
-        # 1. Create custom synth group with synths (10 synths)
-        config = {**valid_config, "n_synths": 10}
+        # 1. Create custom synth group with synths (3 synths - reduced for speed)
+        config = {**valid_config, "n_synths": 3}
         group_response = client.post(
             "/synth-groups/with-config",
             json={
@@ -416,15 +435,15 @@ class TestExperimentsSynthGroupIntegrationFlow:
         detail = detail_response.json()
         assert detail["synth_group_id"] == group["id"]
 
-        # 5. Get group detail - should have 10 synths
+        # 5. Get group detail - should have 3 synths
         group_detail = client.get(f"/synth-groups/{group['id']}")
-        assert group_detail.json()["synth_count"] == 10
+        assert group_detail.json()["synth_count"] == 3
 
         # 6. Filter synths by this group
         synths_response = client.get(f"/synths/list?synth_group_id={group['id']}")
         result = synths_response.json()
         synths = result.get("data", [])
-        assert len(synths) == 10
+        assert len(synths) == 3
 
     def test_multiple_experiments_same_group(
         self, client, db_session    ):

@@ -9,7 +9,6 @@ References:
     - ORM models: synth_lab.models.orm.research
 """
 
-import json
 from datetime import datetime
 from uuid import uuid4
 
@@ -25,7 +24,8 @@ from synth_lab.models.research import (
     ResearchExecutionDetail,
     ResearchExecutionSummary,
     TranscriptDetail,
-    TranscriptSummary)
+    TranscriptSummary,
+)
 from synth_lab.repositories.base import BaseRepository
 from synth_lab.services.errors import ExecutionNotFoundError, TranscriptNotFoundError
 

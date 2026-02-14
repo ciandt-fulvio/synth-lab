@@ -1,22 +1,20 @@
 """
 Experiment entity for synth-lab.
 
-Represents a feature or hypothesis to be tested. Central hub that contains
-an embedded scorecard and groups related analyses and interviews.
+Represents a feature or hypothesis to be tested. Central hub that
+groups related research interviews and documents.
 
 References:
     - Spec: specs/019-experiment-refactor/spec.md
     - Data model: specs/019-experiment-refactor/data-model.md
-    - Mechanisms: specs/038-mechanism-based-simulation/spec.md
 """
 
 from __future__ import annotations
 
 import secrets
 from datetime import datetime, timezone
-from pydantic import BaseModel, Field, field_validator
 
-from synth_lab.domain.entities.feature_mechanisms import FeatureMechanisms
+from pydantic import BaseModel, Field, field_validator
 
 
 def generate_experiment_id() -> str:
@@ -29,72 +27,11 @@ def generate_experiment_id() -> str:
     return f"exp_{secrets.token_hex(4)}"
 
 
-class ScorecardData(BaseModel):
-    """
-    Scorecard data embedded in an experiment.
-
-    Contains metadata and mechanisms needed for quantitative analysis.
-    Legacy dimensions (complexity, initial_effort, perceived_risk, time_to_value)
-    were removed in 040 — simulation uses only mechanisms.
-
-    Attributes:
-        feature_name: Name of the feature being evaluated
-        scenario: Scenario of use (default: 'baseline')
-        description_text: Text description of the feature
-        description_media_urls: URLs to supporting media
-        justification: LLM-generated justification
-        impact_hypotheses: LLM-generated impact hypotheses
-        mechanisms: Feature mechanisms for simulation
-        feature_types: Category tags for the feature
-    """
-
-    feature_name: str = Field(
-        description="Name of the feature being evaluated.",
-    )
-
-    scenario: str = Field(
-        default="baseline",
-        description="Scenario of use for the feature.",
-    )
-
-    description_text: str = Field(
-        description="Text description of the feature.",
-    )
-
-    description_media_urls: list[str] = Field(
-        default_factory=list,
-        description="URLs to videos, photos, etc.",
-    )
-
-    # LLM-generated fields
-    justification: str | None = Field(
-        default=None,
-        description="LLM-generated justification for the scores.",
-    )
-
-    impact_hypotheses: list[str] = Field(
-        default_factory=list,
-        description="LLM-generated hypotheses about impact on synth groups.",
-    )
-
-    # Feature mechanisms (new in 038-mechanism-based-simulation)
-    mechanisms: FeatureMechanisms | None = Field(
-        default=None,
-        description="Structural mechanisms of the feature for simulation.",
-    )
-
-    feature_types: list[str] = Field(
-        default_factory=list,
-        description="Category tags for the feature (e.g., 'financial', 'social', 'utility').",
-    )
-
-
 class Experiment(BaseModel):
     """
-    Experiment entity with embedded scorecard.
+    Experiment entity.
 
-    Central hub that contains scorecard data and groups related
-    analyses and interviews.
+    Central hub that groups related research interviews and documents.
 
     Attributes:
         id: Unique identifier (exp_[a-f0-9]{8})
@@ -102,7 +39,6 @@ class Experiment(BaseModel):
         hypothesis: Description of the hypothesis to test (max 500 chars)
         description: Additional context, links, references (max 2000 chars)
         synth_group_id: ID of the synth group to use for this experiment
-        scorecard_data: Embedded scorecard (optional until filled)
         created_at: ISO 8601 timestamp of creation
         updated_at: ISO 8601 timestamp of last update
     """
@@ -142,12 +78,6 @@ class Experiment(BaseModel):
         description="UUID of the user who owns this experiment.",
     )
 
-    # Embedded scorecard (optional until filled)
-    scorecard_data: ScorecardData | None = Field(
-        default=None,
-        description="Embedded scorecard data.",
-    )
-
     # Tags for categorization
     tags: list[str] = Field(
         default_factory=list,
@@ -180,10 +110,6 @@ class Experiment(BaseModel):
             raise ValueError("hypothesis cannot be empty")
         return v
 
-    def has_scorecard(self) -> bool:
-        """Check if experiment has scorecard data filled."""
-        return self.scorecard_data is not None
-
 
 if __name__ == "__main__":
     import sys
@@ -199,8 +125,6 @@ if __name__ == "__main__":
             all_validation_failures.append(f"ID should start with exp_: {exp.id}")
         if exp.name != "Test":
             all_validation_failures.append(f"Name mismatch: {exp.name}")
-        if exp.has_scorecard():
-            all_validation_failures.append("New experiment should not have scorecard")
     except Exception as e:
         all_validation_failures.append(f"Create with required fields failed: {e}")
 
@@ -250,45 +174,6 @@ if __name__ == "__main__":
         pass  # Expected
     except Exception as e:
         all_validation_failures.append(f"Unexpected error for hypothesis > 500: {e}")
-
-    # Test 7: Create with scorecard
-    total_tests += 1
-    try:
-        scorecard = ScorecardData(
-            feature_name="Test Feature",
-            description_text="A test feature",
-        )
-        exp = Experiment(
-            name="Test",
-            hypothesis="Test hypothesis",
-            scorecard_data=scorecard,
-        )
-        if not exp.has_scorecard():
-            all_validation_failures.append("Experiment should have scorecard")
-        if exp.scorecard_data.feature_name != "Test Feature":
-            all_validation_failures.append("Scorecard feature_name mismatch")
-    except Exception as e:
-        all_validation_failures.append(f"Create with scorecard failed: {e}")
-
-    # Test 8: model_dump includes scorecard
-    total_tests += 1
-    try:
-        scorecard = ScorecardData(
-            feature_name="Test",
-            description_text="Test",
-        )
-        exp = Experiment(
-            name="Test",
-            hypothesis="Hypothesis",
-            scorecard_data=scorecard,
-        )
-        data = exp.model_dump()
-        if "scorecard_data" not in data:
-            all_validation_failures.append("model_dump missing scorecard_data")
-        if data["scorecard_data"]["feature_name"] != "Test":
-            all_validation_failures.append("model_dump feature_name mismatch")
-    except Exception as e:
-        all_validation_failures.append(f"model_dump test failed: {e}")
 
     # Final validation result
     if all_validation_failures:

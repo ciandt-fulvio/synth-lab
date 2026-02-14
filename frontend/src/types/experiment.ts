@@ -10,72 +10,6 @@
  */
 
 import type { PaginationMeta } from './common';
-import type { FeatureMechanisms } from './simulation';
-
-// =============================================================================
-// Scorecard Types (Embedded)
-// =============================================================================
-
-/**
- * Embedded scorecard data within an experiment.
- *
- * Legacy dimensions (complexity, initial_effort, perceived_risk, time_to_value)
- * were removed in 040 — simulation uses only mechanisms.
- */
-export interface ScorecardData {
-  /** Name of the feature */
-  feature_name: string;
-  /** Feature description */
-  description_text: string;
-  /** Usage scenario */
-  use_scenario?: string;
-  /** LLM-generated justification */
-  justification?: string;
-  /** Impact hypotheses */
-  impact_hypotheses?: string[];
-  /** Feature mechanisms for simulation (038-mechanism-based-simulation) */
-  mechanisms?: FeatureMechanisms;
-  /** Category tags for the feature */
-  feature_types?: string[];
-}
-
-// =============================================================================
-// Analysis Types (1:1 Relationship)
-// =============================================================================
-
-/**
- * Aggregated outcomes from analysis.
- */
-export interface AggregatedOutcomes {
-  /** Proportion that adopted (0-1) */
-  adopted_rate: number;
-  /** Proportion that did not adopt (0-1) */
-  not_adopted_rate: number;
-}
-
-/**
- * Summary of analysis linked to an experiment (1:1 relationship).
- */
-export interface AnalysisSummary {
-  /** Analysis run ID */
-  id: string;
-  /** Simulation ID for chart endpoints (uses analysis ID) */
-  simulation_id: string;
-  /** Analysis status */
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  /** Start timestamp */
-  started_at: string;
-  /** Completion timestamp */
-  completed_at?: string | null;
-  /** Number of synths analyzed */
-  total_synths: number;
-  /** Number of Monte Carlo executions per synth */
-  n_executions: number;
-  /** Time taken to run the analysis in seconds */
-  execution_time_seconds?: number | null;
-  /** Aggregated outcomes from analysis */
-  aggregated_outcomes?: AggregatedOutcomes | null;
-}
 
 // =============================================================================
 // Interview Types (N:1 Relationship)
@@ -149,8 +83,6 @@ export interface ExperimentCreate {
   description?: string;
   /** ID of the synth group to use for this experiment (required) */
   synth_group_id: string;
-  /** Optional scorecard data to create with experiment */
-  scorecard_data?: ScorecardData;
 }
 
 /**
@@ -163,8 +95,6 @@ export interface ExperimentUpdate {
   hypothesis?: string;
   /** Additional context, links, references (max 2000 chars) */
   description?: string;
-  /** Feature mechanisms for simulation (038-mechanism-based-simulation) */
-  mechanisms?: FeatureMechanisms;
 }
 
 // =============================================================================
@@ -187,10 +117,6 @@ export interface ExperimentSummary {
   synth_group_id: string;
   /** Name of the synth group used for this experiment */
   synth_group_name: string;
-  /** Whether scorecard is filled */
-  has_scorecard: boolean;
-  /** Whether analysis exists */
-  has_analysis: boolean;
   /** Whether interview guide is configured */
   has_interview_guide: boolean;
   /** Number of linked interviews */
@@ -219,10 +145,6 @@ export interface ExperimentDetail {
   synth_group_id: string;
   /** Name of the synth group used for this experiment */
   synth_group_name: string;
-  /** Embedded scorecard data */
-  scorecard_data?: ScorecardData | null;
-  /** Whether scorecard is filled */
-  has_scorecard: boolean;
   /** Whether interview guide is configured */
   has_interview_guide: boolean;
   /** Tag names associated with this experiment */
@@ -231,8 +153,6 @@ export interface ExperimentDetail {
   created_at: string;
   /** Last update timestamp */
   updated_at?: string | null;
-  /** Linked analysis (1:1 relationship) */
-  analysis?: AnalysisSummary | null;
   /** Linked interviews (N:1 relationship) */
   interviews: InterviewSummary[];
   /** Number of linked interviews */

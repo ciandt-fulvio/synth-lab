@@ -30,9 +30,7 @@ from typing import Optional
 
 import jsonschema
 
-from .generation_models import (
-    PRFAQDocument,
-    ResearchReport)
+from .generation_models import PRFAQDocument, ResearchReport
 from .prompts import get_json_schema
 
 
@@ -228,9 +226,7 @@ if __name__ == "__main__":
     # Validation with real data
     import sys
 
-    from .generation_models import (
-        FAQItem,
-        PressRelease)
+    from .generation_models import FAQItem, PressRelease
 
     validation_failures = []
     total_tests = 0

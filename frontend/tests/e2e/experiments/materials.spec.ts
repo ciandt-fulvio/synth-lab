@@ -13,7 +13,7 @@ import * as path from 'path';
 test.describe('Experiments - Materials Upload @experiments', () => {
   test.beforeEach(async ({ page }) => {
     // Navega para experimento
-    await page.goto('/');
+    await page.goto('/old-home/');
     await page.waitForLoadState('networkidle');
 
     // Wait for experiments page to load
@@ -315,7 +315,7 @@ startxref
 
 test.describe('Experiments - Materials UI/UX @experiments', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/old-home/');
     await page.waitForLoadState('networkidle');
 
     const firstCard = page.locator('.cursor-pointer').first();
@@ -407,25 +407,23 @@ test.describe('Experiments - Materials UI/UX @experiments', () => {
   });
 
   test('MAT020 - Materials tab accessible via keyboard', async ({ page }) => {
-    // Volta para tab Análise
-    const analysisTab = page.getByRole('tab', { name: /análise/i });
-    await analysisTab.click();
+    // Go to Entrevistas tab first (first tab)
+    const interviewsTab = page.getByRole('tab', { name: /entrevistas/i });
+    await interviewsTab.click();
     await page.waitForTimeout(300);
 
-    // Foca na tablist e navega com teclado
-    await analysisTab.focus();
+    // Focus on tab and navigate with keyboard
+    await interviewsTab.focus();
 
-    // Pressiona Tab ou Arrow para navegar até Materiais
-    // (Dependendo da implementação de teclado)
+    // Press ArrowRight to navigate to Materiais (second tab)
     await page.keyboard.press('ArrowRight');
-    await page.keyboard.press('ArrowRight');
-    await page.keyboard.press('ArrowRight'); // 3x para chegar em Materiais
+    await page.waitForTimeout(300);
 
     // Deve estar na tab Materiais (focada ou selecionada)
     const materialsTab = page.getByRole('tab', { name: /materiais/i });
     const isFocused = await materialsTab.evaluate(el => el === document.activeElement);
 
-    // Ou está focada ou navegação por teclado funciona de outra forma
-    expect(true).toBeTruthy(); // Teste flexível - apenas verifica que não quebrou
+    // Ou esta focada ou navegacao por teclado funciona de outra forma
+    expect(true).toBeTruthy(); // Teste flexivel - apenas verifica que nao quebrou
   });
 });

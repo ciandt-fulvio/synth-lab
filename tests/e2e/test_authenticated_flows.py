@@ -6,24 +6,14 @@ to bypass the OAuth flow.
 Usage:
     pytest tests/e2e/test_authenticated_flows.py -m e2e
 """
-import pytest
-import os
 from pathlib import Path
 
+import pytest
 
 # Skip entire module if Playwright not installed
 pytest.importorskip("playwright", reason="Playwright not installed")
 
 
-from tests.e2e.fixtures import (
-    authenticated_page,
-    authenticated_context,
-    second_user_page,
-    second_user_context,
-    browser,
-    frontend_url,
-)
-from tests.e2e.helpers.auth import TEST_USER, TEST_USER_2
 
 
 @pytest.mark.slow

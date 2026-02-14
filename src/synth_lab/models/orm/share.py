@@ -8,7 +8,8 @@ References:
 import enum
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import ForeignKey, String, Enum as SQLEnum
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from synth_lab.models.orm.base import Base

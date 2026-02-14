@@ -4,11 +4,11 @@ Handles CRUD operations for sharing relationships.
 """
 from typing import List, Optional
 from uuid import UUID
+
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from datetime import datetime
 
-from synth_lab.domain.entities.share import ExperimentShare, SynthGroupShare, PermissionLevel
+from synth_lab.domain.entities.share import ExperimentShare, PermissionLevel, SynthGroupShare
 
 
 class ShareRepository:

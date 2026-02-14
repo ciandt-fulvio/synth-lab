@@ -291,13 +291,7 @@ class ResearchService:
                 f"No interview guide configured for experiment {request.experiment_id}"
             )
 
-        # Get analysis_id for simulation context in interviews
-        from synth_lab.repositories.analysis_repository import AnalysisRepository
         from synth_lab.repositories.experiment_repository import ExperimentRepository
-
-        analysis_repo = AnalysisRepository()
-        analysis = analysis_repo.get_by_experiment_id(request.experiment_id)
-        analysis_id = analysis.id if analysis else None
 
         # Get experiment name and synth_group_id for summary title and synth filtering
         experiment_repo = ExperimentRepository()
@@ -340,7 +334,6 @@ class ResearchService:
                 max_turns=request.max_turns,
                 model=request.model,
                 skip_interviewee_review=request.skip_interviewee_review,
-                analysis_id=analysis_id,
                 summary_title=experiment_name,
                 experiment_id=request.experiment_id)
         )
@@ -365,7 +358,6 @@ class ResearchService:
         max_turns: int,
         model: str = "gpt-4o-mini",
         skip_interviewee_review: bool = True,
-        analysis_id: str | None = None,
         summary_title: str | None = None,
         experiment_id: str | None = None) -> None:
         """
@@ -535,7 +527,6 @@ class ResearchService:
                 skip_interviewee_review=skip_interviewee_review,
                 additional_context=additional_context,
                 guide_name=guide_name,
-                analysis_id=analysis_id,
                 materials=materials)
 
             # Transcripts are now saved immediately in on_interview_complete callback

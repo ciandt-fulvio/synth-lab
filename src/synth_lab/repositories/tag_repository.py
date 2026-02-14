@@ -14,8 +14,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from synth_lab.domain.entities.tag import Tag
-from synth_lab.models.orm.tag import Tag as TagORM
 from synth_lab.models.orm.tag import ExperimentTag as ExperimentTagORM
+from synth_lab.models.orm.tag import Tag as TagORM
 from synth_lab.repositories.base import BaseRepository
 
 

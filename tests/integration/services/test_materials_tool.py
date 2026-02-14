@@ -8,9 +8,11 @@ References:
     - contracts/materials_tool.yaml: Tool contract
 """
 
-import pytest
 from unittest.mock import Mock, patch
-from synth_lab.services.research_agentic.tools import create_materials_tool, _load_material_content
+
+import pytest
+
+from synth_lab.services.research_agentic.tools import _load_material_content
 
 
 @pytest.fixture

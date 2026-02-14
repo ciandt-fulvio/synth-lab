@@ -1,11 +1,7 @@
 /**
- * ExperimentDetail page - Research Observatory Design.
+ * ExperimentDetail page.
  *
- * Structured as: Header (read-only) → Tabs (Analysis | Interviews | Explorations)
- * Analysis follows narrative: Overview → Distribution → Segmentation → Edge Cases
- *
- * References:
- *   - Spec: specs/019-experiment-refactor/spec.md
+ * Structured as: Header (read-only) → Tabs (Interviews | Materials | Reports)
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -26,18 +22,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useExperiment, useRunAnalysis, useDeleteExperiment, useUpdateExperimentMechanisms } from '@/hooks/use-experiments';
-import { useExplorations } from '@/hooks/use-exploration';
+import { useExperiment, useDeleteExperiment } from '@/hooks/use-experiments';
 import { NewInterviewFromExperimentDialog } from '@/components/experiments/NewInterviewFromExperimentDialog';
-import { AnalysisPhaseTabs, type AnalysisPhaseId } from '@/components/experiments/AnalysisPhaseTabs';
-import {
-  PhaseOverview,
-  PhaseLocation,
-  PhaseEdgeCases,
-} from '@/components/experiments/results';
-import { ViewSummaryButton } from '@/components/experiments/results/ViewSummaryButton';
-import { ExplorationList } from '@/components/exploration/ExplorationList';
-import { NewExplorationDialog } from '@/components/exploration/NewExplorationDialog';
 import { MaterialUpload } from '@/components/experiments/MaterialUpload';
 import { MaterialGallery } from '@/components/experiments/MaterialGallery';
 import { useMaterials } from '@/hooks/use-materials';
@@ -46,30 +32,22 @@ import { useDocuments } from '@/hooks/use-documents';
 import {
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   MessageSquare,
   MessageCircle,
   Plus,
   FlaskConical,
-  Loader2,
-  AlertTriangle,
   ArrowLeft,
   Trash2,
-  PieChart,
-  Network,
   Info,
   Users,
   Paperclip,
   FileText,
-  Cog,
-  Check,
+  Loader2,
 } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
 import { TagSelector } from '@/components/experiments/TagSelector';
-import { MechanismEditor, DEFAULT_MECHANISMS, hasMechanisms } from '@/components/experiments/MechanismEditor';
-import type { FeatureMechanisms } from '@/types/simulation';
 
 // =============================================================================
 // Main Component
@@ -84,17 +62,12 @@ export default function ExperimentDetail() {
   const [isNewInterviewOpen, setIsNewInterviewOpen] = useState(false);
   const [interviewPage, setInterviewPage] = useState(0);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isNewExplorationOpen, setIsNewExplorationOpen] = useState(false);
-  const [isMechanismEditorOpen, setIsMechanismEditorOpen] = useState(false);
-  const [localMechanisms, setLocalMechanisms] = useState<FeatureMechanisms>(DEFAULT_MECHANISMS);
-  const [mechanismsChanged, setMechanismsChanged] = useState(false);
 
   // Tab underline animation state
-  // Initialize activeTab from query param 'tab' if present, otherwise default to 'analysis'
   const tabFromQuery = searchParams.get('tab');
-  const initialTab = ['analysis', 'interviews', 'explorations', 'materials', 'reports'].includes(tabFromQuery ?? '')
+  const initialTab = ['interviews', 'materials', 'reports'].includes(tabFromQuery ?? '')
     ? tabFromQuery!
-    : 'analysis';
+    : 'interviews';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [underlineStyle, setUnderlineStyle] = useState({ left: 0, width: 0 });
   const tabsListRef = useRef<HTMLDivElement>(null);
@@ -103,9 +76,9 @@ export default function ExperimentDetail() {
   // Sync activeTab with query param when it changes
   useEffect(() => {
     const newTab = searchParams.get('tab');
-    const validTab = ['analysis', 'interviews', 'explorations', 'materials', 'reports'].includes(newTab ?? '')
+    const validTab = ['interviews', 'materials', 'reports'].includes(newTab ?? '')
       ? newTab!
-      : 'analysis';
+      : 'interviews';
     setActiveTab(validTab);
   }, [searchParams]);
 
@@ -129,39 +102,9 @@ export default function ExperimentDetail() {
   }, [updateUnderline]);
 
   const { data: experiment, isLoading, isError, error } = useExperiment(id ?? '');
-  const runAnalysisMutation = useRunAnalysis();
   const deleteMutation = useDeleteExperiment();
-  const updateMechanismsMutation = useUpdateExperimentMechanisms();
-
-  // Sync local mechanisms with experiment data
-  useEffect(() => {
-    if (experiment?.scorecard_data?.mechanisms) {
-      setLocalMechanisms(experiment.scorecard_data.mechanisms);
-      setMechanismsChanged(false);
-    }
-  }, [experiment?.scorecard_data?.mechanisms]);
-  const { data: explorations, isLoading: isLoadingExplorations } = useExplorations(id ?? '');
   const { data: materials, refetch: refetchMaterials } = useMaterials(id ?? '');
   const { data: documents } = useDocuments(id ?? '');
-
-  const handleRunAnalysis = () => {
-    if (!id) return;
-    runAnalysisMutation.mutate(
-      { experimentId: id },
-      {
-        onSuccess: () => {
-          toast.success('Análise iniciada com sucesso');
-        },
-        onError: (error) => {
-          const message =
-            error instanceof Error
-              ? error.message
-              : 'Erro desconhecido ao executar análise';
-          toast.error(message);
-        },
-      }
-    );
-  };
 
   const handleDelete = () => {
     if (!id) return;
@@ -178,35 +121,6 @@ export default function ExperimentDetail() {
         toast.error(message);
       },
     });
-  };
-
-  const handleExplorationSuccess = (explorationId: string) => {
-    navigate(`/experiments/${id}/explorations/${explorationId}`);
-  };
-
-  const handleMechanismsChange = (newMechanisms: FeatureMechanisms) => {
-    setLocalMechanisms(newMechanisms);
-    setMechanismsChanged(true);
-  };
-
-  const handleSaveMechanisms = () => {
-    if (!id) return;
-    updateMechanismsMutation.mutate(
-      { id, mechanisms: localMechanisms },
-      {
-        onSuccess: () => {
-          toast.success('Mecanismos atualizados com sucesso');
-          setMechanismsChanged(false);
-        },
-        onError: (error) => {
-          const message =
-            error instanceof Error
-              ? error.message
-              : 'Erro desconhecido ao atualizar mecanismos';
-          toast.error(message);
-        },
-      }
-    );
   };
 
   // Loading state
@@ -243,35 +157,12 @@ export default function ExperimentDetail() {
     );
   }
 
-  // Scorecard data
-  const scorecard = experiment.scorecard_data;
-  const hasScorecard = experiment.has_scorecard && scorecard;
-
   // Truncate description to 2 lines (~150 chars)
   const truncatedDescription = experiment.description
     ? experiment.description.length > 150
       ? `${experiment.description.slice(0, 147)}...`
       : experiment.description
     : null;
-
-  // Analysis data
-  const analysis = experiment.analysis;
-  const hasAnalysis = analysis && analysis.status === 'completed';
-
-  // Exploration data
-  const hasRunningExploration = explorations?.some((e) => e.status === 'running');
-  const isExplorationButtonDisabled = !hasAnalysis || hasRunningExploration;
-
-  // Get analysis status for badge
-  const getAnalysisStatus = () => {
-    if (!hasScorecard) return { label: 'Sem scorecard', count: false };
-    if (!analysis) return { label: 'Não iniciada', count: false };
-    if (analysis.status === 'running') return { label: 'Executando...', count: false };
-    if (analysis.status === 'failed') return { label: 'Falhou', count: false };
-    return { label: '4', count: true };
-  };
-
-  const analysisStatus = getAnalysisStatus();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
@@ -320,107 +211,14 @@ export default function ExperimentDetail() {
           </div>
         </div>
 
-        {/* Mechanism Editor Section - Collapsible */}
-        {hasScorecard && (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 overflow-hidden">
-            {/* Collapsible Header */}
-            <button
-              onClick={() => setIsMechanismEditorOpen(!isMechanismEditorOpen)}
-              className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg text-white shadow-md">
-                  <Cog className="h-4 w-4" />
-                </div>
-                <div className="text-left">
-                  <h3 className="font-semibold text-slate-900">Mecanismos da Feature</h3>
-                  <p className="text-sm text-slate-500">
-                    {hasMechanisms(localMechanisms)
-                      ? 'Mecanismos configurados'
-                      : 'Configure mecanismos para simulação avançada'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                {hasMechanisms(localMechanisms) && (
-                  <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200">
-                    {Object.values(localMechanisms).filter((v) => v > 0).length} ativos
-                  </Badge>
-                )}
-                <ChevronDown
-                  className={`h-5 w-5 text-slate-400 transition-transform duration-200 ${
-                    isMechanismEditorOpen ? 'rotate-180' : ''
-                  }`}
-                />
-              </div>
-            </button>
-
-            {/* Collapsible Content */}
-            {isMechanismEditorOpen && (
-              <div className="px-6 pb-6 border-t border-slate-100">
-                <div className="pt-4">
-                  <MechanismEditor
-                    value={localMechanisms}
-                    onChange={handleMechanismsChange}
-                    disabled={updateMechanismsMutation.isPending}
-                  />
-
-                  {/* Save Button */}
-                  <div className="mt-6 flex items-center justify-end gap-3">
-                    {mechanismsChanged && (
-                      <span className="text-sm text-amber-600">
-                        Alterações não salvas
-                      </span>
-                    )}
-                    <Button
-                      onClick={handleSaveMechanisms}
-                      disabled={!mechanismsChanged || updateMechanismsMutation.isPending}
-                      className="btn-primary"
-                    >
-                      {updateMechanismsMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Check className="h-4 w-4 mr-2" />
-                      )}
-                      Salvar Mecanismos
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Main Tabs Section */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Tab Navigation - Underline Style */}
           <div className="relative mb-6">
             <TabsList
               ref={tabsListRef}
-              className="relative w-full h-auto p-0 bg-transparent rounded-none border-b border-slate-200 grid grid-cols-5"
+              className="relative w-full h-auto p-0 bg-transparent rounded-none border-b border-slate-200 grid grid-cols-3"
             >
-              {/* Analysis Tab */}
-              <TabsTrigger
-                ref={(el) => el && tabRefs.current.set('analysis', el)}
-                value="analysis"
-                className="relative flex items-center justify-center gap-2.5 px-4 py-4 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-violet-700 text-slate-500 hover:text-slate-700 transition-colors duration-200"
-              >
-                <PieChart className="h-4 w-4" />
-                <span className="font-semibold">Análise</span>
-                <Badge
-                  variant="secondary"
-                  className={`ml-1 text-[10px] px-2 py-0.5 rounded-full transition-colors ${
-                    activeTab === 'analysis'
-                      ? 'bg-violet-100 text-violet-700'
-                      : analysisStatus.count
-                        ? 'bg-slate-100 text-slate-600'
-                        : 'bg-slate-100/60 text-slate-400'
-                  }`}
-                >
-                  {analysisStatus.label}
-                </Badge>
-              </TabsTrigger>
-
               {/* Interviews Tab */}
               <TabsTrigger
                 ref={(el) => el && tabRefs.current.set('interviews', el)}
@@ -438,27 +236,6 @@ export default function ExperimentDetail() {
                   }`}
                 >
                   {experiment.interview_count}
-                </Badge>
-              </TabsTrigger>
-
-              {/* Explorations Tab */}
-              <TabsTrigger
-                ref={(el) => el && tabRefs.current.set('explorations', el)}
-                value="explorations"
-                className="relative flex items-center justify-center gap-2.5 px-4 py-4 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-violet-700 text-slate-500 hover:text-slate-700 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                disabled={!hasScorecard || !hasAnalysis}
-              >
-                <Network className="h-4 w-4" />
-                <span className="font-semibold">Explorações</span>
-                <Badge
-                  variant="secondary"
-                  className={`ml-1 text-[10px] px-2 py-0.5 rounded-full transition-colors ${
-                    activeTab === 'explorations'
-                      ? 'bg-violet-100 text-violet-700'
-                      : 'bg-slate-100 text-slate-600'
-                  }`}
-                >
-                  {hasScorecard && hasAnalysis ? (explorations?.length ?? 0) : '—'}
                 </Badge>
               </TabsTrigger>
 
@@ -512,75 +289,6 @@ export default function ExperimentDetail() {
               />
             </TabsList>
           </div>
-
-          {/* Analysis Content */}
-          <TabsContent value="analysis" className="mt-0">
-            {!hasScorecard ? (
-              <div className="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center">
-                <FlaskConical className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-slate-600 mb-2">
-                  Scorecard não configurado
-                </h3>
-                <p className="text-slate-400">
-                  Configure o scorecard no formulário de criação para executar análises.
-                </p>
-              </div>
-            ) : !analysis ? (
-              <AnalysisPhaseTabs
-                onRunAnalysis={handleRunAnalysis}
-                isLoading={runAnalysisMutation.isPending}
-              />
-            ) : analysis.status === 'running' ? (
-              <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-                <Loader2 className="w-12 h-12 text-primary mx-auto mb-4 animate-spin" />
-                <h3 className="text-lg font-medium text-slate-700 mb-2">
-                  Análise em execução
-                </h3>
-                <p className="text-slate-500">
-                  Aguarde enquanto os synths avaliam a feature...
-                </p>
-              </div>
-            ) : analysis.status === 'failed' ? (
-              <div className="bg-white rounded-xl border border-red-200 p-12 text-center">
-                <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-red-700 mb-2">
-                  Análise falhou
-                </h3>
-                <p className="text-slate-500 mb-6">
-                  Ocorreu um erro durante a execução. Tente novamente.
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={handleRunAnalysis}
-                  disabled={runAnalysisMutation.isPending}
-                >
-                  {runAnalysisMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : null}
-                  Tentar Novamente
-                </Button>
-              </div>
-            ) : (
-              <AnalysisPhaseTabs
-                simulationId={analysis.simulation_id}
-                hasAnalysis={true}
-                actions={id ? <ViewSummaryButton experimentId={id} /> : null}
-                renderPhase={(phaseId) => {
-                  const expId = id ?? '';
-                  switch (phaseId as AnalysisPhaseId) {
-                    case 'visao-geral':
-                      return <PhaseOverview experimentId={expId} analysis={analysis} />;
-                    case 'localizacao':
-                      return <PhaseLocation experimentId={expId} />;
-                    case 'casos-especiais':
-                      return <PhaseEdgeCases experimentId={expId} />;
-                    default:
-                      return null;
-                  }
-                }}
-              />
-            )}
-          </TabsContent>
 
           {/* Interviews Content */}
           <TabsContent value="interviews" className="mt-0">
@@ -654,7 +362,7 @@ export default function ExperimentDetail() {
                         return paged.map((interview) => {
                           const contextPreview = interview.additional_context
                             ? interview.additional_context.length > 80
-                              ? `${interview.additional_context.slice(0, 80)}…`
+                              ? `${interview.additional_context.slice(0, 80)}...`
                               : interview.additional_context
                             : null;
                           return (
@@ -747,81 +455,6 @@ export default function ExperimentDetail() {
             </div>
           </TabsContent>
 
-          {/* Explorations Content */}
-          <TabsContent value="explorations" className="mt-0">
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-              {/* Header with action */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-slate-100 rounded-lg">
-                    <Network className="w-5 h-5 text-slate-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-900">Explorações de Cenários</h3>
-                    <p className="text-sm text-slate-500">
-                      {explorations?.length || 0} exploração(ões)
-                      {hasRunningExploration && ' • 1 em execução'}
-                    </p>
-                  </div>
-                </div>
-
-                {isExplorationButtonDisabled && !hasRunningExploration ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span>
-                        <Button size="sm" disabled className="opacity-50">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Iniciar Exploração
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="flex items-center gap-1.5">
-                        <Info className="h-3.5 w-3.5" />
-                        Execute uma análise primeiro
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                ) : hasRunningExploration ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span>
-                        <Button size="sm" disabled className="opacity-50">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Iniciar Exploração
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="flex items-center gap-1.5">
-                        <Info className="h-3.5 w-3.5" />
-                        Aguarde a exploração atual terminar
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <Button
-                    size="sm"
-                    onClick={() => setIsNewExplorationOpen(true)}
-                    className="btn-primary"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Iniciar Exploração
-                  </Button>
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="p-6">
-                <ExplorationList
-                  explorations={explorations}
-                  experimentId={id ?? ''}
-                  isLoading={isLoadingExplorations}
-                />
-              </div>
-            </div>
-          </TabsContent>
-
           {/* Materials Content */}
           <TabsContent value="materials" className="mt-0">
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
@@ -900,15 +533,6 @@ export default function ExperimentDetail() {
         open={isNewInterviewOpen}
         onOpenChange={setIsNewInterviewOpen}
         experimentId={id ?? ''}
-      />
-
-      {/* New Exploration Dialog */}
-      <NewExplorationDialog
-        open={isNewExplorationOpen}
-        onOpenChange={setIsNewExplorationOpen}
-        experimentId={id ?? ''}
-        baselineSuccessRate={analysis?.aggregated_outcomes?.adopted_rate}
-        onSuccess={handleExplorationSuccess}
       />
 
       {/* Delete Confirmation Dialog */}

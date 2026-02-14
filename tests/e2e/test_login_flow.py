@@ -6,10 +6,10 @@ Must FAIL before implementation.
 Note: This test requires Playwright or similar browser automation tool.
 Install with: pip install playwright && playwright install
 """
-import pytest
 import os
 from pathlib import Path
 
+import pytest
 
 # Skip if Playwright not installed
 pytest.importorskip("playwright", reason="Playwright not installed")
@@ -235,8 +235,8 @@ class TestLoginFlowSelenium:
 
         # Verify login button present
         from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
         from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.support.ui import WebDriverWait
 
         try:
             button = WebDriverWait(selenium_driver, 10).until(

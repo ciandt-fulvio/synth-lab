@@ -3,12 +3,13 @@
 Tests share repository operations with mocked database.
 Must FAIL before implementation.
 """
-import pytest
 from unittest.mock import MagicMock
 from uuid import uuid4
 
+import pytest
+
+from synth_lab.domain.entities.share import PermissionLevel
 from synth_lab.repositories.share_repository import ShareRepository
-from synth_lab.domain.entities.share import ExperimentShare, SynthGroupShare, PermissionLevel
 
 
 @pytest.fixture

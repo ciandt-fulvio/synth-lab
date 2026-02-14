@@ -2,13 +2,13 @@
 
 Handles sharing of experiments and synth_groups between users.
 """
-from typing import List, Optional
-from uuid import UUID
+from typing import List
+
+from loguru import logger
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from loguru import logger
 
-from synth_lab.domain.entities.share import ExperimentShare, SynthGroupShare, PermissionLevel
+from synth_lab.domain.entities.share import ExperimentShare, PermissionLevel, SynthGroupShare
 from synth_lab.repositories.share_repository import ShareRepository
 
 

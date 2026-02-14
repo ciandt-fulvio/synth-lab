@@ -434,3 +434,37 @@ railway rollback --environment production
 - `STAGING_FRONTEND_URL` — `https://synth-lab-frontend-staging.up.railway.app`
 - `PRODUCTION_BACKEND_URL` — `https://synth-lab-api-production.up.railway.app`
 - `PRODUCTION_FRONTEND_URL` — `https://synth-lab-frontend-production.up.railway.app`
+
+
+SEMPRE QUE POSSIVEL, PREFIRA FAZER TAREFAS USANDO O MAKER, VEJA O QUE ELE PODE FAZER:
+
+
+Setup:
+  make install       Install dependencies
+  make setup-hooks   Configure Git hooks
+
+Development (Docker):
+  make dev-up         Start full stack (frontend:8080, backend:8000, postgres:5432)
+  make dev-down       Stop Docker environment
+  make dev-logs-back  View backend logs
+  make dev-logs-front View frontend logs
+
+Testing (Smart Mode - runs failed tests first):
+  make test               Run unit/integration tests (smart mode)
+  make test-fast          Run fast anti-regression tests (~30s)
+  make test-e2e           Run E2E tests (smart mode, isolated Docker)
+  make test-smoke-staging Run smoke tests against Staging (Railway)
+  make test-smoke-production Run smoke tests against Production (Railway)
+
+Observability:
+  make phoenix       Start Phoenix tracing UI (standalone, http://localhost:6006)
+  make phoenix-ui    Open Phoenix UI in browser (for Docker dev environment)
+
+Database:
+  make db-migrate    Create migration: make db-migrate MSG='description'
+
+Other:
+  make gensynth      Generate synths: make gensynth ARGS='-n 3'
+  make lint-format   Run ruff linter and formatter
+  make kill          Kill processes on ports 8000, 8080, 6006
+  make clean         Remove cache files

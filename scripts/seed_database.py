@@ -33,9 +33,6 @@ from sqlalchemy import text
 from synth_lab.infrastructure.database_v2 import create_db_engine
 from tests.fixtures.seed_test import seed_database
 
-# Import seed_mechanisms from the other script
-from scripts.seed_mechanisms import seed_mechanisms, _check_mechanisms_exist
-
 
 def _check_synth_groups_exist(db_url: str) -> bool:
     """Check if synth_groups table has any records.
@@ -65,7 +62,7 @@ def main() -> None:
     # Validate DATABASE_URL
     db_url = os.getenv("DATABASE_URL")
     if not db_url:
-        print("❌ ERROR: DATABASE_URL environment variable not set", file=sys.stderr)
+        print("ERROR: DATABASE_URL environment variable not set", file=sys.stderr)
         print("", file=sys.stderr)
         print("Usage:", file=sys.stderr)
         print("  DATABASE_URL=<url> python scripts/seed_database.py", file=sys.stderr)
@@ -76,27 +73,27 @@ def main() -> None:
 
     # Validate OPENAI_API_KEY (warning only, not blocking)
     if not os.getenv("OPENAI_API_KEY"):
-        print("⚠️  WARNING: OPENAI_API_KEY not set - some LLM features may not work", file=sys.stderr)
+        print("WARNING: OPENAI_API_KEY not set - some LLM features may not work", file=sys.stderr)
 
-    print(f"🌱 Checking database: {db_url.split('@')[-1]}")  # Print only host/db, not credentials
+    print(f"Checking database: {db_url.split('@')[-1]}")  # Print only host/db, not credentials
     print("")
 
     # Check if data already exists
     try:
         if _check_synth_groups_exist(db_url):
-            print("ℹ️  Database already contains data (synth_groups table not empty)")
+            print("Database already contains data (synth_groups table not empty)")
             print("   Skipping seed to preserve existing data")
             print("")
-            print("✅ Seed skipped - data already exists")
+            print("Seed skipped - data already exists")
             sys.exit(0)
     except Exception as e:
-        print(f"⚠️  Warning: Could not check synth_groups table: {e}", file=sys.stderr)
+        print(f"Warning: Could not check synth_groups table: {e}", file=sys.stderr)
         print("   Proceeding with seed anyway...", file=sys.stderr)
         print("", file=sys.stderr)
 
     # Create engine and seed
     try:
-        print("📝 Database is empty - seeding with test data...")
+        print("Database is empty - seeding with test data...")
         print("")
 
         engine = create_db_engine(db_url)
@@ -104,12 +101,12 @@ def main() -> None:
         engine.dispose()
 
         print("")
-        print("✅ Database seeded successfully!")
+        print("Database seeded successfully!")
         sys.exit(0)
 
     except Exception as e:
         print("", file=sys.stderr)
-        print(f"❌ ERROR: Failed to seed database: {e}", file=sys.stderr)
+        print(f"ERROR: Failed to seed database: {e}", file=sys.stderr)
         sys.exit(1)
 
 

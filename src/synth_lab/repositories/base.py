@@ -178,8 +178,9 @@ if __name__ == "__main__":
     # Test 2: BaseRepository initialization with session
     total_tests += 1
     try:
-        from sqlalchemy.orm import Session as MockSession
         from unittest.mock import MagicMock
+
+        from sqlalchemy.orm import Session as MockSession
 
         mock_session = MagicMock(spec=MockSession)
         repo = BaseRepository(session=mock_session)

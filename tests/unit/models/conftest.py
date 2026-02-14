@@ -6,14 +6,15 @@ Each test gets a fresh database with minimal seed data (test user only).
 """
 
 import os
-import pytest
 from datetime import datetime
+
+import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from synth_lab.models.orm.base import Base
-from synth_lab.models.orm.user import User
 from synth_lab.models.orm.synth import SynthGroup
+from synth_lab.models.orm.user import User
 
 # Test constants
 TEST_USER_ID = "00000001-0000-0000-0000-000000000001"
@@ -62,7 +63,7 @@ def engine():
 
     # Drop all tables to ensure clean state
     Base.metadata.drop_all(engine)
-    
+
     # Create all tables
     Base.metadata.create_all(engine)
 

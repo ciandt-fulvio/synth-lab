@@ -18,10 +18,9 @@ import os
 import sys
 
 import pytest
-from sqlalchemy import inspect, String, Text
+from sqlalchemy import String, Text, inspect
 from sqlalchemy.dialects.postgresql import JSONB
 
-from synth_lab.infrastructure.database_v2 import create_db_engine
 from synth_lab.models.orm.base import Base
 
 
@@ -46,9 +45,10 @@ def db_inspector(request):
     if "experiments" not in tables:
         # Tables were dropped by another test - need to re-run migrations
         print("\n⚠️  Tables missing - re-running migrations for schema tests...")
+        from pathlib import Path
+
         from alembic import command
         from alembic.config import Config
-        from pathlib import Path
 
         project_root = Path(__file__).parent.parent.parent
         alembic_ini = project_root / "src" / "synth_lab" / "alembic" / "alembic.ini"
@@ -94,7 +94,6 @@ class TestExperimentTableSchema:
             "name": String,
             "hypothesis": String,
             "description": Text,
-            "scorecard_data": JSONB,
             "status": String,
             "created_at": String,
             "updated_at": String,
@@ -124,13 +123,6 @@ class TestExperimentTableSchema:
             f"Se mudou para Enum, falta criar migration!"
         )
 
-        # scorecard_data deve ser JSONB (PostgreSQL) ou JSON
-        scorecard_col = columns.get("scorecard_data")
-        if scorecard_col:
-            assert isinstance(scorecard_col["type"], (JSONB,)), (
-                f"experiments.scorecard_data deve ser JSONB"
-            )
-
     def test_experiments_nullable_constraints_match(self, db_inspector):
         """Constraints de nullable devem bater com o model."""
         columns = {
@@ -143,13 +135,12 @@ class TestExperimentTableSchema:
                 f"experiments.{field} deve ser NOT NULL no DB"
             )
 
-        # description, scorecard_data, updated_at são NULL
-        nullable_fields = ["description", "scorecard_data", "updated_at"]
+        # description, updated_at são NULL
+        nullable_fields = ["description", "updated_at"]
         for field in nullable_fields:
-            if field in columns:  # scorecard_data pode não existir em versões antigas
-                assert columns[field]["nullable"] is True, (
-                    f"experiments.{field} deve ser nullable no DB"
-                )
+            assert columns[field]["nullable"] is True, (
+                f"experiments.{field} deve ser nullable no DB"
+            )
 
     def test_experiments_has_primary_key(self, db_inspector):
         """Deve ter primary key em 'id'."""
@@ -217,41 +208,6 @@ class TestSynthTableSchema:
             assert exp_fkey["referred_table"] == "experiments", (
                 "FK deve apontar para tabela 'experiments'"
             )
-
-
-@pytest.mark.schema
-class TestAnalysisRunTableSchema:
-    """Valida schema da tabela 'analysis_runs'."""
-
-    def test_analysis_runs_table_exists(self, db_inspector):
-        """Tabela 'analysis_runs' deve existir."""
-        tables = db_inspector.get_table_names()
-        assert "analysis_runs" in tables, (
-            "Tabela 'analysis_runs' não existe! Execute: alembic upgrade head"
-        )
-
-    def test_analysis_runs_has_foreign_key_to_experiments(self, db_inspector):
-        """Deve ter FK para experiments."""
-        fkeys = db_inspector.get_foreign_keys("analysis_runs")
-        exp_fkey = next(
-            (fk for fk in fkeys if "experiment_id" in fk["constrained_columns"]), None
-        )
-
-        assert exp_fkey is not None, (
-            "analysis_runs.experiment_id deve ter FK para experiments"
-        )
-
-
-@pytest.mark.schema
-class TestExplorationTableSchema:
-    """Valida schema da tabela 'explorations'."""
-
-    def test_explorations_table_exists(self, db_inspector):
-        """Tabela 'explorations' deve existir."""
-        tables = db_inspector.get_table_names()
-        assert "explorations" in tables, (
-            "Tabela 'explorations' não existe! Execute: alembic upgrade head"
-        )
 
 
 @pytest.mark.schema
@@ -461,7 +417,6 @@ class TestCriticalColumnTypes:
         """Colunas JSON devem ser JSONB (PostgreSQL)."""
         # Tabelas com colunas JSON
         tables_with_json = {
-            "experiments": ["scorecard_data"],
             "synths": ["data"],
         }
 

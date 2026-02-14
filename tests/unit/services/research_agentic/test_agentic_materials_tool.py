@@ -9,12 +9,14 @@ References:
     - research.md: Tool design decisions
 """
 
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
+
 from synth_lab.services.research_agentic.tools import (
-    create_materials_tool,
     MaterialToolResponse,
-    _load_material_content
+    _load_material_content,
+    create_materials_tool,
 )
 
 

@@ -5,7 +5,6 @@ Tests custom distribution-based synth generation for custom synth groups.
 """
 
 import numpy as np
-import pytest
 
 from synth_lab.gen_synth import validation
 from synth_lab.gen_synth.synth_builder import assemble_synth_with_config

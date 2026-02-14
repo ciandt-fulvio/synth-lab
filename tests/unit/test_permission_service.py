@@ -2,9 +2,10 @@
 
 Tests permission checking logic with mocked dependencies.
 """
-import pytest
 from unittest.mock import MagicMock
 from uuid import uuid4
+
+import pytest
 
 from synth_lab.services.permission_service import PermissionService
 

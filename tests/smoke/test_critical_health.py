@@ -12,7 +12,6 @@ Executar: pytest -m smoke
 
 import os
 import sys
-from pathlib import Path
 
 import pytest
 from sqlalchemy import text
@@ -60,7 +59,7 @@ class TestDatabaseHealth:
 
     def test_database_has_tables(self):
         """Banco de dados tem tabelas essenciais criadas."""
-        from sqlalchemy import inspect, create_engine
+        from sqlalchemy import create_engine, inspect
 
         db_url = _get_test_db_url()
         engine = create_engine(db_url)
@@ -127,9 +126,9 @@ class TestCriticalImports:
     def test_can_import_key_services(self):
         """Serviços críticos podem ser importados."""
         try:
-            from synth_lab.services.insight_service import InsightService
+            from synth_lab.services.experiment_service import ExperimentService
 
-            assert InsightService is not None
+            assert ExperimentService is not None
         except Exception as e:
             pytest.fail(f"Falha ao importar services: {e}")
 
@@ -191,8 +190,9 @@ class TestBasicCRUD:
 
     def test_can_insert_and_read_experiment(self):
         """Consegue criar e ler um experimento básico."""
-        from sqlalchemy import text, create_engine
         import uuid
+
+        from sqlalchemy import create_engine, text
 
         db_url = _get_test_db_url()
         engine = create_engine(db_url)

@@ -254,6 +254,7 @@ class SynthGroupRepository(BaseRepository):
             Paginated response with synth group summaries.
         """
         from sqlalchemy import or_
+
         from synth_lab.models.orm.share import SynthGroupShare as SynthGroupShareORM
 
         stmt = select(SynthGroupORM).order_by(SynthGroupORM.created_at.desc())

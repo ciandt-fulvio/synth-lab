@@ -6,12 +6,9 @@ Creates a complete experiment scenario matching production usage patterns.
 
 Seed includes:
 - 1 primary experiment: "App de Delivery - Feature de Agendamento de Pedidos"
-- Scorecard with detailed metrics
 - Interview guide (required for "Nova Entrevista" button)
-- 500 synths analyzed (AnalysisRun + SynthOutcomes)
 - 6 completed interviews (ResearchExecution + Transcripts)
-- Documents: summary + executive summary + PR-FAQ
-- Exploration with 3 iterations (goal: 60% adoption)
+- Documents: summary + PR-FAQ
 - Synth groups and synths for interviews
 
 Usage:
@@ -22,8 +19,6 @@ Usage:
 """
 
 from datetime import datetime, timedelta
-from typing import Any
-import random
 
 from loguru import logger
 from sqlalchemy import Engine
@@ -31,19 +26,14 @@ from sqlalchemy.orm import Session
 
 from synth_lab.models.orm import (
     Experiment,
-    SynthGroup,
-    Synth,
-    ResearchExecution,
-    Transcript,
-    Exploration,
-    ScenarioNode,
     ExperimentDocument,
-    AnalysisRun,
-    SynthOutcome,
+    ResearchExecution,
+    Synth,
+    SynthGroup,
+    Transcript,
 )
 from synth_lab.models.orm.experiment import InterviewGuide
 from synth_lab.models.orm.user import User
-
 
 # Test user constants - must match tests/conftest.py
 TEST_USER_ID = "00000001-0000-0000-0000-000000000001"
@@ -58,9 +48,7 @@ def seed_database(engine: Engine) -> None:
     Creates:
     - 1 test user (for authentication tests)
     - 1 primary experiment (delivery app scheduling feature)
-    - 500 synth outcomes in analysis run
     - 6 research executions with transcripts
-    - 1 exploration with 3 scenario nodes
     - 3 documents (research summary, executive summary, PR-FAQ)
     - Synth groups and synths for realistic data
 
@@ -82,15 +70,12 @@ def seed_database(engine: Engine) -> None:
         synth_groups = _seed_synth_groups(session)
         experiment = _seed_primary_experiment(session)
         synths = _seed_synths(session, synth_groups)
-        analysis_run = _seed_analysis_run(session, experiment, synth_count=500)
-        _seed_synth_outcomes(session, analysis_run, synth_count=500)
         _seed_research_executions(session, experiment, synths)
-        _seed_exploration(session, experiment, analysis_run)
         _seed_interview_guide(session, experiment)
         _seed_documents(session, experiment)
 
         session.commit()
-        logger.success(f"Test database seeded successfully - {analysis_run.total_synths} synths analyzed")
+        logger.success("Test database seeded successfully")
 
     except Exception as e:
         session.rollback()
@@ -105,13 +90,9 @@ def _clear_existing_data(session: Session) -> None:
     logger.debug("Clearing existing data...")
 
     # Delete in reverse dependency order (children before parents)
-    session.query(SynthOutcome).delete()
     session.query(Transcript).delete()
     session.query(ResearchExecution).delete()
-    session.query(ScenarioNode).delete()
-    session.query(Exploration).delete()
     session.query(ExperimentDocument).delete()
-    session.query(AnalysisRun).delete()
     session.query(Synth).delete()
     session.query(InterviewGuide).delete()  # Must delete before Experiment (FK dependency)
     session.query(Experiment).delete()  # Must delete before SynthGroup (FK dependency)
@@ -149,7 +130,7 @@ def _seed_test_user(session: Session) -> User:
 
 
 def _seed_primary_experiment(session: Session) -> Experiment:
-    """Seed the primary test experiment with complete scorecard."""
+    """Seed the primary test experiment."""
     logger.debug("Seeding primary experiment...")
 
     base_time = datetime.now()
@@ -157,37 +138,16 @@ def _seed_primary_experiment(session: Session) -> Experiment:
     experiment = Experiment(
         id="exp_a1b2c3d4",  # Valid format: exp_[a-f0-9]{8}
         name="App de Delivery - Feature de Agendamento de Pedidos",
-        hypothesis="Permitir agendamento de pedidos aumentará retenção em 25% e ticket médio em 15%",
+        hypothesis="Permitir agendamento de pedidos aumentara retencao em 25% e ticket medio em 15%",
         description=(
-            "Funcionalidade de agendamento que permite usuários programarem entregas "
-            "para horários específicos, com opção de pedido recorrente para assinaturas. "
-            "Inclui notificações e gestão de agenda no app."
+            "Funcionalidade de agendamento que permite usuarios programarem entregas "
+            "para horarios especificos, com opcao de pedido recorrente para assinaturas. "
+            "Inclui notificacoes e gestao de agenda no app."
         ),
         status="active",
         owner_id=TEST_USER_ID,  # Assign to test user
         created_at=(base_time - timedelta(days=14)).isoformat(),
         updated_at=(base_time - timedelta(days=1)).isoformat(),
-        scorecard_data={
-            "feature_name": "Agendamento de Pedidos",
-            "scenario": "Usuário ativo do app de delivery que pede regularmente",
-            "description_text": "Sistema de agendamento com calendário, horários disponíveis e pedidos recorrentes",
-            "complexity": {
-                "score": 0.65,
-                "reasoning": "Requer integração com sistema de rotas, gestão de capacidade e notificações push"
-            },
-            "initial_effort": {
-                "score": 0.70,
-                "reasoning": "Usuário precisa aprender novo fluxo e confiar no sistema de agendamento"
-            },
-            "perceived_risk": {
-                "score": 0.40,
-                "reasoning": "Risco moderado - preocupação com atrasos e alterações de agenda"
-            },
-            "time_to_value": {
-                "score": 0.75,
-                "reasoning": "Valor percebido rapidamente na primeira entrega agendada com sucesso"
-            },
-        },
     )
 
     session.add(experiment)
@@ -208,14 +168,14 @@ def _seed_synth_groups(session: Session) -> list[SynthGroup]:
         SynthGroup(
             id="grp_00000001",  # Default group ID used by experiments
             name="Default",
-            description="Grupo padrão para synths sem grupo específico",
+            description="Grupo padrao para synths sem grupo especifico",
             owner_id=TEST_USER_ID,  # Assign to test user
             created_at=(base_time - timedelta(days=90)).isoformat(),
         ),
         SynthGroup(
             id="grp_a1b2c3d4",  # Valid format: grp_[a-f0-9]{8}
-            name="Usuários Frequentes",
-            description="Usuários que pedem 3+ vezes por semana, alta familiaridade com app",
+            name="Usuarios Frequentes",
+            description="Usuarios que pedem 3+ vezes por semana, alta familiaridade com app",
             owner_id=TEST_USER_ID,  # Assign to test user
             created_at=(base_time - timedelta(days=60)).isoformat(),
         ),
@@ -228,8 +188,8 @@ def _seed_synth_groups(session: Session) -> list[SynthGroup]:
         ),
         SynthGroup(
             id="grp_c3d4e5f6",  # Valid format: grp_[a-f0-9]{8}
-            name="Famílias",
-            description="Usuários que pedem para família, planejam refeições com antecedência",
+            name="Familias",
+            description="Usuarios que pedem para familia, planejam refeicoes com antecedencia",
             owner_id=TEST_USER_ID,  # Assign to test user
             created_at=(base_time - timedelta(days=60)).isoformat(),
         ),
@@ -264,7 +224,7 @@ def _seed_synths(session: Session, groups: list[SynthGroup]) -> list[Synth]:
         ),
         Synth(
             id="syn_joao_santos",
-            nome="João Santos",
+            nome="Joao Santos",
             synth_group_id=groups[1].id,
             data={
                 "idade": 32,
@@ -302,7 +262,7 @@ def _seed_synths(session: Session, groups: list[SynthGroup]) -> list[Synth]:
         # Family Users (index 3 = grp_c3d4e5f6)
         Synth(
             id="syn_patricia_costa",
-            nome="Patrícia Costa",
+            nome="Patricia Costa",
             synth_group_id=groups[3].id,
             data={
                 "idade": 35,
@@ -333,76 +293,6 @@ def _seed_synths(session: Session, groups: list[SynthGroup]) -> list[Synth]:
 
     logger.debug(f"Created {len(synths)} synths")
     return synths
-
-
-def _seed_analysis_run(session: Session, experiment: Experiment, synth_count: int) -> AnalysisRun:
-    """Seed analysis run with specified synth count."""
-    logger.debug(f"Seeding analysis run for {synth_count} synths...")
-
-    base_time = datetime.now()
-
-    analysis = AnalysisRun(
-        id="ana_d4e5f6a7",  # Valid format: ana_[a-f0-9]{8}
-        experiment_id=experiment.id,
-        scenario_id="baseline",
-        config={
-            "model": "gpt-4",
-            "temperature": 0.7,
-            "synth_count": synth_count,
-            "scenario_type": "baseline",
-        },
-        status="completed",
-        started_at=(base_time - timedelta(hours=3)).isoformat(),
-        completed_at=(base_time - timedelta(hours=2, minutes=15)).isoformat(),
-        total_synths=synth_count,
-        aggregated_outcomes={
-            "adopted_rate": 0.62,
-            "not_adopted_rate": 0.38,
-        },
-        execution_time_seconds=2700.0,
-    )
-
-    session.add(analysis)
-    session.commit()
-
-    logger.debug(f"Created analysis run: {analysis.id}")
-    return analysis
-
-
-def _seed_synth_outcomes(session: Session, analysis_run: AnalysisRun, synth_count: int) -> None:
-    """Seed individual synth outcomes for the analysis run."""
-    logger.debug(f"Seeding {synth_count} synth outcomes...")
-
-    # Create realistic distribution of outcomes
-    # Target: ~62% average adopted rate with variation
-    outcomes = []
-
-    for i in range(synth_count):
-        # Generate realistic adopted rates with normal distribution around 62%
-        base_adopted = 0.62
-        variation = random.gauss(0, 0.18)  # Standard deviation of 0.18
-        adopted_rate = max(0.0, min(1.0, base_adopted + variation))
-        not_adopted_rate = 1.0 - adopted_rate
-
-        outcome = SynthOutcome(
-            id=f"out_{analysis_run.id}_{i+1:04d}",
-            analysis_id=analysis_run.id,
-            synth_id=f"syn_{i+1:04d}",
-            adopted_rate=round(adopted_rate, 3),
-            not_adopted_rate=round(not_adopted_rate, 3),
-            synth_attributes={
-                "age_group": random.choice(["18-25", "26-35", "36-45", "46-55", "56+"]),
-                "tech_savviness": random.choice(["low", "medium", "high"]),
-                "order_frequency": random.choice(["weekly", "biweekly", "daily"]),
-            },
-        )
-        outcomes.append(outcome)
-
-    # Batch insert for performance
-    session.bulk_save_objects(outcomes)
-    session.commit()
-
-    logger.debug(f"Created {len(outcomes)} synth outcomes")
 
 
 def _seed_research_executions(session: Session, experiment: Experiment, synths: list[Synth]) -> None:
@@ -460,148 +350,28 @@ def _generate_transcript_messages(synth_name: str, idx: int) -> list[dict[str, s
     """Generate realistic transcript messages."""
     templates = [
         [
-            {"role": "interviewer", "content": "Como você usa o app de delivery atualmente?"},
-            {"role": "synth", "content": "Eu uso praticamente todo dia, especialmente no almoço. É muito prático."},
-            {"role": "interviewer", "content": "O que você acha da ideia de poder agendar pedidos com antecedência?"},
-            {"role": "synth", "content": "Acho interessante! Às vezes eu já sei que vou querer pedir no dia seguinte."},
-            {"role": "interviewer", "content": "Você vê alguma dificuldade em usar essa funcionalidade?"},
-            {"role": "synth", "content": "Acho que teria que confiar que vai chegar no horário certo. Isso é crucial."},
-            {"role": "interviewer", "content": "Em que situações você usaria agendamento?"},
-            {"role": "synth", "content": "Principalmente para almoços de trabalho e jantares de fim de semana."},
+            {"role": "interviewer", "content": "Como voce usa o app de delivery atualmente?"},
+            {"role": "synth", "content": "Eu uso praticamente todo dia, especialmente no almoco. E muito pratico."},
+            {"role": "interviewer", "content": "O que voce acha da ideia de poder agendar pedidos com antecedencia?"},
+            {"role": "synth", "content": "Acho interessante! As vezes eu ja sei que vou querer pedir no dia seguinte."},
+            {"role": "interviewer", "content": "Voce ve alguma dificuldade em usar essa funcionalidade?"},
+            {"role": "synth", "content": "Acho que teria que confiar que vai chegar no horario certo. Isso e crucial."},
+            {"role": "interviewer", "content": "Em que situacoes voce usaria agendamento?"},
+            {"role": "synth", "content": "Principalmente para almocos de trabalho e jantares de fim de semana."},
         ],
         [
-            {"role": "interviewer", "content": "Conte sobre sua experiência com delivery."},
-            {"role": "synth", "content": "Uso bastante, mas às vezes é difícil planejar com antecedência."},
+            {"role": "interviewer", "content": "Conte sobre sua experiencia com delivery."},
+            {"role": "synth", "content": "Uso bastante, mas as vezes e dificil planejar com antecedencia."},
             {"role": "interviewer", "content": "Como funciona seu dia a dia com pedidos?"},
             {"role": "synth", "content": "Geralmente decido na hora, mas preferiria poder programar."},
-            {"role": "interviewer", "content": "O agendamento faria diferença para você?"},
-            {"role": "synth", "content": "Com certeza! Eu tenho reuniões o dia todo, seria ótimo já deixar programado."},
-            {"role": "interviewer", "content": "Que horários você agendaria?"},
-            {"role": "synth", "content": "Almoço às 12h30, todos os dias úteis."},
+            {"role": "interviewer", "content": "O agendamento faria diferenca para voce?"},
+            {"role": "synth", "content": "Com certeza! Eu tenho reunioes o dia todo, seria otimo ja deixar programado."},
+            {"role": "interviewer", "content": "Que horarios voce agendaria?"},
+            {"role": "synth", "content": "Almoco as 12h30, todos os dias uteis."},
         ],
     ]
 
     return templates[idx % len(templates)]
-
-
-def _seed_exploration(session: Session, experiment: Experiment, baseline_analysis: AnalysisRun) -> None:
-    """Seed exploration with 3 scenario iterations targeting 60% adoption."""
-    logger.debug("Seeding exploration with scenarios...")
-
-    base_time = datetime.now()
-
-    exploration = Exploration(
-        id="expl_e5f6a7b8",  # Valid format: expl_[a-f0-9]{8}
-        experiment_id=experiment.id,
-        baseline_analysis_id=baseline_analysis.id,
-        goal={
-            "target_metric": "adopted_rate",
-            "target_value": 0.60,
-            "description": "Atingir 60% de adopted rate através de melhorias na UX e fluxo",
-        },
-        config={
-            "max_depth": 3,
-            "max_nodes": 10,
-            "temperature": 0.7,
-            "model": "gpt-4",
-        },
-        status="goal_achieved",
-        current_depth=2,
-        total_nodes=3,
-        total_llm_calls=6,
-        best_adopted_rate=0.63,
-        started_at=(base_time - timedelta(days=5)).isoformat(),
-        completed_at=(base_time - timedelta(days=1)).isoformat(),
-    )
-
-    session.add(exploration)
-    session.commit()
-
-    # Scenario 1: Baseline (starting point)
-    node1 = ScenarioNode(
-        id="node_f6a7b8c9",  # Valid format: node_[a-f0-9]{8}
-        exploration_id=exploration.id,
-        parent_id=None,
-        depth=0,
-        action_applied=None,
-        action_category=None,
-        rationale="Baseline scenario - starting point for exploration",
-        short_action="Baseline",
-        scorecard_params={
-            "complexity": 0.65,
-            "initial_effort": 0.70,
-            "perceived_risk": 0.40,
-            "time_to_value": 0.75,
-        },
-        simulation_results={
-            "adopted_rate": 0.55,
-            "not_adopted_rate": 0.45,
-            "synths_analyzed": 500,
-            "avg_completion_time": 180,
-        },
-        execution_time_seconds=45.2,
-        node_status="active",
-        created_at=(base_time - timedelta(days=5)).isoformat(),
-    )
-
-    # Scenario 2: Simplified flow (iteration 1)
-    node2 = ScenarioNode(
-        id="node_a7b8c9d0",  # Valid format: node_[a-f0-9]{8}
-        exploration_id=exploration.id,
-        parent_id="node_f6a7b8c9",  # Reference to node1
-        depth=1,
-        action_applied="Reduzir passos de configuração de 5 para 3",
-        action_category="simplification",
-        rationale="Reduzir complexidade inicial para aumentar adoção",
-        short_action="Simplificar fluxo",
-        scorecard_params={
-            "complexity": 0.50,
-            "initial_effort": 0.60,
-            "perceived_risk": 0.35,
-            "time_to_value": 0.80,
-        },
-        simulation_results={
-            "adopted_rate": 0.58,
-            "not_adopted_rate": 0.42,
-            "synths_analyzed": 500,
-            "avg_completion_time": 150,
-        },
-        execution_time_seconds=48.7,
-        node_status="active",
-        created_at=(base_time - timedelta(days=3)).isoformat(),
-    )
-
-    # Scenario 3: Tutorial + simplified flow (iteration 2 - goal achieved)
-    node3 = ScenarioNode(
-        id="node_b8c9d0e1",  # Valid format: node_[a-f0-9]{8}
-        exploration_id=exploration.id,
-        parent_id="node_a7b8c9d0",  # Reference to node2
-        depth=2,
-        action_applied="Adicionar tutorial interativo no primeiro uso e sugerir horários com base em histórico",
-        action_category="onboarding",
-        rationale="Tutorial ajuda a reduzir effort inicial e sugestões inteligentes aumentam valor percebido",
-        short_action="Adicionar tutorial + sugestões",
-        scorecard_params={
-            "complexity": 0.45,
-            "initial_effort": 0.40,
-            "perceived_risk": 0.30,
-            "time_to_value": 0.85,
-        },
-        simulation_results={
-            "adopted_rate": 0.63,
-            "not_adopted_rate": 0.37,
-            "synths_analyzed": 500,
-            "avg_completion_time": 120,
-        },
-        execution_time_seconds=52.1,
-        node_status="winner",
-        created_at=(base_time - timedelta(days=1)).isoformat(),
-    )
-
-    session.add_all([node1, node2, node3])
-    session.commit()
-
-    logger.debug(f"Created exploration with 3 scenario nodes (goal: 60% → achieved: 63%)")
 
 
 def _seed_interview_guide(session: Session, experiment: Experiment) -> None:
@@ -612,18 +382,18 @@ def _seed_interview_guide(session: Session, experiment: Experiment) -> None:
 
     interview_guide = InterviewGuide(
         experiment_id=experiment.id,
-        context_definition="""Você está testando uma nova funcionalidade de agendamento de pedidos em um app de delivery.
-O usuário pode programar entregas para horários específicos, com opção de pedido recorrente.
-A funcionalidade inclui calendário, seleção de horários disponíveis e notificações.""",
-        questions="""1. Como você normalmente decide quando pedir delivery?
-2. O que você acha da ideia de poder agendar pedidos com antecedência?
-3. Em quais situações você usaria o agendamento de pedidos?
-4. Quais preocupações você teria ao usar essa funcionalidade?
-5. Como você gostaria de ser notificado sobre pedidos agendados?
-6. Você usaria a opção de pedido recorrente? Em quais situações?""",
-        context_examples="""Exemplo positivo: 'Adoro a ideia! Trabalho muito e seria ótimo deixar o almoço programado.'
-Exemplo negativo: 'Prefiro decidir na hora, não gosto de me comprometer com antecedência.'
-Exemplo neutro: 'Interessante, mas teria que ver como funciona na prática.'""",
+        context_definition="""Voce esta testando uma nova funcionalidade de agendamento de pedidos em um app de delivery.
+O usuario pode programar entregas para horarios especificos, com opcao de pedido recorrente.
+A funcionalidade inclui calendario, selecao de horarios disponiveis e notificacoes.""",
+        questions="""1. Como voce normalmente decide quando pedir delivery?
+2. O que voce acha da ideia de poder agendar pedidos com antecedencia?
+3. Em quais situacoes voce usaria o agendamento de pedidos?
+4. Quais preocupacoes voce teria ao usar essa funcionalidade?
+5. Como voce gostaria de ser notificado sobre pedidos agendados?
+6. Voce usaria a opcao de pedido recorrente? Em quais situacoes?""",
+        context_examples="""Exemplo positivo: 'Adoro a ideia! Trabalho muito e seria otimo deixar o almoco programado.'
+Exemplo negativo: 'Prefiro decidir na hora, nao gosto de me comprometer com antecedencia.'
+Exemplo neutro: 'Interessante, mas teria que ver como funciona na pratica.'""",
         created_at=(base_time - timedelta(days=10)).isoformat(),
     )
 
@@ -634,7 +404,7 @@ Exemplo neutro: 'Interessante, mas teria que ver como funciona na prática.'""",
 
 
 def _seed_documents(session: Session, experiment: Experiment) -> None:
-    """Seed experiment documents: research summary, executive summary, and PR-FAQ."""
+    """Seed experiment documents: research summary and PR-FAQ."""
     logger.debug("Seeding documents...")
 
     base_time = datetime.now()
@@ -644,63 +414,27 @@ def _seed_documents(session: Session, experiment: Experiment) -> None:
             id="doc_c9d0e1f2",  # Valid format: doc_[a-f0-9]{8}
             experiment_id=experiment.id,
             document_type="research_summary",
-            source_id=None,  # Research summary não tem source específico
+            source_id=None,
             markdown_content="""# Research Summary: Agendamento de Pedidos
 
 ## Principais Insights
 
 ### Alta Demanda por Planejamento
-- 78% dos entrevistados planejam refeições com antecedência
-- Profissionais ocupados são o segmento mais interessado
-- Famílias valorizam muito a previsibilidade
+- 78% dos entrevistados planejam refeicoes com antecedencia
+- Profissionais ocupados sao o segmento mais interessado
+- Familias valorizam muito a previsibilidade
 
 ### Barreiras Identificadas
-1. **Confiança na entrega**: 65% expressaram preocupação com atrasos
+1. **Confianca na entrega**: 65% expressaram preocupacao com atrasos
 2. **Complexidade inicial**: Fluxo precisa ser muito simples
 3. **Flexibilidade**: Necessidade de poder cancelar/reagendar facilmente
 
 ### Oportunidades
-- Pedidos recorrentes (assinaturas) têm alto potencial
-- Notificações proativas aumentam confiança
-- Sugestões baseadas em histórico são valorizadas
-
-## Métricas de Adoção
-- Adopted rate inicial: 55%
-- Adopted rate pós-otimização: 63%
-- Meta alcançada: ✅ 60%""",
-            doc_metadata={"version": "1.0", "word_count": 142},
+- Pedidos recorrentes (assinaturas) tem alto potencial
+- Notificacoes proativas aumentam confianca
+- Sugestoes baseadas em historico sao valorizadas""",
+            doc_metadata={"version": "1.0", "word_count": 100},
             generated_at=(base_time - timedelta(days=2)).isoformat(),
-            model="gpt-4",
-            status="completed",
-        ),
-
-        ExperimentDocument(
-            id="doc_d0e1f2a3",  # Valid format: doc_[a-f0-9]{8}
-            experiment_id=experiment.id,
-            document_type="executive_summary",
-            source_id=None,  # Executive summary é único por experimento
-            markdown_content="""# Executive Summary
-
-## Recomendação
-✅ **APROVAR** implementação com otimizações identificadas
-
-## Potencial de Negócio
-- Aumento estimado de 25% na retenção
-- Crescimento de 15% no ticket médio
-- ROI projetado: 3.2x em 12 meses
-
-## Riscos Mitigados
-- Complexidade reduzida através de tutorial interativo
-- Confiança aumentada com notificações proativas
-- Flexibilidade garantida com cancelamento simplificado
-
-## Próximos Passos
-1. MVP com fluxo simplificado (3 passos)
-2. Tutorial no primeiro uso
-3. Sistema de sugestões inteligentes
-4. Programa piloto com usuários frequentes""",
-            doc_metadata={"version": "1.0", "word_count": 89},
-            generated_at=(base_time - timedelta(days=1, hours=12)).isoformat(),
             model="gpt-4",
             status="completed",
         ),
@@ -712,37 +446,21 @@ def _seed_documents(session: Session, experiment: Experiment) -> None:
             source_id=None,
             markdown_content="""# Press Release: Novo Agendamento de Pedidos
 
-**São Paulo, [DATA]** - Hoje anunciamos o lançamento do Agendamento de Pedidos, uma nova funcionalidade que permite aos usuários programarem suas entregas com antecedência, trazendo mais controle e praticidade para o dia a dia.
-
-## Para Quem É
-
-Perfeito para profissionais ocupados, famílias que planejam refeições e qualquer pessoa que valorize organização e previsibilidade.
+Hoje anunciamos o lancamento do Agendamento de Pedidos, uma nova funcionalidade
+que permite aos usuarios programarem suas entregas com antecedencia.
 
 ## Como Funciona
 
 1. Escolha o restaurante e monte seu pedido
-2. Selecione data e horário desejado
-3. Receba confirmação e notificações
-4. Opção de tornar pedido recorrente
-
-## Benefícios
-
-- **Planejamento**: Programe com até 7 dias de antecedência
-- **Economia de tempo**: Configure pedidos recorrentes
-- **Confiança**: Notificações em cada etapa
-- **Flexibilidade**: Cancele ou reagende facilmente
+2. Selecione data e horario desejado
+3. Receba confirmacao e notificacoes
+4. Opcao de tornar pedido recorrente
 
 ## FAQ
 
 **P: Posso cancelar um pedido agendado?**
-R: Sim, até 2 horas antes do horário programado, sem custo.
-
-**P: Como sei que vai chegar no horário?**
-R: Você recebe notificações quando o pedido sair para entrega e pode acompanhar em tempo real.
-
-**P: Posso agendar pedidos recorrentes?**
-R: Sim! Configure uma vez e receba automaticamente nos dias/horários escolhidos.""",
-            doc_metadata={"version": "1.0", "word_count": 218},
+R: Sim, ate 2 horas antes do horario programado, sem custo.""",
+            doc_metadata={"version": "1.0", "word_count": 80},
             generated_at=(base_time - timedelta(days=1)).isoformat(),
             model="gpt-4",
             status="completed",
@@ -758,6 +476,7 @@ R: Sim! Configure uma vez e receba automaticamente nos dias/horários escolhidos
 if __name__ == "__main__":
     """Allow running seed directly for testing."""
     import os
+
     from synth_lab.infrastructure.database_v2 import create_db_engine
 
     db_url = os.getenv("DATABASE_URL")
@@ -768,4 +487,4 @@ if __name__ == "__main__":
     engine = create_db_engine(db_url)
     seed_database(engine)
     engine.dispose()
-    print("✅ Database seeded successfully!")
+    print("Database seeded successfully!")

@@ -13,37 +13,29 @@ from logging.config import fileConfig
 from pathlib import Path
 
 from alembic import context
-from sqlalchemy import pool
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, pool
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import models to register with Base.metadata
-from synth_lab.models.orm.base import Base
 from synth_lab.models.orm import (  # noqa: F401
-    Experiment, InterviewGuide,
-    AnalysisRun, SynthOutcome, AnalysisCache,
-    Synth, SynthGroup,
-    ResearchExecution, Transcript,
-    Exploration, ScenarioNode,
-    ChartInsight,
+    Experiment,
     ExperimentDocument,
     ExperimentMaterial,
+    ExperimentShare,
+    ExperimentTag,
+    InterviewGuide,
+    ResearchExecution,
+    Synth,
+    SynthGroup,
+    SynthGroupShare,
+    Tag,
+    Transcript,
+    User,
 )
-# Import auth/sharing models
-from synth_lab.models.orm.user import User  # noqa: F401
-from synth_lab.models.orm.share import ExperimentShare, SynthGroupShare  # noqa: F401
-# Import simulation models
-from synth_lab.models.orm.simulation import (  # noqa: F401
-    Simulation, CausalDAG, Hypothesis, HypothesisVersion,
-    Variable, SimulatedWorld, AuditTrail,
-)
-# Import mechanism configuration models (039)
-from synth_lab.infrastructure.database import (  # noqa: F401
-    MechanismDefinitionORM, MechanismOptionORM, FeatureTypeORM,
-)
+from synth_lab.models.orm.base import Base
 
 # This is the Alembic Config object
 config = context.config

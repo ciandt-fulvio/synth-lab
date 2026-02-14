@@ -7,18 +7,18 @@ Uses real database (db_session) and mocks only external LLM calls.
 Executar: pytest -m integration tests/integration/services/test_research_services.py
 """
 
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 from datetime import datetime
 
+import pytest
+
+from synth_lab.models.orm.experiment import Experiment
+from synth_lab.models.orm.research import ResearchExecution, Transcript
+from synth_lab.models.orm.synth import SynthGroup
+from synth_lab.models.pagination import PaginationParams
+from synth_lab.models.research import ExecutionStatus
+from synth_lab.repositories.research_repository import ResearchRepository
 from synth_lab.services.research_service import ResearchService
 from synth_lab.services.research_summary_generator_service import ResearchSummaryGeneratorService
-from synth_lab.repositories.research_repository import ResearchRepository
-from synth_lab.models.orm.experiment import Experiment
-from synth_lab.models.orm.synth import Synth, SynthGroup
-from synth_lab.models.orm.research import ResearchExecution, Transcript
-from synth_lab.models.research import ExecutionStatus
-from synth_lab.models.pagination import PaginationParams
 
 
 @pytest.mark.integration
@@ -196,8 +196,8 @@ class TestResearchServiceIntegration:
         db_session.commit()
 
         # Execute
-        from synth_lab.repositories.research_repository import ResearchRepository
         from synth_lab.models.pagination import PaginationParams
+        from synth_lab.repositories.research_repository import ResearchRepository
 
         repo = ResearchRepository(session=db_session)
         service = ResearchService(research_repo=repo)
@@ -272,8 +272,8 @@ class TestResearchSummaryGeneratorIntegration:
 
         # For this test, we'll verify the service can retrieve and process transcripts
         # Full generation test would require more complex mocking of async LLM calls
-        from synth_lab.services.research_service import ResearchService
         from synth_lab.repositories.research_repository import ResearchRepository
+        from synth_lab.services.research_service import ResearchService
 
         repo = ResearchRepository(session=db_session)
         research_service = ResearchService(research_repo=repo)
@@ -310,8 +310,8 @@ class TestResearchServiceErrorHandling:
 
     def test_get_transcripts_raises_not_found_for_invalid_execution(self, db_session):
         """Test that service raises error when getting transcripts for non-existent execution."""
-        from synth_lab.repositories.research_repository import ResearchRepository
         from synth_lab.models.pagination import PaginationParams
+        from synth_lab.repositories.research_repository import ResearchRepository
         from synth_lab.services.errors import ExecutionNotFoundError
 
         repo = ResearchRepository(session=db_session)

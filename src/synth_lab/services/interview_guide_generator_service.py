@@ -34,7 +34,8 @@ from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
 from synth_lab.repositories.interview_guide_repository import (
     InterviewGuide,
-    InterviewGuideRepository)
+    InterviewGuideRepository,
+)
 
 # Phoenix/OpenTelemetry tracer for observability
 _tracer = get_tracer("interview-guide-generator")
@@ -367,7 +368,8 @@ if __name__ == "__main__":
     try:
         from synth_lab.services.interview_guide_generator_service import (
             GeneratedGuideContent,
-            InterviewGuideGeneratorService)
+            InterviewGuideGeneratorService,
+        )
 
         print("✓ All imports successful")
     except Exception as e:

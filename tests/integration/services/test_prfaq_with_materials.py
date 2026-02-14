@@ -8,8 +8,9 @@ References:
     - spec.md: User Story 2 acceptance criteria
 """
 
-import pytest
 from unittest.mock import Mock
+
+import pytest
 
 
 @pytest.mark.integration

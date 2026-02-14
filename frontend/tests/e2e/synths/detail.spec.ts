@@ -4,7 +4,7 @@
  * Testa o modal de detalhes do synth com as 3 tabs:
  * - Demografia
  * - Psicografia
- * - Capacidades Técnicas
+ * - Sensibilidades
  *
  * Run: npm run test:e2e synths/detail.spec.ts
  */
@@ -17,15 +17,25 @@ test.describe('Synths - Detail Modal @synths', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    // Navega para página de synths
+    // Navigate to synths page and then into a group to see individual synth cards
     await page.goto('/synths');
     await page.waitForLoadState('networkidle');
 
-    // Wait for page header to load
-    await expect(page.locator('h2').filter({ hasText: /synths/i })).toBeVisible({ timeout: 10000 });
+    // Wait for group cards to load
+    const groupCards = page.locator('main .cursor-pointer');
+    await expect(groupCards.first()).toBeVisible({ timeout: 10000 });
 
-    // Wait for any synth cards to be visible
-    // Use a longer timeout to ensure data is fully loaded
+    // Click first group to navigate to group detail
+    await groupCards.first().click();
+    await page.waitForLoadState('networkidle');
+
+    // Group detail page defaults to "Estatísticas" tab - click "Synths" tab
+    const synthsTab = page.getByRole('tab', { name: /synths/i });
+    await expect(synthsTab).toBeVisible({ timeout: 10000 });
+    await synthsTab.click();
+    await page.waitForTimeout(500);
+
+    // Wait for synth cards to be visible on the group detail page
     const synthCards = getSynthCards(page);
     await expect(synthCards.first()).toBeVisible({ timeout: 15000 });
   });
@@ -42,7 +52,7 @@ test.describe('Synths - Detail Modal @synths', () => {
     const modal = page.locator('[role="dialog"]');
     await expect(modal).toBeVisible({ timeout: 5000 });
 
-    // Título do modal deve conter o nome do synth
+    // Titulo do modal deve conter o nome do synth
     const modalTitle = modal.locator('h2').first();
     await expect(modalTitle).toBeVisible();
 
@@ -70,14 +80,14 @@ test.describe('Synths - Detail Modal @synths', () => {
 
     const modal = page.locator('[role="dialog"]');
 
-    // Verifica que há 3 tabs
+    // Verifica que ha 3 tabs
     const demografiaTab = modal.getByRole('tab', { name: /demografia/i });
     const psicografiaTab = modal.getByRole('tab', { name: /psicografia/i });
-    const capacidadesTab = modal.getByRole('tab', { name: /capacidades técnicas/i });
+    const sensibilidadesTab = modal.getByRole('tab', { name: /sensibilidades/i });
 
     await expect(demografiaTab).toBeVisible();
     await expect(psicografiaTab).toBeVisible();
-    await expect(capacidadesTab).toBeVisible();
+    await expect(sensibilidadesTab).toBeVisible();
   });
 
   test('Y017 - Demografia tab is selected by default', async ({ page }) => {
@@ -99,7 +109,7 @@ test.describe('Synths - Detail Modal @synths', () => {
     const modal = page.locator('[role="dialog"]');
     await expect(modal).toBeVisible();
 
-    // Verifica que está na tab Demografia
+    // Verifica que esta na tab Demografia
     const demografiaTab = modal.getByRole('tab', { name: /demografia/i });
     await expect(demografiaTab).toHaveAttribute('aria-selected', 'true');
   });
@@ -135,35 +145,35 @@ test.describe('Synths - Detail Modal @synths', () => {
     await expect(psicografiaTab).toHaveAttribute('aria-selected', 'true');
   });
 
-  test('Y021 - Switch to Capacidades Técnicas tab', async ({ page }) => {
+  test('Y021 - Switch to Sensibilidades tab', async ({ page }) => {
     const synthCards = getSynthCards(page);
     await synthCards.first().click();
 
     const modal = page.locator('[role="dialog"]');
-    const capacidadesTab = modal.getByRole('tab', { name: /capacidades técnicas/i });
+    const sensibilidadesTab = modal.getByRole('tab', { name: /sensibilidades/i });
 
-    // Clica na tab Capacidades Técnicas
-    await capacidadesTab.click();
+    // Clica na tab Sensibilidades
+    await sensibilidadesTab.click();
     await page.waitForTimeout(300);
 
     // Tab deve estar selecionada
-    await expect(capacidadesTab).toHaveAttribute('aria-selected', 'true');
+    await expect(sensibilidadesTab).toHaveAttribute('aria-selected', 'true');
   });
 
-  test('Y022 - Capacidades Técnicas tab shows attributes', async ({ page }) => {
+  test('Y022 - Sensibilidades tab shows attributes', async ({ page }) => {
     const synthCards = getSynthCards(page);
     await synthCards.first().click();
 
     const modal = page.locator('[role="dialog"]');
     await expect(modal).toBeVisible();
 
-    const capacidadesTab = modal.getByRole('tab', { name: /capacidades técnicas/i });
+    const sensibilidadesTab = modal.getByRole('tab', { name: /sensibilidades/i });
 
-    await capacidadesTab.click();
+    await sensibilidadesTab.click();
     await page.waitForTimeout(300);
 
     // Verify tab is selected
-    await expect(capacidadesTab).toHaveAttribute('aria-selected', 'true');
+    await expect(sensibilidadesTab).toHaveAttribute('aria-selected', 'true');
   });
 
   test('Y023 - Capacidades shows percentage values', async ({ page }) => {
@@ -173,13 +183,13 @@ test.describe('Synths - Detail Modal @synths', () => {
     const modal = page.locator('[role="dialog"]');
     await expect(modal).toBeVisible();
 
-    const capacidadesTab = modal.getByRole('tab', { name: /capacidades técnicas/i });
+    const sensibilidadesTab = modal.getByRole('tab', { name: /sensibilidades/i });
 
-    await capacidadesTab.click();
+    await sensibilidadesTab.click();
     await page.waitForTimeout(300);
 
     // Verify tab is selected
-    await expect(capacidadesTab).toHaveAttribute('aria-selected', 'true');
+    await expect(sensibilidadesTab).toHaveAttribute('aria-selected', 'true');
   });
 
   test('Y024 - Navigate between all three tabs', async ({ page }) => {
@@ -188,7 +198,7 @@ test.describe('Synths - Detail Modal @synths', () => {
 
     const modal = page.locator('[role="dialog"]');
 
-    // Começa em Demografia
+    // Comeca em Demografia
     const demografiaTab = modal.getByRole('tab', { name: /demografia/i });
     await expect(demografiaTab).toHaveAttribute('aria-selected', 'true');
 
@@ -198,11 +208,11 @@ test.describe('Synths - Detail Modal @synths', () => {
     await page.waitForTimeout(300);
     await expect(psicografiaTab).toHaveAttribute('aria-selected', 'true');
 
-    // Vai para Capacidades Técnicas
-    const capacidadesTab = modal.getByRole('tab', { name: /capacidades técnicas/i });
-    await capacidadesTab.click();
+    // Vai para Sensibilidades
+    const sensibilidadesTab = modal.getByRole('tab', { name: /sensibilidades/i });
+    await sensibilidadesTab.click();
     await page.waitForTimeout(300);
-    await expect(capacidadesTab).toHaveAttribute('aria-selected', 'true');
+    await expect(sensibilidadesTab).toHaveAttribute('aria-selected', 'true');
 
     // Volta para Demografia
     await demografiaTab.click();
@@ -217,11 +227,12 @@ test.describe('Synths - Detail Modal @synths', () => {
     const modal = page.locator('[role="dialog"]');
     await expect(modal).toBeVisible();
 
-    // Pressiona ESC
+    // Ensure modal content is loaded and focused before pressing ESC
+    await page.waitForTimeout(500);
     await page.keyboard.press('Escape');
 
     // Modal deve fechar
-    await expect(modal).not.toBeVisible({ timeout: 3000 });
+    await expect(modal).not.toBeVisible({ timeout: 5000 });
   });
 
   test('Y026 - Close modal with Close button', async ({ page }) => {
@@ -231,7 +242,7 @@ test.describe('Synths - Detail Modal @synths', () => {
     const modal = page.locator('[role="dialog"]');
     await expect(modal).toBeVisible();
 
-    // Procura botão Close (X)
+    // Procura botao Close (X)
     const closeButton = modal.getByRole('button', { name: /close/i });
 
     if (await closeButton.isVisible()) {
@@ -240,7 +251,7 @@ test.describe('Synths - Detail Modal @synths', () => {
       // Modal deve fechar
       await expect(modal).not.toBeVisible({ timeout: 3000 });
     } else {
-      // Se não houver botão Close, usa ESC
+      // Se nao houver botao Close, usa ESC
       await page.keyboard.press('Escape');
       await expect(modal).not.toBeVisible({ timeout: 3000 });
     }

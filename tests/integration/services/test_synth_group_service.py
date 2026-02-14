@@ -9,8 +9,9 @@ References:
     - Spec: specs/030-custom-synth-groups/spec.md
 """
 
+from datetime import datetime
+
 import pytest
-from datetime import datetime, timezone
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 

@@ -1,11 +1,10 @@
 """
 Documents API router for synth-lab.
 
-REST endpoints for experiment documents (summary, prfaq, executive_summary).
+REST endpoints for experiment documents (summary, prfaq).
 
 References:
     - Service: synth_lab.services.document_service
-    - Service: synth_lab.services.executive_summary_service
     - Schemas: synth_lab.api.schemas.documents
 """
 
@@ -22,10 +21,8 @@ from synth_lab.api.schemas.documents import (
     GenerateDocumentResponse,
 )
 from synth_lab.domain.entities.experiment_document import DocumentStatus, DocumentType
-from synth_lab.repositories.analysis_repository import AnalysisRepository
 from synth_lab.repositories.experiment_document_repository import DocumentNotFoundError
 from synth_lab.services.document_service import DocumentService
-from synth_lab.services.executive_summary_service import ExecutiveSummaryService
 
 router = APIRouter()
 
@@ -43,12 +40,6 @@ def _map_type(api_type: DocumentTypeEnum) -> DocumentType:
 def _map_status(domain_status: DocumentStatus) -> DocumentStatusEnum:
     """Map domain enum to API enum."""
     return DocumentStatusEnum(domain_status.value)
-
-
-def _get_analysis_id(experiment_id: str) -> str | None:
-    """Get the latest completed analysis_id for an experiment."""
-    repo = AnalysisRepository()
-    return repo.get_latest_completed_analysis_id(experiment_id)
 
 
 @router.get(
@@ -84,7 +75,7 @@ async def check_availability(experiment_id: str) -> DocumentAvailabilityResponse
     """
     Check availability of all document types for an experiment.
 
-    Returns status for each document type (summary, prfaq, executive_summary).
+    Returns status for each document type (summary, prfaq).
     """
     service = _get_service()
     avail = service.check_availability(experiment_id)
@@ -111,8 +102,7 @@ async def get_document(
 
     Includes markdown content and metadata.
 
-    For exploration/research documents, source_id is required.
-    For executive_summary, source_id should be None.
+    For research documents, source_id is required.
     """
     service = _get_service()
     domain_type = _map_type(document_type)
@@ -148,8 +138,7 @@ async def get_document_markdown(
 
     Returns plain text markdown.
 
-    For exploration/research documents, source_id is required.
-    For executive_summary, source_id should be None.
+    For research documents, source_id is required.
     """
     service = _get_service()
     domain_type = _map_type(document_type)
@@ -176,36 +165,11 @@ async def generate_document(
 
     This endpoint starts generation and returns immediately.
     The actual generation runs in a background task.
-
-    For exploration/research documents, source_id is required in the request.
-    For executive_summary: requires completed analysis with chart insights.
     """
     domain_type = _map_type(document_type)
     source_id = request.source_id if request else None
 
-    # Handle executive_summary specifically
-    if domain_type == DocumentType.EXECUTIVE_SUMMARY:
-        # Check for analysis_id
-        analysis_id = _get_analysis_id(experiment_id)
-        if not analysis_id:
-            raise HTTPException(
-                status_code=400,
-                detail="No completed analysis found for this experiment. "
-                "Run quantitative analysis first.")
-
-        # Start background generation using service method
-        exec_summary_service = ExecutiveSummaryService()
-        background_tasks.add_task(
-            exec_summary_service.generate_markdown_summary_background,
-            experiment_id,
-            analysis_id)
-
-        return GenerateDocumentResponse(
-            document_id=None,
-            status=DocumentStatusEnum.GENERATING,
-            message="Started generation of executive_summary")
-
-    # For other document types, just mark as generating (legacy behavior)
+    # For document types, mark as generating
     service = _get_service()
     model = request.model if request else "gpt-4o-mini"
 
@@ -234,8 +198,7 @@ async def delete_document(
     """
     Delete a specific document.
 
-    For exploration/research documents, source_id is required.
-    For executive_summary, source_id should be None.
+    For research documents, source_id is required.
 
     Returns success status.
     """

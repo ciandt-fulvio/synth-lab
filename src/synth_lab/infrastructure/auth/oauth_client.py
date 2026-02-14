@@ -5,7 +5,7 @@ Handles authorization URL generation and token exchange.
 """
 import os
 import secrets
-from typing import Tuple, List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlencode
 
 

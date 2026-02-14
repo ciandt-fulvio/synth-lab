@@ -2,12 +2,13 @@
 
 Handles CRUD operations for User entities using SQLAlchemy.
 """
+from datetime import UTC, datetime
 from typing import Optional
 from uuid import UUID
+
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from datetime import datetime
+from sqlalchemy.orm import Session
 
 from synth_lab.domain.entities.user import User
 from synth_lab.models.orm.user import User as UserModel
@@ -139,7 +140,7 @@ class UserRepository:
         user_model.email = user.email
         user_model.display_name = user.display_name
         user_model.profile_picture_url = user.profile_picture_url
-        user_model.updated_at = datetime.utcnow().isoformat()
+        user_model.updated_at = datetime.now(UTC).isoformat()
 
         self.db.flush()
         self.db.refresh(user_model)

@@ -14,7 +14,8 @@ from pydantic import BaseModel, Field
 from synth_lab.domain.entities.simulation_attributes import (
     SimulationAttributes,
     SimulationLatentTraits,
-    SimulationObservables)
+    SimulationObservables,
+)
 
 
 class ObservableWithLabelResponse(BaseModel):

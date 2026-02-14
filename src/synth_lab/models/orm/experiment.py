@@ -8,17 +8,15 @@ References:
     - SQLAlchemy relationships: https://docs.sqlalchemy.org/en/20/orm/relationships.html
 """
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from synth_lab.models.orm.base import Base, MutableJSON, TimestampMixin, SoftDeleteMixin
+from synth_lab.models.orm.base import Base, SoftDeleteMixin, TimestampMixin
 
 if TYPE_CHECKING:
-    from synth_lab.models.orm.analysis import AnalysisRun
     from synth_lab.models.orm.document import ExperimentDocument
-    from synth_lab.models.orm.exploration import Exploration
     from synth_lab.models.orm.material import ExperimentMaterial
     from synth_lab.models.orm.research import ResearchExecution
     from synth_lab.models.orm.synth import SynthGroup
@@ -30,24 +28,21 @@ class Experiment(Base, TimestampMixin, SoftDeleteMixin):
     """
     Experiment entity for feature testing.
 
-    Represents a research experiment with hypothesis, scorecard configuration,
-    and relationships to analysis runs, research executions, and documents.
+    Represents a research experiment with hypothesis and
+    relationships to research executions and documents.
 
     Attributes:
         id: UUID-style identifier (e.g., "exp_12345678")
         name: Experiment name (max 100 chars)
         hypothesis: Research hypothesis (max 500 chars)
         description: Optional detailed description (max 2000 chars)
-        scorecard_data: Embedded scorecard configuration as JSON
         status: 'active' or 'deleted' (soft delete)
         created_at: ISO timestamp of creation
         updated_at: ISO timestamp of last update
 
     Relationships:
-        analysis_run: 1:1 - Associated analysis run
         interview_guide: 1:1 - Optional interview guide
         research_executions: 1:N - Multiple research executions
-        explorations: 1:N - Multiple scenario explorations
         documents: 1:N - Multiple documents (summary, prfaq, etc.)
         materials: 1:N - Multiple uploaded materials (images, videos, documents)
         experiment_tags: M:N - Tags for categorization (via junction table)
@@ -66,7 +61,6 @@ class Experiment(Base, TimestampMixin, SoftDeleteMixin):
         default="grp_00000001",
         server_default="grp_00000001"
     )
-    scorecard_data: Mapped[dict[str, Any] | None] = mapped_column(MutableJSON, nullable=True)
     owner_id: Mapped[str | None] = mapped_column(
         String(36),
         ForeignKey("users.id", ondelete="SET NULL"),
@@ -84,12 +78,6 @@ class Experiment(Base, TimestampMixin, SoftDeleteMixin):
         back_populates="owned_experiments",
         foreign_keys=[owner_id],
     )
-    analysis_run: Mapped["AnalysisRun | None"] = relationship(
-        "AnalysisRun",
-        back_populates="experiment",
-        uselist=False,
-        cascade="all, delete-orphan",
-    )
     interview_guide: Mapped["InterviewGuide | None"] = relationship(
         "InterviewGuide",
         back_populates="experiment",
@@ -98,11 +86,6 @@ class Experiment(Base, TimestampMixin, SoftDeleteMixin):
     )
     research_executions: Mapped[list["ResearchExecution"]] = relationship(
         "ResearchExecution",
-        back_populates="experiment",
-        cascade="all, delete-orphan",
-    )
-    explorations: Mapped[list["Exploration"]] = relationship(
-        "Exploration",
         back_populates="experiment",
         cascade="all, delete-orphan",
     )
@@ -198,7 +181,7 @@ if __name__ == "__main__":
 
     # Test 3: Experiment has required columns
     total_tests += 1
-    required_columns = {"id", "name", "hypothesis", "description", "scorecard_data", "status", "created_at", "updated_at"}
+    required_columns = {"id", "name", "hypothesis", "description", "status", "created_at", "updated_at"}
     actual_columns = set(Experiment.__table__.columns.keys())
     missing = required_columns - actual_columns
     if missing:

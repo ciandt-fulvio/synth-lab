@@ -18,7 +18,8 @@ from synth_lab.services.errors import (
     InvalidRequestError,
     NotFoundError,
     SynthLabError,
-    ValidationError)
+    ValidationError,
+)
 
 
 def error_response(

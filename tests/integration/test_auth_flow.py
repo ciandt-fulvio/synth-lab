@@ -2,12 +2,13 @@
 
 Tests complete OAuth flow with real database interactions.
 """
-import pytest
 from unittest.mock import patch
 
-from synth_lab.services.auth_service import AuthService
-from synth_lab.repositories.user_repository import UserRepository
+import pytest
+
 from synth_lab.domain.entities.user import User
+from synth_lab.repositories.user_repository import UserRepository
+from synth_lab.services.auth_service import AuthService
 
 
 @pytest.mark.slow

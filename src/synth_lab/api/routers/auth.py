@@ -3,27 +3,27 @@
 Provides endpoints for Google OAuth login flow, session management, and sharing.
 """
 import os
-from loguru import logger
-from fastapi import APIRouter, Request, Response, HTTPException, Depends, status
-from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
 from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import RedirectResponse
+from loguru import logger
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from sqlalchemy.orm import Session
 
-from synth_lab.services.auth_service import AuthService
-from synth_lab.services.sharing_service import SharingService
-from synth_lab.repositories.user_repository import UserRepository
+from synth_lab.api.schemas.sharing import (
+    ShareExperimentRequest,
+    ShareListResponse,
+    ShareResponse,
+)
+from synth_lab.domain.entities.share import PermissionLevel
 from synth_lab.infrastructure.auth.oauth_client import get_oauth_client
 from synth_lab.infrastructure.auth.session_manager import SessionManager
 from synth_lab.infrastructure.database_v2 import get_db_session
-from synth_lab.api.schemas.sharing import (
-    ShareExperimentRequest,
-    ShareResponse,
-    ShareListResponse,
-)
-from synth_lab.domain.entities.share import PermissionLevel
-
+from synth_lab.repositories.user_repository import UserRepository
+from synth_lab.services.auth_service import AuthService
+from synth_lab.services.sharing_service import SharingService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

@@ -18,12 +18,11 @@ References:
 """
 
 import os
-import pytest
 from unittest.mock import patch
 
+import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import QueuePool
-
 
 # Skip all tests if PostgreSQL is not available
 pytestmark = pytest.mark.skipif(
@@ -196,12 +195,12 @@ class TestDatabaseV2Integration:
 
     def test_get_session_context_manager(self):
         """Test get_session context manager with PostgreSQL."""
+        import synth_lab.infrastructure.database_v2 as db_mod
         from synth_lab.infrastructure.database_v2 import (
             create_db_engine,
-            get_session,
             dispose_engine,
+            get_session,
         )
-        import synth_lab.infrastructure.database_v2 as db_mod
 
         postgres_url = os.getenv("DATABASE_URL")
 
@@ -219,12 +218,12 @@ class TestDatabaseV2Integration:
 
     def test_health_check_with_postgres(self):
         """Test health_check function with PostgreSQL."""
+        import synth_lab.infrastructure.database_v2 as db_mod
         from synth_lab.infrastructure.database_v2 import (
             create_db_engine,
-            health_check,
             dispose_engine,
+            health_check,
         )
-        import synth_lab.infrastructure.database_v2 as db_mod
 
         postgres_url = os.getenv("DATABASE_URL")
 

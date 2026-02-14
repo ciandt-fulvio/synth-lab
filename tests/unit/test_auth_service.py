@@ -2,11 +2,13 @@
 
 Tests authentication business logic with mocked dependencies.
 """
-import pytest
-from uuid import uuid4
 from unittest.mock import MagicMock, patch
-from synth_lab.services.auth_service import AuthService
+from uuid import uuid4
+
+import pytest
+
 from synth_lab.domain.entities.user import User
+from synth_lab.services.auth_service import AuthService
 
 
 @pytest.fixture

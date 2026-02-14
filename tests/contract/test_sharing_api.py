@@ -6,14 +6,14 @@ Uses best practices for testing sharing/permission flows:
 - MagicMock for sync service methods
 - Proper mocking of service layer for isolation
 """
-import pytest
-from fastapi.testclient import TestClient
 from unittest.mock import MagicMock
 from uuid import uuid4
 
+import pytest
+from fastapi.testclient import TestClient
+
 from synth_lab.api.main import app
 from synth_lab.api.routers.auth import get_sharing_service
-
 
 # Test user constant - matches conftest.py
 TEST_USER_ID = "00000001-0000-0000-0000-000000000001"
@@ -280,7 +280,7 @@ class TestSynthGroupSharesEndpoints:
         synth_group_id = "grp_abcd1234"
         sharee_id = str(uuid4())
 
-        from synth_lab.domain.entities.share import SynthGroupShare, PermissionLevel
+        from synth_lab.domain.entities.share import PermissionLevel, SynthGroupShare
         mock_share_obj = SynthGroupShare(
             synth_group_id=synth_group_id,
             user_id=uuid4(),
