@@ -10,6 +10,8 @@ Models are organized by domain:
 - research: ResearchExecution, Transcript
 - document: ExperimentDocument
 - material: ExperimentMaterial
+- causal_model: CausalModel, CausalEdge
+- simulation_run: SimulationRun, AnalysisInterpretation
 
 Usage:
     from synth_lab.models.orm import Experiment, Synth
@@ -18,6 +20,7 @@ Usage:
     from synth_lab.models.orm.experiment import Experiment, InterviewGuide
 """
 
+from synth_lab.models.orm.causal_model import CausalEdge, CausalModel
 from synth_lab.models.orm.base import (
     Base,
     JSONVariant,
@@ -31,6 +34,7 @@ from synth_lab.models.orm.document import ExperimentDocument
 from synth_lab.models.orm.experiment import Experiment, InterviewGuide
 from synth_lab.models.orm.material import ExperimentMaterial
 from synth_lab.models.orm.research import ResearchExecution, Transcript
+from synth_lab.models.orm.simulation_run import AnalysisInterpretation, SimulationRun
 from synth_lab.models.orm.share import ExperimentShare, PermissionLevel, SynthGroupShare
 from synth_lab.models.orm.synth import Synth, SynthGroup
 from synth_lab.models.orm.tag import ExperimentTag, Tag
@@ -38,6 +42,7 @@ from synth_lab.models.orm.user import User
 
 __all__ = [
     # Base
+    "AnalysisInterpretation",
     "Base",
     "JSONVariant",
     "MutableJSON",
@@ -45,6 +50,9 @@ __all__ = [
     "SoftDeleteMixin",
     "TimestampMixin",
     "to_dict",
+    # Causal Model
+    "CausalEdge",
+    "CausalModel",
     # Experiment
     "Experiment",
     "InterviewGuide",
@@ -63,6 +71,8 @@ __all__ = [
     "ExperimentTag",
     # User
     "User",
+    # Simulation Run
+    "SimulationRun",
     # Share
     "ExperimentShare",
     "SynthGroupShare",
