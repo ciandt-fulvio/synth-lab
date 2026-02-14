@@ -18,7 +18,6 @@ experiments ──< research_executions ──< transcripts
     ├──1 interview_guide
     ├──< experiment_documents
     ├──< experiment_materials
-    ├──< explorations ──< scenario_nodes
     └──<> tags (via experiment_tags)
 
 synth_groups ──< synths (via group_id)
@@ -55,7 +54,7 @@ synth_groups ──< synths (via group_id)
 
 Índices: `created_at DESC`, `name`, `status`
 
-Relacionamentos: `interview_guide` (1:1), `research_executions` (1:N), `explorations` (1:N), `experiment_documents` (1:N), `experiment_materials` (1:N), `tags` (M:N via experiment_tags)
+Relacionamentos: `interview_guide` (1:1), `research_executions` (1:N), `experiment_documents` (1:N), `experiment_materials` (1:N), `tags` (M:N via experiment_tags)
 
 ### interview_guide
 
@@ -111,10 +110,6 @@ Materiais de experimentos (imagens, vídeos, documentos) com upload S3, thumbnai
 
 Documentos gerados (summaries, PR-FAQs) vinculados a experimentos.
 
-### explorations + scenario_nodes
-
-Explorações de cenários com árvore de nós (DAG).
-
 ## ORM Models
 
 ```
@@ -122,12 +117,9 @@ models/orm/
 ├── base.py          # Base, JSONVariant, mixins
 ├── experiment.py    # Experiment, InterviewGuide
 ├── synth.py         # Synth, SynthGroup
-├── analysis.py      # AnalysisRun, SynthOutcome, AnalysisCache
 ├── research.py      # ResearchExecution, Transcript
-├── exploration.py   # Exploration, ScenarioNode
-├── insight.py       # ChartInsight, SensitivityResult
 ├── document.py      # ExperimentDocument
-└── legacy.py        # FeatureScorecard, SimulationRun
+└── share.py         # ExperimentShare, SynthGroupShare
 ```
 
 ## Migrações

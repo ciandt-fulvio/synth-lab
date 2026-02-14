@@ -230,35 +230,8 @@ PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
 - Deploy e CI/CD: `docs/deployment.md`
 - Testes: `docs/testing.md`
 
-## Active Technologies
-- Python 3.13+ + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, Arize Phoenix (028-exploration-summary)
-- PostgreSQL 14+ (existing tables: explorations, scenario_nodes, experiments) (028-exploration-summary)
-- Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, boto3 (S3), React 18, TanStack Query, shadcn/ui (001-experiment-materials)
-- PostgreSQL 14+ (metadata), S3-compatible storage (files) (001-experiment-materials)
-- Python 3.13+ + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, OpenAI Agents SDK, boto3 (S3), Arize Phoenix (tracing) (029-synth-material-integration)
-- PostgreSQL 14+ (metadata via `experiment_materials` table), S3-compatible storage (file content) (029-synth-material-integration)
-- Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, React 18, TanStack Query, shadcn/ui (030-custom-synth-groups)
-- PostgreSQL 14+ (JSONB for config), S3-compatible (avatars) (030-custom-synth-groups)
-- Python 3.13+ (backend), TypeScript 5.5+ / Node.js 20 (frontend) + FastAPI 0.109+, React 18, Vite 6.3, SQLAlchemy 2.0+, TanStack Query 5.56 (033-docker-containerization)
-- PostgreSQL 14+ (local container for dev/test, Railway PostgreSQL for prod) (033-docker-containerization)
-- Python 3.13+ (backend), TypeScript 5.5+ (frontend), React 18 (035-causal-simulation)
-- PostgreSQL 14+ with JSONB for DAG structures, hypothesis parameters, and simulation metadata (035-causal-simulation)
-- Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, React 18, TanStack Query, shadcn/ui (036-simplified-hypothesis-wizard)
-- PostgreSQL 14+ (existing tables: simulations, causal_dags, hypotheses, hypothesis_versions - no schema changes needed) (036-simplified-hypothesis-wizard)
-- Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, React 18, TanStack Query, shadcn/ui, ReactFlow (037-unified-dag-hypotheses)
-- PostgreSQL 14+ (existing tables: hypotheses +1 column, causal_dags unchanged) (037-unified-dag-hypotheses)
-- Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, NumPy (simulation), React 18, TanStack Query (038-mechanism-based-simulation)
-- PostgreSQL 14+ (JSONB for scorecard_data, simulation_attributes) (038-mechanism-based-simulation)
-- Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK (gpt-4o-mini), React 18, TanStack Query, shadcn/ui (039-narrative-mechanism-config)
-- PostgreSQL 14+ (novas tabelas para mecanismos/opções, JSONB para narrativa gerada) (039-narrative-mechanism-config)
-- Python 3.13+ (backend only — sem mudanças no frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, NumPy, PyYAML (040-mechanism-sensitivity-update)
-- PostgreSQL 14+ (JSONB fields — sem migração de schema) (040-mechanism-sensitivity-update)
-
-## Recent Changes
-- 028-exploration-summary: Added Python 3.13+ + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, Arize Phoenix
-
 ## Design and mechanics
-  - Document Storage: Uses existing experiment_documents table with exploration.experiment_id as FK
+  - Document Storage: Uses existing experiment_documents table with experiment_id as FK
   - Phoenix Tracing: All LLM calls wrapped with _tracer.start_as_current_span()
 
 Database migration must be always done via Alembic. Tests use an isolated container (make test) which auto-applies migrations.

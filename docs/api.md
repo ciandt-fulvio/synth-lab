@@ -46,13 +46,13 @@ API REST construída com FastAPI. Documentação interativa disponível em `/doc
 | GET | `/synths/{synth_id}/avatar` | Download avatar PNG |
 | GET | `/synths/fields` | Campos disponíveis para filtros |
 
-### Experiments (12)
+### Experiments (11)
 
 | Método | Path | Descrição |
 |--------|------|-----------|
 | POST | `/experiments` | Criar experimento |
 | GET | `/experiments/list` | Listar (paginado, search, tag, sort) |
-| GET | `/experiments/{id}` | Detalhes (inclui analysis, interviews) |
+| GET | `/experiments/{id}` | Detalhes (inclui interviews) |
 | PUT | `/experiments/{id}` | Atualizar nome/hipótese/descrição |
 | DELETE | `/experiments/{id}` | Deletar experimento |
 | PUT | `/experiments/{id}/scorecard` | Atualizar scorecard |
@@ -61,7 +61,6 @@ API REST construída com FastAPI. Documentação interativa disponível em `/doc
 | POST | `/experiments/{id}/interviews` | Criar entrevista |
 | GET | `/experiments/{id}/interviews/auto` | Obter auto-entrevista |
 | POST | `/experiments/{id}/interviews/auto` | Criar auto-entrevista (5 melhores + 5 piores) |
-| GET | `/experiments/{id}/explorations` | Listar explorações |
 
 ### Topics (3)
 

@@ -30,7 +30,6 @@ src/synth_lab/
 │   ├── experiment_service.py
 │   ├── synth_service.py
 │   ├── material_service.py       # Upload S3, thumbnails, descrição IA
-│   ├── simulation/               # Subdomínio: simulação
 │   ├── research_agentic/         # Subdomínio: entrevistas
 │   └── research_prfaq/           # Subdomínio: PR-FAQ
 ├── repositories/
@@ -159,8 +158,6 @@ frontend/src/
 |------|------------|
 | `/` | Index (lista de experimentos) |
 | `/experiments/:id` | ExperimentDetail |
-| `/experiments/:id/simulations/:simId` | SimulationDetail |
-| `/experiments/:id/explorations/:explorationId` | ExplorationDetail |
 | `/experiments/:expId/interviews/:execId` | InterviewDetail |
 | `/synths` | Synths (catálogo) |
 
