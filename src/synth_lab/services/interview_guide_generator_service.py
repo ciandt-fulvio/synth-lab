@@ -327,6 +327,145 @@ Responda APENAS com o JSON, sem explicações adicionais."""
                 return future.result()
 
 
+    def generate_from_simulation_sync(
+        self,
+        experiment_id: str,
+        name: str,
+        hypothesis: str,
+        sensitivity: list[dict],
+        description: str | None = None,
+    ) -> InterviewGuide:
+        """Generate interview guide from quantitative analysis simulation results.
+
+        Uses the QUESTIONNAIRE_SYSTEM prompt (Apêndice C) with the top 3 most
+        impactful premisses from sensitivity analysis. Overwrites any existing
+        guide silently.
+
+        Args:
+            experiment_id: ID of the experiment.
+            name: Experiment name.
+            hypothesis: Research hypothesis.
+            sensitivity: Sensitivity analysis results (sorted by impact desc).
+            description: Optional experiment description.
+
+        Returns:
+            Created/updated InterviewGuide entity.
+        """
+        with _tracer.start_as_current_span(
+            "InterviewGuideGenerator: generate_from_simulation",
+            attributes={
+                "experiment_id": experiment_id,
+                "n_sensitivity_items": len(sensitivity),
+            },
+        ):
+            # Take top 3 most impactful premisses
+            top_3 = sensitivity[:3]
+            premisses_text = "\n".join(
+                f"- {item['header']} (impact: {item['impact']:.2f}pp, "
+                f"range: {item['mean_low']:.1f}%–{item['mean_high']:.1f}%)"
+                for item in top_3
+            )
+
+            description_text = description or "Não fornecida"
+
+            prompt = f"""You are an expert in marketing research following Naresh Malhotra's "Marketing Research: An Applied Orientation".
+
+CONTEXT: A product manager ran a causal simulation for a product experiment. They need a FIELD QUESTIONNAIRE to validate the most critical assumptions with real users BEFORE running the experiment.
+
+EXPERIMENT:
+- Name: {name}
+- Hypothesis: {hypothesis}
+- Description: {description_text}
+
+TOP 3 MOST IMPACTFUL PREMISSES (from sensitivity analysis):
+{premisses_text}
+
+CRITICAL CONSTRAINTS:
+- The interview is MEDIATED by a trained interviewer who can adapt and probe as needed.
+- Each respondent ALREADY has a complete demographic file (age, income, education, family, disabilities). DO NOT include ANY demographic, screening, or profiling questions.
+- Output EXACTLY 3 questions — no more, no less.
+- Target the TOP 3 most impactful premisses from the sensitivity analysis.
+
+MALHOTRA METHODOLOGY (apply strictly):
+- Ch. 10 (Questionnaire Design): Funnel approach — broad to narrow. With 3 questions:
+  * Q1: Open-ended / qualitative (ch.9 unstructured)
+  * Q2: Scenario-based with forced choice (ch.9 non-comparative scaling)
+  * Q3: Behavioral intention scale (ch.9 Likert/intention)
+- Ch. 10 (Wording): No leading questions, no double-barreled, no jargon. Simple conversational Portuguese BR.
+- Ch. 9 (Triangulation): Each question uses a DIFFERENT measurement technique to cross-validate.
+
+OUTPUT FORMAT — JSON with interview_guide fields:
+{{
+  "context_definition": "2-3 sentences describing the research scenario and what to understand from users",
+  "questions": "Central theme + the 3 questions formatted as: Q1 (aberta): [text] | Q2 (cenário): [text] | Q3 (intenção): [text]",
+  "context_examples": "positive_1|positive_2|neutral_1|neutral_2|negative_1|negative_2"
+}}
+
+RULES FOR context_examples:
+- 2 POSITIVE examples: realistic good experiences related to the experiment
+- 2 NEUTRAL examples: everyday/common experiences
+- 2 NEGATIVE examples: frustrating experiences
+- Separated by pipe (|)
+- Each is a realistic, conversational story in Portuguese BR
+
+Respond ONLY with the JSON, no additional explanation."""
+
+            self.logger.info(
+                f"Generating interview guide from simulation for: {name}"
+            )
+
+            try:
+                response = self.llm.complete_json(
+                    messages=[{"role": "user", "content": prompt}],
+                    model="gpt-5.1",
+                    temperature=0.7,
+                    operation_name="Interview Guide Generation (Quantitative)",
+                )
+
+                data = json.loads(response)
+                for field in ("questions", "context_definition", "context_examples"):
+                    if field not in data:
+                        raise ValueError(f"Missing required field: {field}")
+
+                now = datetime.now(timezone.utc)
+
+                # Delete existing guide if present (silent overwrite per FR-017)
+                existing = self.interview_guide_repo.get_by_experiment_id(
+                    experiment_id
+                )
+                if existing is not None:
+                    self.interview_guide_repo.delete(experiment_id)
+                    self.logger.info(
+                        f"Overwrote existing interview guide for: {experiment_id}"
+                    )
+
+                guide = InterviewGuide(
+                    experiment_id=experiment_id,
+                    context_definition=data["context_definition"],
+                    questions=data["questions"],
+                    context_examples=data["context_examples"],
+                    created_at=now,
+                    updated_at=None,
+                )
+
+                created_guide = self.interview_guide_repo.create(guide)
+                self.logger.info(
+                    f"Interview guide created from simulation for: {experiment_id}"
+                )
+                return created_guide
+
+            except json.JSONDecodeError as e:
+                self.logger.error(f"Failed to parse LLM response as JSON: {e}")
+                raise ValueError(
+                    f"Invalid JSON response from LLM: {e}"
+                ) from e
+            except Exception as e:
+                self.logger.error(
+                    f"Interview guide generation from simulation failed: {e}"
+                )
+                raise
+
+
 async def generate_interview_guide_async(
     experiment_id: str,
     name: str,
