@@ -24,7 +24,7 @@ test.describe('Smoke Tests - Critical Flows @smoke @critical', () => {
   });
 
   test('ST002 - Experiments list page loads with data', async ({ page }) => {
-    await page.goto('/old-home/');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     // Header de experimentos deve estar visível
@@ -55,7 +55,7 @@ test.describe('Smoke Tests - Critical Flows @smoke @critical', () => {
       { timeout: 15000 }
     );
 
-    await page.goto('/old-home/');
+    await page.goto('/');
 
     // Aguarda resposta da API
     const response = await responsePromise;
@@ -83,7 +83,7 @@ test.describe('Smoke Tests - Critical Flows @smoke @critical', () => {
   });
 
   test('ST005 - Experiment detail loads', async ({ page }) => {
-    await page.goto('/old-home/');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     // Find any experiment card
@@ -185,7 +185,7 @@ test.describe('Smoke Tests - Performance @smoke @performance', () => {
       { timeout: 10000 }
     );
 
-    await page.goto('/old-home/');
+    await page.goto('/');
     await responsePromise;
 
     const apiTime = Date.now() - startTime;
