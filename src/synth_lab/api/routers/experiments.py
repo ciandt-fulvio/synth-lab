@@ -8,10 +8,7 @@ References:
     - OpenAPI: specs/019-experiment-refactor/contracts/experiment-api.yaml
 """
 
-import asyncio
-
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from loguru import logger
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,7 +28,6 @@ from synth_lab.repositories.interview_guide_repository import InterviewGuideRepo
 from synth_lab.repositories.research_repository import ResearchRepository
 from synth_lab.repositories.synth_group_repository import SynthGroupRepository
 from synth_lab.services.experiment_service import ExperimentService
-from synth_lab.services.interview_guide_generator_service import generate_interview_guide_async
 from synth_lab.services.permission_service import PermissionService
 from synth_lab.services.research_service import ResearchService
 
@@ -114,17 +110,7 @@ async def create_experiment(
             synth_group_id=data.synth_group_id,
             owner_id=current_user_id)
 
-        # Trigger async interview guide generation (non-blocking)
-        asyncio.create_task(
-            generate_interview_guide_async(
-                experiment_id=experiment.id,
-                name=experiment.name,
-                hypothesis=experiment.hypothesis,
-                description=experiment.description)
-        )
-        logger.info(f"Interview guide generation started for experiment: {experiment.id}")
-
-        # Check if interview guide exists (newly created experiments won't have one)
+        # Check if interview guide exists
         with get_session() as session:
             interview_guide_repo = InterviewGuideRepository(session=session)
             has_interview_guide = interview_guide_repo.exists(experiment.id)

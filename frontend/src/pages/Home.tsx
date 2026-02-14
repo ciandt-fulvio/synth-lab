@@ -1,11 +1,8 @@
 /**
- * T024 Index page - Experiment List (Home).
+ * Home page - Experiment List.
  *
  * Main page showing grid of experiment cards.
  * Research Observatory aesthetic with animated elements.
- *
- * References:
- *   - Spec: specs/018-experiment-hub/spec.md (US1)
  */
 
 import { useState, useEffect, useMemo } from 'react';
@@ -62,7 +59,7 @@ function AnimatedSection({ children, delay = 0 }: AnimatedSectionProps) {
 // Main Component
 // =============================================================================
 
-export default function Index() {
+export default function Home() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -97,12 +94,13 @@ export default function Index() {
 
   const handleCreateSubmit = async (formData: ExperimentCreate) => {
     try {
-      await createMutation.mutateAsync(formData);
+      const created = await createMutation.mutateAsync(formData);
       setIsCreateOpen(false);
       toast({
         title: 'Experimento criado',
         description: `"${formData.name}" foi criado com sucesso.`,
       });
+      navigate(`/experiments/${created.id}`);
     } catch (err) {
       toast({
         title: 'Erro ao criar experimento',

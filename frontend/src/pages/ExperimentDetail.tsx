@@ -42,6 +42,7 @@ import {
   Users,
   Paperclip,
   FileText,
+  BarChart3,
   Loader2,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -65,9 +66,9 @@ export default function ExperimentDetail() {
 
   // Tab underline animation state
   const tabFromQuery = searchParams.get('tab');
-  const initialTab = ['interviews', 'materials', 'reports'].includes(tabFromQuery ?? '')
+  const initialTab = ['quanti', 'interviews', 'materials', 'reports'].includes(tabFromQuery ?? '')
     ? tabFromQuery!
-    : 'interviews';
+    : 'quanti';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [underlineStyle, setUnderlineStyle] = useState({ left: 0, width: 0 });
   const tabsListRef = useRef<HTMLDivElement>(null);
@@ -76,9 +77,9 @@ export default function ExperimentDetail() {
   // Sync activeTab with query param when it changes
   useEffect(() => {
     const newTab = searchParams.get('tab');
-    const validTab = ['interviews', 'materials', 'reports'].includes(newTab ?? '')
+    const validTab = ['quanti', 'interviews', 'materials', 'reports'].includes(newTab ?? '')
       ? newTab!
-      : 'interviews';
+      : 'quanti';
     setActiveTab(validTab);
   }, [searchParams]);
 
@@ -217,8 +218,18 @@ export default function ExperimentDetail() {
           <div className="relative mb-6">
             <TabsList
               ref={tabsListRef}
-              className="relative w-full h-auto p-0 bg-transparent rounded-none border-b border-slate-200 grid grid-cols-3"
+              className="relative w-full h-auto p-0 bg-transparent rounded-none border-b border-slate-200 grid grid-cols-4"
             >
+              {/* Quanti Analysis Tab */}
+              <TabsTrigger
+                ref={(el) => el && tabRefs.current.set('quanti', el)}
+                value="quanti"
+                className="relative flex items-center justify-center gap-2.5 px-4 py-4 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-violet-700 text-slate-500 hover:text-slate-700 transition-colors duration-200"
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span className="font-semibold">Análise Quanti</span>
+              </TabsTrigger>
+
               {/* Interviews Tab */}
               <TabsTrigger
                 ref={(el) => el && tabRefs.current.set('interviews', el)}
@@ -289,6 +300,36 @@ export default function ExperimentDetail() {
               />
             </TabsList>
           </div>
+
+          {/* Quanti Analysis Content */}
+          <TabsContent value="quanti" className="mt-0">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-slate-100 rounded-lg">
+                    <BarChart3 className="w-5 h-5 text-slate-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Análise Quanti</h3>
+                    <p className="text-sm text-slate-500">
+                      Análises quantitativas do experimento
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                <div className="text-center py-8">
+                  <BarChart3 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-500">
+                    Nenhuma análise quantitativa disponível ainda.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
 
           {/* Interviews Content */}
           <TabsContent value="interviews" className="mt-0">

@@ -4,15 +4,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { setQueryClient } from "./services/api";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
-import Index from "./pages/Index";
-import OldHome from "./pages/OldHome";
+import Home from "./pages/Home";
 import LoginPage from "./pages/LoginPage";
 import OAuthCallback from "./pages/OAuthCallback";
 import ExperimentDetail from "./pages/ExperimentDetail";
 import InterviewDetail from "./pages/InterviewDetail";
 import Synths from "./pages/Synths";
 import SynthGroupDetail from "./pages/SynthGroupDetail";
-import NewExperiment from "./pages/NewExperiment";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,11 +27,8 @@ const App = () => (
           <Route path="/auth/callback" element={<OAuthCallback />} />
 
           {/* Protected Routes */}
-          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-          <Route path="/old-home/" element={<ProtectedRoute><OldHome /></ProtectedRoute>} />
-          <Route path="/new-experiment/" element={<ProtectedRoute><NewExperiment /></ProtectedRoute>} />
+          <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/experiments/:id" element={<ProtectedRoute><ExperimentDetail /></ProtectedRoute>} />
-          <Route path="/old-experiments/:id" element={<ProtectedRoute><ExperimentDetail /></ProtectedRoute>} />
           <Route path="/interviews/:execId" element={<ProtectedRoute><InterviewDetail /></ProtectedRoute>} />
           <Route path="/experiments/:expId/interviews/:execId" element={<ProtectedRoute><InterviewDetail /></ProtectedRoute>} />
           <Route path="/synths" element={<ProtectedRoute><Synths /></ProtectedRoute>} />
