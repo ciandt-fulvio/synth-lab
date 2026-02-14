@@ -6,7 +6,7 @@
  * - Materiais
  * - Relatórios
  *
- * SKIPPED: Aguardando refatoração da home page (remoção de /old-home/).
+ * SKIPPED: Aguardando refatoração da home page (remoção de /).
  * TODO: Re-habilitar após definir rota definitiva para lista de experimentos.
  *
  * Run: npm run test:e2e experiments/detail-tabs.spec.ts
@@ -15,7 +15,7 @@ import { test, expect } from '../fixtures';
 
 test.describe.skip('Experiments - Detail Tabs @experiments', () => {
   test.beforeEach(async ({ page }) => {
-    // TODO: Atualizar para rota definitiva quando /old-home/ for removida
+    // TODO: Atualizar para rota definitiva quando / for removida
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -284,7 +284,7 @@ test.describe.skip('Experiments - Detail Tabs @experiments', () => {
 
 test.describe.skip('Experiments - Tab Accessibility @experiments @a11y', () => {
   test.beforeEach(async ({ page }) => {
-    // TODO: Atualizar para rota definitiva quando /old-home/ for removida
+    // TODO: Atualizar para rota definitiva quando / for removida
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 

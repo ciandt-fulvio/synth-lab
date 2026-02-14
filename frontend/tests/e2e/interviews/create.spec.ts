@@ -13,7 +13,7 @@ import { test, expect, Page } from '../fixtures';
  * Skips the test if the button is disabled (no interview guide configured).
  */
 async function navigateToInterviewTab(page: Page): Promise<void> {
-  await page.goto('/old-home/');
+  await page.goto('/');
   await page.waitForLoadState('networkidle');
 
   // Wait for experiments page to load

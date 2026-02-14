@@ -10,7 +10,7 @@ import { test, expect } from '../fixtures';
 
 test.describe('Experiments - List & Filters @critical @experiments', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/old-home/');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
   });
 
@@ -195,7 +195,7 @@ test.describe('Experiments - List UI/UX @experiments', () => {
     // Este teste requer um ambiente sem experimentos
     // Vamos apenas verificar que a estrutura de empty state existe na implementação
 
-    await page.goto('/old-home/');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     // Se houver experimentos, skip
@@ -215,7 +215,7 @@ test.describe('Experiments - List UI/UX @experiments', () => {
   });
 
   test('EL008 - Experiment cards show required info', async ({ page }) => {
-    await page.goto('/old-home/');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     const firstCard = page.locator('.cursor-pointer').filter({

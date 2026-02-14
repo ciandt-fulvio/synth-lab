@@ -4,7 +4,7 @@
  * Testes completos para operações de criar, ler, atualizar e deletar experimentos.
  * Estes testes devem rodar em local e staging antes de deploy para production.
  *
- * SKIPPED: Aguardando refatoração da home page (remoção de /old-home/).
+ * SKIPPED: Aguardando refatoração da home page (remoção de /).
  * TODO: Re-habilitar após definir rota definitiva para lista de experimentos.
  *
  * Run local: npm run test:e2e experiments/crud.spec.ts
@@ -14,7 +14,7 @@ import { test, expect } from '../fixtures';
 
 test.describe.skip('Experiments - CRUD Operations @critical @experiments', () => {
   test.beforeEach(async ({ page }) => {
-    // TODO: Atualizar para rota definitiva quando /old-home/ for removida
+    // TODO: Atualizar para rota definitiva quando / for removida
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -132,7 +132,7 @@ test.describe.skip('Experiments - CRUD Operations @critical @experiments', () =>
 
 test.describe.skip('Experiments - Form Validation @validation @experiments', () => {
   test.beforeEach(async ({ page }) => {
-    // TODO: Atualizar para rota definitiva quando /old-home/ for removida
+    // TODO: Atualizar para rota definitiva quando / for removida
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -209,7 +209,7 @@ test.describe.skip('Experiments - Form Validation @validation @experiments', () 
 
 test.describe.skip('Experiments - Navigation @navigation @experiments', () => {
   test('E010 - Navigate between multiple experiments', async ({ page }) => {
-    // TODO: Atualizar para rota definitiva quando /old-home/ for removida
+    // TODO: Atualizar para rota definitiva quando / for removida
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -242,7 +242,7 @@ test.describe.skip('Experiments - Navigation @navigation @experiments', () => {
   });
 
   test('E011 - Deep link to experiment works', async ({ page }) => {
-    // TODO: Atualizar para rota definitiva quando /old-home/ for removida
+    // TODO: Atualizar para rota definitiva quando / for removida
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -277,7 +277,7 @@ test.describe.skip('Experiments - Error Handling @error @experiments', () => {
       });
     });
 
-    // TODO: Atualizar para rota definitiva quando /old-home/ for removida
+    // TODO: Atualizar para rota definitiva quando / for removida
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 

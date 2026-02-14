@@ -13,7 +13,7 @@ import * as path from 'path';
 test.describe('Experiments - Materials Upload @experiments', () => {
   test.beforeEach(async ({ page }) => {
     // Navega para experimento
-    await page.goto('/old-home/');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     // Wait for experiments page to load
@@ -315,7 +315,7 @@ startxref
 
 test.describe('Experiments - Materials UI/UX @experiments', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/old-home/');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     const firstCard = page.locator('.cursor-pointer').first();

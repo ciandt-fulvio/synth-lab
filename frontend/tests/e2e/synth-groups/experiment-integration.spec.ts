@@ -13,7 +13,7 @@ test.describe('Synth Groups - Experiment Integration', () => {
   test.describe.configure({ mode: 'serial' });
 
   test('should show synth group selector in experiment form', async ({ page }) => {
-    await page.goto('/old-home/');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     // Wait for page to load
@@ -110,7 +110,7 @@ test.describe('Synth Groups - Experiment Integration', () => {
   });
 
   test('should display synth group in experiment detail', async ({ page }) => {
-    await page.goto('/old-home/');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     // Wait for page to load
@@ -152,7 +152,7 @@ test.describe('Synth Groups - Experiment Integration', () => {
   });
 
   test('should filter explorations by experiment synth group', async ({ page }) => {
-    await page.goto('/old-home/');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     // Wait for page to load
@@ -181,7 +181,7 @@ test.describe('Synth Groups - Experiment Integration', () => {
   });
 
   test('should show synth group in experiment list', async ({ page }) => {
-    await page.goto('/old-home/');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     // Wait for page to load
@@ -251,7 +251,7 @@ test.describe('Synth Groups - Full Integration Flow', () => {
     await expect(page.getByText(groupName).first()).toBeVisible({ timeout: 15000 });
 
     // 2. Create experiment using this group
-    await page.goto('/old-home/');
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     // Wait for page to load
