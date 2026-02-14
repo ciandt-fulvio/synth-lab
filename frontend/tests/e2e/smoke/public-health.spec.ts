@@ -38,7 +38,7 @@ test.describe('Public Smoke Tests - No Auth Required @smoke', () => {
     console.log(`✅ Frontend loaded - title: "${title}"`);
   });
 
-  test('PUB004 - No server errors (5xx)', async ({ request }) => {
+  test('PUB004 - No server errors on public endpoints (5xx)', async ({ request }) => {
     // Check backend root
     const rootResponse = await request.get(`${backendUrl}/`);
     expect(rootResponse.status()).toBeLessThan(500);
@@ -48,6 +48,43 @@ test.describe('Public Smoke Tests - No Auth Required @smoke', () => {
     expect(docsResponse.status()).toBeLessThan(500);
 
     console.log(`✅ No 5xx errors on public endpoints`);
+  });
+
+  test('PUB007 - All API routes load without server errors', async ({ request }) => {
+    // Test key API endpoints for 5xx errors.
+    // Auth-protected endpoints may return 401/403 — that's expected.
+    // But 500 means something is broken: missing config files, import errors,
+    // broken DB connections, missing packages, etc.
+    //
+    // This test would have caught the sensitivity_rules.yaml missing file issue
+    // because /openapi.json generation exercises all route+schema imports.
+    const endpoints = [
+      '/openapi.json',       // Validates ALL routes and schemas can be loaded
+      '/experiments/list',
+      '/synth-groups/list',
+      '/synths/list',
+      '/synths/fields',
+      '/research/list',
+      '/tags',
+    ];
+
+    const errors: string[] = [];
+
+    for (const endpoint of endpoints) {
+      const response = await request.get(`${backendUrl}${endpoint}`);
+      if (response.status() >= 500) {
+        const body = await response.text().catch(() => 'no body');
+        errors.push(`${endpoint} → ${response.status()} (${body.substring(0, 200)})`);
+      }
+    }
+
+    if (errors.length > 0) {
+      console.log('❌ Server errors found:', errors);
+    } else {
+      console.log(`✅ All ${endpoints.length} API endpoints returned no 5xx errors`);
+    }
+
+    expect(errors, `Server errors: ${errors.join('; ')}`).toHaveLength(0);
   });
 
   test('PUB005 - Backend responds within acceptable time', async ({ request }) => {
