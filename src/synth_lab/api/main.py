@@ -130,6 +130,7 @@ from synth_lab.api.routers import (
     experiments,
     materials,
     prfaq,
+    quantitative_analysis,
     research,
     synth_groups,
     synths,
@@ -147,6 +148,11 @@ app.include_router(documents.router, prefix="/experiments", tags=["documents"])
 app.include_router(materials.router, prefix="/experiments", tags=["materials"])
 app.include_router(tags.router, prefix="/tags", tags=["tags"])
 app.include_router(synth_groups.router, prefix="/synth-groups", tags=["synth-groups"])
+app.include_router(
+    quantitative_analysis.router,
+    prefix="/experiments/{experiment_id}/quantitative-analysis",
+    tags=["quantitative-analysis"],
+)
 
 # Mount static files for generated images and documents
 # Images available at: /static/document/images/<filename>
