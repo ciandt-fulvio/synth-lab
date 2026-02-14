@@ -441,3 +441,10 @@ Other:
   make lint-format   Run ruff linter and formatter
   make kill          Kill processes on ports 8000, 8080, 6006
   make clean         Remove cache files
+
+## Active Technologies
+- Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, NumPy (simulação), React 18, TanStack Query, Recharts, shadcn/ui (042-quantitative-analysis)
+- PostgreSQL 14+ (Alembic migrations) (042-quantitative-analysis)
+
+## Recent Changes
+- 042-quantitative-analysis: Added Python 3.13+ (backend), TypeScript 5.5+ (frontend) + FastAPI, SQLAlchemy 2.0+, Pydantic, OpenAI SDK, NumPy (simulação), React 18, TanStack Query, Recharts, shadcn/ui
