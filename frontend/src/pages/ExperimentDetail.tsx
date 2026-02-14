@@ -49,6 +49,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
 import { TagSelector } from '@/components/experiments/TagSelector';
+import { QuantitativeAnalysisTab } from '@/components/quantitative/QuantitativeAnalysisTab';
 
 // =============================================================================
 // Main Component
@@ -313,7 +314,7 @@ export default function ExperimentDetail() {
                   <div>
                     <h3 className="font-semibold text-slate-900">Análise Quanti</h3>
                     <p className="text-sm text-slate-500">
-                      Análises quantitativas do experimento
+                      Modelagem causal e simulação Monte Carlo
                     </p>
                   </div>
                 </div>
@@ -321,12 +322,7 @@ export default function ExperimentDetail() {
 
               {/* Content */}
               <div className="p-6">
-                <div className="text-center py-8">
-                  <BarChart3 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500">
-                    Nenhuma análise quantitativa disponível ainda.
-                  </p>
-                </div>
+                <QuantitativeAnalysisTab experimentId={id ?? ''} />
               </div>
             </div>
           </TabsContent>
