@@ -117,7 +117,7 @@ class TestRunSimulation:
         exp_repo.get_by_id.return_value = mock_experiment
 
         llm = MagicMock()
-        llm.complete_json.return_value = "Interpretação mock"
+        llm.complete.return_value = "Interpretação mock"
 
         service = QuantitativeAnalysisService(
             llm_client=llm,
@@ -157,7 +157,7 @@ class TestRunSimulation:
         exp_repo.get_by_id.return_value = mock_experiment
 
         llm = MagicMock()
-        llm.complete_json.return_value = "Mock AI text"
+        llm.complete.return_value = "Mock AI text"
 
         service = QuantitativeAnalysisService(
             llm_client=llm,
@@ -193,7 +193,8 @@ class TestRunSimulation:
         exp_repo.get_by_id.return_value = mock_experiment
 
         llm = MagicMock()
-        llm.complete_json.return_value = "AI interpretation text"
+        # _generate_interpretations_sync uses llm.complete() (not complete_json)
+        llm.complete.return_value = "AI interpretation text"
 
         guide_service = MagicMock()
 
@@ -209,7 +210,7 @@ class TestRunSimulation:
             result = service.run_simulation("exp_12345678")
 
         # 3 LLM calls for interpretations (interview guide uses separate service)
-        assert llm.complete_json.call_count == 3
+        assert llm.complete.call_count == 3
 
         interps = result["interpretations"]
         assert "distribution" in interps
@@ -236,7 +237,7 @@ class TestRunSimulation:
         exp_repo.get_by_id.return_value = mock_experiment
 
         llm = MagicMock()
-        llm.complete_json.return_value = "AI text"
+        llm.complete.return_value = "AI text"
 
         service = QuantitativeAnalysisService(
             llm_client=llm,
@@ -288,7 +289,7 @@ class TestRunSimulation:
         exp_repo.get_by_id.return_value = mock_experiment
 
         llm = MagicMock()
-        llm.complete_json.return_value = "AI text"
+        llm.complete.return_value = "AI text"
 
         guide_service = MagicMock()
 
@@ -303,6 +304,6 @@ class TestRunSimulation:
         with patch.object(service, '_load_synths_raw', return_value=_make_mock_synths(20)):
             service.run_simulation("exp_12345678")
 
-        for call in llm.complete_json.call_args_list:
+        for call in llm.complete.call_args_list:
             model = call.kwargs.get("model") or call[1].get("model")
             assert model == "gpt-4o-mini"

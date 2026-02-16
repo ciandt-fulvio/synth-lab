@@ -486,6 +486,13 @@ class QuantitativeAnalysisService:
                 daemon=True,
             ).start()
 
+            # Auto-generate interview guide from sensitivity (non-blocking)
+            threading.Thread(
+                target=self._auto_generate_interview_guide,
+                args=(experiment_id, experiment, sensitivity),
+                daemon=True,
+            ).start()
+
             return self._run_to_dict(
                 orm_run,
                 mc_result["distribution"],

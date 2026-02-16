@@ -352,24 +352,24 @@ class TestDeriveSensitivitiesDirectly:
             f"higher than young person's ({young_ra})"
         )
 
-    def test_young_has_higher_habit_plasticity(self, young_tech_synth, elderly_synth):
-        """Young person should have higher habit_plasticity than elderly.
+    def test_young_has_higher_digital_capability(self, young_tech_synth, elderly_synth):
+        """Young person should have higher digital_capability than elderly.
 
         Per sensitivity_rules.yaml:
-        - age <= 30: +0.10 for habit_plasticity
-        - age >= 60: -0.15 for habit_plasticity
+        - age <= 30: +0.15 for digital_capability (nativos digitais)
+        - age >= 60: -0.20 for digital_capability (idosos têm menor capacidade digital)
         """
         from synth_lab.services.sensitivity_deriver import derive_sensitivities
 
         young_result = derive_sensitivities(young_tech_synth, seed=42)
         elderly_result = derive_sensitivities(elderly_synth, seed=42)
 
-        young_hp = young_result["habit_plasticity"]
-        elderly_hp = elderly_result["habit_plasticity"]
+        young_dc = young_result["digital_capability"]
+        elderly_dc = elderly_result["digital_capability"]
 
-        assert young_hp > elderly_hp, (
-            f"Young person's habit_plasticity ({young_hp}) should be "
-            f"higher than elderly person's ({elderly_hp})"
+        assert young_dc > elderly_dc, (
+            f"Young person's digital_capability ({young_dc}) should be "
+            f"higher than elderly person's ({elderly_dc})"
         )
 
     def test_elderly_motor_disability_reduces_friction_tolerance(self, elderly_synth):

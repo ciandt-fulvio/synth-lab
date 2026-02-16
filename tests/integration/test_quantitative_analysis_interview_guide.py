@@ -119,7 +119,7 @@ class TestAutoGenerateInterviewGuide:
         exp_repo.get_by_id.return_value = mock_experiment
 
         llm = MagicMock()
-        llm.complete_json.return_value = "Mock AI text"
+        llm.complete.return_value = "Mock AI text"
 
         guide_service = MagicMock()
 
@@ -156,7 +156,7 @@ class TestAutoGenerateInterviewGuide:
         exp_repo.get_by_id.return_value = mock_experiment
 
         llm = MagicMock()
-        llm.complete_json.return_value = "Mock AI text"
+        llm.complete.return_value = "Mock AI text"
 
         guide_service = MagicMock()
 
@@ -199,7 +199,7 @@ class TestAutoGenerateInterviewGuide:
         exp_repo.get_by_id.return_value = mock_experiment
 
         llm = MagicMock()
-        llm.complete_json.return_value = "Mock AI text"
+        llm.complete.return_value = "Mock AI text"
 
         guide_service = MagicMock()
         guide_service.generate_from_simulation_sync.side_effect = RuntimeError("LLM down")
@@ -227,11 +227,12 @@ class TestAutoGenerateInterviewGuide:
         )
 
         llm = MagicMock()
-        llm.complete_json.return_value = json.dumps({
-            "context_definition": "Contexto de pesquisa sobre adoção.",
-            "questions": "Q1 (aberta): Como? | Q2 (cenário): Se...? | Q3 (intenção): Você...?",
-            "context_examples": "pos1|pos2|neu1|neu2|neg1|neg2",
-        })
+        # generate_from_simulation_sync uses llm.complete() (not complete_json)
+        llm.complete.return_value = (
+            "### Pergunta 1\n**Texto:** Como você percebe a influência da idade na confiança?\n"
+            "**Valida:** Idade → Confiança\n**O que escutar:**\n- Sinal positivo\n- Sinal negativo\n"
+            "- Sinal ambíguo\n**Dica para o entrevistador:** Aprofunde sobre experiências passadas."
+        )
 
         guide_repo = MagicMock()
         guide_repo.get_by_experiment_id.return_value = None
@@ -254,6 +255,6 @@ class TestAutoGenerateInterviewGuide:
             sensitivity=sensitivity,
         )
 
-        call_kwargs = llm.complete_json.call_args
+        call_kwargs = llm.complete.call_args
         assert call_kwargs.kwargs.get("model") == "gpt-5.1"
         guide_repo.create.assert_called_once()

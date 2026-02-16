@@ -72,7 +72,7 @@ class TestMigrations:
             # Filter out known false positives
             # DESC indexes with postgresql_ops are incorrectly flagged as different
             # even when they're identical (Alembic limitation with operator-based indexes)
-            desc_index_names = {"idx_experiments_created", "idx_synth_groups_created", "idx_synths_created_at"}
+            desc_index_names = {"idx_experiments_created", "idx_synth_groups_created", "idx_synths_created_at", "idx_simulation_runs_created"}
 
             filtered_diff = []
             for item in diff:
