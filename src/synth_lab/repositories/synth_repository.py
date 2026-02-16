@@ -11,10 +11,11 @@ References:
 import json
 from pathlib import Path
 
-from sqlalchemy import func as sqlfunc
+from sqlalchemy import case, func as sqlfunc
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from synth_lab.models.orm.research import Transcript
 from synth_lab.models.orm.synth import Synth as SynthORM
 from synth_lab.models.pagination import PaginatedResponse, PaginationParams
 from synth_lab.models.synth import (
@@ -111,6 +112,19 @@ session: Session | None = None):
 
         # Get total count
         total = self.session.execute(count_stmt).scalar() or 0
+
+        # Sort: interviewed synths first, then by name
+        if params.sort_by == "interviewed_first":
+            interview_count = (
+                select(sqlfunc.count(Transcript.id))
+                .where(Transcript.synth_id == SynthORM.id)
+                .correlate(SynthORM)
+                .scalar_subquery()
+            )
+            stmt = stmt.order_by(
+                case((interview_count > 0, 0), else_=1),
+                SynthORM.nome,
+            )
 
         # Apply pagination
         stmt = stmt.limit(params.limit).offset(params.offset)

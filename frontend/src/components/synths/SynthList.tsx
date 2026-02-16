@@ -22,9 +22,10 @@ const ITEMS_PER_PAGE = 45;
 interface SynthListProps {
   selectedGroupId?: string;
   hideGroupName?: boolean;
+  sortBy?: string;
 }
 
-export function SynthList({ selectedGroupId, hideGroupName }: SynthListProps) {
+export function SynthList({ selectedGroupId, hideGroupName, sortBy }: SynthListProps) {
   const [selectedSynthId, setSelectedSynthId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
 
@@ -40,6 +41,7 @@ export function SynthList({ selectedGroupId, hideGroupName }: SynthListProps) {
     limit: ITEMS_PER_PAGE,
     offset: currentPage * ITEMS_PER_PAGE,
     synth_group_id: selectedGroupId,
+    sort_by: sortBy,
   });
 
   if (isLoading) {

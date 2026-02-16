@@ -124,7 +124,7 @@ export default function SynthGroupDetail() {
 
           {/* Synths tab */}
           <TabsContent value="synths" className="mt-6">
-            {groupId && <SynthList selectedGroupId={groupId} hideGroupName />}
+            {groupId && <SynthList selectedGroupId={groupId} hideGroupName sortBy="interviewed_first" />}
           </TabsContent>
         </Tabs>
       </main>
