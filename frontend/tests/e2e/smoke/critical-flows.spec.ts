@@ -23,8 +23,7 @@ test.describe('Smoke Tests - Critical Flows @smoke @critical', () => {
     await page.waitForLoadState('domcontentloaded');
   });
 
-  // TODO: Re-enable after home page redesign stabilizes
-  test.skip('ST002 - Experiments list page loads with data', async ({ page }) => {
+  test('ST002 - Experiments list page loads with data', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -84,8 +83,7 @@ test.describe('Smoke Tests - Critical Flows @smoke @critical', () => {
     }
   });
 
-  // TODO: Re-enable after home page redesign stabilizes
-  test.skip('ST005 - Experiment detail loads', async ({ page }) => {
+  test('ST005 - Experiment detail loads', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 

@@ -22,6 +22,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useExperiment, useDeleteExperiment } from '@/hooks/use-experiments';
 import { NewInterviewFromExperimentDialog } from '@/components/experiments/NewInterviewFromExperimentDialog';
 import { MaterialUpload } from '@/components/experiments/MaterialUpload';
@@ -44,11 +50,22 @@ import {
   FileText,
   BarChart3,
   Loader2,
+  Play,
+  Activity,
+  MoreVertical,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
 import { TagSelector } from '@/components/experiments/TagSelector';
+import { QuantitativeAnalysisTab } from '@/components/quantitative/QuantitativeAnalysisTab';
+import { SimulationTab } from '@/components/quantitative/SimulationTab';
+import { useGenerateInterviewGuide, useInterviewGuide } from '@/hooks/use-quantitative-analysis';
+import { DocumentViewer } from '@/components/shared/DocumentViewer';
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
 
 // =============================================================================
 // Main Component
@@ -63,10 +80,13 @@ export default function ExperimentDetail() {
   const [isNewInterviewOpen, setIsNewInterviewOpen] = useState(false);
   const [interviewPage, setInterviewPage] = useState(0);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isGeneratingGuide, setIsGeneratingGuide] = useState(false);
+  const [isGuideViewerOpen, setIsGuideViewerOpen] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   // Tab underline animation state
   const tabFromQuery = searchParams.get('tab');
-  const initialTab = ['quanti', 'interviews', 'materials', 'reports'].includes(tabFromQuery ?? '')
+  const initialTab = ['quanti', 'simulation', 'interviews', 'materials', 'reports'].includes(tabFromQuery ?? '')
     ? tabFromQuery!
     : 'quanti';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -77,7 +97,7 @@ export default function ExperimentDetail() {
   // Sync activeTab with query param when it changes
   useEffect(() => {
     const newTab = searchParams.get('tab');
-    const validTab = ['quanti', 'interviews', 'materials', 'reports'].includes(newTab ?? '')
+    const validTab = ['quanti', 'simulation', 'interviews', 'materials', 'reports'].includes(newTab ?? '')
       ? newTab!
       : 'quanti';
     setActiveTab(validTab);
@@ -106,6 +126,28 @@ export default function ExperimentDetail() {
   const deleteMutation = useDeleteExperiment();
   const { data: materials, refetch: refetchMaterials } = useMaterials(id ?? '');
   const { data: documents } = useDocuments(id ?? '');
+  const guideMutation = useGenerateInterviewGuide();
+  const { data: guideData, isLoading: isGuideLoading } = useInterviewGuide(
+    id ?? '',
+    isGuideViewerOpen
+  );
+
+  const handleGenerateGuide = useCallback(() => {
+    if (!id) return;
+    setIsGeneratingGuide(true);
+    setActiveTab('interviews');
+    guideMutation.mutate(id, {
+      onSuccess: () => {
+        setIsGeneratingGuide(false);
+        toast.success('Roteiro de entrevista gerado com sucesso');
+      },
+      onError: (err) => {
+        setIsGeneratingGuide(false);
+        const message = err instanceof Error ? err.message : 'Erro ao gerar roteiro';
+        toast.error('Falha na geração do roteiro', { description: message });
+      },
+    });
+  }, [id, guideMutation, setActiveTab]);
 
   const handleDelete = () => {
     if (!id) return;
@@ -158,50 +200,61 @@ export default function ExperimentDetail() {
     );
   }
 
-  // Truncate description to 2 lines (~150 chars)
-  const truncatedDescription = experiment.description
-    ? experiment.description.length > 150
-      ? `${experiment.description.slice(0, 147)}...`
-      : experiment.description
-    : null;
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
-      <SynthLabHeader subtitle="Detalhe do Experimento" backTo="/" />
+      <SynthLabHeader
+        subtitle="Detalhe do Experimento"
+        backTo="/"
+        breadcrumbs={[
+          { label: 'Experimentos', href: '/' },
+          { label: experiment.name },
+        ]}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Experiment Header Section */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
+          <div className="flex items-start justify-between gap-4">
             {/* Left: Experiment Info */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl text-white shadow-lg shadow-purple-200">
-                  <FlaskConical className="h-5 w-5" />
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="p-1.5 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg text-white shadow-lg shadow-purple-200">
+                  <FlaskConical className="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-2xl font-bold text-slate-900">
+                  <h2 className="text-xl font-bold text-slate-900">
                     {experiment.name}
                   </h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Users className="h-3.5 w-3.5 text-slate-400" />
-                    <span className="text-sm text-slate-500">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-3 w-3 text-slate-400" />
+                    <span className="text-xs text-slate-500">
                       {experiment.synth_group_name}
                     </span>
                   </div>
                 </div>
               </div>
-              <p className="text-slate-600 leading-relaxed mb-2">
+              <p className="text-sm text-slate-600 leading-relaxed mb-1">
                 {experiment.hypothesis}
               </p>
-              {truncatedDescription && (
-                <p className="text-sm text-slate-400 leading-relaxed">
-                  {truncatedDescription}
-                </p>
+              {experiment.description && (
+                <div>
+                  <p className={`text-xs text-slate-400 leading-relaxed ${!isDescriptionExpanded ? 'line-clamp-2' : ''}`}>
+                    {experiment.description}
+                  </p>
+                  {experiment.description.length > 150 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                      className="text-xs text-violet-600 hover:text-violet-700 font-medium mt-0.5"
+                    >
+                      {isDescriptionExpanded ? 'ver menos' : 'ver mais'}
+                    </button>
+                  )}
+                </div>
               )}
 
               {/* Tags */}
-              <div className="mt-4">
+              <div className="mt-3">
                 <TagSelector
                   experimentId={experiment.id}
                   currentTags={experiment.tags || []}
@@ -209,6 +262,23 @@ export default function ExperimentDetail() {
               </div>
             </div>
 
+            {/* Right: Actions dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Deletar Experimento
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -218,7 +288,7 @@ export default function ExperimentDetail() {
           <div className="relative mb-6">
             <TabsList
               ref={tabsListRef}
-              className="relative w-full h-auto p-0 bg-transparent rounded-none border-b border-slate-200 grid grid-cols-4"
+              className="relative w-full h-auto p-0 bg-transparent rounded-none border-b border-slate-200 grid grid-cols-5"
             >
               {/* Quanti Analysis Tab */}
               <TabsTrigger
@@ -228,6 +298,16 @@ export default function ExperimentDetail() {
               >
                 <BarChart3 className="h-4 w-4" />
                 <span className="font-semibold">Análise Quanti</span>
+              </TabsTrigger>
+
+              {/* Simulation Tab */}
+              <TabsTrigger
+                ref={(el) => el && tabRefs.current.set('simulation', el)}
+                value="simulation"
+                className="relative flex items-center justify-center gap-2.5 px-4 py-4 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-violet-700 text-slate-500 hover:text-slate-700 transition-colors duration-200"
+              >
+                <Activity className="h-4 w-4" />
+                <span className="font-semibold">Simulação</span>
               </TabsTrigger>
 
               {/* Interviews Tab */}
@@ -303,32 +383,12 @@ export default function ExperimentDetail() {
 
           {/* Quanti Analysis Content */}
           <TabsContent value="quanti" className="mt-0">
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-              {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-slate-100 rounded-lg">
-                    <BarChart3 className="w-5 h-5 text-slate-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-900">Análise Quanti</h3>
-                    <p className="text-sm text-slate-500">
-                      Análises quantitativas do experimento
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <QuantitativeAnalysisTab experimentId={id ?? ''} />
+          </TabsContent>
 
-              {/* Content */}
-              <div className="p-6">
-                <div className="text-center py-8">
-                  <BarChart3 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500">
-                    Nenhuma análise quantitativa disponível ainda.
-                  </p>
-                </div>
-              </div>
-            </div>
+          {/* Simulation Content */}
+          <TabsContent value="simulation" className="mt-0">
+            <SimulationTab experimentId={id ?? ''} onGenerateGuide={handleGenerateGuide} />
           </TabsContent>
 
           {/* Interviews Content */}
@@ -347,33 +407,45 @@ export default function ExperimentDetail() {
                     </p>
                   </div>
                 </div>
-                {experiment.has_interview_guide ? (
-                  <Button
-                    size="sm"
-                    onClick={() => setIsNewInterviewOpen(true)}
-                    className="btn-primary"
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Nova Entrevista
-                  </Button>
-                ) : (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span>
-                        <Button size="sm" disabled className="opacity-50">
-                          <Plus className="w-4 h-4 mr-1" />
-                          Nova Entrevista
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="flex items-center gap-1.5">
-                        <Info className="h-3.5 w-3.5" />
-                        Guia de entrevista indisponível
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
+                <div className="flex items-center gap-2">
+                  {experiment.has_interview_guide && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setIsGuideViewerOpen(true)}
+                    >
+                      <FileText className="w-4 h-4 mr-1" />
+                      Ver Roteiro
+                    </Button>
+                  )}
+                  {experiment.has_interview_guide ? (
+                    <Button
+                      size="sm"
+                      onClick={() => setIsNewInterviewOpen(true)}
+                      className="btn-primary"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Nova Entrevista
+                    </Button>
+                  ) : (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>
+                          <Button size="sm" disabled className="opacity-50">
+                            <Plus className="w-4 h-4 mr-1" />
+                            Nova Entrevista
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="flex items-center gap-1.5">
+                          <Info className="h-3.5 w-3.5" />
+                          Guia de entrevista indisponível
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
               </div>
 
               {/* Content */}
@@ -556,17 +628,6 @@ export default function ExperimentDetail() {
           </TabsContent>
         </Tabs>
 
-        {/* Delete Section */}
-        <div className="mt-8 pt-6 border-t border-slate-200">
-          <Button
-            variant="outline"
-            onClick={() => setIsDeleteDialogOpen(true)}
-            className="text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700 hover:border-red-400"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Deletar
-          </Button>
-        </div>
       </main>
 
       {/* New Interview Modal */}
@@ -574,6 +635,27 @@ export default function ExperimentDetail() {
         open={isNewInterviewOpen}
         onOpenChange={setIsNewInterviewOpen}
         experimentId={id ?? ''}
+      />
+
+      {/* Generating Guide Loading Modal */}
+      <Dialog open={isGeneratingGuide} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-sm" onInteractOutside={(e) => e.preventDefault()}>
+          <div className="flex flex-col items-center py-8">
+            <Loader2 className="w-10 h-10 text-violet-500 animate-spin mb-4" />
+            <p className="text-slate-700 font-medium">Gerando roteiro...</p>
+            <p className="text-sm text-slate-500 mt-1">Aguarde enquanto processamos</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Interview Guide Viewer */}
+      <DocumentViewer
+        isOpen={isGuideViewerOpen}
+        onClose={() => setIsGuideViewerOpen(false)}
+        documentType="interview_guide"
+        markdownContent={guideData?.markdown_content}
+        isLoading={isGuideLoading}
+        status={isGuideLoading ? 'generating' : 'completed'}
       />
 
       {/* Delete Confirmation Dialog */}

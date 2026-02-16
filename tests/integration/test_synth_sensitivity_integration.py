@@ -15,9 +15,8 @@ References:
 
 Expected behavior:
     - assemble_synth() returns a synth dict with a "sensitivities" key
-    - sensitivities contains 9 fields: risk_aversion, social_dependency,
-      institutional_trust_level, habit_plasticity, friction_tolerance,
-      pragmatism, digital_capability, motor_ability, subject_domain
+    - sensitivities contains 4 fields: risk_aversion, institutional_trust_level,
+      friction_tolerance, digital_capability
     - Each sensitivity value is between 0.0 and 1.0
     - sensitivities["_meta"] contains derivation_version, config_name, applied_rules
     - Different demographics produce meaningfully different sensitivities
@@ -29,17 +28,12 @@ import pytest
 from synth_lab.gen_synth.config import load_config_data
 from synth_lab.gen_synth.synth_builder import assemble_synth
 
-# All 9 sensitivity fields expected in the output (v3.1.0)
+# All 4 sensitivity fields expected in the output (v3.1.0)
 SENSITIVITY_FIELDS = [
     "risk_aversion",
-    "social_dependency",
     "institutional_trust_level",
-    "habit_plasticity",
     "friction_tolerance",
-    "pragmatism",
     "digital_capability",
-    "motor_ability",
-    "subject_domain",
 ]
 
 
@@ -67,14 +61,14 @@ class TestAssembleSynthIncludesSensitivities:
             "This requires T010 integration of derive_sensitivities into synth_builder."
         )
 
-    def test_sensitivities_has_all_nine_fields(self, generated_synth):
-        """Verify sensitivities has all 9 sensitivity fields."""
+    def test_sensitivities_has_all_four_fields(self, generated_synth):
+        """Verify sensitivities has all 4 sensitivity fields."""
         sensitivities = generated_synth.get("sensitivities", {})
 
         missing_fields = [field for field in SENSITIVITY_FIELDS if field not in sensitivities]
         assert not missing_fields, (
             f"Sensitivities missing fields: {missing_fields}. "
-            f"Expected all 9: {SENSITIVITY_FIELDS}. "
+            f"Expected all 4: {SENSITIVITY_FIELDS}. "
             f"Got keys: {list(sensitivities.keys())}"
         )
 

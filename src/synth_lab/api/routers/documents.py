@@ -86,6 +86,7 @@ async def check_availability(experiment_id: str) -> DocumentAvailabilityResponse
         research_summary=DocumentAvailabilityStatus(**avail[DocumentType.RESEARCH_SUMMARY]),
         research_prfaq=DocumentAvailabilityStatus(**avail[DocumentType.RESEARCH_PRFAQ]),
         executive_summary=DocumentAvailabilityStatus(**avail[DocumentType.EXECUTIVE_SUMMARY]),
+        simulation_summary=DocumentAvailabilityStatus(**avail[DocumentType.SIMULATION_SUMMARY]),
     )
 
 

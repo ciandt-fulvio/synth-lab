@@ -35,6 +35,10 @@ export default function SynthGroupDetail() {
       <SynthLabHeader
         subtitle={group?.name ?? 'Grupo de Synths'}
         backTo="/synths"
+        breadcrumbs={[
+          { label: 'Synths', href: '/synths' },
+          { label: group?.name ?? 'Grupo' },
+        ]}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -124,7 +128,7 @@ export default function SynthGroupDetail() {
 
           {/* Synths tab */}
           <TabsContent value="synths" className="mt-6">
-            {groupId && <SynthList selectedGroupId={groupId} hideGroupName />}
+            {groupId && <SynthList selectedGroupId={groupId} hideGroupName sortBy="interviewed_first" />}
           </TabsContent>
         </Tabs>
       </main>

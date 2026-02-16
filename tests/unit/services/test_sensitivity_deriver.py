@@ -20,14 +20,9 @@ from synth_lab.services.sensitivity_deriver import (
 
 ALL_SENSITIVITIES = [
     "risk_aversion",
-    "social_dependency",
     "institutional_trust_level",
-    "habit_plasticity",
     "friction_tolerance",
-    "pragmatism",
     "digital_capability",
-    "motor_ability",
-    "subject_domain",
 ]
 
 
@@ -43,8 +38,8 @@ class TestLoadConfig:
         assert isinstance(config, dict)
         assert config["version"] == "1.1"
 
-    def test_load_config_has_all_9_sensitivities(self):
-        """GIVEN default config WHEN loading THEN all 9 sensitivities are present."""
+    def test_load_config_has_all_4_sensitivities(self):
+        """GIVEN default config WHEN loading THEN all 4 sensitivities are present."""
         config = load_sensitivity_rules()
         sensitivities = config["sensitivities"]
         for name in ALL_SENSITIVITIES:
@@ -279,8 +274,8 @@ class TestEvaluateCondition:
 class TestDeriveSensitivities:
     """Tests for derive_sensitivities() end-to-end derivation."""
 
-    def test_derive_all_9_present(self):
-        """GIVEN any valid synth data WHEN deriving THEN result has all 9 sensitivity keys."""
+    def test_derive_all_4_present(self):
+        """GIVEN any valid synth data WHEN deriving THEN result has all 4 sensitivity keys."""
         result = derive_sensitivities({"demografia": {"idade": 35}})
         for name in ALL_SENSITIVITIES:
             assert name in result, f"Missing sensitivity key: {name}"
@@ -298,15 +293,9 @@ class TestDeriveSensitivities:
 
         # Averages should converge to base values
         assert avgs["risk_aversion"] == pytest.approx(0.60, abs=0.05)
-        assert avgs["social_dependency"] == pytest.approx(0.50, abs=0.05)
         assert avgs["institutional_trust_level"] == pytest.approx(0.50, abs=0.05)
-        assert avgs["habit_plasticity"] == pytest.approx(0.55, abs=0.05)
         assert avgs["friction_tolerance"] == pytest.approx(0.50, abs=0.05)
-        assert avgs["pragmatism"] == pytest.approx(0.55, abs=0.05)
         assert avgs["digital_capability"] == pytest.approx(0.50, abs=0.05)
-        assert avgs["motor_ability"] == pytest.approx(0.80, abs=0.05)
-        # subject_domain uses strength=6 (wider spread), needs looser tolerance
-        assert avgs["subject_domain"] == pytest.approx(0.50, abs=0.08)
 
     def test_derive_young_tech_professional(self):
         """GIVEN young (25) with higher education WHEN deriving.
@@ -348,9 +337,6 @@ class TestDeriveSensitivities:
 
         # digital_capability: base=0.50, age>=60 → -0.20 → mean=0.30
         assert result["digital_capability"] == pytest.approx(0.30, abs=0.2)
-
-        # habit_plasticity: base=0.55, age>=60 → -0.15 → mean=0.40
-        assert result["habit_plasticity"] == pytest.approx(0.40, abs=0.2)
 
         # friction_tolerance: base=0.50, age>=60 → -0.10, motora → -0.10 → mean=0.30
         assert result["friction_tolerance"] == pytest.approx(0.30, abs=0.2)
@@ -397,12 +383,10 @@ class TestDeriveSensitivities:
         applied_rules = result["_meta"]["applied_rules"]
 
         # At age 25:
-        # - risk_aversion: age<=25 fires ("Jovens sao mais aventureiros")
-        # - social_dependency: age<=30 fires ("Jovens mais dependentes socialmente")
-        # - habit_plasticity: age<=30 fires ("Jovens mudam habitos com facilidade")
-        # - friction_tolerance: age<=30 fires ("Jovens toleram mais friccao")
+        # - risk_aversion: age<=25 fires ("Jovens são mais aventureiros")
+        # - friction_tolerance: age<=30 fires ("Jovens toleram mais fricção")
         # - digital_capability: age<=30 fires ("Nativos digitais")
-        assert len(applied_rules) >= 5
+        assert len(applied_rules) >= 3
         # applied_rules is a list of reason strings
         assert any("Jovens" in reason or "jovens" in reason for reason in applied_rules), (
             f"Expected at least one youth-related reason, got: {applied_rules}"
@@ -570,28 +554,23 @@ class TestEducationSensitivities:
         assert result["digital_capability"] == pytest.approx(0.60, abs=0.2)
 
     def test_high_education_boosts_institutional_trust(self):
-        """GIVEN high education at age 40 WHEN deriving THEN institutional_trust near mean=0.55."""
+        """GIVEN high education at age 40 WHEN deriving N times THEN avg institutional_trust near mean=0.55."""
         synth_data = {
             "demografia": {
                 "idade": 40,
                 "escolaridade": "Superior completo",
             },
         }
-        result = derive_sensitivities(synth_data, seed=42)
+        n_samples = 50
+        avg = (
+            sum(
+                derive_sensitivities(synth_data, seed=i)["institutional_trust_level"]
+                for i in range(n_samples)
+            )
+            / n_samples
+        )
         # base=0.50, education → +0.05 → mean=0.55
-        assert result["institutional_trust_level"] == pytest.approx(0.55, abs=0.2)
-
-    def test_high_education_boosts_pragmatism(self):
-        """GIVEN high education at age 40 WHEN deriving THEN pragmatism near mean=0.65."""
-        synth_data = {
-            "demografia": {
-                "idade": 40,
-                "escolaridade": "Superior completo",
-            },
-        }
-        result = derive_sensitivities(synth_data, seed=42)
-        # base=0.55, age>=35 → +0.05, education → +0.05 → mean=0.65
-        assert result["pragmatism"] == pytest.approx(0.65, abs=0.2)
+        assert avg == pytest.approx(0.55, abs=0.05)
 
 
 # ==================== Disability-based tests ====================

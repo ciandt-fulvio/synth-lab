@@ -36,7 +36,7 @@ import {
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Loader2, AlertCircle, FileText, Newspaper, Sparkles, Download } from "lucide-react";
+import { Loader2, AlertCircle, FileText, Newspaper, Sparkles, Download, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import type { DocumentType, DocumentStatus } from "@/types/document";
 import { DOCUMENT_TYPE_LABELS } from "@/types/document";
@@ -72,6 +72,10 @@ function getDocumentIcon(documentType: DocumentType) {
       return <Newspaper className="h-5 w-5 text-violet-600" />;
     case 'executive_summary':
       return <Sparkles className="h-5 w-5 text-amber-600" />;
+    case 'interview_guide':
+      return <FileText className="h-5 w-5 text-violet-600" />;
+    case 'simulation_summary':
+      return <BarChart3 className="h-5 w-5 text-emerald-600" />;
     default:
       return <FileText className="h-5 w-5 text-slate-600" />;
   }

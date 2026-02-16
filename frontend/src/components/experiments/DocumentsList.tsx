@@ -39,6 +39,7 @@ const DOCUMENT_TYPE_COLORS: Record<DocumentType, string> = {
   research_summary: 'bg-purple-100 text-purple-700 border-purple-200',
   research_prfaq: 'bg-pink-100 text-pink-700 border-pink-200',
   executive_summary: 'bg-amber-100 text-amber-700 border-amber-200',
+  simulation_summary: 'bg-emerald-100 text-emerald-700 border-emerald-200',
 };
 
 type SortOption = 'type' | 'date';
@@ -165,6 +166,9 @@ export function DocumentsList({ experimentId }: DocumentsListProps) {
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="executive_summary">
                 Análise Quantitativa
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="simulation_summary">
+                Resumo da Simulação
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
           </DropdownMenuContent>

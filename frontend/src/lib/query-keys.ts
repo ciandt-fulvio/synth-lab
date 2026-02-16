@@ -43,6 +43,12 @@ export const queryKeys = {
     markdown: (experimentId: string, documentType: string) => ['documents', experimentId, documentType, 'markdown'] as const,
   },
 
+  // Quantitative Analysis
+  quantitativeAnalysis: {
+    model: (experimentId: string) => ['quantitative-analysis', experimentId, 'model'] as const,
+    results: (experimentId: string) => ['quantitative-analysis', experimentId, 'results'] as const,
+  },
+
   // Materials
   materials: {
     list: (experimentId: string) => ['materials', experimentId, 'list'] as const,

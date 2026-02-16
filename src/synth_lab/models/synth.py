@@ -170,22 +170,11 @@ class UserSensitivities(BaseModel):
     """User sensitivities that interact with feature mechanisms (v3.0.0+)."""
 
     risk_aversion: float = Field(default=0.5, ge=0.0, le=1.0, description="Aversion to irreversible actions")
-    social_dependency: float = Field(default=0.5, ge=0.0, le=1.0, description="Need for social validation")
     institutional_trust_level: float = Field(default=0.5, ge=0.0, le=1.0, description="Trust in institutions")
-    habit_plasticity: float = Field(
-        default=0.5, ge=0.0, le=1.0, description="Flexibility to change routines"
-    )
     friction_tolerance: float = Field(
         default=0.5, ge=0.0, le=1.0, description="Tolerance for complex processes"
     )
-    pragmatism: float = Field(default=0.5, ge=0.0, le=1.0, description="Focus on utility vs hedonic")
     digital_capability: float = Field(default=0.5, ge=0.0, le=1.0, description="Digital technical ability")
-    motor_ability: float = Field(
-        default=0.5, ge=0.0, le=1.0, description="Motor/visual ability to operate interfaces"
-    )
-    subject_domain: float = Field(
-        default=0.5, ge=0.0, le=1.0, description="Knowledge of the feature's domain"
-    )
 
 
 class SynthDetail(SynthBase):

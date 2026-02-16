@@ -1,12 +1,13 @@
 // src/components/synths/SynthList.tsx
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { SynthCard } from './SynthCard';
 import { SynthDetailDialog } from './SynthDetailDialog';
 import { useSynthsList } from '@/hooks/use-synths';
 import { useSynthGroups } from '@/hooks/use-synth-groups';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Users } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, Users, Search } from 'lucide-react';
 import {
   Pagination,
   PaginationContent,
@@ -22,15 +23,22 @@ const ITEMS_PER_PAGE = 45;
 interface SynthListProps {
   selectedGroupId?: string;
   hideGroupName?: boolean;
+  sortBy?: string;
 }
 
-export function SynthList({ selectedGroupId, hideGroupName }: SynthListProps) {
+export function SynthList({ selectedGroupId, hideGroupName, sortBy }: SynthListProps) {
   const [selectedSynthId, setSelectedSynthId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Reset to first page when filter changes
   useEffect(() => {
     setCurrentPage(0);
+  }, [selectedGroupId]);
+
+  // Reset search and page when group changes
+  useEffect(() => {
+    setSearchQuery('');
   }, [selectedGroupId]);
 
   // Fetch synth groups for displaying group names on cards
@@ -40,7 +48,16 @@ export function SynthList({ selectedGroupId, hideGroupName }: SynthListProps) {
     limit: ITEMS_PER_PAGE,
     offset: currentPage * ITEMS_PER_PAGE,
     synth_group_id: selectedGroupId,
+    sort_by: sortBy,
   });
+
+  // Filter synths client-side by search query (must be before early returns)
+  const filteredSynths = useMemo(() => {
+    if (!data?.data) return [];
+    if (!searchQuery.trim()) return data.data;
+    const q = searchQuery.toLowerCase();
+    return data.data.filter((synth) => synth.name.toLowerCase().includes(q));
+  }, [data?.data, searchQuery]);
 
   if (isLoading) {
     return (
@@ -120,8 +137,21 @@ export function SynthList({ selectedGroupId, hideGroupName }: SynthListProps) {
 
   return (
     <>
+      {/* Search input */}
+      <div className="px-4 pt-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar synth por nome..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </div>
+
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {data.data.map((synth) => (
+        {filteredSynths.map((synth) => (
           <SynthCard
             key={synth.id}
             synth={synth}

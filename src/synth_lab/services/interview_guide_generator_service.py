@@ -327,6 +327,158 @@ Responda APENAS com o JSON, sem explicações adicionais."""
                 return future.result()
 
 
+    def generate_from_simulation_sync(
+        self,
+        experiment_id: str,
+        name: str,
+        hypothesis: str,
+        sensitivity: list[dict],
+        description: str | None = None,
+    ) -> InterviewGuide:
+        """Generate interview guide from quantitative analysis simulation results.
+
+        Uses the QUESTIONNAIRE_SYSTEM prompt (Malhotra methodology) with the top 3
+        most impactful premisses from sensitivity analysis. Outputs rich markdown
+        questionnaire. Overwrites any existing guide silently.
+
+        Args:
+            experiment_id: ID of the experiment.
+            name: Experiment name.
+            hypothesis: Research hypothesis.
+            sensitivity: Sensitivity analysis results (sorted by impact desc).
+            description: Optional experiment description.
+
+        Returns:
+            Created/updated InterviewGuide entity.
+        """
+        with _tracer.start_as_current_span(
+            "InterviewGuideGenerator: generate_from_simulation",
+            attributes={
+                "experiment_id": experiment_id,
+                "n_sensitivity_items": len(sensitivity),
+            },
+        ):
+            # Take top 3 most impactful premisses
+            top_3 = sensitivity[:3]
+            premisses_text = "\n".join(
+                f"- {item['header']} (impacto: {item['impact']:.2f}pp, "
+                f"faixa: {item['mean_low']:.1f}%–{item['mean_high']:.1f}%)"
+                for item in top_3
+            )
+
+            description_text = description or "Não fornecida"
+
+            system_prompt = """Você é especialista em pesquisa de marketing seguindo o livro "Pesquisa de Marketing: Uma Orientação Aplicada" de Naresh Malhotra.
+
+CONTEXTO: Um product manager rodou uma simulação causal para um experimento de produto. Ele precisa de um QUESTIONÁRIO DE CAMPO para validar as premissas mais críticas com usuários reais ANTES de rodar o experimento.
+
+RESTRIÇÕES CRÍTICAS:
+- A entrevista é MEDIADA por um entrevistador treinado que pode adaptar e aprofundar conforme necessário.
+- Cada respondente JÁ possui uma ficha demográfica completa (idade, renda, escolaridade, família, deficiências). NÃO inclua NENHUMA pergunta demográfica, de triagem ou de perfil.
+- Produza EXATAMENTE 3 perguntas — nem mais, nem menos.
+- Direcione para as 3 premissas de MAIOR IMPACTO da análise de sensibilidade.
+
+METODOLOGIA MALHOTRA (aplique rigorosamente):
+- Cap. 10 (Design do Questionário): Abordagem funil — do amplo ao específico. Com 3 perguntas:
+  * P1: Aberta / qualitativa (cap.9 não-estruturada — aflora linguagem natural, dá ao entrevistador espaço para aprofundar a variável de maior impacto)
+  * P2: Baseada em cenário com escolha forçada (cap.9 escalas não-comparativas — apresenta um hipotético concreto, testa a 2ª relação causal diretamente)
+  * P3: Escala de intenção comportamental (cap.9 Likert/intenção — captura probabilidade de adoção, ancorada em uma experiência descrita específica)
+- Cap. 10 (Redação): Sem perguntas indutivas, sem duplo sentido, sem jargão. Português BR simples e conversacional.
+- Cap. 9 (Triangulação): Cada pergunta usa uma técnica de medição DIFERENTE para validação cruzada.
+
+FORMATO DE SAÍDA (Português BR, Markdown):
+
+Para cada pergunta:
+### Pergunta N
+**Texto:** [a pergunta, em tom conversacional]
+**Valida:** [NóA → NóB]
+**O que escutar:**
+- [sinal que CONFIRMA a premissa]
+- [sinal que REFUTA a premissa]
+- [sinal ambíguo que vale aprofundar]
+**Dica para o entrevistador:** [uma frase sobre como aprofundar]
+
+Após as 3 perguntas:
+### Nota para o Entrevistador
+- Justificativa da ordem (funil conforme Malhotra cap.10)
+- Principal viés a observar neste contexto específico de entrevista
+- Como cada resposta se mapeia de volta à simulação (qual premissa Likert ajustar para cima ou para baixo, e o que isso significa para a estimativa de adoção)
+
+Responda APENAS com o questionário em Markdown. Sem preâmbulo, sem metacomentário."""
+
+            user_prompt = f"""EXPERIMENTO:
+- Nome: {name}
+- Hipótese: {hypothesis}
+- Descrição: {description_text}
+
+3 PREMISSAS DE MAIOR IMPACTO (da análise de sensibilidade):
+{premisses_text}"""
+
+            self.logger.info(
+                f"Generating interview guide from simulation for: {name}"
+            )
+
+            try:
+                markdown_response = self.llm.complete(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    model="gpt-5.1",
+                    temperature=0.7,
+                    operation_name="Interview Guide Generation (Quantitative)",
+                )
+
+                # Strip any leading/trailing whitespace
+                markdown_content = markdown_response.strip()
+
+                if not markdown_content or len(markdown_content) < 50:
+                    raise ValueError(
+                        "LLM returned empty or too short response for questionnaire"
+                    )
+
+                now = datetime.now(timezone.utc)
+
+                # Delete existing guide if present (silent overwrite per FR-017)
+                existing = self.interview_guide_repo.get_by_experiment_id(
+                    experiment_id
+                )
+                if existing is not None:
+                    self.interview_guide_repo.delete(experiment_id)
+                    self.logger.info(
+                        f"Overwrote existing interview guide for: {experiment_id}"
+                    )
+
+                # Store the full markdown in `questions` field.
+                # context_definition and context_examples are set to brief
+                # summaries for compatibility with the interview runner.
+                context_def = (
+                    f"Questionário de campo para validar premissas críticas "
+                    f"do experimento '{name}'. Hipótese: {hypothesis}"
+                )
+
+                guide = InterviewGuide(
+                    experiment_id=experiment_id,
+                    context_definition=context_def,
+                    questions=markdown_content,
+                    context_examples="",
+                    created_at=now,
+                    updated_at=None,
+                )
+
+                created_guide = self.interview_guide_repo.create(guide)
+                self.logger.info(
+                    f"Interview guide created from simulation for: {experiment_id}"
+                )
+                return created_guide
+
+            except Exception as e:
+                self.logger.error(
+                    f"Interview guide generation from simulation failed: {e}"
+                )
+                raise
+
+
 async def generate_interview_guide_async(
     experiment_id: str,
     name: str,

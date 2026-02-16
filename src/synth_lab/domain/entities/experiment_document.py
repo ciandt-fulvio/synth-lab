@@ -36,6 +36,9 @@ class DocumentType(str, Enum):
     # Experiment-level documents
     EXECUTIVE_SUMMARY = "executive_summary"
 
+    # Quantitative analysis documents
+    SIMULATION_SUMMARY = "simulation_summary"
+
 
 class DocumentStatus(str, Enum):
     """Status of document generation."""
@@ -220,6 +223,7 @@ DOCUMENT_TYPE_LABELS = {
     DocumentType.RESEARCH_SUMMARY: "Resumo da Pesquisa",
     DocumentType.RESEARCH_PRFAQ: "PR-FAQ da Pesquisa",
     DocumentType.EXECUTIVE_SUMMARY: "Resumo Executivo",
+    DocumentType.SIMULATION_SUMMARY: "Resumo da Simulação",
 }
 
 

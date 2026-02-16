@@ -57,13 +57,9 @@ export async function getDocumentMarkdown(
   sourceId?: string
 ): Promise<string> {
   const queryParams = sourceId ? `?source_id=${sourceId}` : '';
-  const response = await fetch(
-    `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/experiments/${experimentId}/documents/${documentType}/markdown${queryParams}`
+  return fetchAPI<string>(
+    `/experiments/${experimentId}/documents/${documentType}/markdown${queryParams}`
   );
-  if (!response.ok) {
-    throw new Error(`Failed to fetch document: ${response.statusText}`);
-  }
-  return response.text();
 }
 
 /**

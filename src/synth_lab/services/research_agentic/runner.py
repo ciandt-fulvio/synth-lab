@@ -247,7 +247,7 @@ async def generate_initial_context(
     from agents import Runner as AgentRunner
 
     # Random sentiment selection
-    sentiment = random.choice(["positive", "negative", "neutral"])
+    sentiment = random.choice(["positive", "negative"])
     logger.debug(f"Using random sentiment: {sentiment}")
 
     example = context_examples.get(sentiment, "")

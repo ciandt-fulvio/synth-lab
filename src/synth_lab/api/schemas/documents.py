@@ -34,6 +34,9 @@ class DocumentTypeEnum(str, Enum):
     # Experiment-level documents
     EXECUTIVE_SUMMARY = "executive_summary"
 
+    # Quantitative analysis documents
+    SIMULATION_SUMMARY = "simulation_summary"
+
 
 class DocumentStatusEnum(str, Enum):
     """Document status for API."""
@@ -111,6 +114,11 @@ class DocumentAvailabilityResponse(BaseModel):
     # Experiment-level documents
     executive_summary: DocumentAvailabilityStatus = Field(
         description="Executive Summary availability"
+    )
+
+    # Quantitative analysis documents
+    simulation_summary: DocumentAvailabilityStatus = Field(
+        description="Simulation Summary availability"
     )
 
 

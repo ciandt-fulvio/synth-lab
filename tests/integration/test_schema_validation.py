@@ -57,9 +57,8 @@ def test_generated_synth_has_retained_fields():
     assert "observables" not in synth
     sens = synth["sensitivities"]
     for field in [
-        "risk_aversion", "social_dependency", "institutional_trust_level",
-        "habit_plasticity", "friction_tolerance", "pragmatism",
-        "digital_capability", "motor_ability", "subject_domain",
+        "risk_aversion", "institutional_trust_level",
+        "friction_tolerance", "digital_capability",
     ]:
         assert field in sens, f"Missing sensitivity: {field}"
 
