@@ -85,20 +85,15 @@ def test_assemble_synth_disabilities(config_data):
 
 
 def test_assemble_synth_sensitivities(config_data):
-    """Test sensitivities section has all 9 attributes (v3.1.0)."""
+    """Test sensitivities section has all 4 attributes (v3.1.0)."""
     synth = synth_builder.assemble_synth(config_data)
 
     sens = synth["sensitivities"]
     required_sens_fields = [
         "risk_aversion",
-        "social_dependency",
         "institutional_trust_level",
-        "habit_plasticity",
         "friction_tolerance",
-        "pragmatism",
         "digital_capability",
-        "motor_ability",
-        "subject_domain",
     ]
 
     for field in required_sens_fields:

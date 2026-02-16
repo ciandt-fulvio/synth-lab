@@ -213,14 +213,9 @@ def sample_synth() -> dict[str, Any]:
         },
         "sensitivities": {
             "risk_aversion": 0.3,
-            "social_dependency": 0.5,
             "institutional_trust_level": 0.6,
-            "habit_plasticity": 0.7,
             "friction_tolerance": 0.8,
-            "pragmatism": 0.6,
             "digital_capability": 0.9,
-            "motor_ability": 0.85,
-            "subject_domain": 0.7,
         },
     }
 

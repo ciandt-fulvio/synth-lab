@@ -384,14 +384,9 @@ session: Session | None = None):
                 description="User sensitivities for mechanism-sensitivity simulation (v3.0.0+). Access via json_extract(data, '$.sensitivities...')",
                 nested_fields=[
                     "risk_aversion",
-                    "social_dependency",
                     "institutional_trust_level",
-                    "habit_plasticity",
                     "friction_tolerance",
-                    "pragmatism",
                     "digital_capability",
-                    "motor_ability",
-                    "subject_domain",
                 ]),
         ]
 

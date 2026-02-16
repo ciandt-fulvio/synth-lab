@@ -349,14 +349,9 @@ if __name__ == "__main__":
 
         required_sens = [
             "risk_aversion",
-            "social_dependency",
             "institutional_trust_level",
-            "habit_plasticity",
             "friction_tolerance",
-            "pragmatism",
             "digital_capability",
-            "motor_ability",
-            "subject_domain",
         ]
         missing_sens = [f for f in required_sens if f not in sens]
         if missing_sens:
