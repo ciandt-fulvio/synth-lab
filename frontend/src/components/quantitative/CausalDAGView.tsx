@@ -63,12 +63,12 @@ function classifyNodes(
   return layerMap;
 }
 
-const SVG_WIDTH = 820;
-const SVG_HEIGHT = 420;
+const SVG_WIDTH = 1100;
+const SVG_HEIGHT = 580;
 const NODE_W = 110;
-const NODE_H = 52;
+const NODE_H = 68;
 const NODE_RX = 10;
-const LAYER_X = [80, 410, 740]; // x positions for 3 layers
+const LAYER_X = [100, 520, 1000]; // x positions for 3 layers
 
 /** Blue shades by mu intensity: 0 (weak) → 4 (strong). */
 const EDGE_COLORS = ['#bfdbfe', '#60a5fa', '#3b82f6', '#2563eb', '#1e40af'];
@@ -177,6 +177,20 @@ export function CausalDAGView({ model, activeEdgeId, onEdgeClick }: CausalDAGVie
           >
             <path d="M 0 0 L 10 3 L 0 6 z" fill={ACTIVE_COLOR} />
           </marker>
+          {/* Glow filter for active edge */}
+          <filter id="glow-active" filterUnits="userSpaceOnUse" x="0" y="0" width={SVG_WIDTH} height={SVG_HEIGHT}>
+            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+            <feColorMatrix
+              in="blur"
+              type="matrix"
+              values="0 0 0 0 0.545  0 0 0 0 0.129  0 0 0 0 0.737  0 0 0 0.7 0"
+              result="glow"
+            />
+            <feMerge>
+              <feMergeNode in="glow" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
 
         {/* Edges */}
@@ -196,34 +210,48 @@ export function CausalDAGView({ model, activeEdgeId, onEdgeClick }: CausalDAGVie
           const opacity = isActive ? 1 : 0.85;
           const markerEnd = isActive ? 'url(#arrow-active)' : `url(#arrow-${colorIdx})`;
 
-          // Connect right edge of source → left edge of target
-          const fromX = from.x + NODE_W / 2;
-          const fromY = from.y;
-          const toX = to.x - NODE_W / 2;
-          const toY = to.y;
+          // Same-layer edges: route as a curve to the right side
+          const sameLayer = from.layer === to.layer;
+          let pathD: string;
 
-          // Quadratic bezier: control point midway-x, midway-y offset
-          const midX = (fromX + toX) / 2;
-          const midY = (fromY + toY) / 2;
-          const offsetY = (fromY - toY) * 0.25;
-          const cx = midX;
-          const cy = midY - offsetY;
+          if (sameLayer) {
+            // Connect bottom of source → top of target via a rightward arc
+            const fromX = from.x + NODE_W / 2;
+            const fromY = from.y + NODE_H / 4;
+            const toX = to.x + NODE_W / 2;
+            const toY = to.y - NODE_H / 4;
+            const bulge = 60;
+            const cx = Math.max(fromX, toX) + bulge;
+            const cy = (fromY + toY) / 2;
+            pathD = `M ${fromX} ${fromY} Q ${cx} ${cy} ${toX} ${toY}`;
+          } else {
+            // Normal cross-layer: right edge of source → left edge of target
+            const fromX = from.x + NODE_W / 2;
+            const fromY = from.y;
+            const toX = to.x - NODE_W / 2;
+            const toY = to.y;
+            const midX = (fromX + toX) / 2;
+            const midY = (fromY + toY) / 2;
+            const offsetY = (fromY - toY) * 0.25;
+            pathD = `M ${fromX} ${fromY} Q ${midX} ${midY - offsetY} ${toX} ${toY}`;
+          }
 
           return (
             <g
               key={edge.id}
               className="cursor-pointer"
               onClick={() => onEdgeClick?.(edge.id)}
+              filter={isActive ? 'url(#glow-active)' : undefined}
             >
               {/* Hit area (invisible wider path for easier clicking) */}
               <path
-                d={`M ${fromX} ${fromY} Q ${cx} ${cy} ${toX} ${toY}`}
+                d={pathD}
                 fill="none"
                 stroke="transparent"
                 strokeWidth={Math.max(strokeWidth + 8, 12)}
               />
               <path
-                d={`M ${fromX} ${fromY} Q ${cx} ${cy} ${toX} ${toY}`}
+                d={pathD}
                 fill="none"
                 stroke={color}
                 strokeWidth={strokeWidth}
@@ -233,7 +261,7 @@ export function CausalDAGView({ model, activeEdgeId, onEdgeClick }: CausalDAGVie
               />
               {isActive && (
                 <path
-                  d={`M ${fromX} ${fromY} Q ${cx} ${cy} ${toX} ${toY}`}
+                  d={pathD}
                   fill="none"
                   stroke={color}
                   strokeWidth={strokeWidth + 4}
@@ -255,7 +283,7 @@ export function CausalDAGView({ model, activeEdgeId, onEdgeClick }: CausalDAGVie
           const textFills = ['#334155', '#5b21b6', '#047857']; // slate-700, violet-800, emerald-700
 
           const lines = wrapLabel(node);
-          const lineHeight = 14;
+          const lineHeight = 17;
           const textBlockHeight = lines.length * lineHeight;
           const startY = pos.y - textBlockHeight / 2 + lineHeight / 2;
 
@@ -276,7 +304,7 @@ export function CausalDAGView({ model, activeEdgeId, onEdgeClick }: CausalDAGVie
                 x={pos.x}
                 textAnchor="middle"
                 fill={textFills[layer]}
-                className="text-[11.5px] font-medium pointer-events-none"
+                className="text-[16px] font-medium pointer-events-none"
               >
                 {lines.map((line, i) => (
                   <tspan key={i} x={pos.x} y={startY + i * lineHeight}>

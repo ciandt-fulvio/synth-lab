@@ -17,6 +17,7 @@ import type { CausalEdge } from '@/types/quantitative-analysis';
 interface LikertAssertionsProps {
   edges: CausalEdge[];
   activeEdgeId?: string | null;
+  onEdgeActivate?: (edgeId: string | null) => void;
   onSelectionsChange: (selections: Record<string, number>) => void;
 }
 
@@ -47,6 +48,7 @@ function useDebouncedCallback<T extends (...args: unknown[]) => void>(
 export function LikertAssertions({
   edges,
   activeEdgeId,
+  onEdgeActivate,
   onSelectionsChange,
 }: LikertAssertionsProps) {
   // Pre-fill every edge with selected_option or default_option
@@ -141,7 +143,11 @@ export function LikertAssertions({
             <button
               type="button"
               className="w-full flex items-start gap-2 px-4 py-3 text-left"
-              onClick={() => setExpandedEdge(isExpanded ? null : edge.id)}
+              onClick={() => {
+                const next = isExpanded ? null : edge.id;
+                setExpandedEdge(next);
+                onEdgeActivate?.(next);
+              }}
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">

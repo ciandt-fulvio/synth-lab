@@ -186,6 +186,7 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
           <LikertAssertions
             edges={model.edges}
             activeEdgeId={activeEdgeId}
+            onEdgeActivate={setActiveEdgeId}
             onSelectionsChange={handleSelectionsChange}
           />
         </div>
