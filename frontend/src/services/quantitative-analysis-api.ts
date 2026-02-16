@@ -81,6 +81,17 @@ export async function generateInterviewGuide(
 }
 
 /**
+ * Generate or regenerate the simulation summary report.
+ */
+export async function generateSimulationSummary(
+  experimentId: string
+): Promise<{ status: string }> {
+  return fetchAPI(`/experiments/${experimentId}/quantitative-analysis/generate-simulation-summary`, {
+    method: 'POST',
+  });
+}
+
+/**
  * Get the interview guide for an experiment, formatted as markdown.
  * Returns null if no guide exists (404).
  */

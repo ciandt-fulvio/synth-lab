@@ -22,6 +22,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useExperiment, useDeleteExperiment } from '@/hooks/use-experiments';
 import { NewInterviewFromExperimentDialog } from '@/components/experiments/NewInterviewFromExperimentDialog';
 import { MaterialUpload } from '@/components/experiments/MaterialUpload';
@@ -46,6 +52,7 @@ import {
   Loader2,
   Play,
   Activity,
+  MoreVertical,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -75,6 +82,7 @@ export default function ExperimentDetail() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isGeneratingGuide, setIsGeneratingGuide] = useState(false);
   const [isGuideViewerOpen, setIsGuideViewerOpen] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   // Tab underline animation state
   const tabFromQuery = searchParams.get('tab');
@@ -192,50 +200,61 @@ export default function ExperimentDetail() {
     );
   }
 
-  // Truncate description to 2 lines (~150 chars)
-  const truncatedDescription = experiment.description
-    ? experiment.description.length > 150
-      ? `${experiment.description.slice(0, 147)}...`
-      : experiment.description
-    : null;
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
-      <SynthLabHeader subtitle="Detalhe do Experimento" backTo="/" />
+      <SynthLabHeader
+        subtitle="Detalhe do Experimento"
+        backTo="/"
+        breadcrumbs={[
+          { label: 'Experimentos', href: '/' },
+          { label: experiment.name },
+        ]}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Experiment Header Section */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
+          <div className="flex items-start justify-between gap-4">
             {/* Left: Experiment Info */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl text-white shadow-lg shadow-purple-200">
-                  <FlaskConical className="h-5 w-5" />
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="p-1.5 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg text-white shadow-lg shadow-purple-200">
+                  <FlaskConical className="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-2xl font-bold text-slate-900">
+                  <h2 className="text-xl font-bold text-slate-900">
                     {experiment.name}
                   </h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Users className="h-3.5 w-3.5 text-slate-400" />
-                    <span className="text-sm text-slate-500">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-3 w-3 text-slate-400" />
+                    <span className="text-xs text-slate-500">
                       {experiment.synth_group_name}
                     </span>
                   </div>
                 </div>
               </div>
-              <p className="text-slate-600 leading-relaxed mb-2">
+              <p className="text-sm text-slate-600 leading-relaxed mb-1">
                 {experiment.hypothesis}
               </p>
-              {truncatedDescription && (
-                <p className="text-sm text-slate-400 leading-relaxed">
-                  {truncatedDescription}
-                </p>
+              {experiment.description && (
+                <div>
+                  <p className={`text-xs text-slate-400 leading-relaxed ${!isDescriptionExpanded ? 'line-clamp-2' : ''}`}>
+                    {experiment.description}
+                  </p>
+                  {experiment.description.length > 150 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                      className="text-xs text-violet-600 hover:text-violet-700 font-medium mt-0.5"
+                    >
+                      {isDescriptionExpanded ? 'ver menos' : 'ver mais'}
+                    </button>
+                  )}
+                </div>
               )}
 
               {/* Tags */}
-              <div className="mt-4">
+              <div className="mt-3">
                 <TagSelector
                   experimentId={experiment.id}
                   currentTags={experiment.tags || []}
@@ -243,6 +262,23 @@ export default function ExperimentDetail() {
               </div>
             </div>
 
+            {/* Right: Actions dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Deletar Experimento
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -592,17 +628,6 @@ export default function ExperimentDetail() {
           </TabsContent>
         </Tabs>
 
-        {/* Delete Section */}
-        <div className="mt-8 pt-6 border-t border-slate-200">
-          <Button
-            variant="outline"
-            onClick={() => setIsDeleteDialogOpen(true)}
-            className="text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700 hover:border-red-400"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Deletar
-          </Button>
-        </div>
       </main>
 
       {/* New Interview Modal */}

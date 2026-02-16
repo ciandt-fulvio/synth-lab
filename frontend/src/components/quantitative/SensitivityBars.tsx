@@ -123,13 +123,13 @@ export function SensitivityBars({ sensitivity, interpretation }: SensitivityBars
             {sensitivity.map((item, i) => (
               <tr key={item.edge_id} className={i % 2 === 0 ? 'bg-slate-50/50' : ''}>
                 <td className="py-2 px-3 text-slate-700">{item.header}</td>
-                <td className="py-2 px-3 text-right font-medium text-slate-800">
+                <td className="py-2 px-3 text-right font-medium font-mono text-slate-800">
                   {item.impact.toFixed(2)}pp
                 </td>
-                <td className="py-2 px-3 text-right text-slate-600">
+                <td className="py-2 px-3 text-right font-mono text-slate-600">
                   {item.mean_low.toFixed(1)}%
                 </td>
-                <td className="py-2 px-3 text-right text-slate-600">
+                <td className="py-2 px-3 text-right font-mono text-slate-600">
                   {item.mean_high.toFixed(1)}%
                 </td>
               </tr>

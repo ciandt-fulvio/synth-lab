@@ -23,7 +23,20 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem as BreadcrumbItemUI,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import packageJson from '../../../package.json';
+
+export interface BreadcrumbEntry {
+  label: string;
+  href?: string;
+}
 
 interface SynthLabHeaderProps {
   /** Subtitle text shown below "SynthLab" */
@@ -32,9 +45,11 @@ interface SynthLabHeaderProps {
   backTo?: string;
   /** Action buttons/elements to show on the right side */
   actions?: React.ReactNode;
+  /** Breadcrumbs to display below the header bar */
+  breadcrumbs?: BreadcrumbEntry[];
 }
 
-export function SynthLabHeader({ subtitle, backTo, actions }: SynthLabHeaderProps) {
+export function SynthLabHeader({ subtitle, backTo, actions, breadcrumbs }: SynthLabHeaderProps) {
   const navigate = useNavigate();
 
   return (
@@ -98,6 +113,31 @@ export function SynthLabHeader({ subtitle, backTo, actions }: SynthLabHeaderProp
           {/* Right-side actions */}
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>
+
+        {/* Breadcrumbs */}
+        {breadcrumbs && breadcrumbs.length > 0 && (
+          <div className="mt-2 ml-12">
+            <Breadcrumb>
+              <BreadcrumbList>
+                {breadcrumbs.map((crumb, index) => {
+                  const isLast = index === breadcrumbs.length - 1;
+                  return (
+                    <BreadcrumbItemUI key={index}>
+                      {index > 0 && <BreadcrumbSeparator />}
+                      {isLast ? (
+                        <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                      ) : (
+                        <BreadcrumbLink asChild>
+                          <Link to={crumb.href ?? '/'}>{crumb.label}</Link>
+                        </BreadcrumbLink>
+                      )}
+                    </BreadcrumbItemUI>
+                  );
+                })}
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+        )}
       </div>
     </header>
   );

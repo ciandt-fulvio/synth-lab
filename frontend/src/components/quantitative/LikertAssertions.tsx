@@ -12,6 +12,12 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from '@/components/ui/tooltip';
 import type { CausalEdge } from '@/types/quantitative-analysis';
 
 interface LikertAssertionsProps {
@@ -154,9 +160,22 @@ export function LikertAssertions({
                   <span className="text-sm font-medium text-slate-700">
                     {edge.header}
                   </span>
-                  {isModified && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-violet-100 text-violet-700">
-                      ajustado
+                  {isModified ? (
+                    <TooltipProvider delayDuration={200}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-violet-100 text-violet-700 cursor-default">
+                            ajustado
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Valor diferente do sugerido pela IA</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500">
+                      sugerido
                     </span>
                   )}
                 </div>

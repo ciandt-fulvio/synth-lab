@@ -37,6 +37,9 @@ from synth_lab.services.simulation_engine import (
     run_monte_carlo,
     run_sensitivity,
 )
+from synth_lab.services.simulation_summary_generator_service import (
+    SimulationSummaryGeneratorService,
+)
 
 _tracer = get_tracer("quantitative-analysis-service")
 
@@ -169,8 +172,8 @@ class QuantitativeAnalysisService:
         self.experiment_repo = experiment_repo or ExperimentRepository()
         self.simulation_run_repo = simulation_run_repo or SimulationRunRepository()
         self.synth_repo = synth_repo or SynthRepository()
-        self.interview_guide_service = (
-            interview_guide_service or InterviewGuideGeneratorService(llm_client=self.llm)
+        self.interview_guide_service = interview_guide_service or InterviewGuideGeneratorService(
+            llm_client=self.llm
         )
         self.logger = logger.bind(component="quantitative_analysis")
 
@@ -208,18 +211,13 @@ class QuantitativeAnalysisService:
             description = getattr(experiment, "description", None) or ""
 
             if not name or not hypothesis:
-                raise ValueError(
-                    f"Experiment {experiment_id} missing name or hypothesis"
-                )
+                raise ValueError(f"Experiment {experiment_id} missing name or hypothesis")
 
             # Delete existing model if any
             self.causal_model_repo.delete_by_experiment(experiment_id)
 
             # Build user message with experiment context
-            user_message = (
-                f"Experimento: {name}\n"
-                f"Hipótese: {hypothesis}\n"
-            )
+            user_message = f"Experimento: {name}\nHipótese: {hypothesis}\n"
             if description:
                 user_message += f"Descrição: {description}\n"
 
@@ -245,17 +243,19 @@ class QuantitativeAnalysisService:
             model_id = generate_causal_model_id()
             edges_data = []
             for edge_raw in data.get("edges", []):
-                edges_data.append({
-                    "id": edge_raw["id"],
-                    "from_node": edge_raw["from"],
-                    "to_node": edge_raw["to"],
-                    "user_var": edge_raw["userVar"],
-                    "direction": edge_raw["direction"],
-                    "header": edge_raw["header"],
-                    "options": edge_raw["options"],
-                    "default_option": edge_raw["default"],
-                    "selected_option": None,
-                })
+                edges_data.append(
+                    {
+                        "id": edge_raw["id"],
+                        "from_node": edge_raw["from"],
+                        "to_node": edge_raw["to"],
+                        "user_var": edge_raw["userVar"],
+                        "direction": edge_raw["direction"],
+                        "header": edge_raw["header"],
+                        "options": edge_raw["options"],
+                        "default_option": edge_raw["default"],
+                        "selected_option": None,
+                    }
+                )
 
             # Save to database
             orm_model = self.causal_model_repo.create_with_edges(
@@ -316,9 +316,7 @@ class QuantitativeAnalysisService:
         """
         orm_model = self.causal_model_repo.get_by_experiment(experiment_id)
         if orm_model is None:
-            raise ValueError(
-                f"No causal model for experiment: {experiment_id}"
-            )
+            raise ValueError(f"No causal model for experiment: {experiment_id}")
 
         result = self.causal_model_repo.update_edge_selections(
             causal_model_id=orm_model.id,
@@ -329,8 +327,7 @@ class QuantitativeAnalysisService:
         orm_model = self.causal_model_repo.get_by_experiment(experiment_id)
         total_edges = len(orm_model.edges) if orm_model else 0
         answered_count = sum(
-            1 for e in (orm_model.edges if orm_model else [])
-            if e.selected_option is not None
+            1 for e in (orm_model.edges if orm_model else []) if e.selected_option is not None
         )
 
         return {
@@ -385,49 +382,53 @@ class QuantitativeAnalysisService:
                 edges_data.append(edge_dict)
                 # Use selected_option if available, else default
                 selections[e.id] = (
-                    e.selected_option if e.selected_option is not None
-                    else e.default_option
+                    e.selected_option if e.selected_option is not None else e.default_option
                 )
 
             # Load synths from experiment's group
             synths_raw = self._load_synths_raw(experiment_id)
             if not synths_raw:
-                raise ValueError(
-                    f"No synths found for experiment: {experiment_id}"
-                )
+                raise ValueError(f"No synths found for experiment: {experiment_id}")
 
             n_synths = len(synths_raw)
             user_vars = [e["user_var"] for e in edges_data]
             user_var_matrix = extract_user_vars(synths_raw, user_vars)
 
             self.logger.info(
-                f"Running simulation: {n_synths} synths, "
-                f"{len(edges_data)} edges, 3000 iterations"
+                f"Running simulation: {n_synths} synths, {len(edges_data)} edges, 3000 iterations"
             )
 
             # Run main simulation
             mc_result = run_monte_carlo(
-                edges_data, selections, user_var_matrix,
-                orm_model.intercept_mu, orm_model.intercept_sigma,
+                edges_data,
+                selections,
+                user_var_matrix,
+                orm_model.intercept_mu,
+                orm_model.intercept_sigma,
                 n_iterations=3000,
             )
 
             # Compute segments
             segments = compute_segments(
-                edges_data, selections, synths_raw, user_var_matrix,
-                orm_model.intercept_mu, orm_model.intercept_sigma,
+                edges_data,
+                selections,
+                synths_raw,
+                user_var_matrix,
+                orm_model.intercept_mu,
+                orm_model.intercept_sigma,
             )
 
             # Run sensitivity analysis
             sensitivity = run_sensitivity(
-                edges_data, selections, user_var_matrix,
-                orm_model.intercept_mu, orm_model.intercept_sigma,
+                edges_data,
+                selections,
+                user_var_matrix,
+                orm_model.intercept_mu,
+                orm_model.intercept_sigma,
             )
 
             # Compute raw interpretations
-            raw_interps = compute_raw_interpretations(
-                mc_result["stats"], segments, sensitivity
-            )
+            raw_interps = compute_raw_interpretations(mc_result["stats"], segments, sensitivity)
 
             # Save simulation run
             run_id = f"sr_{secrets.token_hex(4)}"
@@ -449,16 +450,12 @@ class QuantitativeAnalysisService:
                 span.set_attribute("n_synths", n_synths)
                 span.set_attribute("mean_adoption", mc_result["stats"]["mean"])
 
-            self.logger.info(
-                f"Simulation complete: {run_id} "
-                f"(mean={mc_result['stats']['mean']}%)"
-            )
+            self.logger.info(f"Simulation complete: {run_id} (mean={mc_result['stats']['mean']}%)")
 
             # Generate AI interpretations (async, 3 parallel calls)
             experiment = self.experiment_repo.get_by_id(experiment_id)
             exp_context = (
-                f"{experiment.name}: {experiment.hypothesis}"
-                if experiment else experiment_id
+                f"{experiment.name}: {experiment.hypothesis}" if experiment else experiment_id
             )
 
             interpretations = self._generate_interpretations_sync(
@@ -468,9 +465,33 @@ class QuantitativeAnalysisService:
                 sensitivity=sensitivity,
             )
 
+            # Mark simulation summary as generating (sync, so frontend sees it)
+            from synth_lab.domain.entities.experiment_document import DocumentType
+            from synth_lab.services.document_service import DocumentService
+
+            try:
+                DocumentService().start_generation(
+                    experiment_id,
+                    DocumentType.SIMULATION_SUMMARY,
+                )
+            except Exception as e:
+                self.logger.warning(f"Could not mark summary as generating: {e}")
+
+            # Auto-generate simulation summary report (non-blocking)
+            import threading
+
+            threading.Thread(
+                target=self._auto_generate_simulation_summary,
+                args=(experiment_id,),
+                daemon=True,
+            ).start()
+
             return self._run_to_dict(
-                orm_run, mc_result["distribution"],
-                segments, sensitivity, interpretations,
+                orm_run,
+                mc_result["distribution"],
+                segments,
+                sensitivity,
+                interpretations,
             )
 
     def get_simulation_results(self, experiment_id: str) -> dict | None:
@@ -488,7 +509,7 @@ class QuantitativeAnalysisService:
 
         # Build interpretations from ORM
         interps = {}
-        for interp in (orm_run.interpretations or []):
+        for interp in orm_run.interpretations or []:
             interps[interp.section] = {
                 "raw_text": interp.raw_text,
                 "ai_text": interp.ai_text,
@@ -516,9 +537,7 @@ class QuantitativeAnalysisService:
         """
         orm_run = self.simulation_run_repo.get_latest_by_experiment(experiment_id)
         if orm_run is None:
-            raise ValueError(
-                f"No simulation results for experiment: {experiment_id}"
-            )
+            raise ValueError(f"No simulation results for experiment: {experiment_id}")
 
         experiment = self.experiment_repo.get_by_id(experiment_id)
         if not experiment:
@@ -534,9 +553,7 @@ class QuantitativeAnalysisService:
                 sensitivity=sensitivity,
                 description=getattr(experiment, "description", None),
             )
-            self.logger.info(
-                f"Interview guide generated for: {experiment_id}"
-            )
+            self.logger.info(f"Interview guide generated for: {experiment_id}")
 
         return {"status": "ok", "experiment_id": experiment_id}
 
@@ -560,10 +577,7 @@ class QuantitativeAnalysisService:
         }
 
         # Format sensitivity data for context
-        sens_text = "\n".join(
-            f"- {s['header']}: impacto {s['impact']}pp"
-            for s in sensitivity[:5]
-        )
+        sens_text = "\n".join(f"- {s['header']}: impacto {s['impact']}pp" for s in sensitivity[:5])
 
         results = {}
         interpretations_to_save = []
@@ -596,21 +610,21 @@ class QuantitativeAnalysisService:
                         operation_name=f"Interpretation: {section}",
                     )
                 except Exception as e:
-                    self.logger.warning(
-                        f"AI interpretation failed for {section}: {e}"
-                    )
+                    self.logger.warning(f"AI interpretation failed for {section}: {e}")
                     ai_text = raw_text  # Fallback to raw text
 
             interp_id = f"ai_{secrets.token_hex(4)}"
             results[section] = {"raw_text": raw_text, "ai_text": ai_text}
-            interpretations_to_save.append({
-                "id": interp_id,
-                "simulation_run_id": run_id,
-                "section": section,
-                "raw_text": raw_text,
-                "ai_text": ai_text,
-                "model": "gpt-4o-mini",
-            })
+            interpretations_to_save.append(
+                {
+                    "id": interp_id,
+                    "simulation_run_id": run_id,
+                    "section": section,
+                    "raw_text": raw_text,
+                    "ai_text": ai_text,
+                    "model": "gpt-4o-mini",
+                }
+            )
 
         # Save interpretations to DB
         self.simulation_run_repo.create_interpretations(interpretations_to_save)
@@ -636,13 +650,82 @@ class QuantitativeAnalysisService:
                 sensitivity=sensitivity,
                 description=getattr(experiment, "description", None),
             )
-            self.logger.info(
-                f"Interview guide auto-generated for: {experiment_id}"
+            self.logger.info(f"Interview guide auto-generated for: {experiment_id}")
+        except Exception as e:
+            self.logger.error(f"Failed to auto-generate interview guide for {experiment_id}: {e}")
+
+    def generate_simulation_summary(self, experiment_id: str) -> dict:
+        """Manually (re)generate simulation summary report.
+
+        Args:
+            experiment_id: Experiment ID.
+
+        Returns:
+            Dict with status confirmation.
+
+        Raises:
+            ValueError: If no simulation results exist.
+        """
+        orm_run = self.simulation_run_repo.get_latest_by_experiment(experiment_id)
+        if orm_run is None:
+            raise ValueError(f"No simulation results for experiment: {experiment_id}")
+
+        from synth_lab.domain.entities.experiment_document import DocumentType
+        from synth_lab.services.document_service import DocumentService
+
+        doc_service = DocumentService()
+        doc_service.start_generation(
+            experiment_id,
+            DocumentType.SIMULATION_SUMMARY,
+        )
+
+        try:
+            generator = SimulationSummaryGeneratorService(
+                llm_client=self.llm,
             )
+            generator.generate(experiment_id)
+        except Exception as e:
+            self.logger.error(f"Failed to generate simulation summary: {e}")
+            doc_service.fail_generation(
+                experiment_id,
+                DocumentType.SIMULATION_SUMMARY,
+                error_message=str(e),
+            )
+            raise
+
+        return {"status": "ok", "experiment_id": experiment_id}
+
+    def _auto_generate_simulation_summary(
+        self,
+        experiment_id: str,
+    ) -> None:
+        """Auto-generate simulation summary after simulation completes.
+
+        Runs in a background thread. start_generation() already called
+        by the caller before spawning the thread.
+        Errors are logged and document marked as failed.
+        """
+        try:
+            generator = SimulationSummaryGeneratorService(
+                llm_client=self.llm,
+            )
+            generator.generate(experiment_id)
+            self.logger.info(f"Simulation summary auto-generated for: {experiment_id}")
         except Exception as e:
             self.logger.error(
-                f"Failed to auto-generate interview guide for {experiment_id}: {e}"
+                f"Failed to auto-generate simulation summary for {experiment_id}: {e}"
             )
+            try:
+                from synth_lab.domain.entities.experiment_document import DocumentType
+                from synth_lab.services.document_service import DocumentService
+
+                DocumentService().fail_generation(
+                    experiment_id,
+                    DocumentType.SIMULATION_SUMMARY,
+                    error_message=str(e),
+                )
+            except Exception:
+                pass
 
     def _load_synths_raw(self, experiment_id: str) -> list[dict]:
         """Load raw synth data dicts for an experiment's synth group."""
@@ -669,8 +752,7 @@ class QuantitativeAnalysisService:
         orm_synths = list(self.synth_repo.session.execute(stmt).scalars().all())
 
         return [
-            {"id": s.id, "data": s.data if isinstance(s.data, dict) else {}}
-            for s in orm_synths
+            {"id": s.id, "data": s.data if isinstance(s.data, dict) else {}} for s in orm_synths
         ]
 
     def _run_to_dict(
@@ -693,24 +775,28 @@ class QuantitativeAnalysisService:
             "segments": segments,
             "sensitivity": sensitivity,
             "interpretations": interpretations,
-            "created_at": orm_run.created_at.isoformat() if hasattr(orm_run.created_at, 'isoformat') else str(orm_run.created_at),
+            "created_at": orm_run.created_at.isoformat()
+            if hasattr(orm_run.created_at, "isoformat")
+            else str(orm_run.created_at),
         }
 
     def _model_to_dict(self, orm_model) -> dict:
         """Convert ORM model + edges to API response dict."""
         edges = []
         for e in orm_model.edges:
-            edges.append({
-                "id": e.id,
-                "from_node": e.from_node,
-                "to_node": e.to_node,
-                "user_var": e.user_var,
-                "direction": e.direction,
-                "header": e.header,
-                "options": e.options,
-                "default_option": e.default_option,
-                "selected_option": e.selected_option,
-            })
+            edges.append(
+                {
+                    "id": e.id,
+                    "from_node": e.from_node,
+                    "to_node": e.to_node,
+                    "user_var": e.user_var,
+                    "direction": e.direction,
+                    "header": e.header,
+                    "options": e.options,
+                    "default_option": e.default_option,
+                    "selected_option": e.selected_option,
+                }
+            )
 
         return {
             "id": orm_model.id,
@@ -720,7 +806,9 @@ class QuantitativeAnalysisService:
             "intercept_sigma": orm_model.intercept_sigma,
             "nodes": orm_model.nodes,
             "edges": edges,
-            "created_at": orm_model.created_at.isoformat() if hasattr(orm_model.created_at, 'isoformat') else str(orm_model.created_at),
+            "created_at": orm_model.created_at.isoformat()
+            if hasattr(orm_model.created_at, "isoformat")
+            else str(orm_model.created_at),
         }
 
 
@@ -771,15 +859,10 @@ if __name__ == "__main__":
         all_validation_failures.append(f"Method check failed: {e}")
 
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of "
-            f"{total_tests} tests failed:"
-        )
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"VALIDATION PASSED - All {total_tests} tests produced expected results"
-        )
+        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         sys.exit(0)

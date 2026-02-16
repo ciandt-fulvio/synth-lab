@@ -232,7 +232,7 @@ export function CreateSynthGroupModal({
                 Novo Grupo de Synths
               </DialogTitle>
               <DialogDescription className="text-slate-500 text-xs">
-                Configure as distribuicoes demograficas
+                Configure as distribuições demográficas
               </DialogDescription>
             </div>
           </div>
@@ -257,13 +257,13 @@ export function CreateSynthGroupModal({
               </div>
               <div>
                 <Label htmlFor="description" className="text-sm font-medium text-slate-700">
-                  Descricao
+                  Descrição
                 </Label>
                 <Input
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Ex: Grupo para simular previdencia"
+                  placeholder="Ex: Grupo para simular previdência"
                   maxLength={50}
                   className="mt-1"
                 />
@@ -435,7 +435,7 @@ export function CreateSynthGroupModal({
                 <AlertCircle className="h-3 w-3" />
                 {!name.trim()
                   ? 'Nome e obrigatorio'
-                  : 'Verifique se as distribuicoes somam 100%'}
+                  : 'Verifique se as distribuições somam 100%'}
               </span>
             )}
           </div>

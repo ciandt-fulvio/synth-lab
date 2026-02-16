@@ -42,9 +42,7 @@ async def generate_causal_model(experiment_id: str) -> CausalModelResponse:
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except RuntimeError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-        ) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
 
 
 @router.get("/model", response_model=CausalModelResponse)
@@ -90,9 +88,7 @@ async def run_simulation(experiment_id: str) -> SimulationRunResponse:
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except TimeoutError as e:
-        raise HTTPException(
-            status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=str(e)
-        ) from e
+        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=str(e)) from e
 
 
 @router.post("/generate-interview-guide", status_code=status.HTTP_201_CREATED)
@@ -109,9 +105,24 @@ async def generate_interview_guide(experiment_id: str) -> dict:
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except RuntimeError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-        ) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
+
+
+@router.post("/generate-simulation-summary", status_code=status.HTTP_201_CREATED)
+async def generate_simulation_summary(experiment_id: str) -> dict:
+    """Generate or regenerate the simulation summary report.
+
+    Creates a rich markdown document combining simulation results,
+    interpretations, demographics, and interview suggestions.
+    """
+    service = get_service()
+    try:
+        result = service.generate_simulation_summary(experiment_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
 
 
 @router.get("/results", response_model=SimulationRunResponse)
@@ -137,7 +148,15 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         route_paths = [r.path for r in router.routes]
-        expected = ["/generate", "/model", "/edges", "/simulate", "/generate-interview-guide", "/results"]
+        expected = [
+            "/generate",
+            "/model",
+            "/edges",
+            "/simulate",
+            "/generate-interview-guide",
+            "/generate-simulation-summary",
+            "/results",
+        ]
         for path in expected:
             if path not in route_paths:
                 all_validation_failures.append(f"Missing route: {path}")
@@ -145,15 +164,10 @@ if __name__ == "__main__":
         all_validation_failures.append(f"Route check failed: {e}")
 
     if all_validation_failures:
-        print(
-            f"VALIDATION FAILED - {len(all_validation_failures)} of "
-            f"{total_tests} tests failed:"
-        )
+        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
         for failure in all_validation_failures:
             print(f"  - {failure}")
         sys.exit(1)
     else:
-        print(
-            f"VALIDATION PASSED - All {total_tests} tests produced expected results"
-        )
+        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
         sys.exit(0)

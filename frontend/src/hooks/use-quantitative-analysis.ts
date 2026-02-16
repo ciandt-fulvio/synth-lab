@@ -17,6 +17,7 @@ import {
   runSimulation,
   getSimulationResults,
   generateInterviewGuide,
+  generateSimulationSummary,
   getInterviewGuide,
 } from '@/services/quantitative-analysis-api';
 
@@ -100,6 +101,27 @@ export function useGenerateInterviewGuide() {
     onSuccess: (_, experimentId) => {
       queryClient.invalidateQueries({
         queryKey: ['experiments', experimentId],
+      });
+    },
+  });
+}
+
+/**
+ * Hook to generate or regenerate the simulation summary report.
+ *
+ * Invalidates document availability and list queries on success.
+ */
+export function useGenerateSimulationSummary() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (experimentId: string) => generateSimulationSummary(experimentId),
+    onSuccess: (_, experimentId) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.documents.availability(experimentId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.documents.list(experimentId),
       });
     },
   });

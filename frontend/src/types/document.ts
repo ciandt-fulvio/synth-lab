@@ -13,7 +13,8 @@ export type DocumentType =
   | 'research_summary'
   | 'research_prfaq'
   | 'executive_summary'
-  | 'interview_guide';
+  | 'interview_guide'
+  | 'simulation_summary';
 
 export type DocumentStatus = 'pending' | 'generating' | 'completed' | 'failed' | 'partial';
 
@@ -57,6 +58,8 @@ export interface DocumentAvailability {
   research_prfaq: { available: boolean; status: DocumentStatus | null };
   // Experiment-level documents
   executive_summary: { available: boolean; status: DocumentStatus | null };
+  // Quantitative analysis documents
+  simulation_summary: { available: boolean; status: DocumentStatus | null };
 }
 
 /**
@@ -86,6 +89,7 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   research_prfaq: 'PR-FAQ de Entrevista',
   executive_summary: 'Análise Quantitativa',
   interview_guide: 'Roteiro de Entrevista',
+  simulation_summary: 'Resumo da Simulação',
 };
 
 /**
@@ -98,4 +102,5 @@ export const DOCUMENT_TYPE_ICONS: Record<DocumentType, string> = {
   research_prfaq: 'Newspaper',
   executive_summary: 'Sparkles',
   interview_guide: 'FileText',
+  simulation_summary: 'BarChart3',
 };
