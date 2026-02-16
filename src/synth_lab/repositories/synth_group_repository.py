@@ -381,11 +381,17 @@ class SynthGroupRepository(BaseRepository):
                 if has_disability:
                     pcd_count += 1
 
-            # Sensitivities
+            # Sensitivities (only the 4 active keys used in simulation)
             sensitivities = data.get("sensitivities", {})
             if sensitivities and isinstance(sensitivities, dict):
+                _active_keys = {
+                    "risk_aversion",
+                    "institutional_trust_level",
+                    "friction_tolerance",
+                    "digital_capability",
+                }
                 for key, val in sensitivities.items():
-                    if isinstance(val, (int, float)):
+                    if key in _active_keys and isinstance(val, (int, float)):
                         sensitivity_values.setdefault(key, []).append(float(val))
 
         # Build demographic stats
