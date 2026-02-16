@@ -82,7 +82,6 @@ async def run_simulation(experiment_id: str) -> SimulationRunResponse:
     """Run Monte Carlo simulation with current edge selections.
 
     Returns full results including stats, segments, sensitivity, and AI interpretations.
-    Generates interview_guide automatically after simulation.
     """
     service = get_service()
     try:
@@ -93,6 +92,25 @@ async def run_simulation(experiment_id: str) -> SimulationRunResponse:
     except TimeoutError as e:
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=str(e)
+        ) from e
+
+
+@router.post("/generate-interview-guide", status_code=status.HTTP_201_CREATED)
+async def generate_interview_guide(experiment_id: str) -> dict:
+    """Generate interview guide from the latest simulation sensitivity results.
+
+    Uses the top sensitivity premisses to create a focused interview guide.
+    Overwrites any existing guide for this experiment.
+    """
+    service = get_service()
+    try:
+        result = service.generate_interview_guide(experiment_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         ) from e
 
 
@@ -119,7 +137,7 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         route_paths = [r.path for r in router.routes]
-        expected = ["/generate", "/model", "/edges", "/simulate", "/results"]
+        expected = ["/generate", "/model", "/edges", "/simulate", "/generate-interview-guide", "/results"]
         for path in expected:
             if path not in route_paths:
                 all_validation_failures.append(f"Missing route: {path}")

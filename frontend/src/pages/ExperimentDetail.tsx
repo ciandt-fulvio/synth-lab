@@ -44,12 +44,21 @@ import {
   FileText,
   BarChart3,
   Loader2,
+  Play,
+  Activity,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
 import { TagSelector } from '@/components/experiments/TagSelector';
 import { QuantitativeAnalysisTab } from '@/components/quantitative/QuantitativeAnalysisTab';
+import { SimulationTab } from '@/components/quantitative/SimulationTab';
+import { useGenerateInterviewGuide, useInterviewGuide } from '@/hooks/use-quantitative-analysis';
+import { DocumentViewer } from '@/components/shared/DocumentViewer';
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
 
 // =============================================================================
 // Main Component
@@ -64,10 +73,12 @@ export default function ExperimentDetail() {
   const [isNewInterviewOpen, setIsNewInterviewOpen] = useState(false);
   const [interviewPage, setInterviewPage] = useState(0);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isGeneratingGuide, setIsGeneratingGuide] = useState(false);
+  const [isGuideViewerOpen, setIsGuideViewerOpen] = useState(false);
 
   // Tab underline animation state
   const tabFromQuery = searchParams.get('tab');
-  const initialTab = ['quanti', 'interviews', 'materials', 'reports'].includes(tabFromQuery ?? '')
+  const initialTab = ['quanti', 'simulation', 'interviews', 'materials', 'reports'].includes(tabFromQuery ?? '')
     ? tabFromQuery!
     : 'quanti';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -78,7 +89,7 @@ export default function ExperimentDetail() {
   // Sync activeTab with query param when it changes
   useEffect(() => {
     const newTab = searchParams.get('tab');
-    const validTab = ['quanti', 'interviews', 'materials', 'reports'].includes(newTab ?? '')
+    const validTab = ['quanti', 'simulation', 'interviews', 'materials', 'reports'].includes(newTab ?? '')
       ? newTab!
       : 'quanti';
     setActiveTab(validTab);
@@ -107,6 +118,28 @@ export default function ExperimentDetail() {
   const deleteMutation = useDeleteExperiment();
   const { data: materials, refetch: refetchMaterials } = useMaterials(id ?? '');
   const { data: documents } = useDocuments(id ?? '');
+  const guideMutation = useGenerateInterviewGuide();
+  const { data: guideData, isLoading: isGuideLoading } = useInterviewGuide(
+    id ?? '',
+    isGuideViewerOpen
+  );
+
+  const handleGenerateGuide = useCallback(() => {
+    if (!id) return;
+    setIsGeneratingGuide(true);
+    setActiveTab('interviews');
+    guideMutation.mutate(id, {
+      onSuccess: () => {
+        setIsGeneratingGuide(false);
+        toast.success('Roteiro de entrevista gerado com sucesso');
+      },
+      onError: (err) => {
+        setIsGeneratingGuide(false);
+        const message = err instanceof Error ? err.message : 'Erro ao gerar roteiro';
+        toast.error('Falha na geração do roteiro', { description: message });
+      },
+    });
+  }, [id, guideMutation, setActiveTab]);
 
   const handleDelete = () => {
     if (!id) return;
@@ -219,7 +252,7 @@ export default function ExperimentDetail() {
           <div className="relative mb-6">
             <TabsList
               ref={tabsListRef}
-              className="relative w-full h-auto p-0 bg-transparent rounded-none border-b border-slate-200 grid grid-cols-4"
+              className="relative w-full h-auto p-0 bg-transparent rounded-none border-b border-slate-200 grid grid-cols-5"
             >
               {/* Quanti Analysis Tab */}
               <TabsTrigger
@@ -229,6 +262,16 @@ export default function ExperimentDetail() {
               >
                 <BarChart3 className="h-4 w-4" />
                 <span className="font-semibold">Análise Quanti</span>
+              </TabsTrigger>
+
+              {/* Simulation Tab */}
+              <TabsTrigger
+                ref={(el) => el && tabRefs.current.set('simulation', el)}
+                value="simulation"
+                className="relative flex items-center justify-center gap-2.5 px-4 py-4 rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-violet-700 text-slate-500 hover:text-slate-700 transition-colors duration-200"
+              >
+                <Activity className="h-4 w-4" />
+                <span className="font-semibold">Simulação</span>
               </TabsTrigger>
 
               {/* Interviews Tab */}
@@ -304,27 +347,12 @@ export default function ExperimentDetail() {
 
           {/* Quanti Analysis Content */}
           <TabsContent value="quanti" className="mt-0">
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-              {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-slate-100 rounded-lg">
-                    <BarChart3 className="w-5 h-5 text-slate-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-900">Análise Quanti</h3>
-                    <p className="text-sm text-slate-500">
-                      Modelagem causal e simulação Monte Carlo
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <QuantitativeAnalysisTab experimentId={id ?? ''} />
+          </TabsContent>
 
-              {/* Content */}
-              <div className="p-6">
-                <QuantitativeAnalysisTab experimentId={id ?? ''} />
-              </div>
-            </div>
+          {/* Simulation Content */}
+          <TabsContent value="simulation" className="mt-0">
+            <SimulationTab experimentId={id ?? ''} onGenerateGuide={handleGenerateGuide} />
           </TabsContent>
 
           {/* Interviews Content */}
@@ -343,33 +371,45 @@ export default function ExperimentDetail() {
                     </p>
                   </div>
                 </div>
-                {experiment.has_interview_guide ? (
-                  <Button
-                    size="sm"
-                    onClick={() => setIsNewInterviewOpen(true)}
-                    className="btn-primary"
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Nova Entrevista
-                  </Button>
-                ) : (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span>
-                        <Button size="sm" disabled className="opacity-50">
-                          <Plus className="w-4 h-4 mr-1" />
-                          Nova Entrevista
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="flex items-center gap-1.5">
-                        <Info className="h-3.5 w-3.5" />
-                        Guia de entrevista indisponível
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
+                <div className="flex items-center gap-2">
+                  {experiment.has_interview_guide && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setIsGuideViewerOpen(true)}
+                    >
+                      <FileText className="w-4 h-4 mr-1" />
+                      Ver Roteiro
+                    </Button>
+                  )}
+                  {experiment.has_interview_guide ? (
+                    <Button
+                      size="sm"
+                      onClick={() => setIsNewInterviewOpen(true)}
+                      className="btn-primary"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Nova Entrevista
+                    </Button>
+                  ) : (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>
+                          <Button size="sm" disabled className="opacity-50">
+                            <Plus className="w-4 h-4 mr-1" />
+                            Nova Entrevista
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="flex items-center gap-1.5">
+                          <Info className="h-3.5 w-3.5" />
+                          Guia de entrevista indisponível
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
               </div>
 
               {/* Content */}
@@ -570,6 +610,27 @@ export default function ExperimentDetail() {
         open={isNewInterviewOpen}
         onOpenChange={setIsNewInterviewOpen}
         experimentId={id ?? ''}
+      />
+
+      {/* Generating Guide Loading Modal */}
+      <Dialog open={isGeneratingGuide} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-sm" onInteractOutside={(e) => e.preventDefault()}>
+          <div className="flex flex-col items-center py-8">
+            <Loader2 className="w-10 h-10 text-violet-500 animate-spin mb-4" />
+            <p className="text-slate-700 font-medium">Gerando roteiro...</p>
+            <p className="text-sm text-slate-500 mt-1">Aguarde enquanto processamos</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Interview Guide Viewer */}
+      <DocumentViewer
+        isOpen={isGuideViewerOpen}
+        onClose={() => setIsGuideViewerOpen(false)}
+        documentType="interview_guide"
+        markdownContent={guideData?.markdown_content}
+        isLoading={isGuideLoading}
+        status={isGuideLoading ? 'generating' : 'completed'}
       />
 
       {/* Delete Confirmation Dialog */}

@@ -16,7 +16,6 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
@@ -80,10 +79,6 @@ export function DistributionChart({ distribution, stats, interpretation }: Distr
               interval={Math.ceil(HISTOGRAM_BINS / 8)}
             />
             <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-            <Tooltip
-              formatter={(value: number) => [`${value} iterações`, 'Frequência']}
-              labelFormatter={(label: string) => `Faixa: ${label}`}
-            />
             <ReferenceLine
               x={findClosestBin(histogram, stats.mean)}
               stroke="#059669"

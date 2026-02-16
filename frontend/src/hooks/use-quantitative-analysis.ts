@@ -16,6 +16,8 @@ import {
   updateEdgeSelections,
   runSimulation,
   getSimulationResults,
+  generateInterviewGuide,
+  getInterviewGuide,
 } from '@/services/quantitative-analysis-api';
 
 /**
@@ -86,6 +88,24 @@ export function useRunSimulation() {
 }
 
 /**
+ * Hook to generate interview guide from latest simulation sensitivity.
+ *
+ * Invalidates experiment detail query to update has_interview_guide.
+ */
+export function useGenerateInterviewGuide() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (experimentId: string) => generateInterviewGuide(experimentId),
+    onSuccess: (_, experimentId) => {
+      queryClient.invalidateQueries({
+        queryKey: ['experiments', experimentId],
+      });
+    },
+  });
+}
+
+/**
  * Hook to fetch the latest simulation results for an experiment.
  */
 export function useSimulationResults(experimentId: string) {
@@ -93,6 +113,18 @@ export function useSimulationResults(experimentId: string) {
     queryKey: queryKeys.quantitativeAnalysis.results(experimentId),
     queryFn: () => getSimulationResults(experimentId),
     enabled: !!experimentId,
+    retry: false,
+  });
+}
+
+/**
+ * Hook to fetch the interview guide markdown for an experiment.
+ */
+export function useInterviewGuide(experimentId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['experiments', experimentId, 'interview-guide'],
+    queryFn: () => getInterviewGuide(experimentId),
+    enabled: !!experimentId && enabled,
     retry: false,
   });
 }

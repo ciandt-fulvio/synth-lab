@@ -64,8 +64,8 @@ Each edge is an ASSERTION (statement), NOT a question. The PM responds with agre
 
 CRITICAL — EDGE HEADER:
 Instead of "statement", each edge has a "header" field. This is a SHORT contextual intro:
-  Format: "A respeito de quanto [target] é influenciado(a) por [source concept]"
-  Example: "A respeito de quanto a Familiaridade Digital é influenciada pela idade"
+  Format: "Quanto [target] é influenciado(a) por [source concept]"
+  Example: "Quanto a Familiaridade Digital é influenciada pela idade"
 
 CRITICAL — OPTIONS (5 self-contained sentences):
 Each option has: text, mu, sigma.
@@ -123,29 +123,29 @@ Respond with ONLY valid JSON:
 # INTERP_SYSTEM prompt (Apêndice B from spec)
 # ============================================================================
 
-INTERP_SYSTEM_PROMPT = """You are a senior product strategy advisor. You help product managers decide next steps based on simulation results.
+INTERP_SYSTEM_PROMPT = """Você é um consultor sênior de estratégia de produto. Você ajuda product managers a decidir próximos passos com base nos resultados de simulação.
 
-You will receive the experiment description, the section type, raw statistics, AND the full sensitivity analysis data.
+Você receberá a descrição do experimento, o tipo de seção, estatísticas brutas E os dados completos de análise de sensibilidade.
 
-RULES:
-- Write in Portuguese BR. 2-4 sentences max.
-- Be SPECIFIC to this experiment — reference the actual product/feature.
-- Respond with ONLY the text, no quotes, no markdown.
+REGRAS:
+- Escreva em Português BR. 2-4 frases no máximo.
+- Seja ESPECÍFICO para este experimento — referencie o produto/funcionalidade real.
+- Responda APENAS com o texto, sem aspas, sem markdown.
 
-SECTION-SPECIFIC INSTRUCTIONS:
+INSTRUÇÕES POR SEÇÃO:
 
-IF section = "Distribuição":
-- ALWAYS start with: "Com 80% de confiança, a taxa de adoção fica entre X% e Y%."
-- Then analyze the uncertainty: if high, explain WHICH premisses are driving most uncertainty and what the PM can do about it.
-- If uncertainty is low, say it's a good sign and suggest next steps.
+SE section = "Distribuição":
+- SEMPRE comece com: "Com 80% de confiança, a taxa de adoção fica entre X% e Y%."
+- Depois analise a incerteza: se alta, explique QUAIS premissas (dos dados de sensibilidade) estão gerando mais incerteza e o que o PM pode fazer SEM rodar uma entrevista completa (ex: desk research, benchmarks de concorrentes, análise de dados internos).
+- Se a incerteza for baixa, diga que é um bom sinal e sugira próximos passos.
 
-IF section = "Segmentos":
-- Focus on the practical implication: which segment to target first, whether differences justify a phased rollout.
-- Reference specific segments by name.
+SE section = "Segmentos":
+- Foque na implicação prática: qual segmento abordar primeiro, se as diferenças justificam um rollout em fases.
+- Referencie segmentos específicos pelo nome.
 
-IF section = "Sensibilidade":
-- Focus on the top 1-2 premisses and what specific research or data could resolve the uncertainty.
-- Be concrete: "Para validar se [premissa], analise dados de uso do app atual filtrado por faixa etária" — not generic advice."""
+SE section = "Sensibilidade":
+- Foque nas 1-2 premissas de maior impacto e que pesquisa ou dado específico poderia resolver a incerteza.
+- Seja concreto: "Para validar se [premissa], analise dados de uso do app atual filtrado por faixa etária" — não dê conselhos genéricos."""
 
 
 class QuantitativeAnalysisService:
@@ -468,13 +468,6 @@ class QuantitativeAnalysisService:
                 sensitivity=sensitivity,
             )
 
-            # Auto-generate interview guide from top sensitivity premisses
-            self._auto_generate_interview_guide(
-                experiment_id=experiment_id,
-                experiment=experiment,
-                sensitivity=sensitivity,
-            )
-
             return self._run_to_dict(
                 orm_run, mc_result["distribution"],
                 segments, sensitivity, interpretations,
@@ -508,6 +501,44 @@ class QuantitativeAnalysisService:
             orm_run.sensitivity,
             interps,
         )
+
+    def generate_interview_guide(self, experiment_id: str) -> dict:
+        """Generate interview guide from the latest simulation sensitivity.
+
+        Calls the interview guide generator service with the top sensitivity
+        premisses. Raises ValueError if no simulation results exist.
+
+        Args:
+            experiment_id: Experiment ID.
+
+        Returns:
+            Dict with status confirmation.
+        """
+        orm_run = self.simulation_run_repo.get_latest_by_experiment(experiment_id)
+        if orm_run is None:
+            raise ValueError(
+                f"No simulation results for experiment: {experiment_id}"
+            )
+
+        experiment = self.experiment_repo.get_by_id(experiment_id)
+        if not experiment:
+            raise ValueError(f"Experiment not found: {experiment_id}")
+
+        sensitivity = orm_run.sensitivity or []
+
+        with _tracer.start_as_current_span("generate-interview-guide"):
+            self.interview_guide_service.generate_from_simulation_sync(
+                experiment_id=experiment_id,
+                name=experiment.name,
+                hypothesis=experiment.hypothesis,
+                sensitivity=sensitivity,
+                description=getattr(experiment, "description", None),
+            )
+            self.logger.info(
+                f"Interview guide generated for: {experiment_id}"
+            )
+
+        return {"status": "ok", "experiment_id": experiment_id}
 
     def _generate_interpretations_sync(
         self,
@@ -555,7 +586,7 @@ class QuantitativeAnalysisService:
                 },
             ):
                 try:
-                    ai_text = self.llm.complete_json(
+                    ai_text = self.llm.complete(
                         messages=[
                             {"role": "system", "content": INTERP_SYSTEM_PROMPT},
                             {"role": "user", "content": user_msg},
@@ -662,7 +693,7 @@ class QuantitativeAnalysisService:
             "segments": segments,
             "sensitivity": sensitivity,
             "interpretations": interpretations,
-            "created_at": orm_run.created_at,
+            "created_at": orm_run.created_at.isoformat() if hasattr(orm_run.created_at, 'isoformat') else str(orm_run.created_at),
         }
 
     def _model_to_dict(self, orm_model) -> dict:
@@ -689,7 +720,7 @@ class QuantitativeAnalysisService:
             "intercept_sigma": orm_model.intercept_sigma,
             "nodes": orm_model.nodes,
             "edges": edges,
-            "created_at": orm_model.created_at,
+            "created_at": orm_model.created_at.isoformat() if hasattr(orm_model.created_at, 'isoformat') else str(orm_model.created_at),
         }
 
 

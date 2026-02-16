@@ -8,19 +8,24 @@ References:
     - SQLAlchemy 2.0: https://docs.sqlalchemy.org/en/20/orm/relationships.html
 """
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from synth_lab.models.orm.base import Base, JSONVariant, TimestampMixin
+from synth_lab.models.orm.base import Base
+
+# Fresh JSON type (not shared with MutableDict in base.py)
+_JSONVariant = JSON().with_variant(JSONB(), "postgresql")
 
 if TYPE_CHECKING:
     from synth_lab.models.orm.causal_model import CausalModel
     from synth_lab.models.orm.experiment import Experiment
 
 
-class SimulationRun(Base, TimestampMixin):
+class SimulationRun(Base):
     """
     Monte Carlo simulation run result.
 
@@ -54,11 +59,14 @@ class SimulationRun(Base, TimestampMixin):
     )
     n_iterations: Mapped[int] = mapped_column(Integer, nullable=False, default=3000)
     n_synths: Mapped[int] = mapped_column(Integer, nullable=False)
-    selections: Mapped[dict] = mapped_column(JSONVariant, nullable=False)
-    stats: Mapped[dict] = mapped_column(JSONVariant, nullable=False)
-    distribution: Mapped[list] = mapped_column(JSONVariant, nullable=False)
-    segments: Mapped[dict] = mapped_column(JSONVariant, nullable=False)
-    sensitivity: Mapped[list] = mapped_column(JSONVariant, nullable=False)
+    selections: Mapped[dict] = mapped_column(_JSONVariant, nullable=False)
+    stats: Mapped[dict] = mapped_column(_JSONVariant, nullable=False)
+    distribution: Mapped[list] = mapped_column(_JSONVariant, nullable=False)
+    segments: Mapped[dict] = mapped_column(_JSONVariant, nullable=False)
+    sensitivity: Mapped[list] = mapped_column(_JSONVariant, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
     # Relationships
     experiment: Mapped["Experiment"] = relationship("Experiment", foreign_keys=[experiment_id])
@@ -81,7 +89,7 @@ class SimulationRun(Base, TimestampMixin):
         return f"<SimulationRun(id={self.id!r}, experiment_id={self.experiment_id!r})>"
 
 
-class AnalysisInterpretation(Base, TimestampMixin):
+class AnalysisInterpretation(Base):
     """
     AI-generated interpretation for a simulation result section.
 
@@ -109,6 +117,9 @@ class AnalysisInterpretation(Base, TimestampMixin):
     raw_text: Mapped[str] = mapped_column(Text, nullable=False)
     ai_text: Mapped[str] = mapped_column(Text, nullable=False)
     model: Mapped[str] = mapped_column(String(50), nullable=False, default="gpt-4o-mini")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
     # Relationships
     simulation_run: Mapped["SimulationRun"] = relationship(

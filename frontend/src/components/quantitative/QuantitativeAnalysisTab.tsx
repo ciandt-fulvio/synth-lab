@@ -1,15 +1,15 @@
 /**
  * QuantitativeAnalysisTab container component.
  *
- * Orchestrates the causal model + simulation workflow:
+ * Orchestrates the causal model workflow:
  * 1. Empty state → "Gerar Modelo" button
  * 2. Loading → spinner during LLM generation
  * 3. Model view → CausalDAGView + LikertAssertions side-by-side
- * 4. Simulate button → SimulationResults below model
+ * 4. Simulate button at bottom
  *
  * References:
  *   - Hooks: src/hooks/use-quantitative-analysis.ts
- *   - Components: CausalDAGView, LikertAssertions, SimulationResults
+ *   - Components: CausalDAGView, LikertAssertions
  */
 
 import { useState, useCallback } from 'react';
@@ -25,7 +25,6 @@ import {
 } from '@/hooks/use-quantitative-analysis';
 import { CausalDAGView } from './CausalDAGView';
 import { LikertAssertions } from './LikertAssertions';
-import { SimulationResults } from './SimulationResults';
 
 interface QuantitativeAnalysisTabProps {
   experimentId: string;
@@ -33,6 +32,7 @@ interface QuantitativeAnalysisTabProps {
 
 export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTabProps) {
   const [activeEdgeId, setActiveEdgeId] = useState<string | null>(null);
+  const [selectionsChanged, setSelectionsChanged] = useState(false);
 
   const { data: model, isLoading, isError, error } = useCausalModel(experimentId);
   const generateMutation = useGenerateCausalModel();
@@ -55,7 +55,8 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
   const handleSimulate = () => {
     simulateMutation.mutate(experimentId, {
       onSuccess: () => {
-        toast.success('Simulação concluída');
+        setSelectionsChanged(false);
+        toast.success('Simulação concluída — veja os resultados na aba Simulação');
       },
       onError: (err) => {
         const message = err instanceof Error ? err.message : 'Erro na simulação';
@@ -66,6 +67,7 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
 
   const handleSelectionsChange = useCallback(
     (selections: Record<string, number>) => {
+      setSelectionsChanged(true);
       updateMutation.mutate(selections, {
         onError: (err) => {
           const message = err instanceof Error ? err.message : 'Erro ao salvar';
@@ -80,10 +82,6 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
     setActiveEdgeId((prev) => (prev === edgeId ? null : edgeId));
   }, []);
 
-  const handleEdgeFocus = useCallback((edgeId: string | null) => {
-    setActiveEdgeId(edgeId);
-  }, []);
-
   // Loading state (initial fetch)
   if (isLoading) {
     return (
@@ -95,7 +93,8 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
   }
 
   // Error state (not 404 — real errors)
-  if (isError && error && !error.message?.includes('404')) {
+  const is404 = (error as any)?.status === 404 || error?.message?.includes('No causal model');
+  if (isError && error && !is404) {
     return (
       <div className="text-center py-12">
         <BarChart3 className="w-10 h-10 text-red-300 mx-auto mb-3" />
@@ -144,7 +143,7 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
     );
   }
 
-  // Model loaded — show DAG + Likert + simulation
+  // Model loaded — show DAG + Likert + simulate button
   return (
     <div className="space-y-6">
       {/* Model header */}
@@ -155,40 +154,20 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
             {model.nodes.length} nós, {model.edges.length} arestas
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleGenerate}
-            disabled={generateMutation.isPending}
-            className="text-slate-600"
-          >
-            {generateMutation.isPending ? (
-              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4 mr-1" />
-            )}
-            Regenerar
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleSimulate}
-            disabled={simulateMutation.isPending}
-            className="btn-primary"
-          >
-            {simulateMutation.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                Simulando...
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4 mr-1" />
-                Simular
-              </>
-            )}
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleGenerate}
+          disabled={generateMutation.isPending}
+          className="text-slate-600"
+        >
+          {generateMutation.isPending ? (
+            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4 mr-1" />
+          )}
+          Gerar novamente
+        </Button>
       </div>
 
       {/* DAG + Likert side by side */}
@@ -207,24 +186,31 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
           <LikertAssertions
             edges={model.edges}
             activeEdgeId={activeEdgeId}
-            onEdgeFocus={handleEdgeFocus}
             onSelectionsChange={handleSelectionsChange}
           />
         </div>
       </div>
 
-      {/* Simulation results */}
-      {simulateMutation.isPending && (
-        <div className="text-center py-8 rounded-xl border border-slate-200 bg-white">
-          <Loader2 className="w-8 h-8 text-indigo-500 mx-auto mb-3 animate-spin" />
-          <p className="text-slate-600 font-medium">Executando simulação Monte Carlo...</p>
-          <p className="text-sm text-slate-400 mt-1">Isso pode levar alguns segundos</p>
-        </div>
-      )}
-
-      {simulationRun && !simulateMutation.isPending && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6">
-          <SimulationResults run={simulationRun} />
+      {/* Simulate button — bottom (show if no simulation yet OR if selections changed) */}
+      {(!simulationRun || selectionsChanged) && (
+        <div className="flex items-center justify-end pt-2 border-t border-slate-100">
+          <Button
+            onClick={handleSimulate}
+            disabled={simulateMutation.isPending}
+            className="btn-primary"
+          >
+            {simulateMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Simulando...
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4 mr-2" />
+                {simulationRun ? 'Simular novamente' : 'Simular'}
+              </>
+            )}
+          </Button>
         </div>
       )}
     </div>

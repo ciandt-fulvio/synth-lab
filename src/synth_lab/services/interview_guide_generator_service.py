@@ -337,9 +337,9 @@ Responda APENAS com o JSON, sem explicações adicionais."""
     ) -> InterviewGuide:
         """Generate interview guide from quantitative analysis simulation results.
 
-        Uses the QUESTIONNAIRE_SYSTEM prompt (Apêndice C) with the top 3 most
-        impactful premisses from sensitivity analysis. Overwrites any existing
-        guide silently.
+        Uses the QUESTIONNAIRE_SYSTEM prompt (Malhotra methodology) with the top 3
+        most impactful premisses from sensitivity analysis. Outputs rich markdown
+        questionnaire. Overwrites any existing guide silently.
 
         Args:
             experiment_id: ID of the experiment.
@@ -361,71 +361,81 @@ Responda APENAS com o JSON, sem explicações adicionais."""
             # Take top 3 most impactful premisses
             top_3 = sensitivity[:3]
             premisses_text = "\n".join(
-                f"- {item['header']} (impact: {item['impact']:.2f}pp, "
-                f"range: {item['mean_low']:.1f}%–{item['mean_high']:.1f}%)"
+                f"- {item['header']} (impacto: {item['impact']:.2f}pp, "
+                f"faixa: {item['mean_low']:.1f}%–{item['mean_high']:.1f}%)"
                 for item in top_3
             )
 
             description_text = description or "Não fornecida"
 
-            prompt = f"""You are an expert in marketing research following Naresh Malhotra's "Marketing Research: An Applied Orientation".
+            system_prompt = """Você é especialista em pesquisa de marketing seguindo o livro "Pesquisa de Marketing: Uma Orientação Aplicada" de Naresh Malhotra.
 
-CONTEXT: A product manager ran a causal simulation for a product experiment. They need a FIELD QUESTIONNAIRE to validate the most critical assumptions with real users BEFORE running the experiment.
+CONTEXTO: Um product manager rodou uma simulação causal para um experimento de produto. Ele precisa de um QUESTIONÁRIO DE CAMPO para validar as premissas mais críticas com usuários reais ANTES de rodar o experimento.
 
-EXPERIMENT:
-- Name: {name}
-- Hypothesis: {hypothesis}
-- Description: {description_text}
+RESTRIÇÕES CRÍTICAS:
+- A entrevista é MEDIADA por um entrevistador treinado que pode adaptar e aprofundar conforme necessário.
+- Cada respondente JÁ possui uma ficha demográfica completa (idade, renda, escolaridade, família, deficiências). NÃO inclua NENHUMA pergunta demográfica, de triagem ou de perfil.
+- Produza EXATAMENTE 3 perguntas — nem mais, nem menos.
+- Direcione para as 3 premissas de MAIOR IMPACTO da análise de sensibilidade.
 
-TOP 3 MOST IMPACTFUL PREMISSES (from sensitivity analysis):
-{premisses_text}
+METODOLOGIA MALHOTRA (aplique rigorosamente):
+- Cap. 10 (Design do Questionário): Abordagem funil — do amplo ao específico. Com 3 perguntas:
+  * P1: Aberta / qualitativa (cap.9 não-estruturada — aflora linguagem natural, dá ao entrevistador espaço para aprofundar a variável de maior impacto)
+  * P2: Baseada em cenário com escolha forçada (cap.9 escalas não-comparativas — apresenta um hipotético concreto, testa a 2ª relação causal diretamente)
+  * P3: Escala de intenção comportamental (cap.9 Likert/intenção — captura probabilidade de adoção, ancorada em uma experiência descrita específica)
+- Cap. 10 (Redação): Sem perguntas indutivas, sem duplo sentido, sem jargão. Português BR simples e conversacional.
+- Cap. 9 (Triangulação): Cada pergunta usa uma técnica de medição DIFERENTE para validação cruzada.
 
-CRITICAL CONSTRAINTS:
-- The interview is MEDIATED by a trained interviewer who can adapt and probe as needed.
-- Each respondent ALREADY has a complete demographic file (age, income, education, family, disabilities). DO NOT include ANY demographic, screening, or profiling questions.
-- Output EXACTLY 3 questions — no more, no less.
-- Target the TOP 3 most impactful premisses from the sensitivity analysis.
+FORMATO DE SAÍDA (Português BR, Markdown):
 
-MALHOTRA METHODOLOGY (apply strictly):
-- Ch. 10 (Questionnaire Design): Funnel approach — broad to narrow. With 3 questions:
-  * Q1: Open-ended / qualitative (ch.9 unstructured)
-  * Q2: Scenario-based with forced choice (ch.9 non-comparative scaling)
-  * Q3: Behavioral intention scale (ch.9 Likert/intention)
-- Ch. 10 (Wording): No leading questions, no double-barreled, no jargon. Simple conversational Portuguese BR.
-- Ch. 9 (Triangulation): Each question uses a DIFFERENT measurement technique to cross-validate.
+Para cada pergunta:
+### Pergunta N
+**Texto:** [a pergunta, em tom conversacional]
+**Valida:** [NóA → NóB]
+**O que escutar:**
+- [sinal que CONFIRMA a premissa]
+- [sinal que REFUTA a premissa]
+- [sinal ambíguo que vale aprofundar]
+**Dica para o entrevistador:** [uma frase sobre como aprofundar]
 
-OUTPUT FORMAT — JSON with interview_guide fields:
-{{
-  "context_definition": "2-3 sentences describing the research scenario and what to understand from users",
-  "questions": "Central theme + the 3 questions formatted as: Q1 (aberta): [text] | Q2 (cenário): [text] | Q3 (intenção): [text]",
-  "context_examples": "positive_1|positive_2|neutral_1|neutral_2|negative_1|negative_2"
-}}
+Após as 3 perguntas:
+### Nota para o Entrevistador
+- Justificativa da ordem (funil conforme Malhotra cap.10)
+- Principal viés a observar neste contexto específico de entrevista
+- Como cada resposta se mapeia de volta à simulação (qual premissa Likert ajustar para cima ou para baixo, e o que isso significa para a estimativa de adoção)
 
-RULES FOR context_examples:
-- 2 POSITIVE examples: realistic good experiences related to the experiment
-- 2 NEUTRAL examples: everyday/common experiences
-- 2 NEGATIVE examples: frustrating experiences
-- Separated by pipe (|)
-- Each is a realistic, conversational story in Portuguese BR
+Responda APENAS com o questionário em Markdown. Sem preâmbulo, sem metacomentário."""
 
-Respond ONLY with the JSON, no additional explanation."""
+            user_prompt = f"""EXPERIMENTO:
+- Nome: {name}
+- Hipótese: {hypothesis}
+- Descrição: {description_text}
+
+3 PREMISSAS DE MAIOR IMPACTO (da análise de sensibilidade):
+{premisses_text}"""
 
             self.logger.info(
                 f"Generating interview guide from simulation for: {name}"
             )
 
             try:
-                response = self.llm.complete_json(
-                    messages=[{"role": "user", "content": prompt}],
+                markdown_response = self.llm.complete(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
                     model="gpt-5.1",
                     temperature=0.7,
                     operation_name="Interview Guide Generation (Quantitative)",
                 )
 
-                data = json.loads(response)
-                for field in ("questions", "context_definition", "context_examples"):
-                    if field not in data:
-                        raise ValueError(f"Missing required field: {field}")
+                # Strip any leading/trailing whitespace
+                markdown_content = markdown_response.strip()
+
+                if not markdown_content or len(markdown_content) < 50:
+                    raise ValueError(
+                        "LLM returned empty or too short response for questionnaire"
+                    )
 
                 now = datetime.now(timezone.utc)
 
@@ -439,11 +449,19 @@ Respond ONLY with the JSON, no additional explanation."""
                         f"Overwrote existing interview guide for: {experiment_id}"
                     )
 
+                # Store the full markdown in `questions` field.
+                # context_definition and context_examples are set to brief
+                # summaries for compatibility with the interview runner.
+                context_def = (
+                    f"Questionário de campo para validar premissas críticas "
+                    f"do experimento '{name}'. Hipótese: {hypothesis}"
+                )
+
                 guide = InterviewGuide(
                     experiment_id=experiment_id,
-                    context_definition=data["context_definition"],
-                    questions=data["questions"],
-                    context_examples=data["context_examples"],
+                    context_definition=context_def,
+                    questions=markdown_content,
+                    context_examples="",
                     created_at=now,
                     updated_at=None,
                 )
@@ -454,11 +472,6 @@ Respond ONLY with the JSON, no additional explanation."""
                 )
                 return created_guide
 
-            except json.JSONDecodeError as e:
-                self.logger.error(f"Failed to parse LLM response as JSON: {e}")
-                raise ValueError(
-                    f"Invalid JSON response from LLM: {e}"
-                ) from e
             except Exception as e:
                 self.logger.error(
                     f"Interview guide generation from simulation failed: {e}"

@@ -6,8 +6,9 @@
  * - Center: mediator nodes
  * - Right: outcome node
  *
- * Edges rendered as quadratic bezier curves.
- * Stroke width proportional to mu. Color: blue (direction=1), orange (direction=-1).
+ * Nodes are rounded rectangles with multi-line text (up to 3 lines).
+ * Edges: quadratic bezier curves. Stroke width AND color vary by mu
+ * (lighter blue = weak, darker blue = strong).
  *
  * References:
  *   - Types: src/types/quantitative-analysis.ts
@@ -62,10 +63,20 @@ function classifyNodes(
   return layerMap;
 }
 
-const SVG_WIDTH = 700;
-const SVG_HEIGHT = 400;
-const NODE_RADIUS = 28;
-const LAYER_X = [100, 350, 600]; // x positions for 3 layers
+const SVG_WIDTH = 820;
+const SVG_HEIGHT = 420;
+const NODE_W = 110;
+const NODE_H = 52;
+const NODE_RX = 10;
+const LAYER_X = [80, 410, 740]; // x positions for 3 layers
+
+/** Blue shades by mu intensity: 0 (weak) → 4 (strong). */
+const EDGE_COLORS = ['#bfdbfe', '#60a5fa', '#3b82f6', '#2563eb', '#1e40af'];
+const ACTIVE_COLOR = '#1e3a8a';
+
+function muToColorIndex(mu: number): number {
+  return Math.min(Math.floor(mu * EDGE_COLORS.length), EDGE_COLORS.length - 1);
+}
 
 function layoutNodes(
   nodes: string[],
@@ -97,8 +108,32 @@ function layoutNodes(
   return positions;
 }
 
-function truncateLabel(label: string, maxLen = 14): string {
-  return label.length > maxLen ? `${label.slice(0, maxLen - 1)}...` : label;
+/** Break label into lines of up to maxChars, max 3 lines. */
+function wrapLabel(label: string, maxChars = 13): string[] {
+  const words = label.split(/\s+/);
+  const lines: string[] = [];
+  let current = '';
+
+  for (const word of words) {
+    if (lines.length >= 3) break;
+    const test = current ? `${current} ${word}` : word;
+    if (test.length <= maxChars || !current) {
+      current = test;
+    } else {
+      lines.push(current);
+      current = word;
+    }
+  }
+  if (current && lines.length < 3) {
+    lines.push(current);
+  }
+  // Truncate last line if overflow
+  const last = lines.length - 1;
+  if (last >= 0 && lines[last].length > maxChars) {
+    lines[last] = lines[last].slice(0, maxChars - 1) + '\u2026';
+  }
+
+  return lines;
 }
 
 export function CausalDAGView({ model, activeEdgeId, onEdgeClick }: CausalDAGViewProps) {
@@ -113,11 +148,26 @@ export function CausalDAGView({ model, activeEdgeId, onEdgeClick }: CausalDAGVie
       <svg
         viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
         className="w-full h-auto min-w-[500px]"
-        style={{ maxHeight: '420px' }}
+        style={{ maxHeight: '440px' }}
       >
         <defs>
+          {/* One arrow marker per color tier + active */}
+          {EDGE_COLORS.map((color, i) => (
+            <marker
+              key={`arrow-${i}`}
+              id={`arrow-${i}`}
+              viewBox="0 0 10 6"
+              refX="10"
+              refY="3"
+              markerWidth="8"
+              markerHeight="6"
+              orient="auto-start-reverse"
+            >
+              <path d="M 0 0 L 10 3 L 0 6 z" fill={color} />
+            </marker>
+          ))}
           <marker
-            id="arrowBlue"
+            id="arrow-active"
             viewBox="0 0 10 6"
             refX="10"
             refY="3"
@@ -125,40 +175,7 @@ export function CausalDAGView({ model, activeEdgeId, onEdgeClick }: CausalDAGVie
             markerHeight="6"
             orient="auto-start-reverse"
           >
-            <path d="M 0 0 L 10 3 L 0 6 z" fill="#3b82f6" />
-          </marker>
-          <marker
-            id="arrowOrange"
-            viewBox="0 0 10 6"
-            refX="10"
-            refY="3"
-            markerWidth="8"
-            markerHeight="6"
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 0 L 10 3 L 0 6 z" fill="#f59e0b" />
-          </marker>
-          <marker
-            id="arrowBlueActive"
-            viewBox="0 0 10 6"
-            refX="10"
-            refY="3"
-            markerWidth="8"
-            markerHeight="6"
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 0 L 10 3 L 0 6 z" fill="#1d4ed8" />
-          </marker>
-          <marker
-            id="arrowOrangeActive"
-            viewBox="0 0 10 6"
-            refX="10"
-            refY="3"
-            markerWidth="8"
-            markerHeight="6"
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 0 L 10 3 L 0 6 z" fill="#d97706" />
+            <path d="M 0 0 L 10 3 L 0 6 z" fill={ACTIVE_COLOR} />
           </marker>
         </defs>
 
@@ -169,42 +186,28 @@ export function CausalDAGView({ model, activeEdgeId, onEdgeClick }: CausalDAGVie
           if (!from || !to) return null;
 
           const isActive = activeEdgeId === edge.id;
-          const isAnswered = edge.selected_option !== null;
-          const selectedMu = isAnswered
+          const selectedMu = edge.selected_option !== null
             ? edge.options[edge.selected_option!].mu
             : edge.options[edge.default_option].mu;
+
+          const colorIdx = muToColorIndex(selectedMu);
+          const color = isActive ? ACTIVE_COLOR : EDGE_COLORS[colorIdx];
           const strokeWidth = 1.5 + selectedMu * 3.5;
-          const baseColor = edge.direction === 1 ? '#3b82f6' : '#f59e0b';
-          const activeColor = edge.direction === 1 ? '#1d4ed8' : '#d97706';
-          const color = isActive ? activeColor : baseColor;
-          const opacity = isActive ? 1 : isAnswered ? 0.85 : 0.5;
-          const markerEnd = isActive
-            ? edge.direction === 1
-              ? 'url(#arrowBlueActive)'
-              : 'url(#arrowOrangeActive)'
-            : edge.direction === 1
-              ? 'url(#arrowBlue)'
-              : 'url(#arrowOrange)';
+          const opacity = isActive ? 1 : 0.85;
+          const markerEnd = isActive ? 'url(#arrow-active)' : `url(#arrow-${colorIdx})`;
+
+          // Connect right edge of source → left edge of target
+          const fromX = from.x + NODE_W / 2;
+          const fromY = from.y;
+          const toX = to.x - NODE_W / 2;
+          const toY = to.y;
 
           // Quadratic bezier: control point midway-x, midway-y offset
-          const midX = (from.x + to.x) / 2;
-          const midY = (from.y + to.y) / 2;
-          const offsetY = (from.y - to.y) * 0.3;
+          const midX = (fromX + toX) / 2;
+          const midY = (fromY + toY) / 2;
+          const offsetY = (fromY - toY) * 0.25;
           const cx = midX;
           const cy = midY - offsetY;
-
-          // Shorten path to stop at node edge
-          const dx = to.x - cx;
-          const dy = to.y - cy;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          const toX = to.x - (dx / dist) * (NODE_RADIUS + 6);
-          const toY = to.y - (dy / dist) * (NODE_RADIUS + 6);
-
-          const dxStart = cx - from.x;
-          const dyStart = cy - from.y;
-          const distStart = Math.sqrt(dxStart * dxStart + dyStart * dyStart);
-          const fromX = from.x + (dxStart / distStart) * (NODE_RADIUS + 2);
-          const fromY = from.y + (dyStart / distStart) * (NODE_RADIUS + 2);
 
           return (
             <g
@@ -212,6 +215,13 @@ export function CausalDAGView({ model, activeEdgeId, onEdgeClick }: CausalDAGVie
               className="cursor-pointer"
               onClick={() => onEdgeClick?.(edge.id)}
             >
+              {/* Hit area (invisible wider path for easier clicking) */}
+              <path
+                d={`M ${fromX} ${fromY} Q ${cx} ${cy} ${toX} ${toY}`}
+                fill="none"
+                stroke="transparent"
+                strokeWidth={Math.max(strokeWidth + 8, 12)}
+              />
               <path
                 d={`M ${fromX} ${fromY} Q ${cx} ${cy} ${toX} ${toY}`}
                 fill="none"
@@ -240,42 +250,44 @@ export function CausalDAGView({ model, activeEdgeId, onEdgeClick }: CausalDAGVie
           if (!pos) return null;
 
           const layer = layerMap.get(node) ?? 1;
-          const bgColors = [
-            'fill-slate-100 stroke-slate-300',
-            'fill-violet-50 stroke-violet-300',
-            'fill-emerald-50 stroke-emerald-300',
-          ];
-          const textColors = ['text-slate-700', 'text-violet-700', 'text-emerald-700'];
+          const fills = ['#f1f5f9', '#f5f3ff', '#ecfdf5']; // slate-100, violet-50, emerald-50
+          const strokes = ['#cbd5e1', '#c4b5fd', '#6ee7b7']; // slate-300, violet-300, emerald-300
+          const textFills = ['#334155', '#5b21b6', '#047857']; // slate-700, violet-800, emerald-700
+
+          const lines = wrapLabel(node);
+          const lineHeight = 14;
+          const textBlockHeight = lines.length * lineHeight;
+          const startY = pos.y - textBlockHeight / 2 + lineHeight / 2;
 
           return (
             <g key={node}>
-              <circle
-                cx={pos.x}
-                cy={pos.y}
-                r={NODE_RADIUS}
-                className={bgColors[layer]}
+              <rect
+                x={pos.x - NODE_W / 2}
+                y={pos.y - NODE_H / 2}
+                width={NODE_W}
+                height={NODE_H}
+                rx={NODE_RX}
+                ry={NODE_RX}
+                fill={fills[layer]}
+                stroke={strokes[layer]}
                 strokeWidth={1.5}
               />
               <text
                 x={pos.x}
-                y={pos.y}
                 textAnchor="middle"
-                dominantBaseline="central"
-                className={`text-[10px] font-medium ${textColors[layer]} pointer-events-none`}
+                fill={textFills[layer]}
+                className="text-[11.5px] font-medium pointer-events-none"
               >
-                {truncateLabel(node)}
+                {lines.map((line, i) => (
+                  <tspan key={i} x={pos.x} y={startY + i * lineHeight}>
+                    {line}
+                  </tspan>
+                ))}
               </text>
             </g>
           );
         })}
 
-        {/* Legend */}
-        <g transform="translate(10, 375)">
-          <line x1="0" y1="0" x2="20" y2="0" stroke="#3b82f6" strokeWidth="2" />
-          <text x="24" y="4" className="text-[9px] fill-slate-500">Positivo (+)</text>
-          <line x1="100" y1="0" x2="120" y2="0" stroke="#f59e0b" strokeWidth="2" />
-          <text x="124" y="4" className="text-[9px] fill-slate-500">Negativo (-)</text>
-        </g>
       </svg>
     </div>
   );

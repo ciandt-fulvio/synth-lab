@@ -68,10 +68,44 @@ export async function runSimulation(
 }
 
 /**
+ * Generate interview guide from the latest simulation sensitivity results.
+ *
+ * Overwrites any existing guide for this experiment.
+ */
+export async function generateInterviewGuide(
+  experimentId: string
+): Promise<{ status: string }> {
+  return fetchAPI(`/experiments/${experimentId}/quantitative-analysis/generate-interview-guide`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * Get the interview guide for an experiment, formatted as markdown.
+ * Returns null if no guide exists (404).
+ */
+export async function getInterviewGuide(
+  experimentId: string
+): Promise<{ markdown_content: string } | null> {
+  try {
+    return await fetchAPI<{ markdown_content: string }>(`/experiments/${experimentId}/interview-guide`);
+  } catch (err: any) {
+    if (err?.status === 404) return null;
+    throw err;
+  }
+}
+
+/**
  * Get results from the latest simulation run.
+ * Returns null if no simulation has been run yet (404).
  */
 export async function getSimulationResults(
   experimentId: string
-): Promise<SimulationRun> {
-  return fetchAPI(`/experiments/${experimentId}/quantitative-analysis/results`);
+): Promise<SimulationRun | null> {
+  try {
+    return await fetchAPI<SimulationRun>(`/experiments/${experimentId}/quantitative-analysis/results`);
+  } catch (err: any) {
+    if (err?.status === 404) return null;
+    throw err;
+  }
 }

@@ -2,14 +2,15 @@
  * SegmentCards component.
  *
  * Displays adoption rates segmented by age, income, and education.
- * Each dimension shows buckets with rate, count, and color gradient.
+ * Cards are ordered from lowest to highest category within each dimension.
+ * Only the card with the highest rate in each dimension gets a green border.
  *
  * References:
  *   - Types: src/types/quantitative-analysis.ts (Segments, SegmentResult)
- *   - Spec: specs/042-quantitative-analysis/spec.md
+ *   - Style: matches StatCard from DistributionChart (gray border, bold number)
  */
 
-import { Users, TrendingUp, GraduationCap, Wallet } from 'lucide-react';
+import { Users, GraduationCap, Wallet } from 'lucide-react';
 import type { Segments, Interpretation } from '@/types/quantitative-analysis';
 
 interface SegmentCardsProps {
@@ -36,19 +37,17 @@ const BUCKET_LABELS: Record<string, string> = {
   'alta': 'Alta',
 };
 
-function getRateColor(rate: number): string {
-  if (rate >= 60) return 'bg-emerald-50 border-emerald-200 text-emerald-700';
-  if (rate >= 40) return 'bg-blue-50 border-blue-200 text-blue-700';
-  if (rate >= 20) return 'bg-amber-50 border-amber-200 text-amber-700';
-  return 'bg-red-50 border-red-200 text-red-700';
-}
-
-function getRateBarColor(rate: number): string {
-  if (rate >= 60) return 'bg-emerald-500';
-  if (rate >= 40) return 'bg-blue-500';
-  if (rate >= 20) return 'bg-amber-500';
-  return 'bg-red-500';
-}
+/** Sort order within each dimension (lowest → highest category). */
+const BUCKET_ORDER: Record<string, number> = {
+  // Age
+  '18-29': 0,
+  '30-49': 1,
+  '50+': 2,
+  // Income & Education
+  'baixa': 0,
+  'media': 1,
+  'alta': 2,
+};
 
 export function SegmentCards({ segments, interpretation }: SegmentCardsProps) {
   return (
@@ -57,21 +56,34 @@ export function SegmentCards({ segments, interpretation }: SegmentCardsProps) {
         const dimension = segments[key];
         if (!dimension) return null;
 
+        const entries = Object.entries(dimension).sort(
+          ([a], [b]) => (BUCKET_ORDER[a] ?? 99) - (BUCKET_ORDER[b] ?? 99)
+        );
+
+        // Find the bucket with the highest rate
+        const maxRate = Math.max(...entries.map(([, r]) => r.rate));
+
         return (
           <div key={key}>
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-2">
               <Icon className="w-4 h-4 text-slate-500" />
               <h4 className="text-sm font-medium text-slate-700">{label}</h4>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {Object.entries(dimension).map(([bucket, result]) => (
-                <SegmentCard
+              {entries.map(([bucket, result]) => (
+                <div
                   key={bucket}
-                  bucket={BUCKET_LABELS[bucket] ?? bucket}
-                  rate={result.rate}
-                  count={result.count}
-                />
+                  className={`rounded-lg border px-3 py-2 ${
+                    result.rate === maxRate
+                      ? 'border-emerald-400 bg-white'
+                      : 'border-slate-200 bg-white'
+                  }`}
+                >
+                  <p className="text-xs text-slate-500">{BUCKET_LABELS[bucket] ?? bucket}</p>
+                  <p className="text-lg font-semibold text-slate-800">{result.rate.toFixed(1)}%</p>
+                  <p className="text-[11px] text-slate-400">{result.count} synths</p>
+                </div>
               ))}
             </div>
           </div>
@@ -89,27 +101,6 @@ export function SegmentCards({ segments, interpretation }: SegmentCardsProps) {
           </p>
         </div>
       )}
-    </div>
-  );
-}
-
-function SegmentCard({ bucket, rate, count }: { bucket: string; rate: number; count: number }) {
-  return (
-    <div className={`rounded-lg border p-3 ${getRateColor(rate)}`}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium opacity-80">{bucket}</span>
-        <TrendingUp className="w-3.5 h-3.5 opacity-60" />
-      </div>
-      <p className="text-2xl font-bold">{rate.toFixed(1)}%</p>
-      <div className="mt-2">
-        <div className="w-full h-1.5 rounded-full bg-white/50">
-          <div
-            className={`h-1.5 rounded-full ${getRateBarColor(rate)}`}
-            style={{ width: `${Math.min(rate, 100)}%` }}
-          />
-        </div>
-        <p className="text-xs mt-1 opacity-70">{count} synths</p>
-      </div>
     </div>
   );
 }

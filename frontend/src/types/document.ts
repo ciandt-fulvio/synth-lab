@@ -12,7 +12,8 @@ export type DocumentType =
   | 'exploration_prfaq'
   | 'research_summary'
   | 'research_prfaq'
-  | 'executive_summary';
+  | 'executive_summary'
+  | 'interview_guide';
 
 export type DocumentStatus = 'pending' | 'generating' | 'completed' | 'failed' | 'partial';
 
@@ -84,6 +85,7 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   research_summary: 'Resumo de Entrevista',
   research_prfaq: 'PR-FAQ de Entrevista',
   executive_summary: 'Análise Quantitativa',
+  interview_guide: 'Roteiro de Entrevista',
 };
 
 /**
@@ -95,4 +97,5 @@ export const DOCUMENT_TYPE_ICONS: Record<DocumentType, string> = {
   research_summary: 'Users',
   research_prfaq: 'Newspaper',
   executive_summary: 'Sparkles',
+  interview_guide: 'FileText',
 };

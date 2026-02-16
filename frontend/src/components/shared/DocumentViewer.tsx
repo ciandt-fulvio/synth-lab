@@ -72,6 +72,8 @@ function getDocumentIcon(documentType: DocumentType) {
       return <Newspaper className="h-5 w-5 text-violet-600" />;
     case 'executive_summary':
       return <Sparkles className="h-5 w-5 text-amber-600" />;
+    case 'interview_guide':
+      return <FileText className="h-5 w-5 text-violet-600" />;
     default:
       return <FileText className="h-5 w-5 text-slate-600" />;
   }

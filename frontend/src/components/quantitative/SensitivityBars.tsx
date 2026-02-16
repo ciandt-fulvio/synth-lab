@@ -16,7 +16,6 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
   Cell,
 } from 'recharts';
@@ -31,27 +30,56 @@ const IMPACT_COLORS = [
   '#e0e7ff', // indigo-100
 ];
 
+const YAXIS_WIDTH = 420;
+const MAX_CHARS_PER_LINE = 55;
+
+/** Split text into up to 2 lines, breaking at word boundaries */
+function wrapLabel(text: string): string[] {
+  if (text.length <= MAX_CHARS_PER_LINE) return [text];
+  // Find a good break point near the limit
+  const breakAt = text.lastIndexOf(' ', MAX_CHARS_PER_LINE);
+  const splitPos = breakAt > MAX_CHARS_PER_LINE * 0.4 ? breakAt : MAX_CHARS_PER_LINE;
+  const line1 = text.substring(0, splitPos);
+  let line2 = text.substring(splitPos).trimStart();
+  if (line2.length > MAX_CHARS_PER_LINE) {
+    line2 = line2.substring(0, MAX_CHARS_PER_LINE - 1) + '\u2026';
+  }
+  return [line1, line2];
+}
+
+/** Custom Y-axis tick that renders up to 2 lines */
+function YAxisTick({ x, y, payload }: { x: number; y: number; payload: { value: string } }) {
+  const lines = wrapLabel(payload.value);
+  const isMultiLine = lines.length > 1;
+  return (
+    <text x={x - 6} y={y} textAnchor="end" fontSize={11} fill="#475569">
+      {isMultiLine ? (
+        <>
+          <tspan x={x - 6} dy="-0.4em">{lines[0]}</tspan>
+          <tspan x={x - 6} dy="1.2em">{lines[1]}</tspan>
+        </>
+      ) : (
+        <tspan dy="0.35em">{lines[0]}</tspan>
+      )}
+    </text>
+  );
+}
+
 interface SensitivityBarsProps {
   sensitivity: SensitivityItem[];
   interpretation?: Interpretation;
 }
 
 export function SensitivityBars({ sensitivity, interpretation }: SensitivityBarsProps) {
-  const chartData = sensitivity.map((item) => ({
-    ...item,
-    // Truncate long headers for chart display
-    shortHeader: item.header.length > 40 ? item.header.substring(0, 37) + '...' : item.header,
-  }));
-
   const maxImpact = Math.max(...sensitivity.map((s) => s.impact), 1);
 
   return (
     <div className="space-y-4">
       {/* Chart */}
-      <div style={{ height: Math.max(sensitivity.length * 48 + 40, 200) }}>
+      <div style={{ height: Math.max(sensitivity.length * 56 + 40, 200) }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            data={chartData}
+            data={sensitivity}
             layout="vertical"
             margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
           >
@@ -63,21 +91,13 @@ export function SensitivityBars({ sensitivity, interpretation }: SensitivityBars
               tickFormatter={(v: number) => `${v.toFixed(1)}pp`}
             />
             <YAxis
-              dataKey="shortHeader"
+              dataKey="header"
               type="category"
-              width={180}
-              tick={{ fontSize: 11 }}
+              width={YAXIS_WIDTH}
+              tick={YAxisTick as unknown as React.ComponentType}
             />
-            <Tooltip
-              formatter={(value: number) => [`${value.toFixed(2)}pp`, 'Impacto']}
-              labelFormatter={(_label: string, payload: Array<{ payload: SensitivityItem }>) => {
-                const item = payload?.[0]?.payload;
-                if (!item) return '';
-                return `${item.header}\nBaixo: ${item.mean_low.toFixed(1)}% → Alto: ${item.mean_high.toFixed(1)}%`;
-              }}
-            />
-            <Bar dataKey="impact" radius={[0, 4, 4, 0]}>
-              {chartData.map((_, index) => (
+            <Bar dataKey="impact" radius={[0, 4, 4, 0]} isAnimationActive={false}>
+              {sensitivity.map((_, index) => (
                 <Cell
                   key={index}
                   fill={IMPACT_COLORS[Math.min(index, IMPACT_COLORS.length - 1)]}

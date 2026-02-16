@@ -405,6 +405,43 @@ def get_research_service() -> ResearchService:
     return ResearchService()
 
 
+@router.get("/{experiment_id}/interview-guide")
+async def get_interview_guide(experiment_id: str) -> dict:
+    """Get the interview guide for an experiment formatted as markdown."""
+    with get_session() as session:
+        guide_repo = InterviewGuideRepository(session=session)
+        guide = guide_repo.get_by_experiment_id(experiment_id)
+
+    if guide is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No interview guide for experiment: {experiment_id}")
+
+    # If questions field starts with markdown heading (### Pergunta),
+    # it's the new format — return directly with a title header.
+    # Otherwise, assemble from separate fields (legacy format).
+    if guide.questions and guide.questions.strip().startswith("###"):
+        markdown = f"# Roteiro de Entrevista\n\n{guide.questions}"
+    else:
+        lines = ["# Roteiro de Entrevista\n"]
+        if guide.context_definition:
+            lines.append("## Contexto\n")
+            lines.append(f"{guide.context_definition}\n")
+        if guide.questions:
+            lines.append("## Perguntas\n")
+            lines.append(f"{guide.questions}\n")
+        if guide.context_examples:
+            lines.append("## Exemplos de Contexto\n")
+            for example in guide.context_examples.split("|"):
+                example = example.strip()
+                if example:
+                    lines.append(f"- {example}")
+            lines.append("")
+        markdown = "\n".join(lines)
+
+    return {"markdown_content": markdown}
+
+
 @router.post(
     "/{experiment_id}/interviews",
     response_model=ResearchExecuteResponse,

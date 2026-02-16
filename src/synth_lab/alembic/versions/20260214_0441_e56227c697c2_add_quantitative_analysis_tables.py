@@ -12,6 +12,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects.postgresql import JSONB
 
 # revision identifiers, used by Alembic
 revision: str = "e56227c697c2"
@@ -36,8 +37,8 @@ def upgrade() -> None:
         sa.Column("label", sa.String(200), nullable=False),
         sa.Column("intercept_mu", sa.Float, nullable=False),
         sa.Column("intercept_sigma", sa.Float, nullable=False),
-        sa.Column("nodes", sa.JSON, nullable=False),
-        sa.Column("raw_llm_response", sa.JSON, nullable=True),
+        sa.Column("nodes", JSONB, nullable=False),
+        sa.Column("raw_llm_response", JSONB, nullable=True),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -66,7 +67,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("header", sa.Text, nullable=False),
-        sa.Column("options", sa.JSON, nullable=False),
+        sa.Column("options", JSONB, nullable=False),
         sa.Column(
             "default_option",
             sa.SmallInteger,
@@ -95,11 +96,11 @@ def upgrade() -> None:
         ),
         sa.Column("n_iterations", sa.Integer, nullable=False, server_default="3000"),
         sa.Column("n_synths", sa.Integer, nullable=False),
-        sa.Column("selections", sa.JSON, nullable=False),
-        sa.Column("stats", sa.JSON, nullable=False),
-        sa.Column("distribution", sa.JSON, nullable=False),
-        sa.Column("segments", sa.JSON, nullable=False),
-        sa.Column("sensitivity", sa.JSON, nullable=False),
+        sa.Column("selections", JSONB, nullable=False),
+        sa.Column("stats", JSONB, nullable=False),
+        sa.Column("distribution", JSONB, nullable=False),
+        sa.Column("segments", JSONB, nullable=False),
+        sa.Column("sensitivity", JSONB, nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),

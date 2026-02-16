@@ -1,23 +1,22 @@
 /**
  * LikertAssertions component.
  *
- * Displays a card per edge with header and 5 radio options.
- * Selected state is highlighted. onChange calls debounced save via hook.
- * Shows answer progress "5/8 respondidas".
+ * Compact card list for reviewing pre-filled causal edge assumptions.
+ * All edges start with LLM defaults pre-selected. Users click to expand
+ * and optionally adjust. Cards that diverge from default show "ajustado" badge.
  *
  * References:
  *   - Types: src/types/quantitative-analysis.ts
  *   - Spec: specs/042-quantitative-analysis/spec.md
  */
 
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { CheckCircle2, Circle, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { CausalEdge } from '@/types/quantitative-analysis';
 
 interface LikertAssertionsProps {
   edges: CausalEdge[];
   activeEdgeId?: string | null;
-  onEdgeFocus?: (edgeId: string | null) => void;
   onSelectionsChange: (selections: Record<string, number>) => void;
 }
 
@@ -48,22 +47,41 @@ function useDebouncedCallback<T extends (...args: unknown[]) => void>(
 export function LikertAssertions({
   edges,
   activeEdgeId,
-  onEdgeFocus,
   onSelectionsChange,
 }: LikertAssertionsProps) {
+  // Pre-fill every edge with selected_option or default_option
   const [localSelections, setLocalSelections] = useState<Record<string, number>>(() => {
     const initial: Record<string, number> = {};
     for (const edge of edges) {
-      if (edge.selected_option !== null) {
-        initial[edge.id] = edge.selected_option;
-      }
+      initial[edge.id] = edge.selected_option ?? edge.default_option;
     }
     return initial;
   });
 
+  // Track which defaults each edge started with
+  const defaults = useMemo(() => {
+    const d: Record<string, number> = {};
+    for (const edge of edges) {
+      d[edge.id] = edge.default_option;
+    }
+    return d;
+  }, [edges]);
+
+  // Track edges where user diverged from LLM default
+  const modifiedEdges = useMemo(() => {
+    const modified = new Set<string>();
+    for (const edge of edges) {
+      const current = localSelections[edge.id];
+      if (current !== undefined && current !== defaults[edge.id]) {
+        modified.add(edge.id);
+      }
+    }
+    return modified;
+  }, [edges, localSelections, defaults]);
+
   const [expandedEdge, setExpandedEdge] = useState<string | null>(activeEdgeId ?? null);
 
-  // Sync expanded edge with activeEdgeId prop
+  // Sync expanded edge with activeEdgeId prop (DAG click)
   useEffect(() => {
     if (activeEdgeId) {
       setExpandedEdge(activeEdgeId);
@@ -83,67 +101,70 @@ export function LikertAssertions({
     debouncedSave(updated);
   };
 
-  const answeredCount = Object.keys(localSelections).length;
+  const modifiedCount = modifiedEdges.size;
   const totalEdges = edges.length;
 
   return (
-    <div className="space-y-3">
-      {/* Progress */}
-      <div className="flex items-center justify-between mb-2">
+    <div className="space-y-2">
+      {/* Progress header */}
+      <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-medium text-slate-700">
           Premissas Causais
         </span>
-        <span className={`text-sm font-medium ${answeredCount === totalEdges ? 'text-emerald-600' : 'text-slate-500'}`}>
-          {answeredCount}/{totalEdges} respondidas
+        <span className="text-xs text-slate-500">
+          {modifiedCount > 0
+            ? `${modifiedCount}/${totalEdges} ajustadas`
+            : `${totalEdges} premissas com valores sugeridos`}
         </span>
-      </div>
-
-      {/* Progress bar */}
-      <div className="w-full bg-slate-100 rounded-full h-1.5 mb-4">
-        <div
-          className="bg-gradient-to-r from-violet-500 to-indigo-500 h-1.5 rounded-full transition-all duration-300"
-          style={{ width: `${totalEdges > 0 ? (answeredCount / totalEdges) * 100 : 0}%` }}
-        />
       </div>
 
       {/* Edge cards */}
       {edges.map((edge) => {
         const isExpanded = expandedEdge === edge.id;
         const isActive = activeEdgeId === edge.id;
-        const selectedOption = localSelections[edge.id] ?? null;
-        const isAnswered = selectedOption !== null;
+        const selectedOption = localSelections[edge.id] ?? edge.default_option;
+        const isModified = modifiedEdges.has(edge.id);
+        const selectedText = edge.options[selectedOption]?.text ?? '';
 
         return (
           <div
             key={edge.id}
             className={`rounded-lg border transition-all duration-200 ${
-              isActive
-                ? 'border-violet-300 bg-violet-50/50 shadow-sm'
-                : isAnswered
-                  ? 'border-emerald-200 bg-white'
-                  : 'border-slate-200 bg-white'
+              isExpanded
+                ? 'border-l-4 border-l-violet-500 border-y-slate-200 border-r-slate-200 bg-violet-50/30'
+                : isActive
+                  ? 'border-violet-300 bg-violet-50/30'
+                  : 'border-slate-200 bg-white hover:border-slate-300'
             }`}
-            onMouseEnter={() => onEdgeFocus?.(edge.id)}
-            onMouseLeave={() => onEdgeFocus?.(null)}
           >
-            {/* Header */}
+            {/* Header — always visible */}
             <button
               type="button"
-              className="w-full flex items-center gap-3 px-4 py-3 text-left"
+              className="w-full flex items-start gap-2 px-4 py-3 text-left"
               onClick={() => setExpandedEdge(isExpanded ? null : edge.id)}
             >
-              {isAnswered ? (
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-              ) : (
-                <Circle className="h-4 w-4 text-slate-300 flex-shrink-0" />
-              )}
-              <span className="text-sm font-medium text-slate-700 flex-1">
-                {edge.header}
-              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-slate-700">
+                    {edge.header}
+                  </span>
+                  {isModified && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-violet-100 text-violet-700">
+                      ajustado
+                    </span>
+                  )}
+                </div>
+                {/* Inline preview of selected option (collapsed only) */}
+                {!isExpanded && (
+                  <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                    {selectedText}
+                  </p>
+                )}
+              </div>
               {isExpanded ? (
-                <ChevronUp className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                <ChevronUp className="h-4 w-4 text-slate-400 flex-shrink-0 mt-0.5" />
               ) : (
-                <ChevronDown className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                <ChevronDown className="h-4 w-4 text-slate-400 flex-shrink-0 mt-0.5" />
               )}
             </button>
 
@@ -152,7 +173,6 @@ export function LikertAssertions({
               <div className="px-4 pb-4 space-y-2">
                 {edge.options.map((option, idx) => {
                   const isSelected = selectedOption === idx;
-                  const isDefault = edge.default_option === idx;
 
                   return (
                     <button
@@ -178,11 +198,6 @@ export function LikertAssertions({
                           )}
                         </div>
                         <span>{option.text}</span>
-                        {isDefault && !isSelected && (
-                          <span className="ml-auto text-[10px] text-slate-400 font-medium uppercase tracking-wide">
-                            padrão
-                          </span>
-                        )}
                       </div>
                     </button>
                   );
