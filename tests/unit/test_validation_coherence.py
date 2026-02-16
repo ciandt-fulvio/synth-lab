@@ -456,14 +456,9 @@ class TestValidateSynthFull:
             },
             "sensitivities": {
                 "risk_aversion": 0.5,
-                "social_dependency": 0.4,
                 "institutional_trust_level": 0.6,
-                "habit_plasticity": 0.5,
                 "friction_tolerance": 0.5,
-                "pragmatism": 0.6,
                 "digital_capability": 0.75,
-                "motor_ability": 1.0,
-                "subject_domain": 0.4,
             },
         }
 

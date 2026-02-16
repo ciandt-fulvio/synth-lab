@@ -33,37 +33,17 @@ const SENSITIVITY_METADATA: Record<string, { name: string; description: string }
     name: 'Aversão a Risco',
     description: 'Sensibilidade a ações irreversíveis. Valores altos indicam maior cautela em decisões com consequências permanentes.',
   },
-  social_dependency: {
-    name: 'Dependência Social',
-    description: 'Importância da validação social. Valores altos indicam maior influência do comportamento de outros na tomada de decisão.',
-  },
   institutional_trust_level: {
     name: 'Confiança Institucional',
     description: 'Nível de confiança em instituições. Valores altos indicam maior propensão a confiar em autoridades e sistemas estabelecidos.',
-  },
-  habit_plasticity: {
-    name: 'Plasticidade de Hábitos',
-    description: 'Facilidade em mudar rotinas. Valores altos indicam maior adaptabilidade e flexibilidade comportamental.',
   },
   friction_tolerance: {
     name: 'Tolerância a Fricção',
     description: 'Tolerância a processos complexos. Valores altos indicam maior paciência com interfaces ou fluxos trabalhosos.',
   },
-  pragmatism: {
-    name: 'Pragmatismo',
-    description: 'Foco em utilidade prática vs. novidade. Valores altos indicam priorização de benefícios tangíveis sobre experiências hedônicas.',
-  },
   digital_capability: {
     name: 'Capacidade Digital',
     description: 'Habilidade técnica digital. Valores altos indicam maior fluência com tecnologias e interfaces digitais.',
-  },
-  motor_ability: {
-    name: 'Habilidade Motora',
-    description: 'Capacidade motora/visual para operar interfaces. Valores altos indicam plena capacidade física de interação.',
-  },
-  subject_domain: {
-    name: 'Domínio do Assunto',
-    description: 'Conhecimento do domínio da funcionalidade. Valores altos indicam expertise na área específica.',
   },
 };
 

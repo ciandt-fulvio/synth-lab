@@ -18,14 +18,9 @@ class UserSensitivities(BaseModel):
 
     Each sensitivity represents how a user responds to a mechanism:
     - risk_aversion: Sensitivity to irreversible actions (high = avoids risk)
-    - social_dependency: Importance of others using feature (high = follower)
     - institutional_trust_level: Trust in institutions (high = trusts institutions)
-    - habit_plasticity: Ease of changing habits (high = adaptable)
     - friction_tolerance: Tolerance for complex processes (high = tolerates friction)
-    - pragmatism: Focus on practical utility over novelty (high = pragmatic)
     - digital_capability: Digital technical ability (high = digitally capable)
-    - motor_ability: Motor/visual ability to operate interfaces (high = capable)
-    - subject_domain: Knowledge of the feature's domain (high = expert)
 
     Default value of 0.5 represents neutral sensitivity.
     """
@@ -37,25 +32,11 @@ class UserSensitivities(BaseModel):
         description="Sensitivity to irreversible actions (0=risk-seeking, 1=risk-averse)",
     )
 
-    social_dependency: float = Field(
-        default=0.5,
-        ge=0.0,
-        le=1.0,
-        description="Importance of others using the feature (0=independent, 1=follower)",
-    )
-
     institutional_trust_level: float = Field(
         default=0.5,
         ge=0.0,
         le=1.0,
         description="Trust in institutions (0=distrustful, 1=trusting)",
-    )
-
-    habit_plasticity: float = Field(
-        default=0.5,
-        ge=0.0,
-        le=1.0,
-        description="Ease of changing habits (0=rigid, 1=adaptable)",
     )
 
     friction_tolerance: float = Field(
@@ -65,32 +46,11 @@ class UserSensitivities(BaseModel):
         description="Tolerance for complex processes (0=impatient, 1=tolerant)",
     )
 
-    pragmatism: float = Field(
-        default=0.5,
-        ge=0.0,
-        le=1.0,
-        description="Focus on practical utility over novelty (0=novelty-driven, 1=pragmatic)",
-    )
-
     digital_capability: float = Field(
         default=0.5,
         ge=0.0,
         le=1.0,
         description="Digital technical ability (0=low capability, 1=high capability)",
-    )
-
-    motor_ability: float = Field(
-        default=0.5,
-        ge=0.0,
-        le=1.0,
-        description="Motor/visual ability to operate interfaces (0=limited, 1=fully capable)",
-    )
-
-    subject_domain: float = Field(
-        default=0.5,
-        ge=0.0,
-        le=1.0,
-        description="Knowledge of the feature's domain (0=novice, 1=expert)",
     )
 
 
@@ -99,14 +59,9 @@ if __name__ == "__main__":
 
     ALL_FIELDS = [
         "risk_aversion",
-        "social_dependency",
         "institutional_trust_level",
-        "habit_plasticity",
         "friction_tolerance",
-        "pragmatism",
         "digital_capability",
-        "motor_ability",
-        "subject_domain",
     ]
 
     all_validation_failures: list[str] = []
@@ -128,14 +83,9 @@ if __name__ == "__main__":
     try:
         values = {
             "risk_aversion": 0.8,
-            "social_dependency": 0.3,
             "institutional_trust_level": 0.6,
-            "habit_plasticity": 0.4,
             "friction_tolerance": 0.7,
-            "pragmatism": 0.9,
             "digital_capability": 0.2,
-            "motor_ability": 0.75,
-            "subject_domain": 0.6,
         }
         sensitivities = UserSensitivities(**values)
         for field, expected in values.items():
@@ -160,8 +110,8 @@ if __name__ == "__main__":
     # Test 4: Reject value above 1
     total_tests += 1
     try:
-        UserSensitivities(social_dependency=1.5)
-        all_validation_failures.append("Should reject social_dependency > 1")
+        UserSensitivities(institutional_trust_level=1.5)
+        all_validation_failures.append("Should reject institutional_trust_level > 1")
     except ValueError:
         pass  # Expected
     except Exception as e:
@@ -172,14 +122,9 @@ if __name__ == "__main__":
     try:
         boundary = {
             "risk_aversion": 0.0,
-            "social_dependency": 1.0,
-            "institutional_trust_level": 0.0,
-            "habit_plasticity": 1.0,
+            "institutional_trust_level": 1.0,
             "friction_tolerance": 0.0,
-            "pragmatism": 1.0,
-            "digital_capability": 0.0,
-            "motor_ability": 1.0,
-            "subject_domain": 0.0,
+            "digital_capability": 1.0,
         }
         sensitivities = UserSensitivities(**boundary)
         for field, expected in boundary.items():
@@ -192,18 +137,13 @@ if __name__ == "__main__":
     # Test 6: Model dump produces valid dict with defaults
     total_tests += 1
     try:
-        sensitivities = UserSensitivities(risk_aversion=0.8, social_dependency=0.3)
+        sensitivities = UserSensitivities(risk_aversion=0.8, friction_tolerance=0.3)
         dump = sensitivities.model_dump()
         expected_dump = {
             "risk_aversion": 0.8,
-            "social_dependency": 0.3,
             "institutional_trust_level": 0.5,
-            "habit_plasticity": 0.5,
-            "friction_tolerance": 0.5,
-            "pragmatism": 0.5,
+            "friction_tolerance": 0.3,
             "digital_capability": 0.5,
-            "motor_ability": 0.5,
-            "subject_domain": 0.5,
         }
         for field, expected in expected_dump.items():
             if dump.get(field) != expected:
@@ -213,7 +153,7 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"model_dump test failed: {e}")
 
-    # Test 7: All 7 sensitivity fields exist
+    # Test 7: All 4 sensitivity fields exist
     total_tests += 1
     expected_fields = set(ALL_FIELDS)
     actual_fields = set(UserSensitivities.model_fields.keys())
@@ -229,9 +169,7 @@ if __name__ == "__main__":
         checks = {
             "risk_aversion": 0.9,
             "friction_tolerance": 0.2,
-            "social_dependency": 0.5,
-            "habit_plasticity": 0.5,
-            "pragmatism": 0.5,
+            "institutional_trust_level": 0.5,
             "digital_capability": 0.5,
         }
         for field, expected in checks.items():
@@ -243,14 +181,13 @@ if __name__ == "__main__":
     except Exception as e:
         all_validation_failures.append(f"Partial construction test failed: {e}")
 
-    # Test 9: Reject out-of-range for new fields
+    # Test 9: Reject out-of-range for fields
     total_tests += 1
     for field_name, bad_value in [
         ("friction_tolerance", -0.5),
-        ("pragmatism", 1.1),
         ("digital_capability", 2.0),
-        ("motor_ability", -0.1),
-        ("subject_domain", 1.5),
+        ("institutional_trust_level", -0.1),
+        ("risk_aversion", 1.5),
     ]:
         try:
             UserSensitivities(**{field_name: bad_value})

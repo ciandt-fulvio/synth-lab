@@ -26,17 +26,6 @@ sensitivities:
         adjustment: -0.05
         reason: "Maior escolaridade → menor aversão"
 
-  social_dependency:
-    description: "Necessidade de validação social"
-    base: 0.50
-    rules:
-      - condition: {field: "demografia.idade", operator: "<=", value: 30}
-        adjustment: 0.10
-        reason: "Jovens mais dependentes socialmente"
-      - condition: {field: "demografia.idade", operator: ">=", value: 55}
-        adjustment: -0.05
-        reason: "Mais velhos são mais independentes"
-
   institutional_trust_level:
     description: "Confiança em instituições"
     base: 0.50
@@ -50,17 +39,6 @@ sensitivities:
           value: ["Superior completo", "Pós-graduação"]
         adjustment: 0.05
         reason: "Mais escolaridade → mais confiança institucional"
-
-  habit_plasticity:
-    description: "Flexibilidade para mudar rotinas"
-    base: 0.55
-    rules:
-      - condition: {field: "demografia.idade", operator: "<=", value: 30}
-        adjustment: 0.10
-        reason: "Jovens mudam hábitos com facilidade"
-      - condition: {field: "demografia.idade", operator: ">=", value: 60}
-        adjustment: -0.15
-        reason: "Idosos são mais rígidos"
 
   friction_tolerance:
     description: "Tolerância a processos complexos"
@@ -85,20 +63,6 @@ sensitivities:
         adjustment: -0.10
         reason: "Deficiência motora reduz tolerância"
 
-  pragmatism:
-    description: "Foco em utilidade vs hedônico"
-    base: 0.55
-    rules:
-      - condition: {field: "demografia.idade", operator: ">=", value: 35}
-        adjustment: 0.05
-        reason: "Adultos são mais pragmáticos"
-      - condition:
-          field: "demografia.escolaridade"
-          operator: "in"
-          value: ["Superior completo", "Pós-graduação"]
-        adjustment: 0.05
-        reason: "Mais escolaridade → mais pragmatismo"
-
   digital_capability:
     description: "Habilidade técnica digital"
     base: 0.50
@@ -121,31 +85,3 @@ sensitivities:
           value: ["moderada", "severa"]
         adjustment: -0.10
         reason: "Deficiência visual impacta capacidade digital"
-
-  motor_ability:
-    description: "Capacidade motora/visual para operar interfaces"
-    base: 0.80
-    rules:
-      - condition:
-          field: "deficiencias.motora.tipo"
-          operator: "in"
-          value: ["moderada", "severa"]
-        adjustment: -0.30
-        reason: "Deficiência motora reduz capacidade de operar interfaces"
-      - condition:
-          field: "deficiencias.visual.tipo"
-          operator: "in"
-          value: ["moderada", "severa"]
-        adjustment: -0.20
-        reason: "Deficiência visual dificulta uso de interfaces"
-      - condition: {field: "demografia.idade", operator: ">=", value: 65}
-        adjustment: -0.10
-        reason: "Idade avançada reduz destreza motora/visual"
-      - condition: {field: "demografia.idade", operator: ">=", value: 75}
-        adjustment: -0.10
-        reason: "Idade muito avançada agrava limitações motoras"
-
-  subject_domain:
-    description: "Conhecimento do assunto/domínio da feature"
-    base: 0.50
-    strength: 6

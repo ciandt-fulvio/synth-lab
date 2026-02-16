@@ -88,14 +88,9 @@ export interface SynthSummary {
 
 export interface UserSensitivities {
   risk_aversion: number;
-  social_dependency: number;
   institutional_trust_level: number;
-  habit_plasticity: number;
   friction_tolerance: number;
-  pragmatism: number;
   digital_capability: number;
-  motor_ability: number;
-  subject_domain: number;
 }
 
 export interface SynthDetail extends SynthSummary {

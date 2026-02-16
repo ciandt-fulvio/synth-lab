@@ -267,23 +267,11 @@
           "maximum": 1,
           "description": "Aversion to irreversible actions"
         },
-        "social_dependency": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Need for social validation"
-        },
         "institutional_trust_level": {
           "type": "number",
           "minimum": 0,
           "maximum": 1,
           "description": "Trust in institutions"
-        },
-        "habit_plasticity": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Flexibility to change routines"
         },
         "friction_tolerance": {
           "type": "number",
@@ -291,29 +279,11 @@
           "maximum": 1,
           "description": "Tolerance for complex processes"
         },
-        "pragmatism": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Focus on utility vs hedonic"
-        },
         "digital_capability": {
           "type": "number",
           "minimum": 0,
           "maximum": 1,
           "description": "Digital technical ability"
-        },
-        "motor_ability": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Motor/visual ability to operate interfaces"
-        },
-        "subject_domain": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Knowledge of the feature's domain"
         },
         "_meta": {
           "type": "object",
@@ -335,7 +305,7 @@
           }
         }
       },
-      "required": ["risk_aversion", "social_dependency", "institutional_trust_level", "habit_plasticity", "friction_tolerance", "pragmatism", "digital_capability", "motor_ability", "subject_domain"]
+      "required": ["risk_aversion", "institutional_trust_level", "friction_tolerance", "digital_capability"]
     }
   },
   "required": ["id", "nome", "descricao", "link_photo", "created_at", "version", "demografia", "psicografia", "deficiencias", "sensitivities"]

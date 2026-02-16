@@ -1,7 +1,7 @@
 /**
  * SensitivityHistograms component.
  *
- * Renders a 3-column grid of bar histograms for the 9 synth sensitivities.
+ * Renders a 3-column grid of bar histograms for the 4 synth sensitivities.
  * Each histogram uses 0.05-width buckets, Y-axis = count, bars flush together.
  * Below each chart a short description explains the sensitivity.
  *
@@ -26,36 +26,21 @@ import type { SensitivityStats, HistogramData } from '@/types/synthGroup';
 
 const SENSITIVITY_ORDER = [
   'risk_aversion',
-  'social_dependency',
   'institutional_trust_level',
-  'habit_plasticity',
   'friction_tolerance',
-  'pragmatism',
   'digital_capability',
-  'motor_ability',
-  'subject_domain',
 ];
 
 /** Short descriptions for each sensitivity (0 = low, 1 = high). */
 const SENSITIVITY_DESCRIPTIONS: Record<string, string> = {
   risk_aversion:
     'Tendência a evitar incertezas. Valores altos indicam perfil conservador; baixos, abertura a novidades.',
-  social_dependency:
-    'Influência do grupo nas decisões. Perto de 1, segue a maioria; perto de 0, decide de forma independente.',
   institutional_trust_level:
     'Grau de confiança em instituições formais (governo, bancos, empresas). Baixo indica ceticismo.',
-  habit_plasticity:
-    'Facilidade de abandonar rotinas existentes. Valores altos significam adaptação rápida a mudanças.',
   friction_tolerance:
     'Paciência com etapas, formulários e obstáculos. Valores baixos indicam abandono diante de fricção.',
-  pragmatism:
-    'Foco em resultado prático vs. experiência. Perto de 1, prioriza utilidade; perto de 0, valoriza estética.',
   digital_capability:
     'Fluência com tecnologia e interfaces digitais. Derivado de idade, escolaridade e contexto socioeconômico.',
-  motor_ability:
-    'Capacidade motora, derivada de condições de deficiência física. Valor 1.0 = sem limitações.',
-  subject_domain:
-    'Conhecimento prévio sobre o domínio do produto. Leigos ficam perto de 0, especialistas perto de 1.',
 };
 
 const BAR_COLOR = '#4f46e5'; // indigo-600
