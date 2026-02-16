@@ -14,6 +14,7 @@
  *   - actions: React node for right-side actions (optional)
  */
 
+import { Fragment } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -122,16 +123,18 @@ export function SynthLabHeader({ subtitle, backTo, actions, breadcrumbs }: Synth
                 {breadcrumbs.map((crumb, index) => {
                   const isLast = index === breadcrumbs.length - 1;
                   return (
-                    <BreadcrumbItemUI key={index}>
+                    <Fragment key={index}>
                       {index > 0 && <BreadcrumbSeparator />}
-                      {isLast ? (
-                        <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                      ) : (
-                        <BreadcrumbLink asChild>
-                          <Link to={crumb.href ?? '/'}>{crumb.label}</Link>
-                        </BreadcrumbLink>
-                      )}
-                    </BreadcrumbItemUI>
+                      <BreadcrumbItemUI>
+                        {isLast ? (
+                          <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                        ) : (
+                          <BreadcrumbLink asChild>
+                            <Link to={crumb.href ?? '/'}>{crumb.label}</Link>
+                          </BreadcrumbLink>
+                        )}
+                      </BreadcrumbItemUI>
+                    </Fragment>
                   );
                 })}
               </BreadcrumbList>

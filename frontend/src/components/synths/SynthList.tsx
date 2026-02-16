@@ -51,6 +51,14 @@ export function SynthList({ selectedGroupId, hideGroupName, sortBy }: SynthListP
     sort_by: sortBy,
   });
 
+  // Filter synths client-side by search query (must be before early returns)
+  const filteredSynths = useMemo(() => {
+    if (!data?.data) return [];
+    if (!searchQuery.trim()) return data.data;
+    const q = searchQuery.toLowerCase();
+    return data.data.filter((synth) => synth.name.toLowerCase().includes(q));
+  }, [data?.data, searchQuery]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -68,14 +76,6 @@ export function SynthList({ selectedGroupId, hideGroupName, sortBy }: SynthListP
       </Alert>
     );
   }
-
-  // Filter synths client-side by search query
-  const filteredSynths = useMemo(() => {
-    if (!data?.data) return [];
-    if (!searchQuery.trim()) return data.data;
-    const q = searchQuery.toLowerCase();
-    return data.data.filter((synth) => synth.name.toLowerCase().includes(q));
-  }, [data?.data, searchQuery]);
 
   if (!data || data.data.length === 0) {
     return (
