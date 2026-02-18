@@ -108,6 +108,7 @@ async def health_check() -> dict:
         "service": "synth-lab-api",
         "version": os.environ.get("COMMIT_SHA", "unknown"),
         "environment": os.environ.get("ENVIRONMENT", "local"),
+        "build": os.environ.get("BUILD_TIMESTAMP", "unknown"),
     }
 
 
