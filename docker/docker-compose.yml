@@ -32,6 +32,11 @@ volumes:
     driver: local
     name: synthlab-phoenix-dev-data
 
+  # Test database volume - named so it can be removed explicitly (without touching dev volumes)
+  postgres-test-data:
+    driver: local
+    name: synthlab-postgres-test-data
+
 # =============================================================================
 # SERVICES
 # =============================================================================
@@ -141,7 +146,7 @@ services:
   # TEST PROFILE SERVICES
   # ===========================================================================
 
-  # PostgreSQL for testing (ephemeral - no persistent volume)
+  # PostgreSQL for testing (uses named volume removed explicitly by compose-e2e.sh down)
   postgres-test:
     image: postgres:14-alpine
     container_name: synthlab-postgres-test
@@ -153,6 +158,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
+      - postgres-test-data:/var/lib/postgresql/data
       - ./postgres/init-scripts:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U synthlab -d synthlab"]

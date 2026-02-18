@@ -53,12 +53,31 @@ def _seed_minimal_data(engine):
         session.close()
 
 
+def _is_test_database(db_url: str) -> bool:
+    """Check that DATABASE_URL points to a test database before destructive ops."""
+    db_url_lower = db_url.lower()
+    return (
+        "test" in db_url_lower
+        or ":5433" in db_url
+        or "@postgres-test:" in db_url_lower
+    )
+
+
 @pytest.fixture(scope="function")
 def engine():
     """Create isolated test database engine for each test."""
     database_url = os.getenv(
         "DATABASE_URL", "postgresql://synthlab:synthlab@localhost:5433/synthlab"
     )
+
+    # Safety guard: never drop tables on the dev database
+    if not _is_test_database(database_url):
+        raise RuntimeError(
+            f"SAFETY ABORT: DATABASE_URL ({database_url}) does not point to a test "
+            "database. Models tests must use port 5433 or host 'postgres-test'. "
+            "Run tests via: make test"
+        )
+
     engine = create_engine(database_url, echo=False)
 
     # Drop all tables to ensure clean state

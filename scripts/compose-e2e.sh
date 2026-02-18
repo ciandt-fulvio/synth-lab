@@ -193,11 +193,20 @@ case "$COMMAND" in
         echo "Stopping E2E environment..."
         if [ "$RUNTIME" = "podman" ]; then
             # Podman: try compose down first, then use cleanup function
-            $COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --profile "$COMPOSE_PROFILE" down -v 2>/dev/null || true
+            # NOTE: do NOT use -v here — it would remove ALL named volumes including
+            # the dev database volume (synthlab-postgres-dev-data)
+            $COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --profile "$COMPOSE_PROFILE" down 2>/dev/null || true
             cleanup_podman
         else
-            $COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --profile "$COMPOSE_PROFILE" down -v
+            # NOTE: do NOT use -v here — it would remove ALL named volumes including
+            # the dev database volume (synthlab-postgres-dev-data), wiping dev data
+            $COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --profile "$COMPOSE_PROFILE" down
         fi
+        # Remove ONLY the test database volume so postgres-test starts fresh next run.
+        # We do this explicitly instead of using `down -v` which would also delete
+        # synthlab-postgres-dev-data (the development database).
+        echo "🧹 Removing test database volume (synthlab-postgres-test-data)..."
+        $RUNTIME volume rm -f synthlab-postgres-test-data 2>/dev/null || true
         ;;
 
     logs)
