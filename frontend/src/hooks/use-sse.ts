@@ -80,7 +80,11 @@ export function useSSE(
       // Create EventSource connection
       const url = `/api/research/${execId}/stream`;
       console.log('[useSSE] Connecting to:', url);
-      eventSource = new EventSource(url);
+      // EventSource doesn't support custom headers — append token as query param
+      // for cross-origin requests (Railway: frontend and backend are different origins)
+      const token = localStorage.getItem('auth_token');
+      const urlWithAuth = token ? `${url}?token=${encodeURIComponent(token)}` : url;
+      eventSource = new EventSource(urlWithAuth, { withCredentials: true });
       eventSourceRef.current = eventSource;
 
       // Connection opened

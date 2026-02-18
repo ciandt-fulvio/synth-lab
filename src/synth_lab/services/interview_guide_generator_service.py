@@ -400,8 +400,6 @@ Para cada pergunta:
 
 Após as 3 perguntas:
 ### Nota para o Entrevistador
-- Justificativa da ordem (funil conforme Malhotra cap.10)
-- Principal viés a observar neste contexto específico de entrevista
 - Como cada resposta se mapeia de volta à simulação (qual premissa Likert ajustar para cima ou para baixo, e o que isso significa para a estimativa de adoção)
 
 Responda APENAS com o questionário em Markdown. Sem preâmbulo, sem metacomentário."""

@@ -49,13 +49,16 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         if self._is_public_path(request.url.path):
             return await call_next(request)
 
-        # Get session token from Authorization header or cookie
-        # Priority: Authorization header (cross-domain) > cookie (same-domain dev)
+        # Get session token from Authorization header, cookie, or query param
+        # Priority: Authorization header > cookie (same-domain dev) > query param (SSE cross-origin)
+        # Note: EventSource API cannot set custom headers, so SSE uses ?token=<jwt> for Railway
         auth_header = request.headers.get("authorization", "")
         if auth_header.startswith("Bearer "):
             session_token = auth_header[7:]
-        else:
+        elif request.cookies.get("auth_token"):
             session_token = request.cookies.get("auth_token")
+        else:
+            session_token = request.query_params.get("token")
 
         if not session_token:
             return JSONResponse(

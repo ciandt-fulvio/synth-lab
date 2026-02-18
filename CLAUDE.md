@@ -23,6 +23,25 @@ frontend/src/
 └── lib/query-keys.ts
 ```
 
+## Chrome DevTools / Browser Login (CRITICAL)
+
+**NUNCA** navegar para `/api/auth/test-login` como GET — retorna 405.
+
+**SEMPRE** fazer login via POST com JavaScript no console do browser:
+
+```javascript
+// Cole no console do browser (ou use evaluate_script no MCP):
+await fetch('/api/auth/test-login', { method: 'POST', credentials: 'include' });
+// Depois navigate para http://localhost:8080
+```
+
+Ou com o MCP chrome-devtools:
+```
+1. navigate_page → http://localhost:8080/login
+2. evaluate_script: async () => { await fetch('/api/auth/test-login', { method: 'POST', credentials: 'include' }); return 'ok'; }
+3. navigate_page → http://localhost:8080
+```
+
 ## Commands
 ```bash
 # Backend
