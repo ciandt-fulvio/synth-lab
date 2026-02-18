@@ -4,17 +4,13 @@
  * Testes completos para operações de criar, ler, atualizar e deletar experimentos.
  * Estes testes devem rodar em local e staging antes de deploy para production.
  *
- * SKIPPED: Aguardando refatoração da home page (remoção de /).
- * TODO: Re-habilitar após definir rota definitiva para lista de experimentos.
- *
  * Run local: npm run test:e2e experiments/crud.spec.ts
  * Run staging: npm run test:e2e:staging experiments/crud.spec.ts
  */
 import { test, expect } from '../fixtures';
 
-test.describe.skip('Experiments - CRUD Operations @critical @experiments', () => {
+test.describe('Experiments - CRUD Operations @critical @experiments', () => {
   test.beforeEach(async ({ page }) => {
-    // TODO: Atualizar para rota definitiva quando / for removida
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -78,7 +74,8 @@ test.describe.skip('Experiments - CRUD Operations @critical @experiments', () =>
 
     // Verifica que nome aparece na página de detalhe
     if (experimentName) {
-      await expect(page.locator(`text=${experimentName}`)).toBeVisible({ timeout: 10000 });
+      // Usa .first() para evitar strict mode violation (nome aparece em h2 e breadcrumb)
+      await expect(page.locator(`text=${experimentName}`).first()).toBeVisible({ timeout: 10000 });
     }
 
     // Verifica seções principais (tabs: Interviews, Materials, Reports)
@@ -130,9 +127,8 @@ test.describe.skip('Experiments - CRUD Operations @critical @experiments', () =>
   });
 });
 
-test.describe.skip('Experiments - Form Validation @validation @experiments', () => {
+test.describe('Experiments - Form Validation @validation @experiments', () => {
   test.beforeEach(async ({ page }) => {
-    // TODO: Atualizar para rota definitiva quando / for removida
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -142,9 +138,9 @@ test.describe.skip('Experiments - Form Validation @validation @experiments', () 
   });
 
   test('E006 - Required fields validation', async ({ page }) => {
-    // Tenta submeter formulário vazio (clica em "Próximo")
-    const nextButton = page.getByRole('button', { name: /próximo/i });
-    await nextButton.click();
+    // Tenta submeter formulário vazio (clica em "Criar Experimento")
+    const submitButton = page.getByRole('button', { name: /criar experimento/i });
+    await submitButton.click();
 
     // Deve mostrar mensagens de validação OU não avançar
     // (depende da implementação - pode validar inline ou ao clicar)
@@ -159,8 +155,8 @@ test.describe.skip('Experiments - Form Validation @validation @experiments', () 
     // Preenche nome muito curto
     await page.getByLabel(/nome/i).fill('ab');
 
-    // Tenta submeter (clica em "Próximo")
-    await page.getByRole('button', { name: /próximo/i }).click();
+    // Tenta submeter (clica em "Criar Experimento")
+    await page.getByRole('button', { name: /criar experimento/i }).click();
 
     // Deve mostrar erro de tamanho mínimo OU aceitar (depende da validação)
     // Este teste é flexível - não força comportamento específico
@@ -201,15 +197,14 @@ test.describe.skip('Experiments - Form Validation @validation @experiments', () 
     await expect(page.getByLabel(/hipótese/i)).toHaveValue('Usuários completam mais compras com checkout simplificado');
     await expect(page.getByLabel(/descrição/i)).toHaveValue('This is a valid description with sufficient length');
 
-    // Botão "Próximo" deve estar habilitado
-    const nextButton = page.getByRole('button', { name: /próximo/i });
-    await expect(nextButton).toBeEnabled();
+    // Botão "Criar Experimento" deve estar habilitado
+    const submitButton = page.getByRole('button', { name: /criar experimento/i });
+    await expect(submitButton).toBeEnabled();
   });
 });
 
-test.describe.skip('Experiments - Navigation @navigation @experiments', () => {
+test.describe('Experiments - Navigation @navigation @experiments', () => {
   test('E010 - Navigate between multiple experiments', async ({ page }) => {
-    // TODO: Atualizar para rota definitiva quando / for removida
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -242,7 +237,6 @@ test.describe.skip('Experiments - Navigation @navigation @experiments', () => {
   });
 
   test('E011 - Deep link to experiment works', async ({ page }) => {
-    // TODO: Atualizar para rota definitiva quando / for removida
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -266,7 +260,7 @@ test.describe.skip('Experiments - Navigation @navigation @experiments', () => {
   });
 });
 
-test.describe.skip('Experiments - Error Handling @error @experiments', () => {
+test.describe('Experiments - Error Handling @error @experiments', () => {
   test.skip('E012 - Handles API error gracefully', async ({ page }) => {
     // Simula erro de API
     await page.route('**/api/experiments**', route => {

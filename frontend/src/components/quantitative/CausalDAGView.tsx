@@ -7,8 +7,13 @@
  * - Right: outcome node
  *
  * Nodes are rounded rectangles with multi-line text (up to 3 lines).
- * Edges: quadratic bezier curves. Stroke width AND color vary by mu
- * (lighter blue = weak, darker blue = strong).
+ * Edges:
+ *   - Cross-layer (causal): solid blue bezier curves, width varies by mu
+ *   - Same-layer (correlational, between mediators): dashed violet, fixed width
+ *
+ * Node ordering uses a barycenter heuristic to minimize edge crossings:
+ *   1. Layer 1 nodes sorted by average position of their layer-0 sources
+ *   2. Layer 0 nodes sorted by average position of their layer-1 targets
  *
  * References:
  *   - Types: src/types/quantitative-analysis.ts
@@ -74,12 +79,27 @@ const LAYER_X = [100, 520, 1000]; // x positions for 3 layers
 const EDGE_COLORS = ['#bfdbfe', '#60a5fa', '#3b82f6', '#2563eb', '#1e40af'];
 const ACTIVE_COLOR = '#1e3a8a';
 
+/** Violet shade for same-layer (correlational) edges. */
+const CORR_COLOR = '#8b5cf6';
+const CORR_COLOR_ACTIVE = '#5b21b6';
+
 function muToColorIndex(mu: number): number {
   return Math.min(Math.floor(mu * EDGE_COLORS.length), EDGE_COLORS.length - 1);
 }
 
+/**
+ * Layout nodes within each layer using a barycenter heuristic to reduce
+ * edge crossings between layer 0 and layer 1.
+ *
+ * Steps:
+ * 1. Give layer 1 initial positional indices.
+ * 2. Sort layer 0 nodes by average index of their layer-1 targets (barycenter).
+ * 3. Re-index layer 0, then sort layer 1 nodes by average index of their layer-0 sources.
+ * 4. Assign final y positions from SVG_HEIGHT / (count + 1) spacing.
+ */
 function layoutNodes(
   nodes: string[],
+  edges: CausalEdge[],
   layerMap: Map<string, number>
 ): Map<string, NodePosition> {
   const layers: string[][] = [[], [], []];
@@ -88,13 +108,53 @@ function layoutNodes(
     layers[layer].push(node);
   }
 
-  const positions = new Map<string, NodePosition>();
+  // Step 1: initial index for layer 1
+  const layer1InitPos = new Map<string, number>();
+  layers[1].forEach((n, i) => layer1InitPos.set(n, i));
 
+  // Step 2: sort layer 0 by barycenter toward layer 1
+  layers[0].sort((a, b) => {
+    const aTargets = edges
+      .filter((e) => e.from_node === a && layerMap.get(e.to_node) === 1)
+      .map((e) => layer1InitPos.get(e.to_node) ?? 0);
+    const bTargets = edges
+      .filter((e) => e.from_node === b && layerMap.get(e.to_node) === 1)
+      .map((e) => layer1InitPos.get(e.to_node) ?? 0);
+    const aAvg = aTargets.length
+      ? aTargets.reduce((x, y) => x + y, 0) / aTargets.length
+      : 0;
+    const bAvg = bTargets.length
+      ? bTargets.reduce((x, y) => x + y, 0) / bTargets.length
+      : 0;
+    return aAvg - bAvg;
+  });
+
+  // Step 3: re-index layer 0, then sort layer 1 by barycenter toward layer 0
+  const layer0FinalPos = new Map<string, number>();
+  layers[0].forEach((n, i) => layer0FinalPos.set(n, i));
+
+  layers[1].sort((a, b) => {
+    const aSources = edges
+      .filter((e) => e.to_node === a && layerMap.get(e.from_node) === 0)
+      .map((e) => layer0FinalPos.get(e.from_node) ?? 0);
+    const bSources = edges
+      .filter((e) => e.to_node === b && layerMap.get(e.from_node) === 0)
+      .map((e) => layer0FinalPos.get(e.from_node) ?? 0);
+    const aAvg = aSources.length
+      ? aSources.reduce((x, y) => x + y, 0) / aSources.length
+      : 0;
+    const bAvg = bSources.length
+      ? bSources.reduce((x, y) => x + y, 0) / bSources.length
+      : 0;
+    return aAvg - bAvg;
+  });
+
+  // Step 4: assign final positions
+  const positions = new Map<string, NodePosition>();
   for (let layer = 0; layer < 3; layer++) {
     const nodesInLayer = layers[layer];
     const count = nodesInLayer.length;
     const spacing = SVG_HEIGHT / (count + 1);
-
     nodesInLayer.forEach((node, idx) => {
       positions.set(node, {
         x: LAYER_X[layer],
@@ -139,7 +199,7 @@ function wrapLabel(label: string, maxChars = 13): string[] {
 export function CausalDAGView({ model, activeEdgeId, onEdgeClick }: CausalDAGViewProps) {
   const { nodePositions, layerMap } = useMemo(() => {
     const lm = classifyNodes(model.nodes, model.edges);
-    const np = layoutNodes(model.nodes, lm);
+    const np = layoutNodes(model.nodes, model.edges, lm);
     return { nodePositions: np, layerMap: lm };
   }, [model.nodes, model.edges]);
 
@@ -151,7 +211,7 @@ export function CausalDAGView({ model, activeEdgeId, onEdgeClick }: CausalDAGVie
         style={{ maxHeight: '440px' }}
       >
         <defs>
-          {/* One arrow marker per color tier + active */}
+          {/* Arrow markers for causal (blue) edges */}
           {EDGE_COLORS.map((color, i) => (
             <marker
               key={`arrow-${i}`}
@@ -177,6 +237,31 @@ export function CausalDAGView({ model, activeEdgeId, onEdgeClick }: CausalDAGVie
           >
             <path d="M 0 0 L 10 3 L 0 6 z" fill={ACTIVE_COLOR} />
           </marker>
+
+          {/* Arrow markers for correlational (violet, dashed) edges */}
+          <marker
+            id="arrow-corr"
+            viewBox="0 0 10 6"
+            refX="10"
+            refY="3"
+            markerWidth="7"
+            markerHeight="5"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 3 L 0 6 z" fill={CORR_COLOR} />
+          </marker>
+          <marker
+            id="arrow-corr-active"
+            viewBox="0 0 10 6"
+            refX="10"
+            refY="3"
+            markerWidth="7"
+            markerHeight="5"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 3 L 0 6 z" fill={CORR_COLOR_ACTIVE} />
+          </marker>
+
           {/* Glow filter for active edge */}
           <filter id="glow-active" filterUnits="userSpaceOnUse" x="0" y="0" width={SVG_WIDTH} height={SVG_HEIGHT}>
             <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
@@ -200,22 +285,40 @@ export function CausalDAGView({ model, activeEdgeId, onEdgeClick }: CausalDAGVie
           if (!from || !to) return null;
 
           const isActive = activeEdgeId === edge.id;
+          const sameLayer = from.layer === to.layer;
+
           const selectedMu = edge.selected_option !== null
             ? edge.options[edge.selected_option!].mu
             : edge.options[edge.default_option].mu;
 
-          const colorIdx = muToColorIndex(selectedMu);
-          const color = isActive ? ACTIVE_COLOR : EDGE_COLORS[colorIdx];
-          const strokeWidth = 1.5 + selectedMu * 3.5;
-          const opacity = isActive ? 1 : 0.85;
-          const markerEnd = isActive ? 'url(#arrow-active)' : `url(#arrow-${colorIdx})`;
+          // --- Visual style by edge type ---
+          let color: string;
+          let strokeWidth: number;
+          let strokeDasharray: string | undefined;
+          let markerEnd: string;
 
-          // Same-layer edges: route as a curve to the right side
-          const sameLayer = from.layer === to.layer;
+          if (sameLayer) {
+            // Correlational edge between mediators: dashed violet, fixed width
+            color = isActive ? CORR_COLOR_ACTIVE : CORR_COLOR;
+            strokeWidth = 1.5;
+            strokeDasharray = '6 4';
+            markerEnd = isActive ? 'url(#arrow-corr-active)' : 'url(#arrow-corr)';
+          } else {
+            // Causal cross-layer edge: solid blue, width by mu
+            const colorIdx = muToColorIndex(selectedMu);
+            color = isActive ? ACTIVE_COLOR : EDGE_COLORS[colorIdx];
+            strokeWidth = 1.5 + selectedMu * 3.5;
+            strokeDasharray = undefined;
+            markerEnd = isActive ? 'url(#arrow-active)' : `url(#arrow-${colorIdx})`;
+          }
+
+          const opacity = isActive ? 1 : 0.85;
+
+          // --- Path routing ---
           let pathD: string;
 
           if (sameLayer) {
-            // Connect bottom of source → top of target via a rightward arc
+            // Same-layer: curve rightward to avoid overlapping with cross-layer edges
             const fromX = from.x + NODE_W / 2;
             const fromY = from.y + NODE_H / 4;
             const toX = to.x + NODE_W / 2;
@@ -225,7 +328,7 @@ export function CausalDAGView({ model, activeEdgeId, onEdgeClick }: CausalDAGVie
             const cy = (fromY + toY) / 2;
             pathD = `M ${fromX} ${fromY} Q ${cx} ${cy} ${toX} ${toY}`;
           } else {
-            // Normal cross-layer: right edge of source → left edge of target
+            // Cross-layer: right edge of source → left edge of target
             const fromX = from.x + NODE_W / 2;
             const fromY = from.y;
             const toX = to.x - NODE_W / 2;
@@ -255,6 +358,7 @@ export function CausalDAGView({ model, activeEdgeId, onEdgeClick }: CausalDAGVie
                 fill="none"
                 stroke={color}
                 strokeWidth={strokeWidth}
+                strokeDasharray={strokeDasharray}
                 opacity={opacity}
                 markerEnd={markerEnd}
                 className="transition-all duration-200"

@@ -48,8 +48,7 @@ test.describe('Smoke Tests - Critical Flows @smoke @critical', () => {
     expect(hasCards || hasEmptyState).toBeTruthy();
   });
 
-  // TODO: Re-enable after home page redesign stabilizes
-  test.skip('ST003 - API is responding', async ({ page }) => {
+  test('ST003 - API is responding', async ({ page }) => {
     // Intercepta requisição à API
     const responsePromise = page.waitForResponse(
       response => response.url().includes('/experiments') && response.ok,
@@ -177,8 +176,7 @@ test.describe('Smoke Tests - Performance @smoke @performance', () => {
     console.log(`✅ Page loaded in ${loadTime}ms`);
   });
 
-  // TODO: Re-enable after home page redesign stabilizes
-  test.skip('ST009 - API responds within acceptable time', async ({ page }) => {
+  test('ST009 - API responds within acceptable time', async ({ page }) => {
     const startTime = Date.now();
 
     // Intercepta primeira requisição à API
