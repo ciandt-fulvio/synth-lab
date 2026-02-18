@@ -1,4 +1,4 @@
-.PHONY: help install setup-hooks gensynth phoenix phoenix-ui kill validate-ui test test-fast test-e2e test-e2e-docker test-e2e-docker-up test-e2e-docker-down test-e2e-docker-logs test-e2e-seed test-smoke-staging test-smoke-production test-real-api lint-format update-docs clean clean-images dev-up dev-down dev-logs-back dev-logs-front db-migrate ensure-container-runtime
+.PHONY: help install setup-hooks gensynth phoenix phoenix-ui kill validate-ui test test-fast test-e2e test-e2e-docker test-e2e-docker-up test-e2e-docker-down test-e2e-docker-logs test-e2e-seed test-smoke-staging test-smoke-production test-real-api lint-format update-docs clean clean-images dev-up dev-down dev-logs-back dev-logs-front dev-logs-phoenix db-migrate ensure-container-runtime
 
 # =============================================================================
 # Configuration
@@ -72,8 +72,9 @@ help:
 	@echo "Development (Docker):"
 	@echo "  make dev-up         Start full stack (frontend:8080, backend:8000, postgres:5432)"
 	@echo "  make dev-down       Stop Docker environment"
-	@echo "  make dev-logs-back  View backend logs"
-	@echo "  make dev-logs-front View frontend logs"
+	@echo "  make dev-logs-back   View backend logs"
+	@echo "  make dev-logs-front  View frontend logs"
+	@echo "  make dev-logs-phoenix View Phoenix logs"
 	@echo ""
 	@echo "Testing (Smart Mode - runs failed tests first):"
 	@echo "  make test               Run unit/integration tests (smart mode, skips real API)"
@@ -267,3 +268,6 @@ dev-logs-back:
 
 dev-logs-front:
 	@$(CONTAINER_RUNTIME) logs -f synthlab-frontend-dev
+
+dev-logs-phoenix:
+	@$(CONTAINER_RUNTIME) logs -f synthlab-phoenix-dev

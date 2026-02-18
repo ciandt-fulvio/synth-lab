@@ -28,6 +28,10 @@ volumes:
     driver: local
     name: synthlab-postgres-dev-data
 
+  phoenix-dev-data:
+    driver: local
+    name: synthlab-phoenix-dev-data
+
 # =============================================================================
 # SERVICES
 # =============================================================================
@@ -46,6 +50,9 @@ services:
       - "6006:6006"
     environment:
       PHOENIX_PORT: "6006"
+      PHOENIX_WORKING_DIR: "/mnt/data"
+    volumes:
+      - phoenix-dev-data:/mnt/data
     networks:
       - synthlab-dev
 
