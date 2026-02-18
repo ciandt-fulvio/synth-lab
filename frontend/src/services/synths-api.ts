@@ -1,6 +1,8 @@
 // src/services/synths-api.ts
 
 import { fetchAPI } from './api';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 import type {
   PaginatedResponse,
   SynthSummary,
@@ -31,7 +33,7 @@ export async function getSynth(synthId: string): Promise<SynthDetail> {
 }
 
 export function getSynthAvatarUrl(synthId: string): string {
-  return `/api/synths/${synthId}/avatar`;
+  return `${API_BASE_URL}/synths/${synthId}/avatar`;
 }
 
 export async function searchSynths(

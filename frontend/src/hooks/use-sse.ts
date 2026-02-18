@@ -12,6 +12,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { InterviewMessageEvent, InterviewCompletedEvent, TranscriptionCompletedEvent } from '@/types/sse-events';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+
 /**
  * Hook for managing Server-Sent Events connection to interview stream.
  *
@@ -78,7 +80,7 @@ export function useSSE(
 
     try {
       // Create EventSource connection
-      const url = `/api/research/${execId}/stream`;
+      const url = `${API_BASE_URL}/research/${execId}/stream`;
       console.log('[useSSE] Connecting to:', url);
       // EventSource doesn't support custom headers — append token as query param
       // for cross-origin requests (Railway: frontend and backend are different origins)

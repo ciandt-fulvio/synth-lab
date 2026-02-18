@@ -1,6 +1,8 @@
 // src/services/research-api.ts
 
 import { fetchAPI } from './api';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 import type {
   PaginatedResponse,
   PaginationParams,
@@ -71,7 +73,7 @@ export async function executeResearch(
 }
 
 export function getStreamUrl(execId: string): string {
-  return `/api/research/${execId}/stream`;
+  return `${API_BASE_URL}/research/${execId}/stream`;
 }
 
 export interface SummaryGenerateRequest {
