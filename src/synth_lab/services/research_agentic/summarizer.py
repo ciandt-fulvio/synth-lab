@@ -77,6 +77,15 @@ Você é um especialista em síntese de pesquisa UX qualitativa. Sua tarefa é a
 ### 6) Ausências Importantes
 - O que quase ninguém mencionou, mas seria esperado mencionar?
 
+### 7) Dentro do Roteiro da Pesquisa (abaixo), leia bem as "Nota para o Entrevistador" e veja quais era as premissas que estamos testando
+Ela trará coisas como "Se muitas entrevistados...", sua função é justamente identificar se essas premissas se confirmam ou não, 
+e o que mais pode ser aprendido a partir disso. E, no resumo, explicar, para cada uma das premissas, o que foi encontrado, e quais são as evidências que sustentam isso.
+
+#### Roteiro da Pesquisa: 
+{research_script}
+
+---
+
 ## Formato de Saída
 
 Estruture seu relatório nas seguintes seções:
@@ -88,21 +97,17 @@ Estruture seu relatório nas seguintes seções:
 
 ## Padrões Recorrentes
 (Lista com contexto de padrões identificados)
+(Insira citações, caso tenha alguma relevante)
 
 ## Divergências Relevantes
 (Opiniões únicas com citações ancoradas)
-
-## Tensões Identificadas
-(Onde diferentes pessoas têm necessidades conflitantes)
+(Insira citações, caso tenha alguma relevante)
 
 ## Ausências Notáveis
 (O que não foi mencionado mas deveria ter sido)
 
-## Citações-Chave
-(Citações organizadas por tema, com contexto de persona)
-
-## Recomendações
-(2 a 4 Baseadas nas evidências encontradas)
+## Notas para entrevista real
+(Quais premissas foram confirmadas ou refutadas, e quais evidências sustentam isso)
 
 ---
 
@@ -192,7 +197,8 @@ def create_summarizer_agent(
     interviews_content: str,
     model: str = "gpt-4o-mini",
     reasoning_effort: str = "medium",
-    materials: list | None = None) -> Agent:
+    materials: list | None = None,
+    research_script: str = "") -> Agent:
     """
     Create a summarizer agent for analyzing multiple interviews.
 
@@ -202,6 +208,7 @@ def create_summarizer_agent(
         model: LLM model to use
         reasoning_effort: Reasoning effort level
         materials: Optional list of ExperimentMaterial objects to include in prompt
+        research_script: Formatted interview guide/research script for context
 
     Returns:
         Configured Agent instance
@@ -219,7 +226,8 @@ def create_summarizer_agent(
     instructions = SUMMARIZER_INSTRUCTIONS.format(
         topic_guide=topic_guide_name,
         interviews_content=interviews_content,
-        materials_section=materials_section)
+        materials_section=materials_section,
+        research_script=research_script)
 
     # Build agent kwargs - only include model_settings if model supports it
     agent_kwargs = {
@@ -238,7 +246,8 @@ async def summarize_interviews(
     interview_results: list[tuple[InterviewResult, dict[str, Any]]],
     topic_guide_name: str,
     model: str = "gpt-4o-mini",
-    materials: list | None = None) -> str:
+    materials: list | None = None,
+    research_script: str = "") -> str:
     """
     Summarize multiple interview results into a synthesis report.
 
@@ -291,7 +300,8 @@ async def summarize_interviews(
             interviews_content=interviews_content,
             model=model,
             reasoning_effort="medium",
-            materials=materials)
+            materials=materials,
+            research_script=research_script)
 
         # Run summarization
         logger.info("Running summarizer agent...")

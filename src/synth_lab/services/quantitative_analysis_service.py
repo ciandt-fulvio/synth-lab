@@ -101,7 +101,16 @@ CRITICAL — VARIED DEFAULTS:
 - At least 2 edges should have default != 2. At least 1 should be 0,1 or 3,4.
 
 Node names SHORT (max 25 chars). Portuguese BR.
-interceptMu: -0.3 to 0.5. interceptSigma: 0.3 to 0.5.
+interceptMu: -2.5 to 1.5. interceptSigma: 0.3 to 0.5.
+Be OPINIONATED based on the product context:
+- High friction / risky / unfamiliar to target audience: -1.5 to -2.5
+- Moderate barriers, non-obvious value: -0.5 to -1.0
+- Average product: -0.3 to 0.3
+- Strong value prop / utility / low friction: 0.5 to 1.5
+
+DIRECTION guidance: If the product targets low-income or underserved populations
+(microfinance, bancarização, etc.), use direction=-1 for incomeNorm and/or eduNorm.
+Use direction to reflect the ACTUAL target segment, not just default assumptions.
 
 Respond with ONLY valid JSON:
 {

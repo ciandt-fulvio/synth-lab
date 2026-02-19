@@ -104,7 +104,7 @@ class InterviewGuideGeneratorService:
 **Descrição:** {description_text}"""
 
         json_structure = """{
-    "questions": "<tema_central>. <pergunta_especifica_1>? <pergunta_especifica_2>?",
+    "questions": "<tema_central>. <tema_especifico_1>? <tema_especifico_2>?",
     "context_definition": "<briefing_do_contexto_da_pesquisa>",
     "context_examples": "positives [<pos1>|<pos2>] ; nwutral=[<neu1>|<neu2>] ; negatives [<neg1>|<neg2>]"
 }"""
@@ -156,7 +156,6 @@ Gere um JSON com a seguinte estrutura:
 ## Regras Importantes
 
 - Os exemplos devem ser realistas e relacionados ao contexto do experimento
-- As perguntas devem ser abertas (não sim/não)
 - O context_definition deve ser neutro e não induzir respostas
 - Mantenha tudo em português brasileiro
 
@@ -375,7 +374,7 @@ CONTEXTO: Um product manager rodou uma simulação causal para um experimento de
 RESTRIÇÕES CRÍTICAS:
 - A entrevista é MEDIADA por um entrevistador treinado que pode adaptar e aprofundar conforme necessário.
 - Cada respondente JÁ possui uma ficha demográfica completa (idade, renda, escolaridade, família, deficiências). NÃO inclua NENHUMA pergunta demográfica, de triagem ou de perfil.
-- Produza EXATAMENTE 3 perguntas — nem mais, nem menos.
+- Produza EXATAMENTE 3 temas (perguntas) — nem mais, nem menos.
 - Direcione para as 3 premissas de MAIOR IMPACTO da análise de sensibilidade.
 
 METODOLOGIA MALHOTRA (aplique rigorosamente):
@@ -388,9 +387,9 @@ METODOLOGIA MALHOTRA (aplique rigorosamente):
 
 FORMATO DE SAÍDA (Português BR, Markdown):
 
-Para cada pergunta:
-### Pergunta N
-**Texto:** [a pergunta, em tom conversacional]
+Para cada tema:
+### Tema N
+**Texto:** [a pergunta, em tom conversacional, claro e objetivo, no maximo com 100 tokens]
 **Valida:** [NóA → NóB]
 **O que escutar:**
 - [sinal que CONFIRMA a premissa]
@@ -398,7 +397,7 @@ Para cada pergunta:
 - [sinal ambíguo que vale aprofundar]
 **Dica para o entrevistador:** [uma frase sobre como aprofundar]
 
-Após as 3 perguntas:
+Após as 3 temas:
 ### Nota para o Entrevistador
 - Como cada resposta se mapeia de volta à simulação (qual premissa Likert ajustar para cima ou para baixo, e o que isso significa para a estimativa de adoção)
 
@@ -569,7 +568,7 @@ if __name__ == "__main__":
     total_tests += 1
     try:
         content = GeneratedGuideContent(
-            questions="Tema central. Pergunta 1? Pergunta 2?",
+            questions="Tema central. Tema 1? Tema 2?",
             context_definition="Contexto da pesquisa.",
             context_examples="pos1|pos2|neu1|neu2|neg1|neg2")
         assert content.questions is not None

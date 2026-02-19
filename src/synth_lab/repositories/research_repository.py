@@ -9,7 +9,7 @@ References:
     - ORM models: synth_lab.models.orm.research
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from sqlalchemy import func, select
@@ -329,7 +329,7 @@ session: Session | None = None):
             model=model,
             max_turns=max_turns,
             status=status.value,
-            started_at=datetime.now().isoformat(),
+            started_at=datetime.now(timezone.utc).isoformat(),
             additional_context=additional_context)
         self._add(orm_exec)
         self._flush()

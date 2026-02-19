@@ -10,6 +10,7 @@
  */
 
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { BarChart3, Users, Activity } from 'lucide-react';
 import type { SimulationRun } from '@/types/quantitative-analysis';
 import { DistributionChart } from './DistributionChart';
@@ -18,6 +19,7 @@ import { SensitivityBars } from './SensitivityBars';
 
 interface SimulationResultsProps {
   run: SimulationRun;
+  actions?: ReactNode;
 }
 
 type ResultTab = 'distribution' | 'segments' | 'sensitivity';
@@ -28,7 +30,7 @@ const TABS: { key: ResultTab; label: string; icon: typeof BarChart3 }[] = [
   { key: 'sensitivity', label: 'Sensibilidade', icon: Activity },
 ];
 
-export function SimulationResults({ run }: SimulationResultsProps) {
+export function SimulationResults({ run, actions }: SimulationResultsProps) {
   const [activeTab, setActiveTab] = useState<ResultTab>('distribution');
 
   return (
@@ -41,9 +43,7 @@ export function SimulationResults({ run }: SimulationResultsProps) {
             {run.n_iterations.toLocaleString('pt-BR')} iterações, {run.n_synths} synths
           </p>
         </div>
-        <p className="text-xs text-slate-400">
-          {new Date(run.created_at).toLocaleString('pt-BR')}
-        </p>
+        {actions && <div className="flex items-center gap-3">{actions}</div>}
       </div>
 
       {/* Tab navigation */}

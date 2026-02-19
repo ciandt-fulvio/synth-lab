@@ -49,6 +49,28 @@ const BUCKET_ORDER: Record<string, number> = {
   'alta': 2,
 };
 
+function SpreadBadge({ spreadPp }: { spreadPp: number }) {
+  if (spreadPp < 5) {
+    return (
+      <span className="ml-2 text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">
+        Δ {spreadPp.toFixed(1)}pp
+      </span>
+    );
+  }
+  if (spreadPp <= 15) {
+    return (
+      <span className="ml-2 text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">
+        Δ {spreadPp.toFixed(1)}pp
+      </span>
+    );
+  }
+  return (
+    <span className="ml-2 text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600">
+      Δ {spreadPp.toFixed(1)}pp
+    </span>
+  );
+}
+
 export function SegmentCards({ segments, interpretation }: SegmentCardsProps) {
   return (
     <div className="space-y-5">
@@ -60,14 +82,20 @@ export function SegmentCards({ segments, interpretation }: SegmentCardsProps) {
           ([a], [b]) => (BUCKET_ORDER[a] ?? 99) - (BUCKET_ORDER[b] ?? 99)
         );
 
-        // Find the bucket with the highest rate
-        const maxRate = Math.max(...entries.map(([, r]) => r.rate));
+        const rates = entries.map(([, r]) => r.rate);
+        const maxRate = Math.max(...rates);
+        const minRate = Math.min(...rates);
+        const spreadPp = maxRate - minRate;
+
+        // Only highlight winner card when spread is actionable (≥ 5pp)
+        const showWinner = spreadPp >= 5;
 
         return (
           <div key={key}>
             <div className="flex items-center gap-2 mb-2">
               <Icon className="w-4 h-4 text-slate-500" />
               <h4 className="text-sm font-medium text-slate-700">{label}</h4>
+              <SpreadBadge spreadPp={spreadPp} />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -75,7 +103,7 @@ export function SegmentCards({ segments, interpretation }: SegmentCardsProps) {
                 <div
                   key={bucket}
                   className={`rounded-lg border px-3 py-2 ${
-                    result.rate === maxRate
+                    showWinner && result.rate === maxRate
                       ? 'border-emerald-400 bg-white'
                       : 'border-slate-200 bg-white'
                   }`}

@@ -475,10 +475,31 @@ def compute_raw_interpretations(
         most_discrim = max(dim_ranges, key=dim_ranges.get) if dim_ranges else "age"
 
         dim_labels = {"age": "idade", "income": "renda", "education": "escolaridade"}
+
+        # Spread significance per dimension
+        def _spread_significance(spread_pp: float) -> str:
+            if spread_pp < 5.0:
+                return "diferença não relevante para decisão de segmentação"
+            elif spread_pp <= 15.0:
+                return "diferença moderada"
+            else:
+                return "diferença relevante — considere rollout segmentado"
+
+        spread_parts = []
+        for dim_name in ("age", "income", "education"):
+            rates = [v["rate"] for v in segments[dim_name].values() if v["count"] > 0]
+            if len(rates) >= 2:
+                spread_pp = round(max(rates) - min(rates), 1)
+                sig = _spread_significance(spread_pp)
+                spread_parts.append(
+                    f"{dim_labels[dim_name]}: Δ{spread_pp}pp ({sig})"
+                )
+
         seg_text = (
             f"Melhor segmento: {best[1]} ({best[0]}) com {best[2]}%. "
             f"Pior: {worst[1]} ({worst[0]}) com {worst[2]}%. Ratio: {ratio}x. "
-            f"Fator mais discriminante: {dim_labels.get(most_discrim, most_discrim)}."
+            f"Fator mais discriminante: {dim_labels.get(most_discrim, most_discrim)}. "
+            + " | ".join(spread_parts)
         )
     else:
         seg_text = "Sem dados suficientes para análise de segmentos."

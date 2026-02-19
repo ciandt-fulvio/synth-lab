@@ -37,6 +37,7 @@ from synth_lab.services.research_agentic.runner import (
     ConversationMessage,
     InterviewGuideData,
     InterviewResult,
+    build_topic_guide_from_interview_guide,
 )
 
 # GMT-3 timezone (São Paulo)
@@ -240,11 +241,19 @@ class ResearchService:
                 if experiment:
                     summary_title = experiment.name
 
+            # Load research script for summarizer context
+            research_script = ""
+            guide = self.interview_guide_repo.get_by_experiment_id(execution.experiment_id)
+            if guide:
+                guide_data = self._guide_to_interview_guide_data(guide)
+                research_script = build_topic_guide_from_interview_guide(guide_data)
+
             # Generate summary
             summary = await summarize_interviews(
                 interview_results=interview_results,
                 topic_guide_name=summary_title,
-                model=model)
+                model=model,
+                research_script=research_script)
 
             if span:
                 span.set_attribute("summary_length", len(summary))
@@ -343,7 +352,7 @@ class ResearchService:
             status=ExecutionStatus.RUNNING,
             topic_name=request.topic_name,
             synth_count=synth_count,
-            started_at=datetime.now())
+            started_at=datetime.now(timezone.utc))
 
     async def _run_batch_and_save(
         self,
@@ -552,7 +561,8 @@ class ResearchService:
                     summary_content = await summarize_interviews(
                         interview_results=result.successful_interviews,
                         topic_guide_name=summary_title or guide_name,
-                        model="gpt-4.1-mini")
+                        model="gpt-4.1-mini",
+                        research_script=build_topic_guide_from_interview_guide(interview_guide_data))
                     logger.info(f"Summary generated: {len(summary_content)} chars")
 
                     # Get execution to find experiment_id

@@ -28,7 +28,12 @@ from synth_lab.repositories.experiment_document_repository import (
 )
 from synth_lab.repositories.experiment_repository import ExperimentRepository
 from synth_lab.repositories.research_repository import ResearchRepository
-from synth_lab.services.research_agentic.runner import ConversationMessage, InterviewResult
+from synth_lab.repositories.interview_guide_repository import InterviewGuideRepository
+from synth_lab.services.research_agentic.runner import (
+    ConversationMessage,
+    InterviewResult,
+    build_topic_guide_from_interview_guide,
+)
 from synth_lab.services.research_agentic.summarizer import summarize_interviews
 from synth_lab.services.summary_image_service import (
     SummaryImageService,
@@ -271,6 +276,19 @@ class ResearchSummaryGeneratorService:
                     f"{transcript_count} transcripts"
                 )
 
+                # Load research script for summarizer context
+                research_script = ""
+                interview_guide_repo = InterviewGuideRepository()
+                guide = interview_guide_repo.get_by_experiment_id(execution.experiment_id)
+                if guide:
+                    from synth_lab.services.research_agentic.runner import InterviewGuideData
+                    guide_data = InterviewGuideData(
+                        context_definition=guide.context_definition,
+                        questions=guide.questions,
+                        context_examples=guide.context_examples,
+                    )
+                    research_script = build_topic_guide_from_interview_guide(guide_data)
+
                 # Run async summarizer in sync context
                 content = asyncio.get_event_loop().run_until_complete(
                     summarize_interviews(
@@ -278,6 +296,7 @@ class ResearchSummaryGeneratorService:
                         topic_guide_name=summary_title,
                         model=model,
                         materials=materials,
+                        research_script=research_script,
                     )
                 )
 
@@ -456,25 +475,35 @@ class ResearchSummaryGeneratorService:
                     f"{transcript_count} transcripts"
                 )
 
+                # Load research script for summarizer context
+                research_script = ""
+                interview_guide_repo = InterviewGuideRepository()
+                guide = interview_guide_repo.get_by_experiment_id(execution.experiment_id)
+                if guide:
+                    from synth_lab.services.research_agentic.runner import InterviewGuideData
+                    guide_data = InterviewGuideData(
+                        context_definition=guide.context_definition,
+                        questions=guide.questions,
+                        context_examples=guide.context_examples,
+                    )
+                    research_script = build_topic_guide_from_interview_guide(guide_data)
+
                 content = await summarize_interviews(
                     interview_results=interview_results,
                     topic_guide_name=summary_title,
                     model=model,
+                    research_script=research_script,
                 )
 
                 if span:
                     span.set_attribute("summary_length", len(content))
 
                 # 11. Generate summary image and append to content
-                import asyncio
-
                 image_service = self._get_image_service()
-                content = asyncio.run(
-                    image_service.generate_and_append_image(
-                        markdown_content=content,
-                        experiment_id=execution.experiment_id,
-                        doc_id=pending_doc.id,
-                    )
+                content = await image_service.generate_and_append_image(
+                    markdown_content=content,
+                    experiment_id=execution.experiment_id,
+                    doc_id=pending_doc.id,
                 )
 
                 # 12. Update document with content

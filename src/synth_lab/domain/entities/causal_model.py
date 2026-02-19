@@ -115,7 +115,7 @@ class CausalModel(BaseModel):
     )
     experiment_id: str = Field(description="Parent experiment ID.")
     label: str = Field(max_length=200, description="Model title (LLM-generated).")
-    intercept_mu: float = Field(ge=-1.0, le=1.0, description="Intercept mean [-1, 1].")
+    intercept_mu: float = Field(ge=-3.0, le=3.0, description="Intercept mean [-3, 3].")
     intercept_sigma: float = Field(ge=0.1, le=1.0, description="Intercept std dev [0.1, 1].")
     nodes: list[str] = Field(description="DAG node names (7-10 items).")
     edges: list[CausalEdge] = Field(default_factory=list, description="DAG edges.")

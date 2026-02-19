@@ -52,7 +52,13 @@ from rich.progress import (
 from synth_lab.infrastructure.config import AVATARS_DIR
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
 
-from .runner import ConversationMessage, InterviewGuideData, InterviewResult, run_interview
+from .runner import (
+    ConversationMessage,
+    InterviewGuideData,
+    InterviewResult,
+    build_topic_guide_from_interview_guide,
+    run_interview,
+)
 from .summarizer import summarize_interviews
 
 # Phoenix/OpenTelemetry tracer for observability
@@ -467,7 +473,8 @@ async def run_batch_interviews(
             summary = await summarize_interviews(
                 interview_results=successful_interviews,
                 topic_guide_name=guide_name,
-                model="gpt-4o-mini")
+                model="gpt-4o-mini",
+                research_script=build_topic_guide_from_interview_guide(interview_guide))
             logger.info(
                 f"Summary generated successfully. Length: {len(summary) if summary else 0} chars"
             )

@@ -72,40 +72,41 @@ export function SimulationTab({ experimentId, onGenerateGuide }: SimulationTabPr
     );
   }
 
+  const actionButtons = (
+    <>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={handleSummaryClick}
+        disabled={isGenerating || !isCompleted}
+      >
+        {isGenerating ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+            Gerando Resumo...
+          </>
+        ) : (
+          <>
+            <BarChart3 className="w-4 h-4 mr-1" />
+            Ver Resumo da Simulação
+          </>
+        )}
+      </Button>
+      <Button
+        size="sm"
+        onClick={onGenerateGuide}
+        className="btn-primary"
+      >
+        <FileText className="w-4 h-4 mr-1" />
+        Gerar roteiro de entrevista
+      </Button>
+    </>
+  );
+
   return (
     <div className="space-y-6">
       {/* Results */}
-      <SimulationResults run={simulationRun} />
-
-      {/* Action buttons — sticky bottom */}
-      <div className="sticky bottom-0 bg-white/95 backdrop-blur-sm z-10 -mx-6 px-6 flex items-center justify-end gap-3 pt-4 pb-4 border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleSummaryClick}
-          disabled={isGenerating || !isCompleted}
-        >
-          {isGenerating ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-              Gerando Resumo...
-            </>
-          ) : (
-            <>
-              <BarChart3 className="w-4 h-4 mr-1" />
-              Ver Resumo da Simulação
-            </>
-          )}
-        </Button>
-        <Button
-          size="sm"
-          onClick={onGenerateGuide}
-          className="btn-primary"
-        >
-          <FileText className="w-4 h-4 mr-1" />
-          Gerar roteiro de entrevista
-        </Button>
-      </div>
+      <SimulationResults run={simulationRun} actions={actionButtons} />
 
       {/* Document Viewer for simulation summary */}
       <DocumentViewer

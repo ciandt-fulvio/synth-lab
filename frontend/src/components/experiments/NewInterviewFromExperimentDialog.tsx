@@ -41,7 +41,7 @@ import { useToast } from '@/hooks/use-toast';
 const interviewFormSchema = z.object({
   additional_context: z.string().optional(),
   synth_count: z.number().min(1).max(50),
-  max_turns: z.number().min(1).max(20),
+  max_turns: z.number().min(1).max(10),
 });
 
 type InterviewFormData = z.infer<typeof interviewFormSchema>;
@@ -68,8 +68,8 @@ export function NewInterviewFromExperimentDialog({
     resolver: zodResolver(interviewFormSchema),
     defaultValues: {
       additional_context: '',
-      synth_count: 5,
-      max_turns: 6,
+      synth_count: 9,
+      max_turns: 5,
     },
   });
 
@@ -174,7 +174,7 @@ export function NewInterviewFromExperimentDialog({
                       onChange={(e) => field.onChange(parseInt(e.target.value))}
                     />
                   </FormControl>
-                  <FormDescription>Numero maximo de perguntas por synth (1-20)</FormDescription>
+                  <FormDescription>Numero maximo de perguntas por synth (1-10)</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

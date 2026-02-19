@@ -5,6 +5,7 @@ import { StatusBadge, EXECUTION_STATUS_CONFIG } from '@/components/shared/Status
 import { Calendar, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseUTC } from '@/lib/utils';
 import type { ResearchExecutionSummary } from '@/types';
 
 interface InterviewCardProps {
@@ -13,7 +14,7 @@ interface InterviewCardProps {
 }
 
 export function InterviewCard({ execution, onClick }: InterviewCardProps) {
-  const formattedDate = format(new Date(execution.started_at), "dd/MM/yyyy 'às' HH:mm", {
+  const formattedDate = format(parseUTC(execution.started_at), "dd/MM/yyyy 'às' HH:mm", {
     locale: ptBR,
   });
 

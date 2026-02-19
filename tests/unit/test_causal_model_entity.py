@@ -242,15 +242,37 @@ class TestCausalModel:
             )
 
     def test_intercept_mu_range(self) -> None:
-        """Intercept mu must be in [-1.0, 1.0]."""
+        """Intercept mu must be in [-3.0, 3.0]."""
         with pytest.raises(ValueError):
             CausalModel(
                 experiment_id="exp_12345678",
                 label="test",
-                intercept_mu=1.5,
+                intercept_mu=4.0,
                 intercept_sigma=0.4,
                 nodes=["A", "B", "C", "D", "E", "F", "G"],
             )
+
+    def test_intercept_mu_extended_range_valid(self) -> None:
+        """Intercept mu of 2.5 (strong value prop) must now be valid."""
+        model = CausalModel(
+            experiment_id="exp_12345678",
+            label="test",
+            intercept_mu=2.5,
+            intercept_sigma=0.4,
+            nodes=["A", "B", "C", "D", "E", "F", "G"],
+        )
+        assert model.intercept_mu == 2.5
+
+    def test_intercept_mu_negative_extended_range_valid(self) -> None:
+        """Intercept mu of -2.5 (high friction product) must now be valid."""
+        model = CausalModel(
+            experiment_id="exp_12345678",
+            label="test",
+            intercept_mu=-2.5,
+            intercept_sigma=0.4,
+            nodes=["A", "B", "C", "D", "E", "F", "G"],
+        )
+        assert model.intercept_mu == -2.5
 
     def test_intercept_sigma_range(self) -> None:
         """Intercept sigma must be in [0.1, 1.0]."""

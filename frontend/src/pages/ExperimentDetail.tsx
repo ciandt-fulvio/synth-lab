@@ -56,6 +56,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseUTC } from '@/lib/utils';
 import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
 import { TagSelector } from '@/components/experiments/TagSelector';
 import { QuantitativeAnalysisTab } from '@/components/quantitative/QuantitativeAnalysisTab';
@@ -466,7 +467,7 @@ export default function ExperimentDetail() {
                     <div className="space-y-3">
                       {(() => {
                         const sorted = [...experiment.interviews].sort(
-                          (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+                          (a, b) => parseUTC(b.started_at).getTime() - parseUTC(a.started_at).getTime()
                         );
                         const paged = sorted.slice(
                           interviewPage * INTERVIEWS_PER_PAGE,
@@ -493,7 +494,7 @@ export default function ExperimentDetail() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
                                   <span className="text-sm font-medium text-slate-700">
-                                    {formatDistanceToNow(new Date(interview.started_at), {
+                                    {formatDistanceToNow(parseUTC(interview.started_at), {
                                       addSuffix: true,
                                       locale: ptBR,
                                     })}
