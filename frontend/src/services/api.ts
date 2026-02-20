@@ -49,16 +49,16 @@ export async function fetchAPI<T>(
     });
 
     if (!response.ok) {
-      // Handle session expiry: clear auth state so ProtectedRoute redirects to login
-      if (response.status === 401) {
+      // Handle session expiry: clear auth state and redirect to login
+      if (response.status === 401 && !window.location.pathname.startsWith('/login')) {
         localStorage.removeItem('auth_token');
-        // Invalidate auth cache - ProtectedRoute will redirect to /login
         if (_queryClient) {
           _queryClient.setQueryData(['auth', 'currentUser'], null);
-        } else if (!window.location.pathname.startsWith('/login')) {
-          // Fallback if QueryClient not registered yet
-          window.location.href = '/login';
         }
+        // Force redirect — reactive ProtectedRoute doesn't work reliably
+        // when modals are open and catch the error locally
+        window.location.href = '/login';
+        return undefined as T; // unreachable, prevents further error handling
       }
 
       let errorData;

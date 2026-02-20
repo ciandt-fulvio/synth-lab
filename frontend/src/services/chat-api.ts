@@ -6,8 +6,9 @@
  */
 
 import { ChatRequest, ChatResponse } from '@/types/chat';
+import { fetchAPI } from './api';
 
-const API_BASE = '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 /**
  * Send a message to a synth and get their response (non-streaming).
@@ -20,20 +21,10 @@ export async function sendChatMessage(
   synthId: string,
   request: ChatRequest
 ): Promise<ChatResponse> {
-  const response = await fetch(`${API_BASE}/synths/${synthId}/chat`, {
+  return fetchAPI<ChatResponse>(`/synths/${synthId}/chat`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify(request),
   });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-    throw new Error(error.detail || `Chat request failed: ${response.status}`);
-  }
-
-  return response.json();
 }
 
 /**
@@ -53,15 +44,27 @@ export async function sendChatMessageStream(
   onError: (error: Error) => void
 ): Promise<void> {
   try {
-    const response = await fetch(`${API_BASE}/synths/${synthId}/chat/stream`, {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/synths/${synthId}/chat/stream`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      credentials: 'include',
+      headers,
       body: JSON.stringify(request),
     });
 
     if (!response.ok) {
+      if (response.status === 401 && !window.location.pathname.startsWith('/login')) {
+        localStorage.removeItem('auth_token');
+        window.location.href = '/login';
+        return;
+      }
       const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
       throw new Error(error.detail || `Chat request failed: ${response.status}`);
     }
