@@ -118,10 +118,10 @@ test.describe('Interviews - Create Modal @critical @interviews', () => {
 
     // Verifica valores padrão
     const synthsInput = modal.getByLabel(/entrevistar quantos synths/i);
-    await expect(synthsInput).toHaveValue('5');
+    await expect(synthsInput).toHaveValue('9');
 
     const turnosInput = modal.getByLabel(/maximo de turnos/i);
-    await expect(turnosInput).toHaveValue('6');
+    await expect(turnosInput).toHaveValue('5');
 
     // Contexto adicional deve estar vazio
     const contextoInput = modal.getByLabel(/contexto adicional/i);
