@@ -10,6 +10,7 @@ References:
     - NumPy docs: https://numpy.org/doc/stable/reference/random/generator.html
 """
 
+import math
 from typing import Any
 
 import numpy as np
@@ -216,7 +217,7 @@ def run_monte_carlo(
     rng = np.random.default_rng(seed)
     n_synths = user_var_matrix.shape[0]
     n_edges = len(edges)
-    per_edge_scale = BUDGET / max(n_edges, 1)
+    per_edge_scale = BUDGET / max(math.sqrt(n_edges), 1.0)
 
     # Precompute edge parameters
     beta_mus = np.zeros(n_edges)
@@ -275,7 +276,7 @@ def compute_segments(
     rng = np.random.default_rng(seed)
     n_synths = len(synths)
     n_edges = len(edges)
-    per_edge_scale = BUDGET / max(n_edges, 1)
+    per_edge_scale = BUDGET / max(math.sqrt(n_edges), 1.0)
 
     # Single representative iteration with many synths (use mean coefficients)
     # For segment analysis, run a quick simulation to get per-synth adoption rates
