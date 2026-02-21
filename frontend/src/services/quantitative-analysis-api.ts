@@ -12,6 +12,8 @@ import { fetchAPI } from './api';
 import type {
   CausalModel,
   EdgeUpdateResponse,
+  NodeSelectionsResponse,
+  ProductCalibrationResponse,
   SimulationRun,
 } from '@/types/quantitative-analysis';
 
@@ -51,6 +53,34 @@ export async function updateEdgeSelections(
   return fetchAPI(`/experiments/${experimentId}/quantitative-analysis/edges`, {
     method: 'PATCH',
     body: JSON.stringify({ selections }),
+  });
+}
+
+/**
+ * Update PM's premissa selections for interaction/outcome nodes.
+ *
+ * Accepts partial updates — only specified nodes are modified.
+ */
+export async function updateNodeSelections(
+  experimentId: string,
+  selections: Record<string, number>
+): Promise<NodeSelectionsResponse> {
+  return fetchAPI(`/experiments/${experimentId}/quantitative-analysis/node-selections`, {
+    method: 'PATCH',
+    body: JSON.stringify({ selections }),
+  });
+}
+
+/**
+ * Update product node calibrations (low/medium/high).
+ */
+export async function updateProductCalibration(
+  experimentId: string,
+  calibrations: Record<string, string>
+): Promise<ProductCalibrationResponse> {
+  return fetchAPI(`/experiments/${experimentId}/quantitative-analysis/product-calibration`, {
+    method: 'PATCH',
+    body: JSON.stringify({ calibrations }),
   });
 }
 

@@ -11,7 +11,18 @@ References:
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, DateTime, ForeignKey, ForeignKeyConstraint, Index, SmallInteger, String, Text, func
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    Float,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    SmallInteger,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -37,6 +48,7 @@ class CausalModel(Base):
         intercept_mu: Intercept mean for simulation
         intercept_sigma: Intercept std dev for simulation
         nodes: JSON array of node names
+        node_metadata: JSONB dict of per-node metadata keyed by node name
         raw_llm_response: Full LLM response for debugging
     """
 
@@ -53,6 +65,7 @@ class CausalModel(Base):
     intercept_mu: Mapped[float] = mapped_column(nullable=False)
     intercept_sigma: Mapped[float] = mapped_column(nullable=False)
     nodes: Mapped[list] = mapped_column(_JSONVariant, nullable=False)
+    node_metadata: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
     raw_llm_response: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -80,19 +93,22 @@ class CausalEdge(Base):
     Edge in the causal DAG.
 
     Composite primary key: (id, causal_model_id).
-    Each edge has 5 Likert options stored as JSON.
+    Likert edges have 5 options stored as JSON.
+    Fixed edges have no options.
 
     Attributes:
         id: Edge identifier within the model (e.g., 'e1')
         causal_model_id: FK to causal_models.id
         from_node: Source node name
         to_node: Target node name
-        user_var: Mapped userVar name
+        user_var: Mapped userVar name (nullable for product/interaction edges)
         direction: 1 (direct) or -1 (inverse)
         header: Contextual assertion header
-        options: JSON array of 5 Likert options [{text, mu, sigma}]
+        options: JSON array of 5 Likert options (nullable for fixed edges)
         default_option: LLM-suggested default index
         selected_option: PM's selection (null = not answered)
+        edge_type: 'likert' or 'fixed'
+        weight: LLM-suggested weight for interaction edges
     """
 
     __tablename__ = "causal_edges"
@@ -105,12 +121,14 @@ class CausalEdge(Base):
     )
     from_node: Mapped[str] = mapped_column(String(50), nullable=False)
     to_node: Mapped[str] = mapped_column(String(50), nullable=False)
-    user_var: Mapped[str] = mapped_column(String(30), nullable=False)
+    user_var: Mapped[str | None] = mapped_column(String(30), nullable=True)
     direction: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     header: Mapped[str] = mapped_column(Text, nullable=False)
-    options: Mapped[list] = mapped_column(_JSONVariant, nullable=False)
+    options: Mapped[list | None] = mapped_column(_JSONVariant, nullable=True)
     default_option: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     selected_option: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    edge_type: Mapped[str] = mapped_column(String(20), nullable=False, server_default="likert")
+    weight: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Relationships
     causal_model: Mapped["CausalModel"] = relationship(
@@ -155,7 +173,10 @@ if __name__ == "__main__":
 
     total_tests += 1
     cm_cols = set(CausalModel.__table__.columns.keys())
-    required = {"id", "experiment_id", "label", "intercept_mu", "intercept_sigma", "nodes"}
+    required = {
+        "id", "experiment_id", "label", "intercept_mu",
+        "intercept_sigma", "nodes", "node_metadata",
+    }
     missing = required - cm_cols
     if missing:
         all_validation_failures.append(f"CausalModel missing columns: {missing}")
@@ -163,7 +184,7 @@ if __name__ == "__main__":
     total_tests += 1
     ce_cols = set(CausalEdge.__table__.columns.keys())
     required = {"id", "causal_model_id", "from_node", "to_node", "user_var", "direction",
-                "header", "options", "default_option", "selected_option"}
+                "header", "options", "default_option", "selected_option", "edge_type", "weight"}
     missing = required - ce_cols
     if missing:
         all_validation_failures.append(f"CausalEdge missing columns: {missing}")

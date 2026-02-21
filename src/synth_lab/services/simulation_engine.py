@@ -428,6 +428,549 @@ def run_sensitivity(
     return results
 
 
+# ============================================================================
+# V2 functions for enriched DAG (5 node types, 4 layers)
+# ============================================================================
+
+
+def _topological_sort(nodes: list[dict], edges: list[dict]) -> list[str]:
+    """Topological sort of node names using Kahn's algorithm.
+
+    Args:
+        nodes: List of node dicts with 'name' key.
+        edges: List of edge dicts with 'from' and 'to' keys.
+
+    Returns:
+        Sorted list of node names.
+    """
+    from collections import deque
+
+    node_names = [n["name"] for n in nodes]
+    in_degree = {name: 0 for name in node_names}
+    adjacency: dict[str, list[str]] = {name: [] for name in node_names}
+
+    for e in edges:
+        src = e.get("from_node", e.get("from", ""))
+        dst = e.get("to_node", e.get("to", ""))
+        if src in adjacency and dst in in_degree:
+            adjacency[src].append(dst)
+            in_degree[dst] += 1
+
+    queue = deque(name for name in node_names if in_degree[name] == 0)
+    sorted_names: list[str] = []
+
+    while queue:
+        node = queue.popleft()
+        sorted_names.append(node)
+        for neighbor in adjacency.get(node, []):
+            in_degree[neighbor] -= 1
+            if in_degree[neighbor] == 0:
+                queue.append(neighbor)
+
+    # Add any remaining nodes (shouldn't happen in a valid DAG)
+    for name in node_names:
+        if name not in sorted_names:
+            sorted_names.append(name)
+
+    return sorted_names
+
+
+def build_node_values(
+    synths: list[dict],
+    node_metadata: dict[str, dict],
+    edges: list[dict],
+    product_values: dict[str, float],
+    sensitivity_configs: dict[str, dict],
+    seed: int | None = None,
+) -> dict[str, np.ndarray]:
+    """Compute value for every node for every synth.
+
+    Topological order:
+    1. Demographic: extract from synth (ageNorm, incomeNorm, etc.)
+    2. Sensitivity: compute_sensitivity_for_config() per synth
+    3. Product: constant value broadcast to n_synths
+    4. Interaction: f(parent values * weights * directions)
+    5. Outcome: not computed here (done by Monte Carlo)
+
+    Args:
+        synths: List of synth dicts.
+        node_metadata: Per-node metadata dict.
+        edges: List of edge dicts.
+        product_values: Product node name → numeric value (0.2/0.5/0.8).
+        sensitivity_configs: Sensitivity key → config dict with base/rules.
+        seed: Random seed.
+
+    Returns:
+        Dict of node_name → np.ndarray of shape (n_synths,).
+    """
+    from synth_lab.services.sensitivity_deriver import compute_sensitivity_for_config
+
+    n_synths = len(synths)
+    node_values: dict[str, np.ndarray] = {}
+
+    # Build nodes list for topological sort
+    nodes_list = [{"name": name} for name in node_metadata]
+    sorted_names = _topological_sort(nodes_list, edges)
+
+    # Build adjacency: child → list of (parent_name, weight, direction)
+    child_parents: dict[str, list[tuple[str, float, int]]] = {}
+    for e in edges:
+        src = e.get("from_node", e.get("from", ""))
+        dst = e.get("to_node", e.get("to", ""))
+        weight = e.get("weight", 0.5)
+        direction = e.get("direction", 1)
+        child_parents.setdefault(dst, []).append((src, weight, direction))
+
+    # Map demographic node names to extractors
+    _DEMOGRAPHIC_EXTRACTORS = {
+        "ageNorm": _extract_age_norm,
+        "incomeNorm": _extract_income_norm,
+        "eduNorm": _extract_edu_norm,
+        "familySizeNorm": _extract_family_size_norm,
+    }
+
+    # Infer which extractor to use for demographic nodes based on name
+    _DEMO_NAME_MAP = {
+        "idade": "ageNorm",
+        "renda": "incomeNorm",
+        "escolaridade": "eduNorm",
+        "família": "familySizeNorm",
+        "tamanho": "familySizeNorm",
+    }
+
+    for name in sorted_names:
+        meta = node_metadata.get(name, {})
+        node_type = meta.get("node_type", "interaction")
+
+        if node_type == "demographic":
+            # Find best extractor by name matching
+            name_lower = name.lower()
+            extractor_key = None
+            for keyword, var_key in _DEMO_NAME_MAP.items():
+                if keyword in name_lower:
+                    extractor_key = var_key
+                    break
+
+            if extractor_key and extractor_key in _DEMOGRAPHIC_EXTRACTORS:
+                extractor = _DEMOGRAPHIC_EXTRACTORS[extractor_key]
+                values = np.array([extractor(s) for s in synths])
+            else:
+                values = np.full(n_synths, 0.5)
+            node_values[name] = values
+
+        elif node_type == "sensitivity":
+            sens_key = meta.get("sensitivity_key", "")
+            config = sensitivity_configs.get(sens_key, meta.get("custom_config", {}))
+            if not config:
+                config = {"base": 0.5, "rules": []}
+
+            values = np.zeros(n_synths)
+            for i, synth in enumerate(synths):
+                synth_data = synth.get("data", {})
+                s = seed + i if seed is not None else None
+                values[i] = compute_sensitivity_for_config(synth_data, config, seed=s)
+            node_values[name] = values
+
+        elif node_type == "product":
+            prod_val = product_values.get(name, 0.5)
+            node_values[name] = np.full(n_synths, prod_val)
+
+        elif node_type == "interaction":
+            # Combine parent values: mean(parent_i * weight_i * direction_i), clamped [0,1]
+            parents = child_parents.get(name, [])
+            if parents:
+                weighted_sum = np.zeros(n_synths)
+                total_weight = 0.0
+                for parent_name, weight, direction in parents:
+                    parent_vals = node_values.get(parent_name, np.full(n_synths, 0.5))
+                    weighted_sum += parent_vals * weight * direction
+                    total_weight += abs(weight)
+                if total_weight > 0:
+                    interaction_val = weighted_sum / total_weight
+                else:
+                    interaction_val = np.full(n_synths, 0.5)
+                node_values[name] = np.clip(interaction_val, 0.0, 1.0)
+            else:
+                node_values[name] = np.full(n_synths, 0.5)
+
+        elif node_type == "outcome":
+            # Outcome computed by Monte Carlo, skip here
+            pass
+
+    return node_values
+
+
+def _compute_outcome_weight_multipliers(
+    outcome_edges: list[dict],
+    node_metadata: dict[str, dict],
+    node_selections: dict[str, int],
+) -> np.ndarray:
+    """Compute weight multipliers based on outcome node's "most important" selection.
+
+    The outcome node's options list interaction node names. The selected one gets
+    2x weight, others get 1x, normalized so average stays at 1.0.
+
+    If n interactions: selected gets 2n/(n+1), others get n/(n+1).
+
+    Args:
+        outcome_edges: Edges pointing to the outcome node.
+        node_metadata: Per-node metadata.
+        node_selections: Node selections including outcome.
+
+    Returns:
+        Array of shape (n_edges,) with multipliers.
+    """
+    n_edges = len(outcome_edges)
+    multipliers = np.ones(n_edges)
+
+    # Find outcome node and its selection
+    outcome_name = None
+    if outcome_edges:
+        outcome_name = outcome_edges[0].get("to_node", outcome_edges[0].get("to", ""))
+
+    if not outcome_name:
+        return multipliers
+
+    outcome_meta = node_metadata.get(outcome_name, {})
+    outcome_options = outcome_meta.get("options", [])
+
+    if not outcome_options or outcome_meta.get("node_type") != "outcome":
+        return multipliers
+
+    selected_idx = node_selections.get(
+        outcome_name, outcome_meta.get("default_option", 0)
+    )
+    if selected_idx >= len(outcome_options):
+        selected_idx = 0
+
+    # The selected option text is the name of the "most important" interaction
+    selected_interaction = outcome_options[selected_idx].get("text", "")
+
+    if not selected_interaction:
+        return multipliers
+
+    # Build source node map for edges
+    edge_sources = [
+        e.get("from_node", e.get("from", "")) for e in outcome_edges
+    ]
+
+    # Apply 2x to selected, 1x to others, then normalize
+    # With n edges: selected = 2, others = 1, total = n+1
+    # Normalize by n/(n+1) so average = 1.0
+    n = n_edges
+    norm_factor = n / (n + 1) if n > 0 else 1.0
+
+    for i, src in enumerate(edge_sources):
+        if src == selected_interaction:
+            multipliers[i] = 2.0 * norm_factor
+        else:
+            multipliers[i] = 1.0 * norm_factor
+
+    return multipliers
+
+
+def run_monte_carlo_v2(
+    outcome_edges: list[dict],
+    node_values: dict[str, np.ndarray],
+    node_selections: dict[str, int],
+    node_metadata: dict[str, dict],
+    intercept_mu: float,
+    intercept_sigma: float,
+    n_iterations: int = DEFAULT_N_ITERATIONS,
+    seed: int | None = None,
+) -> dict:
+    """Monte Carlo simulation using pre-computed node values and node-level premissas.
+
+    Coefficients come from the SOURCE NODE's premissa options (not from edges).
+    Each interaction node has 5 Likert options; the selected mu/sigma
+    determine how strongly that node influences the outcome.
+
+    The outcome node's selection determines which interaction is "most important"
+    and gets a 2x weight multiplier (others get 1x, normalized).
+
+    Args:
+        outcome_edges: Edges pointing to the outcome node.
+        node_values: Pre-computed node values from build_node_values().
+        node_selections: Map of node_name → selected option index.
+        node_metadata: Per-node metadata with options.
+        intercept_mu: Model intercept mean.
+        intercept_sigma: Model intercept std dev.
+        n_iterations: Number of Monte Carlo iterations.
+        seed: Random seed.
+
+    Returns:
+        Dict with keys: distribution (list[float]), stats (dict).
+    """
+    rng = np.random.default_rng(seed)
+    n_edges = len(outcome_edges)
+    if n_edges == 0:
+        return {"distribution": [50.0] * n_iterations, "stats": {
+            "mean": 50.0, "median": 50.0, "std": 0.0, "p10": 50.0, "p90": 50.0,
+        }}
+
+    # Get n_synths from first available node value
+    n_synths = 0
+    for vals in node_values.values():
+        n_synths = len(vals)
+        break
+
+    if n_synths == 0:
+        return {"distribution": [50.0] * n_iterations, "stats": {
+            "mean": 50.0, "median": 50.0, "std": 0.0, "p10": 50.0, "p90": 50.0,
+        }}
+
+    per_edge_scale = BUDGET / max(math.sqrt(n_edges), 1.0)
+
+    # Compute outcome weight multipliers (2x for "most important" interaction)
+    weight_multipliers = _compute_outcome_weight_multipliers(
+        outcome_edges, node_metadata, node_selections,
+    )
+
+    # Build input matrix: node values for each outcome edge's source
+    input_matrix = np.full((n_synths, n_edges), 0.5)
+    beta_mus = np.zeros(n_edges)
+    beta_sigmas = np.zeros(n_edges)
+
+    for i, edge in enumerate(outcome_edges):
+        src = edge.get("from_node", edge.get("from", ""))
+        input_matrix[:, i] = node_values.get(src, np.full(n_synths, 0.5))
+        d = edge.get("direction", 1)
+
+        # Get mu/sigma from the source node's premissa options
+        src_meta = node_metadata.get(src, {})
+        src_options = src_meta.get("options", [])
+
+        if src_options:
+            selected = node_selections.get(src, src_meta.get("default_option", 2))
+            opt = src_options[selected] if selected < len(src_options) else src_options[2]
+            beta_mus[i] = opt["mu"] * per_edge_scale * d * weight_multipliers[i]
+            beta_sigmas[i] = opt["sigma"] * per_edge_scale * weight_multipliers[i]
+        else:
+            # Fallback: use edge weight directly
+            weight = edge.get("weight", 0.5)
+            beta_mus[i] = weight * per_edge_scale * d * weight_multipliers[i]
+            beta_sigmas[i] = 0.1 * per_edge_scale * weight_multipliers[i]
+
+    distribution = np.zeros(n_iterations)
+
+    for s in range(n_iterations):
+        intercept = rng.normal(intercept_mu, intercept_sigma)
+        coefs = rng.normal(beta_mus, beta_sigmas)
+        logits = intercept + input_matrix @ coefs
+        probs = _sigmoid(logits)
+        adopted = rng.random(n_synths) < probs
+        distribution[s] = adopted.sum() / n_synths * 100
+
+    dist_list = distribution.tolist()
+    stats = {
+        "mean": round(float(np.mean(distribution)), 1),
+        "median": round(float(np.median(distribution)), 1),
+        "std": round(float(np.std(distribution)), 1),
+        "p10": round(float(np.percentile(distribution, 10)), 1),
+        "p90": round(float(np.percentile(distribution, 90)), 1),
+    }
+
+    return {"distribution": dist_list, "stats": stats}
+
+
+def compute_segments_v2(
+    outcome_edges: list[dict],
+    node_values: dict[str, np.ndarray],
+    node_selections: dict[str, int],
+    node_metadata: dict[str, dict],
+    synths: list[dict],
+    intercept_mu: float,
+    intercept_sigma: float,
+    seed: int | None = None,
+) -> dict:
+    """Compute segments using v2 node values and node-level premissas."""
+    rng = np.random.default_rng(seed)
+    n_synths = len(synths)
+    n_edges = len(outcome_edges)
+
+    if n_edges == 0 or n_synths == 0:
+        empty_bucket = {"rate": 0.0, "count": 0}
+        return {
+            "age": {"18-29": empty_bucket, "30-49": empty_bucket, "50+": empty_bucket},
+            "income": {"baixa": empty_bucket, "media": empty_bucket, "alta": empty_bucket},
+            "education": {"baixa": empty_bucket, "media": empty_bucket, "alta": empty_bucket},
+        }
+
+    per_edge_scale = BUDGET / max(math.sqrt(n_edges), 1.0)
+
+    # Compute outcome weight multipliers
+    weight_multipliers = _compute_outcome_weight_multipliers(
+        outcome_edges, node_metadata, node_selections,
+    )
+
+    # Build input matrix
+    input_matrix = np.full((n_synths, n_edges), 0.5)
+    beta_mus = np.zeros(n_edges)
+    beta_sigmas = np.zeros(n_edges)
+
+    for i, edge in enumerate(outcome_edges):
+        src = edge.get("from_node", edge.get("from", ""))
+        input_matrix[:, i] = node_values.get(src, np.full(n_synths, 0.5))
+        d = edge.get("direction", 1)
+
+        src_meta = node_metadata.get(src, {})
+        src_options = src_meta.get("options", [])
+
+        if src_options:
+            selected = node_selections.get(src, src_meta.get("default_option", 2))
+            opt = src_options[selected] if selected < len(src_options) else src_options[2]
+            beta_mus[i] = opt["mu"] * per_edge_scale * d * weight_multipliers[i]
+            beta_sigmas[i] = opt["sigma"] * per_edge_scale * weight_multipliers[i]
+        else:
+            weight = edge.get("weight", 0.5)
+            beta_mus[i] = weight * per_edge_scale * d * weight_multipliers[i]
+            beta_sigmas[i] = 0.1 * per_edge_scale * weight_multipliers[i]
+
+    n_segment_iters = 500
+    adoption_counts = np.zeros(n_synths)
+
+    for _ in range(n_segment_iters):
+        intercept = rng.normal(intercept_mu, intercept_sigma)
+        coefs = rng.normal(beta_mus, beta_sigmas)
+        logits = intercept + input_matrix @ coefs
+        probs = _sigmoid(logits)
+        adopted = rng.random(n_synths) < probs
+        adoption_counts += adopted
+
+    per_synth_rate = adoption_counts / n_segment_iters * 100
+
+    def _bucket_stats(indices: list[int]) -> dict:
+        if not indices:
+            return {"rate": 0.0, "count": 0}
+        rates = per_synth_rate[indices]
+        return {"rate": round(float(np.mean(rates)), 1), "count": len(indices)}
+
+    # Same bucketing as v1
+    age_18_29: list[int] = []
+    age_30_49: list[int] = []
+    age_50_plus: list[int] = []
+    for i, synth in enumerate(synths):
+        age = synth.get("data", {}).get("demografia", {}).get("idade")
+        if age is None:
+            age_30_49.append(i)
+        elif age < 30:
+            age_18_29.append(i)
+        elif age < 50:
+            age_30_49.append(i)
+        else:
+            age_50_plus.append(i)
+
+    inc_low: list[int] = []
+    inc_mid: list[int] = []
+    inc_high: list[int] = []
+    for i, synth in enumerate(synths):
+        income = synth.get("data", {}).get("demografia", {}).get("renda_mensal")
+        if income is None:
+            inc_mid.append(i)
+        elif income < 3000:
+            inc_low.append(i)
+        elif income <= 10000:
+            inc_mid.append(i)
+        else:
+            inc_high.append(i)
+
+    edu_low: list[int] = []
+    edu_mid: list[int] = []
+    edu_high: list[int] = []
+    low_edu_keys = {"sem escolaridade", "fundamental incompleto", "fundamental completo"}
+    mid_edu_keys = {"médio incompleto", "médio completo"}
+    for i, synth in enumerate(synths):
+        raw = synth.get("data", {}).get("demografia", {}).get("escolaridade") or ""
+        edu = raw.lower().strip()
+        if edu in low_edu_keys:
+            edu_low.append(i)
+        elif edu in mid_edu_keys:
+            edu_mid.append(i)
+        else:
+            edu_high.append(i)
+
+    return {
+        "age": {
+            "18-29": _bucket_stats(age_18_29),
+            "30-49": _bucket_stats(age_30_49),
+            "50+": _bucket_stats(age_50_plus),
+        },
+        "income": {
+            "baixa": _bucket_stats(inc_low),
+            "media": _bucket_stats(inc_mid),
+            "alta": _bucket_stats(inc_high),
+        },
+        "education": {
+            "baixa": _bucket_stats(edu_low),
+            "media": _bucket_stats(edu_mid),
+            "alta": _bucket_stats(edu_high),
+        },
+    }
+
+
+def run_sensitivity_v2(
+    outcome_edges: list[dict],
+    node_values: dict[str, np.ndarray],
+    node_selections: dict[str, int],
+    node_metadata: dict[str, dict],
+    intercept_mu: float,
+    intercept_sigma: float,
+    seed: int | None = None,
+) -> list[dict]:
+    """Run sensitivity analysis on node-level premissas.
+
+    For each source node with options: varies between option 0 and option 4.
+    Measures impact on outcome.
+
+    Returns list sorted by impact descending.
+    """
+    results = []
+
+    # Find unique source nodes that have premissa options
+    calibratable_sources = set()
+    for edge in outcome_edges:
+        src = edge.get("from_node", edge.get("from", ""))
+        src_meta = node_metadata.get(src, {})
+        if src_meta.get("options"):
+            calibratable_sources.add(src)
+
+    for idx, node_name in enumerate(sorted(calibratable_sources)):
+        node_meta = node_metadata.get(node_name, {})
+
+        # Low: set this node to option 0 (strongest)
+        sel_low = {**node_selections, node_name: 0}
+        res_low = run_monte_carlo_v2(
+            outcome_edges, node_values, sel_low, node_metadata,
+            intercept_mu, intercept_sigma,
+            n_iterations=SENSITIVITY_ITERATIONS,
+            seed=seed,
+        )
+
+        # High: set this node to option 4 (weakest)
+        sel_high = {**node_selections, node_name: 4}
+        res_high = run_monte_carlo_v2(
+            outcome_edges, node_values, sel_high, node_metadata,
+            intercept_mu, intercept_sigma,
+            n_iterations=SENSITIVITY_ITERATIONS,
+            seed=(seed + idx + 1) if seed is not None else None,
+        )
+
+        mean_low = res_low["stats"]["mean"]
+        mean_high = res_high["stats"]["mean"]
+        impact = round(abs(mean_low - mean_high), 1)
+
+        results.append({
+            "edge_id": node_name,  # Use node_name as identifier
+            "header": node_meta.get("header", node_name),
+            "impact": impact,
+            "mean_low": mean_low,
+            "mean_high": mean_high,
+        })
+
+    results.sort(key=lambda x: x["impact"], reverse=True)
+    return results
+
+
 def compute_raw_interpretations(
     stats: dict,
     segments: dict,

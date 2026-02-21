@@ -4,6 +4,37 @@
  * Maps to API contracts in specs/042-quantitative-analysis/contracts/api.md
  */
 
+// --- Node Types ---
+
+export type NodeType = 'demographic' | 'sensitivity' | 'product' | 'interaction' | 'outcome';
+
+export interface CausalNodeMeta {
+  name: string;
+  node_type: NodeType;
+  product_calibration?: 'low' | 'medium' | 'high' | null;
+  product_description?: string | null;
+  sensitivity_key?: string | null;
+  description?: string | null;
+  // Premissa fields (interaction + outcome nodes)
+  header?: string | null;
+  options?: LikertOption[] | null;
+  default_option?: number | null;
+  selected_option?: number | null;
+}
+
+// --- Node Selections Types ---
+
+export interface NodeSelections {
+  selections: Record<string, number>;
+}
+
+export interface NodeSelectionsResponse {
+  updated_count: number;
+  all_answered: boolean;
+  answered_count: number;
+  total_nodes: number;
+}
+
 // --- Causal Model Types ---
 
 export interface LikertOption {
@@ -16,12 +47,14 @@ export interface CausalEdge {
   id: string;
   from_node: string;
   to_node: string;
-  user_var: string;
+  user_var: string | null;
   direction: 1 | -1;
   header: string;
-  options: [LikertOption, LikertOption, LikertOption, LikertOption, LikertOption];
+  options: LikertOption[];
   default_option: number;
   selected_option: number | null;
+  edge_type: 'likert' | 'fixed';
+  weight: number | null;
 }
 
 export interface CausalModel {
@@ -31,6 +64,7 @@ export interface CausalModel {
   intercept_mu: number;
   intercept_sigma: number;
   nodes: string[];
+  node_metadata: Record<string, CausalNodeMeta> | null;
   edges: CausalEdge[];
   created_at: string;
 }
@@ -46,6 +80,16 @@ export interface EdgeUpdateResponse {
   all_answered: boolean;
   answered_count: number;
   total_edges: number;
+}
+
+// --- Product Calibration Types ---
+
+export interface ProductCalibrationRequest {
+  calibrations: Record<string, string>;
+}
+
+export interface ProductCalibrationResponse {
+  updated_count: number;
 }
 
 // --- Simulation Types ---

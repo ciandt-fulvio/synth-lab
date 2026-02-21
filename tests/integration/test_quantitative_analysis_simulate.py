@@ -19,24 +19,23 @@ from synth_lab.services.quantitative_analysis_service import (
 )
 
 
-def _make_mock_edge(edge_id: str, user_var: str = "ageNorm", direction: int = 1, selected: int = 2) -> MagicMock:
-    """Create a mock edge ORM object with valid options."""
+def _make_mock_edge(
+    edge_id: str, from_node: str = "NodeA", to_node: str = "NodeB",
+    user_var: str | None = "ageNorm", direction: int = 1, weight: float | None = 0.5,
+) -> MagicMock:
+    """Create a mock edge ORM object (structural, no options)."""
     edge = MagicMock()
     edge.id = edge_id
-    edge.from_node = "NodeA"
-    edge.to_node = "NodeB"
+    edge.from_node = from_node
+    edge.to_node = to_node
     edge.user_var = user_var
     edge.direction = direction
-    edge.header = f"Header for {edge_id}"
-    edge.options = [
-        {"text": "Strong", "mu": 0.80, "sigma": 0.15},
-        {"text": "Significant", "mu": 0.65, "sigma": 0.25},
-        {"text": "Uncertain", "mu": 0.50, "sigma": 0.50},
-        {"text": "Weak", "mu": 0.30, "sigma": 0.25},
-        {"text": "None", "mu": 0.15, "sigma": 0.15},
-    ]
-    edge.default_option = 2
-    edge.selected_option = selected
+    edge.header = f"{from_node} → {to_node}"
+    edge.options = None
+    edge.default_option = 0
+    edge.selected_option = None
+    edge.edge_type = "likert"
+    edge.weight = weight
     return edge
 
 
@@ -67,18 +66,67 @@ def _make_mock_synths(n: int = 20) -> list[dict]:
 
 @pytest.fixture
 def mock_causal_model():
-    """Create a mock causal model ORM with 3 edges."""
+    """Create a mock causal model ORM with enriched DAG (5 node types)."""
     model = MagicMock()
     model.id = "cm_test1234"
     model.experiment_id = "exp_12345678"
     model.label = "Test Model"
     model.intercept_mu = 0.1
     model.intercept_sigma = 0.4
-    model.nodes = ["Idade", "Renda", "Confiança", "Adoção"]
+    model.nodes = ["Aversão a Risco", "Cap. Digital", "Facilidade", "Confiança", "Valor", "Adoção"]
+    model.node_metadata = {
+        "Aversão a Risco": {
+            "name": "Aversão a Risco", "node_type": "sensitivity",
+            "sensitivity_key": "risk_aversion",
+        },
+        "Cap. Digital": {
+            "name": "Cap. Digital", "node_type": "sensitivity",
+            "sensitivity_key": "digital_capability",
+        },
+        "Facilidade": {
+            "name": "Facilidade", "node_type": "product",
+            "product_calibration": "medium",
+        },
+        "Confiança": {
+            "name": "Confiança", "node_type": "interaction",
+            "header": "Qual o peso de Confiança?",
+            "options": [
+                {"text": "Crítica", "mu": 0.80, "sigma": 0.15},
+                {"text": "Significativa", "mu": 0.65, "sigma": 0.25},
+                {"text": "Incerta", "mu": 0.50, "sigma": 0.50},
+                {"text": "Fraca", "mu": 0.30, "sigma": 0.25},
+                {"text": "Nenhuma", "mu": 0.15, "sigma": 0.15},
+            ],
+            "default_option": 1, "selected_option": 1,
+        },
+        "Valor": {
+            "name": "Valor", "node_type": "interaction",
+            "header": "Qual o peso de Valor?",
+            "options": [
+                {"text": "Crítico", "mu": 0.80, "sigma": 0.15},
+                {"text": "Significativo", "mu": 0.65, "sigma": 0.25},
+                {"text": "Incerto", "mu": 0.50, "sigma": 0.50},
+                {"text": "Fraco", "mu": 0.30, "sigma": 0.25},
+                {"text": "Nenhum", "mu": 0.15, "sigma": 0.15},
+            ],
+            "default_option": 0, "selected_option": 0,
+        },
+        "Adoção": {
+            "name": "Adoção", "node_type": "outcome",
+            "header": "Qual dos itens abaixo tem mais influência para Adoção?",
+            "options": [
+                {"text": "Confiança", "mu": 0, "sigma": 0},
+                {"text": "Valor", "mu": 0, "sigma": 0},
+            ],
+            "default_option": 0, "selected_option": 0,
+        },
+    }
     model.edges = [
-        _make_mock_edge("e1", "ageNorm", -1, 0),
-        _make_mock_edge("e2", "incomeNorm", 1, 1),
-        _make_mock_edge("e3", "digitalCapability", 1, 2),
+        _make_mock_edge("e1", "Aversão a Risco", "Confiança", user_var="riskAversion", direction=-1, weight=0.7),
+        _make_mock_edge("e2", "Cap. Digital", "Valor", user_var="digitalCapability", direction=1, weight=0.5),
+        _make_mock_edge("e3", "Facilidade", "Confiança", user_var=None, direction=1, weight=0.6),
+        _make_mock_edge("e4", "Confiança", "Adoção", user_var=None, direction=1, weight=0.7),
+        _make_mock_edge("e5", "Valor", "Adoção", user_var=None, direction=1, weight=0.6),
     ]
     return model
 

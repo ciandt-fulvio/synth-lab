@@ -239,6 +239,42 @@ def derive_sensitivities(
     return result
 
 
+def compute_sensitivity_for_config(
+    synth_data: dict,
+    config: dict,
+    seed: int | None = None,
+) -> float:
+    """Compute a single sensitivity value for a synth using provided config.
+
+    Works with both YAML-loaded configs and custom LLM-generated configs.
+    Config format matches individual sensitivity entries in sensitivity_rules.yaml:
+        {"base": 0.45, "rules": [...], "strength": 15}
+
+    Args:
+        synth_data: Full synth data dict (with demografia, etc.).
+        config: Sensitivity config with base, rules, and optional strength.
+        seed: Random seed for reproducibility.
+
+    Returns:
+        Float sensitivity value in [0, 1].
+    """
+    rng = np.random.default_rng(seed)
+    base = float(config.get("base", 0.5))
+    mean = base
+
+    for rule in config.get("rules", []):
+        condition = rule.get("condition", {})
+        if evaluate_condition(condition, synth_data):
+            adjustment = float(rule.get("adjustment", 0.0))
+            mean += adjustment
+
+    mean = max(0.01, min(0.99, mean))
+    strength = int(config.get("strength", BETA_STRENGTH_DEFAULT))
+    alpha = mean * strength
+    beta_param = (1.0 - mean) * strength
+    return round(float(rng.beta(alpha, beta_param)), 4)
+
+
 if __name__ == "__main__":
     import sys
 

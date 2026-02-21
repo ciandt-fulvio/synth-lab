@@ -220,26 +220,26 @@ class TestCausalModel:
         assert model.experiment_id == "exp_12345678"
         assert len(model.nodes) == 7
 
-    def test_nodes_count_7_to_10(self) -> None:
-        """Nodes list must have 7-10 items."""
-        # Too few
-        with pytest.raises(ValueError):
-            CausalModel(
-                experiment_id="exp_12345678",
-                label="test",
-                intercept_mu=0.1,
-                intercept_sigma=0.4,
-                nodes=["A", "B", "C"],
-            )
-        # Too many
-        with pytest.raises(ValueError):
-            CausalModel(
-                experiment_id="exp_12345678",
-                label="test",
-                intercept_mu=0.1,
-                intercept_sigma=0.4,
-                nodes=[f"N{i}" for i in range(11)],
-            )
+    def test_nodes_count_flexible(self) -> None:
+        """Nodes list accepts any count (no min/max limit for enriched DAG)."""
+        # Small DAG (3 nodes) — should work
+        model_small = CausalModel(
+            experiment_id="exp_12345678",
+            label="test",
+            intercept_mu=0.1,
+            intercept_sigma=0.4,
+            nodes=["A", "B", "C"],
+        )
+        assert len(model_small.nodes) == 3
+        # Large DAG (15 nodes) — should work
+        model_large = CausalModel(
+            experiment_id="exp_12345678",
+            label="test",
+            intercept_mu=0.1,
+            intercept_sigma=0.4,
+            nodes=[f"N{i}" for i in range(15)],
+        )
+        assert len(model_large.nodes) == 15
 
     def test_intercept_mu_range(self) -> None:
         """Intercept mu must be in [-3.0, 3.0]."""

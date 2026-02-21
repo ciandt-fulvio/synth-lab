@@ -1,9 +1,10 @@
 /**
  * LikertAssertions component.
  *
- * Compact card list for reviewing pre-filled causal edge assumptions.
- * All edges start with LLM defaults pre-selected. Users click to expand
- * and optionally adjust. Cards that diverge from default show "ajustado" badge.
+ * Compact card list for reviewing pre-filled causal node premissas.
+ * Each interaction and outcome node has 5 Likert options that determine
+ * the node's weight in the simulation. Users click to expand and
+ * optionally adjust. Cards that diverge from default show "ajustado" badge.
  *
  * References:
  *   - Types: src/types/quantitative-analysis.ts
@@ -18,12 +19,23 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from '@/components/ui/tooltip';
-import type { CausalEdge } from '@/types/quantitative-analysis';
+import type { CausalNodeMeta, LikertOption } from '@/types/quantitative-analysis';
+
+/** A calibratable node (interaction or outcome) with premissa options. */
+export interface CalibratableNode {
+  name: string;
+  nodeType: string;
+  header: string;
+  description: string;
+  options: LikertOption[];
+  defaultOption: number;
+  selectedOption: number | null;
+}
 
 interface LikertAssertionsProps {
-  edges: CausalEdge[];
-  activeEdgeId?: string | null;
-  onEdgeActivate?: (edgeId: string | null) => void;
+  nodes: CalibratableNode[];
+  activeNodeName?: string | null;
+  onNodeActivate?: (nodeName: string | null) => void;
   onSelectionsChange: (selections: Record<string, number>) => void;
 }
 
@@ -51,50 +63,102 @@ function useDebouncedCallback<T extends (...args: unknown[]) => void>(
   ) as T;
 }
 
+/**
+ * Build CalibratableNode list from node_metadata.
+ * Sorted by DAG topology order (nodeOrder), with outcome always last.
+ */
+export function buildCalibratableNodes(
+  nodeMetadata: Record<string, CausalNodeMeta> | null,
+  nodeOrder?: string[],
+): CalibratableNode[] {
+  if (!nodeMetadata) return [];
+
+  const orderIndex = new Map<string, number>();
+  if (nodeOrder) {
+    nodeOrder.forEach((name, idx) => orderIndex.set(name, idx));
+  }
+
+  return Object.values(nodeMetadata)
+    .filter(
+      (meta) =>
+        (meta.node_type === 'interaction' || meta.node_type === 'outcome') &&
+        meta.options &&
+        meta.options.length > 0
+    )
+    .map((meta) => ({
+      name: meta.name,
+      nodeType: meta.node_type,
+      header: meta.header ?? `Peso de ${meta.name}`,
+      description: meta.description ?? '',
+      options: meta.options!,
+      defaultOption: meta.default_option ?? 2,
+      selectedOption: meta.selected_option ?? null,
+    }))
+    .sort((a, b) => {
+      // Outcome always last
+      if (a.nodeType === 'outcome' && b.nodeType !== 'outcome') return 1;
+      if (b.nodeType === 'outcome' && a.nodeType !== 'outcome') return -1;
+      // Otherwise preserve DAG topology order
+      const ia = orderIndex.get(a.name) ?? Infinity;
+      const ib = orderIndex.get(b.name) ?? Infinity;
+      return ia - ib;
+    });
+}
+
 export function LikertAssertions({
-  edges,
-  activeEdgeId,
-  onEdgeActivate,
+  nodes,
+  activeNodeName,
+  onNodeActivate,
   onSelectionsChange,
 }: LikertAssertionsProps) {
-  // Pre-fill every edge with selected_option or default_option
+  // Pre-fill every node with selected_option or default_option
   const [localSelections, setLocalSelections] = useState<Record<string, number>>(() => {
     const initial: Record<string, number> = {};
-    for (const edge of edges) {
-      initial[edge.id] = edge.selected_option ?? edge.default_option;
+    for (const node of nodes) {
+      initial[node.name] = node.selectedOption ?? node.defaultOption;
     }
     return initial;
   });
 
-  // Track which defaults each edge started with
+  // Refs for scrolling into view
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Track which defaults each node started with
   const defaults = useMemo(() => {
     const d: Record<string, number> = {};
-    for (const edge of edges) {
-      d[edge.id] = edge.default_option;
+    for (const node of nodes) {
+      d[node.name] = node.defaultOption;
     }
     return d;
-  }, [edges]);
+  }, [nodes]);
 
-  // Track edges where user diverged from LLM default
-  const modifiedEdges = useMemo(() => {
+  // Track nodes where user diverged from LLM default
+  const modifiedNodes = useMemo(() => {
     const modified = new Set<string>();
-    for (const edge of edges) {
-      const current = localSelections[edge.id];
-      if (current !== undefined && current !== defaults[edge.id]) {
-        modified.add(edge.id);
+    for (const node of nodes) {
+      const current = localSelections[node.name];
+      if (current !== undefined && current !== defaults[node.name]) {
+        modified.add(node.name);
       }
     }
     return modified;
-  }, [edges, localSelections, defaults]);
+  }, [nodes, localSelections, defaults]);
 
-  const [expandedEdge, setExpandedEdge] = useState<string | null>(activeEdgeId ?? null);
+  const [expandedNode, setExpandedNode] = useState<string | null>(activeNodeName ?? null);
 
-  // Sync expanded edge with activeEdgeId prop (DAG click)
+  // Sync expanded node with activeNodeName prop + scroll into view
   useEffect(() => {
-    if (activeEdgeId) {
-      setExpandedEdge(activeEdgeId);
+    if (activeNodeName) {
+      setExpandedNode(activeNodeName);
+      // Scroll the card into view after a short delay for DOM update
+      setTimeout(() => {
+        const el = cardRefs.current[activeNodeName];
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 50);
     }
-  }, [activeEdgeId]);
+  }, [activeNodeName]);
 
   const debouncedSave = useDebouncedCallback(
     (selections: Record<string, number>) => {
@@ -103,14 +167,14 @@ export function LikertAssertions({
     500
   );
 
-  const handleSelect = (edgeId: string, optionIndex: number) => {
-    const updated = { ...localSelections, [edgeId]: optionIndex };
+  const handleSelect = (nodeName: string, optionIndex: number) => {
+    const updated = { ...localSelections, [nodeName]: optionIndex };
     setLocalSelections(updated);
     debouncedSave(updated);
   };
 
-  const modifiedCount = modifiedEdges.size;
-  const totalEdges = edges.length;
+  const modifiedCount = modifiedNodes.size;
+  const totalNodes = nodes.length;
 
   return (
     <div className="space-y-2">
@@ -121,22 +185,26 @@ export function LikertAssertions({
         </span>
         <span className="text-xs text-slate-500">
           {modifiedCount > 0
-            ? `${modifiedCount}/${totalEdges} ajustadas`
-            : `${totalEdges} premissas com valores sugeridos`}
+            ? `${modifiedCount}/${totalNodes} ajustadas`
+            : `${totalNodes} premissas com valores sugeridos`}
         </span>
       </div>
 
-      {/* Edge cards */}
-      {edges.map((edge) => {
-        const isExpanded = expandedEdge === edge.id;
-        const isActive = activeEdgeId === edge.id;
-        const selectedOption = localSelections[edge.id] ?? edge.default_option;
-        const isModified = modifiedEdges.has(edge.id);
-        const selectedText = edge.options[selectedOption]?.text ?? '';
+      {/* Node cards */}
+      {nodes.map((node) => {
+        const isExpanded = expandedNode === node.name;
+        const isActive = activeNodeName === node.name;
+        const selectedOption = localSelections[node.name] ?? node.defaultOption;
+        const isModified = modifiedNodes.has(node.name);
+        const selectedText = node.options[selectedOption]?.text ?? '';
+
+        const typeLabel = node.nodeType === 'outcome' ? 'Resultado' : 'Interação';
+        const typeBg = node.nodeType === 'outcome' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700';
 
         return (
           <div
-            key={edge.id}
+            key={node.name}
+            ref={(el) => { cardRefs.current[node.name] = el; }}
             className={`rounded-lg border transition-all duration-200 ${
               isExpanded
                 ? 'border-l-4 border-l-violet-500 border-y-slate-200 border-r-slate-200 bg-violet-50/30'
@@ -150,15 +218,16 @@ export function LikertAssertions({
               type="button"
               className="w-full flex items-start gap-2 px-4 py-3 text-left"
               onClick={() => {
-                const next = isExpanded ? null : edge.id;
-                setExpandedEdge(next);
-                onEdgeActivate?.(next);
+                const next = isExpanded ? null : node.name;
+                setExpandedNode(next);
+                onNodeActivate?.(next);
               }}
             >
               <div className="flex-1 min-w-0">
+                {/* Title row: node name + sugerido/ajustado badge + chevron */}
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-slate-700">
-                    {edge.header}
+                    {node.name}
                   </span>
                   {isModified ? (
                     <TooltipProvider delayDuration={200}>
@@ -179,10 +248,21 @@ export function LikertAssertions({
                     </span>
                   )}
                 </div>
-                {/* Inline preview of selected option (collapsed only) */}
+                {/* Type badge below */}
+                <div className="mt-1">
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${typeBg}`}>
+                    {typeLabel}
+                  </span>
+                </div>
+                {/* Description / selected preview */}
                 {!isExpanded && (
                   <p className="text-xs text-slate-500 mt-1 line-clamp-2">
                     {selectedText}
+                  </p>
+                )}
+                {isExpanded && node.description && (
+                  <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                    {node.description}
                   </p>
                 )}
               </div>
@@ -196,7 +276,7 @@ export function LikertAssertions({
             {/* Options (collapsible) */}
             {isExpanded && (
               <div className="px-4 pb-4 space-y-2">
-                {edge.options.map((option, idx) => {
+                {node.options.map((option, idx) => {
                   const isSelected = selectedOption === idx;
 
                   return (
@@ -208,7 +288,7 @@ export function LikertAssertions({
                           ? 'border-violet-400 bg-violet-50 text-violet-800 font-medium'
                           : 'border-slate-150 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                       }`}
-                      onClick={() => handleSelect(edge.id, idx)}
+                      onClick={() => handleSelect(node.name, idx)}
                     >
                       <div className="flex items-center gap-2">
                         <div

@@ -8,7 +8,6 @@ References:
     - Data model: specs/042-quantitative-analysis/data-model.md
 """
 
-
 from pydantic import BaseModel, Field
 
 # =============================================================================
@@ -24,18 +23,58 @@ class LikertOptionResponse(BaseModel):
     sigma: float = Field(description="Uncertainty fraction [0, 1].")
 
 
+class CausalNodeResponse(BaseModel):
+    """Per-node metadata in API response."""
+
+    name: str = Field(description="Node display name.")
+    node_type: str = Field(
+        description="Node type: demographic, sensitivity, product, interaction, outcome."
+    )
+    product_calibration: str | None = Field(
+        default=None, description="Product calibration: low/medium/high."
+    )
+    product_description: str | None = Field(
+        default=None, description="LLM-generated product description."
+    )
+    sensitivity_key: str | None = Field(
+        default=None, description="Sensitivity key (YAML or custom)."
+    )
+    description: str | None = Field(
+        default=None, description="LLM-generated explanation of this node's role."
+    )
+    # Premissa fields (interaction + outcome nodes)
+    header: str | None = Field(
+        default=None, description="Contextual header for the node's premissa."
+    )
+    options: list[LikertOptionResponse] | None = Field(
+        default=None, description="5 Likert options (null for non-calibratable nodes)."
+    )
+    default_option: int | None = Field(
+        default=None, description="LLM-suggested default option index."
+    )
+    selected_option: int | None = Field(
+        default=None, description="PM's selected option (null = not answered)."
+    )
+
+
 class CausalEdgeResponse(BaseModel):
     """Causal edge in API response."""
 
     id: str = Field(description="Edge identifier (e.g., 'e1').")
     from_node: str = Field(description="Source node name.")
     to_node: str = Field(description="Target node name.")
-    user_var: str = Field(description="Mapped userVar from synth attributes.")
+    user_var: str | None = Field(
+        default=None, description="Mapped userVar (null for product/interaction edges)."
+    )
     direction: int = Field(description="1 (direct) or -1 (inverse).")
     header: str = Field(description="Contextual assertion header.")
-    options: list[LikertOptionResponse] = Field(description="5 Likert options.")
+    options: list[LikertOptionResponse] = Field(
+        default_factory=list, description="5 Likert options (empty for fixed edges)."
+    )
     default_option: int = Field(description="LLM-suggested default index.")
     selected_option: int | None = Field(description="PM's selection (null = not answered).")
+    edge_type: str = Field(default="likert", description="Edge type: 'likert' or 'fixed'.")
+    weight: float | None = Field(default=None, description="LLM-suggested weight.")
 
 
 class CausalModelResponse(BaseModel):
@@ -47,6 +86,9 @@ class CausalModelResponse(BaseModel):
     intercept_mu: float = Field(description="Intercept mean.")
     intercept_sigma: float = Field(description="Intercept std dev.")
     nodes: list[str] = Field(description="DAG node names.")
+    node_metadata: dict[str, CausalNodeResponse] | None = Field(
+        default=None, description="Per-node metadata keyed by node name."
+    )
     edges: list[CausalEdgeResponse] = Field(description="DAG edges with Likert assertions.")
     created_at: str = Field(description="ISO 8601 creation timestamp.")
 
@@ -72,6 +114,49 @@ class EdgeUpdateResponse(BaseModel):
     all_answered: bool = Field(description="True if all edges have a selection.")
     answered_count: int = Field(description="Number of edges with a selection.")
     total_edges: int = Field(description="Total number of edges in the model.")
+
+
+# =============================================================================
+# Node Selections Schemas
+# =============================================================================
+
+
+class NodeSelectionsRequest(BaseModel):
+    """Request to update node premissa selections."""
+
+    selections: dict[str, int] = Field(
+        description="Map of node_name to selected_option index.",
+        examples=[{"Confiança para Usar": 1, "Adoção": 2}],
+    )
+
+
+class NodeSelectionsResponse(BaseModel):
+    """Response after updating node premissa selections."""
+
+    updated_count: int = Field(description="Number of nodes updated.")
+    all_answered: bool = Field(description="True if all calibratable nodes have a selection.")
+    answered_count: int = Field(description="Number of nodes with a selection.")
+    total_nodes: int = Field(description="Total calibratable nodes (interaction + outcome).")
+
+
+# =============================================================================
+# Product Calibration Schemas
+# =============================================================================
+
+
+class ProductCalibrationRequest(BaseModel):
+    """Request to update product node calibrations."""
+
+    calibrations: dict[str, str] = Field(
+        description="Map of product node name to calibration level (low/medium/high).",
+        examples=[{"Facilidade de Uso": "high", "Transparência": "low"}],
+    )
+
+
+class ProductCalibrationResponse(BaseModel):
+    """Response after updating product calibrations."""
+
+    updated_count: int = Field(description="Number of product nodes updated.")
 
 
 # =============================================================================
@@ -132,9 +217,7 @@ class SegmentsResponse(BaseModel):
 
     age: dict[str, SegmentResultResponse] = Field(description="Age segment results.")
     income: dict[str, SegmentResultResponse] = Field(description="Income segment results.")
-    education: dict[str, SegmentResultResponse] = Field(
-        description="Education segment results."
-    )
+    education: dict[str, SegmentResultResponse] = Field(description="Education segment results.")
 
 
 class SimulationRunResponse(BaseModel):

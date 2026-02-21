@@ -14,6 +14,8 @@ import {
   generateCausalModel,
   getCausalModel,
   updateEdgeSelections,
+  updateNodeSelections,
+  updateProductCalibration,
   runSimulation,
   getSimulationResults,
   generateInterviewGuide,
@@ -62,6 +64,44 @@ export function useUpdateEdgeSelections(experimentId: string) {
   return useMutation({
     mutationFn: (selections: Record<string, number>) =>
       updateEdgeSelections(experimentId, selections),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.quantitativeAnalysis.model(experimentId),
+      });
+    },
+  });
+}
+
+/**
+ * Hook to update premissa selections for interaction/outcome nodes.
+ *
+ * Invalidates the model query on success.
+ */
+export function useUpdateNodeSelections(experimentId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (selections: Record<string, number>) =>
+      updateNodeSelections(experimentId, selections),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.quantitativeAnalysis.model(experimentId),
+      });
+    },
+  });
+}
+
+/**
+ * Hook to update product node calibrations.
+ *
+ * Invalidates the model query on success.
+ */
+export function useUpdateProductCalibration(experimentId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (calibrations: Record<string, string>) =>
+      updateProductCalibration(experimentId, calibrations),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.quantitativeAnalysis.model(experimentId),

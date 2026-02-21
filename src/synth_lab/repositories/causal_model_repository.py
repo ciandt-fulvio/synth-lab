@@ -45,6 +45,7 @@ class CausalModelRepository(BaseRepository):
         nodes: list,
         edges: list[dict],
         raw_llm_response: dict | None = None,
+        node_metadata: dict | None = None,
     ) -> CausalModelORM:
         """
         Create a causal model with its edges in a single transaction.
@@ -58,6 +59,7 @@ class CausalModelRepository(BaseRepository):
             nodes: List of node names.
             edges: List of edge dicts with keys matching CausalEdge columns.
             raw_llm_response: Optional raw LLM response for debugging.
+            node_metadata: Optional per-node metadata dict.
 
         Returns:
             Created CausalModelORM instance.
@@ -69,6 +71,7 @@ class CausalModelRepository(BaseRepository):
             intercept_mu=intercept_mu,
             intercept_sigma=intercept_sigma,
             nodes=nodes,
+            node_metadata=node_metadata,
             raw_llm_response=raw_llm_response,
         )
         self._add(orm_model)
@@ -80,12 +83,14 @@ class CausalModelRepository(BaseRepository):
                 causal_model_id=model_id,
                 from_node=edge_data["from_node"],
                 to_node=edge_data["to_node"],
-                user_var=edge_data["user_var"],
+                user_var=edge_data.get("user_var"),
                 direction=edge_data["direction"],
-                header=edge_data["header"],
-                options=edge_data["options"],
-                default_option=edge_data["default_option"],
+                header=edge_data.get("header", ""),
+                options=edge_data.get("options"),
+                default_option=edge_data.get("default_option", 0),
                 selected_option=edge_data.get("selected_option"),
+                edge_type=edge_data.get("edge_type", "likert"),
+                weight=edge_data.get("weight"),
             )
             self._add(orm_edge)
 
@@ -143,6 +148,30 @@ class CausalModelRepository(BaseRepository):
         self._commit()
         return {"updated": updated, "skipped": skipped}
 
+    def update_node_metadata(
+        self,
+        causal_model_id: str,
+        node_metadata: dict,
+    ) -> bool:
+        """
+        Update node_metadata JSONB for a causal model.
+
+        Args:
+            causal_model_id: Causal model ID.
+            node_metadata: New node_metadata dict.
+
+        Returns:
+            True if updated, False if model not found.
+        """
+        orm_model = self.session.get(CausalModelORM, causal_model_id)
+        if orm_model is None:
+            return False
+
+        orm_model.node_metadata = node_metadata
+        self._flush()
+        self._commit()
+        return True
+
     def delete_by_experiment(self, experiment_id: str) -> bool:
         """
         Delete causal model and its edges for an experiment.
@@ -190,6 +219,7 @@ if __name__ == "__main__":
             "create_with_edges",
             "get_by_experiment",
             "update_edge_selections",
+            "update_node_metadata",
             "delete_by_experiment",
         ]
         for method in methods:

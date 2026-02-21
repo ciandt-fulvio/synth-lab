@@ -20,24 +20,23 @@ from synth_lab.services.quantitative_analysis_service import (
 )
 
 
-def _make_mock_edge(edge_id: str, user_var: str = "ageNorm", direction: int = 1, selected: int = 2) -> MagicMock:
-    """Create a mock edge ORM object with valid options."""
+def _make_mock_edge(
+    edge_id: str, from_node: str, to_node: str,
+    direction: int = 1, edge_type: str = "likert", weight: float = 0.6,
+) -> MagicMock:
+    """Create a mock edge ORM object (structural, no Likert options on edges)."""
     edge = MagicMock()
     edge.id = edge_id
-    edge.from_node = "NodeA"
-    edge.to_node = "NodeB"
-    edge.user_var = user_var
+    edge.from_node = from_node
+    edge.to_node = to_node
+    edge.user_var = None
     edge.direction = direction
-    edge.header = f"Header for {edge_id}"
-    edge.options = [
-        {"text": "Strong", "mu": 0.80, "sigma": 0.15},
-        {"text": "Significant", "mu": 0.65, "sigma": 0.25},
-        {"text": "Uncertain", "mu": 0.50, "sigma": 0.50},
-        {"text": "Weak", "mu": 0.30, "sigma": 0.25},
-        {"text": "None", "mu": 0.15, "sigma": 0.15},
-    ]
-    edge.default_option = 2
-    edge.selected_option = selected
+    edge.header = f"{from_node} → {to_node}"
+    edge.options = None
+    edge.default_option = 0
+    edge.selected_option = None
+    edge.edge_type = edge_type
+    edge.weight = weight
     return edge
 
 
@@ -68,18 +67,48 @@ def _make_mock_synths(n: int = 20) -> list[dict]:
 
 @pytest.fixture
 def mock_causal_model():
-    """Create a mock causal model ORM with 3 edges."""
+    """Create a mock causal model ORM with node-level premissas."""
     model = MagicMock()
     model.id = "cm_test1234"
     model.experiment_id = "exp_12345678"
     model.label = "Test Model"
     model.intercept_mu = 0.1
     model.intercept_sigma = 0.4
-    model.nodes = ["Idade", "Renda", "Confiança", "Adoção"]
+    model.nodes = ["Aversão a Risco", "Cap. Digital", "Confiança", "Adoção"]
+    model.node_metadata = {
+        "Aversão a Risco": {
+            "name": "Aversão a Risco", "node_type": "sensitivity",
+            "sensitivity_key": "risk_aversion",
+        },
+        "Cap. Digital": {
+            "name": "Cap. Digital", "node_type": "sensitivity",
+            "sensitivity_key": "digital_capability",
+        },
+        "Confiança": {
+            "name": "Confiança", "node_type": "interaction",
+            "header": "Qual o peso de Confiança?",
+            "options": [
+                {"text": "Crítica", "mu": 0.80, "sigma": 0.15},
+                {"text": "Significativa", "mu": 0.65, "sigma": 0.25},
+                {"text": "Incerta", "mu": 0.50, "sigma": 0.50},
+                {"text": "Fraca", "mu": 0.30, "sigma": 0.25},
+                {"text": "Nenhuma", "mu": 0.15, "sigma": 0.15},
+            ],
+            "default_option": 1, "selected_option": 1,
+        },
+        "Adoção": {
+            "name": "Adoção", "node_type": "outcome",
+            "header": "Qual dos itens abaixo tem mais influência para Adoção?",
+            "options": [
+                {"text": "Confiança", "mu": 0, "sigma": 0},
+            ],
+            "default_option": 0, "selected_option": 0,
+        },
+    }
     model.edges = [
-        _make_mock_edge("e1", "ageNorm", -1, 0),
-        _make_mock_edge("e2", "incomeNorm", 1, 1),
-        _make_mock_edge("e3", "digitalCapability", 1, 2),
+        _make_mock_edge("e1", "Aversão a Risco", "Confiança", direction=-1, weight=0.7),
+        _make_mock_edge("e2", "Cap. Digital", "Confiança", direction=1, weight=0.5),
+        _make_mock_edge("e3", "Confiança", "Adoção", direction=1, weight=0.7),
     ]
     return model
 
@@ -243,9 +272,8 @@ class TestAutoGenerateInterviewGuide:
         )
 
         sensitivity = [
-            {"header": "Idade afeta confiança", "impact": 12.5, "mean_low": 48.0, "mean_high": 35.5, "edge_id": "e1"},
-            {"header": "Renda afeta adoção", "impact": 8.0, "mean_low": 46.0, "mean_high": 38.0, "edge_id": "e2"},
-            {"header": "Escolaridade afeta uso", "impact": 5.0, "mean_low": 44.0, "mean_high": 39.0, "edge_id": "e3"},
+            {"header": "Confiança", "impact": 12.5, "mean_low": 48.0, "mean_high": 35.5, "node_name": "Confiança"},
+            {"header": "Adoção", "impact": 8.0, "mean_low": 46.0, "mean_high": 38.0, "node_name": "Adoção"},
         ]
 
         service.generate_from_simulation_sync(

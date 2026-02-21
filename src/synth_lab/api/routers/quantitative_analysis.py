@@ -14,6 +14,10 @@ from synth_lab.api.schemas.quantitative_analysis import (
     CausalModelResponse,
     EdgeUpdateRequest,
     EdgeUpdateResponse,
+    NodeSelectionsRequest,
+    NodeSelectionsResponse,
+    ProductCalibrationRequest,
+    ProductCalibrationResponse,
     SimulationRunResponse,
 )
 from synth_lab.services.quantitative_analysis_service import (
@@ -71,6 +75,40 @@ async def update_edge_selections(
     try:
         result = service.update_edge_selections(experiment_id, request.selections)
         return EdgeUpdateResponse(**result)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+
+
+@router.patch("/node-selections", response_model=NodeSelectionsResponse)
+async def update_node_selections(
+    experiment_id: str,
+    request: NodeSelectionsRequest,
+) -> NodeSelectionsResponse:
+    """Update PM's premissa selections for interaction/outcome nodes.
+
+    Accepts partial updates — only specified nodes are modified.
+    """
+    service = get_service()
+    try:
+        result = service.update_node_selections(experiment_id, request.selections)
+        return NodeSelectionsResponse(**result)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+
+
+@router.patch("/product-calibration", response_model=ProductCalibrationResponse)
+async def update_product_calibration(
+    experiment_id: str,
+    request: ProductCalibrationRequest,
+) -> ProductCalibrationResponse:
+    """Update product node calibrations (low/medium/high).
+
+    Accepts partial updates — only specified product nodes are modified.
+    """
+    service = get_service()
+    try:
+        result = service.update_product_calibrations(experiment_id, request.calibrations)
+        return ProductCalibrationResponse(**result)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 

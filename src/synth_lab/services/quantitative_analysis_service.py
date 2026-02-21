@@ -1,12 +1,11 @@
 """
 Quantitative analysis service for synth-lab.
 
-Orchestrates causal model generation, edge selection management,
-Monte Carlo simulation, and AI interpretations.
+Orchestrates causal model generation (2-pass LLM), edge selection management,
+Monte Carlo simulation with enriched DAG (5 node types), and AI interpretations.
 
 References:
     - Spec: specs/042-quantitative-analysis/spec.md
-    - Prompts: Apêndice A (DAG_SYSTEM), Apêndice B (INTERP_SYSTEM)
     - OpenAI Chat Completions: https://platform.openai.com/docs/api-reference/chat
     - Phoenix Tracing: https://docs.arize.com/phoenix
 
@@ -15,122 +14,38 @@ Sample usage:
     model = service.generate_causal_model("exp_12345678")
 """
 
-import json
 import secrets
 
 from loguru import logger
 from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
-from synth_lab.domain.entities.causal_model import generate_causal_model_id
+from synth_lab.domain.entities.causal_model import (
+    PRODUCT_CALIBRATION_VALUES,
+    generate_causal_model_id,
+)
 from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
 from synth_lab.infrastructure.phoenix_tracing import get_tracer
 from synth_lab.repositories.causal_model_repository import CausalModelRepository
 from synth_lab.repositories.experiment_repository import ExperimentRepository
 from synth_lab.repositories.simulation_run_repository import SimulationRunRepository
 from synth_lab.repositories.synth_repository import SynthRepository
+from synth_lab.services.dag_generator import generate_options, generate_topology
 from synth_lab.services.interview_guide_generator_service import (
     InterviewGuideGeneratorService,
 )
+from synth_lab.services.sensitivity_deriver import load_sensitivity_rules
 from synth_lab.services.simulation_engine import (
+    build_node_values,
     compute_raw_interpretations,
-    compute_segments,
-    extract_user_vars,
-    run_monte_carlo,
-    run_sensitivity,
+    compute_segments_v2,
+    run_monte_carlo_v2,
+    run_sensitivity_v2,
 )
 from synth_lab.services.simulation_summary_generator_service import (
     SimulationSummaryGeneratorService,
 )
 
 _tracer = get_tracer("quantitative-analysis-service")
-
-# ============================================================================
-# DAG_SYSTEM prompt (Apêndice A from spec)
-# ============================================================================
-
-DAG_SYSTEM_PROMPT = """You are an expert in causal inference, product experimentation, and behavioral modeling for a Brazilian financial institution.
-
-Given an experiment description, generate a causal DAG where each edge is an ASSERTION about how a variable affects another.
-
-RULES:
-- 7-10 nodes, 7-10 edges. Last node = outcome (adoption/conversion/engagement).
-- CRITICAL DAG STRUCTURE — 3 layers:
-  1. DEMOGRAPHIC ROOTS (left): "Idade", "Renda", "Escolaridade" as root nodes (no incoming edges).
-  2. MEDIATING VARIABLES (middle): Behavioral/psychological constructs (e.g., "Confiança", "Percepção de Valor").
-  3. OUTCOME (right): Final adoption node.
-  Every demographic root must have at least 1 outgoing edge.
-- Available userVar values (ONLY): ageNorm, incomeNorm, eduNorm, digitalCapability, familySizeNorm, hasVisualDisab, hasMotorDisab, riskAversion, institutionalTrust, frictionTolerance
-  ALL are normalized [0,1].
-- Demographic→Mediator: ageNorm (for Idade), incomeNorm (for Renda), eduNorm (for Escolaridade).
-
-CRITICAL — EDGE FORMAT:
-Each edge is an ASSERTION (statement), NOT a question. The PM responds with agreement level.
-
-CRITICAL — EDGE HEADER:
-Instead of "statement", each edge has a "header" field. This is a SHORT contextual intro:
-  Format: "Quanto [target] é influenciado(a) por [source concept]"
-  Example: "Quanto a Familiaridade Digital é influenciada pela idade"
-
-CRITICAL — OPTIONS (5 self-contained sentences):
-Each option has: text, mu, sigma.
-- "text" is a COMPLETE, self-contained sentence that the PM reads and agrees/disagrees with.
-- mu is [0,1] coupling strength. sigma is uncertainty fraction. BOTH ARE HIDDEN from PM.
-- The PM sees ONLY the text.
-
-The 5 options MUST follow this exact pattern (strongest agreement first, weakest last):
-  Option 0: text = strong effect claim.                      mu=0.80, sigma=0.15
-  Option 1: text = significant effect claim.                 mu=0.65, sigma=0.25
-  Option 2: text = "Não sei dizer se [X] impacta [Y]"       mu=0.50, sigma=0.50
-  Option 3: text = weak/uncertain effect claim.              mu=0.30, sigma=0.25
-  Option 4: text = no effect claim.                          mu=0.15, sigma=0.15
-
-THESE mu/sigma VALUES ARE FIXED. Do NOT change them.
-
-RULES FOR OPTION TEXT:
-- Option 0 must be the STRONGEST claim, with specificity
-- Option 1 is strong but less absolute
-- Option 2 ALWAYS starts with "Não sei dizer se..." — this is the uncertainty option
-- Option 3 acknowledges some weak relationship but with hedging language
-- Option 4 flatly denies the relationship
-- ALL options are complete Portuguese sentences.
-
-CRITICAL — "direction" field:
-Each edge MUST include a "direction" field: 1 (direct/positive) or -1 (inverse/negative).
-
-CRITICAL — VARIED DEFAULTS:
-- "default" is NOT always 2. Be OPINIONATED based on common sense about the experiment.
-- At least 2 edges should have default != 2. At least 1 should be 0,1 or 3,4.
-
-Node names SHORT (max 25 chars). Portuguese BR.
-interceptMu: -2.5 to 1.2. interceptSigma: 0.3 to 0.5.
-Be OPINIONATED based on the product context:
-- High friction / risky / unfamiliar to target audience: -1.5 to -2.5
-- Moderate barriers, non-obvious value: -0.7 to -1.2
-- Average product: -0.5 to 0.0
-- Strong value prop / utility / low friction: 0.3 to 1.2
-
-DIRECTION guidance: If the product targets low-income or underserved populations
-(microfinance, bancarização, etc.), use direction=-1 for incomeNorm and/or eduNorm.
-Use direction to reflect the ACTUAL target segment, not just default assumptions.
-
-Respond with ONLY valid JSON:
-{
-  "label": "string",
-  "interceptMu": number,
-  "interceptSigma": number,
-  "nodes": ["string"...],
-  "edges": [{
-    "id": "string",
-    "from": "string",
-    "to": "string",
-    "userVar": "string",
-    "direction": 1 or -1,
-    "header": "string",
-    "options": [{"text":"string","mu":number,"sigma":number}...5 items],
-    "default": number
-  }...]
-}"""
-
 
 # ============================================================================
 # INTERP_SYSTEM prompt (Apêndice B from spec)
@@ -164,8 +79,8 @@ SE section = "Sensibilidade":
 class QuantitativeAnalysisService:
     """Service for causal model generation, simulation, and interpretation.
 
-    Handles DAG generation via LLM, edge selection persistence,
-    Monte Carlo simulation, and AI interpretations.
+    Handles DAG generation via LLM (2-pass), edge selection persistence,
+    Monte Carlo simulation with enriched DAG, and AI interpretations.
     """
 
     def __init__(
@@ -189,16 +104,16 @@ class QuantitativeAnalysisService:
 
     def generate_causal_model(self, experiment_id: str) -> dict:
         """
-        Generate a causal DAG for an experiment via LLM.
+        Generate an enriched causal DAG for an experiment via 2-pass LLM.
 
-        Deletes any existing model for this experiment (CASCADE on edges),
-        then generates a new one via gpt-5.1.
+        Pass 1: Topology (nodes, edges, configs) via gpt-5-mini.
+        Pass 2: Likert options for calibratable edges via gpt-5-mini.
 
         Args:
             experiment_id: Parent experiment ID.
 
         Returns:
-            Dict with model data (id, label, nodes, edges, etc.).
+            Dict with model data (id, label, nodes, edges, node_metadata, etc.).
 
         Raises:
             ValueError: If experiment not found or missing required fields.
@@ -209,7 +124,7 @@ class QuantitativeAnalysisService:
             attributes={
                 SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
                 "experiment_id": experiment_id,
-                "operation.type": "dag_generation",
+                "operation.type": "dag_generation_v2",
             },
         ) as span:
             # Load experiment context
@@ -227,81 +142,155 @@ class QuantitativeAnalysisService:
             # Delete existing model if any
             self.causal_model_repo.delete_by_experiment(experiment_id)
 
-            # Build user message with experiment context
-            user_message = f"Experimento: {name}\nHipótese: {hypothesis}\n"
+            # Load YAML sensitivity configs
+            yaml_data = load_sensitivity_rules()
+            yaml_sensitivities = yaml_data.get("sensitivities", {})
+
+            # Build experiment context string
+            experiment_context = f"Experimento: {name}\nHipótese: {hypothesis}\n"
             if description:
-                user_message += f"Descrição: {description}\n"
+                experiment_context += f"Descrição: {description}\n"
 
-            # Call LLM
-            self.logger.info(f"Generating causal model for experiment: {experiment_id}")
-            response_text = self.llm.complete_json(
-                messages=[
-                    {"role": "system", "content": DAG_SYSTEM_PROMPT},
-                    {"role": "user", "content": user_message},
-                ],
-                model="gpt-5.1",
-                temperature=0.7,
-                operation_name="DAG Generation (gpt-5.1)",
-            )
+            # Pass 1: Generate topology
+            self.logger.info(f"Generating DAG topology for experiment: {experiment_id}")
+            topology = generate_topology(self.llm, experiment_context, yaml_sensitivities)
 
-            # Parse LLM response
-            try:
-                data = json.loads(response_text)
-            except json.JSONDecodeError as e:
-                raise RuntimeError(f"LLM returned invalid JSON: {e}") from e
+            # Remove isolated nodes (no edges referencing them)
+            edges = topology.get("edges", [])
+            connected = set()
+            for e in edges:
+                connected.add(e.get("from", ""))
+                connected.add(e.get("to", ""))
+            original_count = len(topology.get("nodes", []))
+            topology["nodes"] = [
+                n for n in topology.get("nodes", []) if n["name"] in connected
+            ]
+            removed = original_count - len(topology["nodes"])
+            if removed:
+                self.logger.warning(f"Removed {removed} isolated node(s) from topology")
 
-            # Map LLM response keys to our schema
+            # Pass 2: Generate options for interaction nodes
+            self.logger.info(f"Generating node premissa options for experiment: {experiment_id}")
+            options_data = generate_options(self.llm, topology)
+
+            # Index node options by name
+            options_by_name = {n["name"]: n for n in options_data.get("nodes", [])}
+
+            # Build node_metadata from topology nodes
+            node_metadata: dict[str, dict] = {}
+            node_names: list[str] = []
+            for node_raw in topology.get("nodes", []):
+                node_name = node_raw["name"]
+                node_names.append(node_name)
+                meta: dict = {
+                    "name": node_name,
+                    "node_type": node_raw["type"],
+                }
+                if node_raw.get("sensitivity_key"):
+                    meta["sensitivity_key"] = node_raw["sensitivity_key"]
+                if node_raw.get("custom_config"):
+                    meta["custom_config"] = node_raw["custom_config"]
+                if node_raw["type"] == "product":
+                    meta["product_calibration"] = "medium"  # default
+                    meta["product_description"] = node_raw.get("description", "")
+                if node_raw.get("description"):
+                    meta["description"] = node_raw["description"]
+
+                # Merge premissa options for interaction nodes (from LLM Pass 2)
+                if node_raw["type"] == "interaction":
+                    node_opt = options_by_name.get(node_name, {})
+                    meta["header"] = node_opt.get("header", f"Peso de {node_name}")
+                    meta["options"] = node_opt.get("options", [])
+                    meta["default_option"] = node_opt.get("default", 2)
+                    meta["selected_option"] = None
+
+                # Outcome options are built from interaction names (after loop)
+                if node_raw["type"] == "outcome":
+                    meta["selected_option"] = None
+
+                node_metadata[node_name] = meta
+
+            # Build outcome node options from interaction node names
+            interaction_names = [
+                n["name"] for n in topology.get("nodes", [])
+                if n["type"] == "interaction"
+            ]
+            for node_name, meta in node_metadata.items():
+                if meta.get("node_type") == "outcome" and interaction_names:
+                    meta["header"] = (
+                        f"Qual dos itens abaixo tem mais influência para {node_name}?"
+                    )
+                    meta["options"] = [
+                        {"text": name, "mu": 0, "sigma": 0}
+                        for name in interaction_names
+                    ]
+                    meta["default_option"] = 0
+                    node_metadata[node_name] = meta
+
+            # Build edges data (structural only — no Likert options on edges)
             model_id = generate_causal_model_id()
             edges_data = []
-            for edge_raw in data.get("edges", []):
-                edges_data.append(
-                    {
-                        "id": edge_raw["id"],
-                        "from_node": edge_raw["from"],
-                        "to_node": edge_raw["to"],
-                        "user_var": edge_raw["userVar"],
-                        "direction": edge_raw["direction"],
-                        "header": edge_raw["header"],
-                        "options": edge_raw["options"],
-                        "default_option": edge_raw["default"],
-                        "selected_option": None,
+            for edge_raw in topology.get("edges", []):
+                edge_id = edge_raw["id"]
+
+                # Determine user_var if source is a known sensitivity
+                src_meta = node_metadata.get(edge_raw["from"], {})
+                user_var = None
+                if src_meta.get("sensitivity_key") in {
+                    "risk_aversion", "institutional_trust_level",
+                    "friction_tolerance", "digital_capability",
+                }:
+                    _sens_to_var = {
+                        "risk_aversion": "riskAversion",
+                        "institutional_trust_level": "institutionalTrust",
+                        "friction_tolerance": "frictionTolerance",
+                        "digital_capability": "digitalCapability",
                     }
-                )
+                    user_var = _sens_to_var.get(src_meta["sensitivity_key"])
+
+                edge_dict: dict = {
+                    "id": edge_id,
+                    "from_node": edge_raw["from"],
+                    "to_node": edge_raw["to"],
+                    "direction": edge_raw.get("direction", 1),
+                    "edge_type": edge_raw.get("edge_type", "likert"),
+                    "weight": edge_raw.get("weight"),
+                    "user_var": user_var,
+                    "header": f"{edge_raw['from']} → {edge_raw['to']}",
+                    "options": None,
+                    "default_option": 0,
+                    "selected_option": None,
+                }
+                edges_data.append(edge_dict)
 
             # Save to database
+            raw_response = {"topology": topology, "options": options_data}
             orm_model = self.causal_model_repo.create_with_edges(
                 model_id=model_id,
                 experiment_id=experiment_id,
-                label=data.get("label", "Modelo Causal"),
-                intercept_mu=data.get("interceptMu", 0.1),
-                intercept_sigma=data.get("interceptSigma", 0.4),
-                nodes=data.get("nodes", []),
+                label=topology.get("label", "Modelo Causal"),
+                intercept_mu=topology.get("interceptMu", 0.1),
+                intercept_sigma=topology.get("interceptSigma", 0.4),
+                nodes=node_names,
                 edges=edges_data,
-                raw_llm_response=data,
+                raw_llm_response=raw_response,
+                node_metadata=node_metadata,
             )
 
             if span:
                 span.set_attribute("model_id", model_id)
-                span.set_attribute("node_count", len(data.get("nodes", [])))
+                span.set_attribute("node_count", len(node_names))
                 span.set_attribute("edge_count", len(edges_data))
 
             self.logger.info(
                 f"Causal model generated: {model_id} "
-                f"({len(data.get('nodes', []))} nodes, {len(edges_data)} edges)"
+                f"({len(node_names)} nodes, {len(edges_data)} edges)"
             )
 
             return self._model_to_dict(orm_model)
 
     def get_causal_model(self, experiment_id: str) -> dict | None:
-        """
-        Get the current causal model for an experiment.
-
-        Args:
-            experiment_id: Experiment ID.
-
-        Returns:
-            Dict with model data, or None if no model exists.
-        """
+        """Get the current causal model for an experiment."""
         orm_model = self.causal_model_repo.get_by_experiment(experiment_id)
         if orm_model is None:
             return None
@@ -312,19 +301,7 @@ class QuantitativeAnalysisService:
         experiment_id: str,
         selections: dict[str, int],
     ) -> dict:
-        """
-        Update edge selections for the experiment's causal model.
-
-        Args:
-            experiment_id: Experiment ID.
-            selections: Dict of {edge_id: selected_option_index}.
-
-        Returns:
-            Dict with {updated_count, all_answered, answered_count, total_edges}.
-
-        Raises:
-            ValueError: If no causal model exists for the experiment.
-        """
+        """Update edge selections for the experiment's causal model."""
         orm_model = self.causal_model_repo.get_by_experiment(experiment_id)
         if orm_model is None:
             raise ValueError(f"No causal model for experiment: {experiment_id}")
@@ -348,12 +325,100 @@ class QuantitativeAnalysisService:
             "total_edges": total_edges,
         }
 
-    def run_simulation(self, experiment_id: str) -> dict:
-        """Run Monte Carlo simulation with current edge selections.
+    def update_node_selections(
+        self,
+        experiment_id: str,
+        selections: dict[str, int],
+    ) -> dict:
+        """Update premissa selections for interaction/outcome nodes.
 
-        Loads synths from the experiment's group, extracts userVars,
-        runs simulation, computes segments and sensitivity, then
-        generates AI interpretations.
+        Args:
+            experiment_id: Experiment ID.
+            selections: Dict of {node_name: selected_option_index}.
+
+        Returns:
+            Dict with {updated_count, all_answered, answered_count, total_nodes}.
+
+        Raises:
+            ValueError: If no model found.
+        """
+        orm_model = self.causal_model_repo.get_by_experiment(experiment_id)
+        if orm_model is None:
+            raise ValueError(f"No causal model for experiment: {experiment_id}")
+
+        node_metadata = dict(orm_model.node_metadata or {})
+        updated = 0
+
+        for node_name, option_index in selections.items():
+            meta = node_metadata.get(node_name, {})
+            if meta.get("node_type") not in ("interaction", "outcome"):
+                continue
+            if not meta.get("options"):
+                continue
+            meta["selected_option"] = option_index
+            node_metadata[node_name] = meta
+            updated += 1
+
+        self.causal_model_repo.update_node_metadata(orm_model.id, node_metadata)
+
+        # Count calibratable nodes
+        calibratable = [
+            m for m in node_metadata.values()
+            if m.get("node_type") in ("interaction", "outcome") and m.get("options")
+        ]
+        answered = sum(1 for m in calibratable if m.get("selected_option") is not None)
+
+        return {
+            "updated_count": updated,
+            "all_answered": answered == len(calibratable),
+            "answered_count": answered,
+            "total_nodes": len(calibratable),
+        }
+
+    def update_product_calibrations(
+        self,
+        experiment_id: str,
+        calibrations: dict[str, str],
+    ) -> dict:
+        """Update product node calibrations.
+
+        Args:
+            experiment_id: Experiment ID.
+            calibrations: Dict of {node_name: "low"/"medium"/"high"}.
+
+        Returns:
+            Dict with {updated_count}.
+
+        Raises:
+            ValueError: If no model or invalid calibration values.
+        """
+        orm_model = self.causal_model_repo.get_by_experiment(experiment_id)
+        if orm_model is None:
+            raise ValueError(f"No causal model for experiment: {experiment_id}")
+
+        node_metadata = dict(orm_model.node_metadata or {})
+        updated = 0
+
+        for node_name, calibration in calibrations.items():
+            if calibration not in PRODUCT_CALIBRATION_VALUES:
+                raise ValueError(
+                    f"Invalid calibration '{calibration}' for '{node_name}'. "
+                    f"Must be one of: {list(PRODUCT_CALIBRATION_VALUES)}"
+                )
+            meta = node_metadata.get(node_name, {})
+            if meta.get("node_type") != "product":
+                continue
+            meta["product_calibration"] = calibration
+            node_metadata[node_name] = meta
+            updated += 1
+
+        self.causal_model_repo.update_node_metadata(orm_model.id, node_metadata)
+        return {"updated_count": updated}
+
+    def run_simulation(self, experiment_id: str) -> dict:
+        """Run Monte Carlo simulation with enriched DAG.
+
+        Uses v2 simulation engine with 5 node types and pre-computed node values.
 
         Args:
             experiment_id: Experiment ID.
@@ -369,7 +434,7 @@ class QuantitativeAnalysisService:
             attributes={
                 SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
                 "experiment_id": experiment_id,
-                "operation.type": "monte_carlo_simulation",
+                "operation.type": "monte_carlo_simulation_v2",
             },
         ) as span:
             # Load causal model
@@ -377,9 +442,10 @@ class QuantitativeAnalysisService:
             if orm_model is None:
                 raise ValueError(f"No causal model for experiment: {experiment_id}")
 
-            # Build edges list and selections dict
+            node_metadata = orm_model.node_metadata or {}
+
+            # Build edges list
             edges_data = []
-            selections = {}
             for e in orm_model.edges:
                 edge_dict = {
                     "id": e.id,
@@ -390,53 +456,87 @@ class QuantitativeAnalysisService:
                     "header": e.header,
                     "options": e.options,
                     "default_option": e.default_option,
+                    "edge_type": e.edge_type,
+                    "weight": e.weight,
                 }
                 edges_data.append(edge_dict)
-                # Use selected_option if available, else default
-                selections[e.id] = (
-                    e.selected_option if e.selected_option is not None else e.default_option
-                )
 
-            # Load synths from experiment's group
+            # Build node selections from node_metadata premissas
+            node_selections: dict[str, int] = {}
+            for node_name, meta in node_metadata.items():
+                if meta.get("node_type") in ("interaction", "outcome") and meta.get("options"):
+                    node_selections[node_name] = (
+                        meta["selected_option"]
+                        if meta.get("selected_option") is not None
+                        else meta.get("default_option", 2)
+                    )
+
+            # Load synths
             synths_raw = self._load_synths_raw(experiment_id)
             if not synths_raw:
                 raise ValueError(f"No synths found for experiment: {experiment_id}")
 
             n_synths = len(synths_raw)
-            user_vars = [e["user_var"] for e in edges_data]
-            user_var_matrix = extract_user_vars(synths_raw, user_vars)
+
+            # Build sensitivity configs from YAML + custom
+            yaml_data = load_sensitivity_rules()
+            yaml_sensitivities = yaml_data.get("sensitivities", {})
+            sensitivity_configs: dict[str, dict] = dict(yaml_sensitivities)
+
+            # Add custom configs from node_metadata
+            for meta in node_metadata.values():
+                if meta.get("node_type") == "sensitivity" and meta.get("custom_config"):
+                    sens_key = meta.get("sensitivity_key", "")
+                    sensitivity_configs[sens_key] = meta["custom_config"]
+
+            # Map product calibrations to values
+            product_values: dict[str, float] = {}
+            for node_name, meta in node_metadata.items():
+                if meta.get("node_type") == "product":
+                    calibration = meta.get("product_calibration", "medium")
+                    product_values[node_name] = PRODUCT_CALIBRATION_VALUES.get(calibration, 0.5)
 
             self.logger.info(
-                f"Running simulation: {n_synths} synths, {len(edges_data)} edges, 3000 iterations"
+                f"Running v2 simulation: {n_synths} synths, {len(edges_data)} edges"
             )
 
+            # Build node values
+            node_vals = build_node_values(
+                synths_raw, node_metadata, edges_data,
+                product_values, sensitivity_configs,
+            )
+
+            # Find outcome edges (edges pointing to the outcome node)
+            outcome_node = None
+            for node_name, meta in node_metadata.items():
+                if meta.get("node_type") == "outcome":
+                    outcome_node = node_name
+                    break
+
+            if outcome_node is None:
+                # Fallback: last node in the list
+                outcome_node = orm_model.nodes[-1] if orm_model.nodes else ""
+
+            outcome_edges = [e for e in edges_data if e["to_node"] == outcome_node]
+
             # Run main simulation
-            mc_result = run_monte_carlo(
-                edges_data,
-                selections,
-                user_var_matrix,
-                orm_model.intercept_mu,
-                orm_model.intercept_sigma,
+            mc_result = run_monte_carlo_v2(
+                outcome_edges, node_vals, node_selections, node_metadata,
+                orm_model.intercept_mu, orm_model.intercept_sigma,
                 n_iterations=3000,
             )
 
             # Compute segments
-            segments = compute_segments(
-                edges_data,
-                selections,
+            segments = compute_segments_v2(
+                outcome_edges, node_vals, node_selections, node_metadata,
                 synths_raw,
-                user_var_matrix,
-                orm_model.intercept_mu,
-                orm_model.intercept_sigma,
+                orm_model.intercept_mu, orm_model.intercept_sigma,
             )
 
             # Run sensitivity analysis
-            sensitivity = run_sensitivity(
-                edges_data,
-                selections,
-                user_var_matrix,
-                orm_model.intercept_mu,
-                orm_model.intercept_sigma,
+            sensitivity = run_sensitivity_v2(
+                outcome_edges, node_vals, node_selections, node_metadata,
+                orm_model.intercept_mu, orm_model.intercept_sigma,
             )
 
             # Compute raw interpretations
@@ -450,7 +550,7 @@ class QuantitativeAnalysisService:
                 causal_model_id=orm_model.id,
                 n_iterations=3000,
                 n_synths=n_synths,
-                selections=selections,
+                selections=node_selections,
                 stats=mc_result["stats"],
                 distribution=mc_result["distribution"],
                 segments=segments,
@@ -464,7 +564,7 @@ class QuantitativeAnalysisService:
 
             self.logger.info(f"Simulation complete: {run_id} (mean={mc_result['stats']['mean']}%)")
 
-            # Generate AI interpretations (async, 3 parallel calls)
+            # Generate AI interpretations
             experiment = self.experiment_repo.get_by_id(experiment_id)
             exp_context = (
                 f"{experiment.name}: {experiment.hypothesis}" if experiment else experiment_id
@@ -477,7 +577,7 @@ class QuantitativeAnalysisService:
                 sensitivity=sensitivity,
             )
 
-            # Mark simulation summary as generating (sync, so frontend sees it)
+            # Mark simulation summary as generating
             from synth_lab.domain.entities.experiment_document import DocumentType
             from synth_lab.services.document_service import DocumentService
 
@@ -489,7 +589,7 @@ class QuantitativeAnalysisService:
             except Exception as e:
                 self.logger.warning(f"Could not mark summary as generating: {e}")
 
-            # Auto-generate simulation summary report (non-blocking)
+            # Auto-generate reports (non-blocking)
             import threading
 
             threading.Thread(
@@ -498,7 +598,6 @@ class QuantitativeAnalysisService:
                 daemon=True,
             ).start()
 
-            # Auto-generate interview guide from sensitivity (non-blocking)
             threading.Thread(
                 target=self._auto_generate_interview_guide,
                 args=(experiment_id, experiment, sensitivity),
@@ -514,19 +613,11 @@ class QuantitativeAnalysisService:
             )
 
     def get_simulation_results(self, experiment_id: str) -> dict | None:
-        """Get the latest simulation results for an experiment.
-
-        Args:
-            experiment_id: Experiment ID.
-
-        Returns:
-            Dict with simulation results, or None if no runs exist.
-        """
+        """Get the latest simulation results for an experiment."""
         orm_run = self.simulation_run_repo.get_latest_by_experiment(experiment_id)
         if orm_run is None:
             return None
 
-        # Build interpretations from ORM
         interps = {}
         for interp in orm_run.interpretations or []:
             interps[interp.section] = {
@@ -543,17 +634,7 @@ class QuantitativeAnalysisService:
         )
 
     def generate_interview_guide(self, experiment_id: str) -> dict:
-        """Generate interview guide from the latest simulation sensitivity.
-
-        Calls the interview guide generator service with the top sensitivity
-        premisses. Raises ValueError if no simulation results exist.
-
-        Args:
-            experiment_id: Experiment ID.
-
-        Returns:
-            Dict with status confirmation.
-        """
+        """Generate interview guide from the latest simulation sensitivity."""
         orm_run = self.simulation_run_repo.get_latest_by_experiment(experiment_id)
         if orm_run is None:
             raise ValueError(f"No simulation results for experiment: {experiment_id}")
@@ -589,11 +670,7 @@ class QuantitativeAnalysisService:
         raw_interps: dict[str, str],
         sensitivity: list[dict],
     ) -> dict[str, dict]:
-        """Generate AI interpretations for all 3 sections.
-
-        Calls gpt-4o-mini for each section with the INTERP_SYSTEM prompt.
-        Returns dict of {section: {raw_text, ai_text}}.
-        """
+        """Generate AI interpretations for all 3 sections."""
         sections = ["distribution", "segments", "sensitivity"]
         section_labels = {
             "distribution": "Distribuição",
@@ -601,7 +678,6 @@ class QuantitativeAnalysisService:
             "sensitivity": "Sensibilidade",
         }
 
-        # Format sensitivity data for context
         sens_text = "\n".join(f"- {s['header']}: impacto {s['impact']}pp" for s in sensitivity[:5])
 
         results = {}
@@ -637,7 +713,7 @@ class QuantitativeAnalysisService:
                     )
                 except Exception as e:
                     self.logger.warning(f"AI interpretation failed for {section}: {e}")
-                    ai_text = raw_text  # Fallback to raw text
+                    ai_text = raw_text
 
             interp_id = f"ai_{secrets.token_hex(4)}"
             results[section] = {"raw_text": raw_text, "ai_text": ai_text}
@@ -652,22 +728,13 @@ class QuantitativeAnalysisService:
                 }
             )
 
-        # Save interpretations to DB
         self.simulation_run_repo.create_interpretations(interpretations_to_save)
-
         return results
 
     def _auto_generate_interview_guide(
-        self,
-        experiment_id: str,
-        experiment,
-        sensitivity: list[dict],
+        self, experiment_id: str, experiment, sensitivity: list[dict],
     ) -> None:
-        """Auto-generate interview guide from simulation sensitivity results.
-
-        Runs silently — errors are logged but do not block the simulation response.
-        Overwrites any existing interview guide (FR-017).
-        """
+        """Auto-generate interview guide in background."""
         try:
             self.interview_guide_service.generate_from_simulation_sync(
                 experiment_id=experiment_id,
@@ -681,17 +748,7 @@ class QuantitativeAnalysisService:
             self.logger.error(f"Failed to auto-generate interview guide for {experiment_id}: {e}")
 
     def generate_simulation_summary(self, experiment_id: str) -> dict:
-        """Manually (re)generate simulation summary report.
-
-        Args:
-            experiment_id: Experiment ID.
-
-        Returns:
-            Dict with status confirmation.
-
-        Raises:
-            ValueError: If no simulation results exist.
-        """
+        """Manually (re)generate simulation summary report."""
         orm_run = self.simulation_run_repo.get_latest_by_experiment(experiment_id)
         if orm_run is None:
             raise ValueError(f"No simulation results for experiment: {experiment_id}")
@@ -700,41 +757,24 @@ class QuantitativeAnalysisService:
         from synth_lab.services.document_service import DocumentService
 
         doc_service = DocumentService()
-        doc_service.start_generation(
-            experiment_id,
-            DocumentType.SIMULATION_SUMMARY,
-        )
+        doc_service.start_generation(experiment_id, DocumentType.SIMULATION_SUMMARY)
 
         try:
-            generator = SimulationSummaryGeneratorService(
-                llm_client=self.llm,
-            )
+            generator = SimulationSummaryGeneratorService(llm_client=self.llm)
             generator.generate(experiment_id)
         except Exception as e:
             self.logger.error(f"Failed to generate simulation summary: {e}")
             doc_service.fail_generation(
-                experiment_id,
-                DocumentType.SIMULATION_SUMMARY,
-                error_message=str(e),
+                experiment_id, DocumentType.SIMULATION_SUMMARY, error_message=str(e),
             )
             raise
 
         return {"status": "ok", "experiment_id": experiment_id}
 
-    def _auto_generate_simulation_summary(
-        self,
-        experiment_id: str,
-    ) -> None:
-        """Auto-generate simulation summary after simulation completes.
-
-        Runs in a background thread. start_generation() already called
-        by the caller before spawning the thread.
-        Errors are logged and document marked as failed.
-        """
+    def _auto_generate_simulation_summary(self, experiment_id: str) -> None:
+        """Auto-generate simulation summary in background."""
         try:
-            generator = SimulationSummaryGeneratorService(
-                llm_client=self.llm,
-            )
+            generator = SimulationSummaryGeneratorService(llm_client=self.llm)
             generator.generate(experiment_id)
             self.logger.info(f"Simulation summary auto-generated for: {experiment_id}")
         except Exception as e:
@@ -746,9 +786,7 @@ class QuantitativeAnalysisService:
                 from synth_lab.services.document_service import DocumentService
 
                 DocumentService().fail_generation(
-                    experiment_id,
-                    DocumentType.SIMULATION_SUMMARY,
-                    error_message=str(e),
+                    experiment_id, DocumentType.SIMULATION_SUMMARY, error_message=str(e),
                 )
             except Exception:
                 pass
@@ -760,13 +798,11 @@ class QuantitativeAnalysisService:
         from synth_lab.models.orm.experiment import Experiment as ExperimentORM
         from synth_lab.models.orm.synth import Synth as SynthORM
 
-        # Get experiment's synth_group_id
         stmt = select(ExperimentORM).where(ExperimentORM.id == experiment_id)
         experiment = self.synth_repo.session.execute(stmt).scalar_one_or_none()
         if not experiment or not experiment.synth_group_id:
             return []
 
-        # Load synths from group
         stmt = (
             select(SynthORM)
             .where(
@@ -782,12 +818,8 @@ class QuantitativeAnalysisService:
         ]
 
     def _run_to_dict(
-        self,
-        orm_run,
-        distribution: list,
-        segments: dict,
-        sensitivity: list,
-        interpretations: dict,
+        self, orm_run, distribution: list, segments: dict,
+        sensitivity: list, interpretations: dict,
     ) -> dict:
         """Convert simulation run data to API response dict."""
         return {
@@ -818,9 +850,11 @@ class QuantitativeAnalysisService:
                     "user_var": e.user_var,
                     "direction": e.direction,
                     "header": e.header,
-                    "options": e.options,
+                    "options": e.options or [],
                     "default_option": e.default_option,
                     "selected_option": e.selected_option,
+                    "edge_type": e.edge_type,
+                    "weight": e.weight,
                 }
             )
 
@@ -831,64 +865,9 @@ class QuantitativeAnalysisService:
             "intercept_mu": orm_model.intercept_mu,
             "intercept_sigma": orm_model.intercept_sigma,
             "nodes": orm_model.nodes,
+            "node_metadata": orm_model.node_metadata,
             "edges": edges,
             "created_at": orm_model.created_at.isoformat()
             if hasattr(orm_model.created_at, "isoformat")
             else str(orm_model.created_at),
         }
-
-
-if __name__ == "__main__":
-    import sys
-
-    all_validation_failures = []
-    total_tests = 0
-
-    # Test 1: Service instantiation
-    total_tests += 1
-    try:
-        service = QuantitativeAnalysisService()
-        if service.llm is None:
-            all_validation_failures.append("LLM client should not be None")
-        if service.causal_model_repo is None:
-            all_validation_failures.append("Causal model repo should not be None")
-    except Exception as e:
-        all_validation_failures.append(f"Service init failed: {e}")
-
-    # Test 2: DAG_SYSTEM_PROMPT contains key elements
-    total_tests += 1
-    try:
-        if "causal DAG" not in DAG_SYSTEM_PROMPT:
-            all_validation_failures.append("Prompt missing 'causal DAG'")
-        if "userVar" not in DAG_SYSTEM_PROMPT:
-            all_validation_failures.append("Prompt missing 'userVar'")
-        if "ageNorm" not in DAG_SYSTEM_PROMPT:
-            all_validation_failures.append("Prompt missing 'ageNorm'")
-    except Exception as e:
-        all_validation_failures.append(f"Prompt check failed: {e}")
-
-    # Test 3: Methods exist
-    total_tests += 1
-    try:
-        service = QuantitativeAnalysisService()
-        methods = [
-            "generate_causal_model",
-            "get_causal_model",
-            "update_edge_selections",
-            "run_simulation",
-            "get_simulation_results",
-        ]
-        for method in methods:
-            if not hasattr(service, method):
-                all_validation_failures.append(f"Missing method: {method}")
-    except Exception as e:
-        all_validation_failures.append(f"Method check failed: {e}")
-
-    if all_validation_failures:
-        print(f"VALIDATION FAILED - {len(all_validation_failures)} of {total_tests} tests failed:")
-        for failure in all_validation_failures:
-            print(f"  - {failure}")
-        sys.exit(1)
-    else:
-        print(f"VALIDATION PASSED - All {total_tests} tests produced expected results")
-        sys.exit(0)
