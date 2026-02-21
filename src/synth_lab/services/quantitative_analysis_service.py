@@ -19,6 +19,7 @@ import json
 import secrets
 
 from loguru import logger
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
 from synth_lab.domain.entities.causal_model import generate_causal_model_id
 from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
@@ -206,6 +207,7 @@ class QuantitativeAnalysisService:
         with _tracer.start_as_current_span(
             "QuantitativeAnalysis: generate_causal_model",
             attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
                 "experiment_id": experiment_id,
                 "operation.type": "dag_generation",
             },
@@ -365,6 +367,7 @@ class QuantitativeAnalysisService:
         with _tracer.start_as_current_span(
             "QuantitativeAnalysis: run_simulation",
             attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
                 "experiment_id": experiment_id,
                 "operation.type": "monte_carlo_simulation",
             },
@@ -561,7 +564,13 @@ class QuantitativeAnalysisService:
 
         sensitivity = orm_run.sensitivity or []
 
-        with _tracer.start_as_current_span("generate-interview-guide"):
+        with _tracer.start_as_current_span(
+            "QuantitativeAnalysis: generate_interview_guide",
+            attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "experiment_id": experiment_id,
+            },
+        ):
             self.interview_guide_service.generate_from_simulation_sync(
                 experiment_id=experiment_id,
                 name=experiment.name,
@@ -610,6 +619,7 @@ class QuantitativeAnalysisService:
             with _tracer.start_as_current_span(
                 f"QuantitativeAnalysis: interpret_{section}",
                 attributes={
+                    SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
                     "run_id": run_id,
                     "section": section,
                     "operation.type": "ai_interpretation",

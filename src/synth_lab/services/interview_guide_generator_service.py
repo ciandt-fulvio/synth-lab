@@ -28,6 +28,7 @@ import json
 from datetime import datetime, timezone
 
 from loguru import logger
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 from pydantic import BaseModel
 
 from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
@@ -184,6 +185,7 @@ Responda APENAS com o JSON, sem explicações adicionais."""
         with _tracer.start_as_current_span(
             "InterviewGuideGenerator: generate_content",
             attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
                 "experiment_name": name,
                 "has_description": description is not None,
             }) as span:
@@ -255,6 +257,7 @@ Responda APENAS com o JSON, sem explicações adicionais."""
         with _tracer.start_as_current_span(
             "InterviewGuideGenerator: generate_for_experiment",
             attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
                 "experiment_id": experiment_id,
                 "experiment_name": name,
             }):
@@ -353,6 +356,7 @@ Responda APENAS com o JSON, sem explicações adicionais."""
         with _tracer.start_as_current_span(
             "InterviewGuideGenerator: generate_from_simulation",
             attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
                 "experiment_id": experiment_id,
                 "n_sensitivity_items": len(sensitivity),
             },

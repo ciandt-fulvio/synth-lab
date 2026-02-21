@@ -811,6 +811,8 @@ class MaterialService:
         """
         import base64
 
+        from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
+
         from synth_lab.infrastructure.llm_client import get_llm_client
         from synth_lab.infrastructure.phoenix_tracing import get_tracer
 
@@ -848,6 +850,7 @@ class MaterialService:
             with _tracer.start_as_current_span(
                 "Generate Material Description (Image)",
                 attributes={
+                    SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
                     "operation_type": "material_description",
                     "file_type": "image",
                     "object_key": object_key,
@@ -882,6 +885,7 @@ class MaterialService:
         import tempfile
 
         from moviepy.editor import VideoFileClip
+        from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
         from synth_lab.infrastructure.llm_client import get_llm_client
         from synth_lab.infrastructure.phoenix_tracing import get_tracer
@@ -932,6 +936,7 @@ class MaterialService:
             with _tracer.start_as_current_span(
                 "Generate Material Description (Video)",
                 attributes={
+                    SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
                     "operation_type": "material_description",
                     "file_type": "video",
                     "object_key": object_key,
@@ -962,6 +967,8 @@ class MaterialService:
         Returns:
             Description text, or None if failed.
         """
+        from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
+
         from synth_lab.infrastructure.llm_client import get_llm_client
         from synth_lab.infrastructure.phoenix_tracing import get_tracer
 
@@ -1004,6 +1011,7 @@ class MaterialService:
             with _tracer.start_as_current_span(
                 "Generate Material Description (Document)",
                 attributes={
+                    SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
                     "operation_type": "material_description",
                     "file_type": "document",
                     "object_key": object_key,

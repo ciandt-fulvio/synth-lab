@@ -23,6 +23,7 @@ import re
 from pathlib import Path
 
 from loguru import logger
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
 from synth_lab.infrastructure.config import OUTPUT_DIR
 from synth_lab.infrastructure.image_generator import ImageGenerator, get_image_generator
@@ -208,6 +209,7 @@ class SummaryImageService:
         with _tracer.start_as_current_span(
             "Generate Summary Image",
             attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
                 "operation_type": "summary_image_generation",
                 "experiment_id": experiment_id,
                 "doc_id": doc_id,

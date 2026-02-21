@@ -16,6 +16,7 @@ References:
 """
 
 from loguru import logger
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 
 from synth_lab.domain.entities.experiment_document import DocumentType
 from synth_lab.infrastructure.llm_client import LLMClient, get_llm_client
@@ -93,6 +94,7 @@ class SimulationSummaryGeneratorService:
         with _tracer.start_as_current_span(
             "SimulationSummaryGenerator: generate",
             attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
                 "experiment_id": experiment_id,
                 "model": model,
             },
@@ -244,7 +246,10 @@ class SimulationSummaryGeneratorService:
 
         with _tracer.start_as_current_span(
             "SimulationSummaryGenerator: AI sections",
-            attributes={"model": model},
+            attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "model": model,
+            },
         ):
             try:
                 response = self.llm.complete(

@@ -20,6 +20,7 @@ from typing import Any
 
 from loguru import logger
 from openai import APIConnectionError, APIError, AuthenticationError, OpenAI, RateLimitError
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
@@ -293,7 +294,7 @@ def generate_avatar_block(
     with _tracer.start_as_current_span(
         f"Generate avatar block {block_num}",
         attributes={
-            "openinference.span.kind": "CHAIN",
+            SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
             "block_num": block_num,
             "synth_count": len(synths),
             "synth_ids": ",".join(synth_ids),

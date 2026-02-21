@@ -123,6 +123,7 @@ def normalize_api_params(model: str, **kwargs: Any) -> dict[str, Any]:
 
 
 from openai import OpenAI
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -223,7 +224,7 @@ class LLMClient:
         with _tracer.start_as_current_span(
             span_name,
             attributes={
-                "openinference.span.kind": "LLM",
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.LLM.value,
                 "model": model,
                 "message_count": len(messages),
                 "temperature": temperature,
@@ -342,7 +343,7 @@ class LLMClient:
         with _tracer.start_as_current_span(
             span_name,
             attributes={
-                "openinference.span.kind": "LLM",
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.LLM.value,
                 "model": model,
                 "message_count": len(messages),
                 "temperature": temperature,
@@ -425,7 +426,7 @@ class LLMClient:
         with _tracer.start_as_current_span(
             span_name,
             attributes={
-                "openinference.span.kind": "LLM",
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.LLM.value,
                 "model": model,
                 "message_count": len(messages),
                 "temperature": temperature,
@@ -491,7 +492,7 @@ class LLMClient:
         with _tracer.start_as_current_span(
             f"LLM Image: {model}",
             attributes={
-                "openinference.span.kind": "LLM",
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.LLM.value,
                 "model": model,
                 "size": size,
                 "quality": quality,

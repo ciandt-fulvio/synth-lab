@@ -242,6 +242,14 @@ DATABASE_URL=postgresql://user:pass@localhost/synthlab
 PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
 ```
 
+## Tracing (Phoenix / OpenInference)
+- Use `SpanAttributes.OPENINFERENCE_SPAN_KIND` + `OpenInferenceSpanKindValues.*.value` (never raw strings)
+- `from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes`
+- **CHAIN**: orquestração de serviço (services layer, contém sub-spans)
+- **LLM**: chamada real à API OpenAI (only in `llm_client.py` / `image_generator.py`)
+- **AGENT**: execução de agente autônomo (`batch_runner`, `summarizer`)
+- **TOOL**: execução de ferramenta dentro de um agente (`tools.py`)
+
 ## Architecture Docs
 - Arquitetura: `docs/architecture.md`
 - API: `docs/api.md`

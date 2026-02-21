@@ -26,6 +26,7 @@ from typing import Literal
 
 from loguru import logger
 from openai import OpenAI
+from openinference.semconv.trace import OpenInferenceSpanKindValues, SpanAttributes
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -128,7 +129,7 @@ class ImageGenerator:
         with _tracer.start_as_current_span(
             span_name,
             attributes={
-                "openinference.span.kind": "LLM",
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.LLM.value,
                 "operation_type": "image_generation",
                 "model": model,
                 "size": size,

@@ -103,6 +103,11 @@ def setup_phoenix_tracing(
 
         _tracer_provider.add_span_processor(processor)
 
+        # Set as global provider so trace.get_tracer() calls across all modules
+        # use this provider (not the default no-op provider)
+        from opentelemetry import trace as otel_trace
+        otel_trace.set_tracer_provider(_tracer_provider)
+
         # Instrument OpenAI SDK
         OpenAIInstrumentor().instrument(tracer_provider=_tracer_provider)
         logger.debug("OpenAI SDK instrumented")
@@ -190,16 +195,16 @@ def shutdown_tracing() -> None:
 
 def get_tracer(name: str = "synth-lab") -> Any:
     """
-    Get an OpenTelemetry tracer for manual span creation.
+    Get a lazy proxy tracer for manual span creation.
 
-    Use this to add custom spans around operations for better visibility in Phoenix.
-    If tracing is not enabled, returns a no-op tracer.
+    Returns a LazyTracer that resolves the real tracer on first use, so modules
+    can safely call get_tracer() at import time before setup_phoenix_tracing() runs.
 
     Args:
         name: Name for the tracer (appears in spans)
 
     Returns:
-        OpenTelemetry Tracer instance
+        LazyTracer proxy that delegates to the real tracer when spans are created
 
     Sample usage:
         tracer = get_tracer("my-service")
@@ -207,23 +212,39 @@ def get_tracer(name: str = "synth-lab") -> Any:
             span.set_attribute("key", "value")
             # do work
     """
-    if _tracer_provider is not None:
-        return _tracer_provider.get_tracer(name)
+    return _LazyTracer(name)
 
-    # Return no-op tracer if tracing not enabled
-    try:
-        from opentelemetry import trace
 
-        return trace.get_tracer(name)
-    except ImportError:
-        # Return a dummy object that does nothing
-        class NoOpTracer:
-            def start_as_current_span(self, name: str, **kwargs: Any) -> Any:
-                from contextlib import nullcontext
+class _LazyTracer:
+    """
+    Proxy tracer that resolves the real tracer on first span creation.
 
-                return nullcontext()
+    Allows modules to call get_tracer() at import time (before tracing is set up)
+    and still get working spans once setup_phoenix_tracing() has been called.
+    """
 
-        return NoOpTracer()
+    def __init__(self, name: str) -> None:
+        self._name = name
+
+    def _real_tracer(self) -> Any:
+        if _tracer_provider is not None:
+            return _tracer_provider.get_tracer(self._name)
+        try:
+            from opentelemetry import trace
+
+            return trace.get_tracer(self._name)
+        except ImportError:
+            return _NoOpTracer()
+
+    def start_as_current_span(self, name: str, **kwargs: Any) -> Any:
+        return self._real_tracer().start_as_current_span(name, **kwargs)
+
+
+class _NoOpTracer:
+    def start_as_current_span(self, name: str, **kwargs: Any) -> Any:
+        from contextlib import nullcontext
+
+        return nullcontext()
 
 
 def maybe_setup_tracing() -> bool:
