@@ -145,3 +145,22 @@ export interface SimulationRun {
   interpretations: SimulationInterpretations;
   created_at: string;
 }
+
+// --- Multi-Scenario Batch Types ---
+
+export interface ScenarioRunResult {
+  run_id: string;
+  product_values: Record<string, string>;
+  stats: SimulationStats;
+  n_synths: number;
+}
+
+export interface MultiScenarioResponse {
+  batch_id: string;
+  experiment_id: string;
+  n_scenarios: number;
+  n_synths: number;
+  n_repetitions: number;
+  status: string;
+  scenarios: ScenarioRunResult[];
+}

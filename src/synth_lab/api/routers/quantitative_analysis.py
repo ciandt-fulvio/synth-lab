@@ -14,6 +14,8 @@ from synth_lab.api.schemas.quantitative_analysis import (
     CausalModelResponse,
     EdgeUpdateRequest,
     EdgeUpdateResponse,
+    MultiScenarioRequest,
+    MultiScenarioResponse,
     NodeSelectionsRequest,
     NodeSelectionsResponse,
     ProductCalibrationRequest,
@@ -174,6 +176,75 @@ async def get_simulation_results(experiment_id: str) -> SimulationRunResponse:
             detail=f"No simulation results for experiment: {experiment_id}",
         )
     return SimulationRunResponse(**result)
+
+
+# =============================================================================
+# Multi-Scenario Endpoints
+# =============================================================================
+
+
+@router.post(
+    "/simulate-scenarios",
+    response_model=MultiScenarioResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def run_multi_scenario_simulation(
+    experiment_id: str,
+    request: MultiScenarioRequest | None = None,
+) -> MultiScenarioResponse:
+    """Run multi-scenario simulation batch with per-synth results.
+
+    If called without body (or with scenarios=null), auto-generates random
+    scenarios by sampling {low, medium, high} for each product node.
+    """
+    service = get_service()
+    try:
+        scenarios = None
+        n_scenarios = None
+        n_repetitions = 10
+        if request:
+            scenarios = [s.calibrations for s in request.scenarios] if request.scenarios else None
+            n_scenarios = request.n_scenarios
+            n_repetitions = request.n_repetitions
+        result = service.run_multi_scenario_simulation(
+            experiment_id, scenarios, n_scenarios, n_repetitions,
+        )
+        return MultiScenarioResponse(**result)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+
+
+@router.get("/scenario-batch/{batch_id}", response_model=MultiScenarioResponse)
+async def get_scenario_batch(
+    experiment_id: str,
+    batch_id: str,
+) -> MultiScenarioResponse:
+    """Get batch results (aggregate per scenario)."""
+    service = get_service()
+    batch = service.simulation_run_repo.get_batch_by_id(batch_id)
+    if batch is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Batch not found: {batch_id}",
+        )
+    scenarios = []
+    for run in batch.runs:
+        scenarios.append({
+            "run_id": run.id,
+            "product_values": run.product_values or {},
+            "stats": run.stats,
+            "n_synths": run.n_synths,
+        })
+    return MultiScenarioResponse(
+        batch_id=batch.id,
+        experiment_id=batch.experiment_id,
+        n_scenarios=batch.n_scenarios,
+        n_synths=batch.n_synths,
+        n_repetitions=batch.n_repetitions,
+        status=batch.status,
+        scenarios=scenarios,
+    )
+
 
 
 if __name__ == "__main__":

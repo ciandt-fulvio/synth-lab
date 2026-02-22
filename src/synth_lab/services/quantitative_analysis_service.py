@@ -14,6 +14,7 @@ Sample usage:
     model = service.generate_causal_model("exp_12345678")
 """
 
+import random
 import secrets
 
 from loguru import logger
@@ -35,10 +36,13 @@ from synth_lab.services.interview_guide_generator_service import (
 )
 from synth_lab.services.sensitivity_deriver import load_sensitivity_rules
 from synth_lab.services.simulation_engine import (
+    apply_product_scenario,
+    build_base_node_values,
     build_node_values,
     compute_raw_interpretations,
     compute_segments_v2,
     run_monte_carlo_v2,
+    run_monte_carlo_v2_per_synth,
     run_sensitivity_v2,
 )
 from synth_lab.services.simulation_summary_generator_service import (
@@ -791,6 +795,247 @@ class QuantitativeAnalysisService:
             except Exception:
                 pass
 
+    def _generate_random_scenarios(
+        self,
+        node_metadata: dict,
+        n_scenarios: int,
+    ) -> list[dict[str, str]]:
+        """Generate random product calibration scenarios.
+
+        Each scenario samples {low, medium, high} independently for every
+        product node. PM premissas (edges, interaction/outcome nodes) stay fixed.
+
+        Args:
+            node_metadata: DAG node metadata dict.
+            n_scenarios: Number of scenarios to generate.
+
+        Returns:
+            List of dicts mapping product node names to calibration levels.
+        """
+        product_nodes = [
+            name for name, meta in node_metadata.items()
+            if meta.get("node_type") == "product"
+        ]
+        levels = ["low", "medium", "high"]
+        return [
+            {node: random.choice(levels) for node in product_nodes}
+            for _ in range(n_scenarios)
+        ]
+
+    def run_multi_scenario_simulation(
+        self,
+        experiment_id: str,
+        scenarios: list[dict[str, str]] | None = None,
+        n_scenarios: int | None = None,
+        n_repetitions: int = 10,
+    ) -> dict:
+        """Run multi-scenario simulation batch with per-synth results.
+
+        If scenarios is None, auto-generates random scenarios by sampling
+        {low, medium, high} for each product node.
+
+        Args:
+            experiment_id: Experiment ID.
+            scenarios: Explicit product calibration dicts, or None for auto-gen.
+            n_scenarios: Number of random scenarios (used only when scenarios is None).
+                Falls back to SIMULATION_N_SCENARIOS config.
+            n_repetitions: MC repetitions per synth (default 10).
+
+        Returns:
+            Dict with batch info and per-scenario results.
+        """
+        # Resolve scenario count for span attribute (before loading model)
+        initial_n = len(scenarios) if scenarios else (n_scenarios or 0)
+
+        with _tracer.start_as_current_span(
+            "QuantitativeAnalysis: run_multi_scenario_simulation",
+            attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "experiment_id": experiment_id,
+                "operation.type": "multi_scenario_simulation",
+                "n_scenarios": initial_n,
+            },
+        ) as span:
+            # Load causal model
+            orm_model = self.causal_model_repo.get_by_experiment(experiment_id)
+            if orm_model is None:
+                raise ValueError(f"No causal model for experiment: {experiment_id}")
+
+            node_metadata = orm_model.node_metadata or {}
+
+            # Auto-generate scenarios if not provided
+            if scenarios is None:
+                from synth_lab.infrastructure.config import SIMULATION_N_SCENARIOS
+
+                effective_n = n_scenarios or SIMULATION_N_SCENARIOS
+                scenarios = self._generate_random_scenarios(node_metadata, effective_n)
+                self.logger.info(
+                    f"Auto-generated {len(scenarios)} random scenarios "
+                    f"for {sum(1 for m in node_metadata.values() if m.get('node_type') == 'product')} "
+                    f"product nodes"
+                )
+
+            # Build edges list
+            edges_data = []
+            for e in orm_model.edges:
+                edges_data.append({
+                    "id": e.id,
+                    "from_node": e.from_node,
+                    "to_node": e.to_node,
+                    "user_var": e.user_var,
+                    "direction": e.direction,
+                    "header": e.header,
+                    "options": e.options,
+                    "default_option": e.default_option,
+                    "edge_type": e.edge_type,
+                    "weight": e.weight,
+                })
+
+            # Build node selections
+            node_selections: dict[str, int] = {}
+            for node_name, meta in node_metadata.items():
+                if meta.get("node_type") in ("interaction", "outcome") and meta.get("options"):
+                    node_selections[node_name] = (
+                        meta["selected_option"]
+                        if meta.get("selected_option") is not None
+                        else meta.get("default_option", 2)
+                    )
+
+            # Load ALL synths (no limit)
+            synths_raw = self._load_synths_raw(experiment_id)
+            if not synths_raw:
+                raise ValueError(f"No synths found for experiment: {experiment_id}")
+
+            n_synths = len(synths_raw)
+
+            # Build sensitivity configs
+            yaml_data = load_sensitivity_rules()
+            yaml_sensitivities = yaml_data.get("sensitivities", {})
+            sensitivity_configs: dict[str, dict] = dict(yaml_sensitivities)
+            for meta in node_metadata.values():
+                if meta.get("node_type") == "sensitivity" and meta.get("custom_config"):
+                    sens_key = meta.get("sensitivity_key", "")
+                    sensitivity_configs[sens_key] = meta["custom_config"]
+
+            # Find outcome node and edges
+            outcome_node = None
+            for node_name, meta in node_metadata.items():
+                if meta.get("node_type") == "outcome":
+                    outcome_node = node_name
+                    break
+            if outcome_node is None:
+                outcome_node = orm_model.nodes[-1] if orm_model.nodes else ""
+
+            self.logger.info(
+                f"Multi-scenario simulation: {len(scenarios)} scenarios, "
+                f"{n_synths} synths, {n_repetitions} repetitions"
+            )
+
+            # Pre-compute invariant node values (demographic + sensitivity)
+            base_values, sorted_names, child_parents = build_base_node_values(
+                synths_raw, node_metadata, edges_data, sensitivity_configs,
+            )
+
+            # Pre-compute outcome edges (same for all scenarios)
+            outcome_edges = [e for e in edges_data if e["to_node"] == outcome_node]
+
+            # Create batch
+            batch_id = f"sb_{secrets.token_hex(4)}"
+            self.simulation_run_repo.create_batch(
+                batch_id=batch_id,
+                experiment_id=experiment_id,
+                causal_model_id=orm_model.id,
+                n_scenarios=len(scenarios),
+                n_synths=n_synths,
+                n_repetitions=n_repetitions,
+            )
+
+            scenario_results = []
+            try:
+                for scenario_idx, scenario_calibrations in enumerate(scenarios):
+                    # Convert calibration strings to floats
+                    product_values: dict[str, float] = {}
+                    for node_name, meta in node_metadata.items():
+                        if meta.get("node_type") == "product":
+                            cal = scenario_calibrations.get(
+                                node_name, meta.get("product_calibration", "medium")
+                            )
+                            product_values[node_name] = PRODUCT_CALIBRATION_VALUES.get(cal, 0.5)
+
+                    # Apply scenario product values on top of cached base
+                    node_vals = apply_product_scenario(
+                        base_values, node_metadata, product_values,
+                        sorted_names, child_parents, n_synths,
+                    )
+
+                    # Run per-synth MC simulation
+                    mc_result = run_monte_carlo_v2_per_synth(
+                        outcome_edges, node_vals, node_selections, node_metadata,
+                        orm_model.intercept_mu, orm_model.intercept_sigma,
+                        n_repetitions=n_repetitions,
+                    )
+
+                    # Build per-synth outcomes dict {synth_id: outcome}
+                    per_synth_probs = mc_result["per_synth_probs"]
+                    per_synth_outcomes = {
+                        synth["id"]: round(float(per_synth_probs[i]), 2)
+                        for i, synth in enumerate(synths_raw)
+                    }
+
+                    scenario_product_values = {
+                        k: scenario_calibrations.get(k, "medium")
+                        for k, m in node_metadata.items()
+                        if m.get("node_type") == "product"
+                    }
+
+                    # Create simulation run (deferred commit)
+                    run_id = f"sr_{secrets.token_hex(4)}"
+                    self.simulation_run_repo.create_run(
+                        run_id=run_id,
+                        experiment_id=experiment_id,
+                        causal_model_id=orm_model.id,
+                        n_iterations=n_repetitions,
+                        n_synths=n_synths,
+                        selections=node_selections,
+                        stats=mc_result["stats"],
+                        distribution=mc_result["distribution"],
+                        segments={},
+                        sensitivity=[],
+                        batch_id=batch_id,
+                        product_values=scenario_product_values,
+                        per_synth_outcomes=per_synth_outcomes,
+                        auto_commit=False,
+                    )
+
+                    scenario_results.append({
+                        "run_id": run_id,
+                        "product_values": scenario_product_values,
+                        "stats": mc_result["stats"],
+                        "n_synths": n_synths,
+                    })
+
+                # Flush all runs + mark batch completed
+                self.simulation_run_repo.flush_and_commit()
+                self.simulation_run_repo.update_batch_status(batch_id, "completed")
+
+            except Exception:
+                self.simulation_run_repo.update_batch_status(batch_id, "failed")
+                raise
+
+            if span:
+                span.set_attribute("batch_id", batch_id)
+                span.set_attribute("n_synths", n_synths)
+
+            return {
+                "batch_id": batch_id,
+                "experiment_id": experiment_id,
+                "n_scenarios": len(scenarios),
+                "n_synths": n_synths,
+                "n_repetitions": n_repetitions,
+                "status": "completed",
+                "scenarios": scenario_results,
+            }
+
     def _load_synths_raw(self, experiment_id: str) -> list[dict]:
         """Load raw synth data dicts for an experiment's synth group."""
         from sqlalchemy import select
@@ -809,7 +1054,6 @@ class QuantitativeAnalysisService:
                 SynthORM.synth_group_id == experiment.synth_group_id,
                 SynthORM.data.isnot(None),
             )
-            .limit(500)
         )
         orm_synths = list(self.synth_repo.session.execute(stmt).scalars().all())
 

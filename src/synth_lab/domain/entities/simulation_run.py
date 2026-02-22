@@ -122,6 +122,41 @@ class AnalysisInterpretation(BaseModel):
         return v
 
 
+def generate_batch_id() -> str:
+    """Generate a simulation batch ID with sb_ prefix and 8-char hex suffix."""
+    return f"sb_{secrets.token_hex(4)}"
+
+
+class SimulationBatch(BaseModel):
+    """
+    Groups multiple scenario runs for one experiment.
+    """
+
+    id: str = Field(
+        default_factory=generate_batch_id,
+        pattern=r"^sb_[a-f0-9]{8}$",
+        description="Unique batch ID.",
+    )
+    experiment_id: str = Field(description="Parent experiment ID.")
+    causal_model_id: str = Field(description="Causal model used.")
+    n_scenarios: int = Field(gt=0, description="Number of scenarios.")
+    n_synths: int = Field(gt=0, description="Number of synths per scenario.")
+    n_repetitions: int = Field(default=10, gt=0, description="MC repetitions per synth.")
+    status: str = Field(default="running", description="running/completed/failed.")
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Creation timestamp.",
+    )
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        valid = {"running", "completed", "failed"}
+        if v not in valid:
+            raise ValueError(f"status must be one of {sorted(valid)}, got '{v}'")
+        return v
+
+
 if __name__ == "__main__":
     import sys
 

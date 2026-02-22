@@ -12,8 +12,8 @@ import { fetchAPI } from './api';
 import type {
   CausalModel,
   EdgeUpdateResponse,
+  MultiScenarioResponse,
   NodeSelectionsResponse,
-  ProductCalibrationResponse,
   SimulationRun,
 } from '@/types/quantitative-analysis';
 
@@ -72,27 +72,15 @@ export async function updateNodeSelections(
 }
 
 /**
- * Update product node calibrations (low/medium/high).
- */
-export async function updateProductCalibration(
-  experimentId: string,
-  calibrations: Record<string, string>
-): Promise<ProductCalibrationResponse> {
-  return fetchAPI(`/experiments/${experimentId}/quantitative-analysis/product-calibration`, {
-    method: 'PATCH',
-    body: JSON.stringify({ calibrations }),
-  });
-}
-
-/**
- * Run Monte Carlo simulation with current edge selections.
+ * Run multi-scenario batch simulation.
  *
- * Returns full results including stats, segments, sensitivity, and AI interpretations.
+ * Auto-generates random scenarios by sampling {low, medium, high}
+ * for each product node. PM premissas (edges, nodes) stay fixed.
  */
-export async function runSimulation(
+export async function runBatchSimulation(
   experimentId: string
-): Promise<SimulationRun> {
-  return fetchAPI(`/experiments/${experimentId}/quantitative-analysis/simulate`, {
+): Promise<MultiScenarioResponse> {
+  return fetchAPI(`/experiments/${experimentId}/quantitative-analysis/simulate-scenarios`, {
     method: 'POST',
   });
 }

@@ -15,8 +15,7 @@ import {
   getCausalModel,
   updateEdgeSelections,
   updateNodeSelections,
-  updateProductCalibration,
-  runSimulation,
+  runBatchSimulation,
   getSimulationResults,
   generateInterviewGuide,
   generateSimulationSummary,
@@ -92,34 +91,15 @@ export function useUpdateNodeSelections(experimentId: string) {
 }
 
 /**
- * Hook to update product node calibrations.
+ * Hook to run multi-scenario batch simulation.
  *
- * Invalidates the model query on success.
+ * Invalidates results queries on success.
  */
-export function useUpdateProductCalibration(experimentId: string) {
+export function useRunBatchSimulation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (calibrations: Record<string, string>) =>
-      updateProductCalibration(experimentId, calibrations),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.quantitativeAnalysis.model(experimentId),
-      });
-    },
-  });
-}
-
-/**
- * Hook to run Monte Carlo simulation.
- *
- * Invalidates both model and results queries on success.
- */
-export function useRunSimulation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (experimentId: string) => runSimulation(experimentId),
+    mutationFn: (experimentId: string) => runBatchSimulation(experimentId),
     onSuccess: (_, experimentId) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.quantitativeAnalysis.results(experimentId),

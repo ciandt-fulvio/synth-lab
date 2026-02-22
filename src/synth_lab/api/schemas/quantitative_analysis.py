@@ -238,3 +238,65 @@ class SimulationRunResponse(BaseModel):
         description="AI interpretations per section."
     )
     created_at: str = Field(description="ISO 8601 creation timestamp.")
+
+
+# =============================================================================
+# Multi-Scenario Simulation Schemas
+# =============================================================================
+
+
+class ScenarioInput(BaseModel):
+    """One scenario's product calibrations."""
+
+    calibrations: dict[str, str] = Field(
+        description="Map of product node name to calibration (low/medium/high).",
+        examples=[{"1-Clique Ativado": "high", "Badges de Seguranca": "low"}],
+    )
+
+
+class MultiScenarioRequest(BaseModel):
+    """Request to run a multi-scenario simulation batch.
+
+    If scenarios is omitted, the system auto-generates n_scenarios random
+    scenarios by sampling {low, medium, high} for each product node.
+    """
+
+    n_scenarios: int | None = Field(
+        default=None, ge=1, le=1000,
+        description="Number of random scenarios. Default from config (100).",
+    )
+    scenarios: list[ScenarioInput] | None = Field(
+        default=None,
+        description="Explicit scenarios. If omitted, auto-generated randomly.",
+    )
+    n_repetitions: int = Field(
+        default=10, ge=1, le=100,
+        description="MC repetitions per synth (default 10).",
+    )
+
+
+class ScenarioRunResponse(BaseModel):
+    """Summary of one scenario run within a batch."""
+
+    run_id: str = Field(description="Simulation run ID (sr_xxx).")
+    product_values: dict[str, str] = Field(
+        description="Product calibrations used for this scenario."
+    )
+    stats: SimulationStatsResponse = Field(description="Aggregated statistics.")
+    n_synths: int = Field(description="Number of synths used.")
+
+
+class MultiScenarioResponse(BaseModel):
+    """Response for multi-scenario simulation batch."""
+
+    batch_id: str = Field(description="Batch ID (sb_xxx).")
+    experiment_id: str = Field(description="Parent experiment ID.")
+    n_scenarios: int = Field(description="Number of scenarios run.")
+    n_synths: int = Field(description="Number of synths per scenario.")
+    n_repetitions: int = Field(description="MC repetitions per synth.")
+    status: str = Field(description="Batch status: running/completed/failed.")
+    scenarios: list[ScenarioRunResponse] = Field(
+        description="Per-scenario results summary."
+    )
+
+

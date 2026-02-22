@@ -95,6 +95,11 @@ Be OPINIONATED based on the product context:
 
 Node names SHORT (max 25 chars). Portuguese BR. All "description" fields MUST be in Portuguese BR, 1-2 sentences.
 
+DIRECTION SEMANTICS:
+- direction=1: Direct relationship (higher parent value → higher child value). Example: "Facilidade de uso" → "Confiança" (more usability → more trust).
+- direction=-1: Inverse relationship (higher parent value → LOWER child value). Example: "Preço alto" → "Valor percebido" (higher price → lower perceived value).
+- Most edges should be direction=1. Use -1 ONLY for genuinely inverse relationships.
+
 Respond with ONLY valid JSON:
 {
   "label": "string",
@@ -108,7 +113,8 @@ Respond with ONLY valid JSON:
     {"name": "string", "type": "outcome", "description": "Probabilidade de adoção do produto pelo usuário..."}
   ],
   "edges": [
-    {"id": "e1", "from": "string", "to": "string", "direction": -1, "edge_type": "likert", "weight": 0.6}
+    {"id": "e1", "from": "string", "to": "string", "direction": 1, "edge_type": "likert", "weight": 0.6},
+    {"id": "e2", "from": "string", "to": "string", "direction": -1, "edge_type": "likert", "weight": 0.4}
   ]
 }"""
 

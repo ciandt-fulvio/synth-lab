@@ -1,7 +1,8 @@
 """
 SQLAlchemy ORM models for simulation runs and interpretations.
 
-These models map to the 'simulation_runs' and 'analysis_interpretations' tables.
+These models map to the 'simulation_runs', 'simulation_batches',
+and 'analysis_interpretations' tables.
 
 References:
     - Data model: specs/042-quantitative-analysis/data-model.md
@@ -11,7 +12,7 @@ References:
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -25,11 +26,67 @@ if TYPE_CHECKING:
     from synth_lab.models.orm.experiment import Experiment
 
 
+class SimulationBatch(Base):
+    """
+    Groups multiple scenario runs for one experiment.
+
+    Each batch explores combinations of product calibration values.
+
+    Attributes:
+        id: Unique identifier (sb_[a-f0-9]{8})
+        experiment_id: FK to experiments.id
+        causal_model_id: FK to causal_models.id
+        n_scenarios: Number of scenarios in this batch
+        n_synths: Number of synths used per scenario
+        n_repetitions: MC repetitions per synth (default 10)
+        status: running / completed / failed
+    """
+
+    __tablename__ = "simulation_batches"
+
+    id: Mapped[str] = mapped_column(String(50), primary_key=True)
+    experiment_id: Mapped[str] = mapped_column(
+        String(50),
+        ForeignKey("experiments.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    causal_model_id: Mapped[str] = mapped_column(
+        String(50),
+        ForeignKey("causal_models.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    n_scenarios: Mapped[int] = mapped_column(Integer, nullable=False)
+    n_synths: Mapped[int] = mapped_column(Integer, nullable=False)
+    n_repetitions: Mapped[int] = mapped_column(Integer, nullable=False, server_default="10")
+    status: Mapped[str] = mapped_column(String(20), nullable=False, server_default="running")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    # Relationships
+    experiment: Mapped["Experiment"] = relationship("Experiment", foreign_keys=[experiment_id])
+    causal_model: Mapped["CausalModel"] = relationship("CausalModel", foreign_keys=[causal_model_id])
+    runs: Mapped[list["SimulationRun"]] = relationship(
+        "SimulationRun",
+        back_populates="batch",
+        cascade="all, delete-orphan",
+        foreign_keys="SimulationRun.batch_id",
+    )
+
+    __table_args__ = (
+        Index("idx_simulation_batches_experiment", "experiment_id"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<SimulationBatch(id={self.id!r}, status={self.status!r})>"
+
+
 class SimulationRun(Base):
     """
     Monte Carlo simulation run result.
 
     Immutable after creation. Multiple runs per experiment (history).
+    Batch runs include per_synth_outcomes for cross-scenario analysis.
 
     Attributes:
         id: Unique identifier (sr_[a-f0-9]{8})
@@ -37,11 +94,14 @@ class SimulationRun(Base):
         causal_model_id: FK to causal_models.id
         n_iterations: Number of Monte Carlo iterations (default 3000)
         n_synths: Number of synths used
-        selections: JSON map of edge_id -> selected_option at simulation time
+        selections: JSON map of node_name -> selected_option at simulation time
         stats: JSON with mean, median, std, p10, p90
         distribution: JSON array of adoption rates per iteration
         segments: JSON with age, income, education breakdowns
         sensitivity: JSON array of per-edge sensitivity results
+        batch_id: FK to simulation_batches.id (null for standalone runs)
+        product_values: JSON map of product node name -> calibration level (batch runs)
+        per_synth_outcomes: JSON dict {synth_id: outcome} with 2 decimal places (batch runs)
     """
 
     __tablename__ = "simulation_runs"
@@ -64,6 +124,13 @@ class SimulationRun(Base):
     distribution: Mapped[list] = mapped_column(_JSONVariant, nullable=False)
     segments: Mapped[dict] = mapped_column(_JSONVariant, nullable=False)
     sensitivity: Mapped[list] = mapped_column(_JSONVariant, nullable=False)
+    batch_id: Mapped[str | None] = mapped_column(
+        String(50),
+        ForeignKey("simulation_batches.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    product_values: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
+    per_synth_outcomes: Mapped[dict | None] = mapped_column(_JSONVariant, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -72,6 +139,11 @@ class SimulationRun(Base):
     experiment: Mapped["Experiment"] = relationship("Experiment", foreign_keys=[experiment_id])
     causal_model: Mapped["CausalModel"] = relationship(
         "CausalModel", foreign_keys=[causal_model_id]
+    )
+    batch: Mapped["SimulationBatch | None"] = relationship(
+        "SimulationBatch",
+        back_populates="runs",
+        foreign_keys=[batch_id],
     )
     interpretations: Mapped[list["AnalysisInterpretation"]] = relationship(
         "AnalysisInterpretation",
@@ -162,11 +234,18 @@ if __name__ == "__main__":
 
     total_tests += 1
     sr_cols = set(SimulationRun.__table__.columns.keys())
-    required = {"id", "experiment_id", "causal_model_id", "n_iterations", "n_synths",
-                "selections", "stats", "distribution", "segments", "sensitivity"}
+    required = {
+        "id", "experiment_id", "causal_model_id", "n_iterations", "n_synths",
+        "selections", "stats", "distribution", "segments", "sensitivity",
+        "batch_id", "product_values", "per_synth_outcomes",
+    }
     missing = required - sr_cols
     if missing:
         all_validation_failures.append(f"SimulationRun missing columns: {missing}")
+
+    total_tests += 1
+    if "synth_results" in {r.key for r in SimulationRun.__mapper__.relationships}:
+        all_validation_failures.append("SimulationRun still has synth_results relationship")
 
     total_tests += 1
     ai_cols = set(AnalysisInterpretation.__table__.columns.keys())

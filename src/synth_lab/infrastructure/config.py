@@ -98,6 +98,9 @@ MAX_VIDEO_SIZE = 100 * 1024 * 1024  # 100MB
 MAX_DOCUMENT_SIZE = 25 * 1024 * 1024  # 25MB
 PRESIGNED_URL_EXPIRATION = 900  # 15 minutes
 
+# Simulation configuration
+SIMULATION_N_SCENARIOS = int(os.getenv("SYNTHLAB_SIMULATION_N_SCENARIOS", "100"))
+
 
 def ensure_directories() -> None:
     """Ensure all required directories exist."""

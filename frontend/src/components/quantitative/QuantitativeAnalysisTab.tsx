@@ -2,15 +2,14 @@
  * QuantitativeAnalysisTab container component.
  *
  * Orchestrates the enriched causal model workflow:
- * 1. Empty state → "Gerar Modelo" button
- * 2. Loading → spinner during LLM generation
- * 3. Model view → CausalDAGView (full width, top)
- *    + 2 columns below: ProductCalibration (left) + LikertAssertions (right)
- * 4. Simulate button at bottom
+ * 1. Empty state -> "Gerar Modelo" button
+ * 2. Loading -> spinner during LLM generation
+ * 3. Model view -> CausalDAGView (left) + LikertAssertions (right)
+ * 4. Simulate button at bottom -> triggers batch simulation
  *
  * References:
  *   - Hooks: src/hooks/use-quantitative-analysis.ts
- *   - Components: CausalDAGView, LikertAssertions, ProductCalibration
+ *   - Components: CausalDAGView, LikertAssertions
  */
 
 import { useState, useCallback, useMemo } from 'react';
@@ -21,14 +20,11 @@ import {
   useCausalModel,
   useGenerateCausalModel,
   useUpdateNodeSelections,
-  useUpdateProductCalibration,
-  useRunSimulation,
+  useRunBatchSimulation,
   useSimulationResults,
 } from '@/hooks/use-quantitative-analysis';
 import { CausalDAGView } from './CausalDAGView';
 import { LikertAssertions, buildCalibratableNodes } from './LikertAssertions';
-import { ProductCalibration } from './ProductCalibration';
-import type { CausalNodeMeta } from '@/types/quantitative-analysis';
 
 interface QuantitativeAnalysisTabProps {
   experimentId: string;
@@ -42,17 +38,8 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
   const { data: model, isLoading, isError, error } = useCausalModel(experimentId);
   const generateMutation = useGenerateCausalModel();
   const nodeSelectionMutation = useUpdateNodeSelections(experimentId);
-  const calibrationMutation = useUpdateProductCalibration(experimentId);
-  const simulateMutation = useRunSimulation();
+  const simulateMutation = useRunBatchSimulation();
   const { data: simulationRun } = useSimulationResults(experimentId);
-
-  // Extract product nodes from node_metadata
-  const productNodes = useMemo<CausalNodeMeta[]>(() => {
-    if (!model?.node_metadata) return [];
-    return Object.values(model.node_metadata).filter(
-      (meta) => meta.node_type === 'product'
-    );
-  }, [model?.node_metadata]);
 
   // Build calibratable nodes (interaction + outcome) for LikertAssertions
   const calibratableNodes = useMemo(
@@ -76,9 +63,11 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
 
   const handleSimulate = () => {
     simulateMutation.mutate(experimentId, {
-      onSuccess: () => {
+      onSuccess: (data) => {
         setSelectionsChanged(false);
-        toast.success('Simulação concluída — veja os resultados na aba Simulação');
+        toast.success(
+          `Batch concluído — ${data.n_scenarios} cenários simulados com ${data.n_synths} synths`
+        );
       },
       onError: (err) => {
         const message = err instanceof Error ? err.message : 'Erro na simulação';
@@ -98,19 +87,6 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
       });
     },
     [nodeSelectionMutation]
-  );
-
-  const handleCalibrationsChange = useCallback(
-    (calibrations: Record<string, string>) => {
-      setSelectionsChanged(true);
-      calibrationMutation.mutate(calibrations, {
-        onError: (err) => {
-          const message = err instanceof Error ? err.message : 'Erro ao salvar';
-          toast.error('Erro ao salvar calibrações', { description: message });
-        },
-      });
-    },
-    [calibrationMutation]
   );
 
   const handleEdgeClick = useCallback((edgeId: string) => {
@@ -182,7 +158,7 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
     );
   }
 
-  // Model loaded — DAG (left) + Premissas + Produto (right)
+  // Model loaded — DAG (left) + Premissas Causais (right)
   return (
     <div className="space-y-6">
       {/* Model header */}
@@ -191,7 +167,6 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
           <h3 className="text-lg font-semibold text-slate-800">{model.label}</h3>
           <p className="text-sm text-slate-500">
             {model.nodes.length} nós, {model.edges.length} arestas
-            {productNodes.length > 0 && ` · ${productNodes.length} características de produto`}
             {calibratableNodes.length > 0 && ` · ${calibratableNodes.length} premissas`}
           </p>
         </div>
@@ -211,10 +186,10 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
         </Button>
       </div>
 
-      {/* 2-column layout: DAG (left) + controls (right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-        {/* DAG visualization — left column, stretches to match right */}
-        <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-col">
+      {/* 2-column layout: DAG (left) + Premissas (right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* DAG visualization — left column */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-col h-[600px]">
           <CausalDAGView
             key={dagKey}
             model={model}
@@ -224,30 +199,17 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
           />
         </div>
 
-        {/* Right column: Premissas Causais (top) + Calibração Produto (bottom) */}
-        <div className="space-y-6">
-          {/* Node premissas */}
-          {calibratableNodes.length > 0 && (
-            <div className="rounded-xl border border-slate-200 bg-white p-4 max-h-[500px] overflow-y-auto">
-              <LikertAssertions
-                nodes={calibratableNodes}
-                activeNodeName={activeNodeName}
-                onNodeActivate={setActiveNodeName}
-                onSelectionsChange={handleNodeSelectionsChange}
-              />
-            </div>
-          )}
-
-          {/* Product calibration */}
-          {productNodes.length > 0 && (
-            <div className="rounded-xl border border-slate-200 bg-white p-4 max-h-[300px] overflow-y-auto">
-              <ProductCalibration
-                productNodes={productNodes}
-                onCalibrationsChange={handleCalibrationsChange}
-              />
-            </div>
-          )}
-        </div>
+        {/* Right column: Premissas Causais */}
+        {calibratableNodes.length > 0 && (
+          <div className="rounded-xl border border-slate-200 bg-white p-4 h-[600px] overflow-y-auto">
+            <LikertAssertions
+              nodes={calibratableNodes}
+              activeNodeName={activeNodeName}
+              onNodeActivate={setActiveNodeName}
+              onSelectionsChange={handleNodeSelectionsChange}
+            />
+          </div>
+        )}
       </div>
 
       {/* Simulate button */}
@@ -261,7 +223,7 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
             {simulateMutation.isPending ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Simulando...
+                Simulando cenários...
               </>
             ) : (
               <>

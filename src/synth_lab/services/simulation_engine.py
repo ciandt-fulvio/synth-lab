@@ -576,14 +576,16 @@ def build_node_values(
             node_values[name] = np.full(n_synths, prod_val)
 
         elif node_type == "interaction":
-            # Combine parent values: mean(parent_i * weight_i * direction_i), clamped [0,1]
+            # Combine parent values: mean(effective_i * weight_i), clamped [0,1]
+            # direction=1 → use value as-is; direction=-1 → inverse (1 - value)
             parents = child_parents.get(name, [])
             if parents:
                 weighted_sum = np.zeros(n_synths)
                 total_weight = 0.0
                 for parent_name, weight, direction in parents:
                     parent_vals = node_values.get(parent_name, np.full(n_synths, 0.5))
-                    weighted_sum += parent_vals * weight * direction
+                    effective_vals = parent_vals if direction == 1 else (1.0 - parent_vals)
+                    weighted_sum += effective_vals * weight
                     total_weight += abs(weight)
                 if total_weight > 0:
                     interaction_val = weighted_sum / total_weight
@@ -596,6 +598,148 @@ def build_node_values(
         elif node_type == "outcome":
             # Outcome computed by Monte Carlo, skip here
             pass
+
+    return node_values
+
+
+def build_base_node_values(
+    synths: list[dict],
+    node_metadata: dict[str, dict],
+    edges: list[dict],
+    sensitivity_configs: dict[str, dict],
+    seed: int | None = None,
+) -> tuple[dict[str, np.ndarray], list[str], dict[str, list[tuple[str, float, int]]]]:
+    """Pre-compute invariant node values (demographic + sensitivity) for batch reuse.
+
+    Only computes demographic and sensitivity nodes. Product and interaction nodes
+    are scenario-dependent and must be applied per scenario via apply_product_scenario().
+
+    Args:
+        synths: List of synth dicts.
+        node_metadata: Per-node metadata dict.
+        edges: List of edge dicts.
+        sensitivity_configs: Sensitivity key -> config dict.
+        seed: Random seed.
+
+    Returns:
+        Tuple of:
+            base_values: Dict of node_name -> np.ndarray for demographic + sensitivity nodes.
+            sorted_names: Topological order of all node names.
+            child_parents: Adjacency dict {child -> [(parent, weight, direction)]}.
+    """
+    from synth_lab.services.sensitivity_deriver import compute_sensitivity_for_config
+
+    n_synths = len(synths)
+    base_values: dict[str, np.ndarray] = {}
+
+    nodes_list = [{"name": name} for name in node_metadata]
+    sorted_names = _topological_sort(nodes_list, edges)
+
+    child_parents: dict[str, list[tuple[str, float, int]]] = {}
+    for e in edges:
+        src = e.get("from_node", e.get("from", ""))
+        dst = e.get("to_node", e.get("to", ""))
+        weight = e.get("weight", 0.5)
+        direction = e.get("direction", 1)
+        child_parents.setdefault(dst, []).append((src, weight, direction))
+
+    _DEMOGRAPHIC_EXTRACTORS = {
+        "ageNorm": _extract_age_norm,
+        "incomeNorm": _extract_income_norm,
+        "eduNorm": _extract_edu_norm,
+        "familySizeNorm": _extract_family_size_norm,
+    }
+    _DEMO_NAME_MAP = {
+        "idade": "ageNorm",
+        "renda": "incomeNorm",
+        "escolaridade": "eduNorm",
+        "família": "familySizeNorm",
+        "tamanho": "familySizeNorm",
+    }
+
+    for name in sorted_names:
+        meta = node_metadata.get(name, {})
+        node_type = meta.get("node_type", "interaction")
+
+        if node_type == "demographic":
+            name_lower = name.lower()
+            extractor_key = None
+            for keyword, var_key in _DEMO_NAME_MAP.items():
+                if keyword in name_lower:
+                    extractor_key = var_key
+                    break
+            if extractor_key and extractor_key in _DEMOGRAPHIC_EXTRACTORS:
+                values = np.array([_DEMOGRAPHIC_EXTRACTORS[extractor_key](s) for s in synths])
+            else:
+                values = np.full(n_synths, 0.5)
+            base_values[name] = values
+
+        elif node_type == "sensitivity":
+            sens_key = meta.get("sensitivity_key", "")
+            config = sensitivity_configs.get(sens_key, meta.get("custom_config", {}))
+            if not config:
+                config = {"base": 0.5, "rules": []}
+            values = np.zeros(n_synths)
+            for i, synth in enumerate(synths):
+                synth_data = synth.get("data", {})
+                s = seed + i if seed is not None else None
+                values[i] = compute_sensitivity_for_config(synth_data, config, seed=s)
+            base_values[name] = values
+
+    return base_values, sorted_names, child_parents
+
+
+def apply_product_scenario(
+    base_values: dict[str, np.ndarray],
+    node_metadata: dict[str, dict],
+    product_values: dict[str, float],
+    sorted_names: list[str],
+    child_parents: dict[str, list[tuple[str, float, int]]],
+    n_synths: int,
+) -> dict[str, np.ndarray]:
+    """Apply scenario-specific product values and recompute interaction nodes.
+
+    Takes pre-computed base values (demographic + sensitivity) and adds product
+    and interaction node values for a specific scenario.
+
+    Args:
+        base_values: Pre-computed invariant node values.
+        node_metadata: Per-node metadata dict.
+        product_values: Product node name -> numeric value (0.2/0.5/0.8).
+        sorted_names: Topological order from build_base_node_values().
+        child_parents: Adjacency from build_base_node_values().
+        n_synths: Number of synths.
+
+    Returns:
+        Complete dict of node_name -> np.ndarray for all node types.
+    """
+    node_values = dict(base_values)  # shallow copy (arrays are read-only here)
+
+    for name in sorted_names:
+        meta = node_metadata.get(name, {})
+        node_type = meta.get("node_type", "interaction")
+
+        if node_type == "product":
+            prod_val = product_values.get(name, 0.5)
+            node_values[name] = np.full(n_synths, prod_val)
+
+        elif node_type == "interaction":
+            parents = child_parents.get(name, [])
+            if parents:
+                weighted_sum = np.zeros(n_synths)
+                total_weight = 0.0
+                for parent_name, weight, direction in parents:
+                    parent_vals = node_values.get(parent_name, np.full(n_synths, 0.5))
+                    effective_vals = parent_vals if direction == 1 else (1.0 - parent_vals)
+                    weighted_sum += effective_vals * weight
+                    total_weight += abs(weight)
+                if total_weight > 0:
+                    interaction_val = weighted_sum / total_weight
+                else:
+                    interaction_val = np.full(n_synths, 0.5)
+                node_values[name] = np.clip(interaction_val, 0.0, 1.0)
+            else:
+                node_values[name] = np.full(n_synths, 0.5)
 
     return node_values
 
@@ -969,6 +1113,141 @@ def run_sensitivity_v2(
 
     results.sort(key=lambda x: x["impact"], reverse=True)
     return results
+
+
+def run_monte_carlo_v2_per_synth(
+    outcome_edges: list[dict],
+    node_values: dict[str, np.ndarray],
+    node_selections: dict[str, int],
+    node_metadata: dict[str, dict],
+    intercept_mu: float,
+    intercept_sigma: float,
+    n_repetitions: int = 10,
+    seed: int | None = None,
+) -> dict:
+    """Monte Carlo simulation returning per-synth adoption probabilities.
+
+    Runs n_repetitions MC draws, each sampling intercept + coefficients once,
+    computing per-synth sigmoid probabilities, then averaging over repetitions.
+
+    Args:
+        outcome_edges: Edges pointing to the outcome node.
+        node_values: Pre-computed node values from build_node_values().
+        node_selections: Map of node_name -> selected option index.
+        node_metadata: Per-node metadata with options.
+        intercept_mu: Model intercept mean.
+        intercept_sigma: Model intercept std dev.
+        n_repetitions: Number of MC repetitions to average (default 10).
+        seed: Random seed.
+
+    Returns:
+        Dict with keys:
+            per_synth_probs: np.ndarray of shape (n_synths,) — mean adoption prob [0,1]
+            distribution: list[float] — one aggregate adoption % per repetition
+            stats: dict — mean, median, std, p10, p90
+    """
+    rng = np.random.default_rng(seed)
+    n_edges = len(outcome_edges)
+
+    if n_edges == 0:
+        n_synths = 0
+        for vals in node_values.values():
+            n_synths = len(vals)
+            break
+        return {
+            "per_synth_probs": np.full(max(n_synths, 1), 0.5),
+            "distribution": [50.0] * n_repetitions,
+            "stats": {"mean": 50.0, "median": 50.0, "std": 0.0, "p10": 50.0, "p90": 50.0},
+        }
+
+    # Get n_synths from first available node value
+    n_synths = 0
+    for vals in node_values.values():
+        n_synths = len(vals)
+        break
+
+    if n_synths == 0:
+        return {
+            "per_synth_probs": np.array([]),
+            "distribution": [50.0] * n_repetitions,
+            "stats": {"mean": 50.0, "median": 50.0, "std": 0.0, "p10": 50.0, "p90": 50.0},
+        }
+
+    per_edge_scale = BUDGET / max(math.sqrt(n_edges), 1.0)
+
+    # Compute outcome weight multipliers
+    weight_multipliers = _compute_outcome_weight_multipliers(
+        outcome_edges, node_metadata, node_selections,
+    )
+
+    # Build input matrix
+    input_matrix = np.full((n_synths, n_edges), 0.5)
+    beta_mus = np.zeros(n_edges)
+    beta_sigmas = np.zeros(n_edges)
+
+    for i, edge in enumerate(outcome_edges):
+        src = edge.get("from_node", edge.get("from", ""))
+        input_matrix[:, i] = node_values.get(src, np.full(n_synths, 0.5))
+        d = edge.get("direction", 1)
+
+        src_meta = node_metadata.get(src, {})
+        src_options = src_meta.get("options", [])
+
+        if src_options:
+            selected = node_selections.get(src, src_meta.get("default_option", 2))
+            opt = src_options[selected] if selected < len(src_options) else src_options[2]
+            beta_mus[i] = opt["mu"] * per_edge_scale * d * weight_multipliers[i]
+            beta_sigmas[i] = opt["sigma"] * per_edge_scale * weight_multipliers[i]
+        else:
+            weight = edge.get("weight", 0.5)
+            beta_mus[i] = weight * per_edge_scale * d * weight_multipliers[i]
+            beta_sigmas[i] = 0.1 * per_edge_scale * weight_multipliers[i]
+
+    # Accumulate per-synth probabilities over repetitions
+    prob_accumulator = np.zeros(n_synths)
+    distribution = np.zeros(n_repetitions)
+
+    for r in range(n_repetitions):
+        intercept = rng.normal(intercept_mu, intercept_sigma)
+        coefs = rng.normal(beta_mus, beta_sigmas)
+        logits = intercept + input_matrix @ coefs
+        probs = _sigmoid(logits)
+        prob_accumulator += probs
+        distribution[r] = float(np.mean(probs)) * 100  # aggregate adoption %
+
+    per_synth_probs = prob_accumulator / n_repetitions  # mean prob per synth
+
+    stats = {
+        "mean": round(float(np.mean(distribution)), 1),
+        "median": round(float(np.median(distribution)), 1),
+        "std": round(float(np.std(distribution)), 1),
+        "p10": round(float(np.percentile(distribution, 10)), 1),
+        "p90": round(float(np.percentile(distribution, 90)), 1),
+    }
+
+    return {
+        "per_synth_probs": per_synth_probs,
+        "distribution": distribution.tolist(),
+        "stats": stats,
+    }
+
+
+def extract_demographics(synth: dict) -> dict:
+    """Extract demographics from a synth dict for dag_values storage.
+
+    Returns a compact dict with age, income, education, family composition.
+    """
+    demo = synth.get("data", {}).get("demografia", {})
+    result: dict[str, Any] = {}
+    if "idade" in demo:
+        result["idade"] = demo["idade"]
+    if "renda_mensal" in demo:
+        result["renda_mensal"] = demo["renda_mensal"]
+    if "escolaridade" in demo:
+        result["escolaridade"] = demo["escolaridade"]
+    if "composicao_familiar" in demo:
+        result["composicao_familiar"] = demo["composicao_familiar"]
+    return result
 
 
 def compute_raw_interpretations(

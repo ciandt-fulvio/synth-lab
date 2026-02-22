@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 
 from synth_lab.services.simulation_engine import (
+    build_node_values,
     compute_raw_interpretations,
     compute_segments,
     run_monte_carlo,
@@ -286,3 +287,74 @@ class TestComputeRawInterpretations:
         stats_low = {"mean": 42.0, "median": 41.5, "std": 1.0, "p10": 40.5, "p90": 43.5}
         result_low = compute_raw_interpretations(stats_low, {"age": {}, "income": {}, "education": {}}, [])
         assert "baixa" in result_low["distribution"]
+
+
+class TestBuildNodeValues:
+    """Tests for build_node_values interaction node direction handling."""
+
+    def _make_dag(self, direction: int):
+        """Create a minimal DAG: sensitivity → interaction → outcome.
+
+        Uses product nodes as parents (constant values) so we can control
+        exact input values without sensitivity computation complexity.
+        """
+        node_metadata = {
+            "prod_a": {"node_type": "product"},
+            "prod_b": {"node_type": "product"},
+            "interact_ab": {"node_type": "interaction"},
+            "outcome": {"node_type": "outcome"},
+        }
+        edges = [
+            {"from": "prod_a", "to": "interact_ab", "direction": direction, "weight": 1.0},
+            {"from": "prod_b", "to": "interact_ab", "direction": 1, "weight": 1.0},
+            {"from": "interact_ab", "to": "outcome", "direction": 1, "weight": 1.0},
+        ]
+        product_values = {"prod_a": 0.9, "prod_b": 0.8}
+        synths = [{"id": "s1"}, {"id": "s2"}]
+        sensitivity_configs = {}
+        return synths, node_metadata, edges, product_values, sensitivity_configs
+
+    def test_direction_positive_preserves_value(self):
+        """direction=1 passes parent value through unchanged."""
+        synths, nm, edges, pv, sc = self._make_dag(direction=1)
+        result = build_node_values(synths, nm, edges, pv, sc, seed=42)
+
+        # prod_a: [0.9, 0.9], prod_b: [0.8, 0.8]
+        # interact_ab = mean(0.9*1, 0.8*1) = 0.85
+        vals = result["interact_ab"]
+        assert vals[0] == pytest.approx(0.85, abs=0.01)
+        assert vals[1] == pytest.approx(0.85, abs=0.01)
+
+    def test_direction_negative_inverts_value(self):
+        """direction=-1 inverts parent value (1 - x) instead of negating."""
+        synths, nm, edges, pv, sc = self._make_dag(direction=-1)
+        result = build_node_values(synths, nm, edges, pv, sc, seed=42)
+
+        # prod_a with direction=-1: effective = 1 - 0.9 = 0.1
+        # prod_b with direction=1: effective = 0.8
+        # interact_ab = mean(0.1*1, 0.8*1) = 0.45
+        vals = result["interact_ab"]
+        assert vals[0] == pytest.approx(0.45, abs=0.01)
+        assert vals[1] == pytest.approx(0.45, abs=0.01)
+
+    def test_direction_negative_stays_in_unit_range(self):
+        """direction=-1 keeps all values in [0, 1]."""
+        synths, nm, edges, pv, sc = self._make_dag(direction=-1)
+        result = build_node_values(synths, nm, edges, pv, sc, seed=42)
+
+        for name, vals in result.items():
+            assert np.all(vals >= 0.0), f"{name} has values < 0"
+            assert np.all(vals <= 1.0), f"{name} has values > 1"
+
+    def test_direction_negative_differs_from_positive(self):
+        """direction=-1 produces different interaction values than direction=1."""
+        synths, nm, edges_pos, pv, sc = self._make_dag(direction=1)
+        _, _, edges_neg, _, _ = self._make_dag(direction=-1)
+
+        result_pos = build_node_values(synths, nm, edges_pos, pv, sc, seed=42)
+        result_neg = build_node_values(synths, nm, edges_neg, pv, sc, seed=42)
+
+        # With direction=1: 0.85, with direction=-1: 0.45
+        assert result_pos["interact_ab"][0] != pytest.approx(
+            result_neg["interact_ab"][0], abs=0.01
+        )
