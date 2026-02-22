@@ -138,7 +138,10 @@ class SimulationRunRepository(BaseRepository):
         self, experiment_id: str
     ) -> SimulationRunORM | None:
         """
-        Get the most recent simulation run for an experiment.
+        Get the most recent standalone simulation run for an experiment.
+
+        Excludes batch scenario runs (batch_id IS NOT NULL) which have
+        incomplete data (empty segments/sensitivity) by design.
 
         Eagerly loads interpretations.
 
@@ -150,7 +153,10 @@ class SimulationRunRepository(BaseRepository):
         """
         stmt = (
             select(SimulationRunORM)
-            .where(SimulationRunORM.experiment_id == experiment_id)
+            .where(
+                SimulationRunORM.experiment_id == experiment_id,
+                SimulationRunORM.batch_id.is_(None),
+            )
             .options(joinedload(SimulationRunORM.interpretations))
             .order_by(SimulationRunORM.created_at.desc())
             .limit(1)
