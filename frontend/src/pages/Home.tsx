@@ -263,10 +263,7 @@ export default function Home() {
 
       {/* Create Experiment Modal */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent
-          className="sm:max-w-[500px] border-slate-200 shadow-xl"
-          onInteractOutside={(e) => e.preventDefault()}
-        >
+        <DialogContent className="sm:max-w-[500px] border-slate-200 shadow-xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-slate-900">
               Novo Experimento
