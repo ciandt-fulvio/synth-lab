@@ -43,6 +43,8 @@ class ResearchExecutionBase(BaseModel):
     topic_name: str = Field(..., description="Topic guide name")
     status: ExecutionStatus = Field(..., description="Execution status")
     synth_count: int = Field(..., description="Number of synths in execution")
+    synth_selection_type: str | None = Field(
+        default=None, description="Synth selection strategy (random, propensos, resistentes, indecisos, sensiveis)")
     started_at: datetime = Field(..., description="Start timestamp")
     completed_at: datetime | None = Field(
         default=None, description="Completion timestamp")
@@ -109,6 +111,13 @@ class ResearchExecuteRequest(BaseModel):
     synth_count: int | None = Field(
         default=None,
         description="Number of random synths (if synth_ids not provided)",
+    )
+    synth_selection_type: str | None = Field(
+        default=None,
+        description=(
+            "Synth selection strategy: random, propensos, resistentes, indecisos, sensiveis. "
+            "When set (and synth_ids is None), selects synths from latest batch using adoption data."
+        ),
     )
     max_turns: int = Field(
         default=6,

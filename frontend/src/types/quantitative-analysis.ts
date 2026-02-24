@@ -162,5 +162,71 @@ export interface MultiScenarioResponse {
   n_synths: number;
   n_repetitions: number;
   status: string;
+  created_at: string | null;
   scenarios: ScenarioRunResult[];
+}
+
+// --- Synth Profile Types ---
+
+export interface SynthGroupProfile {
+  count: number;
+  avg_age: number | null;
+  avg_income: number | null;
+  top_education: string;
+  avg_adoption: number;
+}
+
+export interface ClusterStats {
+  count: number;
+  avg_adoption: number;
+}
+
+export interface ProductSynthCorrelationResponse {
+  product_attributes: string[];
+  clusters: string[];
+  matrix: Record<string, Record<string, number>>; // cluster → {attr: diff_pp}
+}
+
+export interface SynthProfilesResponse {
+  best_scenario_mean: number;
+  best_scenario_product_values: Record<string, string>;
+  adopters: SynthGroupProfile;
+  rejectors: SynthGroupProfile;
+  clusters: Record<string, ClusterStats>;
+}
+
+// --- Synth Attribute Insights Types ---
+
+export interface SynthAttributeCorrelation {
+  attribute: string;
+  label: string;
+  r_value: number;
+  is_positive: boolean;
+}
+
+export interface SynthSegmentHeatmapCell {
+  row_bin: string;
+  col_bin: string;
+  adoption_pct: number;
+  count: number;
+}
+
+export interface SynthAttributeInsightsResponse {
+  correlations: SynthAttributeCorrelation[];
+  heatmap_row_attr: string;
+  heatmap_col_attr: string;
+  heatmap_row_label: string;
+  heatmap_col_label: string;
+  heatmap: SynthSegmentHeatmapCell[];
+}
+
+// --- Simulation Report ---
+
+export interface SimulationReport {
+  id: string;
+  experiment_id: string;
+  batch_id: string;
+  content: string;  // markdown
+  model: string;
+  created_at: string;
 }

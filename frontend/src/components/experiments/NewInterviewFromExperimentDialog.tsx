@@ -34,17 +34,73 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Shuffle, TrendingUp, TrendingDown, Minus, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 // Schema for interview creation (topic comes from experiment's interview guide)
 const interviewFormSchema = z.object({
   additional_context: z.string().optional(),
   synth_count: z.number().min(1).max(50),
   max_turns: z.number().min(1).max(10),
+  synth_selection_type: z.string().default('random'),
 });
 
 type InterviewFormData = z.infer<typeof interviewFormSchema>;
+
+interface SelectionOption {
+  value: string;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+  colorClass: string;
+}
+
+const SELECTION_OPTIONS: SelectionOption[] = [
+  {
+    value: 'random',
+    label: 'Aleatório',
+    description: 'Amostra representativa da população',
+    icon: <Shuffle className="h-4 w-4" />,
+    colorClass: 'border-slate-300 data-[selected=true]:border-indigo-500 data-[selected=true]:bg-indigo-50',
+  },
+  {
+    value: 'propensos',
+    label: 'Propensos',
+    description: 'Alta probabilidade de adoção',
+    icon: <TrendingUp className="h-4 w-4" />,
+    colorClass: 'border-slate-300 data-[selected=true]:border-emerald-500 data-[selected=true]:bg-emerald-50',
+  },
+  {
+    value: 'indecisos',
+    label: 'Indecisos',
+    description: 'Probabilidade próxima a 50%',
+    icon: <Minus className="h-4 w-4" />,
+    colorClass: 'border-slate-300 data-[selected=true]:border-amber-500 data-[selected=true]:bg-amber-50',
+  },
+  {
+    value: 'resistentes',
+    label: 'Resistentes',
+    description: 'Baixa probabilidade de adoção',
+    icon: <TrendingDown className="h-4 w-4" />,
+    colorClass: 'border-slate-300 data-[selected=true]:border-red-400 data-[selected=true]:bg-red-50',
+  },
+  {
+    value: 'sensiveis',
+    label: 'Sensíveis',
+    description: 'Maior variação entre cenários',
+    icon: <Zap className="h-4 w-4" />,
+    colorClass: 'border-slate-300 data-[selected=true]:border-violet-500 data-[selected=true]:bg-violet-50',
+  },
+];
+
+const ICON_COLOR: Record<string, string> = {
+  random: 'text-indigo-500',
+  propensos: 'text-emerald-500',
+  indecisos: 'text-amber-500',
+  resistentes: 'text-red-400',
+  sensiveis: 'text-violet-500',
+};
 
 interface NewInterviewFromExperimentDialogProps {
   /** Whether the dialog is open */
@@ -70,6 +126,7 @@ export function NewInterviewFromExperimentDialog({
       additional_context: '',
       synth_count: 9,
       max_turns: 5,
+      synth_selection_type: 'random',
     },
   });
 
@@ -87,6 +144,7 @@ export function NewInterviewFromExperimentDialog({
           additional_context: data.additional_context || undefined,
           synth_count: data.synth_count,
           max_turns: data.max_turns,
+          synth_selection_type: data.synth_selection_type,
         },
       });
 
@@ -96,7 +154,6 @@ export function NewInterviewFromExperimentDialog({
       });
 
       onOpenChange(false);
-      // Navigate to interview detail page
       navigate(`/experiments/${experimentId}/interviews/${response.exec_id}`);
     } catch (error) {
       console.error('Error creating interview:', error);
@@ -108,9 +165,11 @@ export function NewInterviewFromExperimentDialog({
     }
   };
 
+  const selectedType = form.watch('synth_selection_type');
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle>Nova Entrevista</DialogTitle>
           <DialogDescription>
@@ -120,22 +179,50 @@ export function NewInterviewFromExperimentDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+
+            {/* Synth selection type */}
             <FormField
               control={form.control}
-              name="additional_context"
+              name="synth_selection_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Contexto Adicional (Opcional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Adicione informacoes complementares sobre o cenario da pesquisa..."
-                      rows={2}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Complemente o guia de entrevista com contexto adicional
+                  <FormLabel>Tipo de Synths</FormLabel>
+                  <div className="grid grid-cols-5 gap-1.5 mt-1">
+                    {SELECTION_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        data-selected={field.value === opt.value}
+                        onClick={() => field.onChange(opt.value)}
+                        className={cn(
+                          'flex flex-col items-center gap-1.5 rounded-lg border p-2.5 text-center transition-all cursor-pointer',
+                          'hover:border-slate-400 hover:bg-slate-50',
+                          opt.colorClass,
+                        )}
+                      >
+                        <span className={cn(
+                          'transition-colors',
+                          field.value === opt.value
+                            ? ICON_COLOR[opt.value]
+                            : 'text-slate-400',
+                        )}>
+                          {opt.icon}
+                        </span>
+                        <span className={cn(
+                          'text-xs font-medium leading-tight transition-colors',
+                          field.value === opt.value ? 'text-slate-800' : 'text-slate-500',
+                        )}>
+                          {opt.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <FormDescription className="text-xs">
+                    {SELECTION_OPTIONS.find(o => o.value === selectedType)?.description}
+                    {selectedType !== 'random' && (
+                      <span className="text-slate-400"> · usa dados da última simulação</span>
+                    )}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -147,7 +234,7 @@ export function NewInterviewFromExperimentDialog({
               name="synth_count"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Entrevistar quantos Synths</FormLabel>
+                  <FormLabel>Quantos Synths</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -180,7 +267,25 @@ export function NewInterviewFromExperimentDialog({
               )}
             />
 
-            <div className="flex justify-end gap-3 pt-4">
+            <FormField
+              control={form.control}
+              name="additional_context"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contexto Adicional <span className="text-slate-400 font-normal">(Opcional)</span></FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Adicione informacoes complementares sobre o cenario da pesquisa..."
+                      rows={2}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-end gap-3 pt-2">
               <Button
                 type="button"
                 variant="outline"

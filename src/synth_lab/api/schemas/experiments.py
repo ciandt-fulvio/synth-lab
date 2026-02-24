@@ -88,6 +88,9 @@ class InterviewSummary(BaseModel):
     additional_context: str | None = Field(
         default=None, description="Additional context text (if provided)."
     )
+    synth_selection_type: str | None = Field(
+        default=None, description="Synth selection strategy (random, propensos, resistentes, indecisos, sensiveis)."
+    )
     started_at: datetime = Field(description="Start timestamp.")
     completed_at: datetime | None = Field(default=None, description="Completion timestamp.")
 

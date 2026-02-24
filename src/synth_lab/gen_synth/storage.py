@@ -185,6 +185,13 @@ def _synth_to_dict(synth: Synth) -> dict[str, Any]:
             result["deficiencias"] = synth.data["deficiencias"]
         if synth.data.get("observables"):
             result["observables"] = synth.data["observables"]
+        if synth.data.get("sensitivities"):
+            result["sensitivities"] = synth.data["sensitivities"]
+
+    # Derive sensitivities on-the-fly for older synths that lack the field
+    if "sensitivities" not in result and result.get("demografia"):
+        from synth_lab.services.sensitivity_deriver import derive_sensitivities
+        result["sensitivities"] = derive_sensitivities(result)
 
     return result
 

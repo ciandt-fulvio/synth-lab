@@ -21,6 +21,103 @@ agent = Agent(
 
 from synth_lab.services.materials_context import format_materials_for_prompt
 
+# --- Sensitivity helpers ---
+
+_SENSITIVITY_LABELS: dict[str, str] = {
+    "risk_aversion": "Aversão a riscos",
+    "institutional_trust_level": "Confiança em instituições",
+    "friction_tolerance": "Tolerância a processos complexos",
+    "digital_capability": "Capacidade digital",
+}
+
+_SENSITIVITY_DESCRIPTIONS: dict[str, dict[str, str]] = {
+    "risk_aversion": {
+        "baixo": "você é aventureiro e aceita novidades sem muita hesitação",
+        "médio": "você pondera os riscos antes de adotar algo novo",
+        "alto": "você hesita muito antes de tentar algo novo ou irreversível",
+    },
+    "institutional_trust_level": {
+        "baixo": "você é cético em relação a empresas e sistemas",
+        "médio": "você tem uma visão equilibrada sobre empresas e instituições",
+        "alto": "você confia facilmente em empresas e sistemas estabelecidos",
+    },
+    "friction_tolerance": {
+        "baixo": "você evita produtos com muitas etapas ou processos complexos",
+        "médio": "você tolera alguma complexidade se o benefício for claro",
+        "alto": "você não se importa com processos longos ou etapas extras",
+    },
+    "digital_capability": {
+        "baixo": "você tem dificuldades com tecnologia digital e prefere o presencial",
+        "médio": "você usa tecnologia digital sem grandes problemas",
+        "alto": "você domina tecnologia digital com facilidade",
+    },
+}
+
+_ADOPTION_PROFILE_TEXTS: dict[str, str] = {
+    "propensos": (
+        "Você tem ALTA probabilidade de adotar este tipo de produto/serviço. "
+        "Seja receptivo, demonstre interesse genuíno, mas ainda avalie atributos criticamente."
+    ),
+    "resistentes": (
+        "Você tem BAIXA probabilidade de adotar este tipo de produto/serviço. "
+        "Seja cético — você tem objeções genuínas e dificuldade em ver o valor."
+    ),
+    "indecisos": (
+        "Você está INDECISO sobre adotar este produto/serviço. "
+        "Você enxerga benefícios e riscos em igual medida e pode ser convencido para qualquer lado."
+    ),
+    "sensiveis": (
+        "Sua decisão varia MUITO dependendo dos atributos do produto. "
+        "Pequenas mudanças em características-chave fazem grande diferença na sua percepção."
+    ),
+}
+
+
+def _sensitivity_level(value: float) -> str:
+    """Translate a [0, 1] sensitivity value to a Portuguese level word."""
+    if value < 0.33:
+        return "baixo"
+    elif value < 0.67:
+        return "médio"
+    return "alto"
+
+
+def _format_adoption_profile_section(
+    synth: dict,
+    synth_selection_type: str | None,
+) -> str:
+    """
+    Build the 'RELAÇÃO COM NOVOS PRODUTOS' section combining:
+    - adoption profile from synth_selection_type (when set)
+    - sensitivity attributes (excluding _meta), translated to words
+    """
+    lines: list[str] = ["\nRELAÇÃO COM NOVOS PRODUTOS/SERVIÇOS:"]
+
+    # Adoption profile from selection strategy
+    if synth_selection_type and synth_selection_type in _ADOPTION_PROFILE_TEXTS:
+        lines.append(_ADOPTION_PROFILE_TEXTS[synth_selection_type])
+
+    # Sensitivities section
+    sensitivities: dict = synth.get("sensitivities") or {}
+    sensitivity_lines: list[str] = []
+    for key, label in _SENSITIVITY_LABELS.items():
+        if key in sensitivities:
+            value = sensitivities[key]
+            if isinstance(value, (int, float)):
+                level = _sensitivity_level(float(value))
+                description = _SENSITIVITY_DESCRIPTIONS[key][level]
+                sensitivity_lines.append(f"- {label}: {level} ({description})")
+
+    if sensitivity_lines:
+        lines.append("Suas sensibilidades (como você reage a produtos):")
+        lines.extend(sensitivity_lines)
+
+    # Return empty string if nothing was added
+    if len(lines) == 1:
+        return ""
+
+    return "\n".join(lines) + "\n"
+
 INTERVIEWER_INSTRUCTIONS = """
 Você é um pesquisador de UX da SynthLab e está conduzindo uma entrevista de
 pesquisa qualitativa.
@@ -110,7 +207,7 @@ QUEM VOCÊ É:
 
 COMO VOCÊ É:
 - Descrição geral: {synth_descricao}
-
+{adoption_profile_section}
 INTERESSES: {synth_interesses}
 
 CONTRATO COGNITIVO (Como você responde em entrevistas):
@@ -276,7 +373,8 @@ def format_interviewee_instructions(
     conversation_history: str,
     available_images: list[str] | None = None,
     initial_context: str = "",
-    materials: list | None = None) -> str:
+    materials: list | None = None,
+    synth_selection_type: str | None = None) -> str:
     """
     Format interviewee instructions with complete persona context.
 
@@ -366,6 +464,8 @@ quiser analisá-la visualmente antes de responder.
         )
         available_images_section = available_images_section + "\n" + materials_section
 
+    adoption_profile_section = _format_adoption_profile_section(synth, synth_selection_type)
+
     return INTERVIEWEE_INSTRUCTIONS.format(
         synth_name=nome,
         synth_idade=idade,
@@ -375,6 +475,7 @@ quiser analisá-la visualmente antes de responder.
         synth_cidade=cidade,
         synth_estado=estado,
         synth_descricao=descricao,
+        adoption_profile_section=adoption_profile_section,
         synth_interesses=interesses_str,
         synth_cognitive_contract=cognitive_contract_str,
         initial_context_section=initial_context_section,

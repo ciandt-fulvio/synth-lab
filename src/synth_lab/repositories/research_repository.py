@@ -201,6 +201,7 @@ session: Session | None = None):
             topic_name=orm_exec.topic_name,
             status=ExecutionStatus(orm_exec.status),
             synth_count=orm_exec.synth_count,
+            synth_selection_type=orm_exec.synth_selection_type,
             started_at=started_at,
             completed_at=completed_at)
 
@@ -248,6 +249,7 @@ session: Session | None = None):
             topic_name=orm_exec.topic_name,
             status=ExecutionStatus(orm_exec.status),
             synth_count=orm_exec.synth_count,
+            synth_selection_type=orm_exec.synth_selection_type,
             started_at=started_at,
             completed_at=completed_at,
             successful_count=orm_exec.successful_count or 0,
@@ -307,7 +309,8 @@ session: Session | None = None):
         max_turns: int = 6,
         status: ExecutionStatus = ExecutionStatus.PENDING,
         experiment_id: str | None = None,
-        additional_context: str | None = None) -> None:
+        additional_context: str | None = None,
+        synth_selection_type: str | None = None) -> None:
         """
         Create a new research execution record.
 
@@ -320,6 +323,7 @@ session: Session | None = None):
             status: Initial execution status.
             experiment_id: Optional parent experiment ID.
             additional_context: Optional additional context for the interview.
+            synth_selection_type: Optional synth selection strategy.
         """
         orm_exec = ResearchExecutionORM(
             exec_id=exec_id,
@@ -330,7 +334,8 @@ session: Session | None = None):
             max_turns=max_turns,
             status=status.value,
             started_at=datetime.now(timezone.utc).isoformat(),
-            additional_context=additional_context)
+            additional_context=additional_context,
+            synth_selection_type=synth_selection_type)
         self._add(orm_exec)
         self._flush()
         self._commit()

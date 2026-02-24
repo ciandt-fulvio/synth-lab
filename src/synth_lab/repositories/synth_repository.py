@@ -113,7 +113,7 @@ session: Session | None = None):
         # Get total count
         total = self.session.execute(count_stmt).scalar() or 0
 
-        # Sort: interviewed synths first, then by name
+        # Sort: interviewed synths first, then by id (creation order)
         if params.sort_by == "interviewed_first":
             interview_count = (
                 select(sqlfunc.count(Transcript.id))
@@ -123,7 +123,7 @@ session: Session | None = None):
             )
             stmt = stmt.order_by(
                 case((interview_count > 0, 0), else_=1),
-                SynthORM.nome,
+                SynthORM.id,
             )
 
         # Apply pagination

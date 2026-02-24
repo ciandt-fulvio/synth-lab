@@ -47,6 +47,7 @@ export const queryKeys = {
   quantitativeAnalysis: {
     model: (experimentId: string) => ['quantitative-analysis', experimentId, 'model'] as const,
     results: (experimentId: string) => ['quantitative-analysis', experimentId, 'results'] as const,
+    report: (experimentId: string) => ['quantitative-analysis', experimentId, 'report'] as const,
   },
 
   // Materials

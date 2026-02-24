@@ -1,53 +1,33 @@
 /**
  * SimulationTab container component.
  *
- * Displays simulation results and provides manual interview guide generation.
- * Shows simulation summary button with loading/view states based on document availability.
+ * Displays batch simulation results: scenario ranking, product impact,
+ * scenario distribution, and best/median/worst comparison.
  *
  * References:
  *   - Hooks: src/hooks/use-quantitative-analysis.ts
- *   - Hooks: src/hooks/use-documents.ts
- *   - Components: SimulationResults, DocumentViewer
+ *   - Components: ScenarioRanking, ProductImpactChart, ScenarioDistribution, ScenarioComparison
  */
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Loader2, Activity, FileText, BarChart3 } from 'lucide-react';
-import {
-  useSimulationResults,
-} from '@/hooks/use-quantitative-analysis';
-import { useDocumentAvailability, useDocumentMarkdown } from '@/hooks/use-documents';
-import { DocumentViewer } from '@/components/shared/DocumentViewer';
-import { SimulationResults } from './SimulationResults';
+import { Loader2, Activity } from 'lucide-react';
+import { useLatestBatch, useCausalModel } from '@/hooks/use-quantitative-analysis';
+import { ScenarioRanking } from './ScenarioRanking';
+import { ProductImpactChart } from './ProductImpactChart';
+import { ScenarioDistribution } from './ScenarioDistribution';
+import { ScenarioComparison } from './ScenarioComparison';
+import { SynthProfileAnalysis } from './SynthProfileAnalysis';
+import { ProductSynthCorrelation } from './ProductSynthCorrelation';
+import { SimulationReport } from './SimulationReport';
 
 interface SimulationTabProps {
   experimentId: string;
   onGenerateGuide?: () => void;
 }
 
-export function SimulationTab({ experimentId, onGenerateGuide }: SimulationTabProps) {
-  const { data: simulationRun, isLoading } = useSimulationResults(experimentId);
-  const { data: availability } = useDocumentAvailability(experimentId);
-  const [showViewer, setShowViewer] = useState(false);
+export function SimulationTab({ experimentId }: SimulationTabProps) {
+  const { data: batch, isLoading } = useLatestBatch(experimentId);
+  const { data: causalModel } = useCausalModel(experimentId);
 
-  const summaryStatus = availability?.simulation_summary?.status ?? null;
-  const isCompleted = summaryStatus === 'completed';
-  const isGenerating = summaryStatus === 'generating';
-
-  // Fetch markdown only when viewer is open and document is completed
-  const { data: markdownContent, isLoading: isLoadingMarkdown } = useDocumentMarkdown(
-    experimentId,
-    'simulation_summary',
-    { enabled: showViewer && isCompleted },
-  );
-
-  const handleSummaryClick = () => {
-    if (isCompleted) {
-      setShowViewer(true);
-    }
-  };
-
-  // Loading
   if (isLoading) {
     return (
       <div className="text-center py-12">
@@ -57,14 +37,11 @@ export function SimulationTab({ experimentId, onGenerateGuide }: SimulationTabPr
     );
   }
 
-  // No results yet
-  if (!simulationRun) {
+  if (!batch || batch.scenarios.length === 0) {
     return (
       <div className="text-center py-12">
         <Activity className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-        <p className="text-slate-500">
-          Nenhuma simulação realizada ainda.
-        </p>
+        <p className="text-slate-500">Nenhuma simulação realizada ainda.</p>
         <p className="text-sm text-slate-400 mt-1">
           Execute a simulação na aba &quot;Análise Quanti&quot;.
         </p>
@@ -72,51 +49,30 @@ export function SimulationTab({ experimentId, onGenerateGuide }: SimulationTabPr
     );
   }
 
-  const actionButtons = (
-    <>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={handleSummaryClick}
-        disabled={isGenerating || !isCompleted}
-      >
-        {isGenerating ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-            Gerando Resumo...
-          </>
-        ) : (
-          <>
-            <BarChart3 className="w-4 h-4 mr-1" />
-            Ver Resumo da Simulação
-          </>
-        )}
-      </Button>
-      <Button
-        size="sm"
-        onClick={onGenerateGuide}
-        className="btn-primary"
-      >
-        <FileText className="w-4 h-4 mr-1" />
-        Gerar roteiro de entrevista
-      </Button>
-    </>
-  );
-
   return (
-    <div className="space-y-6">
-      {/* Results */}
-      <SimulationResults run={simulationRun} actions={actionButtons} />
+    <div className="space-y-4">
+      {/* Summary bar */}
+      <div className="flex items-center gap-3 text-xs text-slate-400 font-medium">
+        <span className="px-2.5 py-1 bg-slate-100 rounded-full">
+          {batch.n_scenarios} cenários
+        </span>
+        <span className="text-slate-300">×</span>
+        <span className="px-2.5 py-1 bg-slate-100 rounded-full">
+          {batch.n_synths} synths
+        </span>
+        <span className="text-slate-300">×</span>
+        <span className="px-2.5 py-1 bg-slate-100 rounded-full">
+          {batch.n_repetitions} repetições
+        </span>
+      </div>
 
-      {/* Document Viewer for simulation summary */}
-      <DocumentViewer
-        isOpen={showViewer}
-        onClose={() => setShowViewer(false)}
-        documentType="simulation_summary"
-        markdownContent={markdownContent ?? undefined}
-        isLoading={isLoadingMarkdown}
-        status={isCompleted ? 'completed' : undefined}
-      />
+      <ScenarioComparison scenarios={batch.scenarios} nodeMetadata={causalModel?.node_metadata ?? null} />
+      <ScenarioDistribution scenarios={batch.scenarios} />
+      <ProductImpactChart scenarios={batch.scenarios} />
+      <SynthProfileAnalysis experimentId={experimentId} />
+      <ProductSynthCorrelation experimentId={experimentId} />
+      <SimulationReport experimentId={experimentId} />
+      <ScenarioRanking scenarios={batch.scenarios} />
     </div>
   );
 }

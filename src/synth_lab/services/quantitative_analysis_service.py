@@ -79,6 +79,32 @@ SE section = "Sensibilidade":
 - Foque nas 1-2 premissas de maior impacto e que pesquisa ou dado específico poderia resolver a incerteza.
 - Seja concreto: "Para validar se [premissa], analise dados de uso do app atual filtrado por faixa etária" — não dê conselhos genéricos."""
 
+REPORT_SYSTEM_PROMPT = """Você é um consultor sênior de estratégia de produto especializado em análise causal e validação de premissas.
+
+Você receberá dados estruturados de uma simulação Monte Carlo de adoção de produto (análise batch com múltiplos cenários).
+
+REGRAS ABSOLUTAS:
+- Escreva em Português BR.
+- Use markdown com headers (##), listas, e **negrito** para destacar pontos críticos.
+- Seja ESPECÍFICO — referencie o produto/funcionalidade real e os atributos concretos do experimento.
+- Mantenha foco no que é ACIONÁVEL para o PM.
+- NUNCA ofereça fazer mais nada. NUNCA termine com frases do tipo "se quiser, posso também...", "posso transformar isso em...", "se precisar de mais detalhes...", "fico à disposição" ou qualquer variação. O relatório termina com o conteúdo, ponto.
+- NUNCA sugira próximas iterações do modelo, ajustes no DAG ou mudanças na simulação.
+
+ESTRUTURA OBRIGATÓRIA (use exatamente estes headers, nesta ordem):
+
+## Resumo Executivo
+2-3 frases: o que a simulação sugere sobre adoção, qual o range realista e o que mais impacta.
+
+## Principais Drivers de Adoção
+Lista dos 2-4 atributos de produto com maior variância de adoção entre cenários. Para cada um: nome, direção do efeito, e magnitude aproximada em pp.
+
+## Incertezas Críticas
+O que está mais sensível ou menos calibrado. Quais premissas têm maior impacto na incerteza do resultado.
+
+## Foco da Pesquisa Qualitativa
+Texto narrativo (NÃO uma lista de perguntas) explicando os princípios e temas centrais que devem guiar a pesquisa com usuários. O objetivo é dar ao PM uma orientação clara sobre O QUE precisa ser investigado e POR QUÊ — para que ele possa, a partir disso, construir o próprio roteiro. Escreva em parágrafos corridos, como uma orientação estratégica, não como um questionário."""
+
 
 class QuantitativeAnalysisService:
     """Service for causal model generation, simulation, and interpretation.
@@ -274,7 +300,7 @@ class QuantitativeAnalysisService:
                 experiment_id=experiment_id,
                 label=topology.get("label", "Modelo Causal"),
                 intercept_mu=topology.get("interceptMu", 0.1),
-                intercept_sigma=topology.get("interceptSigma", 0.4),
+                intercept_sigma=topology.get("interceptSigma", 0.05),
                 nodes=node_names,
                 edges=edges_data,
                 raw_llm_response=raw_response,
@@ -638,16 +664,25 @@ class QuantitativeAnalysisService:
         )
 
     def generate_interview_guide(self, experiment_id: str) -> dict:
-        """Generate interview guide from the latest simulation sensitivity."""
+        """Generate interview guide from the latest simulation sensitivity.
+
+        Falls back to computing sensitivity on-the-fly from the causal model
+        when only batch runs exist (no standalone run).
+        """
         orm_run = self.simulation_run_repo.get_latest_by_experiment(experiment_id)
-        if orm_run is None:
-            raise ValueError(f"No simulation results for experiment: {experiment_id}")
+
+        if orm_run is not None:
+            sensitivity = orm_run.sensitivity or []
+        else:
+            # No standalone run — check if a batch exists, then compute sensitivity
+            batch = self.simulation_run_repo.get_latest_batch_by_experiment(experiment_id)
+            if batch is None:
+                raise ValueError(f"No simulation results for experiment: {experiment_id}")
+            sensitivity = self._compute_sensitivity_from_model(experiment_id)
 
         experiment = self.experiment_repo.get_by_id(experiment_id)
         if not experiment:
             raise ValueError(f"Experiment not found: {experiment_id}")
-
-        sensitivity = orm_run.sensitivity or []
 
         with _tracer.start_as_current_span(
             "QuantitativeAnalysis: generate_interview_guide",
@@ -735,6 +770,79 @@ class QuantitativeAnalysisService:
         self.simulation_run_repo.create_interpretations(interpretations_to_save)
         return results
 
+    def _compute_sensitivity_from_model(self, experiment_id: str) -> list[dict]:
+        """Compute sensitivity analysis on-the-fly from the causal model.
+
+        Used when no standalone simulation run exists (e.g. only batch runs).
+        Mirrors the logic in run_simulation but skips MC and segments.
+        """
+        orm_model = self.causal_model_repo.get_by_experiment(experiment_id)
+        if orm_model is None:
+            return []
+
+        node_metadata = orm_model.node_metadata or {}
+
+        edges_data = []
+        for e in orm_model.edges:
+            edges_data.append({
+                "id": e.id,
+                "from_node": e.from_node,
+                "to_node": e.to_node,
+                "user_var": e.user_var,
+                "direction": e.direction,
+                "header": e.header,
+                "options": e.options,
+                "default_option": e.default_option,
+                "edge_type": e.edge_type,
+                "weight": e.weight,
+            })
+
+        node_selections: dict[str, int] = {}
+        for node_name, meta in node_metadata.items():
+            if meta.get("node_type") in ("interaction", "outcome") and meta.get("options"):
+                node_selections[node_name] = (
+                    meta["selected_option"]
+                    if meta.get("selected_option") is not None
+                    else meta.get("default_option", 2)
+                )
+
+        synths_raw = self._load_synths_raw(experiment_id)
+        if not synths_raw:
+            return []
+
+        yaml_data = load_sensitivity_rules()
+        yaml_sensitivities = yaml_data.get("sensitivities", {})
+        sensitivity_configs: dict[str, dict] = dict(yaml_sensitivities)
+        for meta in node_metadata.values():
+            if meta.get("node_type") == "sensitivity" and meta.get("custom_config"):
+                sens_key = meta.get("sensitivity_key", "")
+                sensitivity_configs[sens_key] = meta["custom_config"]
+
+        # Use medium calibration for all product nodes as baseline
+        product_values: dict[str, float] = {}
+        for node_name, meta in node_metadata.items():
+            if meta.get("node_type") == "product":
+                product_values[node_name] = PRODUCT_CALIBRATION_VALUES.get("medium", 0.5)
+
+        node_vals = build_node_values(
+            synths_raw, node_metadata, edges_data, product_values, sensitivity_configs,
+        )
+
+        outcome_node = None
+        for node_name, meta in node_metadata.items():
+            if meta.get("node_type") == "outcome":
+                outcome_node = node_name
+                break
+        if outcome_node is None:
+            outcome_node = orm_model.nodes[-1] if orm_model.nodes else ""
+
+        outcome_edges = [e for e in edges_data if e["to_node"] == outcome_node]
+
+        return run_sensitivity_v2(
+            outcome_edges, node_vals, node_selections, node_metadata,
+            orm_model.intercept_mu, orm_model.intercept_sigma,
+        )
+
     def _auto_generate_interview_guide(
         self, experiment_id: str, experiment, sensitivity: list[dict],
     ) -> None:
@@ -794,6 +902,39 @@ class QuantitativeAnalysisService:
                 )
             except Exception:
                 pass
+
+    def _auto_generate_simulation_report(
+        self, experiment_id: str, batch_id: str, scenario_results: list[dict],
+    ) -> None:
+        """Auto-generate simulation report then trigger interview guide in background."""
+        try:
+            result = self.generate_simulation_report(experiment_id, batch_id, scenario_results)
+            report_content = result.get("content", "")
+        except Exception as e:
+            self.logger.warning(
+                f"Report generation failed (non-blocking) for {experiment_id}: {e}"
+            )
+            return
+
+        # Once report is ready, generate interview guide with report as context
+        try:
+            experiment = self.experiment_repo.get_by_id(experiment_id)
+            if experiment is None:
+                return
+            sensitivity = self._compute_sensitivity_from_model(experiment_id)
+            self.interview_guide_service.generate_from_simulation_sync(
+                experiment_id=experiment_id,
+                name=experiment.name,
+                hypothesis=experiment.hypothesis,
+                sensitivity=sensitivity,
+                description=getattr(experiment, "description", None),
+                simulation_report=report_content,
+            )
+            self.logger.info(f"Interview guide auto-generated from report for: {experiment_id}")
+        except Exception as e:
+            self.logger.warning(
+                f"Interview guide generation from report failed (non-blocking) for {experiment_id}: {e}"
+            )
 
     def _generate_random_scenarios(
         self,
@@ -1018,6 +1159,14 @@ class QuantitativeAnalysisService:
                 self.simulation_run_repo.flush_and_commit()
                 self.simulation_run_repo.update_batch_status(batch_id, "completed")
 
+                # Auto-generate simulation report in background (non-blocking)
+                import threading
+                threading.Thread(
+                    target=self._auto_generate_simulation_report,
+                    args=(experiment_id, batch_id, scenario_results),
+                    daemon=True,
+                ).start()
+
             except Exception:
                 self.simulation_run_repo.update_batch_status(batch_id, "failed")
                 raise
@@ -1034,6 +1183,180 @@ class QuantitativeAnalysisService:
                 "n_repetitions": n_repetitions,
                 "status": "completed",
                 "scenarios": scenario_results,
+            }
+
+    def generate_simulation_report(
+        self,
+        experiment_id: str,
+        batch_id: str,
+        scenario_results: list[dict],
+    ) -> dict:
+        """Generate LLM analysis report for a simulation batch.
+
+        Builds structured data from batch results and uses LLM to generate
+        a markdown report with executive summary, drivers, uncertainties,
+        and interview agenda.
+
+        Args:
+            experiment_id: Experiment ID.
+            batch_id: Batch ID.
+            scenario_results: List of per-scenario result dicts from run_multi_scenario_simulation.
+
+        Returns:
+            Dict with report id, content, and metadata.
+        """
+        with _tracer.start_as_current_span(
+            "QuantitativeAnalysis: generate_simulation_report",
+            attributes={
+                SpanAttributes.OPENINFERENCE_SPAN_KIND: OpenInferenceSpanKindValues.CHAIN.value,
+                "experiment_id": experiment_id,
+                "batch_id": batch_id,
+                "operation.type": "simulation_report_generation",
+            },
+        ):
+            experiment = self.experiment_repo.get_by_id(experiment_id)
+            if experiment is None:
+                raise ValueError(f"Experiment not found: {experiment_id}")
+
+            orm_model = self.causal_model_repo.get_by_experiment(experiment_id)
+            if orm_model is None:
+                raise ValueError(f"No causal model for experiment: {experiment_id}")
+
+            node_metadata = orm_model.node_metadata or {}
+
+            # Build product node info
+            product_nodes = [
+                {"name": k, "description": v.get("product_description", "")}
+                for k, v in node_metadata.items()
+                if v.get("node_type") == "product"
+            ]
+
+            # Build causal edges summary
+            edges_summary = [
+                f"{e.from_node} → {e.to_node} (direção: {'positiva' if e.direction == 1 else 'negativa'})"
+                for e in orm_model.edges
+            ]
+
+            # Compute batch stats
+            n_scenarios = len(scenario_results)
+            all_means = [s["stats"]["mean"] for s in scenario_results]
+            global_mean = round(sum(all_means) / len(all_means), 1) if all_means else 0
+            global_p10 = round(sorted(all_means)[int(len(all_means) * 0.1)], 1) if all_means else 0
+            global_p90 = round(sorted(all_means)[int(len(all_means) * 0.9)], 1) if all_means else 0
+            spread = round(max(all_means) - min(all_means), 1) if all_means else 0
+
+            # Sort scenarios by mean
+            sorted_scenarios = sorted(scenario_results, key=lambda s: s["stats"]["mean"])
+            worst = sorted_scenarios[0] if sorted_scenarios else None
+            median_idx = len(sorted_scenarios) // 2
+            median_s = sorted_scenarios[median_idx] if sorted_scenarios else None
+            best = sorted_scenarios[-1] if sorted_scenarios else None
+
+            # Find top 3 attributes by variance
+            product_attr_names = [n["name"] for n in product_nodes]
+            attr_variance: dict[str, list[float]] = {k: [] for k in product_attr_names}
+            for s in scenario_results:
+                pv = s.get("product_values", {})
+                for attr in product_attr_names:
+                    level = pv.get(attr, "medium")
+                    val = {"low": 0, "medium": 50, "high": 100}.get(level, 50)
+                    attr_variance[attr].append(val)
+
+            # Compute mean adoption per level per attribute
+            attr_adoption: dict[str, dict[str, list[float]]] = {
+                k: {"low": [], "medium": [], "high": []} for k in product_attr_names
+            }
+            for s in scenario_results:
+                pv = s.get("product_values", {})
+                mean = s["stats"]["mean"]
+                for attr in product_attr_names:
+                    level = pv.get(attr, "medium")
+                    if level in attr_adoption[attr]:
+                        attr_adoption[attr][level].append(mean)
+
+            attr_spread: list[tuple[str, float]] = []
+            for attr in product_attr_names:
+                low_means = attr_adoption[attr]["low"]
+                high_means = attr_adoption[attr]["high"]
+                if low_means and high_means:
+                    spread_val = abs(
+                        sum(high_means) / len(high_means) - sum(low_means) / len(low_means)
+                    )
+                    attr_spread.append((attr, round(spread_val, 1)))
+
+            attr_spread.sort(key=lambda x: x[1], reverse=True)
+            top_attrs = attr_spread[:3]
+
+            # Build prompt data
+            product_nodes_text = "\n".join(
+                f"- {n['name']}: {n['description'] or 'sem descrição'}"
+                for n in product_nodes
+            )
+            edges_text = "\n".join(f"- {e}" for e in edges_summary[:10])
+            top_attrs_text = "\n".join(
+                f"- {attr}: variância de adoção ≈ {sp}pp entre low/high"
+                for attr, sp in top_attrs
+            ) if top_attrs else "- Dados insuficientes"
+
+            def _scenario_text(s: dict | None, label: str) -> str:
+                if s is None:
+                    return f"{label}: N/A"
+                pv = s.get("product_values", {})
+                pv_text = ", ".join(f"{k}={v}" for k, v in pv.items())
+                return f"{label}: {s['stats']['mean']:.1f}% adoção — {pv_text}"
+
+            user_msg = f"""Experimento: {experiment.name}
+Hipótese: {experiment.hypothesis}
+
+## Modelo Causal
+Nós produto:
+{product_nodes_text}
+
+Arestas causais principais:
+{edges_text}
+
+## Resultados do Batch
+- Cenários simulados: {n_scenarios}
+- Synths por cenário: {scenario_results[0]['n_synths'] if scenario_results else 0}
+- Adoção média global: {global_mean}%
+- Range (P10–P90): {global_p10}% – {global_p90}%
+- Spread (max-min): {spread}pp
+
+## Cenários de Referência
+{_scenario_text(best, 'Melhor cenário')}
+{_scenario_text(median_s, 'Cenário mediano')}
+{_scenario_text(worst, 'Pior cenário')}
+
+## Top Atributos por Variância de Adoção
+{top_attrs_text}
+"""
+
+            report_content = self.llm.complete(
+                messages=[
+                    {"role": "system", "content": REPORT_SYSTEM_PROMPT},
+                    {"role": "user", "content": user_msg},
+                ],
+                model="gpt-5.2",
+                temperature=0.5,
+                operation_name="SimulationReport: generate",
+            )
+
+            report_id = f"srp_{secrets.token_hex(4)}"
+            self.simulation_run_repo.create_report(
+                report_id=report_id,
+                experiment_id=experiment_id,
+                batch_id=batch_id,
+                content=report_content,
+                model="gpt-5.2",
+            )
+
+            self.logger.info(f"Simulation report generated: {report_id} for batch {batch_id}")
+            return {
+                "id": report_id,
+                "experiment_id": experiment_id,
+                "batch_id": batch_id,
+                "content": report_content,
+                "model": "gpt-4o",
             }
 
     def _load_synths_raw(self, experiment_id: str) -> list[dict]:
@@ -1060,6 +1383,336 @@ class QuantitativeAnalysisService:
         return [
             {"id": s.id, "data": s.data if isinstance(s.data, dict) else {}} for s in orm_synths
         ]
+
+    def get_synth_profiles(self, experiment_id: str) -> dict | None:
+        """Compute adopter vs rejector profiles from the best scenario in the latest batch.
+
+        Returns aggregated demographics for top 20% and bottom 20% synths,
+        plus per-synth cluster assignments based on age × income.
+        """
+        batch = self.simulation_run_repo.get_latest_batch_by_experiment(experiment_id)
+        if not batch or not batch.runs:
+            return None
+
+        # Find best scenario (highest mean)
+        best_run = max(batch.runs, key=lambda r: (r.stats or {}).get("mean", 0))
+        per_synth = best_run.per_synth_outcomes
+        if not per_synth:
+            return None
+
+        synths_raw = self._load_synths_raw(experiment_id)
+        if not synths_raw:
+            return None
+
+        synth_map = {s["id"]: s for s in synths_raw}
+
+        # Sort synths by adoption probability
+        scored = sorted(per_synth.items(), key=lambda x: x[1], reverse=True)
+        n = len(scored)
+        top_n = max(1, n // 5)  # top 20%
+        bottom_n = max(1, n // 5)  # bottom 20%
+
+        top_ids = [sid for sid, _ in scored[:top_n]]
+        bottom_ids = [sid for sid, _ in scored[-bottom_n:]]
+
+        def _aggregate(ids: list[str]) -> dict:
+            ages, incomes, edu_counts = [], [], {}
+            for sid in ids:
+                s = synth_map.get(sid)
+                if not s:
+                    continue
+                demo = s.get("data", {}).get("demografia", {})
+                if "idade" in demo:
+                    ages.append(demo["idade"])
+                if "renda_mensal" in demo:
+                    incomes.append(demo["renda_mensal"])
+                edu = demo.get("escolaridade", "")
+                if edu:
+                    edu_counts[edu] = edu_counts.get(edu, 0) + 1
+            top_edu = max(edu_counts, key=edu_counts.get) if edu_counts else ""
+            return {
+                "count": len(ids),
+                "avg_age": round(sum(ages) / len(ages), 1) if ages else None,
+                "avg_income": round(sum(incomes) / len(incomes), 0) if incomes else None,
+                "top_education": top_edu,
+                "avg_adoption": round(
+                    sum(per_synth.get(sid, 0) for sid in ids) / len(ids) * 100, 1
+                ),
+            }
+
+        # Clusters: age × income (2×2 = 4 clusters)
+        clusters: dict[str, list[str]] = {
+            "jovem_baixa_renda": [],
+            "jovem_alta_renda": [],
+            "maduro_baixa_renda": [],
+            "maduro_alta_renda": [],
+        }
+        age_median = 40
+        income_median = 5000
+        for s in synths_raw:
+            demo = s.get("data", {}).get("demografia", {})
+            age = demo.get("idade", age_median)
+            income = demo.get("renda_mensal", income_median)
+            age_key = "jovem" if age < age_median else "maduro"
+            income_key = "baixa_renda" if income < income_median else "alta_renda"
+            clusters[f"{age_key}_{income_key}"].append(s["id"])
+
+        cluster_stats = {}
+        for cname, cids in clusters.items():
+            if not cids:
+                continue
+            avg_prob = sum(per_synth.get(sid, 0) for sid in cids) / len(cids)
+            cluster_stats[cname] = {
+                "count": len(cids),
+                "avg_adoption": round(avg_prob * 100, 1),
+            }
+
+        return {
+            "best_scenario_mean": best_run.stats.get("mean", 0),
+            "best_scenario_product_values": best_run.product_values or {},
+            "adopters": _aggregate(top_ids),
+            "rejectors": _aggregate(bottom_ids),
+            "clusters": cluster_stats,
+        }
+
+    def get_synth_attribute_insights(self, experiment_id: str) -> dict | None:
+        """Compute Pearson r correlations and 3×3 segment heatmap from per-synth outcomes.
+
+        Uses the best scenario run (highest mean) in the latest batch.
+        Attributes analysed: risk_aversion, friction_tolerance, digital_capability,
+        institutional_trust_level (sensitivities) + idade, renda_mensal (demographics).
+
+        Args:
+            experiment_id: Experiment ID.
+
+        Returns:
+            Dict with correlations list and heatmap data, or None if no data available.
+        """
+        import numpy as np
+
+        batch = self.simulation_run_repo.get_latest_batch_by_experiment(experiment_id)
+        if not batch or not batch.runs:
+            return None
+
+        # Find best scenario (highest mean adoption)
+        best_run = max(batch.runs, key=lambda r: (r.stats or {}).get("mean", 0))
+        per_synth: dict[str, float] = best_run.per_synth_outcomes
+        if not per_synth:
+            return None
+
+        synths_raw = self._load_synths_raw(experiment_id)
+        if not synths_raw:
+            return None
+
+        # Attribute definitions: key → (extractor fn, human label)
+        ATTRIBUTE_LABELS: dict[str, str] = {
+            "digital_capability": "Cap. Digital",
+            "risk_aversion": "Aversão a Risco",
+            "friction_tolerance": "Toler. a Fricção",
+            "institutional_trust_level": "Confiança Institucional",
+            "idade": "Idade",
+            "renda_mensal": "Renda Mensal",
+        }
+
+        def _extract(synth: dict, attr: str) -> float | None:
+            data = synth.get("data", {})
+            if attr in ("digital_capability", "risk_aversion", "friction_tolerance",
+                        "institutional_trust_level"):
+                val = data.get("sensitivities", {}).get(attr)
+                return float(val) if val is not None else None
+            if attr == "idade":
+                val = data.get("demografia", {}).get("idade")
+                return float(val) if val is not None else None
+            if attr == "renda_mensal":
+                val = data.get("demografia", {}).get("renda_mensal")
+                return float(val) if val is not None else None
+            return None
+
+        # Build aligned arrays: probs and attribute values per synth
+        # Only include synths present in per_synth_outcomes
+        synth_map = {s["id"]: s for s in synths_raw}
+        synth_ids_ordered = [sid for sid in per_synth if sid in synth_map]
+
+        probs = np.array([per_synth[sid] for sid in synth_ids_ordered], dtype=float)
+
+        # Compute Pearson r for each attribute
+        correlations = []
+        attr_arrays: dict[str, np.ndarray] = {}
+
+        for attr, label in ATTRIBUTE_LABELS.items():
+            vals = []
+            for sid in synth_ids_ordered:
+                v = _extract(synth_map[sid], attr)
+                vals.append(v if v is not None else 0.0)
+            arr = np.array(vals, dtype=float)
+            attr_arrays[attr] = arr
+
+            if arr.std() < 1e-9 or probs.std() < 1e-9:
+                r = 0.0
+            else:
+                r = float(np.corrcoef(arr, probs)[0, 1])
+                if np.isnan(r):
+                    r = 0.0
+
+            correlations.append({
+                "attribute": attr,
+                "label": label,
+                "r_value": round(r, 4),
+                "is_positive": r >= 0,
+            })
+
+        # Sort by absolute r value descending
+        correlations.sort(key=lambda x: abs(x["r_value"]), reverse=True)
+
+        # Pick top 2 attributes for heatmap
+        if len(correlations) < 2:
+            return None
+
+        row_attr = correlations[0]["attribute"]
+        col_attr = correlations[1]["attribute"]
+        row_label = correlations[0]["label"]
+        col_label = correlations[1]["label"]
+
+        row_arr = attr_arrays[row_attr]
+        col_arr = attr_arrays[col_attr]
+
+        def _bin_array(arr: np.ndarray) -> list[str]:
+            """Divide array into 3 equal-size bins by value percentile."""
+            p33 = float(np.percentile(arr, 33))
+            p67 = float(np.percentile(arr, 67))
+            bins = []
+            for v in arr:
+                if v <= p33:
+                    bins.append("Baixo")
+                elif v <= p67:
+                    bins.append("Médio")
+                else:
+                    bins.append("Alto")
+            return bins
+
+        row_bins = _bin_array(row_arr)
+        col_bins = _bin_array(col_arr)
+
+        # Build 3×3 heatmap cells
+        BIN_LABELS = ["Baixo", "Médio", "Alto"]
+        cell_data: dict[tuple[str, str], list[float]] = {
+            (r, c): [] for r in BIN_LABELS for c in BIN_LABELS
+        }
+
+        for i, sid in enumerate(synth_ids_ordered):
+            rb = row_bins[i]
+            cb = col_bins[i]
+            cell_data[(rb, cb)].append(per_synth[sid])
+
+        heatmap = []
+        for r_bin in BIN_LABELS:
+            for c_bin in BIN_LABELS:
+                vals_cell = cell_data[(r_bin, c_bin)]
+                avg_adoption = (sum(vals_cell) / len(vals_cell) * 100) if vals_cell else 0.0
+                heatmap.append({
+                    "row_bin": r_bin,
+                    "col_bin": c_bin,
+                    "adoption_pct": round(avg_adoption, 1),
+                    "count": len(vals_cell),
+                })
+
+        return {
+            "correlations": correlations,
+            "heatmap_row_attr": row_attr,
+            "heatmap_col_attr": col_attr,
+            "heatmap_row_label": row_label,
+            "heatmap_col_label": col_label,
+            "heatmap": heatmap,
+        }
+
+    def get_product_synth_correlations(self, experiment_id: str) -> dict | None:
+        """Compute product × synth-cluster correlation matrix.
+
+        For each cluster × product attribute, computes the average adoption
+        rate at each calibration level (low/medium/high) across all batch scenarios.
+
+        Returns a heatmap-ready structure with clusters as rows and product attributes as columns.
+        """
+        batch = self.simulation_run_repo.get_latest_batch_by_experiment(experiment_id)
+        if not batch or not batch.runs:
+            return None
+
+        synths_raw = self._load_synths_raw(experiment_id)
+        if not synths_raw:
+            return None
+
+        # Build clusters: age × income
+        age_median = 40
+        income_median = 5000
+        clusters: dict[str, set[str]] = {
+            "jovem_baixa_renda": set(),
+            "jovem_alta_renda": set(),
+            "maduro_baixa_renda": set(),
+            "maduro_alta_renda": set(),
+        }
+        for s in synths_raw:
+            demo = s.get("data", {}).get("demografia", {})
+            age = demo.get("idade", age_median)
+            income = demo.get("renda_mensal", income_median)
+            age_key = "jovem" if age < age_median else "maduro"
+            income_key = "baixa_renda" if income < income_median else "alta_renda"
+            clusters[f"{age_key}_{income_key}"].add(s["id"])
+
+        # Collect product nodes from first run
+        product_nodes: list[str] = []
+        for run in batch.runs:
+            if run.product_values:
+                product_nodes = list(run.product_values.keys())
+                break
+
+        if not product_nodes:
+            return None
+
+        # For each run: cluster → avg adoption for that scenario
+        # Group by product_attr → level → cluster → list of avg adoptions
+        # Structure: product_attr → level → cluster_name → [adoption_rates]
+        data: dict[str, dict[str, dict[str, list[float]]]] = {
+            attr: {lvl: {c: [] for c in clusters} for lvl in ("low", "medium", "high")}
+            for attr in product_nodes
+        }
+
+        for run in batch.runs:
+            per_synth = run.per_synth_outcomes
+            pv = run.product_values
+            if not per_synth or not pv:
+                continue
+
+            # Compute cluster avg adoption for this scenario
+            for cname, cids in clusters.items():
+                if not cids:
+                    continue
+                probs = [per_synth.get(sid, 0) for sid in cids if sid in per_synth]
+                if not probs:
+                    continue
+                avg = sum(probs) / len(probs) * 100
+
+                for attr in product_nodes:
+                    level = pv.get(attr, "medium")
+                    data[attr][level][cname].append(avg)
+
+        # Compute means
+        matrix: dict[str, dict[str, float]] = {}
+        for cname in clusters:
+            matrix[cname] = {}
+            for attr in product_nodes:
+                high_vals = data[attr]["high"][cname]
+                low_vals = data[attr]["low"][cname]
+                if high_vals and low_vals:
+                    diff = (sum(high_vals) / len(high_vals)) - (sum(low_vals) / len(low_vals))
+                    matrix[cname][attr] = round(diff, 1)
+                else:
+                    matrix[cname][attr] = 0.0
+
+        return {
+            "product_attributes": product_nodes,
+            "clusters": list(clusters.keys()),
+            "matrix": matrix,  # cluster_name → {attr: diff_pp}
+        }
 
     def _run_to_dict(
         self, orm_run, distribution: list, segments: dict,

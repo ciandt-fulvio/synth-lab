@@ -16,10 +16,14 @@ import {
   updateEdgeSelections,
   updateNodeSelections,
   runBatchSimulation,
-  getSimulationResults,
+  getLatestBatch,
+  getSynthProfiles,
+  getProductSynthCorrelations,
+  getSynthAttributeInsights,
   generateInterviewGuide,
   generateSimulationSummary,
   getInterviewGuide,
+  getSimulationReport,
 } from '@/services/quantitative-analysis-api';
 
 /**
@@ -104,6 +108,12 @@ export function useRunBatchSimulation() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.quantitativeAnalysis.results(experimentId),
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.quantitativeAnalysis.report(experimentId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['experiments', experimentId, 'interview-guide'],
+      });
     },
   });
 }
@@ -121,6 +131,9 @@ export function useGenerateInterviewGuide() {
     onSuccess: (_, experimentId) => {
       queryClient.invalidateQueries({
         queryKey: ['experiments', experimentId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['experiments', experimentId, 'interview-guide'],
       });
     },
   });
@@ -148,12 +161,48 @@ export function useGenerateSimulationSummary() {
 }
 
 /**
- * Hook to fetch the latest simulation results for an experiment.
+ * Hook to fetch the latest simulation batch for an experiment.
  */
-export function useSimulationResults(experimentId: string) {
+export function useLatestBatch(experimentId: string) {
   return useQuery({
     queryKey: queryKeys.quantitativeAnalysis.results(experimentId),
-    queryFn: () => getSimulationResults(experimentId),
+    queryFn: () => getLatestBatch(experimentId),
+    enabled: !!experimentId,
+    retry: false,
+  });
+}
+
+/**
+ * Hook to fetch synth profile analysis for an experiment.
+ */
+export function useSynthProfiles(experimentId: string) {
+  return useQuery({
+    queryKey: ['quantitative-analysis', experimentId, 'synth-profiles'],
+    queryFn: () => getSynthProfiles(experimentId),
+    enabled: !!experimentId,
+    retry: false,
+  });
+}
+
+/**
+ * Hook to fetch product × synth-cluster correlations for an experiment.
+ */
+export function useProductSynthCorrelations(experimentId: string) {
+  return useQuery({
+    queryKey: ['quantitative-analysis', experimentId, 'product-synth-correlations'],
+    queryFn: () => getProductSynthCorrelations(experimentId),
+    enabled: !!experimentId,
+    retry: false,
+  });
+}
+
+/**
+ * Hook to fetch synth attribute correlation and heatmap insights.
+ */
+export function useSynthAttributeInsights(experimentId: string) {
+  return useQuery({
+    queryKey: ['quantitative-analysis', experimentId, 'synth-attribute-insights'],
+    queryFn: () => getSynthAttributeInsights(experimentId),
     enabled: !!experimentId,
     retry: false,
   });
@@ -161,12 +210,47 @@ export function useSimulationResults(experimentId: string) {
 
 /**
  * Hook to fetch the interview guide markdown for an experiment.
+ *
+ * Polls every 4 seconds when:
+ * - Guide is null (being regenerated — old guide was deleted, new one not yet ready)
+ * - Guide exists but is older than latestBatchCreatedAt (stale, new batch ran)
  */
-export function useInterviewGuide(experimentId: string, enabled = true) {
+export function useInterviewGuide(
+  experimentId: string,
+  enabled = true,
+  latestBatchCreatedAt?: string | null,
+) {
   return useQuery({
     queryKey: ['experiments', experimentId, 'interview-guide'],
     queryFn: () => getInterviewGuide(experimentId),
     enabled: !!experimentId && enabled,
     retry: false,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (data === null) return 4000;
+      if (
+        data &&
+        latestBatchCreatedAt &&
+        data.created_at &&
+        new Date(data.created_at) < new Date(latestBatchCreatedAt)
+      ) return 4000;
+      return false;
+    },
+  });
+}
+
+/**
+ * Hook to fetch the latest LLM-generated simulation report for an experiment.
+ *
+ * Polls every 4 seconds while report is not yet available (null), so the UI
+ * auto-updates when the background generation completes.
+ */
+export function useSimulationReport(experimentId: string) {
+  return useQuery({
+    queryKey: queryKeys.quantitativeAnalysis.report(experimentId),
+    queryFn: () => getSimulationReport(experimentId),
+    enabled: !!experimentId,
+    retry: false,
+    refetchInterval: (query) => (query.state.data === null ? 4000 : false),
   });
 }

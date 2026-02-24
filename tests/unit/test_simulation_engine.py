@@ -320,10 +320,11 @@ class TestBuildNodeValues:
         result = build_node_values(synths, nm, edges, pv, sc, seed=42)
 
         # prod_a: [0.9, 0.9], prod_b: [0.8, 0.8]
-        # interact_ab = mean(0.9*1, 0.8*1) = 0.85
+        # _cam2_blend: harmonic = 2*0.9*0.8/1.7 ≈ 0.847, min = 0.8
+        # blend = 0.5*0.8 + 0.5*0.847 ≈ 0.824
         vals = result["interact_ab"]
-        assert vals[0] == pytest.approx(0.85, abs=0.01)
-        assert vals[1] == pytest.approx(0.85, abs=0.01)
+        assert vals[0] == pytest.approx(0.824, abs=0.01)
+        assert vals[1] == pytest.approx(0.824, abs=0.01)
 
     def test_direction_negative_inverts_value(self):
         """direction=-1 inverts parent value (1 - x) instead of negating."""
@@ -332,10 +333,11 @@ class TestBuildNodeValues:
 
         # prod_a with direction=-1: effective = 1 - 0.9 = 0.1
         # prod_b with direction=1: effective = 0.8
-        # interact_ab = mean(0.1*1, 0.8*1) = 0.45
+        # _cam2_blend: harmonic = 2*0.1*0.8/0.9 ≈ 0.178, min = 0.1
+        # blend = 0.5*0.1 + 0.5*0.178 ≈ 0.139
         vals = result["interact_ab"]
-        assert vals[0] == pytest.approx(0.45, abs=0.01)
-        assert vals[1] == pytest.approx(0.45, abs=0.01)
+        assert vals[0] == pytest.approx(0.139, abs=0.01)
+        assert vals[1] == pytest.approx(0.139, abs=0.01)
 
     def test_direction_negative_stays_in_unit_range(self):
         """direction=-1 keeps all values in [0, 1]."""

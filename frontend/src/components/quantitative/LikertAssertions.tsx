@@ -39,25 +39,37 @@ interface LikertAssertionsProps {
   onSelectionsChange: (selections: Record<string, number>) => void;
 }
 
-/** Debounce utility for batching selection saves. */
+/** Debounce utility for batching selection saves. Flushes on unmount. */
 function useDebouncedCallback<T extends (...args: unknown[]) => void>(
   callback: T,
   delay: number
 ): T {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callbackRef = useRef(callback);
+  const pendingArgsRef = useRef<unknown[] | null>(null);
   callbackRef.current = callback;
 
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        // Flush pending call on unmount so navigating away doesn't lose the save
+        if (pendingArgsRef.current) {
+          callbackRef.current(...pendingArgsRef.current);
+        }
+      }
     };
   }, []);
 
   return useCallback(
     (...args: Parameters<T>) => {
+      pendingArgsRef.current = args;
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => callbackRef.current(...args), delay);
+      timeoutRef.current = setTimeout(() => {
+        pendingArgsRef.current = null;
+        timeoutRef.current = null;
+        callbackRef.current(...args);
+      }, delay);
     },
     [delay]
   ) as T;

@@ -134,7 +134,8 @@ def create_interviewee(
     initial_context: str = "",
     model: str = "gpt-4o-mini",
     reasoning_effort: str = "low",
-    materials: list | None = None) -> Agent:
+    materials: list | None = None,
+    synth_selection_type: str | None = None) -> Agent:
     """
     Create an interviewee agent.
 
@@ -156,7 +157,8 @@ def create_interviewee(
         Configured Agent instance
     """
     instructions = format_interviewee_instructions(
-        synth, conversation_history, available_images, initial_context, materials
+        synth, conversation_history, available_images, initial_context, materials,
+        synth_selection_type,
     )
     synth_name = synth.get("nome", "Participante")
 

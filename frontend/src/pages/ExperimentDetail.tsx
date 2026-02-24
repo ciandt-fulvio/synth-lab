@@ -53,6 +53,7 @@ import {
   Play,
   Activity,
   MoreVertical,
+  Wand2,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -61,7 +62,7 @@ import { SynthLabHeader } from '@/components/shared/SynthLabHeader';
 import { TagSelector } from '@/components/experiments/TagSelector';
 import { QuantitativeAnalysisTab } from '@/components/quantitative/QuantitativeAnalysisTab';
 import { SimulationTab } from '@/components/quantitative/SimulationTab';
-import { useGenerateInterviewGuide, useInterviewGuide } from '@/hooks/use-quantitative-analysis';
+import { useGenerateInterviewGuide, useInterviewGuide, useLatestBatch } from '@/hooks/use-quantitative-analysis';
 import { DocumentViewer } from '@/components/shared/DocumentViewer';
 import {
   Dialog,
@@ -73,6 +74,14 @@ import {
 // =============================================================================
 
 const INTERVIEWS_PER_PAGE = 4;
+
+const SELECTION_TYPE_CONFIG: Record<string, { label: string; className: string }> = {
+  random:     { label: 'Aleatórios',  className: 'bg-slate-100 text-slate-600 border border-slate-200/60' },
+  propensos:  { label: 'Propensos',   className: 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' },
+  indecisos:  { label: 'Indecisos',   className: 'bg-amber-50 text-amber-700 border border-amber-200/60' },
+  resistentes:{ label: 'Resistentes', className: 'bg-red-50 text-red-700 border border-red-200/60' },
+  sensiveis:  { label: 'Sensíveis',   className: 'bg-violet-50 text-violet-700 border border-violet-200/60' },
+};
 
 export default function ExperimentDetail() {
   const { id } = useParams<{ id: string }>();
@@ -128,9 +137,11 @@ export default function ExperimentDetail() {
   const { data: materials, refetch: refetchMaterials } = useMaterials(id ?? '');
   const { data: documents } = useDocuments(id ?? '');
   const guideMutation = useGenerateInterviewGuide();
+  const { data: latestBatch } = useLatestBatch(id ?? '');
   const { data: guideData, isLoading: isGuideLoading } = useInterviewGuide(
     id ?? '',
-    isGuideViewerOpen
+    isGuideViewerOpen,
+    latestBatch?.created_at ?? null,
   );
 
   const handleGenerateGuide = useCallback(() => {
@@ -419,6 +430,26 @@ export default function ExperimentDetail() {
                       Ver Roteiro
                     </Button>
                   )}
+                  {!experiment.has_interview_guide && (
+                    <Button
+                      size="sm"
+                      className="btn-primary"
+                      onClick={handleGenerateGuide}
+                      disabled={isGeneratingGuide}
+                    >
+                      {isGeneratingGuide ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                          Gerando...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="w-4 h-4 mr-1" />
+                          Gerar Roteiro
+                        </>
+                      )}
+                    </Button>
+                  )}
                   {experiment.has_interview_guide ? (
                     <Button
                       size="sm"
@@ -507,6 +538,11 @@ export default function ExperimentDetail() {
                                   {interview.has_prfaq && (
                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-sky-50 text-sky-700 border border-sky-200/60">
                                       PR/FAQ
+                                    </span>
+                                  )}
+                                  {interview.synth_selection_type && SELECTION_TYPE_CONFIG[interview.synth_selection_type] && (
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${SELECTION_TYPE_CONFIG[interview.synth_selection_type].className}`}>
+                                      {SELECTION_TYPE_CONFIG[interview.synth_selection_type].label}
                                     </span>
                                   )}
                                 </div>

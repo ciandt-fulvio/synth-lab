@@ -35,6 +35,8 @@ export interface InterviewSummary {
   has_prfaq: boolean;
   /** Additional context text (if provided) */
   additional_context: string | null;
+  /** Synth selection strategy (random, propensos, resistentes, indecisos, sensiveis) */
+  synth_selection_type: string | null;
   /** Start timestamp */
   started_at: string;
   /** Completion timestamp */

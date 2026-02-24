@@ -34,7 +34,7 @@ from synth_lab.models.orm.document import ExperimentDocument
 from synth_lab.models.orm.experiment import Experiment, InterviewGuide
 from synth_lab.models.orm.material import ExperimentMaterial
 from synth_lab.models.orm.research import ResearchExecution, Transcript
-from synth_lab.models.orm.simulation_run import AnalysisInterpretation, SimulationRun
+from synth_lab.models.orm.simulation_run import AnalysisInterpretation, SimulationReport, SimulationRun
 from synth_lab.models.orm.share import ExperimentShare, PermissionLevel, SynthGroupShare
 from synth_lab.models.orm.synth import Synth, SynthGroup
 from synth_lab.models.orm.tag import ExperimentTag, Tag
@@ -72,6 +72,7 @@ __all__ = [
     # User
     "User",
     # Simulation Run
+    "SimulationReport",
     "SimulationRun",
     # Share
     "ExperimentShare",

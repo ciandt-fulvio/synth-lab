@@ -378,7 +378,8 @@ async def run_interview(
     skip_interviewee_review: bool = True,
     additional_context: str | None = None,
     guide_name: str = "interview",
-    materials: list | None = None) -> InterviewResult:
+    materials: list | None = None,
+    synth_selection_type: str | None = None) -> InterviewResult:
     """
     Run an agentic interview with orchestrated turn-taking.
 
@@ -540,7 +541,8 @@ async def run_interview(
                             conversation_history=shared_memory.format_history(),
                             initial_context=initial_context,
                             model=model,
-                            materials=materials)
+                            materials=materials,
+                            synth_selection_type=synth_selection_type)
 
                         # Log request
                         span.set_attribute(
@@ -699,7 +701,8 @@ async def run_interview_simple(
             synth=shared_memory.synth,
             conversation_history=shared_memory.format_history(),
             model=model,
-            materials=materials)
+            materials=materials,
+            synth_selection_type=synth_selection_type)
 
         result = await Runner.run(interviewee, input="Answer the question.")
         response = result.final_output

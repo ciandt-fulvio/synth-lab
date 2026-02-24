@@ -336,6 +336,7 @@ Responda APENAS com o JSON, sem explicações adicionais."""
         hypothesis: str,
         sensitivity: list[dict],
         description: str | None = None,
+        simulation_report: str | None = None,
     ) -> InterviewGuide:
         """Generate interview guide from quantitative analysis simulation results.
 
@@ -407,13 +408,19 @@ Após as 3 temas:
 
 Responda APENAS com o questionário em Markdown. Sem preâmbulo, sem metacomentário."""
 
+            report_section = (
+                f"\n\nRELATÓRIO DE ANÁLISE DA SIMULAÇÃO BATCH:\n{simulation_report}"
+                if simulation_report
+                else ""
+            )
+
             user_prompt = f"""EXPERIMENTO:
 - Nome: {name}
 - Hipótese: {hypothesis}
 - Descrição: {description_text}
 
 3 PREMISSAS DE MAIOR IMPACTO (da análise de sensibilidade):
-{premisses_text}"""
+{premisses_text}{report_section}"""
 
             self.logger.info(
                 f"Generating interview guide from simulation for: {name}"

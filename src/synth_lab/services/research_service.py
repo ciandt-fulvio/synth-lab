@@ -64,6 +64,72 @@ class ResearchService:
         self.research_repo = research_repo or ResearchRepository()
         self.interview_guide_repo = interview_guide_repo or InterviewGuideRepository()
 
+    def _get_synth_ids_by_selection_type(
+        self,
+        experiment_id: str,
+        selection_type: str,
+        n: int,
+    ) -> list[str] | None:
+        """
+        Select synth IDs using adoption probability data from the latest batch.
+
+        Strategies:
+            propensos  – top N by adoption probability (best scenario)
+            resistentes – bottom N by adoption probability (best scenario)
+            indecisos  – N closest to 0.5 adoption probability (best scenario)
+            sensiveis  – N with largest delta between best/worst scenarios
+
+        Returns None if no batch data is available (falls back to random).
+        """
+        from synth_lab.infrastructure.database_v2 import get_session
+        from synth_lab.repositories.simulation_run_repository import SimulationRunRepository
+
+        with get_session() as session:
+            sim_repo = SimulationRunRepository(session=session)
+            batch = sim_repo.get_latest_batch_by_experiment(experiment_id)
+
+        if batch is None or not batch.runs:
+            return None
+
+        if selection_type == "sensiveis":
+            best_run = max(batch.runs, key=lambda r: (r.stats or {}).get("mean", 0))
+            worst_run = min(batch.runs, key=lambda r: (r.stats or {}).get("mean", 0))
+            best_ps: dict[str, float] = best_run.per_synth_outcomes or {}
+            worst_ps: dict[str, float] = worst_run.per_synth_outcomes or {}
+            common_ids = set(best_ps) & set(worst_ps)
+            if not common_ids:
+                return None
+            deltas = {sid: abs(best_ps[sid] - worst_ps[sid]) for sid in common_ids}
+            sorted_ids = sorted(deltas, key=lambda sid: deltas[sid], reverse=True)
+            return sorted_ids[:n]
+
+        if selection_type == "propensos":
+            best_run = max(batch.runs, key=lambda r: (r.stats or {}).get("mean", 0))
+            per_synth: dict[str, float] = best_run.per_synth_outcomes or {}
+            if not per_synth:
+                return None
+            sorted_ids = sorted(per_synth, key=lambda sid: per_synth[sid], reverse=True)
+            return sorted_ids[:n]
+
+        elif selection_type == "resistentes":
+            worst_run = min(batch.runs, key=lambda r: (r.stats or {}).get("mean", 0))
+            per_synth = worst_run.per_synth_outcomes or {}
+            if not per_synth:
+                return None
+            sorted_ids = sorted(per_synth, key=lambda sid: per_synth[sid])
+            return sorted_ids[:n]
+
+        elif selection_type == "indecisos":
+            sorted_runs = sorted(batch.runs, key=lambda r: (r.stats or {}).get("mean", 0))
+            median_run = sorted_runs[len(sorted_runs) // 2]
+            per_synth = median_run.per_synth_outcomes or {}
+            if not per_synth:
+                return None
+            sorted_ids = sorted(per_synth, key=lambda sid: abs(per_synth[sid] - 0.5))
+            return sorted_ids[:n]
+
+        return None
+
     def _guide_to_interview_guide_data(self, guide: InterviewGuide) -> InterviewGuideData:
         """Convert InterviewGuide from DB to InterviewGuideData for runner."""
         return InterviewGuideData(
@@ -311,6 +377,22 @@ class ResearchService:
         # Determine synth count
         synth_count = request.synth_count or (len(request.synth_ids) if request.synth_ids else 5)
 
+        # Resolve synth_ids from selection type (if no explicit synth_ids provided)
+        resolved_synth_ids = request.synth_ids
+        selection_type = request.synth_selection_type
+        if not resolved_synth_ids and selection_type and selection_type != "random":
+            from loguru import logger as _logger
+            resolved_synth_ids = self._get_synth_ids_by_selection_type(
+                experiment_id=request.experiment_id,
+                selection_type=selection_type,
+                n=synth_count,
+            )
+            if resolved_synth_ids:
+                _logger.info(
+                    f"Selected {len(resolved_synth_ids)} synths via strategy '{selection_type}' "
+                    f"for experiment {request.experiment_id}"
+                )
+
         # Generate execution ID
         timestamp = datetime.now(TZ_GMT_MINUS_3).strftime("%Y%m%d_%H%M%S")
         exec_id = f"batch_{request.topic_name}_{timestamp}"
@@ -324,7 +406,8 @@ class ResearchService:
             max_turns=request.max_turns,
             status=ExecutionStatus.RUNNING,
             experiment_id=request.experiment_id,
-            additional_context=request.additional_context)
+            additional_context=request.additional_context,
+            synth_selection_type=request.synth_selection_type)
 
         # Convert to InterviewGuideData for runner
         interview_guide_data = self._guide_to_interview_guide_data(interview_guide)
@@ -336,7 +419,7 @@ class ResearchService:
                 interview_guide_data=interview_guide_data,
                 guide_name=request.topic_name,
                 additional_context=request.additional_context,
-                synth_ids=request.synth_ids,
+                synth_ids=resolved_synth_ids,
                 synth_group_id=synth_group_id,
                 synth_count=synth_count,
                 max_concurrent=request.max_concurrent,
@@ -344,7 +427,8 @@ class ResearchService:
                 model=request.model,
                 skip_interviewee_review=request.skip_interviewee_review,
                 summary_title=experiment_name,
-                experiment_id=request.experiment_id)
+                experiment_id=request.experiment_id,
+                synth_selection_type=request.synth_selection_type)
         )
 
         return ResearchExecuteResponse(
@@ -368,7 +452,8 @@ class ResearchService:
         model: str = "gpt-4o-mini",
         skip_interviewee_review: bool = True,
         summary_title: str | None = None,
-        experiment_id: str | None = None) -> None:
+        experiment_id: str | None = None,
+        synth_selection_type: str | None = None) -> None:
         """
         Run batch interviews and save results to database.
 
@@ -536,7 +621,8 @@ class ResearchService:
                 skip_interviewee_review=skip_interviewee_review,
                 additional_context=additional_context,
                 guide_name=guide_name,
-                materials=materials)
+                materials=materials,
+                synth_selection_type=synth_selection_type)
 
             # Transcripts are now saved immediately in on_interview_complete callback
             # This ensures they're available as soon as the user clicks on a completed card

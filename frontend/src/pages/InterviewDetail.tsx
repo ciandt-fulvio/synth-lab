@@ -74,6 +74,18 @@ function AnimatedSection({ children, delay = 0 }: AnimatedSectionProps) {
 }
 
 // =============================================================================
+// Constants
+// =============================================================================
+
+const SELECTION_TYPE_CONFIG: Record<string, { label: string; className: string }> = {
+  random:      { label: 'Aleatórios',  className: 'bg-slate-100 text-slate-600 border border-slate-200/60' },
+  propensos:   { label: 'Propensos',   className: 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' },
+  indecisos:   { label: 'Indecisos',   className: 'bg-amber-50 text-amber-700 border border-amber-200/60' },
+  resistentes: { label: 'Resistentes', className: 'bg-red-50 text-red-700 border border-red-200/60' },
+  sensiveis:   { label: 'Sensíveis',   className: 'bg-violet-50 text-violet-700 border border-violet-200/60' },
+};
+
+// =============================================================================
 // Main Component
 // =============================================================================
 
@@ -226,6 +238,11 @@ export default function InterviewDetail() {
                     <Radio className="h-3 w-3 mr-1" />
                     Ao Vivo
                   </Badge>
+                )}
+                {execution.synth_selection_type && SELECTION_TYPE_CONFIG[execution.synth_selection_type] && (
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${SELECTION_TYPE_CONFIG[execution.synth_selection_type].className}`}>
+                    {SELECTION_TYPE_CONFIG[execution.synth_selection_type].label}
+                  </span>
                 )}
               </div>
             </div>

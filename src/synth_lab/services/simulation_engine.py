@@ -35,6 +35,17 @@ _EDUCATION_MAP: dict[str, float] = {
 }
 
 
+def _cam2_blend(
+    eff_values: list[np.ndarray], alpha: float = 0.5
+) -> np.ndarray:
+    """Blend: α × min + (1-α) × harmônica. Penaliza gaps assimétricos."""
+    a, b = eff_values[0], eff_values[1]
+    denom = np.where((a + b) > 0, a + b, 1e-9)
+    harmonic = 2 * a * b / denom
+    minimum = np.minimum(a, b)
+    return alpha * minimum + (1 - alpha) * harmonic
+
+
 def _clamp(value: float, lo: float = 0.0, hi: float = 1.0) -> float:
     """Clamp value to [lo, hi]."""
     return max(lo, min(hi, value))
@@ -580,15 +591,15 @@ def build_node_values(
             # direction=1 → use value as-is; direction=-1 → inverse (1 - value)
             parents = child_parents.get(name, [])
             if parents:
-                weighted_sum = np.zeros(n_synths)
-                total_weight = 0.0
-                for parent_name, weight, direction in parents:
+                eff_list = []
+                for parent_name, _weight, direction in parents:
                     parent_vals = node_values.get(parent_name, np.full(n_synths, 0.5))
                     effective_vals = parent_vals if direction == 1 else (1.0 - parent_vals)
-                    weighted_sum += effective_vals * weight
-                    total_weight += abs(weight)
-                if total_weight > 0:
-                    interaction_val = weighted_sum / total_weight
+                    eff_list.append(effective_vals)
+                if len(eff_list) >= 2:
+                    interaction_val = _cam2_blend(eff_list)
+                elif len(eff_list) == 1:
+                    interaction_val = eff_list[0]
                 else:
                     interaction_val = np.full(n_synths, 0.5)
                 node_values[name] = np.clip(interaction_val, 0.0, 1.0)
@@ -726,15 +737,15 @@ def apply_product_scenario(
         elif node_type == "interaction":
             parents = child_parents.get(name, [])
             if parents:
-                weighted_sum = np.zeros(n_synths)
-                total_weight = 0.0
-                for parent_name, weight, direction in parents:
+                eff_list = []
+                for parent_name, _weight, direction in parents:
                     parent_vals = node_values.get(parent_name, np.full(n_synths, 0.5))
                     effective_vals = parent_vals if direction == 1 else (1.0 - parent_vals)
-                    weighted_sum += effective_vals * weight
-                    total_weight += abs(weight)
-                if total_weight > 0:
-                    interaction_val = weighted_sum / total_weight
+                    eff_list.append(effective_vals)
+                if len(eff_list) >= 2:
+                    interaction_val = _cam2_blend(eff_list)
+                elif len(eff_list) == 1:
+                    interaction_val = eff_list[0]
                 else:
                     interaction_val = np.full(n_synths, 0.5)
                 node_values[name] = np.clip(interaction_val, 0.0, 1.0)
@@ -742,75 +753,6 @@ def apply_product_scenario(
                 node_values[name] = np.full(n_synths, 0.5)
 
     return node_values
-
-
-def _compute_outcome_weight_multipliers(
-    outcome_edges: list[dict],
-    node_metadata: dict[str, dict],
-    node_selections: dict[str, int],
-) -> np.ndarray:
-    """Compute weight multipliers based on outcome node's "most important" selection.
-
-    The outcome node's options list interaction node names. The selected one gets
-    2x weight, others get 1x, normalized so average stays at 1.0.
-
-    If n interactions: selected gets 2n/(n+1), others get n/(n+1).
-
-    Args:
-        outcome_edges: Edges pointing to the outcome node.
-        node_metadata: Per-node metadata.
-        node_selections: Node selections including outcome.
-
-    Returns:
-        Array of shape (n_edges,) with multipliers.
-    """
-    n_edges = len(outcome_edges)
-    multipliers = np.ones(n_edges)
-
-    # Find outcome node and its selection
-    outcome_name = None
-    if outcome_edges:
-        outcome_name = outcome_edges[0].get("to_node", outcome_edges[0].get("to", ""))
-
-    if not outcome_name:
-        return multipliers
-
-    outcome_meta = node_metadata.get(outcome_name, {})
-    outcome_options = outcome_meta.get("options", [])
-
-    if not outcome_options or outcome_meta.get("node_type") != "outcome":
-        return multipliers
-
-    selected_idx = node_selections.get(
-        outcome_name, outcome_meta.get("default_option", 0)
-    )
-    if selected_idx >= len(outcome_options):
-        selected_idx = 0
-
-    # The selected option text is the name of the "most important" interaction
-    selected_interaction = outcome_options[selected_idx].get("text", "")
-
-    if not selected_interaction:
-        return multipliers
-
-    # Build source node map for edges
-    edge_sources = [
-        e.get("from_node", e.get("from", "")) for e in outcome_edges
-    ]
-
-    # Apply 2x to selected, 1x to others, then normalize
-    # With n edges: selected = 2, others = 1, total = n+1
-    # Normalize by n/(n+1) so average = 1.0
-    n = n_edges
-    norm_factor = n / (n + 1) if n > 0 else 1.0
-
-    for i, src in enumerate(edge_sources):
-        if src == selected_interaction:
-            multipliers[i] = 2.0 * norm_factor
-        else:
-            multipliers[i] = 1.0 * norm_factor
-
-    return multipliers
 
 
 def run_monte_carlo_v2(
@@ -828,9 +770,6 @@ def run_monte_carlo_v2(
     Coefficients come from the SOURCE NODE's premissa options (not from edges).
     Each interaction node has 5 Likert options; the selected mu/sigma
     determine how strongly that node influences the outcome.
-
-    The outcome node's selection determines which interaction is "most important"
-    and gets a 2x weight multiplier (others get 1x, normalized).
 
     Args:
         outcome_edges: Edges pointing to the outcome node.
@@ -865,11 +804,6 @@ def run_monte_carlo_v2(
 
     per_edge_scale = BUDGET / max(math.sqrt(n_edges), 1.0)
 
-    # Compute outcome weight multipliers (2x for "most important" interaction)
-    weight_multipliers = _compute_outcome_weight_multipliers(
-        outcome_edges, node_metadata, node_selections,
-    )
-
     # Build input matrix: node values for each outcome edge's source
     input_matrix = np.full((n_synths, n_edges), 0.5)
     beta_mus = np.zeros(n_edges)
@@ -887,13 +821,13 @@ def run_monte_carlo_v2(
         if src_options:
             selected = node_selections.get(src, src_meta.get("default_option", 2))
             opt = src_options[selected] if selected < len(src_options) else src_options[2]
-            beta_mus[i] = opt["mu"] * per_edge_scale * d * weight_multipliers[i]
-            beta_sigmas[i] = opt["sigma"] * per_edge_scale * weight_multipliers[i]
+            beta_mus[i] = opt["mu"] * per_edge_scale * d
+            beta_sigmas[i] = opt["sigma"] * per_edge_scale
         else:
             # Fallback: use edge weight directly
             weight = edge.get("weight", 0.5)
-            beta_mus[i] = weight * per_edge_scale * d * weight_multipliers[i]
-            beta_sigmas[i] = 0.1 * per_edge_scale * weight_multipliers[i]
+            beta_mus[i] = weight * per_edge_scale * d
+            beta_sigmas[i] = 0.1 * per_edge_scale
 
     distribution = np.zeros(n_iterations)
 
@@ -942,11 +876,6 @@ def compute_segments_v2(
 
     per_edge_scale = BUDGET / max(math.sqrt(n_edges), 1.0)
 
-    # Compute outcome weight multipliers
-    weight_multipliers = _compute_outcome_weight_multipliers(
-        outcome_edges, node_metadata, node_selections,
-    )
-
     # Build input matrix
     input_matrix = np.full((n_synths, n_edges), 0.5)
     beta_mus = np.zeros(n_edges)
@@ -963,12 +892,12 @@ def compute_segments_v2(
         if src_options:
             selected = node_selections.get(src, src_meta.get("default_option", 2))
             opt = src_options[selected] if selected < len(src_options) else src_options[2]
-            beta_mus[i] = opt["mu"] * per_edge_scale * d * weight_multipliers[i]
-            beta_sigmas[i] = opt["sigma"] * per_edge_scale * weight_multipliers[i]
+            beta_mus[i] = opt["mu"] * per_edge_scale * d
+            beta_sigmas[i] = opt["sigma"] * per_edge_scale
         else:
             weight = edge.get("weight", 0.5)
-            beta_mus[i] = weight * per_edge_scale * d * weight_multipliers[i]
-            beta_sigmas[i] = 0.1 * per_edge_scale * weight_multipliers[i]
+            beta_mus[i] = weight * per_edge_scale * d
+            beta_sigmas[i] = 0.1 * per_edge_scale
 
     n_segment_iters = 500
     adoption_counts = np.zeros(n_synths)
@@ -1122,7 +1051,7 @@ def run_monte_carlo_v2_per_synth(
     node_metadata: dict[str, dict],
     intercept_mu: float,
     intercept_sigma: float,
-    n_repetitions: int = 10,
+    n_repetitions: int = 30,
     seed: int | None = None,
 ) -> dict:
     """Monte Carlo simulation returning per-synth adoption probabilities.
@@ -1175,11 +1104,6 @@ def run_monte_carlo_v2_per_synth(
 
     per_edge_scale = BUDGET / max(math.sqrt(n_edges), 1.0)
 
-    # Compute outcome weight multipliers
-    weight_multipliers = _compute_outcome_weight_multipliers(
-        outcome_edges, node_metadata, node_selections,
-    )
-
     # Build input matrix
     input_matrix = np.full((n_synths, n_edges), 0.5)
     beta_mus = np.zeros(n_edges)
@@ -1196,12 +1120,12 @@ def run_monte_carlo_v2_per_synth(
         if src_options:
             selected = node_selections.get(src, src_meta.get("default_option", 2))
             opt = src_options[selected] if selected < len(src_options) else src_options[2]
-            beta_mus[i] = opt["mu"] * per_edge_scale * d * weight_multipliers[i]
-            beta_sigmas[i] = opt["sigma"] * per_edge_scale * weight_multipliers[i]
+            beta_mus[i] = opt["mu"] * per_edge_scale * d
+            beta_sigmas[i] = opt["sigma"] * per_edge_scale
         else:
             weight = edge.get("weight", 0.5)
-            beta_mus[i] = weight * per_edge_scale * d * weight_multipliers[i]
-            beta_sigmas[i] = 0.1 * per_edge_scale * weight_multipliers[i]
+            beta_mus[i] = weight * per_edge_scale * d
+            beta_sigmas[i] = 0.1 * per_edge_scale
 
     # Accumulate per-synth probabilities over repetitions
     prob_accumulator = np.zeros(n_synths)

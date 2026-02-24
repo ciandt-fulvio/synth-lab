@@ -21,7 +21,7 @@ import {
   useGenerateCausalModel,
   useUpdateNodeSelections,
   useRunBatchSimulation,
-  useSimulationResults,
+  useLatestBatch,
 } from '@/hooks/use-quantitative-analysis';
 import { CausalDAGView } from './CausalDAGView';
 import { LikertAssertions, buildCalibratableNodes } from './LikertAssertions';
@@ -39,7 +39,7 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
   const generateMutation = useGenerateCausalModel();
   const nodeSelectionMutation = useUpdateNodeSelections(experimentId);
   const simulateMutation = useRunBatchSimulation();
-  const { data: simulationRun } = useSimulationResults(experimentId);
+  const { data: latestBatch } = useLatestBatch(experimentId);
 
   // Build calibratable nodes (interaction + outcome) for LikertAssertions
   const calibratableNodes = useMemo(
@@ -213,7 +213,7 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
       </div>
 
       {/* Simulate button */}
-      {(!simulationRun || selectionsChanged) && (
+      {(!latestBatch || selectionsChanged) && (
         <div className="flex items-center justify-end pt-2 border-t border-slate-100">
           <Button
             onClick={handleSimulate}
@@ -228,7 +228,7 @@ export function QuantitativeAnalysisTab({ experimentId }: QuantitativeAnalysisTa
             ) : (
               <>
                 <Play className="w-4 h-4 mr-2" />
-                {simulationRun ? 'Simular novamente' : 'Simular'}
+                {latestBatch ? 'Simular novamente' : 'Simular'}
               </>
             )}
           </Button>

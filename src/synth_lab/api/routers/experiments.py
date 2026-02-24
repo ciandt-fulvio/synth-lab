@@ -258,6 +258,7 @@ async def get_experiment(
                 has_summary=summary_exists.get(exec.exec_id, False),
                 has_prfaq=prfaq_exists.get(exec.exec_id, False),
                 additional_context=additional_contexts.get(exec.exec_id),
+                synth_selection_type=exec.synth_selection_type,
                 started_at=exec.started_at,
                 completed_at=exec.completed_at)
             for exec in interview_response.data
@@ -392,6 +393,9 @@ class InterviewCreateRequest(BaseModel):
         ge=1,
         le=50,
         description="Number of random synths (if synth_ids not provided)")
+    synth_selection_type: str | None = Field(
+        default=None,
+        description="Synth selection strategy: random, propensos, resistentes, indecisos, sensiveis")
     max_turns: int = Field(
         default=6,
         ge=1,
@@ -439,7 +443,8 @@ async def get_interview_guide(experiment_id: str) -> dict:
             lines.append("")
         markdown = "\n".join(lines)
 
-    return {"markdown_content": markdown}
+    created_at = guide.created_at.isoformat() if guide.created_at else None
+    return {"markdown_content": markdown, "created_at": created_at}
 
 
 @router.post(
@@ -480,6 +485,7 @@ async def create_interview_for_experiment(
         additional_context=request.additional_context,
         synth_ids=request.synth_ids,
         synth_count=request.synth_count,
+        synth_selection_type=request.synth_selection_type,
         max_turns=request.max_turns,
         generate_summary=request.generate_summary)
 

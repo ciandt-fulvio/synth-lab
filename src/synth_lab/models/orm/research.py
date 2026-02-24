@@ -62,6 +62,7 @@ class ResearchExecution(Base):
     started_at: Mapped[str] = mapped_column(String(50), nullable=False)
     completed_at: Mapped[str | None] = mapped_column(String(50), nullable=True)
     additional_context: Mapped[str | None] = mapped_column(Text, nullable=True)
+    synth_selection_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     # Relationships
     experiment: Mapped["Experiment | None"] = relationship(

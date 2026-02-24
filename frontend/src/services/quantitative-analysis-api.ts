@@ -14,7 +14,10 @@ import type {
   EdgeUpdateResponse,
   MultiScenarioResponse,
   NodeSelectionsResponse,
-  SimulationRun,
+  SimulationReport,
+  SynthProfilesResponse,
+  ProductSynthCorrelationResponse,
+  SynthAttributeInsightsResponse,
 } from '@/types/quantitative-analysis';
 
 /**
@@ -115,9 +118,11 @@ export async function generateSimulationSummary(
  */
 export async function getInterviewGuide(
   experimentId: string
-): Promise<{ markdown_content: string } | null> {
+): Promise<{ markdown_content: string; created_at: string | null } | null> {
   try {
-    return await fetchAPI<{ markdown_content: string }>(`/experiments/${experimentId}/interview-guide`);
+    return await fetchAPI<{ markdown_content: string; created_at: string | null }>(
+      `/experiments/${experimentId}/interview-guide`
+    );
   } catch (err: any) {
     if (err?.status === 404) return null;
     throw err;
@@ -125,14 +130,84 @@ export async function getInterviewGuide(
 }
 
 /**
- * Get results from the latest simulation run.
- * Returns null if no simulation has been run yet (404).
+ * Get the latest simulation batch results for an experiment.
+ * Returns null if no batch exists (404).
  */
-export async function getSimulationResults(
+export async function getLatestBatch(
   experimentId: string
-): Promise<SimulationRun | null> {
+): Promise<MultiScenarioResponse | null> {
   try {
-    return await fetchAPI<SimulationRun>(`/experiments/${experimentId}/quantitative-analysis/results`);
+    return await fetchAPI<MultiScenarioResponse>(
+      `/experiments/${experimentId}/quantitative-analysis/latest-batch`
+    );
+  } catch (err: any) {
+    if (err?.status === 404) return null;
+    throw err;
+  }
+}
+
+/**
+ * Get synth profile analysis (adopters vs rejectors + clusters).
+ * Returns null if no data exists (404).
+ */
+export async function getSynthProfiles(
+  experimentId: string
+): Promise<SynthProfilesResponse | null> {
+  try {
+    return await fetchAPI<SynthProfilesResponse>(
+      `/experiments/${experimentId}/quantitative-analysis/synth-profiles`
+    );
+  } catch (err: any) {
+    if (err?.status === 404) return null;
+    throw err;
+  }
+}
+
+/**
+ * Get synth attribute Pearson r correlations and 3×3 segment heatmap.
+ * Returns null if no data exists (404).
+ */
+export async function getSynthAttributeInsights(
+  experimentId: string
+): Promise<SynthAttributeInsightsResponse | null> {
+  try {
+    return await fetchAPI<SynthAttributeInsightsResponse>(
+      `/experiments/${experimentId}/quantitative-analysis/synth-attribute-insights`
+    );
+  } catch (err: any) {
+    if (err?.status === 404) return null;
+    throw err;
+  }
+}
+
+/**
+ * Get product × synth-cluster correlation matrix.
+ * Returns null if no data exists (404).
+ */
+export async function getProductSynthCorrelations(
+  experimentId: string
+): Promise<ProductSynthCorrelationResponse | null> {
+  try {
+    return await fetchAPI<ProductSynthCorrelationResponse>(
+      `/experiments/${experimentId}/quantitative-analysis/product-synth-correlations`
+    );
+  } catch (err: any) {
+    if (err?.status === 404) return null;
+    throw err;
+  }
+}
+
+/**
+ * Get the latest LLM-generated simulation report for an experiment.
+ * Returns null if no report has been generated yet (404).
+ */
+export async function getSimulationReport(
+  experimentId: string
+): Promise<SimulationReport | null> {
+  try {
+    return await fetchAPI<SimulationReport>(
+      `/experiments/${experimentId}/quantitative-analysis/report`
+    );
   } catch (err: any) {
     if (err?.status === 404) return null;
     throw err;

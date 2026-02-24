@@ -13,6 +13,7 @@ export interface ResearchExecutionSummary {
   topic_name: string;
   status: ExecutionStatus;
   synth_count: number;
+  synth_selection_type: string | null;
   started_at: string; // ISO datetime
   completed_at: string | null;
 }
@@ -64,6 +65,7 @@ export interface InterviewCreateRequest {
   additional_context?: string | null;
   synth_ids?: string[] | null;
   synth_count?: number | null;
+  synth_selection_type?: string | null;
   max_turns?: number; // default: 6
 }
 
