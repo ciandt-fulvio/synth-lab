@@ -76,7 +76,7 @@ test.describe('Interviews - Create Modal @critical @interviews', () => {
     ).toBeVisible();
 
     await expect(
-      modal.getByLabel(/entrevistar quantos synths/i)
+      modal.getByLabel(/quantos synths/i)
     ).toBeVisible();
 
     await expect(
@@ -117,7 +117,7 @@ test.describe('Interviews - Create Modal @critical @interviews', () => {
     const modal = page.locator('[role="dialog"]');
 
     // Verifica valores padrão
-    const synthsInput = modal.getByLabel(/entrevistar quantos synths/i);
+    const synthsInput = modal.getByLabel(/quantos synths/i);
     await expect(synthsInput).toHaveValue('9');
 
     const turnosInput = modal.getByLabel(/maximo de turnos/i);
@@ -133,7 +133,7 @@ test.describe('Interviews - Create Modal @critical @interviews', () => {
     await page.getByRole('button', { name: /nova entrevista/i }).click();
     const modal = page.locator('[role="dialog"]');
 
-    const synthsInput = modal.getByLabel(/entrevistar quantos synths/i);
+    const synthsInput = modal.getByLabel(/quantos synths/i);
 
     // Limpa e digita novo valor
     await synthsInput.clear();
@@ -194,8 +194,8 @@ test.describe('Interviews - Create Modal @critical @interviews', () => {
 
     // Preenche campos
     await modal.getByLabel(/contexto adicional/i).fill('Teste E2E');
-    await modal.getByLabel(/entrevistar quantos synths/i).clear();
-    await modal.getByLabel(/entrevistar quantos synths/i).fill('3');
+    await modal.getByLabel(/quantos synths/i).clear();
+    await modal.getByLabel(/quantos synths/i).fill('3');
 
     // Clica em Iniciar Entrevista
     await modal.getByRole('button', { name: /iniciar entrevista/i }).click();
@@ -220,7 +220,7 @@ test.describe('Interviews - Form Validation @interviews', () => {
 
   test('I010 - Synths count validation (min)', async ({ page }) => {
     const modal = page.locator('[role="dialog"]');
-    const synthsInput = modal.getByLabel(/entrevistar quantos synths/i);
+    const synthsInput = modal.getByLabel(/quantos synths/i);
 
     // Tenta colocar valor menor que 1
     await synthsInput.clear();
@@ -237,7 +237,7 @@ test.describe('Interviews - Form Validation @interviews', () => {
 
   test('I011 - Synths count validation (max)', async ({ page }) => {
     const modal = page.locator('[role="dialog"]');
-    const synthsInput = modal.getByLabel(/entrevistar quantos synths/i);
+    const synthsInput = modal.getByLabel(/quantos synths/i);
 
     // Tenta colocar valor maior que 50
     await synthsInput.clear();
