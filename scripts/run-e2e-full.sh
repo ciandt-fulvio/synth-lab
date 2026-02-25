@@ -66,7 +66,7 @@ echo ""
 # ─────────────────────────────────────────────────────────────
 echo -e "${BLUE}⏳ Waiting for services...${NC}"
 
-MAX_WAIT=90
+MAX_WAIT=180
 WAITED=0
 BACKEND_READY=false
 FRONTEND_READY=false
