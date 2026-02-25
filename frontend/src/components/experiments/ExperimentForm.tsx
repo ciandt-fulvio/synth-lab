@@ -7,7 +7,7 @@
  *   - Types: src/types/experiment.ts
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -52,8 +52,17 @@ export function ExperimentForm({
   const [name, setName] = useState(initialData?.name ?? '');
   const [hypothesis, setHypothesis] = useState(initialData?.hypothesis ?? '');
   const [description, setDescription] = useState(initialData?.description ?? '');
-  const [selectedSynthGroupId, setSelectedSynthGroupId] = useState<string>('');
+  const [selectedSynthGroupId, setSelectedSynthGroupId] = useState<string>(
+    initialData?.synth_group_id ?? ''
+  );
   const [errors, setErrors] = useState<FormErrors>({});
+
+  // Auto-select first group when data loads and nothing is selected yet
+  useEffect(() => {
+    if (!selectedSynthGroupId && synthGroupsData?.data?.length) {
+      setSelectedSynthGroupId(synthGroupsData.data[0].id);
+    }
+  }, [synthGroupsData, selectedSynthGroupId]);
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
