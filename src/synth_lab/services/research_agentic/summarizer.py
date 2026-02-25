@@ -21,6 +21,7 @@ print(summary)
 ```
 """
 
+import asyncio
 from typing import Any
 
 from agents import Agent, ModelSettings, Runner
@@ -124,6 +125,8 @@ Isso permite que os leitores visualizem os materiais referenciados.
 
 ## Entrevistas para Análise
 
+**Total de entrevistados**: {interview_count}
+
 {interviews_content}
 """
 
@@ -163,7 +166,7 @@ def format_interview_for_summary(
 
     # Header with synth info
     lines.append(
-        f"### Entrevista: {result.synth_name} (ID: {result.synth_id})")
+        f"### Entrevista: {result.synth_name}")
     lines.append("")
 
     # Demographics
@@ -195,6 +198,7 @@ def format_interview_for_summary(
 def create_summarizer_agent(
     topic_guide_name: str,
     interviews_content: str,
+    interview_count: int = 0,
     model: str = "gpt-4o-mini",
     reasoning_effort: str = "medium",
     materials: list | None = None,
@@ -226,6 +230,7 @@ def create_summarizer_agent(
     instructions = SUMMARIZER_INSTRUCTIONS.format(
         topic_guide=topic_guide_name,
         interviews_content=interviews_content,
+        interview_count=interview_count,
         materials_section=materials_section,
         research_script=research_script)
 
@@ -298,16 +303,20 @@ async def summarize_interviews(
         summarizer = create_summarizer_agent(
             topic_guide_name=topic_guide_name,
             interviews_content=interviews_content,
+            interview_count=len(interview_results),
             model=model,
             reasoning_effort="medium",
             materials=materials,
             research_script=research_script)
 
-        # Run summarization
+        # Run summarization (with timeout to avoid hanging indefinitely)
         logger.info("Running summarizer agent...")
-        result = await Runner.run(
-            summarizer,
-            input="Analise as entrevistas fornecidas e gere o relatório de síntese conforme as diretrizes.")
+        SUMMARIZER_TIMEOUT_SECONDS = 300  # 5 minutes
+        result = await asyncio.wait_for(
+            Runner.run(
+                summarizer,
+                input="Analise as entrevistas fornecidas e gere o relatório de síntese conforme as diretrizes."),
+            timeout=SUMMARIZER_TIMEOUT_SECONDS)
 
         summary = result.final_output
         logger.info(f"Summary generated: {len(summary)} characters")

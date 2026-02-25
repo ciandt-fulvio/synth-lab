@@ -303,6 +303,11 @@ async def get_scenario_batch(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Batch not found: {batch_id}",
         )
+    if batch.experiment_id != experiment_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Batch does not belong to this experiment",
+        )
     scenarios = []
     for run in batch.runs:
         scenarios.append({
