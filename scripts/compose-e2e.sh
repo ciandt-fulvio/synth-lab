@@ -175,6 +175,12 @@ case "$COMMAND" in
             cleanup_podman
         fi
 
+        # Always remove test database volume to ensure clean state.
+        # This prevents stale schema state from previous test runs (unit tests drop
+        # all SQLAlchemy-managed tables on teardown, leaving alembic_version intact,
+        # which causes alembic to skip migrations even though user tables are missing).
+        $RUNTIME volume rm -f synthlab-postgres-test-data 2>/dev/null || true
+
         # Check if we need to rebuild images
         echo "🔍 Checking for changes..."
         BUILD_FLAG=""
