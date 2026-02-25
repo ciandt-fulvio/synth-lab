@@ -49,7 +49,7 @@ EXPECTED_TABLES = {
 }
 
 # Current HEAD revision ID (add_quantitative_analysis_tables)
-CURRENT_HEAD_REVISION = "e56227c697c2"
+CURRENT_HEAD_REVISION = "df69409340e0"
 
 
 def get_alembic_config(database_url: str) -> Config:
