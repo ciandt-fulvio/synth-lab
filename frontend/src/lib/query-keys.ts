@@ -50,6 +50,10 @@ export const queryKeys = {
     report: (experimentId: string) => ['quantitative-analysis', experimentId, 'report'] as const,
   },
 
+  // Sharing
+  experimentShares: (experimentId: string) => ['experiments', experimentId, 'shares'] as const,
+  synthGroupShares: (synthGroupId: string) => ['synth-groups', synthGroupId, 'shares'] as const,
+
   // Materials
   materials: {
     list: (experimentId: string) => ['materials', experimentId, 'list'] as const,

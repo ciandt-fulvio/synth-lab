@@ -1,13 +1,9 @@
 """Contract tests for sharing API endpoints.
 
-Tests sharing endpoints match the OpenAPI contract specification.
-Uses best practices for testing sharing/permission flows:
-- Separate fixtures for authenticated vs unauthenticated clients
-- MagicMock for sync service methods
-- Proper mocking of service layer for isolation
+Tests sharing endpoints match the new email-based sharing API contract.
+Uses MagicMock for service layer isolation.
 """
 from unittest.mock import MagicMock
-from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -21,49 +17,39 @@ TEST_USER_ID = "00000001-0000-0000-0000-000000000001"
 
 @pytest.fixture
 def unauthenticated_client():
-    """Create test client WITHOUT authentication.
-
-    Used for testing endpoints that should reject unauthenticated requests.
-    """
+    """Create test client WITHOUT authentication."""
     return TestClient(app)
 
 
 @pytest.fixture
 def authenticated_client(auth_token):
-    """Create test client WITH authentication.
-
-    Used for testing endpoints that require authentication.
-    """
+    """Create test client WITH authentication."""
     client = TestClient(app)
     client.cookies.set("auth_token", auth_token)
     return client
 
 
 @pytest.fixture
-def authenticated_user_id():
-    """Return the test user ID."""
-    return TEST_USER_ID
-
-
-@pytest.fixture
 def mock_sharing_service():
-    """Create a mock sharing service with sync methods."""
+    """Create a mock sharing service with new email-based methods."""
     mock_service = MagicMock()
-    mock_service.share_experiment = MagicMock()
+    mock_service.share_experiment_by_email = MagicMock()
     mock_service.revoke_experiment_share = MagicMock()
-    mock_service.list_experiment_shares = MagicMock(return_value=[])
-    mock_service.share_synth_group = MagicMock()
+    mock_service.list_experiment_shares = MagicMock(
+        return_value={"shares": [], "pending": []}
+    )
+    mock_service.share_synth_group_by_email = MagicMock()
     mock_service.revoke_synth_group_share = MagicMock()
-    mock_service.list_synth_group_shares = MagicMock(return_value=[])
+    mock_service.list_synth_group_shares = MagicMock(
+        return_value={"shares": [], "pending": []}
+    )
+    mock_service.accept_pending_invites = MagicMock(return_value=0)
     return mock_service
 
 
 @pytest.fixture
 def authenticated_client_with_mock_service(auth_token, mock_sharing_service):
-    """Create authenticated client with mocked sharing service dependency.
-
-    This properly overrides the FastAPI dependency injection.
-    """
+    """Create authenticated client with mocked sharing service dependency."""
     def override_get_sharing_service():
         return mock_sharing_service
 
@@ -74,330 +60,278 @@ def authenticated_client_with_mock_service(auth_token, mock_sharing_service):
 
     yield client, mock_sharing_service
 
-    # Clean up override after test
     app.dependency_overrides.clear()
 
 
 # =============================================================================
-# US3 Contract Tests: Experiment Sharing API (T098-T100)
+# Experiment Sharing API
 # =============================================================================
 
 
 class TestExperimentSharesEndpoints:
-    """Test experiment sharing endpoints - T098, T099, T100."""
+    """Test experiment sharing endpoints."""
 
     def test_post_experiment_share_requires_auth(self, unauthenticated_client):
-        """Should return 401 if not authenticated - T098."""
-        experiment_id = "exp_12345678"
-
+        """Should return 401 if not authenticated."""
         response = unauthenticated_client.post(
-            f"/auth/experiments/{experiment_id}/shares",
-            json={
-                "user_id": str(uuid4()),
-                "permission_level": "viewer"
-            }
+            "/auth/experiments/exp_12345678/shares",
+            json={"email": "test@example.com"},
         )
-
         assert response.status_code == 401
 
-    def test_post_experiment_share_creates_share(self, authenticated_client_with_mock_service):
-        """Should create experiment share and return 201 - T098."""
+    def test_post_experiment_share_creates_share(
+        self, authenticated_client_with_mock_service
+    ):
+        """Should create share and return result."""
         client, mock_service = authenticated_client_with_mock_service
-        experiment_id = "exp_12345678"
-        sharee_id = str(uuid4())
 
-        from synth_lab.domain.entities.share import ExperimentShare, PermissionLevel
-        mock_share_obj = ExperimentShare(
-            experiment_id=experiment_id,
-            user_id=uuid4(),
-            permission_level=PermissionLevel.VIEWER,
-            granted_by_id=uuid4(),
-        )
-        mock_service.share_experiment.return_value = mock_share_obj
-        mock_service.list_experiment_shares.return_value = [{
-            "share_id": str(mock_share_obj.id),
-            "user_id": sharee_id,
-            "email": "test@example.com",
-            "display_name": "Test User",
-            "profile_picture_url": None,
-            "permission_level": "viewer",
-            "granted_at": mock_share_obj.granted_at,
-            "granted_by_id": str(mock_share_obj.granted_by_id),
-        }]
+        mock_service.share_experiment_by_email.return_value = {
+            "status": "shared",
+            "email": "sharee@example.com",
+            "permission_level": "editor",
+            "share_id": "abc-123",
+            "user_id": "user-456",
+            "granted_at": "2026-01-01T00:00:00",
+        }
 
         response = client.post(
-            f"/auth/experiments/{experiment_id}/shares",
-            json={
-                "user_id": sharee_id,
-                "permission_level": "viewer"
-            }
+            "/auth/experiments/exp_12345678/shares",
+            json={"email": "sharee@example.com"},
         )
 
-        # Verify 200 OK or 201 Created
-        assert response.status_code in [200, 201]
-
-        # Verify response schema
+        assert response.status_code == 200
         data = response.json()
-        assert "share_id" in data
-        assert "experiment_id" in data
-        assert "user_id" in data
-        assert "permission_level" in data
-        assert "granted_at" in data
-        assert "granted_by_id" in data
+        assert data["status"] == "shared"
+        assert data["email"] == "sharee@example.com"
+        assert data["permission_level"] == "editor"
 
-    def test_post_experiment_share_rejects_invalid_permission_level(self, authenticated_client_with_mock_service):
-        """Should return 400 for invalid permission level - T098."""
-        client, _ = authenticated_client_with_mock_service
-        experiment_id = "exp_12345678"
-
-        response = client.post(
-            f"/auth/experiments/{experiment_id}/shares",
-            json={
-                "user_id": str(uuid4()),
-                "permission_level": "invalid"
-            }
-        )
-
-        # Should return validation error
-        assert response.status_code in [400, 422]
-
-    def test_post_experiment_share_returns_409_if_already_shared(self, authenticated_client_with_mock_service):
-        """Should return 400 if share already exists - T098."""
+    def test_post_experiment_share_creates_pending_invite(
+        self, authenticated_client_with_mock_service
+    ):
+        """Should create pending invite for non-registered user."""
         client, mock_service = authenticated_client_with_mock_service
-        experiment_id = "exp_12345678"
-        sharee_id = str(uuid4())
 
-        mock_service.share_experiment.side_effect = ValueError("Share already exists")
+        mock_service.share_experiment_by_email.return_value = {
+            "status": "pending",
+            "email": "new@example.com",
+            "permission_level": "editor",
+            "invite_id": "inv-789",
+            "created_at": "2026-01-01T00:00:00",
+        }
 
         response = client.post(
-            f"/auth/experiments/{experiment_id}/shares",
-            json={
-                "user_id": sharee_id,
-                "permission_level": "viewer"
-            }
+            "/auth/experiments/exp_12345678/shares",
+            json={"email": "new@example.com"},
         )
 
-        # Verify 400 Bad Request (ValueError maps to 400)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "pending"
+        assert data["email"] == "new@example.com"
+
+    def test_post_experiment_share_rejects_invalid_email(
+        self, authenticated_client_with_mock_service
+    ):
+        """Should return 422 for invalid email."""
+        client, _ = authenticated_client_with_mock_service
+
+        response = client.post(
+            "/auth/experiments/exp_12345678/shares",
+            json={"email": "not-an-email"},
+        )
+        assert response.status_code == 422
+
+    def test_post_experiment_share_rejects_already_shared(
+        self, authenticated_client_with_mock_service
+    ):
+        """Should return 400 if already shared."""
+        client, mock_service = authenticated_client_with_mock_service
+        mock_service.share_experiment_by_email.side_effect = ValueError(
+            "Experiment already shared with test@example.com"
+        )
+
+        response = client.post(
+            "/auth/experiments/exp_12345678/shares",
+            json={"email": "test@example.com"},
+        )
         assert response.status_code == 400
 
     def test_get_experiment_shares_requires_auth(self, unauthenticated_client):
-        """Should return 401 if not authenticated - T099."""
-        experiment_id = "exp_12345678"
-
-        response = unauthenticated_client.get(f"/auth/experiments/{experiment_id}/shares")
-
+        """Should return 401 if not authenticated."""
+        response = unauthenticated_client.get(
+            "/auth/experiments/exp_12345678/shares"
+        )
         assert response.status_code == 401
 
-    def test_get_experiment_shares_returns_list(self, authenticated_client_with_mock_service):
-        """Should return list of shares - T099."""
+    def test_get_experiment_shares_returns_list(
+        self, authenticated_client_with_mock_service
+    ):
+        """Should return shares and pending invites."""
         client, mock_service = authenticated_client_with_mock_service
-        experiment_id = "exp_12345678"
 
-        mock_service.list_experiment_shares.return_value = []
+        mock_service.list_experiment_shares.return_value = {
+            "shares": [
+                {
+                    "share_id": "s1",
+                    "user_id": "u1",
+                    "email": "active@example.com",
+                    "display_name": "Active User",
+                    "profile_picture_url": None,
+                    "permission_level": "editor",
+                    "granted_at": "2026-01-01T00:00:00",
+                    "status": "active",
+                }
+            ],
+            "pending": [
+                {
+                    "invite_id": "i1",
+                    "email": "pending@example.com",
+                    "permission_level": "editor",
+                    "created_at": "2026-01-01T00:00:00",
+                    "status": "pending",
+                }
+            ],
+        }
 
-        response = client.get(f"/auth/experiments/{experiment_id}/shares")
+        response = client.get("/auth/experiments/exp_12345678/shares")
 
-        # Verify 200 OK
         assert response.status_code == 200
-
-        # Verify response schema
         data = response.json()
-        assert "experiment_id" in data
-        assert "shares" in data
-        assert isinstance(data["shares"], list)
+        assert data["resource_id"] == "exp_12345678"
+        assert len(data["shares"]) == 1
+        assert data["shares"][0]["status"] == "active"
+        assert len(data["pending"]) == 1
+        assert data["pending"][0]["status"] == "pending"
 
     def test_delete_experiment_share_requires_auth(self, unauthenticated_client):
-        """Should return 401 if not authenticated - T100."""
-        experiment_id = "exp_12345678"
-        user_id = str(uuid4())
-
+        """Should return 401 if not authenticated."""
         response = unauthenticated_client.delete(
-            f"/auth/experiments/{experiment_id}/shares/{user_id}"
+            "/auth/experiments/exp_12345678/shares?email=test@example.com"
         )
-
         assert response.status_code == 401
 
-    def test_delete_experiment_share_revokes_access(self, authenticated_client_with_mock_service):
-        """Should revoke access and return 200 - T100."""
+    def test_delete_experiment_share_revokes_access(
+        self, authenticated_client_with_mock_service
+    ):
+        """Should revoke access and return 200."""
         client, mock_service = authenticated_client_with_mock_service
-        experiment_id = "exp_12345678"
-        sharee_id = str(uuid4())
-
         mock_service.revoke_experiment_share.return_value = True
 
         response = client.delete(
-            f"/auth/experiments/{experiment_id}/shares/{sharee_id}"
+            "/auth/experiments/exp_12345678/shares?email=test@example.com"
         )
 
-        # Verify 200 OK
         assert response.status_code == 200
+        assert "message" in response.json()
 
-        # Verify response message
-        data = response.json()
-        assert "message" in data
-
-    def test_delete_experiment_share_returns_404_if_not_found(self, authenticated_client_with_mock_service):
-        """Should return 404 if share doesn't exist - T100."""
+    def test_delete_experiment_share_returns_404_if_not_found(
+        self, authenticated_client_with_mock_service
+    ):
+        """Should return 404 if share doesn't exist."""
         client, mock_service = authenticated_client_with_mock_service
-        experiment_id = "exp_12345678"
-        sharee_id = str(uuid4())
-
         mock_service.revoke_experiment_share.return_value = False
 
         response = client.delete(
-            f"/auth/experiments/{experiment_id}/shares/{sharee_id}"
+            "/auth/experiments/exp_12345678/shares?email=test@example.com"
         )
-
-        # Verify 404 Not Found
         assert response.status_code == 404
 
 
 # =============================================================================
-# US4 Contract Tests: SynthGroup Sharing API (T126-T128)
+# SynthGroup Sharing API
 # =============================================================================
 
 
 class TestSynthGroupSharesEndpoints:
-    """Test synth_group sharing endpoints - T126, T127, T128."""
+    """Test synth_group sharing endpoints."""
 
     def test_post_synth_group_share_requires_auth(self, unauthenticated_client):
-        """Should return 401 if not authenticated - T126."""
-        synth_group_id = "grp_abcd1234"
-
+        """Should return 401 if not authenticated."""
         response = unauthenticated_client.post(
-            f"/auth/synth-groups/{synth_group_id}/shares",
-            json={
-                "user_id": str(uuid4()),
-                "permission_level": "viewer"
-            }
+            "/auth/synth-groups/grp_abcd1234/shares",
+            json={"email": "test@example.com"},
         )
-
         assert response.status_code == 401
 
-    def test_post_synth_group_share_creates_share(self, authenticated_client_with_mock_service):
-        """Should create synth_group share and return 201 - T126."""
+    def test_post_synth_group_share_creates_share(
+        self, authenticated_client_with_mock_service
+    ):
+        """Should create synth_group share and return result."""
         client, mock_service = authenticated_client_with_mock_service
-        synth_group_id = "grp_abcd1234"
-        sharee_id = str(uuid4())
 
-        from synth_lab.domain.entities.share import PermissionLevel, SynthGroupShare
-        mock_share_obj = SynthGroupShare(
-            synth_group_id=synth_group_id,
-            user_id=uuid4(),
-            permission_level=PermissionLevel.VIEWER,
-            granted_by_id=uuid4(),
-        )
-        mock_service.share_synth_group.return_value = mock_share_obj
-        mock_service.list_synth_group_shares.return_value = [{
-            "share_id": str(mock_share_obj.id),
-            "user_id": sharee_id,
-            "email": "test@example.com",
-            "display_name": "Test User",
-            "profile_picture_url": None,
-            "permission_level": "viewer",
-            "granted_at": mock_share_obj.granted_at,
-            "granted_by_id": str(mock_share_obj.granted_by_id),
-        }]
+        mock_service.share_synth_group_by_email.return_value = {
+            "status": "shared",
+            "email": "sharee@example.com",
+            "permission_level": "editor",
+            "share_id": "abc-123",
+            "user_id": "user-456",
+            "granted_at": "2026-01-01T00:00:00",
+        }
 
         response = client.post(
-            f"/auth/synth-groups/{synth_group_id}/shares",
-            json={
-                "user_id": sharee_id,
-                "permission_level": "viewer"
-            }
+            "/auth/synth-groups/grp_abcd1234/shares",
+            json={"email": "sharee@example.com"},
         )
 
-        # Verify 200 OK or 201 Created
-        assert response.status_code in [200, 201]
-
-        # Verify response schema
+        assert response.status_code == 200
         data = response.json()
-        assert "share_id" in data
-        assert "user_id" in data
-        assert "permission_level" in data
-        assert "granted_at" in data
-        assert "granted_by_id" in data
-
-    def test_post_synth_group_share_does_not_share_experiments(self):
-        """Should share synth_group without affecting experiments - T126.
-
-        Note: This is verified by the service layer logic, but documented here.
-        """
-        pass
+        assert data["status"] == "shared"
+        assert data["email"] == "sharee@example.com"
 
     def test_get_synth_group_shares_requires_auth(self, unauthenticated_client):
-        """Should return 401 if not authenticated - T127."""
-        synth_group_id = "grp_abcd1234"
-
-        response = unauthenticated_client.get(f"/auth/synth-groups/{synth_group_id}/shares")
-
+        """Should return 401 if not authenticated."""
+        response = unauthenticated_client.get(
+            "/auth/synth-groups/grp_abcd1234/shares"
+        )
         assert response.status_code == 401
 
-    def test_get_synth_group_shares_returns_list(self, authenticated_client_with_mock_service):
-        """Should return list of shares - T127."""
+    def test_get_synth_group_shares_returns_list(
+        self, authenticated_client_with_mock_service
+    ):
+        """Should return list of shares."""
         client, mock_service = authenticated_client_with_mock_service
-        synth_group_id = "grp_abcd1234"
 
-        mock_service.list_synth_group_shares.return_value = []
+        mock_service.list_synth_group_shares.return_value = {
+            "shares": [],
+            "pending": [],
+        }
 
-        response = client.get(f"/auth/synth-groups/{synth_group_id}/shares")
+        response = client.get("/auth/synth-groups/grp_abcd1234/shares")
 
-        # Verify 200 OK
         assert response.status_code == 200
-
-        # Verify response schema
         data = response.json()
         assert "shares" in data
-        assert isinstance(data["shares"], list)
+        assert "pending" in data
 
     def test_delete_synth_group_share_requires_auth(self, unauthenticated_client):
-        """Should return 401 if not authenticated - T128."""
-        synth_group_id = "grp_abcd1234"
-        user_id = str(uuid4())
-
+        """Should return 401 if not authenticated."""
         response = unauthenticated_client.delete(
-            f"/auth/synth-groups/{synth_group_id}/shares/{user_id}"
+            "/auth/synth-groups/grp_abcd1234/shares?email=test@example.com"
         )
-
         assert response.status_code == 401
 
-    def test_delete_synth_group_share_revokes_access(self, authenticated_client_with_mock_service):
-        """Should revoke access and return 200 - T128."""
+    def test_delete_synth_group_share_revokes_access(
+        self, authenticated_client_with_mock_service
+    ):
+        """Should revoke access and return 200."""
         client, mock_service = authenticated_client_with_mock_service
-        synth_group_id = "grp_abcd1234"
-        sharee_id = str(uuid4())
-
         mock_service.revoke_synth_group_share.return_value = True
 
         response = client.delete(
-            f"/auth/synth-groups/{synth_group_id}/shares/{sharee_id}"
+            "/auth/synth-groups/grp_abcd1234/shares?email=test@example.com"
         )
 
-        # Verify 200 OK
         assert response.status_code == 200
+        assert "message" in response.json()
 
-        # Verify response message
-        data = response.json()
-        assert "message" in data
-
-    def test_delete_synth_group_share_returns_404_if_not_found(self, authenticated_client_with_mock_service):
-        """Should return 404 if share doesn't exist - T128."""
+    def test_delete_synth_group_share_returns_404_if_not_found(
+        self, authenticated_client_with_mock_service
+    ):
+        """Should return 404 if share doesn't exist."""
         client, mock_service = authenticated_client_with_mock_service
-        synth_group_id = "grp_abcd1234"
-        sharee_id = str(uuid4())
-
         mock_service.revoke_synth_group_share.return_value = False
 
         response = client.delete(
-            f"/auth/synth-groups/{synth_group_id}/shares/{sharee_id}"
+            "/auth/synth-groups/grp_abcd1234/shares?email=test@example.com"
         )
-
-        # Verify 404 Not Found
         assert response.status_code == 404
-
-    def test_delete_synth_group_share_does_not_affect_experiments(self):
-        """Should revoke synth_group access without affecting experiments - T128.
-
-        Note: This independence is verified by integration tests.
-        """
-        pass

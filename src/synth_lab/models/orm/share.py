@@ -9,7 +9,7 @@ import enum
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from synth_lab.models.orm.base import Base
@@ -135,3 +135,53 @@ class SynthGroupShare(Base):
 
     def __repr__(self) -> str:
         return f"<SynthGroupShare(id={self.id!r}, synth_group_id={self.synth_group_id!r}, user_id={self.user_id!r})>"
+
+
+class PendingInvite(Base):
+    """Pending invite for users who haven't registered yet.
+
+    Attributes:
+        id: UUID of the invite
+        resource_type: 'experiment' or 'synth_group'
+        resource_id: ID of the shared resource
+        invited_email: Email of invited user (normalized lowercase)
+        invited_by_id: UUID of user who created the invite
+        created_at: ISO timestamp when invite was created
+    """
+
+    __tablename__ = "pending_invites"
+    __table_args__ = (
+        Index("ix_pending_invites_resource", "resource_type", "resource_id"),
+        UniqueConstraint(
+            "resource_type",
+            "resource_id",
+            "invited_email",
+            name="uq_pending_invites_resource_email",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    resource_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    resource_id: Mapped[str] = mapped_column(String(50), nullable=False)
+    invited_email: Mapped[str] = mapped_column(
+        String(255), nullable=False, index=True
+    )
+    invited_by_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    created_at: Mapped[str] = mapped_column(String(50), nullable=False)
+
+    # Relationships
+    invited_by: Mapped["User"] = relationship(
+        "User",
+        foreign_keys=[invited_by_id],
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<PendingInvite(id={self.id!r}, "
+            f"email={self.invited_email!r}, "
+            f"resource={self.resource_type!r}:{self.resource_id!r})>"
+        )

@@ -48,8 +48,8 @@ EXPECTED_TABLES = {
     "synth_group_shares",
 }
 
-# Current HEAD revision ID (add_quantitative_analysis_tables)
-CURRENT_HEAD_REVISION = "df69409340e0"
+# Current HEAD revision ID (add_pending_invites_table)
+CURRENT_HEAD_REVISION = "a2d0dcc46c8d"
 
 
 def get_alembic_config(database_url: str) -> Config:

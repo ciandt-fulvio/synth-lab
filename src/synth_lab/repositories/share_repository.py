@@ -8,7 +8,12 @@ from uuid import UUID
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from synth_lab.domain.entities.share import ExperimentShare, PermissionLevel, SynthGroupShare
+from synth_lab.domain.entities.share import (
+    ExperimentShare,
+    PendingInvite,
+    PermissionLevel,
+    SynthGroupShare,
+)
 
 
 class ShareRepository:
@@ -232,3 +237,139 @@ class ShareRepository:
             )
 
         return None
+
+    # ── Pending Invites ──────────────────────────────────────────────────
+
+    def create_pending_invite(self, invite: PendingInvite) -> PendingInvite:
+        """Create a pending invite for a user who hasn't registered yet.
+
+        Args:
+            invite: PendingInvite entity
+
+        Returns:
+            Created PendingInvite
+        """
+        query = text(
+            "INSERT INTO pending_invites"
+            " (id, resource_type, resource_id, invited_email, invited_by_id, created_at)"
+            " VALUES (:id, :resource_type, :resource_id, :invited_email,"
+            " :invited_by_id, :created_at)"
+        )
+        self.db.execute(query, invite.to_dict())
+        self.db.commit()
+        return invite
+
+    def get_pending_invites_for_resource(
+        self, resource_type: str, resource_id: str
+    ) -> List[PendingInvite]:
+        """Get all pending invites for a resource.
+
+        Args:
+            resource_type: 'experiment' or 'synth_group'
+            resource_id: Resource ID
+
+        Returns:
+            List of PendingInvite entities
+        """
+        query = text("""
+            SELECT id, resource_type, resource_id, invited_email, invited_by_id, created_at
+            FROM pending_invites
+            WHERE resource_type = :resource_type AND resource_id = :resource_id
+        """)
+        result = self.db.execute(query, {
+            "resource_type": resource_type,
+            "resource_id": resource_id,
+        })
+        return [
+            PendingInvite(
+                id=row[0],
+                resource_type=row[1],
+                resource_id=row[2],
+                invited_email=row[3],
+                invited_by_id=row[4],
+                created_at=row[5],
+            )
+            for row in result.fetchall()
+        ]
+
+    def get_pending_invites_by_email(self, email: str) -> List[PendingInvite]:
+        """Get all pending invites for a given email.
+
+        Args:
+            email: User email (case-insensitive)
+
+        Returns:
+            List of PendingInvite entities
+        """
+        query = text("""
+            SELECT id, resource_type, resource_id, invited_email, invited_by_id, created_at
+            FROM pending_invites
+            WHERE invited_email = :email
+        """)
+        result = self.db.execute(query, {"email": email.lower().strip()})
+        return [
+            PendingInvite(
+                id=row[0],
+                resource_type=row[1],
+                resource_id=row[2],
+                invited_email=row[3],
+                invited_by_id=row[4],
+                created_at=row[5],
+            )
+            for row in result.fetchall()
+        ]
+
+    def delete_pending_invite(self, invite_id: str) -> bool:
+        """Delete a pending invite by ID.
+
+        Args:
+            invite_id: Invite ID
+
+        Returns:
+            True if deleted, False if not found
+        """
+        query = text("DELETE FROM pending_invites WHERE id = :id")
+        result = self.db.execute(query, {"id": invite_id})
+        self.db.commit()
+        return result.rowcount > 0
+
+    def delete_pending_invites_by_email(self, email: str) -> int:
+        """Delete all pending invites for a given email.
+
+        Args:
+            email: User email
+
+        Returns:
+            Number of invites deleted
+        """
+        query = text("DELETE FROM pending_invites WHERE invited_email = :email")
+        result = self.db.execute(query, {"email": email.lower().strip()})
+        self.db.commit()
+        return result.rowcount
+
+    def revoke_pending_invite(
+        self, resource_type: str, resource_id: str, email: str
+    ) -> bool:
+        """Revoke a pending invite for a specific resource and email.
+
+        Args:
+            resource_type: 'experiment' or 'synth_group'
+            resource_id: Resource ID
+            email: Invited email
+
+        Returns:
+            True if deleted, False if not found
+        """
+        query = text("""
+            DELETE FROM pending_invites
+            WHERE resource_type = :resource_type
+              AND resource_id = :resource_id
+              AND invited_email = :email
+        """)
+        result = self.db.execute(query, {
+            "resource_type": resource_type,
+            "resource_id": resource_id,
+            "email": email.lower().strip(),
+        })
+        self.db.commit()
+        return result.rowcount > 0

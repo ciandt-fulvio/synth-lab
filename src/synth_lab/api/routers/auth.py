@@ -13,11 +13,10 @@ from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 
 from synth_lab.api.schemas.sharing import (
-    ShareExperimentRequest,
+    ShareByEmailRequest,
     ShareListResponse,
-    ShareResponse,
+    ShareResultResponse,
 )
-from synth_lab.domain.entities.share import PermissionLevel
 from synth_lab.infrastructure.auth.oauth_client import get_oauth_client
 from synth_lab.infrastructure.auth.session_manager import SessionManager
 from synth_lab.infrastructure.database_v2 import get_db_session
@@ -32,43 +31,18 @@ limiter = Limiter(key_func=get_remote_address)
 
 
 def get_auth_service(db: Session = Depends(get_db_session)) -> AuthService:
-    """Dependency to get AuthService instance.
-
-    Args:
-        db: Database session
-
-    Returns:
-        Configured AuthService
-    """
+    """Dependency to get AuthService instance."""
     user_repository = UserRepository(db)
     return AuthService(user_repository=user_repository)
 
 
 def get_sharing_service(db: Session = Depends(get_db_session)) -> SharingService:
-    """Dependency to get SharingService instance.
-
-    Args:
-        db: Database session
-
-    Returns:
-        Configured SharingService
-    """
+    """Dependency to get SharingService instance."""
     return SharingService(db)
 
 
 async def get_current_user_id(request: Request) -> str:
-    """Get current user ID from session.
-
-    Args:
-        request: FastAPI request with session cookie
-
-    Returns:
-        User ID from session
-
-    Raises:
-        HTTPException: If not authenticated or session invalid
-    """
-    # Check Authorization header first (cross-domain), then cookie (same-domain dev)
+    """Get current user ID from session."""
     auth_header = request.headers.get("authorization", "")
     if auth_header.startswith("Bearer "):
         session_token = auth_header[7:]
@@ -99,21 +73,15 @@ async def get_current_user_id(request: Request) -> str:
     return user_id
 
 
+# ── Auth endpoints ──────────────────────────────────────────────────────
+
+
 @router.get("/login")
 async def login(request: Request):
-    """Initiate Google OAuth login flow.
-
-    Redirects user to Google OAuth consent screen.
-
-    Returns:
-        Redirect to Google OAuth authorization URL
-    """
+    """Initiate Google OAuth login flow."""
     oauth_client = get_oauth_client()
     auth_url, state = oauth_client.get_authorization_url()
-
-    # Store state in session for CSRF protection
     request.session["oauth_state"] = state
-
     return RedirectResponse(url=auth_url, status_code=status.HTTP_302_FOUND)
 
 
@@ -125,25 +93,12 @@ async def callback(
     code: str,
     state: Optional[str] = None,
     auth_service: AuthService = Depends(get_auth_service),
+    sharing_service: SharingService = Depends(get_sharing_service),
 ):
     """Handle OAuth callback from Google.
 
-    Exchanges authorization code for tokens, validates user, creates session.
-
-    Args:
-        request: FastAPI request
-        response: FastAPI response (for setting cookie)
-        code: Authorization code from Google
-        state: CSRF state token
-        auth_service: Auth service dependency
-
-    Returns:
-        Redirect to frontend with session cookie set
-
-    Raises:
-        HTTPException: If OAuth flow fails or user not whitelisted
+    After login, automatically accepts any pending invites for the user's email.
     """
-    # Verify CSRF state
     stored_state = request.session.get("oauth_state")
     if state != stored_state:
         raise HTTPException(
@@ -151,37 +106,35 @@ async def callback(
             detail="Invalid state parameter - potential CSRF attack",
         )
 
-    # Exchange code for tokens
     oauth_client = get_oauth_client()
     try:
         tokens = await oauth_client.exchange_code_for_tokens(code)
         access_token = tokens["access_token"]
-
-        # Get user info from Google
         user_info = await oauth_client.get_user_info(access_token)
-
-        # Handle OAuth callback (create/update user, validate whitelist)
         user, session_token = auth_service.handle_oauth_callback(user_info)
 
     except ValueError as e:
-        # User not whitelisted or validation error
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
         )
     except Exception as e:
-        # OAuth or API error
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"OAuth authentication failed: {str(e)}",
         )
 
-    # Redirect to frontend with token
+    # Accept pending invites for this user's email
+    try:
+        accepted = sharing_service.accept_pending_invites(str(user.id), user.email)
+        if accepted > 0:
+            logger.info(f"Accepted {accepted} pending invite(s) for {user.email}")
+    except Exception as e:
+        logger.warning(f"Failed to accept pending invites for {user.email}: {e}")
+
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
     environment = os.getenv("ENVIRONMENT", "development")
 
-    # For local development: set cookie directly (same domain via proxy)
-    # For staging/production: send token in URL for frontend to set
     if environment == "development":
         response = RedirectResponse(url=frontend_url, status_code=status.HTTP_302_FOUND)
         response.set_cookie(
@@ -190,13 +143,11 @@ async def callback(
             httponly=True,
             secure=False,
             samesite="lax",
-            max_age=480 * 60,  # 8 hours
+            max_age=480 * 60,
             path="/",
         )
         return response
     else:
-        # Staging/Production: redirect to frontend with token in URL
-        # Frontend will set the cookie locally
         redirect_url = f"{frontend_url}/auth/callback?token={session_token}"
         return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
 
@@ -205,17 +156,12 @@ async def callback(
 async def test_login(
     response: Response,
     auth_service: AuthService = Depends(get_auth_service),
+    sharing_service: SharingService = Depends(get_sharing_service),
 ):
     """Test-only endpoint to bypass OAuth for E2E tests.
 
     Only available in test/development/staging environments.
-    Creates or retrieves a test user and sets auth cookie.
-
-    Returns:
-        User profile data
-
-    Raises:
-        HTTPException: If in production environment
+    Also accepts pending invites for the test user.
     """
     environment = os.getenv("ENVIRONMENT", "development")
     if environment not in ["test", "development", "staging"]:
@@ -224,7 +170,6 @@ async def test_login(
             detail="Not found",
         )
 
-    # Get or create test user (matches tests/fixtures/seed_test.py)
     test_email = "testuser@example.com"
     test_user_id = "00000001-0000-0000-0000-000000000001"
     test_google_id = "google-test-user-001"
@@ -243,29 +188,32 @@ async def test_login(
         user = auth_service.user_repository.create(user)
         logger.info(f"Created test user: {user.id} ({test_email})")
 
-    # Generate session token
+    # Accept pending invites
+    try:
+        accepted = sharing_service.accept_pending_invites(str(user.id), user.email)
+        if accepted > 0:
+            logger.info(f"Accepted {accepted} pending invite(s) for test user {test_email}")
+    except Exception as e:
+        logger.warning(f"Failed to accept pending invites for test user: {e}")
+
     session_token = auth_service.session_manager.create_access_token(
         user_id=str(user.id),
         email=user.email,
     )
 
-    # Set auth cookie (for staging/production, return token in response body)
     if environment in ["production", "staging"]:
-        # For staging/production with separate domains, return token
-        # Frontend will set cookie locally via document.cookie
         return {
             **user.to_dict(),
             "token": session_token,
         }
     else:
-        # For development (same domain via proxy), set cookie directly
         response.set_cookie(
             key="auth_token",
             value=session_token,
             httponly=True,
             secure=False,
             samesite="lax",
-            max_age=480 * 60,  # 8 hours
+            max_age=480 * 60,
             path="/",
         )
         logger.debug(f"[/auth/test-login] Set auth cookie for test user {user.id}")
@@ -277,15 +225,7 @@ async def get_me(
     request: Request,
     auth_service: AuthService = Depends(get_auth_service),
 ):
-    """Get current authenticated user.
-
-    Returns:
-        User profile data
-
-    Raises:
-        HTTPException: If not authenticated
-    """
-    # Check Authorization header first (cross-domain), then cookie (same-domain dev)
+    """Get current authenticated user."""
     auth_header = request.headers.get("authorization", "")
     if auth_header.startswith("Bearer "):
         session_token = auth_header[7:]
@@ -310,78 +250,38 @@ async def get_me(
 
 @router.post("/logout")
 async def logout(response: Response):
-    """Logout current user.
-
-    Clears session cookie.
-
-    Returns:
-        Success message
-    """
+    """Logout current user."""
     response.delete_cookie("auth_token")
     return {"message": "Logged out successfully"}
 
 
-@router.post("/experiments/{experiment_id}/shares", response_model=ShareResponse)
+# ── Experiment sharing endpoints ────────────────────────────────────────
+
+
+@router.post("/experiments/{experiment_id}/shares", response_model=ShareResultResponse)
 async def share_experiment(
     experiment_id: str,
-    request_body: ShareExperimentRequest,
+    request_body: ShareByEmailRequest,
     current_user_id: str = Depends(get_current_user_id),
     sharing_service: SharingService = Depends(get_sharing_service),
 ):
-    """Share an experiment with another user.
+    """Share an experiment by email.
 
-    Automatically shares the associated synth_group with the same permission level.
-
-    Args:
-        experiment_id: Experiment ID to share
-        request_body: Share request with user_id and permission_level
-        current_user_id: Current authenticated user (owner)
-        sharing_service: Sharing service dependency
-
-    Returns:
-        Created share information
-
-    Raises:
-        HTTPException: If validation fails or user not authorized
+    If user exists, creates direct share. Otherwise creates pending invite.
+    Automatically shares the associated synth_group.
     """
     try:
-        permission_level = PermissionLevel(request_body.permission_level)
-        share = sharing_service.share_experiment(
+        result = sharing_service.share_experiment_by_email(
             experiment_id=experiment_id,
             owner_id=current_user_id,
-            target_user_id=request_body.user_id,
-            permission_level=permission_level,
+            email=request_body.email,
         )
-
-        # Get user info for response
-        shares_list = sharing_service.list_experiment_shares(
-            experiment_id, current_user_id
-        )
-
-        # Find the newly created share
-        for share_data in shares_list:
-            if share_data["user_id"] == request_body.user_id:
-                return ShareResponse(**share_data, experiment_id=experiment_id)
-
-        # Fallback if not found in list
-        return ShareResponse(
-            share_id=str(share.id),
-            experiment_id=experiment_id,
-            user_id=str(share.user_id),
-            permission_level=share.permission_level.value,
-            granted_at=share.granted_at,
-            granted_by_id=str(share.granted_by_id),
-        )
+        return ShareResultResponse(**result)
 
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to share experiment: {str(e)}",
         )
 
 
@@ -391,81 +291,40 @@ async def list_experiment_shares(
     current_user_id: str = Depends(get_current_user_id),
     sharing_service: SharingService = Depends(get_sharing_service),
 ):
-    """List all users who have access to an experiment.
-
-    Args:
-        experiment_id: Experiment ID
-        current_user_id: Current authenticated user (owner)
-        sharing_service: Sharing service dependency
-
-    Returns:
-        List of shares with user information
-
-    Raises:
-        HTTPException: If validation fails or user not authorized
-    """
+    """List all users and pending invites for an experiment."""
     try:
-        shares_list = sharing_service.list_experiment_shares(
-            experiment_id, current_user_id
-        )
-
-        share_responses = [
-            ShareResponse(**share_data, experiment_id=experiment_id)
-            for share_data in shares_list
-        ]
-
-        return ShareListResponse(
-            experiment_id=experiment_id,
-            shares=share_responses,
-        )
+        result = sharing_service.list_experiment_shares(experiment_id, current_user_id)
+        return ShareListResponse(resource_id=experiment_id, **result)
 
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list shares: {str(e)}",
-        )
 
 
-@router.delete("/experiments/{experiment_id}/shares/{user_id}")
+@router.delete("/experiments/{experiment_id}/shares")
 async def revoke_experiment_share(
     experiment_id: str,
-    user_id: str,
+    email: str,
     current_user_id: str = Depends(get_current_user_id),
     sharing_service: SharingService = Depends(get_sharing_service),
 ):
-    """Revoke experiment access from a user.
-
-    Args:
-        experiment_id: Experiment ID
-        user_id: User ID to revoke access from
-        current_user_id: Current authenticated user (owner)
-        sharing_service: Sharing service dependency
-
-    Returns:
-        Success message
-
-    Raises:
-        HTTPException: If validation fails or user not authorized
-    """
+    """Revoke experiment access by email (handles active shares and pending invites)."""
     try:
         success = sharing_service.revoke_experiment_share(
             experiment_id=experiment_id,
             owner_id=current_user_id,
-            target_user_id=user_id,
+            target_email=email,
         )
 
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Share not found for user {user_id}",
+                detail=f"Share not found for {email}",
             )
 
-        return {"message": f"Access revoked for user {user_id}"}
+        return {"message": f"Access revoked for {email}"}
 
     except ValueError as e:
         raise HTTPException(
@@ -474,75 +333,31 @@ async def revoke_experiment_share(
         )
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to revoke share: {str(e)}",
-        )
 
 
-@router.post("/synth-groups/{synth_group_id}/shares", response_model=ShareResponse)
+# ── Synth group sharing endpoints ──────────────────────────────────────
+
+
+@router.post("/synth-groups/{synth_group_id}/shares", response_model=ShareResultResponse)
 async def share_synth_group(
     synth_group_id: str,
-    request_body: ShareExperimentRequest,
+    request_body: ShareByEmailRequest,
     current_user_id: str = Depends(get_current_user_id),
     sharing_service: SharingService = Depends(get_sharing_service),
 ):
-    """Share a synth_group with another user independently.
-
-    Args:
-        synth_group_id: Synth group ID to share
-        request_body: Share request with user_id and permission_level
-        current_user_id: Current authenticated user (owner)
-        sharing_service: Sharing service dependency
-
-    Returns:
-        Created share information
-
-    Raises:
-        HTTPException: If validation fails or user not authorized
-    """
+    """Share a synth_group by email."""
     try:
-        permission_level = PermissionLevel(request_body.permission_level)
-        share = sharing_service.share_synth_group(
+        result = sharing_service.share_synth_group_by_email(
             synth_group_id=synth_group_id,
             owner_id=current_user_id,
-            target_user_id=request_body.user_id,
-            permission_level=permission_level,
+            email=request_body.email,
         )
-
-        # Get user info for response
-        shares_list = sharing_service.list_synth_group_shares(
-            synth_group_id, current_user_id
-        )
-
-        # Find the newly created share
-        for share_data in shares_list:
-            if share_data["user_id"] == request_body.user_id:
-                return ShareResponse(
-                    **share_data,
-                    experiment_id=synth_group_id,  # Reuse field for synth_group_id
-                )
-
-        # Fallback if not found in list
-        return ShareResponse(
-            share_id=str(share.id),
-            experiment_id=synth_group_id,  # Reuse field for synth_group_id
-            user_id=str(share.user_id),
-            permission_level=share.permission_level.value,
-            granted_at=share.granted_at,
-            granted_by_id=str(share.granted_by_id),
-        )
+        return ShareResultResponse(**result)
 
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to share synth_group: {str(e)}",
         )
 
 
@@ -552,84 +367,40 @@ async def list_synth_group_shares(
     current_user_id: str = Depends(get_current_user_id),
     sharing_service: SharingService = Depends(get_sharing_service),
 ):
-    """List all users who have access to a synth_group.
-
-    Args:
-        synth_group_id: Synth group ID
-        current_user_id: Current authenticated user (owner)
-        sharing_service: Sharing service dependency
-
-    Returns:
-        List of shares with user information
-
-    Raises:
-        HTTPException: If validation fails or user not authorized
-    """
+    """List all users and pending invites for a synth_group."""
     try:
-        shares_list = sharing_service.list_synth_group_shares(
-            synth_group_id, current_user_id
-        )
-
-        share_responses = [
-            ShareResponse(
-                **share_data,
-                experiment_id=synth_group_id,  # Reuse field for synth_group_id
-            )
-            for share_data in shares_list
-        ]
-
-        return ShareListResponse(
-            experiment_id=synth_group_id,  # Reuse field for synth_group_id
-            shares=share_responses,
-        )
+        result = sharing_service.list_synth_group_shares(synth_group_id, current_user_id)
+        return ShareListResponse(resource_id=synth_group_id, **result)
 
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list shares: {str(e)}",
-        )
 
 
-@router.delete("/synth-groups/{synth_group_id}/shares/{user_id}")
+@router.delete("/synth-groups/{synth_group_id}/shares")
 async def revoke_synth_group_share(
     synth_group_id: str,
-    user_id: str,
+    email: str,
     current_user_id: str = Depends(get_current_user_id),
     sharing_service: SharingService = Depends(get_sharing_service),
 ):
-    """Revoke synth_group access from a user.
-
-    Args:
-        synth_group_id: Synth group ID
-        user_id: User ID to revoke access from
-        current_user_id: Current authenticated user (owner)
-        sharing_service: Sharing service dependency
-
-    Returns:
-        Success message
-
-    Raises:
-        HTTPException: If validation fails or user not authorized
-    """
+    """Revoke synth_group access by email."""
     try:
         success = sharing_service.revoke_synth_group_share(
             synth_group_id=synth_group_id,
             owner_id=current_user_id,
-            target_user_id=user_id,
+            target_email=email,
         )
 
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Share not found for user {user_id}",
+                detail=f"Share not found for {email}",
             )
 
-        return {"message": f"Access revoked for user {user_id}"}
+        return {"message": f"Access revoked for {email}"}
 
     except ValueError as e:
         raise HTTPException(
@@ -638,8 +409,3 @@ async def revoke_synth_group_share(
         )
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to revoke share: {str(e)}",
-        )

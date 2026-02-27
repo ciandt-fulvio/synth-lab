@@ -123,3 +123,47 @@ class SynthGroupShare:
             "granted_at": self.granted_at,
             "granted_by_id": str(self.granted_by_id),
         }
+
+
+@dataclass
+class PendingInvite:
+    """Pending invite for a user who hasn't registered yet.
+
+    Attributes:
+        id: Unique invite identifier
+        resource_type: Type of resource ('experiment' or 'synth_group')
+        resource_id: ID of the resource
+        invited_email: Email of the invited user
+        invited_by_id: ID of user who created the invite
+        created_at: When invite was created
+    """
+
+    resource_type: str
+    resource_id: str
+    invited_email: str
+    invited_by_id: str
+    id: str = field(default_factory=lambda: str(uuid4()))
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+
+    def __post_init__(self):
+        """Validate invite data."""
+        if self.resource_type not in ("experiment", "synth_group"):
+            raise ValueError("resource_type must be 'experiment' or 'synth_group'")
+        if not self.resource_id or not self.resource_id.strip():
+            raise ValueError("resource_id is required")
+        if not self.invited_email or not self.invited_email.strip():
+            raise ValueError("invited_email is required")
+        self.invited_email = self.invited_email.lower().strip()
+        if isinstance(self.id, UUID):
+            self.id = str(self.id)
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary."""
+        return {
+            "id": self.id,
+            "resource_type": self.resource_type,
+            "resource_id": self.resource_id,
+            "invited_email": self.invited_email,
+            "invited_by_id": self.invited_by_id,
+            "created_at": self.created_at,
+        }

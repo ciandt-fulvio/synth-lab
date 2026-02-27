@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useExperiment, useDeleteExperiment } from '@/hooks/use-experiments';
+import { ShareDialog } from '@/components/shared/ShareDialog';
 import { NewInterviewFromExperimentDialog } from '@/components/experiments/NewInterviewFromExperimentDialog';
 import { MaterialUpload } from '@/components/experiments/MaterialUpload';
 import { MaterialGallery } from '@/components/experiments/MaterialGallery';
@@ -44,6 +45,7 @@ import {
   FlaskConical,
   ArrowLeft,
   Trash2,
+  Share2,
   Info,
   Users,
   Paperclip,
@@ -90,6 +92,7 @@ export default function ExperimentDetail() {
   const [isNewInterviewOpen, setIsNewInterviewOpen] = useState(false);
   const [interviewPage, setInterviewPage] = useState(0);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isGeneratingGuide, setIsGeneratingGuide] = useState(false);
   const [isGuideViewerOpen, setIsGuideViewerOpen] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -282,6 +285,10 @@ export default function ExperimentDetail() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsShareDialogOpen(true)}>
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Compartilhar
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setIsDeleteDialogOpen(true)}
                   className="text-red-600 focus:text-red-600 focus:bg-red-50"
@@ -693,6 +700,14 @@ export default function ExperimentDetail() {
         markdownContent={guideData?.markdown_content}
         isLoading={isGuideLoading}
         status={isGuideLoading ? 'generating' : 'completed'}
+      />
+
+      {/* Share Dialog */}
+      <ShareDialog
+        open={isShareDialogOpen}
+        onOpenChange={setIsShareDialogOpen}
+        experimentId={id ?? ''}
+        experimentName={experiment.name}
       />
 
       {/* Delete Confirmation Dialog */}
