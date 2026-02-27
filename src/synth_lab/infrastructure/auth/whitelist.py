@@ -4,9 +4,23 @@ Parses and validates user emails against a whitelist that supports:
 - Exact email matches: user@example.com
 - Domain matches: @company.com (matches any email from that domain)
 
-Configuration via WHITELIST environment variable (comma-separated).
+Configuration:
+- WHITELIST_FILE env var: path to a file with comma-separated entries (hot-reloaded)
+- WHITELIST env var: comma-separated entries (fallback, requires restart)
+
+References:
+    - os.getenv: https://docs.python.org/3/library/os.html#os.getenv
 """
-from typing import Set, Tuple
+import os
+from pathlib import Path
+from typing import Optional, Set, Tuple
+
+from loguru import logger
+
+# Module-level cache for file-based whitelist
+_whitelist_cache: Optional[Tuple[Set[str], Set[str]]] = None
+_whitelist_cache_mtime: float = 0.0
+_whitelist_file_path: Optional[str] = None
 
 
 def parse_whitelist(whitelist_str: str) -> Tuple[Set[str], Set[str]]:
@@ -34,7 +48,9 @@ def parse_whitelist(whitelist_str: str) -> Tuple[Set[str], Set[str]]:
     emails: Set[str] = set()
     domains: Set[str] = set()
 
-    entries = [entry.strip() for entry in whitelist_str.split(",")]
+    # Support both comma and newline as separators
+    normalized = whitelist_str.replace("\n", ",").replace("\r", ",")
+    entries = [entry.strip() for entry in normalized.split(",")]
 
     for entry in entries:
         if not entry:
@@ -96,22 +112,81 @@ def is_whitelisted(email: str, emails: Set[str], domains: Set[str]) -> bool:
     return False
 
 
+def _load_whitelist_from_file(file_path: str) -> Tuple[Set[str], Set[str]]:
+    """Load whitelist from file, using cache if file hasn't changed.
+
+    Checks file modification time to avoid re-parsing unchanged files.
+
+    Args:
+        file_path: Path to whitelist file (comma-separated entries)
+
+    Returns:
+        Tuple of (emails_set, domains_set)
+    """
+    global _whitelist_cache, _whitelist_cache_mtime
+
+    if not os.path.isfile(file_path):
+        logger.warning(f"Whitelist file not found or not a file: {file_path}")
+        if _whitelist_cache is not None:
+            return _whitelist_cache
+        return (set(), set())
+
+    try:
+        mtime = os.path.getmtime(file_path)
+    except OSError:
+        logger.warning(f"Whitelist file not accessible: {file_path}")
+        if _whitelist_cache is not None:
+            return _whitelist_cache
+        return (set(), set())
+
+    if _whitelist_cache is not None and mtime == _whitelist_cache_mtime:
+        return _whitelist_cache
+
+    content = Path(file_path).read_text().strip()
+    _whitelist_cache = parse_whitelist(content)
+    _whitelist_cache_mtime = mtime
+    logger.info(
+        f"Whitelist reloaded from {file_path}: "
+        f"{len(_whitelist_cache[0])} emails, {len(_whitelist_cache[1])} domains"
+    )
+    return _whitelist_cache
+
+
 def load_whitelist_from_env() -> Tuple[Set[str], Set[str]]:
-    """Load and parse whitelist from WHITELIST environment variable.
+    """Load and parse whitelist from file or environment variable.
+
+    Priority:
+        1. WHITELIST_FILE env var → reads from file (hot-reloaded on change)
+        2. WHITELIST env var → static value (requires restart)
 
     Returns:
         Tuple of (emails_set, domains_set)
 
     Raises:
-        ValueError: If WHITELIST environment variable is not set
+        ValueError: If neither WHITELIST_FILE nor WHITELIST is configured
     """
-    import os
+    global _whitelist_file_path
 
+    # Cache the file path lookup (env var won't change)
+    if _whitelist_file_path is None:
+        _whitelist_file_path = os.getenv("WHITELIST_FILE", "")
+
+    if _whitelist_file_path and os.path.isfile(_whitelist_file_path):
+        return _load_whitelist_from_file(_whitelist_file_path)
+
+    if _whitelist_file_path:
+        logger.warning(
+            f"WHITELIST_FILE={_whitelist_file_path} not found or not a file, "
+            "falling back to WHITELIST env var"
+        )
+
+    # Fallback to WHITELIST env var
     whitelist_str = os.getenv("WHITELIST", "")
     if not whitelist_str:
         raise ValueError(
-            "WHITELIST environment variable is required. "
-            "Set it to a comma-separated list of emails and domains. "
+            "WHITELIST or WHITELIST_FILE environment variable is required. "
+            "Set WHITELIST to a comma-separated list of emails and domains, "
+            "or WHITELIST_FILE to a path containing the whitelist. "
             "Example: WHITELIST=user@example.com,@company.com"
         )
 
