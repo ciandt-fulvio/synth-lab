@@ -30,6 +30,8 @@ src/synth_lab/
 │   ├── experiment_service.py
 │   ├── synth_service.py
 │   ├── material_service.py       # Upload S3, thumbnails, descrição IA
+│   ├── quantitative_analysis_service.py  # Modelo causal, simulação, relatório
+│   ├── simulation_engine.py      # Motor de simulação DAG
 │   ├── research_agentic/         # Subdomínio: entrevistas
 │   └── research_prfaq/           # Subdomínio: PR-FAQ
 ├── repositories/
@@ -99,10 +101,10 @@ Service lança exceção de domínio → Router deixa subir → `api/errors.py` 
 ### Migrações (Alembic)
 
 ```bash
-make alembic-upgrade          # Aplicar migrações
-make alembic-downgrade        # Rollback
-make alembic-revision MSG="add column"  # Criar nova migração
+make db-migrate MSG="add column"  # Criar nova migração (e aplicar)
 ```
+
+Migrações ficam em `src/synth_lab/infrastructure/migrations/versions/`. Testes usam container isolado que aplica migrações automaticamente.
 
 ---
 
@@ -130,6 +132,7 @@ frontend/src/
 │   ├── ui/                    # shadcn/ui (NÃO EDITAR)
 │   ├── shared/                # Componentes genéricos
 │   ├── experiments/           # Componentes de experiments
+│   ├── quantitative/          # Análise quantitativa (DAG, simulação, perfis)
 │   └── synths/                # Componentes de synths
 ├── hooks/                     # useExperiments, useSynths, useTags, etc.
 ├── services/

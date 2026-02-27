@@ -46,7 +46,7 @@ API REST construída com FastAPI. Documentação interativa disponível em `/doc
 | GET | `/synths/{synth_id}/avatar` | Download avatar PNG |
 | GET | `/synths/fields` | Campos disponíveis para filtros |
 
-### Experiments (11)
+### Experiments (7)
 
 | Método | Path | Descrição |
 |--------|------|-----------|
@@ -55,22 +55,10 @@ API REST construída com FastAPI. Documentação interativa disponível em `/doc
 | GET | `/experiments/{id}` | Detalhes (inclui interviews) |
 | PUT | `/experiments/{id}` | Atualizar nome/hipótese/descrição |
 | DELETE | `/experiments/{id}` | Deletar experimento |
-| PUT | `/experiments/{id}/scorecard` | Atualizar scorecard |
-| POST | `/experiments/estimate-scorecard` | Estimar scorecard via IA (sem experimento) |
-| POST | `/experiments/{id}/estimate-scorecard` | Estimar scorecard via IA (com experimento) |
-| POST | `/experiments/{id}/interviews` | Criar entrevista |
-| GET | `/experiments/{id}/interviews/auto` | Obter auto-entrevista |
-| POST | `/experiments/{id}/interviews/auto` | Criar auto-entrevista (5 melhores + 5 piores) |
+| POST | `/experiments/{id}/interviews` | Criar entrevista (`synth_ids`, `synth_count`, `synth_selection_type`: random/propensos/resistentes/indecisos/sensiveis) |
+| POST | `/experiments/{id}/interviews/auto` | Criar auto-entrevista |
 
-### Topics (3)
-
-| Método | Path | Descrição |
-|--------|------|-----------|
-| GET | `/topics/list` | Listar topic guides |
-| GET | `/topics/{topic_name}` | Detalhes do topic (script, files) |
-| GET | `/topics/{topic_name}/research` | Research executions do topic |
-
-### Research (7)
+### Research (6)
 
 | Método | Path | Descrição |
 |--------|------|-----------|
@@ -79,8 +67,30 @@ API REST construída com FastAPI. Documentação interativa disponível em `/doc
 | GET | `/research/{exec_id}/transcripts` | Listar transcrições |
 | GET | `/research/{exec_id}/transcripts/{synth_id}` | Transcrição específica |
 | POST | `/research/{exec_id}/summary/generate` | Gerar summary |
-| POST | `/research/execute` | Executar research (batch de entrevistas) |
 | GET | `/research/{exec_id}/stream` | Stream SSE de mensagens |
+
+### Quantitative Analysis (16)
+
+Prefixo: `/experiments/{experiment_id}/quantitative-analysis`
+
+| Método | Path | Descrição |
+|--------|------|-----------|
+| POST | `/generate` | Gerar modelo causal com LLM |
+| GET | `/model` | Obter modelo causal atual |
+| PATCH | `/edges` | Atualizar edges do DAG |
+| PATCH | `/node-selections` | Atualizar seleção de nós produto/adoção |
+| PATCH | `/product-calibration` | Atualizar calibração de produto |
+| POST | `/simulate` | Rodar simulação single-scenario |
+| POST | `/generate-interview-guide` | Gerar guia de entrevista a partir do modelo causal |
+| POST | `/generate-simulation-summary` | Gerar resumo da simulação com LLM |
+| GET | `/results` | Obter última simulação completa |
+| POST | `/run-batch-simulation` | Rodar batch de cenários (auto-gerados) |
+| GET | `/latest-batch` | Obter último batch de cenários |
+| GET | `/synth-profiles` | Perfis propensos/resistentes dos synths |
+| GET | `/synth-attribute-insights` | Correlações atributo × adoção |
+| GET | `/product-synth-correlations` | Correlações produto × synth |
+| GET | `/scenario-batch/{batch_id}` | Detalhes de um batch específico |
+| GET | `/report` | Relatório LLM do último batch (markdown) |
 
 ### PR-FAQ (3)
 
@@ -99,11 +109,13 @@ API REST construída com FastAPI. Documentação interativa disponível em `/doc
 | POST | `/tags/experiments/{id}/tags` | Adicionar tag a experimento |
 | DELETE | `/tags/experiments/{id}/tags/{tag_name}` | Remover tag de experimento |
 
-### Jobs (1)
+### Synth Groups (3)
 
 | Método | Path | Descrição |
 |--------|------|-----------|
-| GET | `/jobs/{job_id}` | Status de job assíncrono |
+| GET | `/synth-groups` | Listar grupos de synths |
+| POST | `/synth-groups` | Criar grupo |
+| GET | `/synth-groups/{id}` | Detalhes do grupo |
 
 ---
 

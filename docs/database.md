@@ -18,7 +18,11 @@ experiments ──< research_executions ──< transcripts
     ├──1 interview_guide
     ├──< experiment_documents
     ├──< experiment_materials
-    └──<> tags (via experiment_tags)
+    ├──<> tags (via experiment_tags)
+    ├──1 causal_models ──< causal_edges
+    ├──< simulation_batches ──< simulation_runs
+    ├──< analysis_interpretations
+    └──< simulation_reports
 
 synth_groups ──< synths (via group_id)
 ```
@@ -70,19 +74,21 @@ Relacionamentos: `interview_guide` (1:1), `research_executions` (1:N), `experime
 
 | Coluna | Tipo | Descrição |
 |--------|------|-----------|
-| exec_id | TEXT PK | Ex: "batch_compra-amazon_20251219_110534" |
-| experiment_id | VARCHAR(50) FK | → experiments(id) (opcional) |
-| topic_name | TEXT NOT NULL | Nome do topic guide |
-| status | TEXT NOT NULL | pending/running/generating_summary/completed/failed |
+| exec_id | VARCHAR(100) PK | Ex: "batch_compra-amazon_20251219_110534" |
+| experiment_id | VARCHAR(50) FK | → experiments(id) SET NULL on delete |
+| topic_name | VARCHAR(200) NOT NULL | Nome do topic guide |
+| status | VARCHAR(50) NOT NULL | pending/running/generating_summary/completed/failed |
 | synth_count | INTEGER NOT NULL | Total de synths |
 | successful_count | INTEGER | Entrevistas OK |
 | failed_count | INTEGER | Entrevistas falhas |
-| model | TEXT | Modelo LLM usado |
-| summary_content | TEXT | Summary em markdown |
-| started_at | TEXT NOT NULL | ISO 8601 |
-| completed_at | TEXT | ISO 8601 |
+| model | VARCHAR(50) | Modelo LLM usado |
+| max_turns | INTEGER | Máximo de turnos por entrevista |
+| additional_context | TEXT | Contexto adicional passado à entrevista |
+| synth_selection_type | VARCHAR(50) | Estratégia de seleção: random/propensos/resistentes/indecisos/sensiveis |
+| started_at | VARCHAR(50) NOT NULL | ISO 8601 |
+| completed_at | VARCHAR(50) | ISO 8601 |
 
-Índices: `topic_name`, `status`, `started_at DESC`
+Índices: `topic_name`, `status`, `started_at`, `experiment_id`
 
 ### transcripts
 
@@ -110,25 +116,46 @@ Materiais de experimentos (imagens, vídeos, documentos) com upload S3, thumbnai
 
 Documentos gerados (summaries, PR-FAQs) vinculados a experimentos.
 
+### causal_models + causal_edges
+
+Modelo causal DAG de um experimento. `causal_models` armazena nós (fatores) com tipos enriquecidos; `causal_edges` armazena as arestas direcionadas com pesos/força.
+
+### simulation_batches + simulation_runs
+
+`simulation_batches`: batch de cenários gerados automaticamente para um experimento. `simulation_runs`: resultado individual de cada synth × cenário, com taxa de adoção e outcomes JSONB.
+
+### analysis_interpretations
+
+Interpretações geradas por LLM dos resultados de simulação (summary narrativo).
+
+### simulation_reports
+
+Relatório analítico gerado por LLM ao fim de cada batch, com drivers de adoção, incertezas críticas e agenda de entrevistas. 1 relatório por batch.
+
 ## ORM Models
 
 ```
 models/orm/
-├── base.py          # Base, JSONVariant, mixins
-├── experiment.py    # Experiment, InterviewGuide
-├── synth.py         # Synth, SynthGroup
-├── research.py      # ResearchExecution, Transcript
-├── document.py      # ExperimentDocument
-└── share.py         # ExperimentShare, SynthGroupShare
+├── base.py             # Base, JSONVariant, mixins
+├── experiment.py       # Experiment, InterviewGuide
+├── synth.py            # Synth, SynthGroup
+├── research.py         # ResearchExecution, Transcript
+├── document.py         # ExperimentDocument
+├── material.py         # ExperimentMaterial
+├── tag.py              # Tag, ExperimentTag
+├── causal_model.py     # CausalModel, CausalEdge
+├── simulation_run.py   # SimulationBatch, SimulationRun, AnalysisInterpretation, SimulationReport
+├── user.py             # User
+└── share.py            # ExperimentShare, SynthGroupShare
 ```
 
 ## Migrações
 
 ```bash
-make alembic-upgrade                    # Aplicar migrações
-make alembic-downgrade                  # Rollback
-make alembic-revision MSG="add column"  # Nova migração
+make db-migrate MSG="add column"  # Criar e aplicar nova migração
 ```
+
+Migrações ficam em `src/synth_lab/infrastructure/migrations/versions/`.
 
 Testes usam container isolado (`make test`) que aplica migrações automaticamente.
 
