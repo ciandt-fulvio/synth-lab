@@ -123,6 +123,12 @@ export interface ExperimentSummary {
   has_interview_guide: boolean;
   /** Number of linked interviews */
   interview_count: number;
+  /** Number of uploaded materials */
+  materials_count: number;
+  /** Whether simulation batches exist */
+  has_simulation: boolean;
+  /** Whether quantitative analysis (simulation runs) exist */
+  has_quanti: boolean;
   /** Tag names associated with this experiment */
   tags: string[];
   /** Creation timestamp */

@@ -24,7 +24,7 @@ export interface ExperimentsListParams {
   offset?: number;
   search?: string;
   tag?: string;
-  sort_by?: 'created_at' | 'name';
+  sort_by?: 'created_at' | 'updated_at' | 'name';
   sort_order?: 'asc' | 'desc';
 }
 

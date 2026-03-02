@@ -34,6 +34,9 @@ class ExperimentSummary(BaseModel):
         default=False, description="Whether interview guide is configured."
     )
     interview_count: int = Field(default=0, description="Number of linked interviews.")
+    materials_count: int = Field(default=0, description="Number of uploaded materials.")
+    has_simulation: bool = Field(default=False, description="Whether simulation batches exist.")
+    has_quanti: bool = Field(default=False, description="Whether quantitative analysis (simulation runs) exist.")
     tags: list[str] = Field(default_factory=list, description="Tag names associated with this experiment.")
     created_at: datetime = Field(description="Creation timestamp.")
     updated_at: datetime | None = Field(default=None, description="Last update timestamp.")
@@ -181,6 +184,12 @@ session: Session | None = None):
         # Apply sorting
         if params.sort_by == "name":
             order_col = ExperimentORM.name.asc() if params.sort_order == "asc" else ExperimentORM.name.desc()
+        elif params.sort_by == "updated_at":
+            # Sort by updated_at (falling back to created_at for NULLs)
+            from sqlalchemy import func as sa_func
+
+            coalesce_col = sa_func.coalesce(ExperimentORM.updated_at, ExperimentORM.created_at)
+            order_col = coalesce_col.asc() if params.sort_order == "asc" else coalesce_col.desc()
         else:
             # Default: created_at DESC
             order_col = ExperimentORM.created_at.asc() if params.sort_order == "asc" else ExperimentORM.created_at.desc()
@@ -287,6 +296,25 @@ session: Session | None = None):
         self._commit()
         return True
 
+    def touch_updated_at(self, experiment_id: str) -> None:
+        """
+        Update experiment's updated_at timestamp.
+
+        Called when child entities are created (interviews, materials,
+        simulations) to keep the experiment's last-activity time current.
+
+        Args:
+            experiment_id: ID of experiment to touch.
+        """
+        stmt = select(ExperimentORM).where(
+            ExperimentORM.id == experiment_id,
+            ExperimentORM.status == "active")
+        orm_exp = self.session.execute(stmt).scalar_one_or_none()
+        if orm_exp is not None:
+            orm_exp.updated_at = datetime.now(timezone.utc).isoformat()
+            self._flush()
+            self._commit()
+
     def _row_to_experiment(self, row) -> Experiment:
         """Convert a database row to Experiment entity."""
         created_at = row["created_at"]
@@ -362,6 +390,9 @@ session: Session | None = None):
 
     def _orm_to_summary(self, orm_exp: ExperimentORM) -> ExperimentSummary:
         """Convert ORM model to ExperimentSummary."""
+        from synth_lab.models.orm.simulation_run import SimulationBatch as SimulationBatchORM
+        from synth_lab.models.orm.simulation_run import SimulationRun as SimulationRunORM
+
         created_at = orm_exp.created_at
         if isinstance(created_at, str):
             created_at = datetime.fromisoformat(created_at)
@@ -373,6 +404,20 @@ session: Session | None = None):
         # Check relationships via lazy loading
         has_interview_guide = orm_exp.interview_guide is not None
         interview_count = len(orm_exp.research_executions) if orm_exp.research_executions else 0
+        materials_count = len(orm_exp.materials) if orm_exp.materials else 0
+
+        # Check simulation/quanti via direct queries (no relationship on Experiment)
+        has_simulation = self.session.execute(
+            select(SimulationBatchORM.id)
+            .where(SimulationBatchORM.experiment_id == orm_exp.id)
+            .limit(1)
+        ).first() is not None
+
+        has_quanti = self.session.execute(
+            select(SimulationRunORM.id)
+            .where(SimulationRunORM.experiment_id == orm_exp.id)
+            .limit(1)
+        ).first() is not None
 
         # Get tag names from experiment_tags relationship
         tags = [et.tag.name for et in orm_exp.experiment_tags] if orm_exp.experiment_tags else []
@@ -395,6 +440,9 @@ session: Session | None = None):
             synth_group_name=synth_group_name,
             has_interview_guide=has_interview_guide,
             interview_count=interview_count,
+            materials_count=materials_count,
+            has_simulation=has_simulation,
+            has_quanti=has_quanti,
             tags=tags,
             created_at=created_at,
             updated_at=updated_at)

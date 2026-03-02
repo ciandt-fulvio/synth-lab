@@ -11,25 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { useExperiment, useDeleteExperiment } from '@/hooks/use-experiments';
-import { ShareDialog } from '@/components/shared/ShareDialog';
+import { useExperiment } from '@/hooks/use-experiments';
+import { ExperimentActionsMenu } from '@/components/experiments/ExperimentActionsMenu';
 import { NewInterviewFromExperimentDialog } from '@/components/experiments/NewInterviewFromExperimentDialog';
 import { MaterialUpload } from '@/components/experiments/MaterialUpload';
 import { MaterialGallery } from '@/components/experiments/MaterialGallery';
@@ -44,8 +28,6 @@ import {
   Plus,
   FlaskConical,
   ArrowLeft,
-  Trash2,
-  Share2,
   Info,
   Users,
   Paperclip,
@@ -54,7 +36,6 @@ import {
   Loader2,
   Play,
   Activity,
-  MoreVertical,
   Wand2,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -91,8 +72,6 @@ export default function ExperimentDetail() {
   const [searchParams] = useSearchParams();
   const [isNewInterviewOpen, setIsNewInterviewOpen] = useState(false);
   const [interviewPage, setInterviewPage] = useState(0);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isGeneratingGuide, setIsGeneratingGuide] = useState(false);
   const [isGuideViewerOpen, setIsGuideViewerOpen] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -136,7 +115,6 @@ export default function ExperimentDetail() {
   }, [updateUnderline]);
 
   const { data: experiment, isLoading, isError, error } = useExperiment(id ?? '');
-  const deleteMutation = useDeleteExperiment();
   const { data: materials, refetch: refetchMaterials } = useMaterials(id ?? '');
   const { data: documents } = useDocuments(id ?? '');
   const guideMutation = useGenerateInterviewGuide();
@@ -163,23 +141,6 @@ export default function ExperimentDetail() {
       },
     });
   }, [id, guideMutation, setActiveTab]);
-
-  const handleDelete = () => {
-    if (!id) return;
-    deleteMutation.mutate(id, {
-      onSuccess: () => {
-        toast.success('Experimento excluído com sucesso');
-        navigate('/');
-      },
-      onError: (error) => {
-        const message =
-          error instanceof Error
-            ? error.message
-            : 'Erro desconhecido ao excluir experimento';
-        toast.error(message);
-      },
-    });
-  };
 
   // Loading state
   if (isLoading) {
@@ -278,26 +239,11 @@ export default function ExperimentDetail() {
             </div>
 
             {/* Right: Actions dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setIsShareDialogOpen(true)}>
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Compartilhar
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setIsDeleteDialogOpen(true)}
-                  className="text-red-600 focus:text-red-600 focus:bg-red-50"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Deletar Experimento
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ExperimentActionsMenu
+              experimentId={experiment.id}
+              experimentName={experiment.name}
+              onDeleted={() => navigate('/')}
+            />
           </div>
         </div>
 
@@ -702,41 +648,6 @@ export default function ExperimentDetail() {
         status={isGuideLoading ? 'generating' : 'completed'}
       />
 
-      {/* Share Dialog */}
-      <ShareDialog
-        open={isShareDialogOpen}
-        onOpenChange={setIsShareDialogOpen}
-        experimentId={id ?? ''}
-        experimentName={experiment.name}
-      />
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir experimento?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O experimento "{experiment?.name}" será
-              permanentemente removido da listagem.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={deleteMutation.isPending}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-            >
-              {deleteMutation.isPending ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4 mr-2" />
-              )}
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

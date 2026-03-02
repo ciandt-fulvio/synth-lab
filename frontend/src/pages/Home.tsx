@@ -70,12 +70,23 @@ export default function Home() {
   const [sortOption, setSortOption] = useState<SortOption>('recent');
 
   // Convert UI state to API params
-  const listParams = useMemo<ExperimentsListParams>(() => ({
-    search: search || undefined, // Don't send empty string
-    tag: selectedTag || undefined,
-    sort_by: sortOption === 'name' ? 'name' : 'created_at',
-    sort_order: sortOption === 'name' ? 'asc' : 'desc',
-  }), [search, selectedTag, sortOption]);
+  const listParams = useMemo<ExperimentsListParams>(() => {
+    let sort_by: 'updated_at' | 'created_at' | 'name' = 'updated_at';
+    let sort_order: 'asc' | 'desc' = 'desc';
+    if (sortOption === 'name') {
+      sort_by = 'name';
+      sort_order = 'asc';
+    } else if (sortOption === 'created') {
+      sort_by = 'created_at';
+      sort_order = 'desc';
+    }
+    return {
+      search: search || undefined,
+      tag: selectedTag || undefined,
+      sort_by,
+      sort_order,
+    };
+  }, [search, selectedTag, sortOption]);
 
   // Fetch experiments with params
   const { data, isLoading, isError, error, isFetching } = useExperiments(listParams);

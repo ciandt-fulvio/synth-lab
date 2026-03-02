@@ -130,6 +130,9 @@ class ExperimentSummary(BaseModel):
         default=False, description="Whether interview guide is configured."
     )
     interview_count: int = Field(default=0, description="Number of linked interviews.")
+    materials_count: int = Field(default=0, description="Number of uploaded materials.")
+    has_simulation: bool = Field(default=False, description="Whether simulation batches exist.")
+    has_quanti: bool = Field(default=False, description="Whether quantitative analysis exists.")
     tags: list[str] = Field(default_factory=list, description="Tag names associated with this experiment.")
     created_at: datetime = Field(description="Creation timestamp.")
     updated_at: datetime | None = Field(default=None, description="Last update timestamp.")

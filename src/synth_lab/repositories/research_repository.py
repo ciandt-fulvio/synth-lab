@@ -339,6 +339,13 @@ session: Session | None = None):
         self._add(orm_exec)
         self._flush()
         self._commit()
+
+        # Touch parent experiment's updated_at
+        if experiment_id:
+            from synth_lab.repositories.experiment_repository import ExperimentRepository
+
+            exp_repo = ExperimentRepository(session=self.session)
+            exp_repo.touch_updated_at(experiment_id)
         return
     def update_execution_status(
         self,

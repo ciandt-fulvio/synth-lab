@@ -24,7 +24,7 @@ import {
 import { Search, X } from 'lucide-react';
 import { useTags } from '@/hooks/use-tags';
 
-export type SortOption = 'recent' | 'name';
+export type SortOption = 'recent' | 'created' | 'name';
 
 interface ExperimentsFilterProps {
   search: string;
@@ -117,7 +117,8 @@ export function ExperimentsFilter({
           <SelectValue placeholder="Ordenar por" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="recent">Recentes</SelectItem>
+          <SelectItem value="recent">Atividade Recente</SelectItem>
+          <SelectItem value="created">Criação</SelectItem>
           <SelectItem value="name">Nome A-Z</SelectItem>
         </SelectContent>
       </Select>

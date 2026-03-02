@@ -146,6 +146,12 @@ class ExperimentMaterialRepository(BaseRepository):
         self._flush()
         self._commit()
 
+        # Touch parent experiment's updated_at
+        from synth_lab.repositories.experiment_repository import ExperimentRepository
+
+        exp_repo = ExperimentRepository(session=self.session)
+        exp_repo.touch_updated_at(material.experiment_id)
+
         self.logger.info(
             f"Created material {material.id} ({material.file_name}) "
             f"for experiment {material.experiment_id}"

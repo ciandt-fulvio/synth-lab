@@ -150,7 +150,7 @@ async def list_experiments(
     offset: int = Query(default=0, ge=0, description="Number of items to skip"),
     search: str | None = Query(default=None, max_length=200, description="Search by name or hypothesis"),
     tag: str | None = Query(default=None, max_length=50, description="Filter by tag name"),
-    sort_by: str = Query(default="created_at", pattern="^(created_at|name)$", description="Sort field"),
+    sort_by: str = Query(default="updated_at", pattern="^(created_at|updated_at|name)$", description="Sort field"),
     sort_order: str = Query(default="desc", pattern="^(asc|desc)$", description="Sort order")
 ) -> PaginatedExperimentSummary:
     """
@@ -184,6 +184,9 @@ async def list_experiments(
             synth_group_name=exp.synth_group_name,
             has_interview_guide=exp.has_interview_guide,
             interview_count=exp.interview_count,
+            materials_count=exp.materials_count,
+            has_simulation=exp.has_simulation,
+            has_quanti=exp.has_quanti,
             tags=exp.tags,
             created_at=exp.created_at,
             updated_at=exp.updated_at)
